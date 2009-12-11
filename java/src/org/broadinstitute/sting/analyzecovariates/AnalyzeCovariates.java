@@ -3,6 +3,8 @@ package org.broadinstitute.sting.analyzecovariates;
 import org.broadinstitute.sting.gatk.walkers.recalibration.*;
 import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,33 +15,40 @@ import java.io.*;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Dec 1, 2009
+ *
+ * Create collapsed versions of the recal csv file and call R scripts to plot residual error versus the various covariates.
  */
 
-public class AnalyzeCovariates {
+class AnalyzeCovariatesCLP extends CommandLineProgram {
 
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    private static String RECAL_FILE = "output.recal_data.csv";
-    private static String OUTPUT_DIR = "analyzeCovariates/";
-    private static String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
-    private static String PATH_TO_RESOURCES = "R/";
-    private static int IGNORE_QSCORES_LESS_THAN = 5;
-    private static int NUM_READ_GROUPS_TO_PROCESS = -1; // -1 means process all read groups
+
+    @Argument(fullName = "recal_file", shortName = "recalFile", doc = "The input recal csv file to analyze", required = false)
+    private String RECAL_FILE = "output.recal_data.csv";
+    @Argument(fullName = "output_dir", shortName = "outputDir", doc = "The directory in which to output all the plots and intermediate data files", required = false)
+    private String OUTPUT_DIR = "analyzeCovariates/";
+    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
+    @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
+    private String PATH_TO_RESOURCES = "R/";
+    @Argument(fullName = "ignoreQ", shortName = "ignoreQ", doc = "Ignore bases with reported quality less than this number.", required = false)
+    private int IGNORE_QSCORES_LESS_THAN = 5;
+    @Argument(fullName = "numRG", shortName = "numRG", doc = "Only process N read groups. Default value: -1 (process all read groups)", required = false)            
+    private int NUM_READ_GROUPS_TO_PROCESS = -1; // -1 means process all read groups
 
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    private static AnalysisDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
-    private static ArrayList<Covariate> requestedCovariates; // List of covariates to be used in this calculation
-    private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
-    private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
-    private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
+    private AnalysisDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
+    private ArrayList<Covariate> requestedCovariates; // List of covariates to be used in this calculation
+    private final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
+    private final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
+    private final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
 
-    public static void main(String[] args) {
+    protected int execute() {
 
-        // parse command line arguments
-        parseArguments( args );
         // create the output directory where all the data tables and plots will go
         try {
             Process p = Runtime.getRuntime().exec("mkdir " + OUTPUT_DIR);
@@ -64,51 +73,10 @@ public class AnalyzeCovariates {
         callRScripts();
         System.out.println("...Done!");
 
+        return 1;
     }
 
-    private static void parseArguments( String[] args ) {
-        int iii = 0;
-        String arg;
-
-        try {
-            while( iii < args.length && args[iii].startsWith("-") ) {
-                arg = args[iii++];
-
-                if( arg.equals( "-recalFile" ) ) {
-                    RECAL_FILE = args[iii++];
-                } else if( arg.equals( "-Rscript" ) ) {
-                    PATH_TO_RSCRIPT = args[iii++];
-                } else if( arg.equals( "-resources" ) ) {
-                    PATH_TO_RESOURCES = args[iii++];
-                } else if( arg.equals( "-ignoreQ" ) ) {
-                    IGNORE_QSCORES_LESS_THAN = Integer.parseInt( args[iii++] );
-                } else if (arg.equals( "-numRG" ) ) {
-                    NUM_READ_GROUPS_TO_PROCESS = Integer.parseInt( args[iii++] ); 
-                } else if( arg.equals( "-outputDir" ) ) {
-                    OUTPUT_DIR = args[iii++];
-                } else {
-                    iii = -1;
-                    break;
-                }
-            }
-
-            if( iii != args.length ) {
-                throw new RuntimeException( "Exception" );
-            }
-        } catch(Exception e) {
-            System.out.println( "Usage: [-option param] \n" );
-            System.out.println(" Available options:");
-            System.out.println("\t-recalFile <path>\tPath to input recal csv file. Default value: output.recal_data.csv");
-            System.out.println("\t-Rscript <path>\t\tPath to your implementation of Rscript. Default value: /broad/tools/apps/R-2.6.0/bin/Rscript");
-            System.out.println("\t-resources <path>\tPath to resources folder holding the Sting R scripts. Default value: R/");
-            System.out.println("\t-outputDir <path>\tWhere to put the output plots. Default value: analyzeCovariates/");
-            System.out.println("\t-ignoreQ <int>\t\tIgnore bases with reported quality less than this number. Default value: 5");
-            System.out.println("\t-numRG <int>\t\tOnly process N read groups. Default value: -1 (process all read groups)");
-            System.exit(-1);
-        }
-    }
-
-    private static void initializeData() {
+    private void initializeData() {
 
         // Get a list of all available covariates
         List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
@@ -191,7 +159,7 @@ public class AnalyzeCovariates {
         }
     }
 
-    private static void addCSVData(String line) {
+    private void addCSVData(String line) {
         String[] vals = line.split(",");
 
         // Check if the data line is malformed, for example if the read group string contains a comma then it won't be parsed correctly
@@ -214,7 +182,7 @@ public class AnalyzeCovariates {
 
     }
 
-    private static void writeDataTables() {
+    private void writeDataTables() {
 
         int numReadGroups = 0;
 
@@ -268,7 +236,7 @@ public class AnalyzeCovariates {
         }
     }
 
-    private static void callRScripts() {
+    private void callRScripts() {
 
         int numReadGroups = 0;
         
@@ -303,5 +271,13 @@ public class AnalyzeCovariates {
                 break;
             }
         }
+    }
+}
+
+public class AnalyzeCovariates {
+    public static void main(String args[]) {
+        AnalyzeCovariatesCLP clp = new AnalyzeCovariatesCLP();
+        CommandLineProgram.start( clp, args );
+        System.exit(0);
     }
 }
