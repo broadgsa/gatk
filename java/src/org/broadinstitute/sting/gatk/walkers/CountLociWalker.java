@@ -5,8 +5,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 /**
- * Basic example of a locus-backed analysis.  Walks over the input data set, calculating the number of
- * covered loci for diagnostic purposes.
+ * Walks over the input data set, calculating the total number of covered loci for diagnostic purposes.
+ * Simplest example of a locus walker.
  */
 public class CountLociWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

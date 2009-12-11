@@ -37,7 +37,7 @@ import java.util.ArrayList;
  */
 
 /**
- * Diagnostics analysis.  Checks all reads passed through the system to ensure that
+ * Checks all reads passed through the system to ensure that
  * the same read is not passed to the walker multiple consecutive times.
  * @author aaron
  */

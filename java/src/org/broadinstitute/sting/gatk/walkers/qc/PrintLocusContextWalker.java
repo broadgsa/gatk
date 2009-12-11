@@ -11,7 +11,7 @@ import java.util.Arrays;
 import net.sf.samtools.SAMRecord;
 
 /**
- * Diagnostics analysis.  At each locus in the input data set, prints the reference base, genomic location, and
+ * At each locus in the input data set, prints the reference base, genomic location, and
  * all aligning reads in a compact but human-readable form. 
  */
 public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integer> implements TreeReducible<Integer> {

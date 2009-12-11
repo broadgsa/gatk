@@ -72,7 +72,7 @@ public class HelpExtractorDoclet {
     private static void renderHelpText(String elementName, Doc element, PrintStream out) {
         // Extract overrides from the doc tags.
         String overrideName = null;
-        String overrideDescription = element.commentText();
+        String overrideDescription = element.firstSentenceTags().length > 0 ? element.firstSentenceTags()[0].text() : "";
         for(Tag tag: element.tags()) {
             if(tag.name().equals("@"+DisplayNameTaglet.NAME)) {
                 if(overrideName != null)

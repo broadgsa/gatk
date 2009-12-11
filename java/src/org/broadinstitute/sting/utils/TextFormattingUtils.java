@@ -16,7 +16,7 @@ public class TextFormattingUtils {
     /**
      * The default line width, for GATK output written to the screen.
      */
-    public static final int DEFAULT_LINE_WIDTH = 100;
+    public static final int DEFAULT_LINE_WIDTH = 120;
 
     /**
      * Simple implementation of word-wrap for a line of text.  Idea and
