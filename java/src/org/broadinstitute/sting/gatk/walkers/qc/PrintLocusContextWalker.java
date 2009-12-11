@@ -11,11 +11,8 @@ import java.util.Arrays;
 import net.sf.samtools.SAMRecord;
 
 /**
- * Created by IntelliJ IDEA.
- * User: hanna
- * Date: 13 Apr, 2009
- * Time: 11:23:14 AM
- * To change this template use File | Settings | File Templates.
+ * Diagnostics analysis.  At each locus in the input data set, prints the reference base, genomic location, and
+ * all aligning reads in a compact but human-readable form. 
  */
 public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integer> implements TreeReducible<Integer> {
     public AlignmentContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

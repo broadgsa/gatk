@@ -37,12 +37,9 @@ import java.util.ArrayList;
  */
 
 /**
- * 
- * @author aaron 
- * 
- * Class ReadValidationWalker
- *
- * A descriptions should go here. Blame aaron if it's missing.
+ * Diagnostics analysis.  Checks all reads passed through the system to ensure that
+ * the same read is not passed to the walker multiple consecutive times.
+ * @author aaron
  */
 public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
 
