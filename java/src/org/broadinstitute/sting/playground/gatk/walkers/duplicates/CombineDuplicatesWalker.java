@@ -12,11 +12,8 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
 
 /**
- * Created by IntelliJ IDEA.
- * User: mdepristo
- * Date: Feb 22, 2009
- * Time: 2:52:28 PM
- * To change this template use File | Settings | File Templates.
+ * Process the input bam file, optionally emitting all the unique reads found, and emitting the combined duplicate reads to
+ * the specified output BAM location.  If no output location is specified, the reads are written to STDOUT. 
  */
 public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileWriter> {
     @Argument(fullName="outputBAM", shortName="outputBAM", required=false, doc="BAM File to write combined duplicates to")
@@ -29,28 +26,24 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
             doc="The maximum Q score allowed for combined reads, reflects the background error rate giving rise to perfect bases that don't correspond to the reference")
     public int MAX_QUALITY_SCORE = 50;
 
-    final boolean DEBUG = false;
-
+    /**
+     * do we want to include unqiue reads?
+     * @return the user specified command line argument INCLUDE_UNIQUE_READS
+     */
     public boolean mapUniqueReadsTooP() {
         return INCLUDE_UNIQUE_READS;
     }
 
-    // -----------------------------------------------------------------------------------------------
-    // Standard i/o reduce
-    //
-    public void onTraversalDone(SAMFileWriter output) {
-        if ( output != null ) {
-            output.close();
-        }
-    }
-
+    /**
+     * start the walker with the command line argument specified SAMFileWriter
+     * @return a sam file writer, which may be null
+     */
     public SAMFileWriter reduceInit() {
         return outputBAM;
     }
 
     /**
-     * 
-     *
+     * emit the read that was produced by combining the dupplicates
      */
     public SAMFileWriter reduce(SAMRecord read, SAMFileWriter output) {
         if ( output != null ) {
@@ -67,11 +60,12 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
      * set, it's considered unique and returned.  If there's more than one, the N-way combine
      * duplicate function is invoked.
      *
-     * @param loc
-     * @param refBases
-     * @param context
-     * @param duplicateReads
-     * @return
+     * @param loc the genome loc
+     * @param refBases the reference bases for the given locus
+     * @param context the alignment context that has the reads information
+     * @param duplicateReads a list of the dupplicate reads at this locus
+     * @param uniqueReads the unique read list at this locus
+     * @return a read that combines the dupplicate reads at this locus
      */
     public SAMRecord map(GenomeLoc loc, byte[] refBases, AlignmentContext context,
                          List<SAMRecord> uniqueReads,

@@ -47,14 +47,6 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- *
- * User: aaron
- * Date: Apr 24, 2009
- * Time: 10:35:22 AM
- */
-
-
-/**
  * @author Mark DePristo
  * @version 0.1
  *          <p/>
