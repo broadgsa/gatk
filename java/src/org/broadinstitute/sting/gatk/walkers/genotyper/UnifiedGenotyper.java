@@ -221,9 +221,9 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(refContext, context, call.first);
+                annotations = VariantAnnotator.getAllAnnotations(refContext, stratifiedContexts, call.first);
             else
-                annotations = VariantAnnotator.getAnnotations(refContext, context, call.first);
+                annotations = VariantAnnotator.getAnnotations(refContext, stratifiedContexts, call.first);
             ((ArbitraryFieldsBacked)call.first).setFields(annotations);
         }
 
@@ -232,12 +232,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
     private static boolean isValidDeletionFraction(double d) {
         return ( d >= 0.0 && d <= 1.0 );
-    }
-
-    private static AlignmentContext filterAlignmentContext(AlignmentContext context) {
-        return new AlignmentContext(context.getLocation(),
-                                    context.getPileup().getPileupWithoutMappingQualityZeroReads(),
-                                    0);
     }
 
     public Integer reduceInit() { return 0; }

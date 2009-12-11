@@ -1,17 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.genotype.Variation;
+
+import java.util.Map;
 
 
 public interface VariantAnnotation {
 
-    // return the annotation for the given locus data (return null for no annotation)
-    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation);
-
-    // return true if you want to use a context with mapping quality zero reads, false otherwise
-    public boolean useZeroQualityReads();
+    // return the annotation for the given variation and context split by sample (return null for no annotation)
+    public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation);
 
     // return the INFO key
     public String getKeyName();

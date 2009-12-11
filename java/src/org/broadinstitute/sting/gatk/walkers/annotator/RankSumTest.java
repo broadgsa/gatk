@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -8,13 +9,14 @@ import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
 
 public class RankSumTest implements VariantAnnotation {
     private final static boolean DEBUG = false;
     private static final double minPValue = 1e-10;
 
-    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation) {
+    public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
 
         if ( !(variation instanceof VariantBackedByGenotype) )
             return null;
@@ -22,18 +24,20 @@ public class RankSumTest implements VariantAnnotation {
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
-        // this test doesn't make sense for homs
-        Genotype genotype = VariantAnnotator.getFirstHetVariant(genotypes);
-        if ( genotype == null )
-            return null;
-
         ArrayList<Integer> refQuals = new ArrayList<Integer>();
         ArrayList<Integer> altQuals = new ArrayList<Integer>();
 
-        if ( genotype instanceof ReadBacked && ((ReadBacked)genotype).getPileup() != null )
-            fillQualsFromGenotypes(ref.getBase(), variation.getAlternativeBaseForSNP(), genotypes, refQuals, altQuals);
-        else
-            fillQualsFromPileup(ref.getBase(), variation.getAlternativeBaseForSNP(), pileup, refQuals, altQuals);
+        for ( Genotype genotype : genotypes ) {
+            // we care only about het calls
+            if ( genotype.isHet() ) {
+                String sample = ((SampleBacked)genotype).getSampleName();
+                StratifiedAlignmentContext context = stratifiedContexts.get(sample);
+                if ( context == null )
+                    continue;
+
+                fillQualsFromPileup(ref.getBase(), variation.getAlternativeBaseForSNP(), context.getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup(), refQuals, altQuals);
+            }
+        }
 
         WilcoxonRankSum wilcoxon = new WilcoxonRankSum();
         for ( Integer qual : altQuals )
@@ -44,7 +48,7 @@ public class RankSumTest implements VariantAnnotation {
         // for R debugging
         if ( DEBUG ) {
             wilcoxon.DEBUG = DEBUG;
-            System.out.printf("%s%n", pileup.getLocation());
+            System.out.printf("%s%n", ref.getLocus());
             System.out.printf("alt <- c(%s)%n", Utils.join(",", altQuals));
             System.out.printf("ref <- c(%s)%n", Utils.join(",", refQuals));
         }
@@ -78,20 +82,4 @@ public class RankSumTest implements VariantAnnotation {
                 altQuals.add((int)p.getQual());
         }
     }
-
-    private void fillQualsFromGenotypes(char ref, char alt, List<Genotype> genotypes, List<Integer> refQuals, List<Integer> altQuals) {
-        // accumulate quals
-        for ( Genotype g : genotypes ) {
-            if ( !(g instanceof ReadBacked) )
-                continue;
-
-            ReadBackedPileup pileup = ((ReadBacked)g).getPileup();
-            if ( pileup == null )
-                continue;
-
-            fillQualsFromPileup(ref, alt, pileup, refQuals, altQuals);
-        }
-    }
-
-    public boolean useZeroQualityReads() { return false; }
 }

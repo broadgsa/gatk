@@ -1,14 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.Variation;
+
+import java.util.Map;
 
 
 public class HomopolymerRun extends StandardVariantAnnotation {
 
-    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation) {
+    public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
 
         if ( !variation.isBiallelic() || !variation.isSNP() )
             return null;

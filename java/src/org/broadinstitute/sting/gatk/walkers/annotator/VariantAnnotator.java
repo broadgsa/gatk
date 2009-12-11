@@ -4,7 +4,6 @@ import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.Genotype;
@@ -165,9 +164,11 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         // if the reference base is not ambiguous, the variant is a SNP, and it's the appropriate type, we can annotate
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 &&
                 variant.isBiallelic() &&
-                variant.isSNP() )
-            annotations = getAnnotations(ref, context, variant, requestedAnnotations);
-
+                variant.isSNP() ) {
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context, null, null);
+            if ( stratifiedContexts != null )
+                annotations = getAnnotations(ref, stratifiedContexts, variant, requestedAnnotations);
+        }
         writeVCF(tracker, ref, context, variant, annotations);
 
         return 1;
@@ -208,30 +209,26 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     }
 
     // option #1: don't specify annotations to be used: standard annotations are used by default
-    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation) {
+    public static Map<String, String> getAnnotations(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, context, variation, standardAnnotations.values());
+        return getAnnotations(ref, stratifiedContexts, variation, standardAnnotations.values());
     }
 
     // option #2: specify that all possible annotations be used
-    public static Map<String, String> getAllAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation) {
+    public static Map<String, String> getAllAnnotations(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         if ( allAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, context, variation, allAnnotations.values());
+        return getAnnotations(ref, stratifiedContexts, variation, allAnnotations.values());
     }
 
     // option #3: specify the exact annotations to be used
-    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, Collection<VariantAnnotation> annotations) {
+    public static Map<String, String> getAnnotations(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations) {
 
         HashMap<String, String> results = new HashMap<String, String>();
 
-        // set up the pileup for the full collection of reads at this position
-        ReadBackedPileup fullPileup = context.getPileup();
-        ReadBackedPileup MQ0freePileup = fullPileup.getPileupWithoutMappingQualityZeroReads();
-
         for ( VariantAnnotation annotator : annotations) {
-            String annot = annotator.annotate(ref, (annotator.useZeroQualityReads() ? fullPileup : MQ0freePileup), variation);
+            String annot = annotator.annotate(ref, stratifiedContexts, variation);
             if ( annot != null ) {
                 results.put(annotator.getKeyName(), annot);
             }
@@ -291,14 +288,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     public static Genotype getFirstVariant(char ref, List<Genotype> genotypes) {
         for ( Genotype g : genotypes ) {
             if ( g.isVariant(ref) )
-                return g;
-        }
-        return null;
-    }
-
-    public static Genotype getFirstHetVariant(List<Genotype> genotypes) {
-        for ( Genotype g : genotypes ) {
-            if ( g.isHet() )
                 return g;
         }
         return null;
