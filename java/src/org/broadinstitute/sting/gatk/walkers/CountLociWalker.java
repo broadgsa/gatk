@@ -5,11 +5,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 /**
- * Created by IntelliJ IDEA.
- * User: mdepristo
- * Date: Feb 22, 2009
- * Time: 3:22:14 PM
- * To change this template use File | Settings | File Templates.
+ * Basic example of a locus-backed analysis.  Walks over the input data set, calculating the number of
+ * covered loci for diagnostic purposes.
  */
 public class CountLociWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
