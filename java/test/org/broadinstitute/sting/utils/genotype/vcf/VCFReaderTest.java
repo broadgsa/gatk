@@ -22,7 +22,8 @@ public class VCFReaderTest extends BaseTest {
     private static final File multiSampleVCF = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/MultiSample.vcf");
     private static final String VCF_MIXUP_FILE = "/humgen/gsa-scr1/GATK_Data/Validation_Data/mixedup.v2.vcf";
     private static final File complexFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/complexExample.vcf");
-
+    private static final File headerNoRecordsFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/headerNoRecords.vcf");
+    
     private static IndexedFastaSequenceFile seq;
 
        @BeforeClass
@@ -324,5 +325,13 @@ public class VCFReaderTest extends BaseTest {
         Assert.assertTrue(rec.getFilterString().equals("bar;baz"));
 
         if (reader.hasNext()) Assert.fail("The reader should NOT have a record");
+    }
+
+    public void testHeaderNoRecords() {
+        VCFReader reader = new VCFReader(headerNoRecordsFile);
+        Assert.assertTrue(reader.getHeader().getMetaData() != null);
+        Iterator<VCFRecord> iter = reader.iterator();
+        Assert.assertTrue(!reader.iterator().hasNext());
+
     }
 }

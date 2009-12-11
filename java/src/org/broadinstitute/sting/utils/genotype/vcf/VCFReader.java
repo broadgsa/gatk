@@ -52,23 +52,30 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
 		this.parseHeader();
 	}
 
-	private void parseHeader()
-	{
+	/**
+     * parse the header from the top of the file.  We read lines that match
+     * the header pattern, and try to create a header.  We then create the first
+     * record from the first non-header line in the file.
+     */
+    private void parseHeader() {
         String line = null;
         // try and parse the header
         try {
             ArrayList<String> lines = new ArrayList<String>();
             line = mReader.readLine();
-            while (line.startsWith("#")) {
+            while (line != null && line.startsWith("#")) {
                 lines.add(line);
                 line = mReader.readLine();
             }
+            // try to make a header from the lines we parsed
             mHeader = this.createHeader(lines);
-            mNextRecord = createRecord(line, mHeader);
+
+            // if the last line we parsed is null, we shouldn't try to make a record of it
+            if (line != null) mNextRecord = createRecord(line, mHeader);
         } catch (IOException e) {
             throw new RuntimeException("VCFReader: Failed to parse VCF File on line: " + line, e);
         }
-	}
+    }
 
     /**
      * open a g-zipped version of the VCF format
