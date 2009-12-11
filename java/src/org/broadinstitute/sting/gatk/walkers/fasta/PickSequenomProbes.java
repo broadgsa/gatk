@@ -11,6 +11,10 @@ import org.broadinstitute.sting.utils.genotype.Variation;
 import java.util.*;
 
 
+/**
+ * Generates Sequenom probe information given a single variant track.  Emitted is the variant
+ * along with the 200 reference bases on each side of the variant.
+ */
 @WalkerName("PickSequenomProbes")
 @Requires(value={DataSource.REFERENCE})
 @Reference(window=@Window(start=-200,stop=200))

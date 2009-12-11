@@ -11,7 +11,10 @@ import org.broadinstitute.sting.utils.genotype.Variation;
 import java.io.*;
 import java.util.Iterator;
 
-
+/**
+ * Generates an alternative reference sequence over the specified interval.  Given a variant ROD track (named "snpmask"),
+ * it replaces the reference bases at variation sites with the bases supplied by the ROD.
+ */
 @WalkerName("FastaAlternateReferenceMaker")
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
