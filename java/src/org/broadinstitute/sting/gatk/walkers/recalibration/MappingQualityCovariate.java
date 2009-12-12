@@ -35,7 +35,7 @@ import net.sf.samtools.SAMRecord;
  * The Mapping Quality covariate.
  */
 
-public class MappingQualityCovariate implements Covariate {
+public class MappingQualityCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {

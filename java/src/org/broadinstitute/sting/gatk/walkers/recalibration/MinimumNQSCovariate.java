@@ -36,7 +36,7 @@ import net.sf.samtools.SAMRecord;
  * This covariate is the minimum base quality score in the read in a small window around the current base.
  */
 
-public class MinimumNQSCovariate implements Covariate {
+public class MinimumNQSCovariate implements ExperimentalCovariate {
 
     private int windowReach; // How far in each direction from the current base to look
 

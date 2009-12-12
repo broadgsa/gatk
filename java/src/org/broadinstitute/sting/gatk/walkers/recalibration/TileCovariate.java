@@ -30,7 +30,7 @@ import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
 /**
  * @author alecw@broadinstitute.org
  */
-public class TileCovariate implements Covariate {
+public class TileCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {

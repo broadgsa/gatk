@@ -40,7 +40,7 @@ import net.sf.samtools.SAMRecord;
  * This assumption is made to speed up the code.
  */
 
-public class DinucCovariate implements Covariate {
+public class DinucCovariate implements StandardCovariate {
 
     HashMap<Integer, Dinuc> dinucHashMap;
 

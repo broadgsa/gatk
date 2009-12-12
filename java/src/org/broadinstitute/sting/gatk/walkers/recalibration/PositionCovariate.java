@@ -36,7 +36,7 @@ import net.sf.samtools.SAMRecord;
  * This is the Solexa definition of machine cycle and the covariate that was always being used in the original version of the recalibrator.
  */
 
-public class PositionCovariate implements Covariate {
+public class PositionCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {

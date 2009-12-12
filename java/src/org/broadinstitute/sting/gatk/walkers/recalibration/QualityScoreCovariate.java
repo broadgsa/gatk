@@ -35,7 +35,7 @@ import net.sf.samtools.SAMRecord;
  * The Reported Quality Score covariate.
  */
 
-public class QualityScoreCovariate implements Covariate {
+public class QualityScoreCovariate implements RequiredCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {

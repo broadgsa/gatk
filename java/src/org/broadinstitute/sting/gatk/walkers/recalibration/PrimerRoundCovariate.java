@@ -37,7 +37,7 @@ import net.sf.samtools.SAMRecord;
  *  For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf  
  */
 
-public class PrimerRoundCovariate implements Covariate {
+public class PrimerRoundCovariate implements ExperimentalCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {

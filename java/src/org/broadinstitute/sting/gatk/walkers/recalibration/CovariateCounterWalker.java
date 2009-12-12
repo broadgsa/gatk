@@ -78,9 +78,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     // Command Line Arguments
     /////////////////////////////
     @Argument(fullName="list", shortName="ls", doc="List the available covariates and exit", required=false)
-    private Boolean LIST_ONLY = false;
-    @Argument(fullName="covariate", shortName="cov", doc="Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are already added for you.", required=false)
+    private boolean LIST_ONLY = false;
+    @Argument(fullName="covariate", shortName="cov", doc="Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required=false)
     private String[] COVARIATES = null;
+    @Argument(fullName="standard_covs", shortName="standard", doc="Use the standard set of covariates in addition to the ones listed using the -cov argument", required=false)
+    private boolean USE_STANDARD_COVARIATES = false;
     @Argument(fullName="process_nth_locus", shortName="pN", required=false, doc="Only process every Nth covered locus we see.")
     private int PROCESS_EVERY_NTH_LOCUS = 1;
 
@@ -101,7 +103,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted. BUGBUG: I don't understand what is going on in this case
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.1.0"; // Major version, minor version, and build number
+    private static final String versionString = "v2.1.1"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -129,12 +131,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         // Get a list of all available covariates
-        final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface( Covariate.class );
-   
+        final List<Class<? extends Covariate>> covariateClasses = PackageUtils.getClassesImplementingInterface( Covariate.class );
+        final List<Class<? extends RequiredCovariate>> requiredClasses = PackageUtils.getClassesImplementingInterface( RequiredCovariate.class );
+        final List<Class<? extends StandardCovariate>> standardClasses = PackageUtils.getClassesImplementingInterface( StandardCovariate.class );
+
         // Print and exit if that's what was requested
         if ( LIST_ONLY ) {
             out.println( "Available covariates:" );
-            for( Class<?> covClass : classes ) {
+            for( Class<?> covClass : covariateClasses ) {
                 out.println( covClass.getSimpleName() );
             }
             out.println();
@@ -155,44 +159,38 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
 
         // Initialize the requested covariates by parsing the -cov argument
-        // BUGBUG: This is a mess because there are a lot of cases (validate, all, none, and supplied covList). Clean up needed.
         requestedCovariates = new ArrayList<Covariate>();
-        int estimatedCapacity = 1; // Capacity is multiplicitive so this starts at one
+        // First add the required covariates
+        if( requiredClasses.size() == 2) { // readGroup and reported quality score
+            requestedCovariates.add( new ReadGroupCovariate() ); // Order is important here
+            requestedCovariates.add( new QualityScoreCovariate() );
+        } else {
+            throw new StingException("There are more required covariates than expected. The instantiation list needs to be updated with the new required covariate and in the correct order.");
+        }
+        // Next add the standard covariates if -standard was specified by the user
+        if( USE_STANDARD_COVARIATES ) {
+            for( Class<?> covClass : standardClasses ) {
+                try {
+                    Covariate covariate = (Covariate)covClass.newInstance();
+                    requestedCovariates.add( covariate );
+                } catch ( InstantiationException e ) {
+                    throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
+                } catch ( IllegalAccessException e ) {
+                    throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                }
+            }
+        }
+        // Finally parse the -cov arguments that were provided, skipping over the ones already specified
         if( COVARIATES != null ) {
-            if(COVARIATES[0].equalsIgnoreCase( "ALL" )) { // The user wants ALL covariates to be used
-                requestedCovariates.add( new ReadGroupCovariate() ); // First add the required covariates then add the rest by looping over all implementing classes that were found
-                requestedCovariates.add( new QualityScoreCovariate() );
-                for( Class<?> covClass : classes ) {
-                    try {
-                        Covariate covariate = (Covariate)covClass.newInstance();
-                        
-                        estimatedCapacity *= covariate.estimatedNumberOfBins();
-                        if( !( covariate instanceof ReadGroupCovariate || covariate instanceof QualityScoreCovariate ) ) { // These were already added so don't add them again
-                            requestedCovariates.add( covariate );
-                        }
-                    } catch ( InstantiationException e ) {
-                        throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
-                    } catch ( IllegalAccessException e ) {
-                        throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
-                    }
-               }
-            } else { // The user has specified a list of several covariates
-                int covNumber = 1;
-                for( String requestedCovariateString : COVARIATES ) {
-                    boolean foundClass = false;
-                    for( Class<?> covClass : classes ) {
-                        if( requestedCovariateString.equalsIgnoreCase( covClass.getSimpleName() ) ) { // -cov argument matches the class name for an implementing class
-                            foundClass = true;
-                            // Read Group Covariate and Quality Score Covariate are required covariates for the recalibration calculation and must begin the list
-                            if( (covNumber == 1 && !requestedCovariateString.equalsIgnoreCase( "ReadGroupCovariate" )) ||
-                                (covNumber == 2 && !requestedCovariateString.equalsIgnoreCase( "QualityScoreCovariate" )) ) {
-                                throw new StingException("ReadGroupCovariate and QualityScoreCovariate are required covariates for the recalibration calculation and must begin the list" );
-                            }
-                            covNumber++;
+            for( String requestedCovariateString : COVARIATES ) {
+                boolean foundClass = false;
+                for( Class<?> covClass : covariateClasses ) {
+                    if( requestedCovariateString.equalsIgnoreCase( covClass.getSimpleName() ) ) { // -cov argument matches the class name for an implementing class
+                        foundClass = true;
+                        if( !requiredClasses.contains( covClass ) && (!USE_STANDARD_COVARIATES || !standardClasses.contains( covClass )) ) {
                             try {
                                 // Now that we've found a matching class, try to instantiate it
                                 Covariate covariate = (Covariate)covClass.newInstance();
-                                estimatedCapacity *= covariate.estimatedNumberOfBins();
                                 requestedCovariates.add( covariate );
                             } catch ( InstantiationException e ) {
                                 throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
@@ -201,17 +199,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                             }
                         }
                     }
+                }
 
-                    if( !foundClass ) {
-                        throw new StingException( "The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates." );
-                    }
+                if( !foundClass ) {
+                    throw new StingException( "The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates." );
                 }
             }
-        } else { // No covariates were specified by the user so add the default, required ones
-            Utils.warnUser( "Using default set of covariates because none were specified. Using ReadGroupCovariate and QualityScoreCovariate only." );
-            requestedCovariates.add( new ReadGroupCovariate() );
-            requestedCovariates.add( new QualityScoreCovariate() );
-            estimatedCapacity = 60 * 40;
         }
 
         logger.info( "The covariates being used here: " );
@@ -221,10 +214,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         // Don't want to crash with out of heap space exception
-        if( estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0 ) { // Could be negative if overflowed
-            estimatedCapacity = 300 * 40 * 200;
-        }
-        dataManager = new RecalDataManager( estimatedCapacity );
+        //if( estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0 ) { // Could be negative if overflowed
+        //    estimatedCapacity = 300 * 40 * 200;
+        //}
+
+        dataManager = new RecalDataManager();
     }
 
 

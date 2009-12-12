@@ -42,7 +42,7 @@ import net.sf.samtools.SAMRecord;
  *  For SOLiD the cycle is a more complicated mixture of ligation cycle and primer round
  */
 
-public class CycleCovariate implements Covariate {
+public class CycleCovariate implements StandardCovariate {
 
     private static boolean warnedUserBadPlatform = false;
     private static String defaultPlatform;

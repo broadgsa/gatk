@@ -35,7 +35,7 @@ import net.sf.samtools.SAMRecord;
  * The Read Group covariate.
  */
 
-public class ReadGroupCovariate implements Covariate{
+public class ReadGroupCovariate implements RequiredCovariate{
 
     public static final String defaultReadGroup = "DefaultReadGroup";
 

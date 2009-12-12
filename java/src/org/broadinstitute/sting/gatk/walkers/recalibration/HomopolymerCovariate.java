@@ -38,7 +38,7 @@ import net.sf.samtools.SAMRecord;
  * 00100123121123456789
  */
 
-public class HomopolymerCovariate implements Covariate {
+public class HomopolymerCovariate implements ExperimentalCovariate {
 
     int numBack = 10;
 

@@ -43,3 +43,12 @@ public interface Covariate {
     public Comparable getValue( String str ); // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public int estimatedNumberOfBins(); // Used to estimate the amount space required for the full data HashMap
 }
+
+interface RequiredCovariate extends Covariate {
+}
+
+interface StandardCovariate extends Covariate {
+}
+
+interface ExperimentalCovariate extends Covariate {
+}
