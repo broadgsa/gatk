@@ -12,6 +12,9 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import java.util.*;
 import java.io.File;
 
+/**
+ * Extracts subsets of a VCF file like one or more samples, all or only variant loci, all or filtered loci.
+ */
 public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> {
     @Argument(fullName="sample", shortName="SN", doc="Sample to include (or nothing to specify all samples)", required=false)
     private HashSet<String> SAMPLES;

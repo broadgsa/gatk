@@ -13,7 +13,7 @@ import org.apache.commons.jexl.*;
 
 
 /**
- * VariantFiltrationWalker filters variant calls in VCF format.
+ * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= RodVCF.class))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {

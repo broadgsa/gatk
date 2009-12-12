@@ -20,6 +20,9 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
+/**
+ * Converts variants from other file formats (anything that implements the Variation interface) to VCF format.
+ */
 public class VariantsToVCF extends RefWalker<Integer, Integer> {
     @Argument(fullName="vcfout", shortName="VO", doc="The output VCF file") public File VCF_OUT;
     @Argument(fullName="verbose", shortName="V", doc="Show extended output", required=false) public boolean VERBOSE = false;

@@ -24,13 +24,8 @@ import cern.jet.stat.Probability;
 
 /**
  * FindContaminatingReadGroupsWalker lists read groups in a single-sample BAM file that appear
- * to be contaminants by searching for evidence of systematic underperformance at likely
- * homozygous-variant sites.  First, sites that are likely homozygous-variant but are called
- * as heterozygous are identified.  Next, per each site and read group, we compute the proportion
- * of bases in the pileup supporting an alternate allele.  Finally, a one-sample, left-tailed
- * t-test is performed with the null hypothesis being that the alternate allele distribution has
- * a mean of 0.95 and the alternate hypothesis being that the true mean is statistically
- * significantly less than expected.
+ * to be contaminants (i.e. a read group that's not actually associated with the sample) by searching
+ * for evidence of systematic underperformance at likely homozygous-variant sites.
  *
  * @author Kiran Garimella
  */
