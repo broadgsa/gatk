@@ -6,16 +6,16 @@ import com.sun.javadoc.Tag;
 import java.util.Map;
 
 /**
- * Provide an alternate description for the given help system.
- *
+ * Provide an alternate brief summary for this walker / package.
+ * Acts as an alternative to the first sentence employed by default.
  * @author mhanna
  * @version 0.1
  */
-public class DescriptionTaglet extends HelpTaglet {
+public class SummaryTaglet extends HelpTaglet {
     /**
      * The key tag for this taglet.
      */
-    public static final String NAME = "help.description";
+    public static final String NAME = "help.summary";
 
     /**
      * Return the name of this custom tag.
@@ -36,8 +36,7 @@ public class DescriptionTaglet extends HelpTaglet {
     }
 
     /**
-     * Will return true to indicate that packages can be given useful
-     * description.
+     * Will return true to indicate that packages can be given useful summary.
      * @return true always
      */
     @Override
@@ -50,7 +49,7 @@ public class DescriptionTaglet extends HelpTaglet {
      * @param tagletMap  the map to register this tag to.
      */
     public static void register(Map tagletMap) {
-       DescriptionTaglet tag = new DescriptionTaglet();
+       SummaryTaglet tag = new SummaryTaglet();
        Taglet t = (Taglet)tagletMap.get(tag.getName());
        if (t != null) {
            tagletMap.remove(tag.getName());

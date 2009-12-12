@@ -14,11 +14,10 @@ import java.io.PrintStream;
 
 
 /**
- * @author aaron
- * A simple Bayesian genotyper, that output a text based call format. Intended to be used only as an
+ * A simple Bayesian genotyper, that outputs a text based call format. Intended to be used only as an
  * example in the GATK publication.
- *
- * @help.description A simple, naive Bayesian genotyper that is used as an example locus walker in the GATK paper. THIS IS NOT TO BE USED FOR ANY ANALYSIS
+ * @author aaron
+ * @help.summary A simple, naive Bayesian genotyper that is used as an example locus walker in the GATK paper. THIS IS NOT TO BE USED FOR ANY ANALYSIS
  */
 public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> implements TreeReducible<Integer> {
 

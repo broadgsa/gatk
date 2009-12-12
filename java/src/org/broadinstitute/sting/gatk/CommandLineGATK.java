@@ -117,22 +117,40 @@ public class CommandLineGATK extends CommandLineExecutable {
         String additionalHelp = "";
 
         // If no analysis name is present, fill in extra help on the walkers.
+        WalkerManager walkerManager = GATKEngine.getWalkerManager();
         String analysisName = getAnalysisName();
-        if(analysisName == null || !GATKEngine.getWalkerManager().exists(getAnalysisName()))
-            additionalHelp = getWalkerHelp();
+        if(analysisName != null && walkerManager.exists(getAnalysisName()))
+            additionalHelp = getWalkerHelp(walkerManager.getWalkerClassByName(getAnalysisName()));
+        else
+            additionalHelp = getAllWalkerHelp();
 
         return additionalHelp;
+    }
+
+    private static final int PACKAGE_INDENT = 1;
+    private static final int WALKER_INDENT = 3;
+    private static final String FIELD_SEPARATOR = "  ";
+
+    private String getWalkerHelp(Class<Walker> walkerType) {
+        // Construct a help string to output details on this walker.
+        StringBuilder additionalHelp = new StringBuilder();
+        Formatter formatter = new Formatter(additionalHelp);
+
+        formatter.format("Description:%n");
+
+        WalkerManager walkerManager = GATKEngine.getWalkerManager();
+        String walkerHelpText = walkerManager.getWalkerDescriptionText(walkerType);
+
+        printDescriptorLine(formatter,WALKER_INDENT,"",WALKER_INDENT,FIELD_SEPARATOR,walkerHelpText,TextFormattingUtils.DEFAULT_LINE_WIDTH);
+
+        return additionalHelp.toString();
     }
 
     /**
      * Load in additional help information about all available walkers.
      * @return A string representation of the additional help.
      */
-    private String getWalkerHelp() {
-        final int PACKAGE_INDENT = 1;
-        final int WALKER_INDENT = 3;
-        final String FIELD_SEPARATOR = "  ";
-
+    private String getAllWalkerHelp() {
         // Construct a help string to output available walkers.
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);
@@ -152,7 +170,7 @@ public class CommandLineGATK extends CommandLineExecutable {
             // Get the display name.
             String packageName = walkersByPackage.getKey();
             String packageDisplayName = walkerManager.getPackageDisplayName(walkersByPackage.getKey());
-            String packageHelpText = walkerManager.getPackageHelpText(packageName);
+            String packageHelpText = walkerManager.getPackageSummaryText(packageName);
 
             // Compute statistics about which names is longest.
             longestPackageName = Math.max(longestPackageName,packageDisplayName.length());
@@ -161,7 +179,7 @@ public class CommandLineGATK extends CommandLineExecutable {
             for(Class<? extends Walker> walkerType: walkersByPackage.getValue()) {
                 String walkerName = walkerType.getName();
                 String walkerDisplayName = walkerManager.getName(walkerType);
-                String walkerHelpText = walkerManager.getWalkerHelpText(walkerType);                
+                String walkerHelpText = walkerManager.getWalkerSummaryText(walkerType);                
 
                 longestWalkerName = Math.max(longestWalkerName,walkerManager.getName(walkerType).length());
 
@@ -176,10 +194,10 @@ public class CommandLineGATK extends CommandLineExecutable {
 
 
         for(HelpEntry packageHelp: helpText) {
-            printDescriptorLine(formatter,PACKAGE_INDENT,packageHelp.displayName,headerWidth,FIELD_SEPARATOR,packageHelp.description,TextFormattingUtils.DEFAULT_LINE_WIDTH);
+            printDescriptorLine(formatter,PACKAGE_INDENT,packageHelp.displayName,headerWidth,FIELD_SEPARATOR,packageHelp.summary,TextFormattingUtils.DEFAULT_LINE_WIDTH);
             
             for(HelpEntry walkerHelp: packageHelp.children)
-                printDescriptorLine(formatter,WALKER_INDENT,walkerHelp.displayName,headerWidth,FIELD_SEPARATOR,walkerHelp.description,TextFormattingUtils.DEFAULT_LINE_WIDTH);
+                printDescriptorLine(formatter,WALKER_INDENT,walkerHelp.displayName,headerWidth,FIELD_SEPARATOR,walkerHelp.summary,TextFormattingUtils.DEFAULT_LINE_WIDTH);
 
             // Print a blank line between sets of walkers.
             printDescriptorLine(formatter,0,"",headerWidth,FIELD_SEPARATOR,"", TextFormattingUtils.DEFAULT_LINE_WIDTH);
@@ -213,36 +231,36 @@ public class CommandLineGATK extends CommandLineExecutable {
 }
 
 /**
- * Represents a given help entry; contains a display name, a description and optionally some children.
+ * Represents a given help entry; contains a display name, a summary and optionally some children.
  */
 class HelpEntry {
     public final String uid;
     public final String displayName;
-    public final String description;
+    public final String summary;
     public final SortedSet<HelpEntry> children;
 
     /**
-     * Create a new help entry with the given display name, description and children.
+     * Create a new help entry with the given display name, summary and children.
      * @param uid a unique identifier.  Usually, the java package.
      * @param displayName display name for this help entry.
-     * @param description description for this help entry.
+     * @param summary summary for this help entry.
      * @param children children for this help entry.
      */
-    public HelpEntry(String uid, String displayName, String description, SortedSet<HelpEntry> children)  {
+    public HelpEntry(String uid, String displayName, String summary, SortedSet<HelpEntry> children)  {
         this.uid = uid;
         this.displayName = displayName;
-        this.description = description;
+        this.summary = summary;
         this.children = children;
     }
 
     /**
-     * Create a new help entry with the given display name, description and children.
+     * Create a new help entry with the given display name, summary and children.
      * @param uid a unique identifier.  Usually, the java package.
      * @param displayName display name for this help entry.
-     * @param description description for this help entry.
+     * @param summary summary for this help entry.
      */
-    public HelpEntry(String uid, String displayName, String description) {
-        this(uid,displayName,description,null);
+    public HelpEntry(String uid, String displayName, String summary) {
+        this(uid,displayName,summary,null);
     }
 
 }

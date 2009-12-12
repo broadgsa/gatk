@@ -71,26 +71,34 @@ public class HelpExtractorDoclet {
      */
     private static void renderHelpText(String elementName, Doc element, PrintStream out) {
         // Extract overrides from the doc tags.
-        String overrideName = null;
-        String overrideDescription = element.firstSentenceTags().length > 0 ? element.firstSentenceTags()[0].text() : "";
+        String name = null;
+        StringBuilder summaryBuilder = new StringBuilder();
+        for(Tag tag: element.firstSentenceTags())
+             summaryBuilder.append(tag.text());
+        String summary = summaryBuilder.toString();
+        String description = element.commentText();
+
         for(Tag tag: element.tags()) {
             if(tag.name().equals("@"+DisplayNameTaglet.NAME)) {
-                if(overrideName != null)
+                if(name != null)
                     throw new StingException("Only one display name tag can be used per package / walker.");
-                overrideName = tag.text();
+                name = tag.text();
             }
+            else if(tag.name().equals("@"+SummaryTaglet.NAME))
+                summary = tag.text();
             else if(tag.name().equals("@"+DescriptionTaglet.NAME))
-                overrideDescription = tag.text();
+                description = tag.text();
         }
 
         // Write out an alternate element name, if exists.
-        if(overrideName != null)
-            out.printf("%s.%s=%s%n",elementName,DisplayNameTaglet.NAME,overrideName);
+        if(name != null)
+            out.printf("%s.%s=%s%n",elementName,DisplayNameTaglet.NAME,name);
+
+        // Write out an alternate element summary, if exists.
+        out.printf("%s.%s=%s%n",elementName,SummaryTaglet.NAME,formatText(summary));
 
         // Write out an alternate description, if present.
-        String description = formatText(overrideDescription);
-        if(description.length() > 0)
-            out.printf("%s=%s%n",elementName,description);
+        out.printf("%s.%s=%s%n",elementName,DescriptionTaglet.NAME,formatText(description));
     }
 
     /**

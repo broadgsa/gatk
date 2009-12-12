@@ -46,10 +46,6 @@ import net.sf.samtools.SAMRecord;
  */
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Nov 3, 2009
- *
  * This walker is designed to work as the first pass in a two-pass processing step.
  * It does a by-locus traversal operating only at sites that are not in dbSNP.
  * We assume that all reference mismatches we see are therefore errors and indicitive of poor base quality.
@@ -62,7 +58,9 @@ import net.sf.samtools.SAMRecord;
  * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and must be at the start of the list.
  * Note: This walker is designed to be used in conjunction with TableRecalibrationWalker.
  *
- * @help.description First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
+ * @author rpoplin
+ * @since Nov 3, 2009
+ * @help.summary First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
  */
 
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file

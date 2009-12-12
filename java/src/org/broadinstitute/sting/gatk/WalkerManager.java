@@ -36,6 +36,8 @@ import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.PluginManager;
 import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
+import org.broadinstitute.sting.utils.help.DescriptionTaglet;
+import org.broadinstitute.sting.utils.help.SummaryTaglet;
 import org.apache.log4j.Logger;
 import net.sf.picard.filter.SamRecordFilter;
 
@@ -95,14 +97,17 @@ public class WalkerManager extends PluginManager<Walker> {
      */
     public String getPackageDisplayName(String packageName) {
         // Try to find an override for the display name of this package.
-        String displayName = helpText.getProperty(packageName+"."+ DisplayNameTaglet.NAME);
-        // If no override exists...
-        if(displayName == null) {
+        String displayNameKey = String.format("%s.%s",packageName,DisplayNameTaglet.NAME);
+        String displayName = null;
+        if(helpText.containsKey(displayNameKey)) {
+            displayName = helpText.getProperty(displayNameKey);
+        }
+        else {
+            // If no override exists...
             // ...try to compute the override from the text of the package name, while accounting for
             // unpackaged walkers.
             displayName = packageName.substring(packageName.lastIndexOf('.')+1);
             if(displayName.trim().equals("")) displayName = "<unpackaged>";
-
         }
         return displayName;
     }
@@ -112,22 +117,35 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param packageName Package for which to search for help text.
      * @return Package help text, or "" if none exists.
      */
-    public String getPackageHelpText(String packageName) {
-        if(!helpText.containsKey(packageName))
+    public String getPackageSummaryText(String packageName) {
+        String key = String.format("%s.%s",packageName,SummaryTaglet.NAME);
+        if(!helpText.containsKey(key))
             return "";
-        return helpText.getProperty(packageName);    
+        return helpText.getProperty(key);    
     }
 
     /**
-     * Gets the help text associated with a given walker type.
+     * Gets the summary help text associated with a given walker type.
      * @param walkerType Type of walker for which to search for help text.
-     * @return Package help text, or "" if none exists.
+     * @return Walker summary description, or "" if none exists.
      */
-    public String getWalkerHelpText(Class<? extends Walker> walkerType) {
-        String walkerName = walkerType.getName();
-        if(!helpText.containsKey(walkerName))
+    public String getWalkerSummaryText(Class<? extends Walker> walkerType) {
+        String walkerSummary = String.format("%s.%s",walkerType.getName(), SummaryTaglet.NAME);
+        if(!helpText.containsKey(walkerSummary))
             return "";
-        return helpText.getProperty(walkerName);
+        return helpText.getProperty(walkerSummary);
+    }
+
+    /**
+     * Gets the descriptive help text associated with a given walker type.
+     * @param walkerType Type of walker for which to search for help text.
+     * @return Walker full description, or "" if none exists.
+     */
+    public String getWalkerDescriptionText(Class<? extends Walker> walkerType) {
+        String walkerDescription = String.format("%s.%s",walkerType.getName(), DescriptionTaglet.NAME);
+        if(!helpText.containsKey(walkerDescription))
+            return "";
+        return helpText.getProperty(walkerDescription);
     }
 
     /**
@@ -135,8 +153,8 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param walkerName Name of the walker.
      * @return Class representing the walker.
      */
-    public Class getWalkerClassByName(String walkerName) {
-        return pluginsByName.get(walkerName);
+    public Class<Walker> getWalkerClassByName(String walkerName) {
+        return (Class<Walker>)pluginsByName.get(walkerName);
     }
 
     /**
