@@ -6,8 +6,7 @@ import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
+import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.*;
 
 import java.util.ArrayList;
@@ -16,6 +15,7 @@ import java.util.Random;
 import java.util.regex.Pattern;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Field;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -94,7 +94,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.1.0"; // Major version, minor version, and build number
+    private static final String versionString = "v2.1.1"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
 
@@ -229,13 +229,25 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // Take the header of the input SAM file and tweak it by adding in a new programRecord with the version number and list of covariates that were used
         SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
         if( !NO_PG_TAG ) {
-            SAMProgramRecord programRecord = new SAMProgramRecord( "TableRecalibrationWalker" );
+            SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
             programRecord.setProgramVersion( versionString );
-            String commandLineString = "Covariates used: ";
+            String commandLineString = "Covariates used = [";
             for( Covariate cov : requestedCovariates ) {
                 commandLineString += cov.getClass().getSimpleName() + ", ";
             }
             commandLineString = commandLineString.substring(0, commandLineString.length() - 2); // trim off the trailing comma
+            commandLineString += "] ";
+            // Add all of the arguments from the recalibraiton argument collection to the command line string
+            Field[] fields = RAC.getClass().getFields();
+            for( Field field : fields ) {
+                ArgumentTypeDescriptor atd = ArgumentTypeDescriptor.create(field.getType());
+                List<ArgumentDefinition> adList = atd.createArgumentDefinitions(new ArgumentSource(field.getType(), field));
+                for( ArgumentDefinition ad : adList ) {
+                    commandLineString += (ad.fullName + "=" + JVMUtils.getFieldValue(field, RAC) + ", ");
+                }
+            }
+            commandLineString += "pQ = " + PRESERVE_QSCORES_LESS_THAN + ", ";
+            commandLineString += "smoothing = " + SMOOTHING;
             programRecord.setCommandLine( commandLineString );
             header.addProgramRecord( programRecord );
         }

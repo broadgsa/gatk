@@ -58,7 +58,7 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "window_size_nqs", shortName="nqs", doc="The window size used by MinimumNQSCovariate for its calculation", required=false)
     public int WINDOW_SIZE = 5;
     @Argument(fullName = "homopolymer_nback", shortName="nback", doc="The number of previous bases to look at in HomopolymerCovariate", required=false)
-    public int HOMOPOLYMER_NBACK = 10;
+    public int HOMOPOLYMER_NBACK = 8;
 
     public boolean checkSolidRecalMode() {
         return ( SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ||

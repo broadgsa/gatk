@@ -40,7 +40,7 @@ import net.sf.samtools.SAMRecord;
 
 public class HomopolymerCovariate implements ExperimentalCovariate {
 
-    int numBack = 10;
+    int numBack = 8;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
