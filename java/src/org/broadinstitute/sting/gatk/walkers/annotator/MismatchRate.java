@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.*;
 
 import java.util.Map;
@@ -30,5 +31,5 @@ public class MismatchRate implements VariantAnnotation {
 
     public String getKeyName() { return "MR"; }
 
-    public String getDescription() { return "MR,1,Float,\"Mismatch Rate of Reads Spanning This Position\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("MR", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Mismatch Rate of Reads Spanning This Position"); }
 }

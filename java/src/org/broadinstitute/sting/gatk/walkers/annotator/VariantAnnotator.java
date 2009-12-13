@@ -116,10 +116,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         }
 
         // setup the header fields
-        Set<String> hInfo = new HashSet<String>();
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add("source=VariantAnnotator");
-        hInfo.add("annotatorReference=" + getToolkit().getArguments().referenceFile.getName());
+        hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
+        hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(getVCFAnnotationDescriptions(requestedAnnotations));
 
         vcfHeader = new VCFHeader(hInfo, samples);
@@ -175,35 +175,35 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     }
 
     // option #1: don't specify annotations to be used: standard annotations are used by default
-    public static Set<String> getVCFAnnotationDescriptions() {
+    public static Set<VCFHeaderLine> getVCFAnnotationDescriptions() {
         if ( standardAnnotations == null )
             determineAllAnnotations();
 
-        TreeSet<String> descriptions = new TreeSet<String>();
+        TreeSet<VCFHeaderLine> descriptions = new TreeSet<VCFHeaderLine>();
         for ( VariantAnnotation annotation : standardAnnotations.values() )
-            descriptions.add("INFO=" + annotation.getDescription());
+            descriptions.add(annotation.getDescription());
 
         return descriptions;
     }
 
     // option #2: specify that all possible annotations be used
-    public static Set<String> getAllVCFAnnotationDescriptions() {
+    public static Set<VCFHeaderLine> getAllVCFAnnotationDescriptions() {
         if ( standardAnnotations == null )
             determineAllAnnotations();
 
-        TreeSet<String> descriptions = new TreeSet<String>();
+        TreeSet<VCFHeaderLine> descriptions = new TreeSet<VCFHeaderLine>();
         for ( VariantAnnotation annotation : allAnnotations.values() )
-            descriptions.add("INFO=" + annotation.getDescription());
+            descriptions.add(annotation.getDescription());
 
         return descriptions;
     }
 
     // option #3: specify the exact annotations to be used
-    public static Set<String> getVCFAnnotationDescriptions(Collection<VariantAnnotation> annotations) {
+    public static Set<VCFHeaderLine> getVCFAnnotationDescriptions(Collection<VariantAnnotation> annotations) {
 
-        TreeSet<String> descriptions = new TreeSet<String>();
+        TreeSet<VCFHeaderLine> descriptions = new TreeSet<VCFHeaderLine>();
         for ( VariantAnnotation annotation : annotations )
-            descriptions.add("INFO=" + annotation.getDescription());
+            descriptions.add(annotation.getDescription());
 
         return descriptions;
     }

@@ -38,7 +38,7 @@ public class GenotypeWriterFactory {
                                         SAMFileHeader header,
                                         File destination,
                                         Set<String> sampleNames,
-                                        Set<String> headerInfo) {
+                                        Set<VCFHeaderLine> headerInfo) {
         switch (format) {
             case GLF:
                 return new GLFWriter(header.toString(), destination);
@@ -57,7 +57,7 @@ public class GenotypeWriterFactory {
                                         SAMFileHeader header,
                                         PrintStream destination,
                                         Set<String> sampleNames,
-                                        Set<String> headerInfo) {
+                                        Set<VCFHeaderLine> headerInfo) {
         switch (format) {
             case GELI:
                 return new GeliTextWriter(destination);

@@ -25,7 +25,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
 
 
-    public VCFGenotypeWriterAdapter(File writeTo, Set<String> sampleNames, Set<String> headerInfo) {
+    public VCFGenotypeWriterAdapter(File writeTo, Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
         mSampleNames.addAll(sampleNames);
 
         initializeHeader(headerInfo);
@@ -34,7 +34,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         mWriter = new VCFWriter(mHeader, writeTo);
     }
 
-    public VCFGenotypeWriterAdapter(OutputStream writeTo, Set<String> sampleNames, Set<String> headerInfo) {
+    public VCFGenotypeWriterAdapter(OutputStream writeTo, Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
         mSampleNames.addAll(sampleNames);
 
         initializeHeader(headerInfo);
@@ -48,11 +48,11 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @param optionalHeaderInfo the optional header fields
      */
-    private void initializeHeader(Set<String> optionalHeaderInfo) {
-        Set<String> hInfo = new TreeSet<String>();
+    private void initializeHeader(Set<VCFHeaderLine> optionalHeaderInfo) {
+        Set<VCFHeaderLine> hInfo = new TreeSet<VCFHeaderLine>();
 
         // setup the header fields
-        hInfo.add(VCFHeader.FULL_FORMAT_LINE);
+        hInfo.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
         hInfo.addAll(optionalHeaderInfo);
         
         // setup the sample names

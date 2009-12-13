@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 
@@ -26,7 +27,7 @@ public class SecondBaseSkew implements VariantAnnotation {
 
     public String getKeyName() { return KEY_NAME; }
 
-    public String getDescription() { return KEY_NAME + ",1,Float,\"Chi-square Secondary Base Skew\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Chi-square Secondary Base Skew"); }
 
     public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         if ( !variation.isBiallelic() || !variation.isSNP() )

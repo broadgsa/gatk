@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.List;
 import java.util.Map;
@@ -61,5 +62,5 @@ public class AlleleBalance extends StandardVariantAnnotation {
 
     public String getKeyName() { return "AB"; }
 
-    public String getDescription() { return "AB,1,Float,\"Allele Balance for hets (ref/(ref+alt))\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("AB", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Balance for hets (ref/(ref+alt))"); }
 }

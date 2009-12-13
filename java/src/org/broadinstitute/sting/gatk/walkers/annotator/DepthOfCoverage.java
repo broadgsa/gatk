@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 
@@ -19,5 +20,5 @@ public class DepthOfCoverage extends StandardVariantAnnotation {
 
     public String getKeyName() { return VCFRecord.DEPTH_KEY; }
 
-    public String getDescription() { return getKeyName() + ",1,Integer,\"Total Depth (including MQ0 reads)\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total Depth (including MQ0 reads)"); }
 }

@@ -146,7 +146,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @return a VCF Header created from the list of stinrgs
      */
     protected VCFHeader createHeader(List<String> headerStrings) {
-        Set<String> metaData = new TreeSet<String>();
+        Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
         Set<String> auxTags = new LinkedHashSet<String>();
         // iterate over all the passed in strings
         for ( String str : headerStrings ) {
@@ -169,7 +169,9 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                     arrayIndex++;
                 }
             } else {
-                metaData.add(str.substring(2));
+                int equals = str.indexOf("=");
+                if ( equals != -1 )
+                    metaData.add(new VCFHeaderLine(str.substring(2, equals), str.substring(equals+1)));
             }
         }
 

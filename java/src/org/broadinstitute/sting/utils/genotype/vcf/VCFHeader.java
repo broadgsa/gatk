@@ -8,12 +8,12 @@ import java.util.*;
  *         <p/>
  *         Class VCFHeader
  *         <p/>
- *         A descriptions should go here. Blame aaron if it's missing.
+ *         A class representing the VCF header
  */
 public class VCFHeader {
 
-    public static final String FILE_FORMAT_KEY = "fileformat=";
-    public static final String OLD_FILE_FORMAT_KEY = "format=";   // from version 3.2
+    public static final String FILE_FORMAT_KEY = "fileformat";
+    public static final String OLD_FILE_FORMAT_KEY = "format";   // from version 3.2
 
 
     /** the current vcf version we support. */
@@ -22,7 +22,6 @@ public class VCFHeader {
     public static final double VCF_VERSION_NUMBER = 3.3;
     public static final String VCF_VERSION = VCF_VERSION_HEADER + VCF_VERSION_NUMBER;
 
-    public static final String FULL_FORMAT_LINE = FILE_FORMAT_KEY + VCF_VERSION;
 
     // the manditory header fields
     public enum HEADER_FIELDS {
@@ -30,7 +29,7 @@ public class VCFHeader {
     }
 
     // the associated meta data
-    private final Set<String> mMetaData;
+    private final Set<VCFHeaderLine> mMetaData;
 
     // the list of auxillary tags
     private final Set<String> mGenotypeSampleNames = new LinkedHashSet<String>();
@@ -50,8 +49,8 @@ public class VCFHeader {
      *
      * @param metaData     the meta data associated with this header
      */
-    public VCFHeader(Set<String> metaData) {
-        mMetaData = new TreeSet<String>(metaData);
+    public VCFHeader(Set<VCFHeaderLine> metaData) {
+        mMetaData = new TreeSet<VCFHeaderLine>(metaData);
         checkVCFVersion();
     }
 
@@ -61,8 +60,8 @@ public class VCFHeader {
      * @param metaData            the meta data associated with this header
      * @param genotypeSampleNames the genotype format field, and the sample names
      */
-    public VCFHeader(Set<String> metaData, Set<String> genotypeSampleNames) {
-        mMetaData = new TreeSet<String>(metaData);
+    public VCFHeader(Set<VCFHeaderLine> metaData, Set<String> genotypeSampleNames) {
+        mMetaData = new TreeSet<VCFHeaderLine>(metaData);
         for (String col : genotypeSampleNames) {
             if (!col.equals("FORMAT"))
                 mGenotypeSampleNames.add(col);
@@ -77,19 +76,15 @@ public class VCFHeader {
      */
     public void checkVCFVersion() {
         String version = null;
-        for ( String field : mMetaData ) {
-            if ( field.startsWith(FILE_FORMAT_KEY) ) {
-                version = field.substring(FILE_FORMAT_KEY.length());
-                break;
-            }
-            else if ( field.startsWith(OLD_FILE_FORMAT_KEY) ) {
-                version = field.substring(OLD_FILE_FORMAT_KEY.length());
+        for ( VCFHeaderLine line : mMetaData ) {
+            if ( line.getKey().equals(FILE_FORMAT_KEY) || line.getKey().equals(OLD_FILE_FORMAT_KEY) ) {
+                version = line.getValue();
                 break;
             }
         }
 
         if ( version == null )
-            mMetaData.add(FULL_FORMAT_LINE);
+            mMetaData.add(new VCFHeaderLine(FILE_FORMAT_KEY, VCF_VERSION));
         else if ( !isSupportedVersion(version) )
             throw new RuntimeException("VCF version " + version +
                     " is not yet supported; only version " + VCF_VERSION + " and earlier can be used");
@@ -124,7 +119,7 @@ public class VCFHeader {
      *
      * @return a set of the meta data
      */
-    public Set<String> getMetaData() {
+    public Set<VCFHeaderLine> getMetaData() {
         return mMetaData;
     }
 

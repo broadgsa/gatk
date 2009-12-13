@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 
@@ -16,6 +17,6 @@ public interface VariantAnnotation {
     public String getKeyName();
 
     // return the description used for the VCF INFO meta field
-    public String getDescription();
+    public VCFInfoHeaderLine getDescription();
 
 }

@@ -27,10 +27,10 @@ public class VCFUtils {
      *
      * @return a set of all fields
      */
-    public static Set<String> getHeaderFields(GenomeAnalysisEngine toolkit) {
+    public static Set<VCFHeaderLine> getHeaderFields(GenomeAnalysisEngine toolkit) {
 
         // keep a map of sample name to occurrences encountered
-        TreeSet<String> fields = new TreeSet<String>();
+        TreeSet<VCFHeaderLine> fields = new TreeSet<VCFHeaderLine>();
 
         // iterate to get all of the sample names
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();

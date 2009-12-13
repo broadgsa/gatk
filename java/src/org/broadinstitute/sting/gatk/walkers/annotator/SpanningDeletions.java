@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 
@@ -23,5 +24,5 @@ public class SpanningDeletions extends StandardVariantAnnotation {
 
     public String getKeyName() { return "Dels"; }
 
-    public String getDescription() { return "Dels,1,Float,\"Fraction of Reads Containing Spanning Deletions\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("Dels", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Fraction of Reads Containing Spanning Deletions"); }
 }

@@ -59,9 +59,9 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         //Calendar cal = Calendar.getInstance();
         //metaData.put("fileDate", String.format("%d%02d%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)));
 
-        Set<String> metaData = new HashSet<String>();
-        metaData.add("source=VariantsToVCF");
-        metaData.add("reference=" + args.referenceFile.getAbsolutePath());
+        Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
+        metaData.add(new VCFHeaderLine("source", "VariantsToVCF"));
+        metaData.add(new VCFHeaderLine("reference", args.referenceFile.getAbsolutePath()));
 
         Set<String> additionalColumns = new HashSet<String>();
         additionalColumns.add("FORMAT");

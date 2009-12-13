@@ -262,12 +262,12 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         return result;
     }
 
-    public static Set<String> getSupportedHeaderStrings() {
-        Set<String> result = new HashSet<String>();
-        result.add("FORMAT=" + GENOTYPE_KEY + ",1,String,\"Genotype\"");
-        result.add("FORMAT=" + GENOTYPE_QUALITY_KEY + ",1,Integer,\"Genotype Quality\"");
-        result.add("FORMAT=" + DEPTH_KEY + ",1,Integer,\"Read Depth (without MQ0 reads)\"");
-        //result.add("FORMAT=" + HAPLOTYPE_QUALITY_KEY + ",1,Integer,\"Haplotype Quality\"");
+    public static Set<VCFFormatHeaderLine> getSupportedHeaderStrings() {
+        Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
+        result.add(new VCFFormatHeaderLine(GENOTYPE_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.String, "Genotype"));
+        result.add(new VCFFormatHeaderLine(GENOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Genotype Quality"));
+        result.add(new VCFFormatHeaderLine(DEPTH_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Read Depth (without MQ0 reads)"));
+        //result.add(new VCFFormatHeaderLine(HAPLOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Haplotype Quality"));
         return result;
     }
 }

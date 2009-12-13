@@ -17,8 +17,7 @@ import java.util.*;
  */
 public class VCFHeaderTest extends BaseTest {
 
-    private Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
-    private Set<String> metaData = new HashSet();
+    private Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
     private Set<String> additionalColumns = new HashSet<String>();
 
     /**
@@ -26,8 +25,8 @@ public class VCFHeaderTest extends BaseTest {
      */
     @Test
     public void testHeaderConstructor() {
-        metaData.add(VCFHeader.FULL_FORMAT_LINE); // required
-        metaData.add("two=2");
+        metaData.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
+        metaData.add(new VCFHeaderLine("two", "2"));
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
         // this should create a header that is valid

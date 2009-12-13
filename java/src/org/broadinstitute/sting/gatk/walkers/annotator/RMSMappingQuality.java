@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 import java.util.ArrayList;
@@ -31,5 +32,5 @@ public class RMSMappingQuality extends StandardVariantAnnotation {
 
     public String getKeyName() { return VCFRecord.RMS_MAPPING_QUALITY_KEY; }
 
-    public String getDescription() { return getKeyName() + ",1,Float,\"RMS Mapping Quality\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "RMS Mapping Quality"); }
 }

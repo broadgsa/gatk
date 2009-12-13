@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 
@@ -21,7 +22,7 @@ public class HomopolymerRun extends StandardVariantAnnotation {
 
     public String getKeyName() { return "HRun"; }
 
-    public String getDescription() { return "HRun,1,Integer,\"Largest Contiguous Homopolymer Run of Variant Allele In Either Direction\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("HRun", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Largest Contiguous Homopolymer Run of Variant Allele In Either Direction"); }
 
     public boolean useZeroQualityReads() { return false; }
 

@@ -21,21 +21,18 @@ import java.util.*;
  *         This class tests out the ability of the VCF writer to correctly write VCF files
  */
 public class VCFWriterTest extends BaseTest {
-    private Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
-    private Set<String> metaData = new HashSet();
+    private Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
     private Set<String> additionalColumns = new HashSet<String>();
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
-
-    private static IndexedFastaSequenceFile seq;
 
     @BeforeClass
     public static void beforeTests() {
         try {
-            seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+            GenomeLocParser.setupRefContigOrdering(seq);
         } catch (FileNotFoundException e) {
             throw new StingException("unable to load the sequence dictionary");
         }
-        GenomeLocParser.setupRefContigOrdering(seq);
     }
 
     /** test, using the writer and reader, that we can output and input a VCF file without problems */
@@ -50,21 +47,23 @@ public class VCFWriterTest extends BaseTest {
         int counter = 0;
         // validate what we're reading in
         validateHeader(reader.getHeader());
-        for(VCFRecord rec :reader) {
+        for (VCFRecord rec : reader) {
             counter++;
         }
-        Assert.assertEquals(2,counter);        
+        Assert.assertEquals(2,counter);
         reader.close();
         fakeVCFFile.delete();
     }
 
     /**
      * create a fake header of known quantity
+     * @param metaData           the header lines
+     * @param additionalColumns  the additional column names
      * @return a fake VCF header
      */
-    public static VCFHeader createFakeHeader(Set<String> metaData, Set<String> additionalColumns) {
-        metaData.add(VCFHeader.FULL_FORMAT_LINE); // required
-        metaData.add("two=2");
+    public static VCFHeader createFakeHeader(Set<VCFHeaderLine> metaData, Set<String> additionalColumns) {
+        metaData.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
+        metaData.add(new VCFHeaderLine("two", "2"));
         additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");

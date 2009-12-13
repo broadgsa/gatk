@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -39,5 +40,5 @@ public class NWayVenn implements ConcordanceType {
     }
 
     public String getInfoName() { return "NwayVenn"; }    
-    public String getInfoDescription() { return getInfoName() + ",1,String,\"N-way Venn split\""; }
+    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "N-way Venn split"); }
 }

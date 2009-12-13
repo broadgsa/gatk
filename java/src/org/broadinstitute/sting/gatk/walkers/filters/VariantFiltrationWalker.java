@@ -47,18 +47,19 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     private void initializeVcfWriter(RodVCF rod) {
         // setup the header fields
-        Set<String> hInfo = new HashSet<String>();
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add("source=" + "VariantFiltration");
-        hInfo.add("reference=" + getToolkit().getArguments().referenceFile.getName());
+        hInfo.add(new VCFHeaderLine("source", "VariantFiltration"));
+        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
+
         if ( clusterWindow > 0 )
-            hInfo.add("FILTER=" + CLUSTERED_SNP_FILTER_NAME + ",\"SNPs found in clusters\"");
+            hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
         if ( filterExpression != null )
-            hInfo.add("FILTER=" + FILTER_NAME + ",\"" + FILTER_STRING + "\"");
+            hInfo.add(new VCFFilterHeaderLine(FILTER_NAME, FILTER_STRING));
         List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             if ( source.getReferenceOrderedData().getName().equals("mask") ) {
-                hInfo.add("FILTER=" + MASK_NAME + ",\"Overlaps a user-input mask\"");
+                hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
                 break;
             }
         }

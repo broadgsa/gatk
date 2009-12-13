@@ -50,24 +50,22 @@ public class VCFWriter {
                 new OutputStreamWriter(location));
         try {
             // the fileformat field needs to be written first
-            TreeSet<String> allMetaData = new TreeSet<String>(header.getMetaData());
-            for ( String metadata : allMetaData ) {
-                if ( metadata.startsWith(VCFHeader.FILE_FORMAT_KEY) ) {
-                    mWriter.write(VCFHeader.METADATA_INDICATOR + metadata + "\n");
-                    break;
+            TreeSet<VCFHeaderLine> nonFormatMetaData = new TreeSet<VCFHeaderLine>();
+            for ( VCFHeaderLine line : header.getMetaData() ) {
+                if ( line.getKey().equals(VCFHeader.FILE_FORMAT_KEY) ) {
+                    mWriter.write(VCFHeader.METADATA_INDICATOR + line.toString() + "\n");
                 }
-                else if ( metadata.startsWith(VCFHeader.OLD_FILE_FORMAT_KEY) ) {
-                    mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeader.FILE_FORMAT_KEY + metadata.substring(VCFHeader.OLD_FILE_FORMAT_KEY.length()) + "\n");
-                    break;
+                else if ( line.getKey().equals(VCFHeader.OLD_FILE_FORMAT_KEY) ) {
+                    mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeader.FILE_FORMAT_KEY + line.toString().substring(VCFHeader.OLD_FILE_FORMAT_KEY.length()) + "\n");
+                } else {
+                    nonFormatMetaData.add(line);
                 }
             }
 
             // write the rest of the header meta-data out
-            for ( String metadata : header.getMetaData() ) {
-                if ( !metadata.startsWith(VCFHeader.FILE_FORMAT_KEY) && !metadata.startsWith(VCFHeader.OLD_FILE_FORMAT_KEY) )
-                    mWriter.write(VCFHeader.METADATA_INDICATOR + metadata + "\n");                
-            }
-            
+            for ( VCFHeaderLine line : nonFormatMetaData )
+                mWriter.write(VCFHeader.METADATA_INDICATOR + line + "\n");
+
             // write out the column line
             StringBuilder b = new StringBuilder();
             b.append(VCFHeader.HEADER_INDICATOR);

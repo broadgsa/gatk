@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.concordance;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.*;
 
@@ -111,5 +112,5 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     }
 
     public String getInfoName() { return "SnpConcordance"; }    
-    public String getInfoDescription() { return getInfoName() + ",1,String,\"SNP concordance test\""; }    
+    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "SNP concordance test"); }    
 }

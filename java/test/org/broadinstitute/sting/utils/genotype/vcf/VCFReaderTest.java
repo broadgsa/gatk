@@ -24,17 +24,16 @@ public class VCFReaderTest extends BaseTest {
     private static final File complexFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/complexExample.vcf");
     private static final File headerNoRecordsFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/headerNoRecords.vcf");
     
-    private static IndexedFastaSequenceFile seq;
 
-       @BeforeClass
-       public static void beforeTests() {
-           try {
-               seq = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
-           } catch (FileNotFoundException e) {
-               throw new StingException("unable to load the sequence dictionary");
-           }
-           GenomeLocParser.setupRefContigOrdering(seq);
-       }
+    @BeforeClass
+    public static void beforeTests() {
+        try {
+            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
+            GenomeLocParser.setupRefContigOrdering(seq);
+        } catch (FileNotFoundException e) {
+            throw new StingException("unable to load the sequence dictionary");
+        }
+    }
 
     @Test
     public void testVCFInput() {
@@ -330,7 +329,6 @@ public class VCFReaderTest extends BaseTest {
     public void testHeaderNoRecords() {
         VCFReader reader = new VCFReader(headerNoRecordsFile);
         Assert.assertTrue(reader.getHeader().getMetaData() != null);
-        Iterator<VCFRecord> iter = reader.iterator();
         Assert.assertTrue(!reader.iterator().hasNext());
 
     }

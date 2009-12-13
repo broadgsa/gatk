@@ -22,21 +22,20 @@ import java.io.FileNotFoundException;
  */
 public class VCFRecordTest extends BaseTest {
 
-    private static IndexedFastaSequenceFile seq;
-
     @BeforeClass
     public static void beforeTests() {
         try {
-            seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+            GenomeLocParser.setupRefContigOrdering(seq);
         } catch (FileNotFoundException e) {
             throw new StingException("unable to load the sequence dictionary");
         }
-        GenomeLocParser.setupRefContigOrdering(seq);
     }
 
     /**
      * create a fake VCF record
      *
+     * @param infoFields  the info fields
      * @return a VCFRecord
      */
     private static VCFRecord makeFakeVCFRecord(Map<String, String> infoFields) {
@@ -140,9 +139,9 @@ public class VCFRecordTest extends BaseTest {
      * @return a fake VCF header
      */
     public static VCFHeader createFakeHeader() {
-        Set<String> metaData = new HashSet();
-        metaData.add(VCFHeader.FULL_FORMAT_LINE); // required
-        metaData.add("two=2");
+        Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
+        metaData.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
+        metaData.add(new VCFHeaderLine("two", "2"));
         Set<String> additionalColumns = new HashSet<String>();
         additionalColumns.add("FORMAT");
         additionalColumns.add("sample1");
@@ -158,8 +157,6 @@ public class VCFRecordTest extends BaseTest {
         Map<String, String> infoFields = new HashMap<String, String>();
         infoFields.put("DP", "50");
         VCFRecord rec = makeFakeVCFRecord(infoFields);
-        Map<String, String> metaData = new HashMap<String, String>();
-        List<String> additionalColumns = new ArrayList<String>();
         String rep = rec.toStringEncoding(createFakeHeader());
         Assert.assertTrue(stringRep.equals(rep));
         rec.addInfoField("AB", "CD");

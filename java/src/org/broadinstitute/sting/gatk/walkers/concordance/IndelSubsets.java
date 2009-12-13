@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.*;
 
@@ -102,5 +103,5 @@ public class IndelSubsets implements ConcordanceType {
     }
 
     public String getInfoName() { return "IndelSubsets"; }
-    public String getInfoDescription() { return getInfoName() + ",1,String,\"Indel-related subsets\""; }    
+    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "Indel-related subsets"); }    
 }

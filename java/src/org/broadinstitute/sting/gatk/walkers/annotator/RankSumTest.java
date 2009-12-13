@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -67,7 +68,7 @@ public class RankSumTest implements VariantAnnotation {
 
     public String getKeyName() { return "RankSum"; }
 
-    public String getDescription() { return "RankSum,1,Float,\"Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities\""; }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("RankSum", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities"); }
 
     private void fillQualsFromPileup(char ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
         for ( PileupElement p : pileup ) {

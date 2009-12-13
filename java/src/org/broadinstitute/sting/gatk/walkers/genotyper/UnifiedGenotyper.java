@@ -37,6 +37,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import net.sf.samtools.SAMReadGroupRecord;
 
@@ -139,7 +141,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             samples.clear();
 
         // get the optional header fields
-        Set<String> headerInfo = getHeaderInfo();
+        Set<VCFHeaderLine> headerInfo = getHeaderInfo();
 
         // create the output writer stream
         if ( VARIANTS_FILE != null )
@@ -154,16 +156,16 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         callsMetrics = new CallMetrics();
     }
 
-    private Set<String> getHeaderInfo() {
-        Set<String> headerInfo = new HashSet<String>();
+    private Set<VCFHeaderLine> getHeaderInfo() {
+        Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // this is only applicable to VCF
         if ( UAC.VAR_FORMAT != GenotypeWriterFactory.GENOTYPE_FORMAT.VCF )
             return headerInfo;
 
         // first, the basic info
-        headerInfo.add("source=UnifiedGenotyper");
-        headerInfo.add("reference=" + getToolkit().getArguments().referenceFile.getName());
+        headerInfo.add(new VCFHeaderLine("source", "UnifiedGenotyper"));
+        headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
         // annotation (INFO) fields from VariantAnnotator
         if ( UAC.ALL_ANNOTATIONS )
@@ -172,10 +174,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             headerInfo.addAll(VariantAnnotator.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        headerInfo.add("INFO=AF,1,Float,\"Allele Frequency\"");
-        headerInfo.add("INFO=NS,1,Integer,\"Number of Samples With Data\"");
+        headerInfo.add(new VCFInfoHeaderLine("AF", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
+        headerInfo.add(new VCFInfoHeaderLine("NS", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Number of Samples With Data"));
         if ( !UAC.NO_SLOD )
-            headerInfo.add("INFO=SB,1,Float,\"Strand Bias\"");
+            headerInfo.add(new VCFInfoHeaderLine("SB", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 
         // FORMAT fields if not in POOLED mode
         if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED )
@@ -184,7 +186,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // all of the arguments from the argument collection
         Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(Collections.<Object>singleton(UAC));
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
-            headerInfo.add(String.format("UG_%s=%s", commandLineArg.getKey(), commandLineArg.getValue()));            
+            headerInfo.add(new VCFHeaderLine(String.format("UG_%s", commandLineArg.getKey()), commandLineArg.getValue()));            
 
         return headerInfo;
     }
