@@ -16,14 +16,9 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * The Broad Institute
- * SOFTWARE COPYRIGHT NOTICE AGREEMENT
- * This software and its documentation are copyright 2009 by the
- * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
- * This software is supplied without any warranty or guaranteed support whatsoever. Neither
- * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
+ * A robust and general purpose tool for characterizing the quality of SNPs, Indels, and other variants that includes basic
+ * counting, ti/tv, dbSNP% (if -D is provided), concordance to chip or validation data, and will show interesting sites (-V)
+ * that are FNs, FP, etc.
  */
 @Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=ReferenceOrderedDatum.class)}) // right now we have no base variant class for rods, this should change
 //@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=ReferenceOrderedDatum.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=ReferenceOrderedDatum.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
@@ -35,7 +30,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="printVariants", doc="If true, prints the variants in all of the variant tracks that are examined", required=false)
     public boolean printVariants = false;
 
-    @Argument(shortName="badHWEThreshold", doc="XXX", required=false)
+    @Argument(shortName="badHWEThreshold", doc="Only sites with deviations froim Hardy-Weinberg equilibrium with P-values < than this threshold are flagged", required=false)
     public double badHWEThreshold = 1e-3;
 
     @Argument(fullName="evalContainsGenotypes", shortName = "G", doc="If true, the input list of variants will be treated as a genotyping file, containing assertions of actual genotype values for a particular person.  Analyses that only make sense on at the population level will be disabled, while those operating on genotypes will be enabled", required=false)

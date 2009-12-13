@@ -25,6 +25,11 @@ import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 
+/**
+ * A completely experimental read walker that consumes a graphical reference emitted by GraphReferenceBuilder as a
+ * serialized java object and evaluates the number of mismatches to both the flat reference and the graphical
+ * reference for each read [Not for public use and will change drastically in the future].
+ */
 public class GraphReferenceAssessor extends ReadWalker<Integer, Integer> {
     @Argument(fullName="graphFile", shortName="GF", doc="", required=true)
     String graphFile = null;

@@ -25,6 +25,10 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.util.StringUtil;
 
+/**
+ * A completely experimental walker that constructs a graphical reference that incorporates variation from provided
+ * RODs [Not for public use and will change drastically in the future].
+ */
 @WalkerName("GraphReferenceBuilder")
 @Requires(value={DataSource.REFERENCE})
 public class GraphReferenceBuilder extends RefWalker<Integer, Integer> {
