@@ -13,7 +13,8 @@ import java.util.*;
 
 
 /**
- * CallsetConcordanceWalker finds the concordance between multiple VCF callsets (different tests are available).
+ * Determines the concordance between multiple VCF call sets at each position.
+ * Users can specify which concordance tests should be run.
  */
 @Requires(value={DataSource.REFERENCE})
 @Reference(window=@Window(start=-20,stop=20))

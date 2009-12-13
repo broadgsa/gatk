@@ -10,11 +10,9 @@ import net.sf.samtools.AlignmentBlock;
 
 import java.util.List;
 
-// A walker to determine intervals within which reads should be cleaned and realigned
-// because they contain one or more indels (which possibly caused them not to align perfectly).
-// Note that the reduce step assumes that reductions occur in order (i.e. no hierarchical reductions),
-// although this can easily be changed if necessary.
-
+/**
+ * Emits intervals consisting of indels from the aligned reads.
+ */
 @WalkerName("IndelIntervals")
 @Requires({DataSource.READS, DataSource.REFERENCE})
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
@@ -48,6 +46,8 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         return null;
     }
 
+    // Note that the reduce step assumes that reductions occur in order (i.e. no hierarchical reductions),
+    // although this can easily be changed if necessary.
     public Interval reduce(Interval value, Interval sum) {
         // if there is no interval to the left, then this is the first one
         if ( sum == null )

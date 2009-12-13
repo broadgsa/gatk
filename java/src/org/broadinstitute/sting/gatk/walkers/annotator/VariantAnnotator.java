@@ -15,7 +15,7 @@ import java.io.*;
 
 
 /**
- * VariantAnnotator annotates variants.
+ * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
  */
 //@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})

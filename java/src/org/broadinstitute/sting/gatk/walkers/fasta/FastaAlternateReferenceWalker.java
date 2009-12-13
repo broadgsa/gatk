@@ -12,8 +12,9 @@ import java.io.*;
 import java.util.Iterator;
 
 /**
- * Generates an alternative reference sequence over the specified interval.  Given a variant ROD track (named "snpmask"),
- * it replaces the reference bases at variation sites with the bases supplied by the ROD.
+ * Generates an alternative reference sequence over the specified interval.  Given variant ROD tracks,
+ * it replaces the reference bases at variation sites with the bases supplied by the ROD(s).  Additionally,
+ * allows for a "snpmask" ROD to set overlapping bases to 'N'.
  */
 @WalkerName("FastaAlternateReferenceMaker")
 @Requires(value={DataSource.REFERENCE})

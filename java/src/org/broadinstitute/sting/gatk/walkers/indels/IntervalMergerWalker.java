@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -36,7 +35,8 @@ import java.util.*;
 
 
 /**
- * Merges intervals based on reads which overlap them.
+ * Merges sets of intervals based on reads which overlap them; no two intervals in the final list
+ * will have a read that even partially spans them both.  A maximum interval size is enforced though. 
  */
 @WalkerName("IntervalMerger")
 @Requires({DataSource.READS, DataSource.REFERENCE})

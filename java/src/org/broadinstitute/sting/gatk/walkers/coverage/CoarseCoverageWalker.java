@@ -5,15 +5,16 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
+/**
+ * Computes the coverage per every <granularity> bases on the reference, or on the subset of the reference
+ * specified by the intervals provided. Moving to the next contig on the reference will always restart the
+ * count anew, even if the count of bases in the last chunk on the previous contig did not reach specified <granularity>.
+ */
 public class CoarseCoverageWalker extends ReadWalker<Integer,Integer> {
 	
-    @Argument(fullName="granularity",shortName="G",doc="Will print numbers of reads per every <granularity> bases "+
-    		"on the reference, or on the subset of the reference specified by Intervals (if given). Moving to the next "+
-    		"contig on the reference will always restart the count anew, even if the count of bases in the last chunk on"+
-    		" the previous contig did not reach specified <granularity>.",required=true)
+    @Argument(fullName="granularity", shortName="G", doc="Granularity", required=true)
     public Integer N;
 	
-
     private int chunkStart = 1; // start of the current chunk we are counting reads for
     private int contig = 0; // current contig we are on
     private int count = 0; // number of reads overlapping with the current chunk

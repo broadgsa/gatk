@@ -9,6 +9,9 @@ import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.Iterator;
 
+/**
+ * Create a mask for use with the PickSequenomProbes walker.
+ */
 public class CreateSequenomMask extends RodWalker<Integer, Integer> {
 
     public void initialize() {}

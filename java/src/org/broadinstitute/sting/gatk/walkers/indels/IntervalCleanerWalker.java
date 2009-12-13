@@ -5,7 +5,6 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -15,7 +14,12 @@ import net.sf.samtools.*;
 import java.util.*;
 import java.io.File;
 import java.io.FileWriter;
- 
+
+/**
+ * Performs local realignment of reads based on misalignments due to the presence of indels.
+ * Unlike most mappers, this walker uses the full alignment context to determine whether an
+ * appropriate alternate reference (i.e. indel) exists and updates SAMRecords accordingly.
+ */
 @WalkerName("IntervalCleaner")
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
@@ -59,8 +63,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
     private TreeSet<ComparableSAMRecord> readsToWrite = null;
     private TreeSet<ComparableSAMRecord> nextSetOfReadsToWrite = null;
-
-    private boolean debugOn = false;
 
     public void initialize() {
 

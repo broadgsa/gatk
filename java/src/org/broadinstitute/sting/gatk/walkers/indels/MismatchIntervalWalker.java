@@ -14,6 +14,9 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
 
+/**
+ * Emits intervals consisting of nearby loci with high mismatch rates.
+ */
 @WalkerName("MismatchIntervals")
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>, Pair<LinkedList<Boolean>, GenomeLoc>> {

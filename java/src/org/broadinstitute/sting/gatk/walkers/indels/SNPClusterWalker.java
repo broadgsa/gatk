@@ -10,6 +10,9 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
+/**
+ * Given a ROD track SNP calls called "snps", emits intervals consisting of clustered SNPs.
+ */
 @WalkerName("SNPClusters")
 @Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="snps",type= VariationRod.class)})
 public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {

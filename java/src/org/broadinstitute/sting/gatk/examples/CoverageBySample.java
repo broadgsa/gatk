@@ -9,6 +9,9 @@ import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
 
+/**
+ * Computes the coverage per sample.
+ */
 public class CoverageBySample extends LocusWalker<Integer, Integer> {
 
     private HashSet<String> sampleNames = new HashSet<String>();
