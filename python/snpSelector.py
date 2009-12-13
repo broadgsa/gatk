@@ -67,17 +67,23 @@ class RecalibratedCall:
     def __str__(self):
         return '[%s: %s => Q%d]' % (str(self.call), self.featureStringList(), phredScale(self.jointFPErrorRate()))
 
-def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1, filter = None ):
+def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1, filter = None, minQScore = -1, mustBeVariant = False ):
     if filter == None:
         filter = not OPTIONS.unfiltered
         
     f = open(file)
     header, columnNames, lines = readVCFHeader(f)
 
+    nLowQual = 0
     def parseVariant(args):
+        global nLowQual
         header1, VCF, counter = args
-        if filter and not VCF.passesFilters():
+        if filter and not VCF.passesFilters() or ( False and mustBeVariant == True and not VCF.isVariant() ): # currently ignore mustBeVariant
             #print 'filtering', VCF
+            return None
+        elif VCF.getQual() <= minQScore:
+            #print 'filtering', VCF
+            #nLowQual += 1
             return None
         elif random.random() <= downsampleFraction:
             return VCF
@@ -85,6 +91,8 @@ def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction 
             return None
 
     variants = ifilter(None, imap(parseVariant, islice(lines2VCF(lines, header=header, columnNames = columnNames, extendedOutput = True, decodeAll = decodeAll), maxRecords)))
+    if nLowQual > 0:
+        print '%d snps filtered due to QUAL < %d' % (nLowQual, minQScore)
     return header, variants
 
 def selectVariants( variants, selector = None ):
@@ -286,15 +294,15 @@ def binString(field, left, right):
         left = right = FIELD_RANGES[field] - epsilon
     if OPTIONS.plottableNones and not isNumber(left) and isNumber(right):
         left = right - epsilon        
-    if isNumber(left): leftStr = "%.2f" % left
-    if isNumber(right): rightStr = "%.2f" % right
-    return '%8s %8s' % (leftStr, rightStr)
+    if isNumber(left): leftStr = "%.4f" % left
+    if isNumber(right): rightStr = "%.4f" % right
+    return '%12s %12s' % (leftStr, rightStr)
 
 #
 #
 #
 def recalibrateCalls(variants, fields, callCovariates):
-    def phred(v): return round(phredScale(v), 2)
+    def phred(v): return phredScale(v)
     
     for variant in variants:
         recalCall = RecalibratedCall(variant, fields) 
@@ -419,9 +427,9 @@ def sensitivitySpecificity(variants, truth):
         t = variantInTruth(variant, truth)
 
         isTP, isFP = False, False
-        if OPTIONS.useSample:
+        if OPTIONS.useSample or OPTIONS.onlyAtTruth:
             if t: # we have a site
-                isTP = isVariantInSample(t, OPTIONS.useSample)
+                isTP = (isVariantInSample(t, OPTIONS.useSample) and t.isVariant()) or (not isVariantInSample(t, OPTIONS.useSample) and not t.isVariant())
                 isFP = not isTP
         else:
             isTP = t
@@ -439,7 +447,9 @@ def sensitivitySpecificity(variants, truth):
             variant.setField("TP", 0)
             #print t, variant, "is a FP!"
             FPs.append(variant)
-    nFN = variantsInTruth(truth.itervalues()) - nTP
+    nRef = len(filter(lambda x: not x.isVariant(), truth.itervalues()))
+    nFN = variantsInTruth(truth.itervalues()) - nTP - nRef
+    #print 'nRef', nTP, nFP, nFN, nRef
     return CallCmp(nTP, nFP, nFN), FPs
 
 def markTruth(calls):
@@ -491,6 +501,9 @@ def setup():
     parser.add_option("", "--plottable", dest="plottableNones",
                         action='store_true', default=False,
                         help="If provided, will generate fake plottable points for annotations with None values -- doesn't effect the behavior of the system just makes it easy to plot outputs [default: %default]")
+    parser.add_option("", "--onlyAtTruth", dest="onlyAtTruth",
+                        action='store_true', default=False,
+                        help="If provided, we only consider TP/FP/FN at truth sites[default: %default]")
     parser.add_option("-p", "--partitions", dest="partitions",
                         type='int', default=25,
                         help="Number of partitions to use for each feature.  Don't use so many that the number of variants per bin is very low. [default: %default]")
@@ -503,6 +516,9 @@ def setup():
     parser.add_option("-M", "--maxRecords", dest="maxRecords",
                        type='int', default=None,
                         help="Maximum number of input VCF records to process, if provided.  Default is all records")
+    parser.add_option("-Q", "--qMin", dest="minQScore",
+                        type='int', default=-1,
+                        help="The minimum Q score of the initial SNP list to consider for selection [default: %default]")
     parser.add_option("-q", "--qMax", dest="maxQScore",
                         type='int', default=60,
                         help="The maximum Q score allowed for both a single covariate and the overall QUAL score [default: %default]")
@@ -536,7 +552,7 @@ def assessCalls(file):
     if OPTIONS.maxRecords <> None and OPTIONS.maxRecords < numberOfRecords:
         numberOfRecords = OPTIONS.maxRecords
     downsampleFraction = min(float(OPTIONS.maxRecordsForCovariates) / numberOfRecords, 1)
-    header, allCalls = readVariants(file, OPTIONS.maxRecords, downsampleFraction=downsampleFraction)
+    header, allCalls = readVariants(file, OPTIONS.maxRecords, downsampleFraction=downsampleFraction, minQScore = OPTIONS.minQScore)
     allCalls = list(allCalls)
     print 'Number of VCF records', numberOfRecords, ', max number of records for covariates is', OPTIONS.maxRecordsForCovariates, 'so keeping', downsampleFraction * 100, '% of records'
     print 'Number of selected VCF records', len(allCalls)
@@ -578,7 +594,7 @@ def writeRecalibratedCalls(file, header, calls):
 
 def readTruth(truthVCF):
     print 'Reading truth file', truthVCF
-    rawTruth = list(readVariants(truthVCF, maxRecords = None, decodeAll = True)[1])
+    rawTruth = list(readVariants(truthVCF, maxRecords = None, decodeAll = True, mustBeVariant = True)[1])
     truth = dict( [[v.getLoc(), v] for v in rawTruth])
     print 'Number of raw and passing filter truth calls', len(rawTruth), len(truth)
     return truth
@@ -631,7 +647,7 @@ def main():
     header, allCalls, titvTarget = assessCalls(args[0])
     if not OPTIONS.dontRecalibrate: 
         covariates = determineCovariates(allCalls, titvTarget, fields)
-        header, callsToRecalibate = readVariants(args[0], OPTIONS.maxRecords)
+        header, callsToRecalibate = readVariants(args[0], OPTIONS.maxRecords, minQScore = OPTIONS.minQScore)
         RecalibratedCalls = recalibrateCalls(callsToRecalibate, fields, covariates)
         writeRecalibratedCalls(OPTIONS.outputVCF, header, RecalibratedCalls)
     else:
@@ -639,7 +655,7 @@ def main():
         printCallQuals("QUAL", allCalls, titvTarget)
         OPTIONS.outputVCF = args[0]
 
-    if len(args) > 1:
+    if truthVCF <> None:
         evaluateTruth(header, OPTIONS.outputVCF, TRUTH_CALLS, truthVCF)
 
 

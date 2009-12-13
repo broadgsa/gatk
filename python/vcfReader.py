@@ -56,6 +56,11 @@ class VCFRecord:
     
     def getRef(self): return self.get("REF")
     def getAlt(self): return self.get("ALT")
+    def isVariant(self): 
+        v = self.getAlt() <> '.'
+        #print 'isVariant', self.bindings, v
+        return v
+
     def getQual(self): return self.get("QUAL")
     
     def getVariation(self): return self.getRef() + self.getAlt()
