@@ -120,7 +120,7 @@ public interface Variation {
 
     /**
      * gets the alternate base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
-     * of
+     * or if we're not bi-allelic
      *
      * @return a char, representing the alternate base
      */

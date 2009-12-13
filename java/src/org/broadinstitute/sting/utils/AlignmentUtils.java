@@ -5,6 +5,8 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.picard.reference.ReferenceSequence;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.pileup.*;
 
 
 /**
@@ -121,7 +123,7 @@ public class AlignmentUtils {
     public static int numMismatches(SAMRecord r, String refSeq, int refIndex) {
         int readIdx = 0;
         int mismatches = 0;
-        String readSeq = r.getReadString();
+        byte[] readSeq = r.getReadBases();
         Cigar c = r.getCigar();
         for (int i = 0 ; i < c.numCigarElements() ; i++) {
             CigarElement ce = c.getCigarElement(i);
@@ -131,7 +133,7 @@ public class AlignmentUtils {
                         if ( refIndex >= refSeq.length() )
                             continue;
                         char refChr = refSeq.charAt(refIndex);
-                        char readChr = readSeq.charAt(readIdx);
+                        char readChr = (char)readSeq[readIdx];
                         // Note: we need to count X/N's as mismatches because that's what SAM requires
                         //if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
                         //     BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
@@ -151,6 +153,89 @@ public class AlignmentUtils {
 
         }
         return mismatches;
+    }
+
+    /** Returns the number of mismatches in the pileup within the given reference context.
+     *
+     * @param pileup  the pileup with reads
+     * @param ref     the reference context
+     * @param ignoreTargetSite     if true, ignore mismatches at the target locus (i.e. the center of the window)
+     * @return a pair where the first value is the mismatches and the second is the total bases within the context
+     */
+    public static Pair<Integer, Integer> mismatchesInRefWindow(ReadBackedPileup pileup, ReferenceContext ref, boolean ignoreTargetSite) {
+        Pair<Integer, Integer> mismatches = new Pair<Integer, Integer>(0, 0);
+        for ( PileupElement p : pileup ) {
+            Pair<Integer, Integer> mm = mismatchesInRefWindow(p, ref, ignoreTargetSite);
+            mismatches.first += mm.first;
+            mismatches.second += mm.second;
+        }
+        return mismatches;
+    }
+
+    /** Returns the number of mismatches in the pileup element within the given reference context.
+     *
+     * @param p       the pileup element
+     * @param ref     the reference context
+     * @param ignoreTargetSite     if true, ignore mismatches at the target locus (i.e. the center of the window)
+     * @return a pair where the first value is the mismatches and the second is the total bases within the context
+     */
+    public static Pair<Integer, Integer> mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite) {
+
+        int mismatches = 0;
+        int totalBases = 0;
+
+        GenomeLoc window = ref.getWindow();
+        char[] refBases = ref.getBases();
+        byte[] readBases = p.getRead().getReadBases();
+        Cigar c = p.getRead().getCigar();
+
+        int readIndex = 0;
+        int currentPos = p.getRead().getAlignmentStart();
+        int refIndex = Math.max(0, currentPos - (int)window.getStart());
+
+        for (int i = 0 ; i < c.numCigarElements() ; i++) {
+            CigarElement ce = c.getCigarElement(i);
+            switch ( ce.getOperator() ) {
+                case M:
+                    for (int j = 0; j < ce.getLength(); j++, readIndex++, currentPos++) {
+                        // are we past the ref window?
+                        if ( currentPos > window.getStop() )
+                            break;
+
+                        // are we before the ref window?
+                        if ( currentPos < window.getStart() )
+                            continue;
+
+                        char refChr = refBases[refIndex++];
+
+                        // do we need to skip the target site?
+                        if ( ignoreTargetSite && ref.getLocus().getStart() == currentPos )
+                            continue;
+
+                        totalBases++;
+                        char readChr = (char)readBases[readIndex];
+                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
+                            mismatches++;
+                    }
+                    break;
+                case I:
+                    readIndex += ce.getLength();
+                    break;
+                case D:
+                    currentPos += ce.getLength();
+                    if ( currentPos > window.getStart() )
+                        refIndex += Math.min(ce.getLength(), currentPos - window.getStart());
+                    break;
+                case S:
+                    readIndex += ce.getLength();
+                    break;
+                default: throw new StingException("Only M,I,D,S cigar elements are currently supported; there was " + ce.getOperator());
+            }
+
+        }
+
+        //System.out.println("There are " + mismatches + " mismatches out of " + totalBases + " bases for read " + p.getRead().getReadName());
+        return new Pair<Integer, Integer>(mismatches, totalBases);
     }
 
     /** Returns number of alignment blocks (continuous stretches of aligned bases) in the specified alignment.

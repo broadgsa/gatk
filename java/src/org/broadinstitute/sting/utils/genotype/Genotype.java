@@ -53,9 +53,9 @@ public interface Genotype {
     public GenomeLoc getLocation();
 
     /**
-     * returns true if the genotype is a point genotype, false if it's a indel / deletion
+     * returns true if the genotype is a point genotype, false if it's an indel
      *
-     * @return true is a SNP
+     * @return true if this is a SNP
      */
     public boolean isPointGenotype();
 

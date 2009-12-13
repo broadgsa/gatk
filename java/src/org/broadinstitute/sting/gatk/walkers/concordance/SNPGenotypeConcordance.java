@@ -30,18 +30,19 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     }
 
     public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
+        char refBase = ref.getBase();
 
         Genotype call1 = samplesToRecords.get(sample1);
         Genotype call2 = samplesToRecords.get(sample2);
 
         if ( call1 == null || call2 == null ) {
-            if ( call1 != null && call1.isPointGenotype() ) {
+            if ( call1 != null && call1.isPointGenotype() && call1.isVariant(refBase) ) {
                 if ( 10.0 * call1.getNegLog10PError() >= Qscore )
                     return "set1ConfidentSet2NoCall";
                 else
                     return "set2NoCall";
             }
-            else if ( call2 != null && call2.isPointGenotype() ) {
+            else if ( call2 != null && call2.isPointGenotype() && call2.isVariant(refBase) ) {
                 if (10.0 * call2.getNegLog10PError() >= Qscore )
                     return "set1NoCallSet2Confident";
                 else
@@ -50,13 +51,19 @@ public class SNPGenotypeConcordance implements ConcordanceType {
             return null;
         }
 
+        // if either is an indel, skip this site
+        if ( !call1.isPointGenotype() || !call2.isPointGenotype() )
+            return null;
+
         double confidence1 = 10.0 * call1.getNegLog10PError();
         double confidence2 = 10.0 * call2.getNegLog10PError();
         String genotype1 = call1.getBases();
         String genotype2 = call2.getBases();
 
-        // are they both variant SNPs?
-        if ( call1.isPointGenotype() && call2.isPointGenotype() ) {
+        // are they both SNPs?
+        boolean call1IsVariant = call1.isVariant(refBase);
+        boolean call2IsVariant = call2.isVariant(refBase);
+        if ( call1IsVariant && call2IsVariant ) {
 
             // are they confident calls?
             boolean conf1 = confidence1 >= Qscore;
@@ -87,10 +94,10 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         }
 
         // one is variant and the other is ref
-        else if ( call1.isPointGenotype() && call2.isVariant(ref.getBase()) && confidence1 >= Qscore )
-             return "set1VariantSet2Ref";
-        else if ( call2.isPointGenotype() && call1.isVariant(ref.getBase()) && confidence2 >= Qscore )
-            return "set1RefSet2Variant";
+        else if ( call1IsVariant )
+            return "set1" + (confidence1 >= Qscore ? "Confident" : "") + "VariantSet2" + (confidence2 >= Qscore ? "Confident" : "") + "Ref";
+        else if ( call2IsVariant )
+            return "set1" + (confidence1 >= Qscore ? "Confident" : "") + "RefSet2" + (confidence2 >= Qscore ? "Confident" : "") + "Variant";
 
         return null;
     }

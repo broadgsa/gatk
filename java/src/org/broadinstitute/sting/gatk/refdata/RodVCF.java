@@ -42,11 +42,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         }
     }
 
-    public void assertBiAllelic() {
-        if ( !isBiallelic() )
-            throw new StingException("This VCF rod is not bi-allelic.");
-    }
-
     @Override
     public boolean parseLine(Object header, String[] parts) throws IOException {
         throw new UnsupportedOperationException("RodVCF does not support the parseLine method");
@@ -115,7 +110,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     public boolean isSNP() {
         assertNotNull();
-        assertBiAllelic();
         return mCurrentRecord.isSNP();
     }
 
@@ -126,7 +120,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     public boolean isInsertion() {
         assertNotNull();
-        assertBiAllelic();
         return mCurrentRecord.isInsertion();
     }
 
@@ -137,7 +130,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     public boolean isDeletion() {
         assertNotNull();
-        assertBiAllelic();
         return mCurrentRecord.isDeletion();
     }
 
