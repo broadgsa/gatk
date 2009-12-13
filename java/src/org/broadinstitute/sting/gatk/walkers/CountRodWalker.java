@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Collection;
 import java.util.LinkedList;
 
+/**
+ * A very simple walker that prints out counts of the number of reference ordered data objects are
+ * each locus.  For debugging RodWalkers.
+ */
 public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> {
     @Argument(fullName = "verbose", shortName = "v", doc="If true, Countrod will print out detailed information about the rods it finds and locations", required = false)
     public boolean verbose = false;

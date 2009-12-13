@@ -11,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Same as CountRod but this one is a reference walker
+ * A very simple walker that prints out counts of the number of reference ordered data objects are
+ * each locus.  For debugging RefWalkers.
  */
 public class CountRodByRefWalker extends RefWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> {
     @Argument(fullName = "verbose", shortName = "v", doc="If true, Countrod will print out detailed information about the rods it finds and locations", required = false)
