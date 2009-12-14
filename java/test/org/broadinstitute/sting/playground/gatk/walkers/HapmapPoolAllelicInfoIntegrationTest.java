@@ -11,7 +11,7 @@ import java.util.Arrays;
  * Date: Nov 18, 2009
  * Time: 9:29:31 AM
  * To change this template use File | Settings | File Templates.
- */
+ *
 public class HapmapPoolAllelicInfoIntegrationTest extends WalkerTest {
 
    @Test
@@ -55,3 +55,4 @@ public class HapmapPoolAllelicInfoIntegrationTest extends WalkerTest {
 
     }
 }
+*/
