@@ -77,13 +77,22 @@ public class CycleCovariate implements StandardCovariate {
 
         else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
             int cycle = 0;
-            //BUGBUG: should reverse directions on negative strand reads!
             byte[] bases = read.getReadBases();
-            byte prevBase = bases[0];
-            for( int iii = 1; iii <= offset; iii++ ) {
-                if( bases[iii] != prevBase ) { // This base doesn't match the previous one so it is a new cycle
-                    cycle++;
-                    prevBase = bases[iii];
+            if( !read.getReadNegativeStrandFlag() ) { // forward direction
+                byte prevBase = bases[0];
+                for( int iii = 1; iii <= offset; iii++ ) {
+                    if( bases[iii] != prevBase ) { // This base doesn't match the previous one so it is a new cycle
+                        cycle++;
+                        prevBase = bases[iii];
+                    }
+                }
+            } else { // negative direction
+                byte prevBase = bases[bases.length-1];
+                for( int iii = bases.length-2; iii >= offset; iii-- ) {
+                    if( bases[iii] != prevBase ) { // This base doesn't match the previous one so it is a new cycle
+                        cycle++;
+                        prevBase = bases[iii];
+                    }
                 }
             }
             return cycle;
@@ -95,8 +104,11 @@ public class CycleCovariate implements StandardCovariate {
 
         else if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
             // The ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
-            //BUGBUG: should reverse directions on negative strand reads!
-        	return offset / 5; // integer division
+            int pos = offset;
+	        if( read.getReadNegativeStrandFlag() ) {
+	            pos = read.getReadLength() - (offset + 1);
+	        }
+        	return pos / 5; // integer division
         }
 
         //-----------------------------

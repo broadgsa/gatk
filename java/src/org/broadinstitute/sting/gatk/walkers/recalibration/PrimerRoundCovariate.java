@@ -46,7 +46,11 @@ public class PrimerRoundCovariate implements ExperimentalCovariate {
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
         if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
-	        return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+            int pos = offset;
+	        if( read.getReadNegativeStrandFlag() ) {
+	            pos = read.getReadLength() - (offset + 1);
+	        }
+	        return pos % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
         } else {
             return 1; // nothing to do here because it is always the same
         }
