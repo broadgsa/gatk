@@ -34,9 +34,11 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
     public int poolSize = -1;
     @Argument(fullName="sampleNames", shortName="samples", doc="Sample name bindings", required=true)
     public String sampleNameFile = null;
+    @Argument(fullName="minCallQuality", shortName="q", doc="Ignore calls with below this quality, defaults to -1")
+    public double minCallQ = -1;
 
     private PrintWriter output;
-
+    private static double EPSILON = Math.pow(10,-4);
     private String[] sampleNames = null;
     private PowerBelowFrequencyWalker powerWalker = null;
     private ConcordanceTruthTable ctt = null;
@@ -83,7 +85,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         Variation call = (Variation) tracker.lookup("calls",null);
         if ( call == null ) {
             called = 0;
-        } else if ( call.isReference() ) {
+        } else if ( call.isReference() || call.getNegLog10PError() < minCallQ-EPSILON ) {
             called = 0;
         } else {
             called = 1;

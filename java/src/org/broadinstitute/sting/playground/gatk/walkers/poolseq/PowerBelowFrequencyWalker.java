@@ -19,10 +19,14 @@ import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
- * User: Ghost
+ * User: chartl
  * Date: Oct 8, 2009
  * Time: 9:44:35 AM
  * To change this template use File | Settings | File Templates.
+ */
+
+/**
+ * Given an input N, this walker calculates the power to detect a polymorphism with N, N-1, N-2, ..., 1 variant alleles in a pooled setting
  */
 @By(DataSource.REFERENCE)
 public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
@@ -159,17 +163,20 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
 
             int kaccept = (int) Math.ceil( ( lodThreshold - ( (double) depth ) * ( dkterm_num - dkterm_denom ) ) /
                     ( kterm_num - kterm_denom- dkterm_num + dkterm_denom ) );
+            System.out.println("Error="+p_error+" snpProp="+snpProp+" alleles="+alleles+" lodThreshold="+lodThreshold+" kaccept="+kaccept);
 
-            // we will reject the null hypothesis if we see kaccept or more SNPs, the power is the probability that this occurs
-            // we can optimize this by checking to see which sum is smaller
-
-            if ( depth - kaccept < kaccept ) {// kaccept > depth/2 - calculate power as P[hits between kaccept and depth]
-                power = MathUtils.cumBinomialProbLog(kaccept, depth, depth, snpProp);
-            } else { // kaccept < depth/2 - calculate power as 1-P[hits between 0 and kaccept]
-                power = 1-MathUtils.cumBinomialProbLog(0,kaccept,depth,snpProp);
+            if (kaccept <= 0) {
+                power = 0.0;
+            } else {
+                // we will reject the null hypothesis if we see kaccept or more SNPs, the power is the probability that this occurs
+                // we can optimize this by checking to see which sum is smaller
+                if ( depth - kaccept < kaccept ) {// kaccept > depth/2 - calculate power as P[hits between kaccept and depth]
+                    power = MathUtils.cumBinomialProbLog(kaccept, depth, depth, snpProp);
+                } else { // kaccept < depth/2 - calculate power as 1-P[hits between 0 and kaccept]
+                    power = 1-MathUtils.cumBinomialProbLog(0,kaccept,depth,snpProp);
+                }
             }
         }
-
         return power;
     }
 

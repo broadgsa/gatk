@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils;
 
 import cern.jet.math.Arithmetic;
 
+import java.math.BigDecimal;
+
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.
  *
@@ -180,11 +182,22 @@ public class MathUtils {
      */
     public static double cumBinomialProbLog(int start, int end, int total, double probHit) {
         double cumProb = 0.0;
+        double prevProb;
+        BigDecimal probCache = BigDecimal.ZERO;
+
         for(int hits = start; hits < end; hits++) {
-            cumProb += binomialProbabilityLog(hits, total, probHit);
+            prevProb = cumProb;
+            double probability = binomialProbabilityLog(hits,total,probHit);
+            cumProb += probability;
+            if ( probability > 0 && cumProb - prevProb < probability/2 ) { // loss of precision
+                probCache = probCache.add(new BigDecimal(prevProb));
+                cumProb = 0.0;
+                hits--; // repeat loop
+                // prevProb changes at start of loop
+            }
         }
 
-        return cumProb;
+        return probCache.add(new BigDecimal(cumProb)).doubleValue();
     }
   
     /**
