@@ -16,8 +16,12 @@ import java.util.*;
  */
 public class GenotypeConcordance extends ChipConcordance implements GenotypeAnalysis {
 
+    private String providedChipName = null;
+
     public GenotypeConcordance(final String chipName, boolean chipNameIsFile) {
         super("genotype_concordance", chipName, chipNameIsFile);
+        if ( !chipNameIsFile )
+            providedChipName = chipName;
     }
 
     protected void assertVariationIsValid(Variation eval) {
@@ -44,7 +48,9 @@ public class GenotypeConcordance extends ChipConcordance implements GenotypeAnal
 
         // associate each Genotype with the appropriate sample
         for ( Genotype eval : evals ) {
-            if ( eval instanceof SampleBacked )
+            if ( providedChipName != null )
+                hash.put(providedChipName, eval);
+            else if ( eval instanceof SampleBacked )
                 hash.put(((SampleBacked)eval).getSampleName(), eval);
             else if ( rodNames.size() == 1 )
                 hash.put(rodNames.get(0), eval);

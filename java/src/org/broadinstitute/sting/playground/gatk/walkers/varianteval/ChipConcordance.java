@@ -88,11 +88,8 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
             }
         }
 
-        // don't procede if we have no truth data and no call
-        if ( eval != null || chips.size() > 0 )
-            return inc(chips, eval, ref);
-        else
-            return null;
+        // evaluate only if we have truth data or a call
+        return ( eval != null || chips.size() > 0 ) ? inc(chips, eval, ref) : null;
     }
 
     public String inc(Map<String, Genotype> chips, Variation eval, char ref) {

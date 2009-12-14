@@ -51,7 +51,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
     public int numPeopleInPool = -1;
 
-    @Argument(fullName = "samplesFile", shortName="samples", doc="When running an analysis on a number of individuals with truth data, this field provides a filepath to the listing of which samples are used (and are used to name corresponding rods with -B)", required=false)
+    @Argument(fullName = "samplesFile", shortName="samples", doc="When running an analysis on one or more individuals with truth data, this field provides a filepath to the listing of which samples are used (and are used to name corresponding rods with -B)", required=false)
     public String samplesFile = null;
 
     String analysisFilenameBase = null;
@@ -130,13 +130,13 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
-        //analyses.add(new PooledFrequencyAnalysis(numPeopleInPool,knownSNPDBName));
-        if ( samplesFile == null )
+        if ( samplesFile != null ) {
+            if ( numPeopleInPool < 1 )
+                analyses.add(new GenotypeConcordance(samplesFile, true));
+            else
+                analyses.add(new PooledConcordance(samplesFile, true));
+        } else {
             analyses.add(new GenotypeConcordance(genotypeChipName, false));
-        else if ( numPeopleInPool < 1)
-            analyses.add(new GenotypeConcordance(samplesFile, true));
-        else {
-            analyses.add(new PooledConcordance(samplesFile,true));
         }
         analyses.add(new TransitionTranversionAnalysis());
         analyses.add(new NeighborDistanceAnalysis());
