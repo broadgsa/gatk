@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.coverage;
+package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.*;
@@ -31,6 +31,9 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     @Argument(fullName="minMismatches", doc = "Minimum number of mismatches at a locus before a site is displayed", required = false)
     int minMismatches = 1;
 
+    @Argument(fullName="skip", doc = "Only display every skip eligable sites.  Defaults to all sites", required = false)
+    int skip = 1;
+
     private UnifiedGenotyper ug;
 
     public void initialize() {
@@ -54,9 +57,12 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     }
 
     public Integer reduce( String map, Integer reduce  ) {
-        if ( map != null )
+        if ( map != null && (reduce % skip == 0) )
             out.println(map);
-        return reduce;
+
+        //if (reduce % skip == 0) System.out.printf("Keeping %d%n", reduce);
+
+        return reduce + (map != null ? 1 : 0);
     }
 
     public Integer treeReduce( Integer reduce1, Integer reduce2 ) {
@@ -65,7 +71,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
 
     public Integer reduceInit() {
         out.printf("loc ref depth nMM qSumMM A C G T%n");
-        return null;
+        return 1;
     }
 
     private String errorCounts( ReferenceContext ref, ReadBackedPileup pileup ) {

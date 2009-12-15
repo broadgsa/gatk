@@ -3,34 +3,58 @@ import sys
 from optparse import OptionParser
 from vcfReader import *
 #import pylab
+import operator
 from itertools import *
 import math
 import random
     
 DEBUG = False
 
-class CallCovariate:
-    def __init__(self, feature, left, right, FPRate = None, cumulative = False):
-        self.feature = feature
+class Range:
+    ANY = '*'
+    def __init__(self, left = ANY, right = ANY, leftOpen = False, rightOpen = False):
         self.left = left
+        self.right = right
+        self.leftOpen = leftOpen
+        self.rightOpen = rightOpen
+        
+    def __str__(self):
+        leftB, rightB = '[', ']'
+        if self.leftOpen: leftB = '('
+        if self.rightOpen: rightB = ')'
+        return '%s%s, %s%s' % (leftB, self.left, self.right, rightB)
+        
+    __repr__ = __str__
+        
+    def dashedString(self):
+        return str(self).replace(", ", "-")
+        
+    def contains(self, v):
+        def test(r, op, open):
+            return r == Range.ANY or op(v, r) or (not open and v == r)  
+        return test(self.left, operator.__gt__, self.leftOpen) and test(self.right, operator.__lt__, self.rightOpen)
 
-        if cumulative:
-            self.right = '*'
-        else:
-            self.right = right
+class CallCovariate:
+    def __init__(self, feature, featureRange, qualRange, FPRate = None):
+        self.feature = feature
+        
+        self.featureRange = featureRange
 
+        self.qualRange = qualRange
         self.FPRate = FPRate
         
     def containsVariant(self, call):
-        fieldVal = call.getField(self.feature)
-        return fieldVal >= self.left and (self.right == '*' or fieldVal <= self.right)
+        inFeature = self.featureRange.contains(call.getField(self.feature))
+        inQual = self.qualRange.contains(call.getQual())
+        #print 'inFeature, inQual', inFeature, inQual
+        return inFeature and inQual
 
     def getFPRate(self): return self.FPRate
     def getFeature(self): return self.feature
     
     def getCovariateField(self): return self.getFeature() + '_RQ'
     
-    def __str__(self): return "[CC feature=%s left=%s right=%s]" % (self.feature, self.left, self.right)
+    def __str__(self): return "[CC feature=%s range=%s qualRange=%s]" % (self.feature, self.featureRange, self.qualRange)
 
 class RecalibratedCall:
     def __init__(self, call, features):
@@ -110,7 +134,7 @@ def titv(variants):
 
 def dbSNPRate(variants):
     inDBSNP = len(filter(VCFRecord.isKnown, variants))
-    return float(inDBSNP) / len(variants)
+    return float(inDBSNP) / max(len(variants),1)
 
 def gaussian(x, mu, sigma):    
     constant = 1 / math.sqrt(2 * math.pi * sigma**2)
@@ -257,11 +281,11 @@ def printFieldQualHeader():
         more = CallCmp.HEADER
     def p(stream):
         if stream <> None:
-            print >> stream, '  %20s %20s left right nVariants nNovels titv titvNovels dbSNP FPEstimate Q' % ("category", "field"), more
+            print >> stream, '  %20s %20s         left        right %15s nVariants  nNovels titv titvNovels  dbSNP  Q' % ("category", "field", "qRange"), more
     p(sys.stdout)
     p(RECAL_LOG)
     
-def printFieldQual( category, field, left, right, variants, FPRate ):
+def printFieldQual( category, field, cc, variants ):
     more = ""
     if TRUTH_CALLS <> None:
         callComparison, theseFPs = sensitivitySpecificity(variants, TRUTH_CALLS)
@@ -269,7 +293,7 @@ def printFieldQual( category, field, left, right, variants, FPRate ):
     novels = selectVariants(variants, VCFRecord.isNovel)
     def p(stream):
         if stream <> None:
-            print >> stream, '  %20s %20s %s %8d %8d %.2f %.2f %.2f %.2e %3d' % (category, field, binString(field, left, right), len(variants), len(novels), titv(variants), titv(novels), dbSNPRate(variants), FPRate, phredScale(FPRate)), more
+            print >> stream, '  %20s %20s %15s %15s  %8d %8d %2.2f       %2.2f  %3.2f %3d' % (category, field, binString(field, cc.featureRange), cc.qualRange.dashedString(), len(variants), len(novels), titv(variants), titv(novels), dbSNPRate(variants) * 100, phredScale(cc.FPRate)), more
     p(sys.stdout)
     p(RECAL_LOG)
 
@@ -286,8 +310,9 @@ def captureFieldRangeForPrinting(field, sortedValues):
 def isNumber(x):
     return isinstance(x, (int, long, float))
 
-def binString(field, left, right):
+def binString(field, cc):
     epsilon = 1e-2
+    left, right = cc.left, cc.right
     leftStr = str(left)
     rightStr = "%5s" % str(right)
     if OPTIONS.plottableNones and not isNumber(left) and not isNumber(right) and field in FIELD_RANGES:
@@ -325,7 +350,7 @@ def recalibrateCalls(variants, fields, callCovariates):
 #
 #
 def optimizeCalls(variants, fields, titvTarget):
-    callCovariates = calibrateFeatures(variants, fields, titvTarget, category = "covariates")
+    callCovariates = calibrateFeatures(variants, fields, titvTarget, category = "covariates", useBreaks=True)
     recalCalls = recalibrateCalls(variants, fields, callCovariates)
     return recalCalls, callCovariates
 
@@ -341,26 +366,33 @@ def all( p, l ):
         if not p(elt): return False
     return True
 
-def variantBinsForField(variants, field):
-    #if not all( lambda x: x.hasField(field), variants):
-    #    raise Exception('Unknown field ' + field)
-    
-    minValue, maxValue, bins = fieldRange(variants, field)
-    if DEBUG: print 'Field range', minValue, maxValue
-    if DEBUG: print 'Partitions', bins
-    return bins
 
-def mapVariantBins(variants, field, cumulative = False):
-    bins = variantBinsForField(variants, field)
-    
-    def variantsInBin(bin):
-        cc = CallCovariate(field, bin[0], bin[1], cumulative = cumulative)
+def mapVariantBins(variants, field, cumulative = False, breakQuals = [Range()]):
+    minValue, maxValue, featureBins = fieldRange(variants, field)
 
-        return cc.left, cc.right, selectVariants(variants, lambda v: cc.containsVariant(v))
+    #print 'BREAKQuals', breakQuals[0]
+    bins = [(x,y) for x in featureBins for y in breakQuals]
+    #print 'BINS', bins
+
+    def variantsInBin(featureBin, qualRange):
+        right = featureBin[1]
+        if cumulative: 
+            right = Range.ANY
+        cc = CallCovariate(field, Range(featureBin[0], right), qualRange)
+
+        return cc, selectVariants(variants, lambda v: cc.containsVariant(v))
         
-    return imap( variantsInBin, bins )
+    #sys.exit(1)    
+    return starmap( variantsInBin, bins )
 
-def calibrateFeatures(variants, fields, titvTarget, printCall = False, cumulative = False, forcePrint = False, prefix = '', printHeader = True, category = None ):
+def qBreaksRanges(qBreaks, useBreaks):
+    if qBreaks == None or not useBreaks:
+        return [Range()]        # include everything in a single range
+    else:
+        breaks = map(float, qBreaks.split(','))
+        return map(lambda x, y: Range(x,y, rightOpen = True), chain([Range.ANY], breaks), chain(breaks, [Range.ANY]))
+
+def calibrateFeatures(variants, fields, titvTarget, printCall = False, cumulative = False, forcePrint = False, prefix = '', printHeader = True, category = None, useBreaks = False ):
     covariates = []    
 
     if printHeader: printFieldQualHeader()
@@ -370,14 +402,16 @@ def calibrateFeatures(variants, fields, titvTarget, printCall = False, cumulativ
         titv, FPRate = titvFPRateEstimate(variants, titvTarget)
         #print 'Overall FRRate:', FPRate, nErrors, phredScale(FPRate)
 
-        for left, right, selectedVariants in mapVariantBins(variants, field, cumulative = cumulative):
+        for cc, selectedVariants in mapVariantBins(variants, field, cumulative = cumulative, breakQuals = qBreaksRanges(OPTIONS.QBreaks, useBreaks and field <> 'QUAL')):
+            #print 'CC', cc, field, useBreaks
             if len(selectedVariants) > max(OPTIONS.minVariantsPerBin,1) or forcePrint:
                 titv, FPRate = titvFPRateEstimate(selectedVariants, titvTarget)
-                dbsnp = dbSNPRate(selectedVariants)
-                covariates.append(CallCovariate(field, left, right, FPRate))
-                printFieldQual( category, prefix + field, left, right, selectedVariants, FPRate )
+                #dbsnp = dbSNPRate(selectedVariants)
+                cc.FPRate = FPRate
+                covariates.append(cc)
+                printFieldQual( category, prefix + field, cc, selectedVariants )
             else:
-                print 'Not calibrating bin', left, right, 'because it contains too few variants:', len(selectedVariants)
+                print 'Not calibrating bin', cc, 'because it contains too few variants:', len(selectedVariants)
 
     return covariates
 
@@ -462,9 +496,9 @@ def compareCalls(calls, truthCalls):
     
     def compare1(name, cumulative):
         for field in ["QUAL", "OQ"]:
-            for left, right, selectedVariants in mapVariantBins(calls, field, cumulative = cumulative):
+            for cc, selectedVariants in mapVariantBins(calls, field, cumulative = cumulative):
                 #print selectedVariants[0]
-                printFieldQual("truth-comparison-" + name, field, left, right, selectedVariants, dephredScale(left))
+                printFieldQual("truth-comparison-" + name, field, cc, selectedVariants )
     
     print 'PER BIN nCalls=', len(calls)
     compare1('per-bin', False)
@@ -519,6 +553,9 @@ def setup():
     parser.add_option("-Q", "--qMin", dest="minQScore",
                         type='int', default=-1,
                         help="The minimum Q score of the initial SNP list to consider for selection [default: %default]")
+    parser.add_option("", "--QBreaks", dest="QBreaks",
+                        type='string', default=None,
+                        help="Breaks in QUAL for generating covarites [default: %default]")
     parser.add_option("-q", "--qMax", dest="maxQScore",
                         type='int', default=60,
                         help="The maximum Q score allowed for both a single covariate and the overall QUAL score [default: %default]")

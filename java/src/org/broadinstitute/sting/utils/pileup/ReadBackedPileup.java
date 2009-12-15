@@ -169,7 +169,7 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
 
         for ( PileupElement p : pileup ) {
-            if ( p.getRead().getMappingQuality() >= minMapQ && p.getQual() >= minBaseQ ) {
+            if ( p.getRead().getMappingQuality() >= minMapQ && (p.isDeletion() || p.getQual() >= minBaseQ) ) {
                 filteredPileup.add(p);
             }
         }
