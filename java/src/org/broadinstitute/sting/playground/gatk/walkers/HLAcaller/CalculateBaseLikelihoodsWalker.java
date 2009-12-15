@@ -1,6 +1,5 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Calculates the probability of observing data for each genotype at every position. NOTE: run FindClosestAllele first to create .filter file. Usage: java -jar GenomeAnalysisTK.jar -T CalculateBaseLikelihoods -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval [-filter INPUT.filter -minAllowedMismatches 7] | grep -v "INFO" | grep -v "MISALIGNED" > OUTPUT.baselikelihoods
  */
 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
@@ -38,11 +37,12 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
     String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
     String AlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
-
+    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
     SAMFileReader HLADictionaryReader = new SAMFileReader();
     String[] HLAreads, HLAnames;
     Integer[] HLAstartpos, HLAstoppos;
-    Hashtable AlleleFrequencies;
+
+    Hashtable AlleleFrequencies,UniqueAlleles;
 
     int[][] LOD, LikelihoodScores;
     ArrayList<String> ReadsToDiscard = new ArrayList<String>();
@@ -74,7 +74,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             }
             out.printf("INFO  Reading HLA allele frequencies ... ");
             FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
-            HLAfreqReader.ReadFile(AlleleFrequencyFile);
+            HLAfreqReader.ReadFile(AlleleFrequencyFile,UniqueAllelesFile);
             AlleleFrequencies = HLAfreqReader.GetAlleleFrequencies();
             out.printf("Done! Frequencies for %s HLA alleles loaded.\n",AlleleFrequencies.size());
 
