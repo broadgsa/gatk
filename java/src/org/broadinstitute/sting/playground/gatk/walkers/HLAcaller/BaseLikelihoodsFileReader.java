@@ -1,8 +1,7 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Reads the .baselikelihoods file for various walkers in the HLA caller suite
  */
-
+ 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import java.io.*;
