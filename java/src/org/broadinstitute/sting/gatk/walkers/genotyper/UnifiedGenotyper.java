@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.alignment.Alignment;
 
 import net.sf.samtools.SAMReadGroupRecord;
 

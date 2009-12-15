@@ -43,13 +43,16 @@ import java.util.*;
 @By(DataSource.REFERENCE)
 public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoCInfo, DepthOfCoverageWalker.DoCInfo> {
 
-    @Argument(fullName="printBaseCounts", shortName = "bases", doc="Print individual base counts (A,C,G,T only)", required=false)
+    @Argument(fullName="suppressLocusPrinting", shortName= "noLocus", doc="Suppress printing", required=false)
+    public boolean suppressLocusPrinting = false;
+
+    @Argument(fullName="printBaseCounts", shortName ="bases", doc="Print individual base counts (A,C,G,T only)", required=false)
     protected boolean printBaseCounts = false;
 
-    @Argument(fullName="minMAPQ", shortName = "minMAPQ", doc="If provided, we will also list read counts with MAPQ >= this value at a locus in coverage",required=false)
+    @Argument(fullName="minMAPQ", shortName ="minMAPQ", doc="If provided, we will also list read counts with MAPQ >= this value at a locus in coverage",required=false)
     protected int excludeMAPQBelowThis = -1;
 
-    @Argument(fullName="minDepth", shortName = "minDepth", doc="If provided, we will also list the percentage of loci with depth >= this value per interval",required=false)
+    @Argument(fullName="minDepth", shortName ="minDepth", doc="If provided, we will also list the percentage of loci with depth >= this value per interval",required=false)
     protected int minDepthForPercentage = -1;
 
     @Argument(fullName="byReadGroup", shortName="byRG", doc="List read depths for each read group")
@@ -99,8 +102,10 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         }
 
         // build and print the per-locus header
-        out.println("\nPER_LOCUS_COVERAGE_SECTION");
-        printHeaderLine(false);
+        if ( !suppressLocusPrinting ) {
+            out.println("\nPER_LOCUS_COVERAGE_SECTION");
+            printHeaderLine(false);
+        }
     }
 
     public DoCInfo map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -153,7 +158,8 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         if ( printHistogram )
             incCov(info.totalCoverage);
 
-        printDoCInfo(context.getLocation(), info, false);
+        if ( !suppressLocusPrinting )
+            printDoCInfo(context.getLocation(), info, false);
 
         return info;
     }
