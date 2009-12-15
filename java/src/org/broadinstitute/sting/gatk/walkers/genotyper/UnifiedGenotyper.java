@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.alignment.Alignment;
 
 import net.sf.samtools.SAMReadGroupRecord;
 
@@ -196,20 +197,21 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
      *
      * @param tracker the meta data tracker
      * @param refContext the reference base
-     * @param context contextual information around the locus
+     * @param rawContext contextual information around the locus
      */
-    public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
         // an optimization to speed things up when there is no coverage or when overly covered
-        if ( context.getPileup().size() == 0 ||
-             (UAC.MAX_READS_IN_PILEUP > 0 && context.getPileup().size() > UAC.MAX_READS_IN_PILEUP) )
+        if ( rawContext.getPileup().size() == 0 ||
+             (UAC.MAX_READS_IN_PILEUP > 0 && rawContext.getPileup().size() > UAC.MAX_READS_IN_PILEUP) )
             return null;
 
         // are there too many deletions in the pileup?
-        ReadBackedPileup pileup = context.getPileup();
+        ReadBackedPileup pileup = rawContext.getPileup().getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
+        AlignmentContext context = new AlignmentContext(rawContext.getLocation(), pileup);
         if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
              (double)pileup.getPileupWithoutMappingQualityZeroReads().getNumberOfDeletions() / (double)(pileup.size() - pileup.getNumberOfMappingQualityZeroReads()) > UAC.MAX_DELETION_FRACTION )
             return null;

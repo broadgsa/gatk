@@ -87,4 +87,11 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "min_allele_frequency", shortName = "min_freq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)
     public double MINIMUM_ALLELE_FREQUENCY = 1e-8;
+
+    // Mark's filtering arguments
+    //@Argument(fullName = "minBaseQualityScore", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
+    public Integer MIN_BASE_QUALTY_SCORE = -1;
+
+    //@Argument(fullName = "minMappingQualityScore", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
+    public Integer MIN_MAPPING_QUALTY_SCORE = -1;
 }

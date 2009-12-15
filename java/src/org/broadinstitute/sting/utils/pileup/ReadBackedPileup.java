@@ -153,6 +153,8 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * @return
      */
     public ReadBackedPileup getPileupWithoutMappingQualityZeroReads() {
+        // todo -- eric, this can be more efficient, FYI
+
         if ( getNumberOfMappingQualityZeroReads() > 0 ) {
             List<SAMRecord> newReads = new ArrayList<SAMRecord>();
             List<Integer> newOffsets = new ArrayList<Integer>();
@@ -169,6 +171,17 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         }
     }
 
+    public ReadBackedPileup getBaseAndMappingFilteredPileup( int minBaseQ, int minMapQ ) {
+        ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
+
+        for ( PileupElement p : pileup ) {
+            if ( p.getRead().getMappingQuality() >= minMapQ && p.getQual() >= minBaseQ ) {
+                filteredPileup.add(p);
+            }
+        }
+
+        return new ReadBackedPileup(loc, filteredPileup);
+    }
     /**
      * Returns a pileup randomly downsampled to the desiredCoverage.
      *
