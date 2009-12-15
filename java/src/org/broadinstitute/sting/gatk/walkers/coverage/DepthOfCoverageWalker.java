@@ -52,6 +52,9 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     @Argument(fullName="minMAPQ", shortName ="minMAPQ", doc="If provided, we will also list read counts with MAPQ >= this value at a locus in coverage",required=false)
     protected int excludeMAPQBelowThis = -1;
 
+    @Argument(fullName = "minBaseQualityScore", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
+    public Integer minBaseQ = -1;
+
     @Argument(fullName="minDepth", shortName ="minDepth", doc="If provided, we will also list the percentage of loci with depth >= this value per interval",required=false)
     protected int minDepthForPercentage = -1;
 
@@ -112,7 +115,7 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
 
         // fill in and print all of the per-locus coverage data, then return it to reduce
 
-        ReadBackedPileup pileup = context.getPileup();
+        ReadBackedPileup pileup = context.getPileup().getBaseAndMappingFilteredPileup(minBaseQ, -1);
 
         DoCInfo info = new DoCInfo();
         info.totalCoverage = pileup.size();
