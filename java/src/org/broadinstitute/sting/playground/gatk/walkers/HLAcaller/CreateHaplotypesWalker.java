@@ -1,13 +1,10 @@
-/*
- * Creates a haplotype file given reads (for SNP analysis, imputation, etc)
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
+
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
 import java.util.Hashtable;
 /**
- *
+ * Creates a haplotype file given reads (for SNP analysis, imputation, etc)
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
