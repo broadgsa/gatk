@@ -39,14 +39,14 @@ public class HomopolymerRun extends StandardVariantAnnotation {
 
         int leftRun = 0;
         for ( int i = refBasePos - 1; i >= 0; i--) {
-            if ( bases[i] != altAllele )
+            if ( Character.toUpperCase(bases[i]) != altAllele )
                 break;
             leftRun++;
         }
 
         int rightRun = 0;
         for ( int i = refBasePos + 1; i < bases.length; i++) {
-            if ( bases[i] != altAllele )
+            if ( Character.toUpperCase(bases[i]) != altAllele )
                 break;
             rightRun++;
         }
