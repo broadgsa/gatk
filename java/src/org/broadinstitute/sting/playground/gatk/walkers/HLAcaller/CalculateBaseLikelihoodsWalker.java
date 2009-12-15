@@ -1,8 +1,5 @@
-/*
- * Calculates the probability of observing data for each genotype at every position. NOTE: run FindClosestAllele first to create .filter file. Usage: java -jar GenomeAnalysisTK.jar -T CalculateBaseLikelihoods -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval [-filter INPUT.filter -minAllowedMismatches 7] | grep -v "INFO" | grep -v "MISALIGNED" > OUTPUT.baselikelihoods
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
+
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -18,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 /**
- *
+ * Calculates the probability of observing data for each genotype at every position. NOTE: run FindClosestAllele first to create .filter file. Usage: java -jar GenomeAnalysisTK.jar -T CalculateBaseLikelihoods -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval [-filter INPUT.filter -minAllowedMismatches 7] | grep -v "INFO" | grep -v "MISALIGNED" > OUTPUT.baselikelihoods
  * @author shermanjia
  */
 public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Long, Long>>{

@@ -1,9 +1,5 @@
-/*
- * Calculates likelihood of observing the data given pairs of HLA alleles. NOTE: run CalculateBaseLikelihoods first! Usage: java -jar GenomeAnalysisTK.jar -T CalculateAlleleLikelihoods -I /humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.imputed.4digit.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl INPUT.baselikelihoods -eth\
-nicity Caucasian | grep -v "INFO"  | grep -v "DONE!" > OUTPUT.allelelikelihoods
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
+
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -13,7 +9,8 @@ import java.util.Hashtable;
 
 
 /**
- *
+ * Calculates likelihood of observing the data given pairs of HLA alleles. NOTE: run CalculateBaseLikelihoods first! Usage: java -jar GenomeAnalysisTK.jar -T CalculateAlleleLikelihoods -I /humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.imputed.4digit.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl INPUT.baselikelihoods -eth\
+nicity Caucasian | grep -v "INFO"  | grep -v "DONE!" > OUTPUT.allelelikelihoods
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})

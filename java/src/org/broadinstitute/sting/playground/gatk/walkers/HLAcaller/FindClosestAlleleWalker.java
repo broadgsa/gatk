@@ -1,7 +1,3 @@
-/**
- * Finds the most similar HLA allele for each read. Usage: java -jar GenomeAnalysisTK.jar -T FindClosestAllele -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L INPUT.interval -findFirst | grep -v INFO | sort -k1 > OUTPUT
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import net.sf.samtools.SAMRecord;
@@ -11,7 +7,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import java.util.ArrayList;
 import java.util.Hashtable;
 /**
- *
+ * Finds the most similar HLA allele for each read. Usage: java -jar GenomeAnalysisTK.jar -T FindClosestAllele -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L INPUT.interval -findFirst | grep -v INFO | sort -k1 > OUTPUT
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})

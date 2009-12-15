@@ -1,9 +1,5 @@
-/**
- * Creates a ped file of SNPs and amino acids coded as SNPs given an input ped file with 4-digit HLA alleles. Usage: java -jar GenomeAnalysisTK.jar -T CreatePedFile --allelesFile INPUT.ped -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-sc\
-r1/GSA/sjia/454_HLA/HLA/HLA.combined.4digitUnique.bam > OUTPUT.log
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
+
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -12,7 +8,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Enumeration;
 /**
- *
+ * Creates a ped file of SNPs and amino acids coded as SNPs given an input ped file with 4-digit HLA alleles. Usage: java -jar GenomeAnalysisTK.jar -T CreatePedFile --allelesFile INPUT.ped -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-sc\
+r1/GSA/sjia/454_HLA/HLA/HLA.combined.4digitUnique.bam > OUTPUT.log
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})

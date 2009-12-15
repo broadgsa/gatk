@@ -1,9 +1,5 @@
-/*
- * Calculates the likelihood of observing data given phase info from pairs of HLA alleles. Note: Run FindClosestAlleleWalker first! Usage: java -jar $GATK -T CalculatePhaseLikelihoods -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -phaseInterval /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl IMPUT.baselikelihoods [-filter $ID.filter -minAllowe\
-dMismatches 7] -ethnicity Caucasian | grep -v "INFO"  | grep -v "DEBUG" | grep -v "DONE!" > OUTPUT.phaselikelihoods
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
+
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.GATKArgumentCollection;
@@ -13,7 +9,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 /**
- *
+ * Calculates the likelihood of observing data given phase info from pairs of HLA alleles. Note: Run FindClosestAlleleWalker first! Usage: java -jar $GATK -T CalculatePhaseLikelihoods -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -phaseInterval /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl IMPUT.baselikelihoods [-filter $ID.filter -minAllowe\
+dMismatches 7] -ethnicity Caucasian | grep -v "INFO"  | grep -v "DEBUG" | grep -v "DONE!" > OUTPUT.phaselikelihoods
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})

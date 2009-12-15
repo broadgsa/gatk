@@ -1,13 +1,9 @@
-/*
- * Reads the .baselikelihoods file for various walkers in the HLA caller suite
- */
- 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import java.io.*;
 import java.util.ArrayList;
 /**
- *
+ * Reads the .baselikelihoods file for various walkers in the HLA caller suite
  * @author shermanjia
  */
 public class BaseLikelihoodsFileReader {

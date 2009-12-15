@@ -1,13 +1,9 @@
-/**
- * File reader used by other Walkers to read HLA allele frequencies.
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import java.io.*;
 import java.util.Hashtable;
 /**
- *
+ * File reader used by other Walkers to read HLA allele frequencies.
  * @author shermanjia
  */
 public class FrequencyFileReader {
