@@ -14,6 +14,9 @@ import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 
+/**
+ * Walker to calculate the number of mismatches, their base counts, and their quality sums at confidence ref sites" 
+ */
 @By(DataSource.REFERENCE)
 public class LocusMismatchWalker extends LocusWalker<String,Integer> implements TreeReducible<Integer> {
     @Argument(fullName="confidentRefThreshold",doc="Set the lod score that defines confidence in ref, defaults to 4", required=false)
