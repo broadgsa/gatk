@@ -78,7 +78,8 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
     public SeekableRODIterator(Iterator<ROD> it) {
         this.it = new PushbackIterator<ROD>(it);
         records = new LinkedList<ROD>();
-        ROD r = this.it.peek();
+        ROD r = null;
+        if (this.it.hasNext()) r = this.it.element();
         name = (r==null?null:r.getName());
     }
 
@@ -132,7 +133,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
          // covered by new records, so we need to load them too:
 
          while ( it.hasNext() ) {
-             ROD r = it.peek();
+             ROD r = it.element();
              if ( r == null ) {
                  it.next();
                  continue;

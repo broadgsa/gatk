@@ -27,12 +27,21 @@ public class PushbackIterator<T> implements Iterator<T>, Iterable<T> {
         return this;
     }
 
-    public T peek() {
+    /**
+     * Retrieves, but does not remove, the head of this iterator.
+     * @return T the next element in the iterator
+     * @throws NoSuchElementException - if the iterator doesn't have a next element
+     */
+    public T element() {
         T x = next();
         pushback(x);
         return x;
     }
 
+    /**
+     * @return the next element in the iteration.
+     * @throws NoSuchElementException - iteration has no more elements.
+     */
     public T next() {
         if (pushedElement != null) {
             final T ret = pushedElement;

@@ -584,8 +584,13 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 			return parser.hasNext();
 		}
 
+        /**
+         * @return the next element in the iteration.
+         * @throws NoSuchElementException - iterator has no more elements.
+         */
 		@Override
 		public SAMPileupRecord next() {
+             if (!this.hasNext()) throw new NoSuchElementException("SAMPileupRecord next called on iterator with no more elements");
 //			 if ( z == 0 ) t = System.currentTimeMillis();
 	          lastProcessedLine = parser.next();
 	          SAMPileupRecord n = new SAMPileupRecord(rodName);

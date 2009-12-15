@@ -113,9 +113,13 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
 			return parser.hasNext();
 		}
 
+        /**
+         * @return the next element in the iteration.
+         * @throws NoSuchElementException - iterator has no more elements.
+         */
 		@Override
 		public rodSAMPileup next() {
-
+            if (!this.hasNext()) throw new NoSuchElementException("rodSAMPileup next called on iterator with no more elements");
 			rodSAMPileup result = new rodSAMPileup(rodName);
 			
 			SAMPileupRecord r = parser.next();

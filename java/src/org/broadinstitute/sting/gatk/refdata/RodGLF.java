@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 
 /**
@@ -349,8 +350,13 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
         return (mReader.hasNext());
     }
 
+    /**
+     * @return the next element in the iteration.
+     * @throws NoSuchElementException - iterator has no more elements.
+     */
     @Override
     public RodGLF next() {
+        if (!this.hasNext()) throw new NoSuchElementException("RodGLF next called on iterator with no more elements");
         mRecord = mReader.next();
         mLoc = GenomeLocParser.createGenomeLoc(mReader.getReferenceName(), mReader.getCurrentLocation(), mReader.getCurrentLocation());
         return this;

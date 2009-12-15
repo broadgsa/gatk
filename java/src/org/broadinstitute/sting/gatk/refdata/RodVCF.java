@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 
 /**
@@ -282,7 +283,12 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         return mReader.hasNext();
     }
 
+    /**
+     * @return the next element in the iteration.
+     * @throws NoSuchElementException - iterator has no more elements.
+     */
     public RodVCF next() {
+        if (!this.hasNext()) throw new NoSuchElementException("RodVCF next called on iterator with no more elements");
         return new RodVCF(name, mReader.next(), mReader);
     }
 

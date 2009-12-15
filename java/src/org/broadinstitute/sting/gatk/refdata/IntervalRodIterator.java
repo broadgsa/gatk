@@ -34,8 +34,13 @@ public class IntervalRodIterator implements Iterator<IntervalRod> {
 		return iter.hasNext();
 	}
 
+    /**
+     * @return the next element in the iteration.
+     * @throws NoSuchElementException - iterator has no more elements.
+     */
 	@Override
 	public IntervalRod next() {
+        if (!this.hasNext()) throw new NoSuchElementException("IntervalRodIterator next called on iterator with no more elements");
         IntervalRod r = new IntervalRod(trackName, iter.next());
         //System.out.printf("IntervalRod next is %s%n", r);
         return r;

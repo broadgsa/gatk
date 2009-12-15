@@ -31,10 +31,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Collections;
-import java.util.Arrays;
+import java.util.*;
 
 /**
  * @author alecw@broadinstitute.org
@@ -270,7 +267,12 @@ public class rodPicardDbSNP implements VariationRod {
             return reader.hasNext();
         }
 
+        /**
+         * @return the next element in the iteration.
+         * @throws NoSuchElementException - iterator has no more elements.
+         */
         public rodPicardDbSNP next() {
+            if (!this.hasNext()) throw new NoSuchElementException("rodPicardDbSNP next called on iterator with no more elements");
             return new rodPicardDbSNP(reader.next());
         }
 

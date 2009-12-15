@@ -78,8 +78,12 @@ public class rodGELI extends BasicReferenceOrderedDatum {
 		public boolean hasNext() {
 			return iterator.hasNext();
 		}
-
+        /**
+         * @return the next element in the iteration.
+         * @throws NoSuchElementException - iterator has no more elements.
+         */
 		public rodGELI next() {
+            if (!this.hasNext()) throw new NoSuchElementException("RodGELI next called on iterator with no more elements");
             return new rodGELI(rodName, iterator.next());
 		}
 
