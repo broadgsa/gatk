@@ -1,11 +1,4 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
-
-
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -29,7 +22,7 @@ import java.util.Hashtable;
 import java.util.List;
 
 /**
- *
+ * Original Call HLA walker (older). Look here for inspiration, but not for the most recent tools
  * @author shermanjia
  */
 public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{

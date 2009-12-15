@@ -1,7 +1,3 @@
-/*
- * FindClosestAlleleWalker finds the most similar HLA allele per read
- */
-
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import net.sf.samtools.SAMRecord;
@@ -14,7 +10,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 /**
- *
+ * ImputeAllelesWalker fills in missing intronic info for HLA alleles based on the the most similar HLA allele per read
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
