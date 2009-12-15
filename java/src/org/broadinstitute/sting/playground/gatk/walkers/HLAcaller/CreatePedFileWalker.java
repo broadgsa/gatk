@@ -1,5 +1,6 @@
-/*
- * Creates a ped file given reads (for SNP analysis, imputation, etc)
+/**
+ * Creates a ped file of SNPs and amino acids coded as SNPs given an input ped file with 4-digit HLA alleles. Usage: java -jar GenomeAnalysisTK.jar -T CreatePedFile --allelesFile INPUT.ped -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-sc\
+r1/GSA/sjia/454_HLA/HLA/HLA.combined.4digitUnique.bam > OUTPUT.log
  */
 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
@@ -9,6 +10,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Enumeration;
 /**
  *
  * @author shermanjia
@@ -21,11 +23,17 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "pedIntervals", shortName = "pedIntervals", doc = "Create genotypes in these intervals", required = false)
     public String pedIntervalsFile = "";
 
+    @Argument(fullName = "HLAexonIntervals", shortName = "HLAexonIntervals", doc = "HLA exonic intervals", required = false)
+    public String exonIntervalsFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_EXON_POSITIONS.txt";
+
+    @Argument(fullName = "DNAcode", shortName = "DNAcode", doc = "Amino acid codes", required = false)
+    public String dnaCodesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/DNA_CODE.txt";
+
     String[] HLAnames, HLAreads, inputFileContents;
     Integer[] HLAstartpos, HLAstoppos;
     ArrayList<String> HLAnamesAL, HLAreadsAL;
     ArrayList<Integer> HLAstartposAL, HLAstopposAL;
-    int[][] intervals;
+    int[][] intervals; String[][] exonIntervals;
     int numIntervals;
 
     ReadCigarFormatter formatter = new ReadCigarFormatter();
@@ -48,6 +56,7 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
     Integer I;
 
     Hashtable indexer = new Hashtable();
+    Hashtable DNAcode = new Hashtable();
 
     public Integer reduceInit() {
         if (!FilesLoaded){
@@ -79,8 +88,68 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
                     out.printf("INFO  Interval %s: %s-%s\n",i+1,intervals[i][0],intervals[i][1]);
                 }
             }
+
+            //load HLA exonic intervals
+            if (!exonIntervalsFile.equals("")){
+                fileReader = new TextFileReader();
+                fileReader.ReadFile(exonIntervalsFile);
+                String[] lines = fileReader.GetLines();
+                exonIntervals = new String[lines.length][5];
+                for (int i = 0; i < lines.length; i++) {
+                    String[] s = lines[i].split("\t");
+                    String[] intervalPieces = s[1].split("-");
+                    exonIntervals[i][1] = intervalPieces[0];
+                    exonIntervals[i][2] = intervalPieces[1];
+                    exonIntervals[i][0] = s[0]; // Locus
+                    exonIntervals[i][3] = s[2]; // Exon number
+                    exonIntervals[i][4] = s[3]; // +/- strand
+                }
+                numIntervals = exonIntervals.length;
+                for (int i = 0; i < numIntervals; i++){
+                    out.printf("INFO  HLA-%s %s (%s): %s-%s\n",exonIntervals[i][0],exonIntervals[i][3],exonIntervals[i][4],exonIntervals[i][1],exonIntervals[i][2]);
+                }
+            }
+
+            //load amino-acid coding DNA triplets
+            if (!dnaCodesFile.equals("")){
+                fileReader = new TextFileReader();
+                fileReader.ReadFile(dnaCodesFile);
+                String[] lines = fileReader.GetLines();
+                for (int i = 0; i < lines.length; i++) {
+                    String[] s = lines[i].split("\t");
+                    DNAcode.put(s[0],s[1]);
+                }
+
+                Enumeration e = DNAcode.keys();
+                while( e.hasMoreElements() ){
+                    String key = e.nextElement().toString();
+                    out.printf("INFO %s encodes %s\n",key,DNAcode.get(key));
+                }
+            }
         }
         return 0;
+    }
+
+    private String[][] GetExonIntervals(String locus, boolean isForwardStrand){
+        int numExons = 0; int exonNum;
+        for (int i = 0; i < exonIntervals.length; i++){
+            if (exonIntervals[i][0].equals(locus)){
+                numExons++;
+            }
+        }
+        String[][] ExonIntervals = new String[numExons][5];
+        if (isForwardStrand){exonNum = 1;}else{exonNum = ExonIntervals.length;}
+        for (int i = 0; i < exonIntervals.length; i++){
+            if (exonIntervals[i][0].equals(locus)){
+                ExonIntervals[exonNum-1]=exonIntervals[i];
+                if (isForwardStrand){
+                    exonNum++;
+                }else{
+                    exonNum--;
+                }
+            }
+        }
+        return ExonIntervals;
     }
 
     private int BaseCharToInt(char c){
@@ -93,6 +162,23 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         }
     }
 
+    private char Complement(char c){
+        switch(c){
+            case 'A': return 'T';
+            case 'C': return 'G';
+            case 'G': return 'C';
+            case 'T': return 'A';
+            default: return '0';
+        }
+    }
+
+    private char GetAminoAcid(String codon){
+        if (DNAcode.containsKey(codon)){
+            return DNAcode.get(codon).toString().charAt(0);
+        }else{
+            return '0';
+        }
+    }
 
     public Integer map(char[] ref, SAMRecord read) {
         HLAnamesAL.add(read.getReadName());
@@ -135,29 +221,107 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         }
         
         for (int pos = startpos; pos <= stoppos; pos++){
-            if (pos >= start1 && pos <= stop1){
-                c1 = s1.charAt(pos-start1);
-                if (c1 == 'D'){c1 = '0';}
-            }else{
-                c1 = '0';
-            }
-
-            if (pos >= start2 && pos <= stop2){
-                c2 = s2.charAt(pos-start2);
-                if (c2 == 'D'){c2 = '0';}
-            }else{
-                c2 = '0';
-            }
-
+            c1 = GetBase(pos,s1,start1,stop1);
+            c2 = GetBase(pos,s2,start2,stop2);
             out.printf("\t%s %s",c1,c2);
         }
         return error;
     }
 
+private String PrintAminoAcids(String ID, String alleleName1, String alleleName2, String[][] ExonIntervals){
+
+        String error = "";
+        //prints genotypes for allele1 and allele2 at given interval
+        int i1 = GetAlleleIndex(alleleName1);
+        int i2 = GetAlleleIndex(alleleName2);
+        String s1, s2;
+        int start1, start2, stop1, stop2;
+        char c1, c2;
+        boolean isForwardStrand = false;
+        if (ExonIntervals[0][4].equals("+")){isForwardStrand=true;}
+
+        int AAcount=0;
+        int baseCount=0;
+        String codon1 = ""; String codon2 = "";
+
+        if (i1 > -1){
+            s1 = HLAreads[i1];
+            start1 = HLAstartpos[i1];
+            stop1 = HLAstoppos[i1];
+        }else{
+            s1 = "";
+            start1 = -1;
+            stop1 = -1;
+            error = error + "INFO  " + alleleName1 + " for " + ID + " not found in HLA dictionary\n";
+        }
+
+        if (i2 > -1){
+            s2 = HLAreads[i2];
+            start2 = HLAstartpos[i2];
+            stop2 = HLAstoppos[i2];
+        }else{
+            s2 = "";
+            start2 = -1;
+            stop2 = -1;
+            error = error + "INFO  " + alleleName2 + " for " + ID + " not found in HLA dictionary\n";
+        }
+
+        int i;
+        for (int exonNum = 1; exonNum <= ExonIntervals.length; exonNum++){
+            if (isForwardStrand){i=exonNum-1;}else{i=ExonIntervals.length-exonNum;}
+            int exonStart = Integer.parseInt(ExonIntervals[i][1]);
+            int exonStop = Integer.parseInt(ExonIntervals[i][2]);
+            for (int pos = exonStart; pos <= exonStop; pos++){
+                c1 = GetBase(pos,s1,start1,stop1);
+                c2 = GetBase(pos,s2,start2,stop2);
+                if (!isForwardStrand){
+                    c1 = Complement(c1);
+                    c2 = Complement(c2);
+                }
+                if (baseCount < 3){
+                    if (isForwardStrand){
+                        codon1 = codon1 + c1;
+                        codon2 = codon2 + c2;
+                    }else{
+                        codon1 = c1 + codon1;
+                        codon2 = c2 + codon2;
+                    }
+                    baseCount++;
+                }
+
+                if (baseCount == 3){
+                    out.printf("\t%s %s",GetAminoAcid(codon1),GetAminoAcid(codon2));
+                    baseCount = 0;
+                    AAcount++;
+                    codon1 = "";
+                    codon2 = "";
+                }
+            }
+        }
+        if (baseCount > 0){
+            //Print stop or start codon depending on strandedness
+            if (isForwardStrand){out.printf("\tO O");}else{out.printf("\tM M");}
+        }
+        
+        return error;
+    }
+
+    private char GetBase(int pos, String str, int start, int stop){
+        char base;
+        if (pos >= start && pos <= stop){
+            base = str.charAt(pos-start);
+            if (base == 'D'){base = '0';}
+        }else{
+            base = '0';
+        }
+        return base;
+    }
+
     private int GetAlleleIndex(String alleleName){
+        //Find first allele that matches name, or matches part of name for 2-digit allele
         int i;
         for (i = 0; i < HLAnames.length; i++){
-            if (HLAnames[i].equals(alleleName)){
+            if (HLAnames[i].indexOf(alleleName) > -1){
                 return i;
             }
         }
@@ -169,6 +333,14 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         return value + sum;
     }
 
+    private String GetAlleleName(String locus, String sep, String allele){
+        if (allele.length() > 1){
+            return locus + sep + allele;
+        }else{
+            return locus + sep + "0000";
+        }
+    }
+
     public void onTraversalDone(Integer numreads) {
         HLAnames = HLAnamesAL.toArray(new String[numreads]);
         HLAreads = HLAreadsAL.toArray(new String[numreads]);
@@ -177,6 +349,15 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         String star = "*";
         String error = "";
 
+        //out.printf("INFO %s alleles in dictionary\n",HLAnames.length);
+        String[][] A_exons = GetExonIntervals("A",true);
+        String[][] B_exons = GetExonIntervals("B",false);
+        String[][] C_exons = GetExonIntervals("C",false);
+        String[][] DRB1_exons = GetExonIntervals("DRB1",false);
+        String[][] DQB1_exons = GetExonIntervals("DQB1",false);
+        String[][] DQA1_exons = GetExonIntervals("DQA1",true);
+        String[][] DPB1_exons = GetExonIntervals("DPB1",true);
+        String[][] DPA1_exons = GetExonIntervals("DPA1",false);
         //Print individual info and genotypes
         for (int i = 0; i < inputFileContents.length; i++){
             String[] s = inputFileContents[i].split(" ");
@@ -184,52 +365,113 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
             if (s.length > 10){
                 error = "";
                 out.printf("%s\t%s\t%s\t%s\t%s\t%s",s[0],s[1],s[2],s[3],s[4],s[5]);
-                String HLA_A_1 = "HLA_A" + star + s[6];
-                String HLA_A_2 = "HLA_A" + star + s[7];
-                String HLA_B_1 = "HLA_B" + star + s[8];
-                String HLA_B_2 = "HLA_B" + star + s[9];
-                String HLA_C_1 = "HLA_C" + star + s[10];
-                String HLA_C_2 = "HLA_C" + star + s[11];
-                String HLA_DPA1_1 = "HLA_DPA1" + star + s[12];
-                String HLA_DPA1_2 = "HLA_DPA1" + star + s[13];
-                String HLA_DPB1_1 = "HLA_DPB1" + star + s[14];
-                String HLA_DPB1_2 = "HLA_DPB1" + star + s[15];
-                String HLA_DQA1_1 = "HLA_DQA1" + star + s[16];
-                String HLA_DQA1_2 = "HLA_DQA1" + star + s[17];
-                String HLA_DQB1_1 = "HLA_DQB1" + star + s[18];
-                String HLA_DQB1_2 = "HLA_DQB1" + star + s[19];
-                String HLA_DRB1_1 = "HLA_DRB1" + star + s[20];
-                String HLA_DRB1_2 = "HLA_DRB1" + star + s[21];
+                String HLA_A_1 = GetAlleleName("HLA_A",star,s[6]);
+                String HLA_A_2 = GetAlleleName("HLA_A",star,s[7]);
+                String HLA_B_1 = GetAlleleName("HLA_B",star,s[8]);
+                String HLA_B_2 = GetAlleleName("HLA_B",star,s[9]);
+                String HLA_C_1 = GetAlleleName("HLA_C",star,s[10]);
+                String HLA_C_2 = GetAlleleName("HLA_C",star,s[11]);
+                String HLA_DPA1_1 = GetAlleleName("HLA_DPA1",star,s[12]);
+                String HLA_DPA1_2 = GetAlleleName("HLA_DPA1",star,s[13]);
+                String HLA_DPB1_1 = GetAlleleName("HLA_DPB1",star,s[14]);
+                String HLA_DPB1_2 = GetAlleleName("HLA_DPB1",star,s[15]);
+                String HLA_DQA1_1 = GetAlleleName("HLA_DQA1",star,s[16]);
+                String HLA_DQA1_2 = GetAlleleName("HLA_DQA1",star,s[17]);
+                String HLA_DQB1_1 = GetAlleleName("HLA_DQB1",star,s[18]);
+                String HLA_DQB1_2 = GetAlleleName("HLA_DQB1",star,s[19]);
+                String HLA_DRB1_1 = GetAlleleName("HLA_DRB1",star,s[20]);
+                String HLA_DRB1_2 = GetAlleleName("HLA_DRB1",star,s[21]);
 
-                error = error + PrintGenotypes(s[1], HLA_A_1,HLA_A_2, HLA_A_start,HLA_A_end);
-                error = error + PrintGenotypes(s[1], HLA_C_1,HLA_C_2, HLA_C_start,HLA_C_end);
-                error = error + PrintGenotypes(s[1], HLA_B_1,HLA_B_2, HLA_B_start,HLA_B_end);
-                error = error + PrintGenotypes(s[1], HLA_DRB1_1,HLA_DRB1_2, HLA_DRB1_start,HLA_DRB1_end);
-                error = error + PrintGenotypes(s[1], HLA_DQA1_1,HLA_DQA1_2, HLA_DQA1_start,HLA_DQA1_end);
-                error = error + PrintGenotypes(s[1], HLA_DQB1_1,HLA_DQB1_2, HLA_DQB1_start,HLA_DQB1_end);
-                error = error + PrintGenotypes(s[1], HLA_DPA1_1,HLA_DPA1_2, HLA_DPA1_start,HLA_DPA1_end);
-                error = error + PrintGenotypes(s[1], HLA_DPB1_1,HLA_DPB1_2, HLA_DPB1_start,HLA_DPB1_end);
                 
-                out.printf("\n");
-                out.printf("%s",error);
+
+                if (true) {
+                    error = error + PrintGenotypes(s[1], HLA_A_1,HLA_A_2, HLA_A_start,HLA_A_end);
+                    error = error + PrintGenotypes(s[1], HLA_C_1,HLA_C_2, HLA_C_start,HLA_C_end);
+                    error = error + PrintGenotypes(s[1], HLA_B_1,HLA_B_2, HLA_B_start,HLA_B_end);
+                    error = error + PrintGenotypes(s[1], HLA_DRB1_1,HLA_DRB1_2, HLA_DRB1_start,HLA_DRB1_end);
+                    error = error + PrintGenotypes(s[1], HLA_DQA1_1,HLA_DQA1_2, HLA_DQA1_start,HLA_DQA1_end);
+                    error = error + PrintGenotypes(s[1], HLA_DQB1_1,HLA_DQB1_2, HLA_DQB1_start,HLA_DQB1_end);
+                    error = error + PrintGenotypes(s[1], HLA_DPA1_1,HLA_DPA1_2, HLA_DPA1_start,HLA_DPA1_end);
+                    error = error + PrintGenotypes(s[1], HLA_DPB1_1,HLA_DPB1_2, HLA_DPB1_start,HLA_DPB1_end);
+
+                    error = error + PrintAminoAcids(s[1], HLA_A_1,HLA_A_2, A_exons);
+                    error = error + PrintAminoAcids(s[1], HLA_C_1,HLA_C_2, C_exons);
+                    error = error + PrintAminoAcids(s[1], HLA_B_1,HLA_B_2, B_exons);
+                    error = error + PrintAminoAcids(s[1], HLA_DRB1_1,HLA_DRB1_2, DRB1_exons);
+                    error = error + PrintAminoAcids(s[1], HLA_DQA1_1,HLA_DQA1_2, DQA1_exons);
+                    error = error + PrintAminoAcids(s[1], HLA_DQB1_1,HLA_DQB1_2, DQB1_exons);
+                    error = error + PrintAminoAcids(s[1], HLA_DPA1_1,HLA_DPA1_2, DPA1_exons);
+                    error = error + PrintAminoAcids(s[1], HLA_DPB1_1,HLA_DPB1_2, DPB1_exons);
+                    out.printf("\n");
+                    out.printf("%s",error);
+                }
             }
         }
 
         //Prints SNP names for each site
-        PrintSNPS(HLA_A_start,HLA_A_end);
-        PrintSNPS(HLA_C_start,HLA_C_end);
-        PrintSNPS(HLA_B_start,HLA_B_end);
-        PrintSNPS(HLA_DRB1_start,HLA_DRB1_end);
-        PrintSNPS(HLA_DQA1_start,HLA_DQA1_end);
-        PrintSNPS(HLA_DQB1_start,HLA_DQB1_end);
-        PrintSNPS(HLA_DPA1_start,HLA_DPA1_end);
-        PrintSNPS(HLA_DPB1_start,HLA_DPB1_end);
+        if (true){
+            PrintSNPS(HLA_A_start,HLA_A_end);
+            PrintSNPS(HLA_C_start,HLA_C_end);
+            PrintSNPS(HLA_B_start,HLA_B_end);
+            PrintSNPS(HLA_DRB1_start,HLA_DRB1_end);
+            PrintSNPS(HLA_DQA1_start,HLA_DQA1_end);
+            PrintSNPS(HLA_DQB1_start,HLA_DQB1_end);
+            PrintSNPS(HLA_DPA1_start,HLA_DPA1_end);
+            PrintSNPS(HLA_DPB1_start,HLA_DPB1_end);
+
+            PrintAminoAcidSites(A_exons,"A",true);
+            PrintAminoAcidSites(C_exons,"C",false);
+            PrintAminoAcidSites(B_exons,"B",false);
+            PrintAminoAcidSites(DRB1_exons,"DRB1",false);
+            PrintAminoAcidSites(DQA1_exons,"DQA1",true);
+            PrintAminoAcidSites(DQB1_exons,"DQB1",false);
+            PrintAminoAcidSites(DPA1_exons,"DPA1",false);
+            PrintAminoAcidSites(DPB1_exons,"DPB1",true);
+        }
+
     }
 
     private void PrintSNPS(int startpos, int stoppos){
         for (int pos = startpos; pos <= stoppos; pos++){
             SNPname = "CHR6_POS" + String.valueOf(pos);
             out.printf("6\t%s\t0\t%s\n",SNPname,pos);
+        }
+    }
+
+    private void PrintAminoAcidSites(String[][] ExonIntervals, String locus, boolean isForwardStrand){
+        int AAcount=1; int baseCount = 1; int exonNum;
+
+        if (!isForwardStrand){
+            for (int i = 1; i <= ExonIntervals.length; i++){
+                int exonStart = Integer.parseInt(ExonIntervals[i-1][1]);
+                int exonStop = Integer.parseInt(ExonIntervals[i-1][2]);
+                for (int pos = exonStart; pos <= exonStop; pos++){
+                    if (baseCount == 3){
+                        AAcount++;
+                        baseCount = 1;
+                    }else{
+                        baseCount++;
+                    }
+                }
+            }
+        }
+
+        for (int i = 1; i <= ExonIntervals.length; i++){
+            if (isForwardStrand){exonNum = i;}else{exonNum = ExonIntervals.length - i + 1;}
+            int exonStart = Integer.parseInt(ExonIntervals[exonNum-1][1]);
+            int exonStop = Integer.parseInt(ExonIntervals[exonNum-1][2]);
+            for (int pos = exonStart; pos <= exonStop; pos++){
+                if (baseCount == 2){
+                    SNPname = locus + "_AA" + String.valueOf(AAcount) + "_E" + exonNum + "_" + String.valueOf(pos);
+                    out.printf("6\t%s\t0\t%s\n",SNPname,pos);
+                }
+                if (baseCount == 3){
+                    if (isForwardStrand){AAcount++;}else{AAcount--;}
+                    baseCount = 1;
+                }else{
+                    baseCount++;
+                }
+            }
         }
     }
 }
