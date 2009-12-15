@@ -299,7 +299,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         verboseWriter.println();
     }
 
-    protected List<Genotype> makeGenotypeCalls(char ref, char alt, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
+    protected List<Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
         // by default, we return no genotypes
         return new ArrayList<Genotype>();
     }    
@@ -329,7 +329,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             return new Pair<VariationCall, List<Genotype>>(null, null);
 
         // populate the sample-specific data
-        List<Genotype> calls = makeGenotypeCalls(ref, bestAlternateAllele, contexts, loc);
+        List<Genotype> calls = makeGenotypeCalls(ref, bestAlternateAllele, bestAFguess, contexts, loc);
 
         // next, the general locus data
         // *** note that calculating strand bias involves overwriting data structures, so we do that last

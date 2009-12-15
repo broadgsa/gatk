@@ -4,8 +4,8 @@ package org.broadinstitute.sting.utils.genotype;
  * @author aaron
  * Interface PosteriorsBacked
  *
- * this interface indicates that the genotype is
- * backed up by genotype posterior information.
+ * This interface indicates that the genotype is backed up by *diploid* genotype posterior information.
+ * The posteriors array is expected to have 10 entries (one for each of the possible diploid genotypes).
  */
 public interface PosteriorsBacked {
 

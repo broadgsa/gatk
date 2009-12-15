@@ -82,6 +82,14 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements Genot
         this.mVariation = variation;
     }
 
+    public void setGenotype(DiploidGenotype genotype) {
+        ; // do nothing: geli uses diploid posteriors to calculate the genotype
+    }
+
+    public void setNegLog10PError(double value) {
+        ; // do nothing: geli uses diploid posteriors to calculate the P(error)
+    }
+
     @Override
     public boolean equals(Object other) {
         lazyEval();

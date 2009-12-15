@@ -42,7 +42,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     private char mReferenceBase;
     // our location
     private GenomeLoc mLoc;
-    // our id; set to '.' if not available
+    // our id
     private String mID;
     // the alternate bases
     private final List<VCFGenotypeEncoding> mAlts = new ArrayList<VCFGenotypeEncoding>();

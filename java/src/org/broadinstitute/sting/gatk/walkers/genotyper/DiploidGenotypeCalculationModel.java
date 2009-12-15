@@ -31,7 +31,6 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         // use flat priors for GLs
         DiploidGenotypePriors priors = new DiploidGenotypePriors();
 
-        int index = 0;
         for ( String sample : contexts.keySet() ) {
             StratifiedAlignmentContext context = contexts.get(sample);
             ReadBackedPileup pileup = context.getContext(contextType).getPileup();
@@ -47,12 +46,11 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
             for ( char alt : BaseUtils.BASES ) {
                 if ( alt != ref ) {
-                    DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
+                    DiploidGenotype hetGenotype = DiploidGenotype.unorderedValueOf(ref, alt);
                     DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
-                    AFMatrixMap.get(alt).setLikelihoods(posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()], index);
+                    AFMatrixMap.get(alt).setLikelihoods(posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()], sample);
                 }
             }
-            index++;
         }
     }
 
@@ -74,13 +72,30 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected List<Genotype> makeGenotypeCalls(char ref, char alt, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
+    protected List<Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
+
+        // set up some variables we'll need in the loop
+        AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
+        DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
+        DiploidGenotype hetGenotype = DiploidGenotype.unorderedValueOf(ref, alt);
+        DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
 
         for ( String sample : GLs.keySet() ) {
 
             // create the call
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, loc);
+
+            // set the genotype and confidence
+            Pair<Integer, Double> AFbasedGenotype = matrix.getGenotype(frequency, sample);
+            call.setNegLog10PError(AFbasedGenotype.second);
+            if ( AFbasedGenotype.first == GenotypeType.REF.ordinal() )
+                call.setGenotype(refGenotype);
+            else if ( AFbasedGenotype.first == GenotypeType.HET.ordinal() )
+                call.setGenotype(hetGenotype);
+            else // ( AFbasedGenotype.first == GenotypeType.HOM.ordinal() )
+                call.setGenotype(homGenotype);
+
 
             if ( call instanceof ReadBacked ) {
                 ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup();
@@ -105,12 +120,17 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         return calls;
     }
 
+
     protected class AlleleFrequencyMatrix {
 
-        private double[][] matrix;
-        private int[] indexes;
-        private int N;
-        private int frequency;
+        private double[][] matrix;    // allele frequency matrix
+        private int[] indexes;        // matrix to maintain which genotype is active
+        private int N;                // total frequencies
+        private int frequency;        // current frequency
+
+        // data structures necessary to maintain a list of the best genotypes and their scores
+        private ArrayList<String> samples = new ArrayList<String>();
+        private HashMap<Integer, HashMap<String, Pair<Integer, Double>>> samplesToGenotypesPerAF = new HashMap<Integer, HashMap<String, Pair<Integer, Double>>>();
 
         public AlleleFrequencyMatrix(int N) {
             this.N = N;
@@ -121,7 +141,9 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                 indexes[i] = 0;
         }
 
-        public void setLikelihoods(double AA, double AB, double BB, int index) {
+        public void setLikelihoods(double AA, double AB, double BB, String sample) {
+            int index = samples.size();
+            samples.add(sample);
             matrix[index][GenotypeType.REF.ordinal()] = AA;
             matrix[index][GenotypeType.HET.ordinal()] = AB;
             matrix[index][GenotypeType.HOM.ordinal()] = BB;
@@ -169,17 +191,48 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             for (int i = 0; i < N; i++)
                 likelihoods += matrix[i][indexes[i]];
 
-            //verboseWriter.write(frequency + "\n");
-            //for (int i = 0; i < N; i++) {
-            //    for (int j=0; j < 3; j++) {
-            //        verboseWriter.write(String.valueOf(matrix[i][j]));
-            //        verboseWriter.write(indexes[i] == j ? "* " : " ");
-            //    }
-            //    verboseWriter.write("\n");
-            //}
-            //verboseWriter.write(likelihoods + "\n\n");
+            /*
+            System.out.println(frequency);
+            for (int i = 0; i < N; i++) {
+                for (int j=0; j < 3; j++) {
+                    System.out.print(String.valueOf(matrix[i][j]));
+                    System.out.print(indexes[i] == j ? "* " : " ");
+                }
+                System.out.println();
+            }
+            System.out.println(likelihoods);
+            System.out.println();
+            */
+
+            recordGenotypes();
 
             return likelihoods;
+        }
+
+        public Pair<Integer, Double> getGenotype(int frequency, String sample) {
+            return samplesToGenotypesPerAF.get(frequency).get(sample);
+        }
+
+        private void recordGenotypes() {
+            HashMap<String, Pair<Integer, Double>> samplesToGenotypes = new HashMap<String, Pair<Integer, Double>>();
+
+            int index = 0;
+            for ( String sample : samples ) {
+                int genotype = indexes[index];
+
+                double score;
+                if ( genotype == GenotypeType.REF.ordinal() )
+                    score = matrix[index][GenotypeType.REF.ordinal()] - Math.max(matrix[index][GenotypeType.HET.ordinal()], matrix[index][GenotypeType.HOM.ordinal()]);
+                else if ( genotype == GenotypeType.HET.ordinal() )
+                    score = matrix[index][GenotypeType.HET.ordinal()] - Math.max(matrix[index][GenotypeType.REF.ordinal()], matrix[index][GenotypeType.HOM.ordinal()]);
+                else // ( genotype == GenotypeType.HOM.ordinal() )
+                    score = matrix[index][GenotypeType.HOM.ordinal()] - Math.max(matrix[index][GenotypeType.REF.ordinal()], matrix[index][GenotypeType.HET.ordinal()]);
+
+                samplesToGenotypes.put(sample, new Pair<Integer, Double>(genotype, Math.abs(score)));
+                index++;
+            }
+
+            samplesToGenotypesPerAF.put(frequency, samplesToGenotypes);
         }
     }
 }

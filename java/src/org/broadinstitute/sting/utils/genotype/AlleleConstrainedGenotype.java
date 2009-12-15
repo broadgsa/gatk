@@ -8,7 +8,7 @@ package org.broadinstitute.sting.utils.genotype;
  *         <p/>
  *         A genotype that can have only one of 3 genotypes AA,AB,BB
  */
-public abstract class AlleleConstrainedGenotype implements Genotype, PosteriorsBacked {
+public abstract class AlleleConstrainedGenotype implements Genotype {
 
     protected final static char NO_CONSTRAINT = 'N';
 
@@ -36,6 +36,7 @@ public abstract class AlleleConstrainedGenotype implements Genotype, PosteriorsB
     }
 
     /**
+     * 
      * @return returns the best genotype
      */
     protected abstract DiploidGenotype getBestGenotype();

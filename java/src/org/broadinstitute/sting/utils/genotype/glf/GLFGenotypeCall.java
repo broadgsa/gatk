@@ -65,6 +65,10 @@ public class GLFGenotypeCall implements GenotypeCall, ReadBacked, LikelihoodsBac
         mGenotype = genotype;
     }
 
+    public void setGenotype(DiploidGenotype genotype) {
+        setGenotype(genotype.toString());
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == null || !(other instanceof GLFGenotypeCall))

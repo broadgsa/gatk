@@ -179,6 +179,8 @@ public class VCFUtils {
         if ( freqsSeen > 0 )
             infoFields.put(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%.2f", (totalFreq/(double)freqsSeen)));
 
+        // TODO -- "." and "0" are wrong -- need to use values from the records
+
         return new VCFRecord(params.getReferenceBase(),
                 params.getContig(),
                 params.getPosition(),

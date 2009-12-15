@@ -96,6 +96,14 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
             AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());
 
+            // set the genotype and confidence
+            double[] posteriors = GLs.get(sample).getPosteriors();
+            Integer sorted[] = Utils.SortPermutation(posteriors);
+            DiploidGenotype bestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
+            DiploidGenotype nextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
+            call.setNegLog10PError(posteriors[bestGenotype.ordinal()] - posteriors[nextGenotype.ordinal()]);
+            call.setGenotype(bestGenotype);
+
             if ( call instanceof ReadBacked ) {
                 ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup();
                 ((ReadBacked)call).setPileup(pileup);
@@ -107,7 +115,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
                 ((LikelihoodsBacked)call).setLikelihoods(GLs.get(sample).getLikelihoods());
             }
             if ( call instanceof PosteriorsBacked ) {
-                ((PosteriorsBacked)call).setPosteriors(GLs.get(sample).getPosteriors());
+                ((PosteriorsBacked)call).setPosteriors(posteriors);
             }
 
             calls.add(call);

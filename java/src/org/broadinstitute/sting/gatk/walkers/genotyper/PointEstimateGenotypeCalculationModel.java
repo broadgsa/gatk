@@ -43,9 +43,9 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(sampleContext, priors, StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
 
             // find the index of the best genotype
-            double[] posteriors = discoveryGL.second.getNormalizedPosteriors();
-            Integer sortedPosteriors[] = Utils.SortPermutation(posteriors);
-            int bestIndex = sortedPosteriors[sortedPosteriors.length - 1];
+            double[] normPosteriors = discoveryGL.second.getNormalizedPosteriors();
+            Integer sortedNormPosteriors[] = Utils.SortPermutation(normPosteriors);
+            int bestIndex = sortedNormPosteriors[sortedNormPosteriors.length - 1];
 
             // flag to determine if ref is the best call (not necessary in genotype mode)
             boolean bestIsRef = false;
@@ -53,11 +53,11 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             // calculate the phred-scaled confidence score
             double phredScaledConfidence;
             if ( GENOTYPE_MODE ) {
-                phredScaledConfidence = QualityUtils.phredScaleErrorRate(1.0 - posteriors[bestIndex]);
+                phredScaledConfidence = QualityUtils.phredScaleErrorRate(1.0 - normPosteriors[bestIndex]);
             } else {
                 int refIndex = DiploidGenotype.createHomGenotype(ref).ordinal();
                 bestIsRef = (refIndex == bestIndex);
-                double pError = (bestIsRef ? 1.0 - posteriors[refIndex] : posteriors[refIndex]);
+                double pError = (bestIsRef ? 1.0 - normPosteriors[refIndex] : normPosteriors[refIndex]);
                 phredScaledConfidence = QualityUtils.phredScaleErrorRate(pError);
             }
 
@@ -67,6 +67,14 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
             // we can now create the genotype call object
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, loc);
+
+            // set the genotype and confidence
+            double[] posteriors = discoveryGL.second.getPosteriors();
+            Integer sorted[] = Utils.SortPermutation(posteriors);
+            DiploidGenotype bestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
+            DiploidGenotype nextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
+            call.setNegLog10PError(posteriors[bestGenotype.ordinal()] - posteriors[nextGenotype.ordinal()]);
+            call.setGenotype(bestGenotype);
 
             if ( call instanceof ReadBacked ) {
                 ((ReadBacked)call).setPileup(discoveryGL.first);
@@ -78,7 +86,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 ((LikelihoodsBacked)call).setLikelihoods(discoveryGL.second.getLikelihoods());
             }
             if ( call instanceof PosteriorsBacked ) {
-                ((PosteriorsBacked)call).setPosteriors(discoveryGL.second.getPosteriors());
+                ((PosteriorsBacked)call).setPosteriors(posteriors);
             }
 
             VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc, bestIsRef ? Variation.VARIANT_TYPE.REFERENCE : Variation.VARIANT_TYPE.SNP);

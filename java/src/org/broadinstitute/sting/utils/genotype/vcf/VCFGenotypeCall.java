@@ -4,8 +4,6 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
 
-import java.util.Arrays;
-
 
 /**
  * @author ebanks
@@ -20,14 +18,12 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
 
     private ReadBackedPileup mPileup = null;
     private int mCoverage = 0;
-    private double[] mPosteriors;
+    private double mNegLog10PError = -1;
 
     private Variation mVariation = null;
 
-    // the reference genotype, the best genotype, and the next best genotype, lazy loaded
-    private DiploidGenotype mRefGenotype = null;
-    private DiploidGenotype mBestGenotype = null;
-    private DiploidGenotype mNextGenotype = null;
+    // the best genotype
+    private DiploidGenotype mGenotype = null;
 
     // the sample name, used to propulate the SampleBacked interface
     private String mSampleName;
@@ -38,44 +34,30 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
         mLocation = loc;
 
         // fill in empty data
-        mPosteriors = new double[10];
-        Arrays.fill(mPosteriors, Double.MIN_VALUE);
+        mGenotype = DiploidGenotype.createHomGenotype(ref);
         mSampleName = "";
     }
 
-    public VCFGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError, int coverage, String sample) {
+    public VCFGenotypeCall(char ref, GenomeLoc loc, DiploidGenotype genotype, double negLog10PError, int coverage, String sample) {
         super(ref);
         mRefBase = ref;
         mLocation = loc;
-        mBestGenotype = DiploidGenotype.unorderedValueOf(genotype);
-        mRefGenotype = DiploidGenotype.createHomGenotype(ref);
-        mSampleName = sample;
+        mGenotype = genotype;
+        mNegLog10PError = negLog10PError;
         mCoverage = coverage;
-
-        // set general posteriors to min double value
-        mPosteriors = new double[10];
-        Arrays.fill(mPosteriors, Double.MIN_VALUE);
-
-        // set the ref to PError
-        mPosteriors[mRefGenotype.ordinal()] = -1.0 * negLog10PError;
-
-        // set the best genotype to zero (need to do this after ref in case ref=best)
-        mPosteriors[mBestGenotype.ordinal()] = 0.0;
-
-        // choose a smart next best genotype and set it to PError
-        if ( mBestGenotype == mRefGenotype )
-            mNextGenotype = DiploidGenotype.valueOf(BaseUtils.simpleComplement(genotype));
-        else
-            mNextGenotype = mRefGenotype;
-        mPosteriors[mNextGenotype.ordinal()] = -1.0 * negLog10PError;
+        mSampleName = sample;
     }
 
     public void setPileup(ReadBackedPileup pileup) {
         mPileup = pileup;
     }
 
-    public void setPosteriors(double[] posteriors) {
-        mPosteriors = posteriors;
+    public void setGenotype(DiploidGenotype genotype) {
+        mGenotype = genotype;
+    }
+
+    public void setNegLog10PError(double negLog10PError) {
+        mNegLog10PError = negLog10PError;
     }
 
     public void setVariation(Variation variation) {
@@ -89,53 +71,21 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
 
     @Override
     public boolean equals(Object other) {
-        lazyEval();
 
-        if (other == null)
+        if ( other == null || !(other instanceof VCFGenotypeCall) )
             return false;
-        if (other instanceof VCFGenotypeCall) {
-            VCFGenotypeCall otherCall = (VCFGenotypeCall) other;
 
-            if (!this.mBestGenotype.equals(otherCall.mBestGenotype))
-                return false;
-            return (this.mRefBase == otherCall.mRefBase && this.mLocation.equals(otherCall.mLocation));
-        }
-        return false;
+        VCFGenotypeCall otherCall = (VCFGenotypeCall) other;
+
+        return mGenotype.equals(otherCall.mGenotype) &&
+               mNegLog10PError == otherCall.mNegLog10PError &&
+               mLocation.equals(otherCall.mLocation) &&
+               mRefBase == otherCall.mRefBase;
     }
 
     public String toString() {
-        lazyEval();
-        return String.format("%s best=%s cmp=%s ref=%s depth=%d negLog10PError=%.2f",
-                             getLocation(), mBestGenotype, mRefGenotype, mRefBase, getReadCount(), getNegLog10PError());
-    }
-
-    private void lazyEval() {
-        if (mBestGenotype == null) {
-            char ref = this.getReference();
-            char alt = this.getAlternateAllele();
-
-            mRefGenotype = DiploidGenotype.createHomGenotype(ref);
-
-            // if we are constrained to a single alternate allele, use only that one
-            if ( alt != AlleleConstrainedGenotype.NO_CONSTRAINT ) {
-                DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
-                DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
-                boolean hetOverHom = mPosteriors[hetGenotype.ordinal()] > mPosteriors[homGenotype.ordinal()];
-                boolean hetOverRef = mPosteriors[hetGenotype.ordinal()] > mPosteriors[mRefGenotype.ordinal()];
-                boolean homOverRef = mPosteriors[homGenotype.ordinal()] > mPosteriors[mRefGenotype.ordinal()];
-                if ( hetOverHom ) {
-                    mBestGenotype = (hetOverRef ? hetGenotype : mRefGenotype);
-                    mNextGenotype = (!hetOverRef ? hetGenotype : (homOverRef ? homGenotype : mRefGenotype));
-                } else {
-                    mBestGenotype = (homOverRef ? homGenotype : mRefGenotype);
-                    mNextGenotype = (!homOverRef ? homGenotype : (hetOverRef ? hetGenotype : mRefGenotype));
-                }
-            } else {
-                Integer sorted[] = Utils.SortPermutation(mPosteriors);
-                mBestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
-                mNextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
-            }
-        }
+        return String.format("%s best=%s ref=%s depth=%d negLog10PError=%.2f",
+                             getLocation(), mGenotype, mRefBase, getReadCount(), getNegLog10PError());
     }
 
     /**
@@ -144,25 +94,12 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
      * @return get the one minus error value
      */
     public double getNegLog10PError() {
-        return Math.abs(mPosteriors[getBestGenotype().ordinal()] - mPosteriors[getNextBest().ordinal()]);
+        return mNegLog10PError;
     }
 
     // get the best genotype
     protected DiploidGenotype getBestGenotype() {
-        lazyEval();
-        return mBestGenotype;
-    }
-
-    // get the alternate genotype
-    private DiploidGenotype getNextBest() {
-        lazyEval();
-        return mNextGenotype;
-    }
-
-    // get the ref genotype
-    private DiploidGenotype getRefGenotype() {
-        lazyEval();
-        return mRefGenotype;
+        return mGenotype;
     }
 
     /**
@@ -238,11 +175,14 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
     public Variation toVariation(char ref) {
         if ( mVariation == null ) {
             VCFVariationCall var = new VCFVariationCall(ref, mLocation, isVariant() ? Variation.VARIANT_TYPE.SNP : Variation.VARIANT_TYPE.REFERENCE);
-            double confidence = Math.abs(mPosteriors[getBestGenotype().ordinal()] - mPosteriors[getRefGenotype().ordinal()]);
-            var.setConfidence(confidence);
-            if ( isVariant() )
-                var.addAlternateAllele(Character.toString(mBestGenotype.base1 != ref ? mBestGenotype.base1 : mBestGenotype.base2));
-            mVariation = var;    
+            var.setConfidence(10 * mNegLog10PError);
+            if ( !mGenotype.isHomRef(ref) ) {
+                if ( mGenotype.base1 != ref )
+                    var.addAlternateAllele(Character.toString(mGenotype.base1));
+                if ( mGenotype.isHet() && mGenotype.base2 != ref )
+                    var.addAlternateAllele(Character.toString(mGenotype.base2));
+            }
+            mVariation = var;
         }
         return mVariation;
     }
@@ -272,15 +212,6 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
      */
     public char getReference() {
         return mRefBase;
-    }
-
-    /**
-     * get the posteriors
-     *
-     * @return the posteriors
-     */
-    public double[] getPosteriors() {
-        return mPosteriors;
     }
 
     /**
