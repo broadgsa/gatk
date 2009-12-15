@@ -1,6 +1,6 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Calculates the likelihood of observing data given phase info from pairs of HLA alleles. Note: Run FindClosestAlleleWalker first! Usage: java -jar $GATK -T CalculatePhaseLikelihoods -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -phaseInterval /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl IMPUT.baselikelihoods [-filter $ID.filter -minAllowe\
+dMismatches 7] -ethnicity Caucasian | grep -v "INFO"  | grep -v "DEBUG" | grep -v "DONE!" > OUTPUT.phaselikelihoods
  */
 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
@@ -47,7 +47,8 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
     String BlackAlleleFrequencyFile     = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
     String AlleleFrequencyFile          = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
-    
+    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
+
     String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.imputed.4digit.sam";
     SAMFileReader HLADictionaryReader = new SAMFileReader();
     boolean HLAdataLoaded = false;
@@ -59,7 +60,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
     int[][] numObservations, totalObservations, intervals;
     int[] SNPnumInRead, SNPposInRead;
     CigarParser cigarparser = new CigarParser();
-    Hashtable AlleleFrequencies;
+    Hashtable AlleleFrequencies, UniqueAlleles;
     int numIntervals;
 
     double P_err = 0.01;
@@ -115,8 +116,9 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
             }
             out.printf("INFO  Reading HLA allele frequencies for %s population ... ", ethnicity);
             FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
-            HLAfreqReader.ReadFile(AlleleFrequencyFile);
+            HLAfreqReader.ReadFile(AlleleFrequencyFile,UniqueAllelesFile);
             AlleleFrequencies = HLAfreqReader.GetAlleleFrequencies();
+            UniqueAlleles = HLAfreqReader.GetUniqueAlleles();
             out.printf("Done! Frequencies for %s HLA alleles loaded.\n",AlleleFrequencies.size());
 
             /*
@@ -170,7 +172,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
 
     public void onTraversalDone(Integer numreads) {
         String name1, name2;
-        Double frq1, frq2, likelihood, minfrq = 0.0;
+        Double frq1 = 0.0, frq2 = 0.0, likelihood, minfrq = 0.0;
         int numCombinations = 0;
 
 
@@ -178,7 +180,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
             String s[] = debugAlleles.split(",");
             int index1 = HLADictionaryReader.GetReadIndex(s[0]);
             int index2 = HLADictionaryReader.GetReadIndex(s[1]);
-            //out.printf("INFO: debugging %s\t%s\t%s\t%s\n",s[0],s[0],index1,index2);
+            out.printf("INFO: debugging %s\t%s\t%s\t%s\n",s[0],s[1],index1,index2);
             if (index1 > -1 && index2 > -1){
                 likelihood = CalculatePhaseLikelihood(index1,index2,true);
             }
@@ -191,23 +193,31 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
         out.printf("NUM\tAllele1\tAllele2\tPhase\tFrq1\tFrq2\n");
         for (int i = 0; i < HLAnames.length; i++){
             name1 = HLAnames[i].substring(4);
-            if (AlleleFrequencies.containsKey(name1)){
-                frq1 = Double.parseDouble((String) AlleleFrequencies.get(name1).toString());
-                if (frq1 > minfrq){
+            if (UniqueAlleles.containsKey(name1)){
+                if (AlleleFrequencies.containsKey(name1)){
+                    frq1 = Double.parseDouble((String) AlleleFrequencies.get(name1).toString());
+                }else{
+                    frq1 = .0001;
+                }
+                //if (frq1 > minfrq){
                     for (int j = i; j < HLAnames.length; j++){
                         name2 = HLAnames[j].substring(4);
                         if (name1.substring(0,1).equals(name2.substring(0,1))){
-                            if (AlleleFrequencies.containsKey(name2)){
-                                frq2 = Double.parseDouble((String) AlleleFrequencies.get(name2).toString());
-                                if (frq2 > minfrq){
+                            if (UniqueAlleles.containsKey(name2)){
+                                if (AlleleFrequencies.containsKey(name2)){
+                                    frq2 = Double.parseDouble((String) AlleleFrequencies.get(name2).toString());
+                                }else{
+                                    frq2 = .0001;
+                                }
+                //                if (frq2 > minfrq){
                                     likelihood = CalculatePhaseLikelihood(i,j,false);
                                     numCombinations++;
                                     out.printf("%s\t%s\t%s\t%.2f\t%.2f\t%.2f\n",numCombinations,name1,name2,likelihood,Math.log10(frq1),Math.log10(frq2));
-                                }
+                //                }
                             }
                         }
                     }
-                }
+                //}
             }
         }
     }
@@ -316,9 +326,11 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
                 SNPposInRead[i] = -1;
             }
         }
-
         String s1 = HLAreads[alleleIndex1];
         String s2 = HLAreads[alleleIndex2];
+        if (PRINTDEBUG){
+            out.printf("DEBUG  %s SNPs found in %s and %s\n",SNPcount,HLAnames[alleleIndex1], HLAnames[alleleIndex2]);
+        }
         //Iterate through every pairwise combination of SNPs, and update likelihood for the allele combination
         for (i = 0; i < numPositions; i++){
             if (SNPnumInRead[i] > -1){
@@ -353,6 +365,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
                                 if (PRINTDEBUG){
                                     out.printf("DEBUG  %s %s %s[%s%s] %s[%s%s]\t[%s,%s]\t[%s,%s] [%s,%s]\t%s / %s\t%s / %s\t    %.2f\n",HLAnames[alleleIndex1],HLAnames[alleleIndex2],PolymorphicSites[i],c11,c21,PolymorphicSites[j],c12,c22, i,j,a1,b1,a2,b2,numInPhase,totalObservations[i][j],sumInPhase,sumObservations,likelihood);
                                 }
+                                break;
                             }
                         }
                     }
