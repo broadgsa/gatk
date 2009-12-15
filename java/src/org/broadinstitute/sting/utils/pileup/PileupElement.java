@@ -38,6 +38,10 @@ public class PileupElement {
         return isDeletion() ? DELETION_BASE : read.getReadBases()[offset];
     }
 
+    public int getBaseIndex() {
+        return isDeletion() ? DELETION_BASE : BaseUtils.simpleBaseToBaseIndex((char)read.getReadBases()[offset]);
+    }
+
     public byte getSecondBase() {
         return isDeletion() ? DELETION_BASE : BaseUtils.getSecondBase(read, offset);
     }
