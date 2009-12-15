@@ -130,16 +130,14 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      */
     public ReadBackedPileup getPileupWithoutDeletions() {
         if ( getNumberOfDeletions() > 0 ) {
-            List<SAMRecord> newReads = new ArrayList<SAMRecord>();
-            List<Integer> newOffsets = new ArrayList<Integer>();
+            ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
 
             for ( PileupElement p : pileup ) {
                 if ( !p.isDeletion() ) {
-                    newReads.add(p.getRead());
-                    newOffsets.add(p.getOffset());
+                    filteredPileup.add(p);
                 }
             }
-            return new ReadBackedPileup(loc, newReads, newOffsets);
+            return new ReadBackedPileup(loc, filteredPileup);
         } else {
             return this;
         }
@@ -153,19 +151,15 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * @return
      */
     public ReadBackedPileup getPileupWithoutMappingQualityZeroReads() {
-        // todo -- eric, this can be more efficient, FYI
 
         if ( getNumberOfMappingQualityZeroReads() > 0 ) {
-            List<SAMRecord> newReads = new ArrayList<SAMRecord>();
-            List<Integer> newOffsets = new ArrayList<Integer>();
-
+            ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
             for ( PileupElement p : pileup ) {
                 if ( p.getRead().getMappingQuality() > 0 ) {
-                    newReads.add(p.getRead());
-                    newOffsets.add(p.getOffset());
+                    filteredPileup.add(p);
                 }
             }
-            return new ReadBackedPileup(loc, newReads, newOffsets);
+            return new ReadBackedPileup(loc, filteredPileup);
         } else {
             return this;
         }
