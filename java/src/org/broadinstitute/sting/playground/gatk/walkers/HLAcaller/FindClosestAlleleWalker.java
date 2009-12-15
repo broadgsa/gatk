@@ -1,5 +1,5 @@
-/*
- * FindClosestAlleleWalker finds the most similar HLA allele per read
+/**
+ * Finds the most similar HLA allele for each read. Usage: java -jar GenomeAnalysisTK.jar -T FindClosestAllele -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L INPUT.interval -findFirst | grep -v INFO | sort -k1 > OUTPUT
  */
 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
@@ -37,6 +37,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
     String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
     String AlleleFrequencyFile;
+    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
 
     String PolymorphicSitesFile = "/humgen/gsa-scr1/GSA/sjia/Sting/HLA.polymorphic.sites";
 
@@ -88,7 +89,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
             }
             out.printf("INFO  Reading HLA allele frequencies ... ");
             FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
-            HLAfreqReader.ReadFile(AlleleFrequencyFile);
+            HLAfreqReader.ReadFile(AlleleFrequencyFile,UniqueAllelesFile);
             AlleleFrequencies = HLAfreqReader.GetAlleleFrequencies();
             out.printf("Done! Frequencies for %s HLA alleles loaded.\n",AlleleFrequencies.size());
 
