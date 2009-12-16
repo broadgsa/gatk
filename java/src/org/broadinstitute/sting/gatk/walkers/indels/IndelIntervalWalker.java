@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.AlignmentBlock;
+import net.sf.samtools.CigarElement;
 
 import java.util.List;
 
@@ -27,17 +28,54 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
     public boolean filter(char[] ref, SAMRecord read) {
         return ( !read.getReadUnmappedFlag() &&            // mapped
                  read.getMappingQuality() != 0 &&          // positive mapping quality
-                 read.getAlignmentBlocks().size() > 1 &&   // indel
+                 read.getCigarLength() > 1 &&   // indel
                  (allow454 || !Utils.is454Read(read)) );
     }
 
     public Interval map(char[] ref, SAMRecord read) {
-        List<AlignmentBlock> blocks = read.getAlignmentBlocks();
-        long indelLeftEdge = read.getAlignmentStart() + blocks.get(0).getLength() - 1;
-        long indelRightEdge = read.getAlignmentEnd() - blocks.get(blocks.size()-1).getLength() + 1;
+//        List<AlignmentBlock> blocks = read.getAlignmentBlocks();
+//        long indelLeftEdge = read.getAlignmentStart() + blocks.get(0).getLength() - 1;
+//        long indelRightEdge = read.getAlignmentEnd() - blocks.get(blocks.size()-1).getLength() + 1;
 
+        long indelLeftEdge = -1;
+        long indelRightEdge = -1;
+        int lengthOnRef = 0; // length of the event on the reference (this preset value is right for insertion)
+        int pos = read.getAlignmentStart();
+        for ( final CigarElement ce : read.getCigar().getCigarElements() ) {
+            switch( ce.getOperator() ) {
+            case S :
+            case H : break; // ignore clipping completely: alignment start is set to the first NON-clipped base
+            case P : // skip padding and matching bases, advance position on the ref:
+            case M : pos += ce.getLength(); break;
+            case D :
+                  lengthOnRef = ce.getLength(); // deletion occupies non-zero number of bases on the ref
+            case I :
+                    // for insertion we do not have to set lengthOnRef as it was already initialized to 0
+                if ( indelLeftEdge == -1 ) { // it's the first indel in the current read
+                    indelLeftEdge = pos - 1; // set to the last (matching) base before the indel
+                }
+                pos += lengthOnRef;
+                indelRightEdge = pos; // whether it is the first indel in the read or not, we set right edge immediately after it
+                break;
+            default :
+                throw new StingException("Unrecognized cigar element '"+ce.getOperator()+"' in read "+read.getReadName());
+            }
+        }
+
+        // at this point indelLeftEdge == -1 or [indelLeftEdge,indelRightEdge] is the interval encompassing ALL indels in the current read:
+        if ( indelLeftEdge == -1 ) return null;
+
+        // we've seen some bam files coming from other centers that have reads (and indels!!) hanging over the contig ends;
+        // we do not want to deal with this stuff (what is it, anyway??)
+        if ( indelRightEdge > GenomeLocParser.getContigInfo(read.getReferenceName()).getSequenceLength() ) {
+            System.out.println("WARNING: read " + read.getReadName()+" contains indel(s) spanning past the contig end (read ignored).");
+            return null;
+        }
+
+        if ( indelLeftEdge == 49563377 ) System.out.println("read: " +read.getReadName());
         GenomeLoc indelLoc = GenomeLocParser.createGenomeLoc(read.getReferenceIndex(), indelLeftEdge, indelRightEdge);
         GenomeLoc refLoc = GenomeLocParser.createGenomeLoc(read);
+
 
         return new Interval(refLoc, indelLoc);
     }
@@ -53,6 +91,7 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         if ( sum == null )
             return value;
 
+        if ( value == null ) return sum; // nothing to do, wait for the next
         //System.out.println(sum + " ==> " + value);
 
         // if the intervals don't overlap, print out the leftmost one and start a new one
