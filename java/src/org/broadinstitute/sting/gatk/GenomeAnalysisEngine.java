@@ -87,6 +87,10 @@ public class GenomeAnalysisEngine {
      */
     private Collection<Stub<?>> outputs = new ArrayList<Stub<?>>();
 
+    /**
+     * Collection of the filters applied to the walker's input data.
+     */
+    private Collection<SamRecordFilter> filters;
 
     /**
      * our log, which we want to capture anything from this class
@@ -135,6 +139,7 @@ public class GenomeAnalysisEngine {
 
         // save our argument parameter
         this.argCollection = args;
+        this.filters = filters;
 
         // Prepare the data for traversal.
         initializeDataSources(my_walker, filters, argCollection);
@@ -197,10 +202,11 @@ public class GenomeAnalysisEngine {
     /**
      * Gets a list of the filters to associate with the given walker.  Will NOT initialize the engine with this filters;
      * the caller must handle that directly.
+     * @param args Existing argument collection, for compatibility with legacy command-line walkers.
      * @param walker Walker to use when determining which filters to apply.
      * @return A collection of available filters.
      */
-    public Collection<SamRecordFilter> getFiltersForWalker(GATKArgumentCollection args, Walker walker) {
+    protected Collection<SamRecordFilter> createFiltersForWalker(GATKArgumentCollection args, Walker walker) {
         Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();        
         filters.addAll(WalkerManager.getReadFilters(walker,filterManager));
         if (args.filterZeroMappingQualityReads != null && args.filterZeroMappingQualityReads)
@@ -706,6 +712,14 @@ public class GenomeAnalysisEngine {
      */
     public GATKArgumentCollection getArguments() {
         return this.argCollection;
+    }
+
+    /**
+     * Gets the list of filters employed by this walker.
+     * @return Collection of filters (actual instances) used by this walker.
+     */
+    public Collection<SamRecordFilter> getFilters() {
+        return this.filters;
     }
 
     /**
