@@ -32,8 +32,8 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while JOINT_ESTIMATE and POOLED are under development.", required = false)
-    public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
+    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- JOINT_ESTIMATE is currently the default, while POOLED and EM_POINT_ESTIMATE are available.", required = false)
+    public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.JOINT_ESTIMATE;
 
     @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
     public BaseMismatchModel baseModel = BaseMismatchModel.EMPIRICAL;

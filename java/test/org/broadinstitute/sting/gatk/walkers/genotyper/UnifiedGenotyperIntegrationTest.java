@@ -12,35 +12,10 @@ import java.util.Map;
 // ********************************************************************************** //
 
 public class UnifiedGenotyperIntegrationTest extends WalkerTest {
-    public static String baseTestString() {
-        return "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s";
-    }
-
-    public static String testGeliLod5() {
-        return baseTestString() + " --variant_output_format GELI -confidence 50";
-    }
-
-    private static String OneMb1StateMD5 = "c664bd887b89e9ebc0b4b569ad8eb128";
-    private static String OneMb3StateMD5 = "9c68f6e900d081023ea97ec467a95bd8";
-    private static String OneMbEmpiricalMD5 = "0b891eefeb2a2bfe707a8a0838b6d049";
-
-//    private static String oneMbMD5(BaseMismatchModel m) {
-//        switch (m) {
-//            case ONE_STATE: return OneMb1StateMD5;
-//            case THREE_STATE: return OneMb3StateMD5;
-//            case EMPIRICAL: return OneMbEmpiricalMD5;
-//            default: throw new RuntimeException("Unexpected BaseMismatchModel " + m);
-//        }
-//    }
-
-    // Uncomment to not check outputs against expectations
-    //protected boolean parameterize() {
-    //    return true;
-    //}
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing multi-sample calling
+    // testing point estimate model
     //
     // --------------------------------------------------------------------------------------------------------------
     @Test
@@ -101,29 +76,96 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("testSingleSamplePilot2 - Joint Estimate", spec);
     }
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing parameters
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
     @Test
-    public void testGenotypeModeJoint() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -genotype -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,001,000 -bm empirical -gm JOINT_ESTIMATE -confidence 70", 1,
-                Arrays.asList("7e8422f8008a4fe24ea1f5c2913b5d31"));
-        executeTest("testGenotypeMode - Joint Estimate", spec);
+    public void testParameter() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "-genotype", "dc908834d97bde696b6bdccf756c9ab6" );
+        e.put( "-all_bases", "484d424cbcd646b3c5d823cad43f4f5f" );
+        e.put( "--min_base_quality_score 10", "45e336766e94f05e6ac44d1e50473e18" );
+        e.put( "--min_mapping_quality_score 10", "de417c1156483ab87b0f8a25f10d4d87" );
+        e.put( "--max_mismatches_in_40bp_window 5", "05132003c73e10fbdab2af14af677764" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30 " + entry.getKey(), 1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("testParameter[%s]", entry.getKey()), spec);
+        }
     }
 
     @Test
-    public void testAllBasesModeJoint() {
+    public void testConfidence() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -all_bases -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,001,000 -bm empirical -gm JOINT_ESTIMATE -confidence 70", 1,
-                Arrays.asList("aedd59f9f2cae7fb07a53812b680852b"));
-        executeTest("testAllBasesMode - Joint Estimate", spec);
+                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -bm empirical -gm JOINT_ESTIMATE -confidence 10 ", 1,
+                Arrays.asList("ea154d6ab6bbaf40da0dac5162b7e9fd"));
+        executeTest("testConfidence", spec);
     }
 
-    //@Test
-    //public void testGLF() {
-    //    WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-    //            "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,050,000 -bm empirical -gm JOINT_ESTIMATE -confidence 10", 1,
-    //            Arrays.asList("a95b871bc0bc984f66815b20db7467fe"));
-    //    executeTest("testGLF", spec);
-    //}
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing other output formats
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    @Test
+    public void testOtherFormat() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "GLF", "8c72131dfb2b830efb9938a582672a3e" );
+        e.put( "GELI", "e9e00bdb32ce63420988956c1a9b805f" );
+        e.put( "GELI_BINARY", "46162567eac3a5004f5f9b4c93d1b8d3" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30 -vf " + entry.getKey(), 1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("testOtherFormat[%s]", entry.getKey()), spec);
+        }
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing heterozygosity
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testHeterozyosity() {
+        HashMap<Double, String> e = new HashMap<Double, String>();
+        e.put( 0.01, "ae0134840e0c9fa295b23ecf4ba3e768" );
+        e.put( 1.0 / 1850, "71ddcf22f4c0538d03508b720d01d3fe" );
+
+        for ( Map.Entry<Double, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30 --heterozygosity " + entry.getKey(), 1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("testHeterozyosity[%s]", entry.getKey()), spec);
+        }
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing other base calling models
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    @Test
+    public void testOtherBaseCallModel() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "one_state", "ab71d814e897d7f1440af8f02365b4fa" );
+        e.put( "three_state", "ce55849c55c58c59773200b2a88db0ee" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -gm JOINT_ESTIMATE -confidence 30 -bm " + entry.getKey(), 1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("testOtherBaseCallModel[%s]", entry.getKey()), spec);
+        }
+    }
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -139,143 +181,11 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -varout %s" +
                         " -L 1:10,000,000-10,100,000" +
                         " -bm empirical" +
+                        " -gm JOINT_ESTIMATE" +
 		        " -vf GELI",
                 1,
-                Arrays.asList("eaca4b2323714dbd7c3ed379ce1843ba"));
+                Arrays.asList("64ffb4ef633ad4c2ff6afbc75450f743"));
 
         executeTest(String.format("testMultiTechnologies"), spec);
-    }    
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // testing the cache
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    /*
-    @Test
-    public void testCache() {
-        for ( BaseMismatchModel model : BaseMismatchModel.values() ) {
-            // calculated the expected value without the cache enabled
-            WalkerTest.WalkerTestSpec withoutCacheSpec = new WalkerTest.WalkerTestSpec(
-                    testGeliLod5() + " -L 1:10,000,000-10,100,000 --disableCache -m " + model.toString(), 1,
-                    Arrays.asList(""));
-            List<String> withoutCache = executeTest("empirical1MbTest", withoutCacheSpec ).getSecond();
-
-            WalkerTest.WalkerTestSpec withCacheSpec = new WalkerTest.WalkerTestSpec(
-                    testGeliLod5() + " -L 1:10,000,000-10,100,000 -bm " + model.toString(), 1,
-                    withoutCache);
-            executeTest(String.format("testCache[%s]", model), withCacheSpec );
-        }
-    }
-    */
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // testing genotype mode
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void genotypeTest() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                testGeliLod5() + " -L 1:10,000,000-10,100,000 -bm empirical --genotype", 1,
-                Arrays.asList("f9bdd9a8864467dbc4e5356bb8801a33"));
-        executeTest("genotypeTest", spec);
-    }
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // basic base calling models
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    @Test
-    public void oneState100bpTest() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec( testGeliLod5() + " -L 1:10,000,000-10,000,100 -bm one_state", 1, Arrays.asList("3cd402d889c015be4a318123468f4262"));
-        executeTest("oneState100bpTest", spec);
-    }
-
-    @Test
-    public void oneState1MbTest() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                testGeliLod5() + " -L 1:10,000,000-11,000,000 -bm one_state",
-                1, Arrays.asList(OneMb1StateMD5));
-        executeTest("oneState1MbTest", spec);
-    }
-
-    @Test
-    public void threeState1MbTest() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                testGeliLod5() + " -L 1:10,000,000-11,000,000 -bm three_state", 1,
-                Arrays.asList(OneMb3StateMD5));
-        executeTest("threeState1MbTest", spec);
-    }
-
-    @Test
-    public void empirical1MbTest() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                testGeliLod5() + " -L 1:10,000,000-11,000,000 -bm empirical", 1,
-                Arrays.asList(OneMbEmpiricalMD5));
-        executeTest("empirical1MbTest", spec);
-    }
-
-
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // testing output formats
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    //@Argument(fullName = "variant_output_format", shortName = "vf", doc = "File format to be used", required = false)
-    //public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // testing LOD thresholding
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void testLOD() {
-        HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 100.0, "6eec841b28fae433015b3d85608e03f7" );
-        e.put( 30.0, "1b3365f41bbf6867516699afe9efc5f8" );
-
-        for ( Map.Entry<Double, String> entry : e.entrySet() ) {
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    baseTestString() + " --variant_output_format GELI -L 1:10,000,000-11,000,000 -bm EMPIRICAL -confidence " + entry.getKey(), 1,
-                    Arrays.asList(entry.getValue()));
-            executeTest("testLOD", spec);
-        }
-    }
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // testing hetero setting
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void testHeterozyosity() {
-        HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 0.01, "601c48fc350083d14534ba5c3093edb9" );
-        e.put( 0.0001, "bd03f7307314e45951d4d3e85fe63d16" );
-        e.put( 1.0 / 1850, "662d479f1cd54480da1d0e66c81259b0" );
-
-        for ( Map.Entry<Double, String> entry : e.entrySet() ) {
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    testGeliLod5() + " -L 1:10,000,000-11,000,000 -bm EMPIRICAL --heterozygosity " + entry.getKey(), 1,
-                    Arrays.asList(entry.getValue()));
-            executeTest(String.format("testHeterozyosity[%s]", entry.getKey()), spec);
-        }
-    }
-
-    /**
-     * test the output of a binary geli file
-      */
-    @Test
-    public void empirical1MbTestBinaryGeli() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                baseTestString() + " -L 1:10,000,000-11,000,000 -bm empirical --variant_output_format GELI_BINARY -confidence 50", 1,
-                Arrays.asList("b1027cf309c9ab7572528ce986e2c2d4"));
-        executeTest("empirical1MbTestBinaryGeli", spec);
     }
 }
