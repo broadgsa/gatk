@@ -221,7 +221,7 @@ def stats_from_hist(options, depth_hist_filename, stats_filename, variant_eval_d
     
     
     hist = []
-    hist_gen = FlatFileTable.record_generator(depth_hist_filename, sep=" ", skip_n_lines=3)
+    hist_gen = FlatFileTable.record_generator(depth_hist_filename, sep=" ", skip_n_lines=9)
     for index, record in enumerate(hist_gen):
         assert int(record["depth"]) == index
         hist.append(int(record["count"]))
@@ -290,7 +290,8 @@ def stats_from_hist(options, depth_hist_filename, stats_filename, variant_eval_d
         total_predicted += predicted
         perfect = prob_genotype[genotype.index]*total_hist_sites
         diff = perfect - predicted
-        print "%19s calls: %7.0f %7.0f %7.0f" % (genotype, predicted, perfect, diff)
+        percent_of_possible = predicted / perfect * 100
+        print "%19s calls: %8.0f %8.0f %8.0f %8.1f" % (genotype, predicted, perfect, diff, percent_of_possible)
         #repl_string += "%s %.0f\n" % (genotype, predicted)
     print "              Total calls: %7d" % total_predicted
     
