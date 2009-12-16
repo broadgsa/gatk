@@ -38,7 +38,6 @@ import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.picard.filter.SamRecordFilter;
 
 import java.io.File;
 import java.util.*;
@@ -184,10 +183,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
 
         // all of the arguments from the argument collection
-        Set<Object> x = new HashSet<Object>();
-        x.add(UAC);
-        x.addAll(getToolkit().getFilters());
-        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(x);
+        Set<Object> args = new HashSet<Object>();
+        args.add(UAC);
+        args.addAll(getToolkit().getFilters());
+        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(args);
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
             headerInfo.add(new VCFHeaderLine(String.format("UG_%s", commandLineArg.getKey()), commandLineArg.getValue()));            
 
