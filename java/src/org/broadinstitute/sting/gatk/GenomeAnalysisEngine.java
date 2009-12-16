@@ -573,7 +573,7 @@ public class GenomeAnalysisEngine {
                                              ReferenceSequenceFile drivingDataSource,
                                              GenomeLocSortedSet intervals,
                                              Integer maxIterations) {
-        if(!readsDataSource.hasIndex()) {
+        if(readsDataSource != null && !readsDataSource.hasIndex()) {
             if(!getArguments().unsafe || intervals != null)
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
