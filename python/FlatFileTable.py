@@ -2,15 +2,31 @@
 
 import sys, itertools
 
-def record_generator(filename, sep="\t", skip_n_lines=0):
+def record_generator(filename, sep="\t", skip_n_lines=0, skip_until_regex_line=""):
     """Given a file with field headers on the first line and records on subsequent lines,
 generates a dictionary for each line keyed by the header fields"""
     fin = open(filename)
 
-    for i in range(skip_n_lines): # Skip a number of lines
-        fin.readline()
+    if skip_n_lines > 0:
+        for i in range(skip_n_lines): # Skip a number of lines
+            fin.readline()
 
-    header = fin.readline().rstrip().split(sep) # Pull off header
+    found_regex = False
+    if skip_until_regex_line != "":
+        import re
+        regex_line = re.compile(skip_until_regex_line)
+        for line in fin:
+            match = regex_line.search(line)
+            if match:
+                found_regex = line
+                break
+        if not found_regex:
+            print "Warning: Regex "+skip_until_regex_line+" not found in FlatFileTable:record_generator"
+
+    if found_regex:
+        header = found_regex.rstrip().split(sep) # Parse header
+    else:
+        header = fin.readline().rstrip().split(sep) # Pull off header
     
     for line in fin: # 
         fields = line.rstrip().split(sep)
