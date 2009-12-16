@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Map;
 
 
 /**
@@ -104,6 +105,11 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         return mCurrentRecord.getType();
     }
 
+    public String getID() {
+        assertNotNull();
+        return mCurrentRecord.getID();
+    }
+
     /**
      * are we a SNP? If not we're a Indel/deletion
      *
@@ -164,6 +170,16 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     public double getNegLog10PError() {
         assertNotNull();
         return mCurrentRecord.getNegLog10PError();
+    }
+
+    public double getQual() {
+        assertNotNull();
+        return mCurrentRecord.getQual();
+    }
+
+    public boolean hasAlternateAllele() {
+        assertNotNull();
+        return mCurrentRecord.hasAlternateAllele();
     }
 
     /**
@@ -232,6 +248,11 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         return mCurrentRecord.getReferenceForSNP();
     }
 
+    public boolean hasGenotypeData() {
+        assertNotNull();
+        return mCurrentRecord.hasGenotypeData();
+    }
+
     /**
      * get the genotype
      *
@@ -273,6 +294,36 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     public boolean hasGenotype(DiploidGenotype x) {
         assertNotNull();
         return mCurrentRecord.hasGenotype(x);
+    }
+
+    public String[] getSampleNames() {
+        assertNotNull();
+        return mCurrentRecord.getSampleNames();
+    }
+
+    public Map<String, String> getInfoValues() {
+        assertNotNull();
+        return mCurrentRecord.getInfoValues();
+    }
+
+    public String[] getFilteringCodes() {
+        assertNotNull();
+        return mCurrentRecord.getFilteringCodes();
+    }
+
+    public boolean isFiltered() {
+        assertNotNull();
+        return mCurrentRecord.isFiltered();
+    }
+
+    public boolean hasFilteringCodes() {
+        assertNotNull();
+        return mCurrentRecord.hasFilteringCodes();
+    }
+
+    public String getFilterString() {
+        assertNotNull();
+        return mCurrentRecord.getFilterString();
     }
 
     public VCFHeader getHeader() {
