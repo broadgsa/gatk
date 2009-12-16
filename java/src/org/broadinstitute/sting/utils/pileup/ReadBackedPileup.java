@@ -176,6 +176,11 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
 
         return new ReadBackedPileup(loc, filteredPileup);
     }
+
+    public ReadBackedPileup getBaseFilteredPileup( int minBaseQ ) {
+        return getBaseAndMappingFilteredPileup(minBaseQ, -1);
+    }
+        
     /**
      * Returns a pileup randomly downsampled to the desiredCoverage.
      *

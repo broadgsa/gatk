@@ -180,26 +180,28 @@ public class AlignmentUtils {
 
         int mismatches = 0;
 
-        GenomeLoc window = ref.getWindow();
+        int windowStart = (int)ref.getWindow().getStart();
+        int windowStop = (int)ref.getWindow().getStop();
         char[] refBases = ref.getBases();
         byte[] readBases = p.getRead().getReadBases();
         Cigar c = p.getRead().getCigar();
 
         int readIndex = 0;
         int currentPos = p.getRead().getAlignmentStart();
-        int refIndex = Math.max(0, currentPos - (int)window.getStart());
+        int refIndex = Math.max(0, currentPos - windowStart);
 
         for (int i = 0 ; i < c.numCigarElements() ; i++) {
             CigarElement ce = c.getCigarElement(i);
+            int cigarElementLength = ce.getLength();
             switch ( ce.getOperator() ) {
                 case M:
-                    for (int j = 0; j < ce.getLength(); j++, readIndex++, currentPos++) {
+                    for (int j = 0; j < cigarElementLength; j++, readIndex++, currentPos++) {
                         // are we past the ref window?
-                        if ( currentPos > window.getStop() )
+                        if ( currentPos > windowStop )
                             break;
 
                         // are we before the ref window?
-                        if ( currentPos < window.getStart() )
+                        if ( currentPos < windowStart )
                             continue;
 
                         char refChr = refBases[refIndex++];
@@ -214,15 +216,15 @@ public class AlignmentUtils {
                     }
                     break;
                 case I:
-                    readIndex += ce.getLength();
+                    readIndex += cigarElementLength;
                     break;
                 case D:
-                    currentPos += ce.getLength();
-                    if ( currentPos > window.getStart() )
-                        refIndex += Math.min(ce.getLength(), currentPos - window.getStart());
+                    currentPos += cigarElementLength;
+                    if ( currentPos > windowStart )
+                        refIndex += Math.min(cigarElementLength, currentPos - windowStart);
                     break;
                 case S:
-                    readIndex += ce.getLength();
+                    readIndex += cigarElementLength;
                     break;
                 default: throw new StingException("Only M,I,D,S cigar elements are currently supported; there was " + ce.getOperator());
             }

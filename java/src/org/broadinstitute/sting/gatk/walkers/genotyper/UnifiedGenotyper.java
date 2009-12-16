@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.picard.filter.SamRecordFilter;
 
 import java.io.File;
 import java.util.*;
@@ -48,7 +49,7 @@ import java.util.*;
  * multi-sample, and pooled data.  The user can choose from several different incorporated calculation models.
  */
 @Reference(window=@Window(start=-20,stop=20))
-@ReadFilters({ZeroMappingQualityReadFilter.class})
+@ReadFilters({ZeroMappingQualityReadFilter.class,MappingQualityReadFilter.class,BadMateReadFilter.class})
 public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genotype>>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -183,7 +184,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
 
         // all of the arguments from the argument collection
-        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(Collections.<Object>singleton(UAC));
+        Set<Object> x = new HashSet<Object>();
+        x.add(UAC);
+        x.addAll(getToolkit().getFilters());
+        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(x);
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
             headerInfo.add(new VCFHeaderLine(String.format("UG_%s", commandLineArg.getKey()), commandLineArg.getValue()));            
 
@@ -203,10 +207,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             return null;
 
         // filter the context based on min base and mapping qualities
-        ReadBackedPileup pileup = rawContext.getPileup().getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
+        ReadBackedPileup pileup = rawContext.getPileup().getBaseFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE);
 
-        // filter the context based on mismatches and reads with bad mates
-        pileup = filterPileup(pileup, refContext, UAC.MAX_MISMATCHES, UAC.USE_BADLY_MATED_READS);
+        // filter the context based on mismatches
+        pileup = filterPileup(pileup, refContext, UAC.MAX_MISMATCHES);
 
         // an optimization to speed things up when there is no coverage or when overly covered
         if ( pileup.size() == 0 ||
@@ -241,11 +245,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     }
 
     // filter based on maximum mismatches and bad mates
-    private static ReadBackedPileup filterPileup(ReadBackedPileup pileup, ReferenceContext refContext, int maxMismatches, boolean useBadMates) {
+    private static ReadBackedPileup filterPileup(ReadBackedPileup pileup, ReferenceContext refContext, int maxMismatches) {
         ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
         for ( PileupElement p : pileup ) {
-            if ( (useBadMates || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
-                 AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= maxMismatches )
+            if ( AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= maxMismatches )
                 filteredPileup.add(p);
         }
         return new ReadBackedPileup(pileup.getLocation(), filteredPileup);

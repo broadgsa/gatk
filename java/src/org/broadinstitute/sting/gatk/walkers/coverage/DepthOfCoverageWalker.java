@@ -115,7 +115,7 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
 
         // fill in and print all of the per-locus coverage data, then return it to reduce
 
-        ReadBackedPileup pileup = context.getPileup().getBaseAndMappingFilteredPileup(minBaseQ, -1);
+        ReadBackedPileup pileup = context.getPileup().getBaseFilteredPileup(minBaseQ);
 
         DoCInfo info = new DoCInfo();
         info.totalCoverage = pileup.size();
