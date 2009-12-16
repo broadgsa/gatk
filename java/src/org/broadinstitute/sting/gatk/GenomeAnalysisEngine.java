@@ -35,6 +35,8 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -571,10 +573,25 @@ public class GenomeAnalysisEngine {
                                              ReferenceSequenceFile drivingDataSource,
                                              GenomeLocSortedSet intervals,
                                              Integer maxIterations) {
-        long SHARD_SIZE = 100000L;
+        if(!readsDataSource.hasIndex()) {
+            if(!getArguments().unsafe || intervals != null)
+                throw new StingException("The GATK cannot currently process unindexed BAM files");
+
+            Shard.ShardType shardType;
+            if(walker instanceof LocusWalker)
+                shardType = Shard.ShardType.LOCUS;
+            else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker)
+                shardType = Shard.ShardType.READ;
+            else
+                throw new StingException("The GATK cannot currently process unindexed BAM files");
+
+            return new MonolithicShardStrategy(shardType);
+        }
 
         ShardStrategy shardStrategy = null;
         ShardStrategyFactory.SHATTER_STRATEGY shardType;
+
+        long SHARD_SIZE = 100000L;
 
         if (walker instanceof LocusWalker) {
             if (walker instanceof RodWalker) SHARD_SIZE *= 1000;

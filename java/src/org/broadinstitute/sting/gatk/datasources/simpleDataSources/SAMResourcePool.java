@@ -44,18 +44,24 @@ import java.util.List;
  * @version 0.1
  */
 class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator> {
+    /** our log, which we want to capture anything from this class */
+    protected static Logger logger = Logger.getLogger(SAMResourcePool.class);
+
     /** Source information about the reads. */
     protected Reads reads;
     protected SamFileHeaderMerger headerMerger;
+
+    /**
+     * Do all the constituent BAM files have indices?  We support some very limited
+     * cases where not all BAM files have indices available.
+     */
+    protected final boolean hasIndex;
 
     /** Is this a by-reads traversal or a by-locus? */
     protected boolean queryOverlapping;
 
     /** File header for the combined file. */
-    protected SAMFileHeader header;
-
-    /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(SAMResourcePool.class);
+    protected final SAMFileHeader header;
 
     public SAMResourcePool( Reads reads ) {
         this.reads = reads;
@@ -64,6 +70,8 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
         ReadStreamResource streamResource = createNewResource();
         this.header = streamResource.getHeader();
         this.headerMerger = streamResource.getHeaderMerger();
+        this.hasIndex = streamResource.hasIndex();
+        
         // Add this resource to the pool.
         this.addNewResource(streamResource);
     }
@@ -106,11 +114,8 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
 
         if (!queryOverlapping)
             iterator = streamResource.getReadsContainedBy(segment);
-        else {
-            if (!( segment instanceof MappedStreamSegment ))
-                throw new StingException("Segment is unmapped; true overlaps cannot be determined.");
-            iterator = streamResource.getReadsOverlapping((MappedStreamSegment) segment);
-        }
+        else
+            iterator = streamResource.getReadsOverlapping(segment);
 
         return new ReleasingIterator( streamResource, iterator );
     }

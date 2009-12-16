@@ -10,6 +10,7 @@ import net.sf.picard.sam.SamFileHeaderMerger;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShard;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -113,6 +114,15 @@ public class SAMDataSource implements SimpleDataSource {
     }
 
     /**
+     * Do all BAM files backing this data source have an index?  The case where hasIndex() is false
+     * is supported, but only in a few extreme cases.
+     * @return True if an index is present; false otherwise.
+     */
+    public boolean hasIndex() {
+        return resourcePool.hasIndex;
+    }
+
+    /**
      * Gets the (potentially merged) SAM file header.
      *
      * @return SAM file header.
@@ -150,14 +160,14 @@ public class SAMDataSource implements SimpleDataSource {
 
         StingSAMIterator iterator = null;
         if (shard.getShardType() == Shard.ShardType.READ) {
-            iterator = seekRead((ReadShard) shard);
+            iterator = seekRead(shard);
             iterator = applyDecoratingIterators(true,
                     iterator,
                     reads.getDownsamplingFraction(),
                     reads.getSafetyChecking(),
                     reads.getSupplementalFilters());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS) {
-            iterator = seekLocus(shard.getGenomeLoc());
+            iterator = seekLocus(shard);
             iterator = applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
@@ -165,7 +175,7 @@ public class SAMDataSource implements SimpleDataSource {
                     reads.getSupplementalFilters());
         } else if ((shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) ||
                    (shard.getShardType() == Shard.ShardType.READ_INTERVAL)) {
-            iterator = seekLocus(shard.getGenomeLoc());
+            iterator = seekLocus(shard);
             iterator = applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
@@ -190,16 +200,18 @@ public class SAMDataSource implements SimpleDataSource {
      * seekLocus
      * </p>
      *
-     * @param location the genome location to extract data for
+     * @param shard the shard containing the genome location to extract data for
      *
      * @return an iterator for that region
      */
-    private StingSAMIterator seekLocus( GenomeLoc location ) throws SimpleDataSourceLoadException {
+    private StingSAMIterator seekLocus( Shard shard ) throws SimpleDataSourceLoadException {
+        if(shard instanceof MonolithicShard)
+            return createIterator(new EntireStream());
+
         if( getHeader().getSequenceDictionary().getSequences().size() == 0 )
             throw new StingException("Unable to seek to the given locus; reads data source has no alignment information.");
-        return createIterator( new MappedStreamSegment(location) );
+        return createIterator( new MappedStreamSegment(shard.getGenomeLoc()) );
     }
-
 
     /**
      * <p>
@@ -210,7 +222,11 @@ public class SAMDataSource implements SimpleDataSource {
      *
      * @return an iterator for that region
      */
-    private StingSAMIterator seekRead( ReadShard shard ) throws SimpleDataSourceLoadException {
+    private StingSAMIterator seekRead( Shard shard ) throws SimpleDataSourceLoadException {
+        if(shard instanceof MonolithicShard)
+            return createIterator(new EntireStream());
+
+        ReadShard readShard = (ReadShard)shard;
         StingSAMIterator iter = null;
 
         // If there are no entries in the sequence dictionary, there can't possibly be any unmapped reads.  Force state to 'unmapped'.
@@ -221,22 +237,22 @@ public class SAMDataSource implements SimpleDataSource {
             if (lastReadPos == null) {
                 lastReadPos = GenomeLocParser.createGenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
                 iter = createIterator(new MappedStreamSegment(lastReadPos));
-                return InitialReadIterator(shard.getSize(), iter);
+                return InitialReadIterator(readShard.getSize(), iter);
             } else {
                 lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
-                iter = fastMappedReadSeek(shard.getSize(), StingSAMIteratorAdapter.adapt(reads, createIterator(new MappedStreamSegment(lastReadPos))));
+                iter = fastMappedReadSeek(readShard.getSize(), StingSAMIteratorAdapter.adapt(reads, createIterator(new MappedStreamSegment(lastReadPos))));
             }
 
             if (intoUnmappedReads && !includeUnmappedReads)
-                shard.signalDone();
+                readShard.signalDone();
         }
 
         if (intoUnmappedReads && includeUnmappedReads) {
             if (iter != null)
                 iter.close();
-            iter = toUnmappedReads(shard.getSize());
+            iter = toUnmappedReads(readShard.getSize());
             if (!iter.hasNext())
-                shard.signalDone();
+                readShard.signalDone();
         }
 
         return iter;

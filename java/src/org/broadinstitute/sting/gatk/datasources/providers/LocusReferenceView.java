@@ -97,10 +97,11 @@ public class LocusReferenceView extends ReferenceView {
             windowStop = 0;
         }
 
-        long expandedStart = getWindowStart( bounds );
-        long expandedStop  = getWindowStop( bounds );
-
-        initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+        if(bounds != null) {
+            long expandedStart = getWindowStart( bounds );
+            long expandedStop  = getWindowStop( bounds );
+            initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+        }
     }
 
     /**
@@ -120,7 +121,16 @@ public class LocusReferenceView extends ReferenceView {
         validateLocation( genomeLoc );
 
         GenomeLoc window = GenomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
-        char[] bases = StringUtil.bytesToString( referenceSequence.getBases(), (int)(window.getStart() - getWindowStart(bounds)), (int)window.size() ).toCharArray();
+        char[] bases = null;
+
+        if(bounds != null) {
+            bases = StringUtil.bytesToString( referenceSequence.getBases(), (int)(window.getStart() - getWindowStart(bounds)), (int)window.size() ).toCharArray();
+        }
+        else {
+            if(referenceSequence == null || referenceSequence.getContigIndex() != genomeLoc.getContigIndex())
+                referenceSequence = reference.getSequence(genomeLoc.getContig());
+            bases = StringUtil.bytesToString( referenceSequence.getBases(), (int)window.getStart()-1, (int)window.size()).toCharArray();
+        }
         return new ReferenceContext( genomeLoc, window, bases );
     }
 
@@ -139,11 +149,10 @@ public class LocusReferenceView extends ReferenceView {
      * @param genomeLoc location to verify.
      */
     private void validateLocation( GenomeLoc genomeLoc ) throws InvalidPositionException {
-        //
         if( !genomeLoc.isSingleBP() )
             throw new InvalidPositionException(
                     String.format("Requested position larger than one base; start = %d, stop = %d", genomeLoc.getStart(), genomeLoc.getStop()));
-        if( !bounds.containsP(genomeLoc) )
+        if( bounds != null && !bounds.containsP(genomeLoc) )
             throw new InvalidPositionException(
                     String.format("Requested position %s not within interval %s", genomeLoc, bounds));
     }

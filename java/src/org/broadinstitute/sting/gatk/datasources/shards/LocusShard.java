@@ -61,4 +61,13 @@ public class LocusShard implements Shard {
     public static LocusShard toShard(GenomeLoc loc) {
         return new LocusShard(loc);
     }
+
+    /**
+     * String representation of this shard.
+     * @return A string representation of the boundaries of this shard.
+     */
+    @Override
+    public String toString() {
+        return mLoc.toString();
+    }
 }

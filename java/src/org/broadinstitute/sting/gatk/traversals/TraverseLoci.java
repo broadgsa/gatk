@@ -40,7 +40,7 @@ public class TraverseLoci extends TraversalEngine {
                              Shard shard,
                              ShardDataProvider dataProvider,
                              T sum ) {
-        logger.debug(String.format("TraverseLoci.traverse Genomic interval is %s", shard.getGenomeLoc()));
+        logger.debug(String.format("TraverseLoci.traverse: Shard is %s", shard));
 
         if ( !(walker instanceof LocusWalker) )
             throw new IllegalArgumentException("Walker isn't a loci walker!");

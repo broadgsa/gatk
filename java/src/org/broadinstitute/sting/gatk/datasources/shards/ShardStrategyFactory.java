@@ -34,7 +34,11 @@ import org.broadinstitute.sting.utils.GenomeLocSortedSet;
  */
 public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
-        LINEAR, EXPONENTIAL, READS, INTERVAL
+        LINEAR,
+        EXPONENTIAL,
+        READS,
+        INTERVAL,
+        MONOLITHIC   // Put all of the available data into one shard.
     }
 
     /** our log, which we want to capture anything from this class */

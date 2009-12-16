@@ -98,7 +98,7 @@ abstract class ReadStreamPointer {
      * @param segment Segment to check for overlaps.
      * @return An iterator over all reads overlapping the given segment.
      */
-    public abstract StingSAMIterator getReadsOverlapping( MappedStreamSegment segment );
+    public abstract StingSAMIterator getReadsOverlapping( DataStreamSegment segment );
 
     /**
      * Get a stream of all the reads that are completely contained by a given segment.
@@ -136,14 +136,18 @@ class MappedReadStreamPointer extends ReadStreamPointer {
      * {@inheritDoc}
      */
     @Override
-    public StingSAMIterator getReadsOverlapping( MappedStreamSegment segment ) {
+    public StingSAMIterator getReadsOverlapping( DataStreamSegment segment ) {
+        if(!(segment instanceof MappedStreamSegment))
+            throw new UnsupportedOperationException("MappedReadStreamPointer cannot get reads overlapping an unmapped stream segment");
+        MappedStreamSegment mappedSegment = (MappedStreamSegment)segment;
+
         MergingSamRecordIterator2 mergingIterator = new MergingSamRecordIterator2( headerMerger, sourceInfo );
 
         // The getStop() + 1 is a hack to work around an old bug in the way Picard created SAM files where queries
         // over a given interval would occasionally not pick up the last read in that interval.
-        mergingIterator.queryOverlapping( segment.locus.getContig(),
-                                          (int)segment.locus.getStart(),
-                                          (int)segment.locus.getStop()+ PlusOneFixIterator.PLUS_ONE_FIX_CONSTANT);
+        mergingIterator.queryOverlapping( mappedSegment.locus.getContig(),
+                                          (int)mappedSegment.locus.getStart(),
+                                          (int)mappedSegment.locus.getStop()+ PlusOneFixIterator.PLUS_ONE_FIX_CONSTANT);
 
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
@@ -206,7 +210,7 @@ class UnmappedReadStreamPointer extends ReadStreamPointer {
      * {@inheritDoc}
      */
     @Override
-    public StingSAMIterator getReadsOverlapping( MappedStreamSegment segment ) {
+    public StingSAMIterator getReadsOverlapping( DataStreamSegment segment ) {
         throw new UnsupportedOperationException("Unable to determine overlapped reads of an unmapped segment");
     }
 
@@ -243,5 +247,58 @@ class UnmappedReadStreamPointer extends ReadStreamPointer {
     public void destroy( StingSAMIterator iterator ) {
         // Don't destroy the iterator; reuse it.
     }
+
+}
+
+class EntireReadStreamPointer extends ReadStreamPointer {
+    /**
+     * Create a new pointer that can return info about the entire read stream.
+     * @param sourceInfo Source info for the reads.
+     * @param headerMerger Header merging apparatus.
+     *
+     */
+    public EntireReadStreamPointer( Reads sourceInfo, SamFileHeaderMerger headerMerger ) {
+        super( sourceInfo, headerMerger );
+    }
+
+    /**
+     * An EntireReadStreamPointer can only efficiently access the entire file.
+     * @param segment Segment to test.
+     * @return true if requesting the entire stream.
+     */
+    public boolean canAccessSegmentEfficiently(DataStreamSegment segment) {
+        return segment instanceof EntireStream;
+    }
+
+    /**
+     * Get a stream of all the reads that overlap a given segment.
+     * @param segment Segment to check for overlaps.
+     * @return An iterator over all reads overlapping the given segment.
+     */
+    @Override
+    public StingSAMIterator getReadsOverlapping( DataStreamSegment segment ) {
+        if(!(segment instanceof EntireStream))
+            throw new StingException("EntireReadStreamPointer can only get reads overlapping the entire stream.");
+        return StingSAMIteratorAdapter.adapt(sourceInfo,new MergingSamRecordIterator2(headerMerger, sourceInfo));
+    }
+
+    /**
+     * Get a stream of all the reads that are completely contained by a given segment.
+     * @param segment Segment to check for containment..
+     * @return An iterator over all reads contained by the given segment.
+     */
+    @Override
+    public StingSAMIterator getReadsContainedBy( DataStreamSegment segment ) {
+        if(!(segment instanceof EntireStream))
+            throw new StingException("EntireReadStreamPointer can only get reads contained by the entire stream.");
+        return StingSAMIteratorAdapter.adapt(sourceInfo,new MergingSamRecordIterator2(headerMerger, sourceInfo));        
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void destroy( StingSAMIterator iterator ) {
+        iterator.close();
+    }    
 
 }

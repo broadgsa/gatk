@@ -160,6 +160,12 @@ interface DataStreamSegment {
 }
 
 /**
+ * Models the entire stream of data.
+ */
+class EntireStream implements DataStreamSegment {
+}
+
+/**
  * Models a mapped position within a stream of GATK input data.
  */
 class MappedStreamSegment implements DataStreamSegment {

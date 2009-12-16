@@ -4,7 +4,6 @@ import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
@@ -112,7 +111,7 @@ public abstract class LocusView extends LocusIterator implements View {
      * @return True if another locus context is bounded by this shard.
      */
     protected boolean hasNextLocus() {
-        return nextLocus != null && !nextLocus.getLocation().isPast(shard.getGenomeLoc());
+        return nextLocus != null && (shard.getGenomeLoc() == null || !nextLocus.getLocation().isPast(shard.getGenomeLoc()));
     }
 
     /**
@@ -121,7 +120,7 @@ public abstract class LocusView extends LocusIterator implements View {
      * @throw NoSuchElementException if the next element is missing.
      */
     protected AlignmentContext nextLocus() {
-        if( nextLocus == null || nextLocus.getLocation().isPast(shard.getGenomeLoc()) )
+        if( nextLocus == null || (shard.getGenomeLoc() != null && nextLocus.getLocation().isPast(shard.getGenomeLoc())) )
             throw new NoSuchElementException("No more elements remain in locus context queue.");
 
         // Cache the current and apply filtering.
@@ -132,7 +131,7 @@ public abstract class LocusView extends LocusIterator implements View {
             nextLocus = loci.next();
             if( sourceInfo.getDownsampleToCoverage() != null )
                 current.downsampleToCoverage( sourceInfo.getDownsampleToCoverage() );                                 
-            if( nextLocus.getLocation().isPast(shard.getGenomeLoc()) )
+            if( shard.getGenomeLoc() != null && nextLocus.getLocation().isPast(shard.getGenomeLoc()) )
                 nextLocus = null;
         }
         else
@@ -149,13 +148,16 @@ public abstract class LocusView extends LocusIterator implements View {
         if( loci.hasNext() )
             nextLocus = loci.next();
 
-        // Iterate past cruft at the beginning to the first locus in the shard.
-        while( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) && loci.hasNext() )
-            nextLocus = loci.next();
+        // If the location of this shard is available, trim the data stream to match the shard.
+        if(shard.getGenomeLoc() != null) {
+            // Iterate past cruft at the beginning to the first locus in the shard.
+            while( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) && loci.hasNext() )
+                nextLocus = loci.next();
 
-        // If nothing in the shard was found, indicate that by setting nextAlignmentContext to null.
-        if( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) )
-            nextLocus = null;
+            // If nothing in the shard was found, indicate that by setting nextAlignmentContext to null.
+            if( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) )
+                nextLocus = null;
+        }
     }
 
     /**

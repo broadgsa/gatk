@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -47,6 +46,22 @@ import java.io.File;
 class ReadStreamResource {
     final static boolean eagerDecode = true;
 
+    /**
+     * Do all the constituent components of this ReadStreamResource have indices?
+     * In general, BAM files without indices are not supported, but in a few specific
+     * cases we do allow this for the Picard pipeline.
+     * @return true if all BAM files have indices; false otherwise.
+     */
+    protected boolean hasIndex() {
+        for(SAMFileReader reader: readStreamPointer.getHeaderMerger().getReaders()) {
+            if(!reader.hasIndex())
+                return false;
+        }
+        return true;
+    }
+
+    protected final boolean hasIndex;
+
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(ReadStreamPointer.class);
 
@@ -64,7 +79,18 @@ class ReadStreamResource {
         SamFileHeaderMerger headerMerger = createHeaderMerger(sourceInfo, SAMFileHeader.SortOrder.coordinate);
 
         this.header = headerMerger.getMergedHeader();
-        readStreamPointer = new MappedReadStreamPointer(sourceInfo, headerMerger);
+
+        boolean indexPresent = true;
+        for(SAMFileReader reader: headerMerger.getReaders()) {
+            if(!reader.hasIndex())
+                indexPresent = false;
+        }
+        hasIndex = indexPresent;
+
+        if(hasIndex)
+            readStreamPointer = new MappedReadStreamPointer(sourceInfo, headerMerger);
+        else
+            readStreamPointer = new EntireReadStreamPointer(sourceInfo, headerMerger);
     }
 
     /**
@@ -109,7 +135,7 @@ class ReadStreamResource {
     }
 
 
-    public StingSAMIterator getReadsOverlapping( MappedStreamSegment segment ) {
+    public StingSAMIterator getReadsOverlapping( DataStreamSegment segment ) {
         return readStreamPointer.getReadsOverlapping(segment);
     }
 
