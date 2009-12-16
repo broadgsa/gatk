@@ -20,5 +20,5 @@ public class DepthOfCoverage extends StandardVariantAnnotation {
 
     public String getKeyName() { return VCFRecord.DEPTH_KEY; }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total Depth (including MQ0 reads)"); }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total Depth"); }
 }

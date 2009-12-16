@@ -98,7 +98,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
 
             if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup();
+                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup();
                 ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {

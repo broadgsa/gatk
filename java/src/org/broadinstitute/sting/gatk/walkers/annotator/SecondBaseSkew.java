@@ -37,7 +37,7 @@ public class SecondBaseSkew implements VariantAnnotation {
 
         Pair<Integer, Integer> depth = new Pair<Integer, Integer>(0, 0);
         for ( String sample : stratifiedContexts.keySet() ) {
-            Pair<Integer, Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBase(), stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup(), snp);
+            Pair<Integer, Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBase(), stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup(), snp);
             depth.first += sampleDepth.first;
             depth.second += sampleDepth.second;
         }

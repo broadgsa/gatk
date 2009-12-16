@@ -36,7 +36,7 @@ public class RankSumTest implements VariantAnnotation {
                 if ( context == null )
                     continue;
 
-                fillQualsFromPileup(ref.getBase(), variation.getAlternativeBaseForSNP(), context.getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup(), refQuals, altQuals);
+                fillQualsFromPileup(ref.getBase(), variation.getAlternativeBaseForSNP(), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup(), refQuals, altQuals);
             }
         }
 

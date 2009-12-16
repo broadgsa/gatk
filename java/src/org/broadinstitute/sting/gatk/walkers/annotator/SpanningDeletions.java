@@ -15,7 +15,7 @@ public class SpanningDeletions extends StandardVariantAnnotation {
         int deletions = 0;
         int depth = 0;
         for ( String sample : stratifiedContexts.keySet() ) {
-            ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup();
+            ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup();
             deletions += pileup.getNumberOfDeletions();
             depth += pileup.size();
         }

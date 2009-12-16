@@ -44,11 +44,10 @@ public class StratifiedAlignmentContext {
 
     // Definitions:
     //   COMPLETE = full alignment context
-    //   MQ0FREE  = full context without MQ0 reads
-    //   FORWARD  = reads on forward strand (*no* MQ0 reads)
-    //   REVERSE  = reads on forward strand (*no* MQ0 reads)
+    //   FORWARD  = reads on forward strand 
+    //   REVERSE  = reads on forward strand
     //
-    public enum StratifiedContextType { COMPLETE, MQ0FREE, FORWARD, REVERSE }
+    public enum StratifiedContextType { COMPLETE, FORWARD, REVERSE }
 
     private GenomeLoc loc;
     private AlignmentContext[] contexts = new AlignmentContext[StratifiedContextType.values().length];
@@ -72,16 +71,12 @@ public class StratifiedAlignmentContext {
     }
 
     public void add(SAMRecord read, int offset) {
-        if ( read.getMappingQuality() > 0 ) {
-            reads[StratifiedContextType.MQ0FREE.ordinal()].add(read);
-            offsets[StratifiedContextType.MQ0FREE.ordinal()].add(offset);
-            if ( read.getReadNegativeStrandFlag() ) {
-                reads[StratifiedContextType.REVERSE.ordinal()].add(read);
-                offsets[StratifiedContextType.REVERSE.ordinal()].add(offset);
-            } else {
-                reads[StratifiedContextType.FORWARD.ordinal()].add(read);
-                offsets[StratifiedContextType.FORWARD.ordinal()].add(offset);
-            }
+        if ( read.getReadNegativeStrandFlag() ) {
+            reads[StratifiedContextType.REVERSE.ordinal()].add(read);
+            offsets[StratifiedContextType.REVERSE.ordinal()].add(offset);
+        } else {
+            reads[StratifiedContextType.FORWARD.ordinal()].add(read);
+            offsets[StratifiedContextType.FORWARD.ordinal()].add(offset);
         }
         reads[StratifiedContextType.COMPLETE.ordinal()].add(read);
         offsets[StratifiedContextType.COMPLETE.ordinal()].add(offset);
@@ -90,18 +85,17 @@ public class StratifiedAlignmentContext {
     /**
      * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.
      *
-     * @param context               the original AlignmentContext
+     * @param pileup                the original pileup
      * @param assumedSingleSample   if not null, any read without a readgroup will be given this sample name
      * @param collapseToThisSample  if not null, all reads will be assigned this read group regardless of their actual read group
      *
      * @return a Map of sample name to StratifiedAlignmentContext
      *
      **/
-    public static Map<String, StratifiedAlignmentContext> splitContextBySample(AlignmentContext context, String assumedSingleSample, String collapseToThisSample) {
+    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedPileup pileup, String assumedSingleSample, String collapseToThisSample) {
 
         HashMap<String, StratifiedAlignmentContext> contexts = new HashMap<String, StratifiedAlignmentContext>();
 
-        ReadBackedPileup pileup = context.getPileup();
         for (PileupElement p : pileup ) {
 
             // get the read
@@ -125,7 +119,7 @@ public class StratifiedAlignmentContext {
             // create a new context object if this is the first time we're seeing a read for this sample
             StratifiedAlignmentContext myContext = contexts.get(sample);
             if ( myContext == null ) {
-                myContext = new StratifiedAlignmentContext(context.getLocation());
+                myContext = new StratifiedAlignmentContext(pileup.getLocation());
                 contexts.put(sample, myContext);
             }
 

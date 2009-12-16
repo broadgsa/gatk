@@ -88,9 +88,15 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "min_allele_frequency", shortName = "min_freq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)
     public double MINIMUM_ALLELE_FREQUENCY = 1e-8;
 
-    @Argument(fullName = "minBaseQualityScore", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
-    public Integer MIN_BASE_QUALTY_SCORE = -1;
+    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
+    public int MIN_BASE_QUALTY_SCORE = 20;
 
-    @Argument(fullName = "minMappingQualityScore", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
-    public Integer MIN_MAPPING_QUALTY_SCORE = -1;
+    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling (MQ0 reads are ignored regardless)", required = false)
+    public int MIN_MAPPING_QUALTY_SCORE = 30;
+
+    @Argument(fullName = "max_mismatches_in_40bp_window", shortName = "mm40", doc = "Maximum number of mismatches within a 40 bp window (20bp on either side) around the target position for a read to be used for calling", required = false)
+    public int MAX_MISMATCHES = 3;
+
+    @Argument(fullName = "use_reads_with_bad_mates", shortName = "bad_mates", doc = "Use reads whose mates are mapped excessively far away for calling", required = false)
+    public boolean USE_BADLY_MATED_READS = false;
 }

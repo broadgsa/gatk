@@ -39,7 +39,7 @@ public class AlleleBalance extends StandardVariantAnnotation {
             if ( genotypeStr.length() != 2 )
                 return null;
 
-            final String bases = new String(context.getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup().getBases()).toUpperCase();
+            final String bases = new String(context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup().getBases()).toUpperCase();
             if ( bases.length() == 0 )
                 return null;
 

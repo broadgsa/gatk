@@ -26,19 +26,16 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
-import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import net.sf.samtools.SAMReadGroupRecord;
 
@@ -51,6 +48,7 @@ import java.util.*;
  * multi-sample, and pooled data.  The user can choose from several different incorporated calculation models.
  */
 @Reference(window=@Window(start=-20,stop=20))
+@ReadFilters({ZeroMappingQualityReadFilter.class})
 public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genotype>>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -174,6 +172,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             headerInfo.addAll(VariantAnnotator.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
+        headerInfo.add(new VCFHeaderLine("INFO_NOTE", "\"All annotations in the INFO field are generated only from the FILTERED context used for calling variants\""));
         headerInfo.add(new VCFInfoHeaderLine("AF", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
         headerInfo.add(new VCFInfoHeaderLine("NS", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Number of Samples With Data"));
         if ( !UAC.NO_SLOD )
@@ -203,26 +202,30 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
+        // filter the context based on min base and mapping qualities
+        ReadBackedPileup pileup = rawContext.getPileup().getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
+
+        // filter the context based on mismatches and reads with bad mates
+        pileup = filterPileup(pileup, refContext, UAC.MAX_MISMATCHES, UAC.USE_BADLY_MATED_READS);
+
         // an optimization to speed things up when there is no coverage or when overly covered
-        if ( rawContext.getPileup().size() == 0 ||
-             (UAC.MAX_READS_IN_PILEUP > 0 && rawContext.getPileup().size() > UAC.MAX_READS_IN_PILEUP) )
+        if ( pileup.size() == 0 ||
+             (UAC.MAX_READS_IN_PILEUP > 0 && pileup.size() > UAC.MAX_READS_IN_PILEUP) )
             return null;
 
         // are there too many deletions in the pileup?
-        ReadBackedPileup pileup = rawContext.getPileup().getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
-        AlignmentContext context = new AlignmentContext(rawContext.getLocation(), pileup);
         if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
-             (double)pileup.getPileupWithoutMappingQualityZeroReads().getNumberOfDeletions() / (double)(pileup.size() - pileup.getNumberOfMappingQualityZeroReads()) > UAC.MAX_DELETION_FRACTION )
+             (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
             return null;
 
         // stratify the AlignmentContext and cut by sample
         // Note that for testing purposes, we may want to throw multi-samples at pooled mode
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
+        Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
         if ( stratifiedContexts == null )
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, context.getLocation(), stratifiedContexts, priors);
+        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
         // annotate the call, if possible
         if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
@@ -235,6 +238,18 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         }
 
         return call;
+    }
+
+    // filter based on maximum mismatches and bad mates
+    private static ReadBackedPileup filterPileup(ReadBackedPileup pileup, ReferenceContext refContext, int maxMismatches, boolean useBadMates) {
+        ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
+        for ( PileupElement p : pileup ) {
+            if ( (useBadMates || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
+                 AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= maxMismatches )
+                filteredPileup.add(p);
+        }
+        return new ReadBackedPileup(pileup.getLocation(), filteredPileup);
+
     }
 
     private static boolean isValidDeletionFraction(double d) {

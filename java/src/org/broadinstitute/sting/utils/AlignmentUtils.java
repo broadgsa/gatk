@@ -118,7 +118,7 @@ public class AlignmentUtils {
      * @param refSeq chunk of reference sequence that subsumes the alignment completely (if alignment runs out of 
      *                  the reference string, IndexOutOfBound exception will be thrown at runtime).
      * @param refIndex zero-based position, at which the alignment starts on the specified reference string. 
-     * @return
+     * @return the number of mismatches
      */
     public static int numMismatches(SAMRecord r, String refSeq, int refIndex) {
         int readIdx = 0;
@@ -160,15 +160,12 @@ public class AlignmentUtils {
      * @param pileup  the pileup with reads
      * @param ref     the reference context
      * @param ignoreTargetSite     if true, ignore mismatches at the target locus (i.e. the center of the window)
-     * @return a pair where the first value is the mismatches and the second is the total bases within the context
+     * @return the number of mismatches
      */
-    public static Pair<Integer, Integer> mismatchesInRefWindow(ReadBackedPileup pileup, ReferenceContext ref, boolean ignoreTargetSite) {
-        Pair<Integer, Integer> mismatches = new Pair<Integer, Integer>(0, 0);
-        for ( PileupElement p : pileup ) {
-            Pair<Integer, Integer> mm = mismatchesInRefWindow(p, ref, ignoreTargetSite);
-            mismatches.first += mm.first;
-            mismatches.second += mm.second;
-        }
+    public static int mismatchesInRefWindow(ReadBackedPileup pileup, ReferenceContext ref, boolean ignoreTargetSite) {
+        int mismatches = 0;
+        for ( PileupElement p : pileup )
+            mismatches += mismatchesInRefWindow(p, ref, ignoreTargetSite);
         return mismatches;
     }
 
@@ -177,12 +174,11 @@ public class AlignmentUtils {
      * @param p       the pileup element
      * @param ref     the reference context
      * @param ignoreTargetSite     if true, ignore mismatches at the target locus (i.e. the center of the window)
-     * @return a pair where the first value is the mismatches and the second is the total bases within the context
+     * @return the number of mismatches
      */
-    public static Pair<Integer, Integer> mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite) {
+    public static int mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite) {
 
         int mismatches = 0;
-        int totalBases = 0;
 
         GenomeLoc window = ref.getWindow();
         char[] refBases = ref.getBases();
@@ -212,7 +208,6 @@ public class AlignmentUtils {
                         if ( ignoreTargetSite && ref.getLocus().getStart() == currentPos )
                             continue;
 
-                        totalBases++;
                         char readChr = (char)readBases[readIndex];
                         if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
                             mismatches++;
@@ -234,8 +229,7 @@ public class AlignmentUtils {
 
         }
 
-        //System.out.println("There are " + mismatches + " mismatches out of " + totalBases + " bases for read " + p.getRead().getReadName());
-        return new Pair<Integer, Integer>(mismatches, totalBases);
+        return mismatches;
     }
 
     /** Returns number of alignment blocks (continuous stretches of aligned bases) in the specified alignment.

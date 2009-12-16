@@ -22,7 +22,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
     public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
 
         // run the EM calculation
-        EMOutput overall = runEM(ref, contexts, priors, StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
+        EMOutput overall = runEM(ref, contexts, priors, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
 
         double PofD = Math.pow(10, overall.getPofD());
         double PofNull = Math.pow(10, overall.getPofNull());
@@ -93,7 +93,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         for ( String sample : GLs.keySet() ) {
 
             // create the call
-            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
+            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             // set the genotype and confidence
@@ -105,7 +105,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
             call.setGenotype(bestGenotype);
 
             if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE).getPileup();
+                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup();
                 ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {
