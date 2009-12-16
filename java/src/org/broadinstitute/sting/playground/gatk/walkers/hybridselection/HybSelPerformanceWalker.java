@@ -24,6 +24,11 @@ import edu.mit.broad.picard.util.Interval;
 import edu.mit.broad.picard.util.OverlapDetector;
 import edu.mit.broad.picard.directed.IntervalList;
 
+/**
+ * Given intervals corresponding to targets or baits in a hybrid selection experiment, this walker gives the following interval-by-interval data:
+ * coverage, %GC, corresponding gene name, bait quantity, number of adjacent baits, and whether the bait is boosted.
+ * It can be useful to manually disable the merging of intervals in the GATK when using this walker; this feature is not yet part of the GATK.  
+ */
 @By(DataSource.REFERENCE)
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> implements TreeReducible<HybSelPerformanceWalker.TargetInfo> {
     @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider")

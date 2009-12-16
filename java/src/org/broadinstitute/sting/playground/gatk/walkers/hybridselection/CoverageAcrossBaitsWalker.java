@@ -16,11 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * Created by IntelliJ IDEA.
- * User: andrewk
- * Date: Oct 20, 2009
- * Time: 5:00:53 PM
- * To change this template use File | Settings | File Templates.
+ * Accumulates coverage across hybrid selection bait intervals to assess effect of bait adjacency and overlap on coverage
  */
 
 @By(DataSource.REFERENCE)

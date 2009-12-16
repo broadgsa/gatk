@@ -16,12 +16,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Created by IntelliJ IDEA.
- * User: andrewk
- * Date: Sep 1, 2009
- * Time: 11:04:55 AM
- * To change this template use File | Settings | File Templates.
+ * Implements a rudimentary algorithm for calling SNPs that are de novo in that they appear in an individual but not in
+ * its parents.
  */
+
 @By(DataSource.REFERENCE)
 @Requires(value={DataSource.REFERENCE, DataSource.REFERENCE_BASES, DataSource.READS},referenceMetaData={@RMD(name="child",type= VariationRod.class)})
 @Allows({DataSource.READS, DataSource.REFERENCE})
@@ -29,6 +27,11 @@ import java.util.Set;
 //, @RMD(name="parent1",type= VariationRod.class), @RMD(name="parent2",type= VariationRod.class)})
 
 public class DeNovoSNPWalker extends RefWalker<String, Integer>{
+/**
+ * Implements a rudimentary algorithm for calling SNPs that are de novo in that they appear in an individual but not in
+ * its parents. Using BAM files corresponding to parents and child, it calls UnifiedGenotyper directly and outputs a
+ * confidence for positions being de novo SNPs.
+ * */
 
     UnifiedGenotyper UG;
     private List<Set<String>> readGroupSets;

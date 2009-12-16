@@ -20,11 +20,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
- * User: andrewk
- * Date: Jun 30, 2009
- * Time: 12:38:17 PM
- * To change this template use File | Settings | File Templates.
+ * Given a set of reads and truth data from a HapMap chip, this walker downsamples the reads at variant
+ * positions to empirically assess the rate at which variants would be confidently and correctly called given different levels of coverage. 
  */
 public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, String> {
 
