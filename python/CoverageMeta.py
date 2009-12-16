@@ -44,23 +44,27 @@ def process_bam(bam_file):
             sys.exit("Expected to find "+hapmapchip_file+" but it's not around")
         
     else:
-        # Config for pilot 3 
-        ref = " -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
-        intervals_file = "/seq/references/HybSelOligos/thousand_genomes_alpha_redesign/thousand_genomes_alpha_redesign.targets.interval_list"
-    
+        # Config for pilot 3 Broad data
+        #ref = " -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
+        #intervals_file = "/seq/references/HybSelOligos/thousand_genomes_alpha_redesign/thousand_genomes_alpha_redesign.targets.interval_list"
+
+        # Config for pilot 3 DCC data (12/16/09 r. 2375)
+        ref = " -R /broad/1KG/reference/human_b36_both.fasta"
+        intervals_file = "/humgen/gsa-scr1/GATK_Data/thousand_genomes_alpha_redesign.targets.b36.interval_list"
+        
     # Assure that BAM index exists
     bam_index_file = output_basepath+".bam.bai"
     if not exists_and_non_zero(bam_index_file):
         Cmd = "samtools index "+bam_file
         cmd(Cmd, die_on_fail = True)
         
-    # Run SSG calls
-    ssg_outfile = output_basepath+".SSG.calls"
-    if not exists_and_non_zero(ssg_outfile):
-        print "Running SingleSampleGenotyper"
-        Cmd = gatk_exe + ref + " -T SingleSampleGenotyper"+\
+    # Run UnifiedGenotyper calls
+    vcf_outfile = output_basepath+".calls.vcf"
+    if not exists_and_non_zero(vcf_outfile):
+        print "Running UnifiedGenotyper"
+        Cmd = gatk_exe + ref + " -T UnifiedGenotyper"+\
             " -I "+bam_file+\
-            " -varout "+ssg_outfile+\
+            " -varout "+vcf_outfile+\
             " -L "+intervals_file+\
             " -fmq0 -l INFO "
             #" --genotype -lod 5"
@@ -68,22 +72,18 @@ def process_bam(bam_file):
             #+interval_string+\
         cmd(Cmd, die_on_fail=True)
     
-    # Run VariantEval on SSG calls
-    varianteval_outdir = output_basepath+".VariantEval"
-    varianteval_outbase = output_basepath+".VariantEval/"+output_basepath
-    varianteval_outfile = output_basepath+".VariantEval/"+output_basepath #+".all.genotype_concordance"
-    
+    # Run VariantEval on UnifiedGenotyper calls
+    varianteval_outfile = output_basepath+".varianteval"
     if not exists_and_non_zero(varianteval_outfile):
-        print "Running VariantEval with output to "+varianteval_outbase
-        if not os.path.exists(varianteval_outdir):
-            os.mkdir(varianteval_outdir)
+        print "Running VariantEval with output to "+varianteval_outfile
         Cmd = gatk_exe + ref + " -T VariantEval"+\
             " -B dbsnp,dbsnp,/humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod"+\
-            " -B eval,Variants,"+ssg_outfile+\
-            " -o "+varianteval_outbase+\
+            " -B eval,VCF,"+ssg_outfile+\
+            " -o "+varianteval_outfile+\
             " -L "+intervals_file+\
+            " -G -V"+\
             " --evalContainsGenotypes"+\
-            " -minConfidenceScore 5"+\
+            " -minPhredConfidenceScore 150"+\
             " -fmq0 -l INFO"
         if using_hapmapchip:
             Cmd = Cmd + " -hc "+hapmapchip_file
@@ -94,10 +94,11 @@ def process_bam(bam_file):
     hist_outfile = output_basepath+".hapmap.coverage_hist"
     if not exists_and_non_zero(hist_outfile):
         print "Running CoverageHist on "+bam_file
-        Cmd = gatk_exe + ref + " -T CoverageHistogram"+\
+        Cmd = gatk_exe + ref + " -T DepthOfCoverage"+\
             " -I "+bam_file+\
             " -o "+hist_outfile+\
             " -L "+intervals_file+\
+            " -histogram --suppressLocusPrinting"+\
             " -fmq0 -l INFO"
             
         cmd(Cmd, die_on_fail=True)#,"gsa", output_basepath)

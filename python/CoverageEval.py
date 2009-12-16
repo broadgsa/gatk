@@ -221,7 +221,7 @@ def stats_from_hist(options, depth_hist_filename, stats_filename, variant_eval_d
     
     
     hist = []
-    hist_gen = FlatFileTable.record_generator(depth_hist_filename, sep=" ", skip_n_lines=9)
+    hist_gen = FlatFileTable.record_generator(depth_hist_filename, sep=" ", skip_until_regex_line = "^depth count freq")
     for index, record in enumerate(hist_gen):
         assert int(record["depth"]) == index
         hist.append(int(record["count"]))
