@@ -12,7 +12,7 @@ public class IntervalsIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 "-T IndelIntervals -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-11,000,000 -o %s",
                  1,
-                 Arrays.asList("a4a795755b18f4ecdbc50975612bd819"));
+                 Arrays.asList("76f97b91921f427ab639b6b8228ac4dc"));
         executeTest("testIndelIntervals", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
