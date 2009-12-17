@@ -72,7 +72,7 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
             return null;
         }
 
-        if ( indelLeftEdge == 49563377 ) System.out.println("read: " +read.getReadName());
+//        if ( indelLeftEdge == 49563377 ) System.out.println("read: " +read.getReadName());
         GenomeLoc indelLoc = GenomeLocParser.createGenomeLoc(read.getReferenceIndex(), indelLeftEdge, indelRightEdge);
         GenomeLoc refLoc = GenomeLocParser.createGenomeLoc(read);
 
