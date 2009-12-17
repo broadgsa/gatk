@@ -17,9 +17,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testCountCovariates1() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12892.SLX.SRP000031.2009_06.selected.bam", "16f87c9644b27c3c3fe7a963eed45d2d" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "add8196af03d5a674aa3de702995cbbf");
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "5a4873064e602e1f945f3881c6b4a3e5");
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "b039f405580ad844cd1dfd4d8ba25913" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "c730bff43ffb89dcb0774926286cac6f" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "dbbb9c49f2e0b1f117b88eb386fb6d0f" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -37,7 +37,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
                             " --sorted_output" +
-                            " --solid_recal_mode DO_NOTHING" +
+                            " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file
                     Arrays.asList(md5));
@@ -50,9 +50,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testTableRecalibrator1() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12892.SLX.SRP000031.2009_06.selected.bam", "d7f3e0db5ed9fefc917144a0f937d50d" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "fb82046d5acfb07625d5459526d5f6c8");
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "1f1770363f381d06e8db9fead03ad7bb");
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "3fe6ee95cfa6155f8cc8e3e0a6330ad2" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "e4eae955f7d408b2af34c9224616f564" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "732267e9cd02a72b8c85238f47487509" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -68,7 +68,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                     ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
                                 " -outputBam %s" +
                                 " --no_pg_tag" +
-                                " --solid_recal_mode DO_NOTHING" +
+                                " --solid_recal_mode SET_Q_ZERO" +
                                 " -recalFile " + paramsFile,
                         1, // just one output file
                         Arrays.asList(md5));
@@ -80,7 +80,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesVCF() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "d0bdd1934f003406e93f935b63ab6edd");
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "bc0e62dc366f2f6ca70847a832b4aad4");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -97,7 +97,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
                             " --sorted_output" +
-                            " --solid_recal_mode DO_NOTHING" +
+                            " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file
                     Arrays.asList(md5));
@@ -108,7 +108,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesNoReadGroups() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "fadfa35415a694781ed2b4d1b1d9535b" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "9d83a1653e076e028fecf4c2575f56e9" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -126,7 +126,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov DinucCovariate" +
                             " --default_platform illumina" +
                             " --sorted_output" +
-                            " --solid_recal_mode DO_NOTHING" +
+                            " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file
                     Arrays.asList(md5));
@@ -138,7 +138,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorNoReadGroups() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "4879036295b567514f637d21030bf9c8" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "8853add9cfd0a8171ca917b1c6452e0a" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -153,7 +153,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -L 1:10,100,000-10,300,000" +
                                 " -outputBam %s" +
                                 " --no_pg_tag" +
-                                " --solid_recal_mode DO_NOTHING" +
+                                " --solid_recal_mode SET_Q_ZERO" +
                                 " --default_platform illumina" +
                                 " -recalFile " + paramsFile,
                         1, // just one output file

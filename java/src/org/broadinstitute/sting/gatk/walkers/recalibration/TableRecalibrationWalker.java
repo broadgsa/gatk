@@ -58,8 +58,7 @@ import java.lang.reflect.Field;
  */
 
 @WalkerName("TableRecalibration")
-@Requires({ DataSource.READS, DataSource.REFERENCE }) // This walker requires -I input.bam, it also requires -R reference.fasta, but by not saying @requires REFERENCE_BASES I'm telling the
-                                                                                                        // GATK to not actually spend time giving me the refBase array since I don't use it
+@Requires({ DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES }) // This walker requires -I input.bam, it also requires -R reference.fasta
 public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     /////////////////////////////
@@ -94,9 +93,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.1.1"; // Major version, minor version, and build number
+    private static final String versionString = "v2.1.2"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
+    private static final long RANDOM_SEED = 1032861495;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -114,9 +114,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         logger.info( "TableRecalibrationWalker version: " + versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
-        coinFlip = new Random();
+        coinFlip = new Random(RANDOM_SEED);
         if( !RAC.checkSolidRecalMode() ) {
-            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, COUNT_AS_MISMATCH, or REMOVE_REF_BIAS");
+            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS");
         }
 
         // Get a list of all available covariates
@@ -282,7 +282,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
         RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ) );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
-        dataManager.addToAllTables( key, datum );
+        dataManager.addToAllTables( key, datum, PRESERVE_QSCORES_LESS_THAN );
         
     }
 
@@ -300,17 +300,14 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     public SAMRecord map( char[] refBases, SAMRecord read ) {
 
-        // WARNING: refBases is always null because this walker doesn't have @Requires({DataSource.REFERENCE_BASES})
-        // This is done in order to speed up the code
-
         RecalDataManager.parseSAMRecord( read, RAC );
-
+        
         byte[] originalQuals = read.getBaseQualities();
         byte[] recalQuals = originalQuals.clone();
 
         String platform = read.getReadGroup().getPlatform();
         if( platform.equalsIgnoreCase("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
-            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip );
+            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases );
         }
                 
         int startPos = 1;

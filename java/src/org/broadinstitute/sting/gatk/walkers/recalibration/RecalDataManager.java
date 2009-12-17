@@ -42,6 +42,7 @@ import net.sf.samtools.SAMReadGroupRecord;
  * Date: Nov 6, 2009
  *
  * This helper class holds the data HashMap as well as submaps that represent the marginal distributions collapsed over all needed dimensions.
+ * It also has static methods that are used to perform the various solid recalibration modes that attempt to correct the reference bias.
  */
 
 public class RecalDataManager {
@@ -58,7 +59,7 @@ public class RecalDataManager {
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // The tag that holds the color space quality scores for SOLID bams
     public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS"; // The tag that holds the color space for SOLID bams
-    public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC"; // A new tag made up for the recalibrator which will hold an array of ints which if this base is inconsistent with its color
+    public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC"; // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullReadGroup = false;
     private static boolean warnUserNoColorSpace = false;
 
@@ -88,21 +89,27 @@ public class RecalDataManager {
      * Add the given mapping to all of the collapsed hash tables
      * @param key The list of comparables that is the key for this mapping
      * @param fullDatum The RecalDatum which is the data for this mapping
+     * @param PRESERVE_QSCORES_LESS_THAN The threshold in report quality for adding to the aggregate collapsed table
      */
-    public final void addToAllTables( final List<? extends Comparable> key, final RecalDatum fullDatum ) {
+    public final void addToAllTables( final List<? extends Comparable> key, final RecalDatum fullDatum, final int PRESERVE_QSCORES_LESS_THAN ) {
 
         // The full dataset isn't actually ever used for anything because of the sequential calculation so no need to keep the full data HashMap around
         //data.put(key, thisDatum); // add the mapping to the main table
 
+        int qualityScore = Integer.parseInt( key.get(1).toString() );
+        ArrayList<Comparable> newKey;
+        RecalDatum collapsedDatum;
+
         // Create dataCollapsedReadGroup, the table where everything except read group has been collapsed
-        //BUGBUG: Bases with Reported Quality less than -pQ argument shouldn't be included in this collapsed table
-        ArrayList<Comparable> newKey = new ArrayList<Comparable>();
-        newKey.add( key.get(0) ); // Make a new key with just the read group
-        RecalDatum collapsedDatum = dataCollapsedReadGroup.get( newKey );
-        if( collapsedDatum == null ) {
-            dataCollapsedReadGroup.put( newKey, new RecalDatum(fullDatum) );
-        } else {
-            collapsedDatum.combine( fullDatum ); // using combine instead of increment in order to calculate overall aggregateQReported
+        if( qualityScore >= PRESERVE_QSCORES_LESS_THAN ) {
+            newKey = new ArrayList<Comparable>();
+            newKey.add( key.get(0) ); // Make a new key with just the read group
+            collapsedDatum = dataCollapsedReadGroup.get( newKey );
+            if( collapsedDatum == null ) {
+                dataCollapsedReadGroup.put( newKey, new RecalDatum(fullDatum) );
+            } else {
+                collapsedDatum.combine( fullDatum ); // using combine instead of increment in order to calculate overall aggregateQReported
+            }
         }
 
         newKey = new ArrayList<Comparable>();
@@ -248,6 +255,10 @@ public class RecalDataManager {
         }
     }
 
+    /**
+     * Parse through the color space of the read and add a new tag to the SAMRecord that says which bases are inconsistent with the color space
+     * @param read The SAMRecord to parse
+     */
     public static void parseColorSpace( final SAMRecord read ) {
         // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
         if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
@@ -265,19 +276,9 @@ public class RecalDataManager {
                     for( iii = 0; iii < readBases.length; iii++ ) {
                         byte thisBase = (byte)getNextBaseFromColor( (char)prevBase, colorSpace[iii + 1] );
                         inconsistency[iii] = ( thisBase == readBases[iii] ? 0 : 1 );
-                        prevBase = ( thisBase == readBases[iii] ? thisBase : readBases[iii] );
-                        //System.out.print((char)thisBase);
+                        prevBase = readBases[iii];
                     }
-                    //System.out.println();
                     read.setAttribute( RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency );
-                    //for( iii = 0; iii < readBases.length; iii++ ) {
-                    //    System.out.print((char)readBases[iii]);
-                    //}
-                    //System.out.println();
-                    //for( iii = 0; iii < readBases.length; iii++ ) {
-                    //    System.out.print(inconsistency[iii]);
-                    //}
-                    //System.out.println("\n");
 
                 } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
                     Utils.warnUser("Unable to find color space information in SOLID read. First observed at read with name = " + read.getReadName());
@@ -288,77 +289,48 @@ public class RecalDataManager {
         }
     }
 
-    public static byte[] calcColorSpace( final SAMRecord read, byte[] originalQualScores, String SOLID_RECAL_MODE, Random coinFlip ) {
+    /**
+     * Parse through the color space of the read and apply the desired --solid_recal_mode correction to the bases
+     * This method doesn't add the inconsistent tag to the read like parseColorSpace does
+     * @param read The SAMRecord to parse
+     * @param originalQualScores The array of original quality scores to modify during the correction
+     * @param SOLID_RECAL_MODE Which mode of solid recalibration to apply
+     * @param coinFlip A random number generator
+     * @param refBases The reference for this read
+     * @return A new array of quality scores that have been ref bias corrected
+     */
+    public static byte[] calcColorSpace( SAMRecord read, byte[] originalQualScores, final String SOLID_RECAL_MODE, final Random coinFlip, final char[] refBases ) {
 
-        int[] inconsistency = null;
         if( read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG) != null ) {
             char[] colorSpace = ((String)read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG)).toCharArray();
             // Loop over the read and calculate first the infered bases from the color and then check if it is consistent with the read
             byte[] readBases = read.getReadBases();
             byte[] colorImpliedBases = readBases.clone();
+            char[] refBasesDirRead = refBases;
             if( read.getReadNegativeStrandFlag() ) {
                 readBases = BaseUtils.simpleReverseComplement( read.getReadBases() );
+                refBasesDirRead = BaseUtils.simpleReverseComplement( refBases );
             }
-            inconsistency = new int[readBases.length];
-            int iii;
+            int[] inconsistency = new int[readBases.length];
             byte prevBase = (byte) colorSpace[0]; // The sentinel
-            for( iii = 0; iii < readBases.length; iii++ ) {
+            for( int iii = 0; iii < readBases.length; iii++ ) {
                 byte thisBase = (byte)getNextBaseFromColor( (char)prevBase, colorSpace[iii + 1] );
                 colorImpliedBases[iii] = thisBase;
                 inconsistency[iii] = ( thisBase == readBases[iii] ? 0 : 1 );
-                prevBase = ( thisBase == readBases[iii] ? thisBase : readBases[iii] );
-                //System.out.print((char)thisBase);
+                prevBase = readBases[iii];
             }
 
+            boolean isMappedToReference = (refBases != null && refBases.length == inconsistency.length);
 
-            //System.out.println();
-            //for( iii = 0; iii < readBases.length; iii++ ) {
-            //    System.out.print((char)readBases[iii]);
-            //}
-            //System.out.println();
-            //for( iii = 0; iii < readBases.length; iii++ ) {
-            //    System.out.print(inconsistency[iii]);
-            //}
-            //System.out.println("\n");
-
-            if( SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ) {
-                for( iii = 0; iii < originalQualScores.length; iii++ ) {
-                    if( inconsistency[iii] == 1 ) {
-                        originalQualScores[iii] = (byte)0;
-                    }
-                }
+            // Now that we have the inconsistency array apply the desired correction to the inconsistent bases
+            if( SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ) { // Set inconsistent bases and the one before it to Q0
+                boolean setBaseN = false;
+                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, isMappedToReference, setBaseN);
             } else if( SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO_BASE_N") ) {
-                byte[] tmpBases = read.getReadBases();
-                for( iii = 0; iii < originalQualScores.length; iii++ ) {
-                    if( inconsistency[iii] == 1 ) {
-                        originalQualScores[iii] = (byte)0;
-                        tmpBases[iii] = (byte)'N';
-                    }
-                }
-                read.setReadBases( tmpBases );
-
-            } else if( SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") ) {
-                if( read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG) != null ) { // BUGBUG: Warn user if using this mode but there are no color space quality scores in the bam
-                    byte[] colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
-                    byte[] tmpBases = read.getReadBases();
-                    if( read.getReadNegativeStrandFlag() ) {
-                        colorImpliedBases = BaseUtils.simpleComplement(colorImpliedBases.clone());
-                    }
-                    for( iii = 0; iii < inconsistency.length - 1; iii++ ) {
-                        if( inconsistency[iii] == 1 ) {
-                            if( colorSpaceQuals[iii] > colorSpaceQuals[iii+1] ) { // reference was inserted here, but there is more evidence for the color implied base
-                                tmpBases[iii] = colorImpliedBases[iii];
-                            } else if( colorSpaceQuals[iii] == colorSpaceQuals[iii+1] ) { // equal evidence for the color implied base and the reference base, so flip a coin
-                                int rand = coinFlip.nextInt( 2 );
-                                if( rand == 0 ) { // the color implied base won the coin flip
-                                    tmpBases[iii] = colorImpliedBases[iii];
-                                }
-                            }
-                        }
-                    }
-
-                    read.setReadBases( tmpBases );
-                }
+                boolean setBaseN = true;
+                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, isMappedToReference, setBaseN);
+            } else if( SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") ) { // Use the color space quality to probabilistically remove ref bases at inconsistent color space bases
+                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBases, isMappedToReference, coinFlip);
             }
 
         } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
@@ -369,6 +341,107 @@ public class RecalDataManager {
         return originalQualScores;
     }
 
+
+    /**
+     * Perform the SET_Q_ZERO solid recalibration. Inconsistent color space bases and their previous base are set to quality zero
+     * @param read The SAMRecord to recalibrate
+     * @param readBases The bases in the read RC'd if necessary
+     * @param inconsistency The array of 1/0 that says if this base is inconsistent with its color
+     * @param originalQualScores The array of original quality scores to set to zero if needed
+     * @param refBases The reference which has been RC'd if necessary
+     * @param isMappedToRef Is this read mapped fully to a reference
+     * @param setBaseN Should we also set the base to N as well as quality zero in order to visualize in IGV or something similar
+     * @return The byte array of original quality scores some of which might have been set to zero
+     */
+    private static byte[] solidRecalSetToQZero( SAMRecord read, byte[] readBases, int[] inconsistency, byte[] originalQualScores,
+                                                final char[] refBases, final boolean isMappedToRef, final boolean setBaseN ) {
+
+        for( int iii = 1; iii < originalQualScores.length - 1; iii++ ) { // BUGBUG: This relies on the fact that in SOLID bams the first and last base are set to Q0 and aren't recalibrated anyway
+            if( inconsistency[iii] == 1 ) {
+                if( !isMappedToRef || (char)readBases[iii] == refBases[iii] ) {
+                    originalQualScores[iii] = (byte)0;
+                    if( setBaseN ) { readBases[iii] = (byte)'N'; }
+                }
+                // Set the prev base to Q0 as well
+                if( !isMappedToRef || (char)readBases[iii-1] == refBases[iii-1] ) {
+                    originalQualScores[iii-1] = (byte)0;
+                    if( setBaseN ) { readBases[iii-1] = (byte)'N'; }
+                }
+                if( !isMappedToRef || (char)readBases[iii+1] == refBases[iii+1] ) {
+                    originalQualScores[iii+1] = (byte)0;
+                    if( setBaseN ) { readBases[iii+1] = (byte)'N'; }
+                }
+            }
+        }
+        if( read.getReadNegativeStrandFlag() ) {
+            readBases = BaseUtils.simpleReverseComplement( readBases.clone() ); // Put the bases back in reverse order to stuff them back in the read
+        }
+        read.setReadBases( readBases );
+        return originalQualScores;
+    }
+
+    /**
+     * Peform the REMOVE_REF_BIAS solid recalibration. Look at the color space qualities and probabilistically decide if the base should be change to match the color or left as reference
+     * @param read The SAMRecord to recalibrate
+     * @param readBases The bases in the read RC'd if necessary
+     * @param inconsistency The array of 1/0 that says if this base is inconsistent with its color
+     * @param colorImpliedBases The bases implied by the color space, RC'd if necessary
+     * @param refBases The reference which has been RC'd if necessary
+     * @param isMappedToRef Is this read mapped fully to a reference
+     * @param coinFlip A random number generator
+     */
+    private static void solidRecalRemoveRefBias( SAMRecord read, byte[] readBases, int[] inconsistency, byte[] colorImpliedBases,
+                                                 final char[] refBases, final boolean isMappedToRef, final Random coinFlip ) {
+        if( read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG) != null ) {
+            byte[] colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
+
+            for( int iii = 1; iii < inconsistency.length - 2; iii++ ) {
+                if( inconsistency[iii] == 1 ) {
+                    for( int jjj = iii - 1; jjj <= iii + 1; jjj++ ) { // Correct this base and the one before it along the direction of the read
+                        if( !isMappedToRef || (char)readBases[jjj] == refBases[jjj] ) {
+                            if( colorSpaceQuals[jjj] == colorSpaceQuals[jjj+1] ) { // Equal evidence for the color implied base and the reference base, so flip a coin
+                                int rand = coinFlip.nextInt( 2 );
+                                if( rand == 0 ) { // The color implied base won the coin flip
+                                    readBases[jjj] = colorImpliedBases[jjj];
+                                }
+                            } else {
+                                int maxQuality = Math.max((int)colorSpaceQuals[jjj], (int)colorSpaceQuals[jjj+1]);
+                                int minQuality = Math.min((int)colorSpaceQuals[jjj], (int)colorSpaceQuals[jjj+1]);
+                                int diffInQuality = maxQuality - minQuality;
+                                int numLow = minQuality;
+                                if(numLow == 0) { numLow = 1; }
+                                int numHigh = Math.round(numLow * (float)Math.pow(10.0f, (float) diffInQuality / 10.0f) ); // The color with higher quality is exponentially more likely
+                                int rand = coinFlip.nextInt( numLow + numHigh );
+                                if( rand >= numLow ) {
+                                    if( maxQuality == (int)colorSpaceQuals[jjj] ) {
+                                        readBases[jjj] = colorImpliedBases[jjj];
+                                    }
+                                } else {
+                                    if( minQuality == (int)colorSpaceQuals[jjj] ) {
+                                        readBases[jjj] = colorImpliedBases[jjj];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if( read.getReadNegativeStrandFlag() ) {
+                readBases = BaseUtils.simpleReverseComplement( readBases.clone() ); // Put the bases back in reverse order to stuff them back in the read
+            }
+            read.setReadBases( readBases );
+        } else { // No color space quality tag in file
+            throw new StingException("REMOVE_REF_BIAS recal mode requires color space qualities but they can't be found for read: " + read.getReadName());
+        }
+    }
+
+    /**
+     * Given the base and the color calculate the next base in the sequence
+     * @param prevBase The base
+     * @param color The color
+     * @return The next base in the sequence
+     */
     private static char getNextBaseFromColor( final char prevBase, final char color ) {
         switch(color) {
             case '0': // same base

@@ -103,7 +103,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted. BUGBUG: I don't understand what is going on in this case
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.1.1"; // Major version, minor version, and build number
+    private static final String versionString = "v2.1.2"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -127,7 +127,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
         DBSNP_VALIDATION_CHECK_FREQUENCY *= PROCESS_EVERY_NTH_LOCUS;
         if( !RAC.checkSolidRecalMode() ) {
-            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, COUNT_AS_MISMATCH, or REMOVE_REF_BIAS");
+            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS");
         }
 
         // Get a list of all available covariates
@@ -300,10 +300,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                                 } else {
                                     otherColorSpaceInconsistency++;
                                 }
-                                if( RAC.SOLID_RECAL_MODE.equalsIgnoreCase("COUNT_AS_MISMATCH") ) {
-                                    refBase = (byte)'X'; // This will always mismatch since we are already filtering out reads that don't pass BaseUtils.isRegularBase
-                                    updateDataFromRead( read, offset, refBase );
-                                }
                             }
                         } 
                     }
@@ -313,7 +309,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         } else { // We skipped over the dbSNP site, and we are only processing every Nth locus
             skippedSites++;
             if( isSNP ) {
-                updateMismatchCounts(dbSNP_counts, context, ref.getBase());// For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable
+                updateMismatchCounts(dbSNP_counts, context, ref.getBase()); // For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable
             }
         }
 

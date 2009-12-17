@@ -322,6 +322,38 @@ public class BaseUtils {
     }
 
     /**
+     * Reverse complement a char array of bases
+     *
+     * @param bases the char array of bases
+     * @return the reverse complement of the char byte array
+     */
+    static public char[] simpleReverseComplement(char[] bases) {
+        char[] rcbases = new char[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = simpleComplement(bases[bases.length - 1 - i]);
+        }
+
+        return rcbases;
+    }
+
+    /**
+     * Complement a char array of bases
+     *
+     * @param bases  the char array of bases
+     * @return the complement of the base char array
+     */
+    static public char[] simpleComplement(char[] bases) {
+        char[] rcbases = new char[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = simpleComplement(bases[i]);
+        }
+
+        return rcbases;
+    }
+
+    /**
      * Reverse complement a String of bases.  Preserves ambiguous bases.
      *
      * @param bases  the String of bases
@@ -350,6 +382,22 @@ public class BaseUtils {
      */
     static public byte[] reverse(byte[] bases) {
         byte[] rcbases = new byte[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = bases[bases.length - i - 1];
+        }
+
+        return rcbases;
+    }
+
+    /**
+     * Reverse an int array of bases
+     *
+     * @param bases  the int array of bases
+     * @return the reverse of the base int array
+     */
+    static public int[] reverse(int[] bases) {
+        int[] rcbases = new int[bases.length];
 
         for (int i = 0; i < bases.length; i++) {
             rcbases[i] = bases[bases.length - i - 1];
