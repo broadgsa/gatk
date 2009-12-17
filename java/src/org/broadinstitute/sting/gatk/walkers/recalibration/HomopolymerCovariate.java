@@ -32,15 +32,15 @@ import net.sf.samtools.SAMRecord;
  * User: rpoplin
  * Date: Dec 4, 2009
  *
- * The Homopolymer Run Covariate. This is the number of bases in the previous N that match the current base.
+ * The Homopolymer Run Covariate. This is the number of consecutive bases in the previous N that match the current base.
  * For example, if N = 10:
- * ATTGCCCCGTAAAAAAAAAA
- * 00100123121123456789
+ * ATTGCCCCGTAAAAAAAAATA
+ * 001001230001234567800
  */
 
 public class HomopolymerCovariate implements ExperimentalCovariate {
 
-    int numBack = 8;
+    int numBack = 7;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
@@ -50,6 +50,10 @@ public class HomopolymerCovariate implements ExperimentalCovariate {
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
 
+        // This block of code is for if you don't want to only count consecutive bases
+        // ATTGCCCCGTAAAAAAAAATA
+        // 001001231211234567819
+        /*
         int numAgree = 0; // The number of bases that agree with you in the previous numBack bases of the read
         int startPos = 0;
         int stopPos = 0;
@@ -57,14 +61,30 @@ public class HomopolymerCovariate implements ExperimentalCovariate {
         byte thisBase = bases[offset];
         if( !read.getReadNegativeStrandFlag() ) { // Forward direction
             startPos = Math.max(offset - numBack, 0);
-            stopPos = offset;
+            stopPos = Math.max(offset - 1, 0);
         } else { // Negative direction
-            startPos = offset + 1;
-            stopPos = Math.min(offset + numBack + 1, read.getReadLength());
+            startPos = Math.min(offset + 2, bases.length);
+            stopPos = Math.min(offset + numBack + 1, bases.length);
         }
 
         for( int iii = startPos; iii < stopPos; iii++ ) {
             if( bases[iii] == thisBase ) { numAgree++; }
+        }
+        */
+
+        int numAgree = 0; // The number of consecutive bases that agree with you in the previous numBack bases of the read
+        byte[] bases = read.getReadBases();
+        int iii = offset;
+        if( !read.getReadNegativeStrandFlag() ) { // Forward direction
+            while( iii <= bases.length-2 && bases[iii] == bases[iii+1] && numAgree < numBack ) {
+                numAgree++;
+                iii++;
+            }
+        } else { // Negative direction
+            while( iii >= 1 && bases[iii] == bases[iii-1] && numAgree < numBack ) {
+                numAgree++;
+                iii--;
+            }
         }
 
         return numAgree;
