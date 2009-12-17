@@ -163,4 +163,58 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
+    @Test
+    public void testCountCovariatesNoIndex() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "f5a0adce5458ab661029fa5056a55551" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R /broad/1KG/reference/human_b36_both.fasta" +
+                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " -T CountCovariates" +
+                            " -I " + bam +
+                            " -cov ReadGroupCovariate" +
+                            " -cov QualityScoreCovariate" +
+                            " --sorted_output" +
+                            " --solid_recal_mode DO_NOTHING" +
+                            " -recalFile %s" +
+                            " -U",
+                    1, // just one output file
+                    Arrays.asList(md5));
+            List<File> result = executeTest("testCountCovariatesNoIndex", spec).getFirst();
+            paramsFiles.put(bam, result.get(0).getAbsolutePath());
+        }
+    }
+
+    @Test
+    public void testTableRecalibratorNoIndex() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "dd8705b54f0ffbedb689608221ade13a" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+            String paramsFile = paramsFiles.get(bam);
+            System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
+            if ( paramsFile != null ) {
+                WalkerTestSpec spec = new WalkerTestSpec(
+                        "-R /broad/1KG/reference/human_b36_both.fasta" +
+                                " -T TableRecalibration" +
+                                " -I " + bam +
+                                " -outputBam %s" +
+                                " --no_pg_tag" +
+                                " --solid_recal_mode DO_NOTHING" +
+                                " -recalFile " + paramsFile +
+                                " -U",
+                        1, // just one output file
+                        Arrays.asList(md5));
+                executeTest("testTableRecalibratorNoIndex", spec);
+            }
+        }
+    }
+
 }
