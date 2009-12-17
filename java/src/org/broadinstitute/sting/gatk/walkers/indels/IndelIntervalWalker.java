@@ -76,6 +76,7 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         GenomeLoc indelLoc = GenomeLocParser.createGenomeLoc(read.getReferenceIndex(), indelLeftEdge, indelRightEdge);
         GenomeLoc refLoc = GenomeLocParser.createGenomeLoc(read);
 
+ //       if ( indelLeftEdge == 10313124 || indelLeftEdge == 10313170 ) System.out.println("read: " +read.getReadName() + " ; " + refLoc + " ; " + indelLoc);
 
         return new Interval(refLoc, indelLoc);
     }
