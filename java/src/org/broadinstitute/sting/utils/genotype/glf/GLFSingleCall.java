@@ -31,11 +31,11 @@ import net.sf.samtools.util.BinaryCodec;
 /**
  * @author aaron
  *         <p/>
- *         Class SinglePointCall
+ *         Class GLFSingleCall
  *         <p/>
  *         This class represents a single point geneotype call in GLF vernacular
  */
-public class SinglePointCall extends GLFRecord {
+public class GLFSingleCall extends GLFRecord {
 
     // our likelihoods object
     private double likelihoods[];
@@ -43,14 +43,15 @@ public class SinglePointCall extends GLFRecord {
     /**
      * create a single
      *
+     * @param contig      the contig this record is on
      * @param refBase     the reference base, as a char
-     * @param offset      the location, as an offset from the previous glf record
+     * @param position    the location, as an offset from the start of the contig
      * @param readDepth   the read depth at the specified postion
      * @param rmsMapQ     the root mean square of the mapping quality
      * @param likelihoods the Likelihoods
      */
-    public SinglePointCall(char refBase, int offset, int readDepth, short rmsMapQ, double likelihoods[]) {
-        super(refBase, offset, (short) GLFRecord.findMin(likelihoods), readDepth, rmsMapQ);
+    public GLFSingleCall(String contig, char refBase, int position, int readDepth, short rmsMapQ, double likelihoods[]) {
+        super(contig, refBase, position, (short) GLFRecord.findMin(likelihoods), readDepth, rmsMapQ);
         this.likelihoods = likelihoods;
     }
 
@@ -60,8 +61,8 @@ public class SinglePointCall extends GLFRecord {
      *
      * @param out the codec to write to
      */
-    void write(BinaryCodec out) {
-        super.write(out);
+    void write(BinaryCodec out, GLFRecord lastRec) {
+        super.write(out, lastRec);
         short[] adjusted = new short[likelihoods.length];
         // we want to scale our values
         for (int x = 0; x < likelihoods.length; x++) {

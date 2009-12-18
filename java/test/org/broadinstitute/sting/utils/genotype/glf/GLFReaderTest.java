@@ -23,7 +23,6 @@ public class GLFReaderTest extends BaseTest {
     static final File glfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test_likelihoods.glf");
     //static final File glfFile = new File("CALLS.glf");
     static final int finalRecordCount = 484140; // the number of records in the above file
-    //static final int finalRecordCount = 484445;
     static final int contigCount = 25;
 
     /** read in the records from the file */
@@ -36,10 +35,10 @@ public class GLFReaderTest extends BaseTest {
             long location = 1;
             while (reader.hasNext()) {
                 GLFRecord rec = reader.next();
-                if (!contigs.contains(reader.getReferenceName())) {
-                    contigs.add(reader.getReferenceName());
+                if (!contigs.contains(rec.getContig())) {
+                    contigs.add(rec.getContig());
                 }
-                location = location + rec.offset;
+                location = rec.getPosition();
                 //System.err.println("Record count = " + finalRecordCount + " offset " + rec.offset + " location = " + location + " type = " + rec.getRecordType());
                 ++recCount;
             }

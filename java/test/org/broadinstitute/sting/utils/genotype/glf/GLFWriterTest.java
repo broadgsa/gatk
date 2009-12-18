@@ -54,8 +54,6 @@ public class GLFWriterTest extends BaseTest {
 
     /** some made up values that we use to generate the GLF */
     private final String header = "";
-    private final String referenceSequenceName = "chr1";
-    private final int refLength = 1000;
     private static final int GENOTYPE_COUNT = 10;
     private GenotypeWriter rec;
     protected static final String[] genotypes = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT"};
@@ -78,7 +76,13 @@ public class GLFWriterTest extends BaseTest {
 
     }
 
-
+    /**
+     * create a fake genotype
+     * @param bestGenotype the best genotype, as an index into the array of values
+     * @param location the location we're creating the genotype at
+     * @param ref the reference base
+     * @return a FakeGenotype (a fake genotype)
+     */
     private FakeGenotype createGenotype(int bestGenotype, GenomeLoc location, char ref) {
         double lk[] = new double[GENOTYPE_COUNT];
         for (int x = 0; x < GENOTYPE_COUNT; x++) {
@@ -89,6 +93,10 @@ public class GLFWriterTest extends BaseTest {
         return new FakeGenotype(location, genotypes[bestGenotype], ref, SIGNIFICANCE, lk);
     }
 
+
+    /**
+     * can we actually write a file?
+     */
     @Test
     public void basicWrite() {
         File writeTo = new File("testGLF.glf");
@@ -106,6 +114,11 @@ public class GLFWriterTest extends BaseTest {
     }
 
 
+    /**
+     * write a bunch of fake records a GLF file, and then read it back from the
+     * same file.  We want to make sure a round trip is successful; that we write
+     * and then read the same information back.
+     */
     @Test
     public void basicWriteThenRead() {
         File writeTo = new File("testGLF2.glf");
@@ -124,7 +137,7 @@ public class GLFWriterTest extends BaseTest {
         int count = 0;
         while (reader.hasNext()) {
             GLFRecord rec = reader.next();
-            Assert.assertTrue(types.get(count).compareTo(FakeGenotype.toFakeGenotype((SinglePointCall) rec, reader.getReferenceName(), reader.getCurrentLocation())) == 0);
+            Assert.assertTrue(types.get(count).compareTo(FakeGenotype.toFakeGenotype((GLFSingleCall) rec, rec.getContig(), (int)rec.getPosition())) == 0);
             count++;
         }
     }
@@ -185,7 +198,7 @@ class FakeGenotype extends GLFGenotypeCall implements Comparable<FakeGenotype> {
         return 0;
     }
 
-    public static FakeGenotype toFakeGenotype(SinglePointCall record, String contig, int postition) {
+    public static FakeGenotype toFakeGenotype(GLFSingleCall record, String contig, int postition) {
         double likelihoods[] = record.getLikelihoods();
         char ref = record.getRefBase().toChar();
         double significance = GLFWriterTest.SIGNIFICANCE;

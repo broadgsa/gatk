@@ -40,12 +40,13 @@ import org.broadinstitute.sting.utils.StingException;
  *         field values.
  */
 public abstract class GLFRecord {
-    public final static double LIKELIHOOD_SCALE_FACTOR = 10;                    
+    public final static double LIKELIHOOD_SCALE_FACTOR = 10;
 
 
     // fields common to all records
+    protected String contig;
     protected REF_BASE refBase;
-    protected long offset = 1;
+    protected long position = 1;
     protected short minimumLikelihood = 0;
     protected int readDepth = 0;
     protected short rmsMapQ = 0;
@@ -72,7 +73,7 @@ public abstract class GLFRecord {
         B((short) 0x0E),
         N((short) 0x0F);
 
-        private final short fieldValue;   // in kilograms
+        private final short fieldValue;
 
         /**
          * private constructor, used by the enum class to makes each enum value
@@ -85,6 +86,7 @@ public abstract class GLFRecord {
 
         /**
          * return the character representation
+         *
          * @return the char for the reference base
          */
         public char toChar() {
@@ -139,45 +141,54 @@ public abstract class GLFRecord {
     /**
      * Constructor, given the base a character reference base
      *
+     * @param contig            the contig string
      * @param base              the reference base in the reference
-     * @param offset            the offset from the beginning of the reference seq
+     * @param position          the distance from the beginning of the reference seq
      * @param minimumLikelihood it's minimum likelihood
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    public GLFRecord(char base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ) {
+    public GLFRecord(String contig, char base, long position, short minimumLikelihood, int readDepth, short rmsMapQ) {
         REF_BASE newBase = REF_BASE.toBase(base);
-        validateInput(newBase, offset, minimumLikelihood, readDepth, rmsMapQ);
+        validateInput(contig, newBase, position, minimumLikelihood, readDepth, rmsMapQ);
     }
 
     /**
      * Constructor, given the base a REF_BASE
      *
+     * @param contig            the contig string
      * @param base              the reference base in the reference
-     * @param offset            the offset from the beginning of the reference seq
+     * @param position          the distance from the beginning of the reference seq
      * @param minimumLikelihood it's minimum likelihood
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    GLFRecord(REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ) {
-        validateInput(base, offset, minimumLikelihood, readDepth, rmsMapQ);
+    GLFRecord(String contig, REF_BASE base, long position, short minimumLikelihood, int readDepth, short rmsMapQ) {
+        validateInput(contig, base, position, minimumLikelihood, readDepth, rmsMapQ);
     }
 
     /**
      * validate the input during construction, and store valid values
      *
+     * @param chromosome        the reference contig, as a String
      * @param base              the reference base in the reference, as a REF_BASE
-     * @param offset            the offset from the beginning of the reference seq
+     * @param offset            the offset from the last call
+     * @param position          the distance from the beginning of the reference seq
      * @param minimumLikelihood it's minimum likelihood
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    private void validateInput(REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ) {
+    private void validateInput(String chromosome, REF_BASE base, long position, short minimumLikelihood, int readDepth, short rmsMapQ) {
+        // add any validation to the contig string here
+        this.contig = chromosome;
+
         this.refBase = base;
-        if (offset > 4294967295L || offset < 0) {
-            throw new IllegalArgumentException("Offset is out of bounds (0 to 0xffffffff) value passed = " + offset);
+
+        if (position > 4294967295L || position < 0) {
+            throw new IllegalArgumentException("Position is out of bounds (0 to 0xffffffff) value passed = " + position);
         }
-        this.offset = offset;
+        this.position = position;
+
 
         if (minimumLikelihood > 255 || minimumLikelihood < 0) {
             throw new IllegalArgumentException("minimumLikelihood is out of bounds (0 to 0xffffffff) value passed = " + minimumLikelihood);
@@ -200,11 +211,16 @@ public abstract class GLFRecord {
      *
      * @param out the binary codec to write to
      */
-    void write(BinaryCodec out) {
+    void write(BinaryCodec out, GLFRecord lastRecord) {
+        long offset = 0;
+        if (lastRecord != null && lastRecord.getContig() == this.getContig())
+            offset = this.position - lastRecord.getPosition();
+        else
+            offset = this.position - 1; // we start at one, we need to subtract that off
         short bite = ((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUByte((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
-        out.writeUInt(((Long) offset).intValue());
-        long write = (long) ((long)(readDepth & 0xffffff) | (long)(this.minimumLikelihood & 0xff) << 24);
+        out.writeUInt(((Long) (offset)).intValue()); // we have to subtract one, we're an offset
+        long write = (long) ((long) (readDepth & 0xffffff) | (long) (this.minimumLikelihood & 0xff) << 24);
         out.writeUInt(write);
         out.writeUByte((short) rmsMapQ);
     }
@@ -257,8 +273,8 @@ public abstract class GLFRecord {
         return refBase;
     }
 
-    public long getOffset() {
-        return offset;
+    public long getPosition() {
+        return position;
     }
 
     public short getMinimumLikelihood() {
@@ -271,6 +287,10 @@ public abstract class GLFRecord {
 
     public short getRmsMapQ() {
         return rmsMapQ;
+    }
+
+    public String getContig() {
+        return this.contig;
     }
 }
 

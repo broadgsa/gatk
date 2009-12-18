@@ -7,8 +7,8 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.broadinstitute.sting.utils.genotype.glf.GLFReader;
 import org.broadinstitute.sting.utils.genotype.glf.GLFRecord;
-import org.broadinstitute.sting.utils.genotype.glf.SinglePointCall;
-import org.broadinstitute.sting.utils.genotype.glf.VariableLengthCall;
+import org.broadinstitute.sting.utils.genotype.glf.GLFSingleCall;
+import org.broadinstitute.sting.utils.genotype.glf.GLFVariableLengthCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -27,7 +27,6 @@ import java.util.NoSuchElementException;
  *         the rod class for GLF data.
  */
 public class RodGLF implements VariationRod, Iterator<RodGLF> {
-    static int count = 0;
     public GLFReader mReader;
     private final String mName;
     private GenomeLoc mLoc;
@@ -75,16 +74,16 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
                              mRecord.getReadDepth(),
                              mRecord.getRmsMapQ(),
                              getBestGenotypeValue(1),
-                             ((SinglePointCall) mRecord).getLikelihoods()[0],
-                             ((SinglePointCall) mRecord).getLikelihoods()[1],
-                             ((SinglePointCall) mRecord).getLikelihoods()[2],
-                             ((SinglePointCall) mRecord).getLikelihoods()[3],
-                             ((SinglePointCall) mRecord).getLikelihoods()[4],
-                             ((SinglePointCall) mRecord).getLikelihoods()[5],
-                             ((SinglePointCall) mRecord).getLikelihoods()[6],
-                             ((SinglePointCall) mRecord).getLikelihoods()[7],
-                             ((SinglePointCall) mRecord).getLikelihoods()[8],
-                             ((SinglePointCall) mRecord).getLikelihoods()[9]
+                             ((GLFSingleCall) mRecord).getLikelihoods()[0],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[1],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[2],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[3],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[4],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[5],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[6],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[7],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[8],
+                             ((GLFSingleCall) mRecord).getLikelihoods()[9]
 
 
         );
@@ -209,7 +208,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      * @return a GENOTYPE object representing the nth best genotype
      */
     public LikelihoodObject.GENOTYPE getBestGenotype(int nthBest) {
-        Integer[] sorted = Utils.SortPermutation(((SinglePointCall) mRecord).getLikelihoods());
+        Integer[] sorted = Utils.SortPermutation(((GLFSingleCall) mRecord).getLikelihoods());
         return LikelihoodObject.GENOTYPE.values()[sorted[nthBest - 1]];
     }
 
@@ -222,8 +221,8 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      * @return a GENOTYPE object representing the nth best genotype
      */
     public double getBestGenotypeValue(int nthBest) {
-        Integer[] sorted = Utils.SortPermutation(((SinglePointCall) mRecord).getLikelihoods());
-        return (((SinglePointCall) mRecord).getLikelihoods())[sorted[nthBest - 1]];
+        Integer[] sorted = Utils.SortPermutation(((GLFSingleCall) mRecord).getLikelihoods());
+        return (((GLFSingleCall) mRecord).getLikelihoods())[sorted[nthBest - 1]];
     }
 
     /**
@@ -235,7 +234,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     @Override
     public boolean isInsertion() {
         return ((mRecord.getRecordType() == GLFRecord.RECORD_TYPE.VARIABLE) &&
-                ((VariableLengthCall) mRecord).getIndelLen1() > 0);
+                ((GLFVariableLengthCall) mRecord).getIndelLen1() > 0);
     }
 
     /**
@@ -247,7 +246,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     @Override
     public boolean isDeletion() {
         return ((mRecord.getRecordType() == GLFRecord.RECORD_TYPE.VARIABLE) &&
-                ((VariableLengthCall) mRecord).getIndelLen1() < 0);
+                ((GLFVariableLengthCall) mRecord).getIndelLen1() < 0);
     }
 
     /**
@@ -283,7 +282,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
             if (g.toString().equals(ref)) break;
             index++;
         }
-        return Math.abs(getBestGenotypeValue(1) - ((SinglePointCall) mRecord).getLikelihoods()[index]) / GLFRecord.LIKELIHOOD_SCALE_FACTOR;
+        return Math.abs(getBestGenotypeValue(1) - ((GLFSingleCall) mRecord).getLikelihoods()[index]) / GLFRecord.LIKELIHOOD_SCALE_FACTOR;
     }
 
     /**
@@ -358,7 +357,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     public RodGLF next() {
         if (!this.hasNext()) throw new NoSuchElementException("RodGLF next called on iterator with no more elements");
         mRecord = mReader.next();
-        mLoc = GenomeLocParser.createGenomeLoc(mReader.getReferenceName(), mReader.getCurrentLocation(), mReader.getCurrentLocation());
+        mLoc = GenomeLocParser.createGenomeLoc(mRecord.getContig(), mRecord.getPosition(), mRecord.getPosition());
         return this;
     }
 

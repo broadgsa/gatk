@@ -30,13 +30,13 @@ import net.sf.samtools.util.BinaryCodec;
 /**
  * @author aaron
  *         <p/>
- *         Class VariableLengthCall
+ *         Class GLFVariableLengthCall
  *         <p/>
  *         This class represents variable length genotype calls in the GLF format.
  *         Currently a lot of parameters need to be provided, but we may be able to thin
  *         those down as we understand what we have to specify and what we can infer.
  */
-public class VariableLengthCall extends GLFRecord {
+public class GLFVariableLengthCall extends GLFRecord {
     // our fields, corresponding to the glf spec
     private short lkHom1 = 0;
     private short lkHom2 = 0;
@@ -53,28 +53,32 @@ public class VariableLengthCall extends GLFRecord {
     /**
      * the default constructor
      *
-     * @param refBase    the reference base
-     * @param offset     the location, as an offset from the previous glf record
-     * @param readDepth  the read depth at the specified postion
-     * @param rmsMapQ    the root mean square of the mapping quality
-     * @param lkHom1     the negitive log likelihood of the first homozygous indel allele, from 0 to 255
-     * @param lkHom2     the negitive log likelihood of the second homozygous indel allele, from 0 to 255
-     * @param lkHet      the negitive log likelihood of the heterozygote,  from 0 to 255
-     * @param indelSeq1  the sequence for the first indel allele
-     * @param indelSeq2  the sequence for the second indel allele
+     * @param contig    the contig this record is on
+     * @param refBase   the reference base
+     * @param offset    the location, as an offset from the previous glf record
+     * @param offset    the location, as an offset from the previous glf record
+
+     * @param readDepth the read depth at the specified postion
+     * @param rmsMapQ   the root mean square of the mapping quality
+     * @param lkHom1    the negitive log likelihood of the first homozygous indel allele, from 0 to 255
+     * @param lkHom2    the negitive log likelihood of the second homozygous indel allele, from 0 to 255
+     * @param lkHet     the negitive log likelihood of the heterozygote,  from 0 to 255
+     * @param indelSeq1 the sequence for the first indel allele
+     * @param indelSeq2 the sequence for the second indel allele
      */
-    public VariableLengthCall(char refBase,
-                       long offset,
-                       int readDepth,
-                       short rmsMapQ,
-                       double lkHom1,
-                       double lkHom2,
-                       double lkHet,
-                       int indelOneLength,
-                       final short indelSeq1[],
-                       int indelTwoLength,
-                       final short indelSeq2[]) {
-        super(refBase, offset, GLFRecord.toCappedShort(findMin(new double[]{lkHom1, lkHom2, lkHet})), readDepth, rmsMapQ);
+    public GLFVariableLengthCall(String contig,
+                              char refBase,
+                              long offset,
+                              int readDepth,
+                              short rmsMapQ,
+                              double lkHom1,
+                              double lkHom2,
+                              double lkHet,
+                              int indelOneLength,
+                              final short indelSeq1[],
+                              int indelTwoLength,
+                              final short indelSeq2[]) {
+        super(contig, refBase, offset, GLFRecord.toCappedShort(findMin(new double[]{lkHom1, lkHom2, lkHet})), readDepth, rmsMapQ);
         this.lkHom1 = GLFRecord.toCappedShort(lkHom1);
         this.lkHom2 = GLFRecord.toCappedShort(lkHom2);
         this.lkHet = GLFRecord.toCappedShort(lkHet);
@@ -91,8 +95,8 @@ public class VariableLengthCall extends GLFRecord {
      *
      * @param out the binary codec to write to
      */
-    void write(BinaryCodec out) {
-        super.write(out);
+    void write(BinaryCodec out, GLFRecord rec) {
+        super.write(out,rec);
         out.writeByte(lkHom1);
         out.writeByte(lkHom2);
         out.writeByte(lkHet);

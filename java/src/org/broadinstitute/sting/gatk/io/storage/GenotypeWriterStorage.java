@@ -93,10 +93,8 @@ public class GenotypeWriterStorage implements GenotypeWriter, Storage<GenotypeWr
         else if ( targetStream instanceof GLFWriter ) {
             GLFReader reader = new GLFReader(file);
             while ( reader.hasNext() ) {
-                // TODO -- Find out from Aaron if this is correct.  Looking through the code,
-                // TODO -- it looks like this will exhibit the correct behavior - but it feels
-                // TODO -- wrong that we get the contig/length of the record before we call next()
-                ((GLFWriter)targetStream).addGLFRecord(reader.getReferenceName(), reader.getReferenceLength(), reader.next());
+                 GLFRecord rec = reader.next();                    
+                ((GLFWriter)targetStream).addGLFRecord(rec.getContig(),(int)rec.getPosition(),rec);
             }
             reader.close();
         }

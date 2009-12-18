@@ -87,14 +87,14 @@ public class RodGLFTest extends BaseTest {
 
 
     @Test
-    public void testCompareTo() {
+    public void testCompareTo() {        
         RodGLF iter2 = RodGLF.createIterator("test", glfFile);
         RodGLF glf = iter.next();
-        glf = iter2.next();
-        assertEquals(0, iter.compareTo(iter2));
-        RodGLF glf2 = iter.next();
-        assertEquals(-1, iter2.compareTo(iter));
-        assertEquals(1, iter.compareTo(iter2));
+        RodGLF glf2 = iter2.next();
+        assertEquals(0, glf.compareTo(glf2));
+        glf2 = iter2.next();
+        assertEquals(-1, glf.compareTo(glf2));
+        assertEquals(1, glf2.compareTo(glf));
 
     }
 

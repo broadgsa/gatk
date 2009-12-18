@@ -57,6 +57,9 @@ public class GLFWriter implements GenotypeWriter {
     private String referenceSequenceName = null;
     private long referenceSequenceLength = 0;
 
+    // we need to store the last record so we can calculate the offsets
+    private GLFRecord mLastRecord = null;
+
     // the last position written
     private int lastPos = 1;
 
@@ -122,13 +125,15 @@ public class GLFWriter implements GenotypeWriter {
         // check if we've jumped to a new contig
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
 
-        SinglePointCall call = new SinglePointCall(refBase,
-                                                   genomicLoc - lastPos,
-                                                   readDepth,
-                                                   (short) rmsMapQ,
-                                                   lhValues.toDoubleArray());
+        GLFSingleCall callGLF = new GLFSingleCall(contig.getSequenceName(),
+                                                  refBase,
+                                                  genomicLoc,
+                                                  readDepth,
+                                                  (short) rmsMapQ,
+                                                  lhValues.toDoubleArray());
         lastPos = genomicLoc;
-        call.write(this.outputBinaryCodec);
+        callGLF.write(this.outputBinaryCodec,mLastRecord);
+        mLastRecord = callGLF;
     }
 
     /**
@@ -141,8 +146,8 @@ public class GLFWriter implements GenotypeWriter {
             throw new IllegalStateException("The GLF Header must be written before calls can be added");
 
         if ( !(call instanceof GLFGenotypeCall) )
-            throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
-        GLFGenotypeCall gCall = (GLFGenotypeCall)call;
+            throw new IllegalArgumentException("Only GLFGenotypeCall should be passed in to the GLF writers");
+        GLFGenotypeCall gCall = (GLFGenotypeCall) call;
 
         char ref = gCall.getReference();
 
@@ -152,10 +157,10 @@ public class GLFWriter implements GenotypeWriter {
 
         // calculate the RMS mapping qualities and the read depth
         double rms = 0.0;
-        if ( gCall.getPileup() != null )
+        if (gCall.getPileup() != null)
             rms = calculateRMS(gCall.getPileup().getReads());
         int readCount = gCall.getReadCount();
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(gCall.getLocation().getContig()),(int)gCall.getLocation().getStart(),(float)rms,ref,readCount,obj);
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(gCall.getLocation().getContig()), (int) gCall.getLocation().getStart(), (float) rms, ref, readCount, obj);
     }
 
 
@@ -173,6 +178,7 @@ public class GLFWriter implements GenotypeWriter {
         }
         return MathUtils.rms(qualities);
     }
+
     /**
      * add a variable length (indel, deletion, etc) to the genotype writer
      *
@@ -201,7 +207,8 @@ public class GLFWriter implements GenotypeWriter {
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
 
         // normalize the two
-        VariableLengthCall call = new VariableLengthCall(refBase,
+        GLFVariableLengthCall call = new GLFVariableLengthCall(contig.getSequenceName(),
+                                                         refBase,
                                                          genomicLoc - lastPos,
                                                          readDepth,
                                                          (short) rmsMapQ,
@@ -213,7 +220,8 @@ public class GLFWriter implements GenotypeWriter {
                                                          secondHomZyg.getLengthOfIndel(),
                                                          secondHomZyg.getIndelSequence());
         lastPos = genomicLoc;
-        call.write(this.outputBinaryCodec);
+        call.write(this.outputBinaryCodec,mLastRecord);
+        mLastRecord = call;
     }
 
     /**
@@ -238,7 +246,8 @@ public class GLFWriter implements GenotypeWriter {
             throw new IllegalStateException("The GLF Header must be written before records can be added");
 
         checkSequence(contigName, contigLength);
-        rec.write(this.outputBinaryCodec);
+        rec.write(this.outputBinaryCodec,mLastRecord);
+        mLastRecord = rec;
     }
 
     /**
@@ -286,16 +295,6 @@ public class GLFWriter implements GenotypeWriter {
         writeEndRecord();
         outputBinaryCodec.close();
     }
-
-    /**
-     * get the reference sequence
-     *
-     * @return the reference sequence
-     */
-    public String getReferenceSequenceName() {
-        return referenceSequenceName;
-    }
-
 
     /**
      * add a multi-sample call if we support it

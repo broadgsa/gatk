@@ -58,7 +58,7 @@ public class GLFReader implements Iterator<GLFRecord> {
     private int referenceLength;
 
     // the current location, keeping track of the offsets
-    private int currentLocation = 1;
+    private long currentLocation = 1;
 
     // we have this variable becuase there is no eof for glf's
     private int lastRecordType = -1;
@@ -100,7 +100,7 @@ public class GLFReader implements Iterator<GLFRecord> {
      *
      * @return a single point call object
      */
-    private SinglePointCall generateSPC(char refBase, BinaryCodec inputBinaryCodec) {
+    private GLFSingleCall generateSPC(char refBase, BinaryCodec inputBinaryCodec) {
         int offset = (int) inputBinaryCodec.readUInt();
         long depth = inputBinaryCodec.readUInt();
         short min_lk = (short) ((depth & 0x00000000ff000000) >> 24);
@@ -110,7 +110,7 @@ public class GLFReader implements Iterator<GLFRecord> {
         for (int x = 0; x < LikelihoodObject.GENOTYPE.values().length; x++) {
             lkValues[x] = (inputBinaryCodec.readUByte() / GLFRecord.LIKELIHOOD_SCALE_FACTOR + min_lk);
         }
-        return new SinglePointCall(refBase, offset, readDepth, rmsMapping, lkValues);
+        return new GLFSingleCall(referenceName, refBase, (int)(offset+currentLocation), readDepth, rmsMapping, lkValues);
     }
 
     /**
@@ -119,9 +119,9 @@ public class GLFReader implements Iterator<GLFRecord> {
      * @param refBase          the reference base
      * @param inputBinaryCodec the input codex
      *
-     * @return a VariableLengthCall object
+     * @return a GLFVariableLengthCall object
      */
-    private VariableLengthCall generateVLC(char refBase, BinaryCodec inputBinaryCodec) {
+    private GLFVariableLengthCall generateVLC(char refBase, BinaryCodec inputBinaryCodec) {
         int offset = (int) inputBinaryCodec.readUInt();
         int depth = (int) inputBinaryCodec.readUInt();
         short min_lk = (short) ((depth & 0x00000000ff000000) >> 24);
@@ -143,7 +143,7 @@ public class GLFReader implements Iterator<GLFRecord> {
         for (int x = 0; x < readCnt; x++) {
             indelSeq2[x] = inputBinaryCodec.readUByte();
         }
-        return new VariableLengthCall(refBase, offset, readDepth, rmsMapping, lkHom1, lkHom2, lkHet, indelLen1, indelSeq1, indelLen2, indelSeq2);
+        return new GLFVariableLengthCall(referenceName, refBase, offset+currentLocation, readDepth, rmsMapping, lkHom1, lkHom2, lkHet, indelLen1, indelSeq1, indelLen2, indelSeq2);
     }
 
     public boolean hasNext() {
@@ -172,7 +172,7 @@ public class GLFReader implements Iterator<GLFRecord> {
         } else {
             throw new StingException("Unkonwn GLF record type (type = " + recordType + ")");
         }
-        if (ret != null) currentLocation += ret.getOffset();
+        if (nextRecord != null) currentLocation = nextRecord.getPosition();
         return ret;
     }
 
@@ -225,24 +225,9 @@ public class GLFReader implements Iterator<GLFRecord> {
     public void close() {
         inputBinaryCodec.close();
     }
-
-    /**
-     * getter methods
-     */
-
-    public String getReferenceName() {
-        return referenceName;
-    }
-
-    public int getReferenceLength() {
-        return referenceLength;
-    }
-
+    
     public String getHeaderStr() {
         return headerStr;
     }
 
-    public int getCurrentLocation() {
-        return currentLocation;
-    }
 }
