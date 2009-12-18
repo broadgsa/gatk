@@ -25,55 +25,33 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
 
 
-    public VCFGenotypeWriterAdapter(File writeTo, Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
-        mSampleNames.addAll(sampleNames);
-
-        initializeHeader(headerInfo);
-
+    public VCFGenotypeWriterAdapter(File writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output file must not be null");
-        mWriter = new VCFWriter(mHeader, writeTo);
+        mWriter = new VCFWriter(writeTo);
     }
 
-    public VCFGenotypeWriterAdapter(OutputStream writeTo, Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
-        mSampleNames.addAll(sampleNames);
-
-        initializeHeader(headerInfo);
-
+    public VCFGenotypeWriterAdapter(OutputStream writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output stream must not be null");
-        mWriter = new VCFWriter(mHeader, writeTo);
+        mWriter = new VCFWriter(writeTo);
     }
 
     /**
      * initialize this VCF header
      *
-     * @param optionalHeaderInfo the optional header fields
+     * @param sampleNames  the sample names
+     * @param headerInfo  the optional header fields
      */
-    private void initializeHeader(Set<VCFHeaderLine> optionalHeaderInfo) {
-        Set<VCFHeaderLine> hInfo = new TreeSet<VCFHeaderLine>();
+    public void writeHeader(Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
+        mSampleNames.addAll(sampleNames);
 
         // setup the header fields
+        Set<VCFHeaderLine> hInfo = new TreeSet<VCFHeaderLine>();
         hInfo.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
-        hInfo.addAll(optionalHeaderInfo);
+        hInfo.addAll(headerInfo);
         
         // setup the sample names
         mHeader = new VCFHeader(hInfo, mSampleNames);
-    }
-
-    /**
-     * get the samples names from genotype objects
-     *
-     * @param genotypes the genotype list
-     *
-     * @return a list of strings representing the sample names
-     */
-    private static List<String> getSampleNames(List<Genotype> genotypes) {
-        List<String> strings = new ArrayList<String>();
-        for (Genotype genotype : genotypes) {
-            if (!(genotype instanceof VCFGenotypeCall))
-                throw new IllegalArgumentException("Genotypes passed to VCF must be backed by SampledBacked interface");
-            strings.add(((VCFGenotypeCall) genotype).getSampleName());
-        }
-        return strings;
+        mWriter.writeHeader(mHeader);
     }
 
     /**
@@ -105,6 +83,9 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      * @param genotypes the list of genotypes
      */
     public void addMultiSampleCall(List<Genotype> genotypes, VariationCall locusdata) {
+        if ( mHeader == null )
+            throw new IllegalStateException("The VCF Header must be written before records can be added");
+
         if ( locusdata != null && !(locusdata instanceof VCFVariationCall) )
             throw new IllegalArgumentException("Only VCFVariationCall objects should be passed in to the VCF writers");
 

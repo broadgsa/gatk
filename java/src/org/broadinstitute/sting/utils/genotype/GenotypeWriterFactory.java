@@ -28,46 +28,54 @@ public class GenotypeWriterFactory {
     /**
      * create a genotype writer
      * @param format the format
-     * @param header the sam file header
      * @param destination the destination file
-     * @param sampleNames the sample names
-     * @param headerInfo the optional header info fields
      * @return the genotype writer object
      */
-    public static GenotypeWriter create(GENOTYPE_FORMAT format,
-                                        SAMFileHeader header,
-                                        File destination,
-                                        Set<String> sampleNames,
-                                        Set<VCFHeaderLine> headerInfo) {
+    public static GenotypeWriter create(GENOTYPE_FORMAT format, File destination) {
         switch (format) {
             case GLF:
-                return new GLFWriter(header.toString(), destination);
+                return new GLFWriter(destination);
             case GELI:
                 return new GeliTextWriter(destination);
             case GELI_BINARY:
-                return new GeliAdapter(destination, header);
+                return new GeliAdapter(destination);
             case VCF:
-                return new VCFGenotypeWriterAdapter(destination, sampleNames, headerInfo);
+                return new VCFGenotypeWriterAdapter(destination);
             default:
                 throw new StingException("Genotype writer " + format.toString() + " is not implemented");
         }
     }
 
-    public static GenotypeWriter create(GENOTYPE_FORMAT format,
-                                        SAMFileHeader header,
-                                        PrintStream destination,
-                                        Set<String> sampleNames,
-                                        Set<VCFHeaderLine> headerInfo) {
+    public static GenotypeWriter create(GENOTYPE_FORMAT format, PrintStream destination) {
         switch (format) {
             case GELI:
                 return new GeliTextWriter(destination);
             case GLF:
-                return new GLFWriter(header.toString(), destination);
+                return new GLFWriter(destination);
             case VCF:
-                return new VCFGenotypeWriterAdapter(destination, sampleNames, headerInfo);
+                return new VCFGenotypeWriterAdapter(destination);
             default:
                 throw new StingException("Genotype writer to " + format.toString() + " to standard output is not implemented");
         }
+    }
+
+    public static void writeHeader(GenotypeWriter writer,
+                                   SAMFileHeader header,
+                                   Set<String> sampleNames,
+                                   Set<VCFHeaderLine> headerInfo) {
+        // VCF
+        if ( writer instanceof VCFGenotypeWriterAdapter ) {
+            ((VCFGenotypeWriterAdapter)writer).writeHeader(sampleNames, headerInfo);
+        }
+        // GELI BINARY
+        else if ( writer instanceof GeliAdapter ) {
+            ((GeliAdapter)writer).writeHeader(header);
+        }
+        // GLF
+        else if ( writer instanceof GLFWriter ) {
+            ((GLFWriter)writer).writeHeader(header.toString());
+        }        
+        // nothing to do for GELI TEXT
     }
 
     /**

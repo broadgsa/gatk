@@ -46,17 +46,27 @@ import java.util.List;
  */
 public class GeliAdapter implements GenotypeWriter {
 
+    // the file we're writing to
+    private File writeTo = null;
 
     // the geli file writer we're adapting
-    private final GeliFileWriter writer;
+    private GeliFileWriter writer = null;
 
     /**
      * wrap a GeliFileWriter in the Genotype writer interface
      *
      * @param writeTo    where to write to
+     */
+    public GeliAdapter(File writeTo) {
+        this.writeTo = writeTo;
+    }
+
+    /**
+     * wrap a GeliFileWriter in the Genotype writer interface
+     *
      * @param fileHeader the file header to write out
      */
-    public GeliAdapter(File writeTo, final SAMFileHeader fileHeader) {
+    public void writeHeader(final SAMFileHeader fileHeader) {
         this.writer = GeliFileWriter.newInstanceForPresortedRecords(writeTo, fileHeader);
     }
 
@@ -67,6 +77,8 @@ public class GeliAdapter implements GenotypeWriter {
      * @param contig        the contig you're calling in
      * @param position      the position on the contig
      * @param referenceBase the reference base
+     * @param maxMappingQuality the max MQ
+     * @param readCount     the read count
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
     private void addGenotypeCall(SAMSequenceRecord contig,
@@ -99,6 +111,9 @@ public class GeliAdapter implements GenotypeWriter {
     }
 
     public void addGenotypeLikelihoods(GenotypeLikelihoods gl) {
+        if ( writer == null )
+            throw new IllegalStateException("The Geli Header must be written before records can be added");
+
         writer.addGenotypeLikelihoods(gl);
     }
 
@@ -108,6 +123,9 @@ public class GeliAdapter implements GenotypeWriter {
      * @param call the call to add
      */
     public void addGenotypeCall(Genotype call) {
+        if ( writer == null )
+            throw new IllegalStateException("The Geli Header must be written before calls can be added");
+
         if ( !(call instanceof GeliGenotypeCall) )
             throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
         GeliGenotypeCall gCall = (GeliGenotypeCall)call;
@@ -135,7 +153,7 @@ public class GeliAdapter implements GenotypeWriter {
     /**
      * add a no call to the genotype file, if supported.
      *
-     * @param position
+     * @param position  the position
      */
     public void addNoCall(int position) {
         throw new UnsupportedOperationException("Geli format does not support no-calls");

@@ -27,12 +27,15 @@ package org.broadinstitute.sting.gatk.io.storage;
 
 import java.io.*;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.glf.*;
 import org.broadinstitute.sting.utils.genotype.geli.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.SampleUtils;
 import edu.mit.broad.picard.genotype.geli.GeliFileReader;
 
 /**
@@ -51,11 +54,9 @@ public class GenotypeWriterStorage implements GenotypeWriter, Storage<GenotypeWr
 
     public GenotypeWriterStorage( GenotypeWriterStub stub, File file ) {
         this.file = file;
-        writer = GenotypeWriterFactory.create(stub.getFormat(),
-                                              stub.getSAMFileHeader(),
-                                              file,
-                                              stub.getSampleNames(),
-                                              stub.getHeaderInfo());
+        writer = GenotypeWriterFactory.create(stub.getFormat(), file);
+        Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
+        GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());
     }
 
     public void mergeInto( GenotypeWriter targetStream ) {

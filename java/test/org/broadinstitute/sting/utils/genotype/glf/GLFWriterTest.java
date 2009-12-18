@@ -5,10 +5,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.LikelihoodsBacked;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -96,7 +94,8 @@ public class GLFWriterTest extends BaseTest {
         File writeTo = new File("testGLF.glf");
         writeTo.deleteOnExit();
 
-        rec = new GLFWriter(header, writeTo);
+        rec = new GLFWriter(writeTo);
+        ((GLFWriter)rec).writeHeader(header);
         for (int x = 0; x < 100; x++) {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
             Genotype type = createGenotype(x % 10, loc, 'A');
@@ -112,7 +111,8 @@ public class GLFWriterTest extends BaseTest {
         File writeTo = new File("testGLF2.glf");
         writeTo.deleteOnExit();
         List<FakeGenotype> types = new ArrayList<FakeGenotype>();
-        rec = new GLFWriter(header, writeTo);
+        rec = new GLFWriter(writeTo);
+        ((GLFWriter)rec).writeHeader(header);
         for (int x = 0; x < 100; x++) {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
             FakeGenotype type = createGenotype(x % 10, loc, 'A');
@@ -167,7 +167,6 @@ class FakeGenotype extends GLFGenotypeCall implements Comparable<FakeGenotype> {
     }
 
 
-    @Override
     public int compareTo(FakeGenotype that) {
         if (this.getLocation().compareTo(that.getLocation()) != 0) {
             System.err.println("Location's aren't equal; this = " + this.getLocation() + " that = " + that.getLocation());

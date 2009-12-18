@@ -53,7 +53,7 @@ public class GLFWriter implements GenotypeWriter {
     public static final short[] glfMagic = {'G', 'L', 'F', '\3'};
 
     // our header text, reference sequence name (i.e. chr1), and it's length
-    private String headerText = "";
+    private String headerText = null;
     private String referenceSequenceName = null;
     private long referenceSequenceLength = 0;
 
@@ -63,29 +63,42 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * The public constructor for creating a GLF object
      *
-     * @param headerText the header text (currently unclear what the contents are)
      * @param writeTo    the location to write to
      */
-    public GLFWriter(String headerText, File writeTo) {
-        this.headerText = headerText;
+    public GLFWriter(File writeTo) {
         outputBinaryCodec = new BinaryCodec(new DataOutputStream(new BlockCompressedOutputStream(writeTo)));
         outputBinaryCodec.setOutputFileName(writeTo.toString());
-        this.writeHeader();
     }
 
     /**
      * The public constructor for creating a GLF object
      *
-     * @param headerText the header text (currently unclear what the contents are)
      * @param writeTo    the location to write to
      */
-    public GLFWriter(String headerText, OutputStream writeTo) {
-        this.headerText = headerText;
+    public GLFWriter(OutputStream writeTo) {
         outputBinaryCodec = new BinaryCodec(writeTo);
         outputBinaryCodec.setOutputFileName(writeTo.toString());
-        this.writeHeader();
     }
 
+    /**
+     * Write out the header information for the GLF file.  The header contains
+     * the magic number, the length of the header text, the text itself, the reference
+     * sequence (null terminated) preceeded by it's length, and the the genomic
+     * length of the reference sequence.
+     *
+     * @param headerText    the header text to write
+     */
+    public void writeHeader(String headerText) {
+        this.headerText = headerText;
+        for (int x = 0; x < glfMagic.length; x++) {
+            outputBinaryCodec.writeUByte(glfMagic[x]);
+        }
+        if (!(headerText.equals(""))) {
+            outputBinaryCodec.writeString(headerText, true, true);
+        } else {
+            outputBinaryCodec.writeInt(0);
+        }
+    }
 
     /**
      * add a point genotype to the GLF writer
@@ -103,6 +116,8 @@ public class GLFWriter implements GenotypeWriter {
                                 char refBase,
                                 int readDepth,
                                 LikelihoodObject lhValues) {
+        if ( headerText == null )
+            throw new IllegalStateException("The GLF Header must be written before calls can be added");
 
         // check if we've jumped to a new contig
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
@@ -122,6 +137,9 @@ public class GLFWriter implements GenotypeWriter {
      * @param call the genotype call
      */
     public void addGenotypeCall(Genotype call) {
+        if ( headerText == null )
+            throw new IllegalStateException("The GLF Header must be written before calls can be added");
+
         if ( !(call instanceof GLFGenotypeCall) )
             throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
         GLFGenotypeCall gCall = (GLFGenotypeCall)call;
@@ -176,6 +194,9 @@ public class GLFWriter implements GenotypeWriter {
                                       IndelLikelihood secondHomZyg,
                                       byte hetLikelihood) {
 
+        if ( headerText == null )
+            throw new IllegalStateException("The GLF Header must be written before calls can be added");
+
         // check if we've jumped to a new contig
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
 
@@ -213,25 +234,11 @@ public class GLFWriter implements GenotypeWriter {
      * @param rec          the GLF record to write.
      */
     public void addGLFRecord(String contigName, int contigLength, GLFRecord rec) {
+        if ( headerText == null )
+            throw new IllegalStateException("The GLF Header must be written before records can be added");
+
         checkSequence(contigName, contigLength);
         rec.write(this.outputBinaryCodec);
-    }
-
-    /**
-     * Write out the header information for the GLF file.  The header contains
-     * the magic number, the length of the header text, the text itself, the reference
-     * sequence (null terminated) preceeded by it's length, and the the genomic
-     * length of the reference sequence.
-     */
-    private void writeHeader() {
-        for (int x = 0; x < glfMagic.length; x++) {
-            outputBinaryCodec.writeUByte(glfMagic[x]);
-        }
-        if (!(headerText.equals(""))) {
-            outputBinaryCodec.writeString(headerText, true, true);
-        } else {
-            outputBinaryCodec.writeInt(0);
-        }
     }
 
     /**
@@ -255,12 +262,18 @@ public class GLFWriter implements GenotypeWriter {
 
     /** add a sequence definition to the glf */
     private void addSequence() {
+        if ( headerText == null )
+            throw new IllegalStateException("The GLF Header must be written before sequences can be added");
+
         outputBinaryCodec.writeString(referenceSequenceName, true, true);
         outputBinaryCodec.writeUInt(referenceSequenceLength);
     }
 
     /** write end record */
     private void writeEndRecord() {
+        if ( headerText == null )
+            throw new IllegalStateException("The GLF Header must be written before records can be added");
+
         outputBinaryCodec.writeUByte((short) 0);
     }
 

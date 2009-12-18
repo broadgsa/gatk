@@ -342,9 +342,9 @@ class VCFGrep extends CommandLineProgram
 			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(in_filename)); }
 			else { reader = new VCFReader(new File(in_filename)); }
 
-			VCFHeader header = reader.getHeader();
 
-			writer = new VCFWriter(header, new File(out_filename));
+            writer = new VCFWriter(new File(out_filename));
+            writer.writeHeader(reader.getHeader());
 
 			while(reader.hasNext())
 			{

@@ -64,8 +64,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             }
         }
 
-        VCFHeader header = new VCFHeader(hInfo, rod.getHeader().getGenotypeSamples());
-        writer = new VCFWriter(header, out);
+        writer = new VCFWriter(out);
+        writer.writeHeader(new VCFHeader(hInfo, rod.getHeader().getGenotypeSamples()));
     }
 
     public void initialize() {

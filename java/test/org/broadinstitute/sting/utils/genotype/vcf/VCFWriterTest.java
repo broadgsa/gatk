@@ -39,7 +39,8 @@ public class VCFWriterTest extends BaseTest {
     @Test
     public void testBasicWriteAndRead() {
         VCFHeader header = createFakeHeader(metaData,additionalColumns);
-        VCFWriter writer = new VCFWriter(header,fakeVCFFile);
+        VCFWriter writer = new VCFWriter(fakeVCFFile);
+        writer.writeHeader(header);
         writer.addRecord(createVCFRecord(header));
         writer.addRecord(createVCFRecord(header));
         writer.close();

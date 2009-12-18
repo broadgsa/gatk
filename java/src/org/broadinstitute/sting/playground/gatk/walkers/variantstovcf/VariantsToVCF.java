@@ -49,7 +49,8 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         }
 
         vcfheader = getHeader(args, sampleNames.keySet());
-        vcfwriter = new VCFWriter(vcfheader, VCF_OUT);
+        vcfwriter = new VCFWriter(VCF_OUT);
+        vcfwriter.writeHeader(vcfheader);
     }
 
     public static VCFHeader getHeader(GATKArgumentCollection args, Set<String> sampleNames) {

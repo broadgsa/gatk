@@ -11,43 +11,39 @@ public class VCFWriter {
 
     
     // the VCF header we're storing
-    private VCFHeader mHeader;
+    private VCFHeader mHeader = null;
 
     // the print stream we're writting to
     BufferedWriter mWriter;
     private final String FIELD_SEPERATOR = "\t";
 
     /**
-     * create a VCF writer, given a VCF header and a file to write to
+     * create a VCF writer, given a file to write to
      *
-     * @param header   the VCF header
      * @param location the file location to write to
      */
-    public VCFWriter(VCFHeader header, File location) {
+    public VCFWriter(File location) {
         FileOutputStream output;
         try {
             output = new FileOutputStream(location);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Unable to create VCF file at location: " + location);
         }
-        initialize(header, output);
+        mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 
 
     /**
-     * create a VCF writer, given a VCF header and a file to write to
+     * create a VCF writer, given a stream to write to
      *
-     * @param header   the VCF header
-     * @param location the file location to write to
+     * @param output   the file location to write to
      */
-    public VCFWriter(VCFHeader header, OutputStream location) {
-        initialize(header, location);
+    public VCFWriter(OutputStream output) {
+        mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 
-    private void initialize(VCFHeader header, OutputStream location) {
+    public void writeHeader(VCFHeader header) {
         this.mHeader = header;
-        mWriter = new BufferedWriter(
-                new OutputStreamWriter(location));
         try {
             // the fileformat field needs to be written first
             TreeSet<VCFHeaderLine> nonFormatMetaData = new TreeSet<VCFHeaderLine>();
@@ -87,6 +83,9 @@ public class VCFWriter {
      * @param record the record to output
      */
     public void addRecord(VCFRecord record) {
+        if ( mHeader == null )
+            throw new IllegalStateException("The VCF Header must be written before records can be added");
+
         String vcfString = record.toStringEncoding(mHeader);
         try {
             mWriter.write(vcfString + "\n");
@@ -95,7 +94,6 @@ public class VCFWriter {
         }
 
     }
-
 
     /**
      * attempt to close the VCF file

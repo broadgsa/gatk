@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import java.io.File;
 import java.util.List;
-import java.util.Set;
 
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -35,7 +34,6 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariationCall;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import net.sf.samtools.SAMFileHeader;
 
 /**
@@ -63,19 +61,6 @@ public class GenotypeWriterStub implements Stub<GenotypeWriter>, GenotypeWriter 
     private final GenotypeWriterFactory.GENOTYPE_FORMAT format;
 
     /**
-     * The sample names for the output file
-     */
-    private final Set<String> sampleNames;
-
-
-    /**
-     * The header info for the output file
-     */
-    private final Set<VCFHeaderLine> headerInfo;
-
-
-
-    /**
      * Connects this stub with an external stream capable of serving the
      * requests of the consumer of this stub.
      */
@@ -86,19 +71,13 @@ public class GenotypeWriterStub implements Stub<GenotypeWriter>, GenotypeWriter 
      * @param engine        GATK engine.
      * @param genotypeFile  file to (ultimately) create.
      * @param format        file format.
-     * @param sampleNames   sample names to use for creating writer.
-     * @param headerInfo    header info to use for creating writer.
      */
     public GenotypeWriterStub( GenomeAnalysisEngine engine,
                                File genotypeFile,
-                               GenotypeWriterFactory.GENOTYPE_FORMAT format,
-                               Set<String> sampleNames,
-                               Set<VCFHeaderLine> headerInfo) {
+                               GenotypeWriterFactory.GENOTYPE_FORMAT format) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.format = format;
-        this.sampleNames = sampleNames;
-        this.headerInfo = headerInfo;
     }
 
     /**
@@ -123,22 +102,6 @@ public class GenotypeWriterStub implements Stub<GenotypeWriter>, GenotypeWriter 
      */
     public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
         return format;
-    }
-
-    /**
-     * Retrieves the sample names to use when creating the new file.
-     * @return sample names to use when creating the new file.
-     */
-    public Set<String> getSampleNames() {
-        return sampleNames;
-    }
-
-    /**
-     * Retrieves the header info to use when creating the new file.
-     * @return header info to use when creating the new file.
-     */
-    public Set<VCFHeaderLine> getHeaderInfo() {
-        return headerInfo;
     }
 
     /**

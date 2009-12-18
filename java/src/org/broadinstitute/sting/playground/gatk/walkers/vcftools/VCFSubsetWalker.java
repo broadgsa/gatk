@@ -20,7 +20,7 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
     private HashSet<String> SAMPLES;
 
     @Argument(fullName="vcfsubset", shortName="O", doc="File to write VCF subset to", required=false)
-    private File VPATH;
+    private File VPATH = null;
 
     @Argument(fullName="includeNonVariants", shortName="INV", doc="Include non-variant loci", required=false)
     private boolean INCLUDE_NON_VARIANTS = false;
@@ -43,7 +43,8 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
 
         vheader = new VCFHeader(metaData, additionalColumns);
         if (VPATH != null) {
-            vwriter = new VCFWriter(vheader, VPATH);
+            vwriter = new VCFWriter(VPATH);
+            vwriter.writeHeader(vheader);
         }
     }
 

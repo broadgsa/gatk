@@ -108,9 +108,9 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("source", "CallsetConcordance"));
         hInfo.add(new VCFHeaderLine("note", "\"This file represents a concordance test of various call sets - NOT the output from a multi-sample caller\""));
         hInfo.addAll(getVCFAnnotationDescriptions(requestedTypes));
-        VCFHeader header = new VCFHeader(hInfo, samples);
 
-        vcfWriter = new VCFWriter(header, OUTPUT);
+        vcfWriter = new VCFWriter(OUTPUT);
+        vcfWriter.writeHeader(new VCFHeader(hInfo, samples));
     }
 
     public static Set<VCFHeaderLine> getVCFAnnotationDescriptions(Collection<ConcordanceType> types) {

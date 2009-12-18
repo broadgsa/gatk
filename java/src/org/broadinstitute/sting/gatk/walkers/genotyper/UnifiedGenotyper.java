@@ -37,8 +37,6 @@ import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import net.sf.samtools.SAMReadGroupRecord;
-
 import java.io.File;
 import java.util.*;
 
@@ -68,7 +66,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     private GenotypeWriter writer;
 
     // samples in input
-    private TreeSet<String> samples;
+    private Set<String> samples;
 
     // keep track of some metrics about our calls
     private CallMetrics callsMetrics;
@@ -113,15 +111,11 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         }
 
         // get all of the unique sample names
-        samples = new TreeSet<String>();
         // if we're supposed to assume a single sample
-        if ( UAC.ASSUME_SINGLE_SAMPLE != null ) {
+        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
             samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-        } else {
-            List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
-            for ( SAMReadGroupRecord readGroup : readGroups )
-                samples.add(readGroup.getSample());
-        }
+        else
+            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
         // print them out for debugging (need separate loop to ensure uniqueness)
         // for ( String sample : samples )
@@ -144,15 +138,12 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // get the optional header fields
         Set<VCFHeaderLine> headerInfo = getHeaderInfo();
 
-        // create the output writer stream
+        // create the output writer stream and initialize the header
         if ( VARIANTS_FILE != null )
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
-                                                  samples,
-                                                  headerInfo);
+            writer = GenotypeWriterFactory.create(VAR_FORMAT, VARIANTS_FILE);
         else
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out,
-                                                  samples,
-                                                  headerInfo);
+            writer = GenotypeWriterFactory.create(VAR_FORMAT, out);
+        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), samples, headerInfo);
 
         callsMetrics = new CallMetrics();
     }
