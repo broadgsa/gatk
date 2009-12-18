@@ -11,6 +11,8 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 
+import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
+
 
 /**
  * @author aaron
@@ -92,6 +94,10 @@ public class GeliTextWriter implements GenotypeWriter {
                                       posteriors[7],
                                       posteriors[8],
                                       posteriors[9]));
+    }
+
+    public void addGenotypeLikelihoods(GenotypeLikelihoods gl) {
+        mWriter.println(gl.toString());
     }
 
     /**

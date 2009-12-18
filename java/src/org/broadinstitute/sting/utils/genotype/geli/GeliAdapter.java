@@ -98,6 +98,10 @@ public class GeliAdapter implements GenotypeWriter {
         throw new UnsupportedOperationException("Geli format does not support variable length allele calls");
     }
 
+    public void addGenotypeLikelihoods(GenotypeLikelihoods gl) {
+        writer.addGenotypeLikelihoods(gl);
+    }
+
     /**
      * Add a genotype, given a genotype call
      *

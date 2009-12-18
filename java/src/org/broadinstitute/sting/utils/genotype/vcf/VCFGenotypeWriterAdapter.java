@@ -172,6 +172,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         mWriter.addRecord(vcfRecord);
     }
 
+    public void addRecord(VCFRecord vcfRecord) {
+        mWriter.addRecord(vcfRecord);
+    }
+
     /**
      * get the information fields of the VCF record, given the meta data and parameters
      *

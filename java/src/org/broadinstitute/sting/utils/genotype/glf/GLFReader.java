@@ -146,12 +146,10 @@ public class GLFReader implements Iterator<GLFRecord> {
         return new VariableLengthCall(refBase, offset, readDepth, rmsMapping, lkHom1, lkHom2, lkHet, indelLen1, indelSeq1, indelLen2, indelSeq2);
     }
 
-    @Override
     public boolean hasNext() {
         return (nextRecord != null);
     }
 
-    @Override
     public GLFRecord next() {
         GLFRecord ret = nextRecord;
         short firstBase = protectedByteReadForFile();
@@ -220,9 +218,12 @@ public class GLFReader implements Iterator<GLFRecord> {
         return false;
     }
 
-    @Override
     public void remove() {
         throw new StingException("GLFReader doesn't support remove()");
+    }
+
+    public void close() {
+        inputBinaryCodec.close();
     }
 
     /**
