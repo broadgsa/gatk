@@ -195,8 +195,8 @@ public class VCFReaderTest extends BaseTest {
             if (!header.contains(record.getSampleName())) {
                 Assert.fail("Parsed header doesn't contain field " + record.getSampleName());
             }
-            if (!variant.get(header.indexOf(record.getSampleName())).equals(record.toStringEncoding(newRod.mCurrentRecord.getAlternateAlleles()))) {
-                Assert.fail("Parsed value for " + record.getSampleName() + " doesn't contain the same value ( " + record.toStringEncoding(newRod.mCurrentRecord.getAlternateAlleles())
+            if (!variant.get(header.indexOf(record.getSampleName())).equals(record.toStringEncoding(newRod.mCurrentRecord.getAlternateAlleles(), newRod.mCurrentRecord.getGenotypeFormatString().split(":")))) {
+                Assert.fail("Parsed value for " + record.getSampleName() + " doesn't contain the same value ( " + record.toStringEncoding(newRod.mCurrentRecord.getAlternateAlleles(), newRod.mCurrentRecord.getGenotypeFormatString().split(":"))
                     + " != " + variant.get(header.indexOf(record.getSampleName())));
             }
         }

@@ -114,7 +114,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     public VCFRecord(Map<VCFHeader.HEADER_FIELDS, String> columnValues) {
         extractFields(columnValues);
-        mGenotypeFormatString = null;
+        mGenotypeFormatString = "";
     }
 
     /**
@@ -553,17 +553,18 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @param header  the header object
      */
     private void addGenotypeData(StringBuilder builder, VCFHeader header) {
-        builder.append(FIELD_SEPERATOR + this.getGenotypeFormatString());
+        builder.append(FIELD_SEPERATOR + mGenotypeFormatString);
         if (header.getGenotypeSamples().size() < getGenotypes().size())
             throw new RuntimeException("We have more genotype samples than the header specified");
 
         Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(getGenotypes());
+        String[] genotypeFormatStrings = mGenotypeFormatString.split(":");
 
         for (String genotype : header.getGenotypeSamples()) {
             builder.append(FIELD_SEPERATOR);
             if (gMap.containsKey(genotype)) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
-                builder.append(rec.toStringEncoding(this.mAlts));
+                builder.append(rec.toStringEncoding(this.mAlts, genotypeFormatStrings));
                 gMap.remove(genotype);
             } else {
                 builder.append(VCFGenotypeRecord.EMPTY_GENOTYPE);

@@ -49,16 +49,18 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param samples       samples in input bam
      * @param logger        logger
      * @param UAC           unified arg collection
+     * @param outputFormat  output format
      */
     protected void initialize(Set<String> samples,
                               Logger logger,
-                              UnifiedArgumentCollection UAC) {
+                              UnifiedArgumentCollection UAC,
+                              GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat) {
         this.samples = new TreeSet<String>(samples);
         this.logger = logger;
         baseModel = UAC.baseModel;
         heterozygosity = UAC.heterozygosity;
         defaultPlatform = UAC.defaultPlatform;
-        OUTPUT_FORMAT = UAC.VAR_FORMAT;
+        OUTPUT_FORMAT = outputFormat;
         ALL_BASE_MODE = UAC.ALL_BASES;
         GENOTYPE_MODE = UAC.GENOTYPE;
         POOL_SIZE = UAC.POOLSIZE;

@@ -57,6 +57,9 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
 
+    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "Format to be used to represent variants; default is VCF", required = false)
+    public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+
 
     // the model used for calculating genotypes
     private GenotypeCalculationModel gcm;
@@ -124,7 +127,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // for ( String sample : samples )
         //     logger.debug("SAMPLE: " + sample);
 
-        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC);
+        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, VAR_FORMAT);
 
         // *** If we were called by another walker, then we don't ***
         // *** want to do any of the other initialization steps.  ***
@@ -143,11 +146,11 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
         // create the output writer stream
         if ( VARIANTS_FILE != null )
-            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
+            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
                                                   samples,
                                                   headerInfo);
         else
-            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out,
+            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out,
                                                   samples,
                                                   headerInfo);
 
@@ -158,7 +161,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // this is only applicable to VCF
-        if ( UAC.VAR_FORMAT != GenotypeWriterFactory.GENOTYPE_FORMAT.VCF )
+        if ( VAR_FORMAT != GenotypeWriterFactory.GENOTYPE_FORMAT.VCF )
             return headerInfo;
 
         // first, the basic info

@@ -91,6 +91,8 @@ public class BasicGenotype implements Genotype {
         return true;
     }
 
+    public boolean isNoCall() { return false; }
+
     /**
      * Returns true if observed allele bases differ (regardless of whether they are ref or alt)
      *

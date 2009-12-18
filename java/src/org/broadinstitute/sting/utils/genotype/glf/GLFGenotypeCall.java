@@ -126,6 +126,8 @@ public class GLFGenotypeCall implements GenotypeCall, ReadBacked, LikelihoodsBac
         return !isHom();
     }
 
+    public boolean isNoCall() { return false; }
+
     /**
      *
      * @return return this genotype as a variant

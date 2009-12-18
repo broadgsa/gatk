@@ -22,7 +22,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1PointEM() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,400-10,024,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("b19f85fddd08485c668e7192df79d944"));
+                Arrays.asList("44942d4e56aec62520903d297cee5fd8"));
         executeTest("testMultiSamplePilot1 - Point Estimate EM", spec);
     }
 
@@ -30,7 +30,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2PointEM() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,010,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("a6c8e77d1741f3f6d958a0634fa59e14"));
+                Arrays.asList("aabea51b271df324eb543bc3417c0a42"));
         executeTest("testMultiSamplePilot2 - Point Estimate EM", spec);
     }
 
@@ -43,7 +43,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testPooled1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,000-10,024,000 -bm empirical -gm POOLED -ps 60 -confidence 30", 1,
-                Arrays.asList("459b8f6a6265b67718495e9bffe96fa8"));
+                Arrays.asList("a733878ce9c257148a224aa00c0e63e9"));
         executeTest("testPooled1", spec);
     }
 
@@ -56,7 +56,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,022,000-10,025,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("c132c93cec5fdf02c3235180a7aa7dcc"));
+                Arrays.asList("b68ad77195f6e926c4fce5f1a91f3bc9"));
         executeTest("testMultiSamplePilot1 - Joint Estimate", spec);
     }
 
@@ -64,7 +64,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,050,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("09d48c56eae25fb6418e10feeb5b3fc5"));
+                Arrays.asList("b63c43ba827cfc74bb8ef679ce3d847d"));
         executeTest("testMultiSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -72,7 +72,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testSingleSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("3544b1eb97834e2050239c101eaddb2d"));
+                Arrays.asList("8ae0be3b65c83d973519abad858c0073"));
         executeTest("testSingleSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -85,11 +85,11 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "dc908834d97bde696b6bdccf756c9ab6" );
-        e.put( "-all_bases", "484d424cbcd646b3c5d823cad43f4f5f" );
-        e.put( "--min_base_quality_score 10", "45e336766e94f05e6ac44d1e50473e18" );
-        e.put( "--min_mapping_quality_score 10", "de417c1156483ab87b0f8a25f10d4d87" );
-        e.put( "--max_mismatches_in_40bp_window 5", "05132003c73e10fbdab2af14af677764" );
+        e.put( "-genotype", "c984952b91193d9550066f9514434183" );
+        e.put( "-all_bases", "0062942f2323ea0f2c9d3a3739a28d20" );
+        e.put( "--min_base_quality_score 10", "8a645a76d85e8a6edda6acdf8071ee6b" );
+        e.put( "--min_mapping_quality_score 10", "cf6c38de9872bdbf5da1a22d8c962ebe" );
+        e.put( "--max_mismatches_in_40bp_window 5", "e21a319eb0efbe11c3c1eeea7c9c0144" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -103,7 +103,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testConfidence() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -bm empirical -gm JOINT_ESTIMATE -confidence 10 ", 1,
-                Arrays.asList("ea154d6ab6bbaf40da0dac5162b7e9fd"));
+                Arrays.asList("6823ce46547cf9693cda040dcbd4c9c1"));
         executeTest("testConfidence", spec);
     }
 
@@ -117,7 +117,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testOtherFormat() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "GLF", "8c72131dfb2b830efb9938a582672a3e" );
-        e.put( "GELI", "e9e00bdb32ce63420988956c1a9b805f" );
         e.put( "GELI_BINARY", "46162567eac3a5004f5f9b4c93d1b8d3" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
@@ -128,6 +127,10 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         }
     }
 
+    // --------------------------------------------- //
+    // ALL REMAINING TESTS ARE OUTPUT IN GELI FORMAT //
+    // --------------------------------------------- //
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // testing heterozygosity
@@ -136,12 +139,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testHeterozyosity() {
         HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 0.01, "ae0134840e0c9fa295b23ecf4ba3e768" );
-        e.put( 1.0 / 1850, "71ddcf22f4c0538d03508b720d01d3fe" );
+        e.put( 0.01, "700e6426c4142c823f7ac1dde2aa19ea" );
+        e.put( 1.0 / 1850, "e9e00bdb32ce63420988956c1a9b805f" );
 
         for ( Map.Entry<Double, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30 --heterozygosity " + entry.getKey(), 1,
+                    "-T UnifiedGenotyper -vf GELI -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30 --heterozygosity " + entry.getKey(), 1,
                     Arrays.asList(entry.getValue()));
             executeTest(String.format("testHeterozyosity[%s]", entry.getKey()), spec);
         }
@@ -156,12 +159,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testOtherBaseCallModel() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "one_state", "ab71d814e897d7f1440af8f02365b4fa" );
-        e.put( "three_state", "ce55849c55c58c59773200b2a88db0ee" );
+        e.put( "one_state", "d69abadc3bf861d621017c0e41b87b0a" );
+        e.put( "three_state", "ebcc76cc4579393f98aecb59bdc56507" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -gm JOINT_ESTIMATE -confidence 30 -bm " + entry.getKey(), 1,
+                    "-T UnifiedGenotyper -vf GELI -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -gm JOINT_ESTIMATE -confidence 30 -bm " + entry.getKey(), 1,
                     Arrays.asList(entry.getValue()));
             executeTest(String.format("testOtherBaseCallModel[%s]", entry.getKey()), spec);
         }

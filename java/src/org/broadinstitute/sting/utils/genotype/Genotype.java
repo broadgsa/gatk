@@ -46,6 +46,13 @@ public interface Genotype {
     public boolean isHet();
 
     /**
+     * Returns true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF)
+     *
+     * @return true if we're het, false otherwise
+     */
+    public boolean isNoCall();
+
+    /**
      * get the genotype's location
      *
      * @return a GenomeLoc representing the location

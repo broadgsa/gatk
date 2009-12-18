@@ -176,6 +176,14 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         return !isHom();
     }
 
+    public boolean isNoCall() {
+        for ( VCFGenotypeEncoding encoding : mGenotypeAlleles ) {
+            if ( encoding.getType() != VCFGenotypeEncoding.TYPE.UNCALLED )
+                return false;
+        }
+        return true;
+    }
+
     public int getPloidy() {
         return 2;
     }
@@ -232,18 +240,25 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
      * output a string representation of the VCFGenotypeRecord, given the alternate alleles
      *
      * @param altAlleles the alternate alleles, needed for toGenotypeString()
+     * @param genotypeFormatStrings  genotype format strings
      *
      * @return a string
      */
-    public String toStringEncoding(List<VCFGenotypeEncoding> altAlleles) {
+    public String toStringEncoding(List<VCFGenotypeEncoding> altAlleles, String[] genotypeFormatStrings) {
         StringBuilder builder = new StringBuilder();
         builder.append(toGenotypeString(altAlleles));
-        for (String field : mFields.keySet()) {
+        for ( String field : genotypeFormatStrings ) {
+            String value = mFields.get(field);
+            if ( value == null && field.equals(OLD_DEPTH_KEY) )
+                    value = mFields.get(DEPTH_KEY);
+            if ( value == null )
+                    continue;
+
             builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
-            if (mFields.get(field).equals(""))
+            if (value.equals(""))
                 builder.append(getMissingFieldValue(field));
             else
-                builder.append(mFields.get(field));
+                builder.append(value);
         }
         return builder.toString();
     }

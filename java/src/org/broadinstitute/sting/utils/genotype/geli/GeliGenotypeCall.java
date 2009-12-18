@@ -205,6 +205,8 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements Genot
         return !isHom();
     }
 
+    public boolean isNoCall() { return false; }
+
     /**
      * Location of this genotype on the reference (on the forward strand). If the allele is insertion/deletion, the first inserted/deleted base
      * is located right <i>after</i> the specified location
