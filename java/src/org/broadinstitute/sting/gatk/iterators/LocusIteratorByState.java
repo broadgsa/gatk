@@ -213,11 +213,12 @@ public class LocusIteratorByState extends LocusIterator {
 
             // todo -- performance problem -- should be lazy, really
             for ( SAMRecordState state : readStates ) {
-                size++;
                 if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
+                    size++;
                     PileupElement p = new PileupElement(state.getRead(), state.getReadOffset());
                     pile.add(p);
                 } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
+                    size++;
                     pile.add(new PileupElement(state.getRead(), -1));
                     nDeletions++;
                 }

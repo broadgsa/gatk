@@ -70,7 +70,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
             return "Bases not equal";
 
         String aQuals = maybeSorted(new String(a.getQuals()), ! orderDependent );
-        String bQuals = maybeSorted(b.getQualsAsString(), ! orderDependent );
+        String bQuals = maybeSorted(new String(b.getQuals()), ! orderDependent );
         if ( ! aQuals.equals(bQuals) )
             return "Quals not equal";
 

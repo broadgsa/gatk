@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import org.broadinstitute.sting.utils.*;
 
 import net.sf.picard.reference.ReferenceSequenceFileWalker;
+import net.sf.samtools.util.StringUtil;
 
 /**
  *  This class wraps Maq/samtools allele calls from pileup format and presents them as a ROD.<br>
@@ -402,8 +403,24 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 
     public ArrayList<Byte> getBasesAsArrayList()        { throw new StingException("Not implemented"); }
     public ArrayList<Byte> getQualsAsArrayList()        { throw new StingException("Not implemented"); }
-    public byte[] getBases()        { throw new StingException("Not implemented"); }
-    public byte[] getQuals()        { throw new StingException("Not implemented"); }
+
+    /**
+     * Gets the bases in byte array form.
+     * @return byte array of the available bases.
+     */
+    public byte[] getBases() {
+        return StringUtil.stringToBytes(getBasesAsString());
+    }
+
+    /**
+     * Gets the Phred base qualities without ASCII offset.
+     * @return Phred base qualities.
+     */
+    public byte[] getQuals() {
+        byte[] quals = StringUtil.stringToBytes(getQualsAsString());
+        for(int i = 0; i < quals.length; i++) quals[i] -= 33;
+        return quals;
+    }
 
     /** Returns bases in the reference allele as a String. For point genotypes, the string consists of a single
      * character (reference base). For indel genotypes, the string is empty for insertions into
