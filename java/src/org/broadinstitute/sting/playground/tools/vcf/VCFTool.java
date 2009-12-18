@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import edu.mit.broad.picard.util.Interval;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 
 import java.io.*;
@@ -172,7 +173,7 @@ class CheckRefFields extends CommandLineProgram
 			{
 				VCFRecord record = reader.next();
 
-				String chr = record.getChromosome();
+				String chr = record.getLocation().getContig();
 				if (! chr.equals(ref_seq_name))
 				{
 					System.out.println("Loading " + chr);
@@ -180,7 +181,7 @@ class CheckRefFields extends CommandLineProgram
 					ref_seq_name = chr;
 				}	
 
-				long offset   = record.getPosition();
+				long offset   = record.getLocation().getStart();
 				char vcf_ref_base = record.getReferenceBase();
 				char fasta_ref_base = (char)ref_seq[(int)offset-1];
 
@@ -246,7 +247,7 @@ class FixRefFields extends CommandLineProgram
 			{
 				VCFRecord record = reader.next();
 
-				String chr = record.getChromosome();
+				String chr = record.getLocation().getContig();
 				if (! chr.equals(ref_seq_name))
 				{
 					System.out.println("Loading " + chr);
@@ -254,7 +255,7 @@ class FixRefFields extends CommandLineProgram
 					ref_seq_name = chr;
 				}	
 
-				long offset   = record.getPosition();
+				long offset   = record.getLocation().getStart();
 				char vcf_ref_base = record.getReferenceBase();
 				char fasta_ref_base = (char)ref_seq[(int)offset-1];
 
