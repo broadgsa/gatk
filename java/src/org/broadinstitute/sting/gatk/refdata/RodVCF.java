@@ -340,7 +340,23 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     public RodVCF next() {
         if (!this.hasNext()) throw new NoSuchElementException("RodVCF next called on iterator with no more elements");
-        return new RodVCF(name, mReader.next(), mReader);
+
+        // get the next record
+        VCFRecord rec = mReader.next();
+
+        // make sure the next VCF record isn't before the current record (we'll accept at the same location, the
+        // spec doesn't indicate, and it seems like a valid use case)
+        GenomeLoc curPosition = null;
+        if (mCurrentRecord != null) curPosition = mCurrentRecord.getLocation();
+        if (curPosition != null && rec != null && curPosition.compareTo(rec.getLocation()) > 0)
+            throw new StingException("The next VCF record appears to be before the current (current location => " + curPosition.toString() +
+                                     ", the next record position => " + rec.getLocation().toString() + " with line : " + rec.toStringEncoding(mReader.getHeader()) + "). " +
+                                     "Check to make sure the input VCF file is correctly sorted.");
+
+        // save off the previous record.  This is needed given how iterators are used in the ROD system;
+        // we need to save off the last record
+        mCurrentRecord = rec;
+        return new RodVCF(name, rec, mReader);
     }
 
     public void remove() {
