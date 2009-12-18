@@ -18,7 +18,7 @@ public class PairedReadOrderCovariate implements ExperimentalCovariate{
     }
 
     public final Comparable getValue( final String str ) {
-        return Integer.parseInt( str );
+        return str.hashCode();
     }
 
     // Used to estimate the amount space required for the full data HashMap
