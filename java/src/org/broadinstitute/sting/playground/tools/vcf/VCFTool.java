@@ -232,7 +232,8 @@ class FixRefFields extends CommandLineProgram
 			PrintStream output;
 			try
 			{
-				VCFWriter writer = new VCFWriter(header, new File(output_filename));
+				VCFWriter writer = new VCFWriter(new File(output_filename));
+                writer.writeHeader(header);
 				writer.close();
 				output = new PrintStream(new FileOutputStream(output_filename, true));
 			}
