@@ -59,7 +59,7 @@ public class RecalibrationArgumentCollection {
     public int WINDOW_SIZE = 5;
     @Argument(fullName = "homopolymer_nback", shortName="nback", doc="The number of previous bases to look at in HomopolymerCovariate", required=false)
     public int HOMOPOLYMER_NBACK = 7;
-
+    
     public boolean checkSolidRecalMode() {
         return ( SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ||
                  SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO_BASE_N") || SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") );

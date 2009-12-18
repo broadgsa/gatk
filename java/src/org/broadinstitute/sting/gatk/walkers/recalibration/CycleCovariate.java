@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 
 /*
@@ -36,9 +37,9 @@ import net.sf.samtools.SAMRecord;
  *
  * The Cycle covariate.
  *  For Solexa the cycle is simply the position in the read (counting backwards if it is a negative strand read)
- *  For 454 the cycle is the number of discontinuous nucleotides seen during the length of the read
- *     For example, for the read: AAACCCCGAAATTTTTTT
- *             the cycle would be 111222234445555555
+ *  For 454 the cycle is the TACG flow cycle, that is, each flow grabs all the TACG's in order in a single cycle
+ *     For example, for the read: AAACCCCGAAATTTTTACT
+ *             the cycle would be 1111111122233333334
  *  For SOLiD the cycle is a more complicated mixture of ligation cycle and primer round
  */
 
@@ -78,23 +79,34 @@ public class CycleCovariate implements StandardCovariate {
         else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
             int cycle = 0;
             byte[] bases = read.getReadBases();
+
+            // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
+            // For example, AAAAAAA was probably read in two flow cycles but here we count it as one
             if( !read.getReadNegativeStrandFlag() ) { // forward direction
-                byte prevBase = bases[0];
-                for( int iii = 1; iii <= offset; iii++ ) {
-                    if( bases[iii] != prevBase ) { // This base doesn't match the previous one so it is a new cycle
-                        cycle++;
-                        prevBase = bases[iii];
-                    }
+                int iii = 0;
+                while( iii <= offset )
+                {
+                    while( iii <= offset && bases[iii] == (byte)'T' ) { iii++; }
+                    while( iii <= offset && bases[iii] == (byte)'A' ) { iii++; }
+                    while( iii <= offset && bases[iii] == (byte)'C' ) { iii++; }
+                    while( iii <= offset && bases[iii] == (byte)'G' ) { iii++; }
+                    if( iii <= offset ) { cycle++; }
+                    if( iii <= offset && !BaseUtils.isRegularBase(bases[iii]) ) { iii++; }
+
                 }
             } else { // negative direction
-                byte prevBase = bases[bases.length-1];
-                for( int iii = bases.length-2; iii >= offset; iii-- ) {
-                    if( bases[iii] != prevBase ) { // This base doesn't match the previous one so it is a new cycle
-                        cycle++;
-                        prevBase = bases[iii];
-                    }
+                int iii = bases.length-1;
+                while( iii >= offset )
+                {
+                    while( iii >= offset && bases[iii] == (byte)'T' ) { iii--; }
+                    while( iii >= offset && bases[iii] == (byte)'A' ) { iii--; }
+                    while( iii >= offset && bases[iii] == (byte)'C' ) { iii--; }
+                    while( iii >= offset && bases[iii] == (byte)'G' ) { iii--; }
+                    if( iii >= offset ) { cycle++; }
+                    if( iii >= offset && !BaseUtils.isRegularBase(bases[iii]) ) { iii--; }
                 }
             }
+
             return cycle;
         }
 

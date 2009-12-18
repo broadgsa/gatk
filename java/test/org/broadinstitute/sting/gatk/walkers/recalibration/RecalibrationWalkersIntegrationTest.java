@@ -18,8 +18,8 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12892.SLX.SRP000031.2009_06.selected.bam", "16f87c9644b27c3c3fe7a963eed45d2d" );
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "5a4873064e602e1f945f3881c6b4a3e5");
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "b039f405580ad844cd1dfd4d8ba25913" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "dbbb9c49f2e0b1f117b88eb386fb6d0f" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "42f78368cc85eb3963329ad48c244e80" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "f97ec61e98db1a580900d9f4985080d0" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -51,8 +51,8 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12892.SLX.SRP000031.2009_06.selected.bam", "d7f3e0db5ed9fefc917144a0f937d50d" );
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "1f1770363f381d06e8db9fead03ad7bb");
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "3fe6ee95cfa6155f8cc8e3e0a6330ad2" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "732267e9cd02a72b8c85238f47487509" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "563cdb25b5a963121299ad319d5ec2ae" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "dd8b61060914b75199ca5babc60248fa" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
