@@ -48,8 +48,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(fullName="supressDateInformation", doc="This flag indicates that we want to suppress the date information from the output, so that if can be diff'ed against previous evals.", required=false)
     public boolean supressDateInformation = false;
 
-    @Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
-    public int numPeopleInPool = -1;
+    //@Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
+    //public int numPeopleInPool = -1;
 
     @Argument(fullName = "samplesFile", shortName="samples", doc="When running an analysis on one or more individuals with truth data, this field provides a filepath to the listing of which samples are used (and are used to name corresponding rods with -B)", required=false)
     public String samplesFile = null;
@@ -130,14 +130,16 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
+
         if ( samplesFile != null ) {
-            if ( numPeopleInPool < 1 )
-                analyses.add(new GenotypeConcordance(samplesFile, true));
-            else
-                analyses.add(new PooledConcordance(samplesFile, true));
+            //if ( numPeopleInPool < 1 )
+            //    analyses.add(new GenotypeConcordance(samplesFile, true));
+            //else
+            analyses.add(new PooledConcordance(samplesFile, true));
         } else {
             analyses.add(new GenotypeConcordance(genotypeChipName, false));
         }
+
         analyses.add(new TransitionTranversionAnalysis());
         analyses.add(new NeighborDistanceAnalysis());
         analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
@@ -160,7 +162,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             } else if ( ! (analysis instanceof PopulationAnalysis || analysis instanceof PoolAnalysis) ) {
                 removed = analysis;
                 iter.remove();
-            } else if ( numPeopleInPool > 1 && ! ( analysis instanceof PoolAnalysis ) ) {
+//            } else if ( numPeopleInPool > 1 && ! ( analysis instanceof PoolAnalysis ) ) {
+            } else if ( analysis instanceof PoolAnalysis && samplesFile == null ) {
                 removed = analysis;
                 iter.remove();
             }

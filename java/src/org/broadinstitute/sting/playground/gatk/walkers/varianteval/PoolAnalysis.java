@@ -7,6 +7,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
  * Time: 4:39:12 PM
  * To change this template use File | Settings | File Templates.
  */
-public interface PoolAnalysis {
+public interface PoolAnalysis extends PopulationAnalysis, GenotypeAnalysis {
     
 }

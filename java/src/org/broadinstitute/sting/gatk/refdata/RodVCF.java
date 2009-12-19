@@ -10,10 +10,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -256,6 +253,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     /**
      * get the genotype
      *
+     * // todo -- WTF is this?  This is a deeply unsafe call
+     *
      * @return a map in lexigraphical order of the genotypes
      */
     public Genotype getCalledGenotype() {
@@ -300,6 +299,18 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         assertNotNull();
         return mCurrentRecord.getSampleNames();
     }
+
+//    public Map<String, Genotype> getSampleGenotypes() {
+//        String[] samples = getSampleNames();
+//        List<Genotype> genotypes = getGenotypes();
+//        HashMap<String, Genotype> map = new HashMap<String, Genotype>();
+//
+//        for ( int i = 0; i < samples.length; i++ ) {
+//            map.put(samples[i], genotypes.get(i));
+//        }
+//
+//        return map;
+//    }
 
     public Map<String, String> getInfoValues() {
         assertNotNull();
