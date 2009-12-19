@@ -19,8 +19,8 @@ import java.util.*;
  */
 @By(DataSource.REFERENCE)
 public class LocusMismatchWalker extends LocusWalker<String,Integer> implements TreeReducible<Integer> {
-    @Argument(fullName="confidentRefThreshold",doc="Set the lod score that defines confidence in ref, defaults to 4", required=false)
-    int confidentRefThreshold = 5;
+    //@Argument(fullName="confidentRefThreshold",doc="Set the lod score that defines confidence in ref, defaults to 4", required=false)
+    //int confidentRefThreshold = 5;
     @Argument(fullName="maxNumMismatches",doc="Set the maximum number of mismatches at a locus before choosing not to use it in calculation. Defaults to 1.", required=false)
     int maxNumMismatches = 100;
     @Argument(fullName="minMappingQuality", doc ="Set the alignment quality below which to ignore reads; defaults to 30", required = false)
@@ -31,6 +31,8 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     int maxDepth = 100;
     @Argument(fullName="minBaseQuality", doc = "Set the base quality score below which to ignore bases in the pileup, defaults to 20", required = false)
     int minQualityScore = 1;
+    @Argument(fullName="maxBaseQuality", doc = "Set the base quality score below which to ignore bases in the pileup, defaults to no restriction", required = false)
+    int maxQualityScore = 99;
     @Argument(fullName="minMismatches", doc = "Minimum number of mismatches at a locus before a site is displayed", required = false)
     int minMismatches = 1;
 
@@ -46,6 +48,9 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
         uac.baseModel = BaseMismatchModel.THREE_STATE;
         uac.ALL_BASES = true;
         ug.setUnifiedArgumentCollection(uac);
+
+        // print the header
+        out.printf("loc ref genotype genotypeQ depth nMM qSumMM A C G T%n");
     }
 
     public String map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
@@ -53,7 +58,9 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
 
         ReadBackedPileup pileup = context.getPileup();
         if ( locusIsUsable(tracker, ref, pileup, context) ) {
-            result = errorCounts( ref, pileup );
+            Genotype g = getGenotype(tracker, ref, context);
+            if ( g != null && g.isPointGenotype() )
+                result = errorCounts( ref, pileup, g );
         }
 
         return result;
@@ -73,11 +80,10 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     }
 
     public Integer reduceInit() {
-        out.printf("loc ref depth nMM qSumMM A C G T%n");
         return 1;
     }
 
-    private String errorCounts( ReferenceContext ref, ReadBackedPileup pileup ) {
+    private String errorCounts( ReferenceContext ref, ReadBackedPileup pileup, Genotype g ) {
         int[] baseCounts = { 0, 0, 0, 0 };
         int usableDepth = 0;
         int nMismatches = 0;
@@ -100,10 +106,20 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
             for ( char b : BaseUtils.BASES ) {
                 baseCountString += baseCounts[BaseUtils.simpleBaseToBaseIndex(b)] + " ";
             }
-            return String.format("%s %c %d %d %d %s", pileup.getLocation(), ref.getBase(), usableDepth, nMismatches, qSumMismatches, baseCountString);
+            return String.format("%s %c %10s %5.2f %d %d %d %s",
+                    pileup.getLocation(), ref.getBase(),
+                    getGenotypeClass(g, ref.getBase()), 10 * g.getNegLog10PError(), 
+                    usableDepth, nMismatches, qSumMismatches, baseCountString);
         }
 
         return null;
+    }
+
+    private String getGenotypeClass(Genotype g, char ref) {
+        if ( ! g.isVariant(ref) ) return "HOM-REF";
+        else if ( g.isHet() ) return "HET";
+        else if ( g.isHom() ) return "HOM-NONREF";
+        else throw new StingException("Unexpected genotype in getGenotypeClass " + g);
     }
 
     public boolean useRead( PileupElement e ) {
@@ -111,7 +127,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
             return false;
         } else if ( ! BaseUtils.isRegularBase( e.getBase() ) ) {
             return false;
-        } else if ( e.getQual() <= minQualityScore ) {
+        } else if ( e.getQual() <= minQualityScore || e.getQual() > maxQualityScore ) {
             return false;
         } else {
             return true;
@@ -122,8 +138,9 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
         return BaseUtils.isRegularBase(ref.getBase()) &&
                 pileup.size() >= minDepth && pileup.size() < maxDepth &&
                 notCoveredByVariations(tracker) &&
-                pileupContainsNoNs(pileup) &&
-                baseIsConfidentRef(tracker,ref,context);
+                pileupContainsNoNs(pileup);
+//        pileupContainsNoNs(pileup) &&
+//        baseIsConfidentRef(tracker,ref,context);
     }
 
     private boolean notCoveredByVariations( RefMetaDataTracker tracker ) {
@@ -147,16 +164,25 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
         return true;
     }
 
-    private boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
+    private Genotype getGenotype( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         Pair<VariationCall, List<Genotype>> calls = ug.map(tracker,ref,context);
-        if ( calls == null || calls.first == null)
-            return false;
+        if ( calls == null || calls.first == null || calls.second == null )
+            return null;
         else {
-            VariationCall var = calls.getFirst();
-            return var.isReference() && var.getNegLog10PError() > confidentRefThreshold;
-            //return  ( var.isReference() > 0 && !calls.second.get(0).isVariant(ref.getBase()) && calls.second.get(0).getNegLog10PError() > confidentRefThreshold );
+            return calls.second.get(0);
         }
     }
+
+//    private boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
+//        Pair<VariationCall, List<Genotype>> calls = ug.map(tracker,ref,context);
+//        if ( calls == null || calls.first == null)
+//            return false;
+//        else {
+//            VariationCall var = calls.getFirst();
+//            return var.isReference() && var.getNegLog10PError() > confidentRefThreshold;
+//            //return  ( var.isReference() > 0 && !calls.second.get(0).isVariant(ref.getBase()) && calls.second.get(0).getNegLog10PError() > confidentRefThreshold );
+//        }
+//    }
 
     public void onTraversalDone(Integer result) {
         ;
