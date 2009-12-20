@@ -70,7 +70,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
 
         // ignore all intervals which we've passed
         while ( loc.isPast(currentInterval) ) {
-            if ( currentIntervalIsUsed && currentInterval.getStop() - currentInterval.getStart() < maxIntervalSize) {
+            if ( currentIntervalIsUsed && (maxIntervalSize <= 0 || currentInterval.getStop() - currentInterval.getStart() <= maxIntervalSize) ) {
                 out.println(currentInterval);
                 currentIntervalIsUsed = false;
             }
@@ -106,7 +106,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void onTraversalDone( Integer value ) {
         if ( currentInterval != null && currentIntervalIsUsed &&
-             currentInterval.getStop() - currentInterval.getStart() < maxIntervalSize)
+             (maxIntervalSize <= 0 || currentInterval.getStop() - currentInterval.getStart() < maxIntervalSize) )
             out.println(currentInterval);
     }
 }
