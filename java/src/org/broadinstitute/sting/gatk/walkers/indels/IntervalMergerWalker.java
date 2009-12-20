@@ -106,7 +106,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void onTraversalDone( Integer value ) {
         if ( currentInterval != null && currentIntervalIsUsed &&
-             (maxIntervalSize <= 0 || currentInterval.getStop() - currentInterval.getStart() < maxIntervalSize) )
+             (maxIntervalSize <= 0 || currentInterval.getStop() - currentInterval.getStart() <= maxIntervalSize) )
             out.println(currentInterval);
     }
 }
