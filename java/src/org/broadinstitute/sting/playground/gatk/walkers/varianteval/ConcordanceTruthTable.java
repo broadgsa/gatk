@@ -18,18 +18,18 @@ import java.util.*;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 public class ConcordanceTruthTable {
-    private static final int TRUE_POSITIVE = 0;
-    private static final int TRUE_NEGATIVE = 1;
-    private static final int FALSE_POSITIVE = 2;
-    private static final int FALSE_NEGATIVE = 3;
-    private static final int VARIANT = 1;
+    public static final int TRUE_POSITIVE = 0;
+    public static final int TRUE_NEGATIVE = 1;
+    public static final int FALSE_POSITIVE = 2;
+    public static final int FALSE_NEGATIVE = 3;
+    public static final int VARIANT = 1;
     private static final String[] POOL_HEADERS = {"TP","TN","FP","FN"};
 
-    private static final int REF = 0;
-    private static final int VAR_HET = 1;
-    private static final int VAR_HOM = 2;
-    private static final int UNKNOWN = 3;
-    private static final int NO_CALL = 3;   // synonym
+    public static final int REF = 0;
+    public static final int VAR_HET = 1;
+    public static final int VAR_HOM = 2;
+    public static final int UNKNOWN = 3;
+    public static final int NO_CALL = 3;   // synonym
     private static final String[] TRUTH_NAMES = {"IS_REF", "IS_VAR_HET", "IS_VAR_HOM", "UNKNOWN"};
     private static final String[] CALL_NAMES = {"CALLED_REF", "CALLED_VAR_HET", "CALLED_VAR_HOM", "NO_CALL"};
 

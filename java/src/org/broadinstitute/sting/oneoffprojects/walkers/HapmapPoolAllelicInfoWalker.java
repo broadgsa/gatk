@@ -68,11 +68,11 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         long pos = loc.getStart();
         char refBase = Character.toUpperCase(ref.getBase());
         List<Pair<Genotype, Genotype>> chips = getChips(sampleNames, tracker);
-        Pair<Genotype,Pair<Integer,Integer>> alleleFreqInfo = ctt.getPooledAlleleFrequency(chips,refBase);
+        Pair<Integer,Pair<Integer,Integer>> alleleFreqInfo = ctt.getPooledAlleleFrequency(chips,refBase);
         char alternate;
-        if ( alleleFreqInfo.getFirst() != null && alleleFreqInfo.getFirst().isVariant(refBase)) {
+        if ( alleleFreqInfo.first == ConcordanceTruthTable.VARIANT ) {
             //System.out.println(refBase + " " + alleleFreqInfo.getFirst().getBases());
-            alternate = getAlternateBase(alleleFreqInfo.getFirst(),refBase);
+            alternate = getAlternateBase(chips,refBase);
 
         } else {
             return null; // early return
@@ -96,8 +96,8 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
 
         // sanity check
         if ( refBase == alternate ) {
-            if ( alleleFreqInfo.getFirst().isVariant(refBase) ) {
-                logger.warn("Called as a variant! Ref: "+ refBase +"Chip data: " + alleleFreqInfo.getFirst().getBases());
+            if ( alleleFreqInfo.first == ConcordanceTruthTable.VARIANT ) {
+                ;//logger.warn("Called as a variant! Ref: "+ refBase +"Chip data: " + alleleFreqInfo.getFirst().getBases());
             }
         }
 
@@ -105,12 +105,16 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
 
     }
 
-    public char getAlternateBase(Genotype g, char ref) {
-        char[] bases = g.getBases().toCharArray();
-        if ( Character.toUpperCase(bases[0]) != ref )
-            return bases[0];
-        else
-            return bases[1];
+    public char getAlternateBase(List<Pair<Genotype, Genotype>> chips, char ref) {
+        for ( Pair<Genotype, Genotype> chip : chips ) {
+            Genotype g = chip.first;
+            char[] bases = g.getBases().toCharArray();
+            if ( Character.toUpperCase(bases[0]) != ref )
+                return bases[0];
+            if ( Character.toUpperCase(bases[1]) != ref )
+                return bases[1];
+        }
+        return ref;
     }
 
     public PrintWriter reduce(String s, PrintWriter p) {
