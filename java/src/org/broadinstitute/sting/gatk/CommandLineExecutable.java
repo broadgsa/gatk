@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterArgumentTypeDescriptor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -96,7 +97,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return A collection of type descriptors generating implementation-dependent placeholders.
      */
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
-        return Arrays.asList( new SAMFileReaderArgumentTypeDescriptor(GATKEngine),
+        return Arrays.asList( new GenotypeWriterArgumentTypeDescriptor(GATKEngine),
+                              new SAMFileReaderArgumentTypeDescriptor(GATKEngine),
                               new SAMFileWriterArgumentTypeDescriptor(GATKEngine),
                               new OutputStreamArgumentTypeDescriptor(GATKEngine) );
     }

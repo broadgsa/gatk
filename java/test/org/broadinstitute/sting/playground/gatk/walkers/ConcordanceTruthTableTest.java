@@ -73,12 +73,12 @@ public class ConcordanceTruthTableTest extends BaseTest {
         List<Pair<Genotype,Genotype>> homNoRef = new ArrayList<Pair<Genotype,Genotype>>(1);
         homNoRef.add(new Pair<Genotype,Genotype>(hom1,null));
 
-        Pair<Genotype,Pair<Integer,Integer>> countShouldBeOne = ctt.getPooledAlleleFrequency(oneHet,'G');
-        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeTwo = ctt.getPooledAlleleFrequency(oneHom,'G');
-        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeFour = ctt.getPooledAlleleFrequency(twoHetOneHom,'G');
-        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeSix = ctt.getPooledAlleleFrequency(twoHetTwoHom,'G');
-        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeThree = ctt.getPooledAlleleFrequency(hetHomNoRef,'G');
-        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeTwoHereToo = ctt.getPooledAlleleFrequency(homNoRef, 'G');
+        Pair<Integer,Pair<Integer,Integer>> countShouldBeOne = ctt.getPooledAlleleFrequency(oneHet,'G');
+        Pair<Integer,Pair<Integer,Integer>>  countShouldBeTwo = ctt.getPooledAlleleFrequency(oneHom,'G');
+        Pair<Integer,Pair<Integer,Integer>>  countShouldBeFour = ctt.getPooledAlleleFrequency(twoHetOneHom,'G');
+        Pair<Integer,Pair<Integer,Integer>>  countShouldBeSix = ctt.getPooledAlleleFrequency(twoHetTwoHom,'G');
+        Pair<Integer,Pair<Integer,Integer>>  countShouldBeThree = ctt.getPooledAlleleFrequency(hetHomNoRef,'G');
+        Pair<Integer,Pair<Integer,Integer>>  countShouldBeTwoHereToo = ctt.getPooledAlleleFrequency(homNoRef, 'G');
 
         int expecChips = 4+4+6+7+2+1;
         int numChips = countShouldBeOne.getSecond().getSecond() + countShouldBeTwo.getSecond().getSecond() +
