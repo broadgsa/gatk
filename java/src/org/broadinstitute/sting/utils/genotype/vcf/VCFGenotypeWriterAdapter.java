@@ -36,6 +36,15 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     }
 
     /**
+     * Indicates that this is a VCF writer.
+     * @return GENOTYPE_FORMAT.VCF always.
+     */
+    @Override
+    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
+        return GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+    }
+
+    /**
      * initialize this VCF header
      *
      * @param sampleNames  the sample names

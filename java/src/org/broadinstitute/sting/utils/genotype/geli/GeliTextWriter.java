@@ -44,6 +44,15 @@ public class GeliTextWriter implements GenotypeWriter {
         mWriter.println(headerLine);
     }
 
+    /**
+     * Indicates that this is a geli writer.
+     * @return GENOTYPE_FORMAT.GELI always.
+     */
+    @Override
+    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
+        return GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
+    }
+
     public final static String headerLine = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
 
     /**

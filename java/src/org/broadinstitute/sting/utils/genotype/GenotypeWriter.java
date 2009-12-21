@@ -37,6 +37,13 @@ import java.util.List;
 public interface GenotypeWriter {
 
     /**
+     * Gets the file format of this genotype writer, to disambiguate
+     * between different forms of data required.
+     * @return Type of this GenotypeWriter.
+     */
+    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat();
+
+    /**
      * Add a genotype, given a genotype locus
      * @param call the locus to add
      */

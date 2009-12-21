@@ -45,6 +45,7 @@ import edu.mit.broad.picard.genotype.geli.GeliFileReader;
  * @version 0.1
  */
 public class GenotypeWriterStorage implements GenotypeWriter, Storage<GenotypeWriter> {
+    private final GenotypeWriterFactory.GENOTYPE_FORMAT format;
     private final File file;
     private final GenotypeWriter writer;
 
@@ -53,11 +54,22 @@ public class GenotypeWriterStorage implements GenotypeWriter, Storage<GenotypeWr
     }
 
     public GenotypeWriterStorage( GenotypeWriterStub stub, File file ) {
+        this.format = stub.getFormat();
         this.file = file;
         writer = GenotypeWriterFactory.create(stub.getFormat(), file);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
         GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());
     }
+
+    /**
+     * Reports the format of the given genotyping data, taken directly from the stub.
+     * @return The format of the genotyping file.
+     */
+    @Override
+    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
+        return format;
+    }
+    
 
     public void mergeInto( GenotypeWriter targetStream ) {
 

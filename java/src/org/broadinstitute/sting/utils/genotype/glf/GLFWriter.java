@@ -84,6 +84,15 @@ public class GLFWriter implements GenotypeWriter {
     }
 
     /**
+     * Indicates that this is a GLF writer.
+     * @return GENOTYPE_FORMAT.GLF always.
+     */
+    @Override
+    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
+        return GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
+    }
+
+    /**
      * Write out the header information for the GLF file.  The header contains
      * the magic number, the length of the header text, the text itself, the reference
      * sequence (null terminated) preceeded by it's length, and the the genomic

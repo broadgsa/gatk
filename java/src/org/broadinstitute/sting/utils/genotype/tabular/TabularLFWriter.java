@@ -39,6 +39,16 @@ public class TabularLFWriter implements GenotypeWriter {
     }
 
     /**
+     * Indicates that this is a tabular genotype writer.
+     * @return GENOTYPE_FORMAT.TABULAR always.
+     */
+    @Override
+    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
+        return GenotypeWriterFactory.GENOTYPE_FORMAT.TABULAR;
+    }
+    
+
+    /**
      * Add a genotype, given a genotype locus
      *
      * @param locus the locus to add
