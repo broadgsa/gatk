@@ -214,7 +214,7 @@ public class ParsingEngine {
             Collection<ArgumentMatch> overvaluedArguments = new ArrayList<ArgumentMatch>();
             for( ArgumentMatch argumentMatch: argumentMatches.findSuccessfulMatches() ) {
                 // Warning: assumes that definition is not null (asserted by checks above).
-                if( !argumentMatch.definition.source.isMultiValued() && argumentMatch.values().size() > 1 )
+                if( !argumentMatch.definition.isMultiValued && argumentMatch.values().size() > 1 )
                     overvaluedArguments.add(argumentMatch);
             }
 

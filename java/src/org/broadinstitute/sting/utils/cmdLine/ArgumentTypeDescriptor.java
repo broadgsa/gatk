@@ -100,11 +100,12 @@ public abstract class ArgumentTypeDescriptor {
      * @return The default definition for this argument source.
      */
     protected ArgumentDefinition createDefaultArgumentDefinition( ArgumentSource source ) {
-        return new ArgumentDefinition( source,
-                                       getFullName(source),
+        return new ArgumentDefinition( getFullName(source),
                                        getShortName(source),
                                        getDoc(source),
                                        isRequired(source),
+                                       source.isFlag(),
+                                       source.isMultiValued(),
                                        getExclusiveOf(source),
                                        getValidationRegex(source) );
     }

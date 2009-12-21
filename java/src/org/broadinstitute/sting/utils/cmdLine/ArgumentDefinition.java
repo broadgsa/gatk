@@ -52,6 +52,16 @@ public class ArgumentDefinition {
     public final boolean required;
 
     /**
+     * Is this argument a flag?  Users can't specify a value for a flag.
+     */
+    public final boolean isFlag;
+
+    /**
+     * Does this argument support multiple values (repeated "-arg value1 -arg value2"-style structures).
+     */
+    public final boolean isMultiValued;
+
+    /**
      * Is this argument exclusive of other arguments?
      */
     public final String exclusiveOf;
@@ -62,27 +72,30 @@ public class ArgumentDefinition {
     public final String validation;
 
     /**
-     * The target into which to inject arguments meeting this definition.
-     */
-    public final ArgumentSource source;
-
-    /**
      * Creates a new argument definition.
-     * @param source Source information for defining the argument.
+     * @param fullName Full name for this argument definition.
+     * @param shortName Short name for this argument definition.
+     * @param doc Doc string for this argument.
+     * @param required Whether or not this argument is required.
+     * @param isFlag Whether or not this argument should be treated as a flag.
+     * @param isMultiValued Whether or not this argument supports multiple values.
+     * @param exclusiveOf Whether this command line argument is mutually exclusive of other arguments.
+     * @param validation A regular expression for command-line argument validation.
      */
-    public ArgumentDefinition( ArgumentSource source,
-                               String fullName,
+    public ArgumentDefinition( String fullName,
                                String shortName,
                                String doc,
                                boolean required,
+                               boolean isFlag,
+                               boolean isMultiValued,
                                String exclusiveOf,
                                String validation ) {
-        this.source = source;
-
         this.fullName = fullName;
         this.shortName = shortName;
         this.doc = doc;
         this.required = required;
+        this.isFlag = isFlag;
+        this.isMultiValued = isMultiValued;
         this.exclusiveOf = exclusiveOf;
         this.validation = validation;
     }
@@ -110,6 +123,8 @@ public class ArgumentDefinition {
                Utils.equals(shortName,other.shortName) &&
                Utils.equals(doc,other.doc) &&
                required == other.required &&
+               isFlag == other.isFlag &&
+               isMultiValued == other.isMultiValued &&
                Utils.equals(exclusiveOf,other.exclusiveOf) &&
                Utils.equals(validation,other.validation);
     }

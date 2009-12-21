@@ -100,9 +100,11 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      */
 
     ArgumentMatches findMatches( ArgumentSource argumentSource ) {
+        List<ArgumentDefinition> sourceDefinitions = ArgumentTypeDescriptor.create(argumentSource.field.getType()).createArgumentDefinitions(argumentSource);
+
         ArgumentMatches matches = new ArgumentMatches();
         for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
-            if( argumentMatch.definition != null && argumentMatch.definition.source.equals( argumentSource ) )
+            if( sourceDefinitions.contains(argumentMatch.definition) )
                 matches.mergeInto( argumentMatch );
         }
         return matches;
@@ -374,6 +376,6 @@ class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @return True if definition is known to be a flag; false if not known to be a flag.
      */
     private boolean isArgumentFlag() {
-        return definition != null && definition.source.isFlag();
+        return definition != null && definition.isFlag;
     }
 }

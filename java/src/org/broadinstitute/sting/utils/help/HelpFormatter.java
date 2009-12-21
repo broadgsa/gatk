@@ -75,7 +75,7 @@ public class HelpFormatter {
                     lineFormatter.format("-%s", argumentDefinition.shortName);
                 else
                     lineFormatter.format("--%s", argumentDefinition.fullName);
-                if( !argumentDefinition.source.isFlag() )
+                if( !argumentDefinition.isFlag )
                     lineFormatter.format(" <%s>", argumentDefinition.fullName);
                 if( !argumentDefinition.required ) lineFormatter.format("]");
             }
@@ -157,7 +157,7 @@ public class HelpFormatter {
         if( argumentDefinition.shortName != null )
             formatter.format("-%s,", argumentDefinition.shortName);
         formatter.format("--%s", argumentDefinition.fullName);
-        if( !argumentDefinition.source.isFlag() )
+        if( !argumentDefinition.isFlag )
             formatter.format(" <%s>", argumentDefinition.fullName);
 
         return builder.toString();

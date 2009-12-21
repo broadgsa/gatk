@@ -110,11 +110,12 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         else
             shortName = null;
 
-        return new ArgumentDefinition( source,
-                                       fullName,
+        return new ArgumentDefinition( fullName,
                                        shortName,
                                        getDoc(source),
                                        isRequired(source),
+                                       false,
+                                       source.isMultiValued(),
                                        getExclusiveOf(source),
                                        getValidationRegex(source) );
     }
@@ -125,10 +126,11 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createBAMCompressionArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( source,
-                                       COMPRESSION_FULLNAME,
+        return new ArgumentDefinition( COMPRESSION_FULLNAME,
                                        COMPRESSION_SHORTNAME,
                                        "Compression level to use for writing BAM files",
+                                       false,
+                                       false,
                                        false,
                                        null,
                                        null );

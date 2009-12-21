@@ -112,11 +112,12 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
         else
             shortName = null;
 
-        return new ArgumentDefinition( source,
-                                       fullName,
+        return new ArgumentDefinition( fullName,
                                        shortName,
                                        getDoc(source),
                                        isRequired(source),
+                                       false,
+                                       source.isMultiValued(),
                                        getExclusiveOf(source),
                                        getValidationRegex(source) );
     }
@@ -127,10 +128,11 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createGenotypeFormatArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( source,
-                                       "variant_output_format",
+        return new ArgumentDefinition( "variant_output_format",
                                        "vf",
                                        "Format to be used to represent variants; default is VCF",
+                                       false,
+                                       false,
                                        false,
                                        null,
                                        null );
