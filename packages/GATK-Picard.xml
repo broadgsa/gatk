@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+        <!-- In order to update this file, copy GenomeAnalysisTK.xml, change the name of the
+        package and executable to GATK-Picard, and add TileCovariate to the list of dependencies.
+        Remove the AnalyzeCovariates executable. -->
 <package>
   <name>GATK-Picard</name>
   <executable>
@@ -6,11 +9,11 @@
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
     <dependencies>
       <package>org.broadinstitute.sting.gatk.filters</package>
-      <class>org.broadinstitute.sting.gatk.walkers.CountLociWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.CountReadsWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker</class>
       <!-- Quality scores recalibration -->
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
@@ -25,6 +28,7 @@
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.HomopolymerCovariate</class>
       <!-- Local realignment around indels -->
       <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>
       <class>org.broadinstitute.sting.gatk.walkers.indels.IndelIntervalWalker</class>
@@ -48,29 +52,13 @@
       <class>org.broadinstitute.sting.gatk.walkers.annotator.SpanningDeletions</class>
     </dependencies>
   </executable>
-  <executable>
-    <name>AnalyzeCovariates</name>
-    <main-class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</main-class>
-    <dependencies>
-      <!-- Recalibration analysis script -->
-      <class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PositionCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.MinimumNQSCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.MappingQualityCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PrimerRoundCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
-    </dependencies>
-  </executable>
   <resources>
     <!-- GATK sample code and build scripts -->
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/CountReadsWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/CountLociWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java</file>
+    <file>java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLociWalker.java</file>
+    <file>java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReadsWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileupWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/examples/build.xml</file>
