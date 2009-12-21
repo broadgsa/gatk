@@ -111,8 +111,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         for ( SAMRecord read : reads ) {
             if ( !read.getReadUnmappedFlag() &&
                  !read.getNotPrimaryAlignmentFlag() &&
-                 !read.getDuplicateReadFlag() &&
-                 read.getMappingQuality() != 0 &&           
+                 read.getMappingQuality() != 0 &&
                  read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START &&
 		         (allow454 || !Utils.is454Read(read)) )
                 goodReads.add(read);
@@ -121,9 +120,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         clean(goodReads, ref, loc);
-        //bruteForceClean(goodReads, ref, context.getLocation().getStart());
-        //testCleanWithDeletion();
-        //testCleanWithInsertion();
 
         if ( writer != null ) {
             // Although we can guarantee that reads will be emitted in order WITHIN an interval
@@ -257,7 +253,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             // if this doesn't match perfectly to the reference, let's try to clean it
             if ( mismatchScore > 0 ) {
                 altReads.add(aRead);
-                totalMismatchSum += mismatchScore;
+                if ( !read.getDuplicateReadFlag() )
+                    totalMismatchSum += mismatchScore;
                 aRead.setMismatchScoreToReference(mismatchScore);
                 // if it has an indel, let's see if that's the best consensus
                 if ( numBlocks == 2 )
@@ -325,7 +322,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     consensus.readIndexes.add(new Pair<Integer, Integer>(j, altAlignment.first));
 
                 //logger.debug(consensus.str +  " vs. " + toTest.getRead().getReadString() + " => " + myScore + " - " + altAlignment.first);
-                consensus.mismatchSum += myScore;
+                if ( !toTest.getRead().getDuplicateReadFlag() )
+                    consensus.mismatchSum += myScore;
             }
 
             //logger.debug(consensus.str +  " " + consensus.mismatchSum);
