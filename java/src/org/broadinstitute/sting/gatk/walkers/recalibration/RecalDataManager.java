@@ -250,8 +250,12 @@ public class RecalDataManager {
             ((GATKSAMRecord)read).setReadGroup( readGroup );
         }
 
-        if( RAC.FORCE_PLATFORM != null && !readGroup.getPlatform().equals(RAC.FORCE_PLATFORM)) {
+        if( RAC.FORCE_PLATFORM != null && (readGroup.getPlatform() == null || !readGroup.getPlatform().equals(RAC.FORCE_PLATFORM))) {
             readGroup.setPlatform( RAC.FORCE_PLATFORM );
+        }
+
+        if ( readGroup.getPlatform() == null ) {
+            readGroup.setPlatform( RAC.DEFAULT_PLATFORM );            
         }
     }
 
