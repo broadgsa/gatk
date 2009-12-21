@@ -37,6 +37,26 @@ public class VCFInfoHeaderLine extends VCFHeaderLine {
         mDescription = description;
     }
 
+    /**
+     * create a VCF info header line
+     *
+     * @param line   the header line
+     */
+    protected VCFInfoHeaderLine(String line) {
+        super("INFO", "");
+        String[] pieces = line.split(",");
+        if ( pieces.length < 4 )
+            throw new IllegalArgumentException("There are too few values in the VCF INFO header line: " + line);
+
+        mName = pieces[0];
+        mCount = Integer.valueOf(pieces[1]);
+        mType = INFO_TYPE.valueOf(pieces[2]);
+        mDescription = pieces[3];
+        // just in case there were some commas in the description
+        for (int i = 4; i < pieces.length; i++)
+            mDescription += "," + pieces[i];
+    }
+
     protected String makeStringRep() {
         return String.format("INFO=%s,%d,%s,\"%s\"", mName, mCount, mType.toString(), mDescription);
     }

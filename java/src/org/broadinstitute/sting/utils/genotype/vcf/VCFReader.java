@@ -169,9 +169,17 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                     arrayIndex++;
                 }
             } else {
-                int equals = str.indexOf("=");
-                if ( equals != -1 )
-                    metaData.add(new VCFHeaderLine(str.substring(2, equals), str.substring(equals+1)));
+                if ( str.startsWith("##INFO=") )
+                    metaData.add(new VCFInfoHeaderLine(str.substring(7)));
+                else if ( str.startsWith("##FILTER=") )
+                    metaData.add(new VCFFilterHeaderLine(str.substring(7)));
+                else if ( str.startsWith("##FORMAT=") )
+                    metaData.add(new VCFFormatHeaderLine(str.substring(7)));
+                else {
+                    int equals = str.indexOf("=");
+                    if ( equals != -1 )
+                        metaData.add(new VCFHeaderLine(str.substring(2, equals), str.substring(equals+1)));
+                }
             }
         }
 

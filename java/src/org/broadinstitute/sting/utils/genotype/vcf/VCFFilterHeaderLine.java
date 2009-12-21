@@ -26,6 +26,24 @@ public class VCFFilterHeaderLine extends VCFHeaderLine {
         mDescription = description;
     }
 
+    /**
+     * create a VCF info header line
+     *
+     * @param line   the header line
+     */
+    protected VCFFilterHeaderLine(String line) {
+        super("FILTER", "");
+        String[] pieces = line.split(",");
+        if ( pieces.length < 2 )
+            throw new IllegalArgumentException("There are too few values in the VCF FILTER header line: " + line);
+
+        mName = pieces[0];
+        mDescription = pieces[1];
+        // just in case there were some commas in the description
+        for (int i = 1; i < pieces.length; i++)
+            mDescription += "," + pieces[i];
+    }
+
     protected String makeStringRep() {
         return String.format("FILTER=%s,\"%s\"", mName, mDescription);
     }

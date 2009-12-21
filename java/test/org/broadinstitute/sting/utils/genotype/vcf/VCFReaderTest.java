@@ -10,10 +10,7 @@ import org.junit.Test;
 import org.junit.BeforeClass;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /** test the VCFReader class test */
 public class VCFReaderTest extends BaseTest {
@@ -205,6 +202,23 @@ public class VCFReaderTest extends BaseTest {
     @Test
     public void testComplexExample() {
         VCFReader reader = new VCFReader(complexFile);
+
+        // test header
+        Set<VCFHeaderLine> headerLines = reader.getHeader().getMetaData();
+        int formatCount = 0;
+        int infoCount = 0;
+        int filterCount = 0;
+        for ( VCFHeaderLine line : headerLines ) {
+            if ( line instanceof VCFFormatHeaderLine )
+                formatCount++;
+            else if ( line instanceof VCFInfoHeaderLine )
+                infoCount++;
+            else if ( line instanceof VCFFilterHeaderLine )
+                filterCount++;
+        }
+        Assert.assertEquals(3, formatCount);
+        Assert.assertEquals(4, infoCount);
+        Assert.assertEquals(0, filterCount);
 
         // record #1: test dbsnp id
         if (!reader.hasNext()) Assert.fail("The reader should have a record");
