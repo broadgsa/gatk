@@ -24,7 +24,7 @@ import cern.jet.stat.Probability;
 
 /**
  * FindContaminatingReadGroupsWalker lists read groups in a single-sample BAM file that appear
- * to be contaminants (i.e. a read group that's not actually associated with the sample) by searching
+ * to be contaminants (meaning a read group that's not actually associated with the sample) by searching
  * for evidence of systematic underperformance at likely homozygous-variant sites.
  *
  * @author Kiran Garimella
