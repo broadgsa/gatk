@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>FixBAMSortOrder</name>
+  <executable>
+    <name>GenomeAnalysisTK</name>
+    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    
+    <dependencies>
+      <class>org.broadinstitute.sting.gatk.walkers.FixBAMSortOrderTag</class>
+    </dependencies>
+  </executable>
+</package>
