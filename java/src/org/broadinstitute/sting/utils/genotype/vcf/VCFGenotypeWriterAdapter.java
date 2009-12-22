@@ -15,7 +15,7 @@ import java.util.*;
  *         <p/>
  *         Adapt the VCF writter to the genotype output system
  */
-public class VCFGenotypeWriterAdapter implements GenotypeWriter {
+public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     // our VCF objects
     private VCFWriter mWriter = null;
     private VCFHeader mHeader = null;
@@ -36,20 +36,12 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     }
 
     /**
-     * Indicates that this is a VCF writer.
-     * @return GENOTYPE_FORMAT.VCF always.
-     */
-    @Override
-    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
-        return GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-    }
-
-    /**
      * initialize this VCF header
      *
      * @param sampleNames  the sample names
      * @param headerInfo  the optional header fields
      */
+    @Override
     public void writeHeader(Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
         mSampleNames.addAll(sampleNames);
 

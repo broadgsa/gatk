@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.*;
 
@@ -21,7 +22,7 @@ import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
  *         <p/>
  *         write out the geli text file format containing genotype information
  */
-public class GeliTextWriter implements GenotypeWriter {
+public class GeliTextWriter implements GeliGenotypeWriter {
     // where we write to
     PrintWriter mWriter;
 
@@ -36,24 +37,22 @@ public class GeliTextWriter implements GenotypeWriter {
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to open file " + file.toURI());
         }
-        mWriter.println(headerLine);
     }
 
     public GeliTextWriter(PrintStream out) {
         mWriter = new PrintWriter(out);
-        mWriter.println(headerLine);
-    }
-
-    /**
-     * Indicates that this is a geli writer.
-     * @return GENOTYPE_FORMAT.GELI always.
-     */
-    @Override
-    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
-        return GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
     }
 
     public final static String headerLine = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
+
+    /**
+     * Write the file header.
+     * @param fileHeader SAM file header from which to derive the geli header.
+     */
+    public void writeHeader(final SAMFileHeader fileHeader) {
+        // ignore the SAM header; the geli text header is fixed.
+        mWriter.println(headerLine);        
+    }
 
     /**
      * Add a genotype, given a call

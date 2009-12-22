@@ -35,9 +35,10 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import java.io.File;
 import java.util.*;
 
 
@@ -52,18 +53,11 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     // control the output
-    @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
-    public File VARIANTS_FILE = null;
-
-    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "Format to be used to represent variants; default is VCF", required = false)
-    public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-
+    @Argument(doc = "File to which variants should be written", required = false)
+    public GenotypeWriter writer = null;
 
     // the model used for calculating genotypes
     private GenotypeCalculationModel gcm;
-
-    // output writer
-    private GenotypeWriter writer;
 
     // samples in input
     private Set<String> samples;
@@ -71,10 +65,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     // keep track of some metrics about our calls
     private CallMetrics callsMetrics;
 
-
     /** Enable deletions in the pileup **/
     public boolean includeReadsWithDeletionAtLoci() { return true; }
-
 
     /**
      * Sets the argument collection for the UnifiedGenotyper.
@@ -121,11 +113,23 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // for ( String sample : samples )
         //     logger.debug("SAMPLE: " + sample);
 
-        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, VAR_FORMAT);
+        GenotypeWriterFactory.GENOTYPE_FORMAT format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+        if(writer != null) {
+            if(writer instanceof VCFGenotypeWriter)
+                format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+            else if(writer instanceof GLFGenotypeWriter)
+                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
+            else if(writer instanceof GeliGenotypeWriter)
+                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
+            else
+                throw new StingException("Unsupported genotype format: " + writer.getClass().getName());
+        }
+
+        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format);
 
         // *** If we were called by another walker, then we don't ***
         // *** want to do any of the other initialization steps.  ***
-        if ( VARIANTS_FILE == null && out == null )
+        if ( writer == null )
             return;
 
         // *** If we got here, then we were instantiated by the GATK engine ***
@@ -138,11 +142,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // get the optional header fields
         Set<VCFHeaderLine> headerInfo = getHeaderInfo();
 
-        // create the output writer stream and initialize the header
-        if ( VARIANTS_FILE != null )
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, VARIANTS_FILE);
-        else
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, out);
+        // initialize the header
         GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), samples, headerInfo);
 
         callsMetrics = new CallMetrics();
@@ -152,7 +152,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // this is only applicable to VCF
-        if ( VAR_FORMAT != GenotypeWriterFactory.GENOTYPE_FORMAT.VCF )
+        if ( !(writer instanceof VCFGenotypeWriter) )
             return headerInfo;
 
         // first, the basic info
@@ -285,7 +285,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
     // Close any file writers
     public void onTraversalDone(Integer sum) {
-        writer.close();
         gcm.close();
         logger.info("Processed " + sum + " loci that are callable for SNPs");
     }

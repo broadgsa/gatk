@@ -42,7 +42,7 @@ import net.sf.samtools.SAMFileHeader;
  * @author ebanks
  * @version 0.1
  */
-public class GenotypeWriterStub implements Stub<GenotypeWriter>, GenotypeWriter {
+public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements Stub<T>, GenotypeWriter {
 
     /**
      * Engine to use for collecting attributes for the output SAM file.
@@ -56,28 +56,19 @@ public class GenotypeWriterStub implements Stub<GenotypeWriter>, GenotypeWriter 
     private final File genotypeFile;
 
     /**
-     * The file format for the output
-     */
-    private final GenotypeWriterFactory.GENOTYPE_FORMAT format;
-
-    /**
      * Connects this stub with an external stream capable of serving the
      * requests of the consumer of this stub.
      */
-    private OutputTracker outputTracker = null;
+    protected OutputTracker outputTracker = null;
 
     /**
      * Create a new stub given the requested file.
      * @param engine        GATK engine.
      * @param genotypeFile  file to (ultimately) create.
-     * @param format        file format.
      */
-    public GenotypeWriterStub( GenomeAnalysisEngine engine,
-                               File genotypeFile,
-                               GenotypeWriterFactory.GENOTYPE_FORMAT format) {
+    public GenotypeWriterStub(GenomeAnalysisEngine engine,File genotypeFile) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
-        this.format = format;
     }
 
     /**
@@ -100,9 +91,7 @@ public class GenotypeWriterStub implements Stub<GenotypeWriter>, GenotypeWriter 
      * Retrieves the format to use when creating the new file.
      * @return format to use when creating the new file.
      */
-    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
-        return format;
-    }
+    public abstract GenotypeWriterFactory.GENOTYPE_FORMAT getFormat();
 
     /**
      * Registers the given streamConnector with this stub.

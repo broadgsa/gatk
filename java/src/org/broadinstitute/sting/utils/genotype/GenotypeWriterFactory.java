@@ -22,7 +22,7 @@ import java.util.Set;
 public class GenotypeWriterFactory {
     /** available genotype writers */
     public enum GENOTYPE_FORMAT {
-        GELI, GLF, GFF, TABULAR, GELI_BINARY, VCF;
+        GELI, GLF, GFF, TABULAR, GELI_BINARY, VCF
     }
 
     /**
@@ -64,16 +64,16 @@ public class GenotypeWriterFactory {
                                    Set<String> sampleNames,
                                    Set<VCFHeaderLine> headerInfo) {
         // VCF
-        if ( writer instanceof VCFGenotypeWriterAdapter ) {
-            ((VCFGenotypeWriterAdapter)writer).writeHeader(sampleNames, headerInfo);
+        if ( writer instanceof VCFGenotypeWriter ) {
+            ((VCFGenotypeWriter)writer).writeHeader(sampleNames, headerInfo);
         }
-        // GELI BINARY
-        else if ( writer instanceof GeliAdapter ) {
-            ((GeliAdapter)writer).writeHeader(header);
+        // GELI 
+        else if ( writer instanceof GeliGenotypeWriter ) {
+            ((GeliGenotypeWriter)writer).writeHeader(header);
         }
         // GLF
-        else if ( writer instanceof GLFWriter ) {
-            ((GLFWriter)writer).writeHeader(header.toString());
+        else if ( writer instanceof GLFGenotypeWriter ) {
+            ((GLFGenotypeWriter)writer).writeHeader(header.toString());
         }        
         // nothing to do for GELI TEXT
     }

@@ -45,7 +45,7 @@ import java.util.List;
  *          single and variable length genotype calls using the provided functions.  When you've finished
  *          generating GLF records, make sure you close the file.
  */
-public class GLFWriter implements GenotypeWriter {
+public class GLFWriter implements GLFGenotypeWriter {
     // our output codec
     private final BinaryCodec outputBinaryCodec;
 
@@ -81,15 +81,6 @@ public class GLFWriter implements GenotypeWriter {
     public GLFWriter(OutputStream writeTo) {
         outputBinaryCodec = new BinaryCodec(writeTo);
         outputBinaryCodec.setOutputFileName(writeTo.toString());
-    }
-
-    /**
-     * Indicates that this is a GLF writer.
-     * @return GENOTYPE_FORMAT.GLF always.
-     */
-    @Override
-    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
-        return GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
     }
 
     /**

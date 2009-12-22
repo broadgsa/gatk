@@ -28,9 +28,7 @@ package org.broadinstitute.sting.gatk.io.storage;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
-import org.broadinstitute.sting.gatk.io.storage.SAMFileWriterStorage;
-import org.broadinstitute.sting.gatk.io.storage.Storage;
-import org.broadinstitute.sting.gatk.io.storage.OutputStreamStorage;
+import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -78,6 +76,45 @@ public class StorageFactory {
                 storage = new SAMFileWriterStorage((SAMFileWriterStub)stub,file);
             else
                 storage = new SAMFileWriterStorage((SAMFileWriterStub)stub);
+        }
+        else if(stub instanceof GenotypeWriterStub) {
+            GenotypeWriterStub genotypeWriterStub = (GenotypeWriterStub)stub;
+            if( file != null ) {
+                switch(genotypeWriterStub.getFormat()) {
+                    case GELI:
+                        storage = new GeliTextGenotypeWriterStorage(genotypeWriterStub,file);
+                        break;
+                    case GELI_BINARY:
+                        storage = new GeliBinaryGenotypeWriterStorage(genotypeWriterStub,file);
+                        break;
+                    case GLF:
+                        storage = new GLFGenotypeWriterStorage(genotypeWriterStub,file);
+                        break;
+                    case VCF:
+                        storage = new VCFGenotypeWriterStorage(genotypeWriterStub,file);
+                        break;
+                    default:
+                        throw new StingException("Unsupported genotype file format: " + genotypeWriterStub.getFormat());
+                }
+            }
+            else {
+                switch(genotypeWriterStub.getFormat()) {
+                    case GELI:
+                        storage = new GeliTextGenotypeWriterStorage(genotypeWriterStub);
+                        break;
+                    case GELI_BINARY:
+                        storage = new GeliBinaryGenotypeWriterStorage(genotypeWriterStub);
+                        break;
+                    case GLF:
+                        storage = new GLFGenotypeWriterStorage(genotypeWriterStub);
+                        break;
+                    case VCF:
+                        storage = new VCFGenotypeWriterStorage(genotypeWriterStub);
+                        break;
+                    default:
+                        throw new StingException("Unsupported genotype file format: " + genotypeWriterStub.getFormat());
+                }
+            }
         }
         else
             throw new StingException("Unsupported stub type: " + stub.getClass().getName());

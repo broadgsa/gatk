@@ -44,7 +44,7 @@ import java.util.List;
  *          Class GeliAdapter
  *          Adapts the Geli file writer to the Genotype writer interface
  */
-public class GeliAdapter implements GenotypeWriter {
+public class GeliAdapter implements GeliGenotypeWriter {
 
     // the file we're writing to
     private File writeTo = null;
@@ -62,19 +62,11 @@ public class GeliAdapter implements GenotypeWriter {
     }
 
     /**
-     * Indicates that this is a binary-format geli writer.
-     * @return GENOTYPE_FORMAT.GELI_BINARY always.
-     */
-    @Override
-    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
-        return GenotypeWriterFactory.GENOTYPE_FORMAT.GELI_BINARY;
-    }
-
-    /**
      * wrap a GeliFileWriter in the Genotype writer interface
      *
      * @param fileHeader the file header to write out
      */
+    @Override
     public void writeHeader(final SAMFileHeader fileHeader) {
         this.writer = GeliFileWriter.newInstanceForPresortedRecords(writeTo, fileHeader);
     }

@@ -82,7 +82,23 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
             }            
         }
 
-        GenotypeWriterStub stub = new GenotypeWriterStub(engine, new File(writerFileName),genotypeFormat);
+        GenotypeWriterStub stub = null;
+        switch(genotypeFormat) {
+            case GELI:
+                stub = new GeliTextGenotypeWriterStub(engine, new File(writerFileName));
+                break;
+            case GELI_BINARY:
+                stub = new GeliBinaryGenotypeWriterStub(engine, new File(writerFileName));
+                break;
+            case GLF:
+                stub = new GLFGenotypeWriterStub(engine, new File(writerFileName));
+                break;
+            case VCF:
+                stub = new VCFGenotypeWriterStub(engine, new File(writerFileName));
+                break;
+            default:
+                throw new StingException("Unable to create stub for file format " + genotypeFormat);
+        }
 
         engine.addOutput(stub);
 

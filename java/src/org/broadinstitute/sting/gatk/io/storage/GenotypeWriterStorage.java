@@ -32,11 +32,8 @@ import java.util.HashSet;
 
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.genotype.glf.*;
-import org.broadinstitute.sting.utils.genotype.geli.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.SampleUtils;
-import edu.mit.broad.picard.genotype.geli.GeliFileReader;
 
 /**
  * Provides temporary storage for GenotypeWriters.
@@ -44,74 +41,30 @@ import edu.mit.broad.picard.genotype.geli.GeliFileReader;
  * @author ebanks
  * @version 0.1
  */
-public class GenotypeWriterStorage implements GenotypeWriter, Storage<GenotypeWriter> {
-    private final GenotypeWriterFactory.GENOTYPE_FORMAT format;
-    private final File file;
-    private final GenotypeWriter writer;
+public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements GenotypeWriter, Storage<T> {
+    protected final File file;
+    protected final GenotypeWriter writer;
 
+    /**
+     * Constructs an object which will write directly into the output file provided by the stub.
+     * Intentionally delaying the writing of the header -- this should be filled in by the walker.
+     * @param stub Stub to use when constructing the output file.
+     */
     public GenotypeWriterStorage( GenotypeWriterStub stub ) {
-        this(stub, stub.getFile());   
+        this.file = stub.getFile();
+        writer = GenotypeWriterFactory.create(stub.getFormat(), file);
     }
 
+    /**
+     * Constructs an object which will redirect into a different file.
+     * @param stub Stub to use when synthesizing file / header info.
+     * @param file File into which to direct the output data.
+     */
     public GenotypeWriterStorage( GenotypeWriterStub stub, File file ) {
-        this.format = stub.getFormat();
         this.file = file;
         writer = GenotypeWriterFactory.create(stub.getFormat(), file);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
         GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());
-    }
-
-    /**
-     * Reports the format of the given genotyping data, taken directly from the stub.
-     * @return The format of the genotyping file.
-     */
-    @Override
-    public GenotypeWriterFactory.GENOTYPE_FORMAT getFormat() {
-        return format;
-    }
-    
-
-    public void mergeInto( GenotypeWriter targetStream ) {
-
-        // TODO -- This is ugly, but there is no GenotypeWriter interface since
-        // TODO -- VCFReaders need to be separated out for compatability with Tribble
-        // TODO -- and the adapters don't all implement a common interface.  Fix me.  Please.
-
-        // VCF
-        if ( targetStream instanceof VCFGenotypeWriterAdapter ) {
-            VCFReader reader = new VCFReader(file);
-            while ( reader.hasNext() )
-                ((VCFGenotypeWriterAdapter)targetStream).addRecord(reader.next());
-            reader.close();
-        }
-
-        // GELI TEXT
-        else if ( targetStream instanceof GeliTextWriter ) {
-            GeliFileReader reader = new GeliFileReader(file);
-            while ( reader.hasNext() )
-                ((GeliTextWriter)targetStream).addGenotypeLikelihoods(reader.next());
-            reader.close();
-        }
-
-        // GELI BINARY
-        else if ( targetStream instanceof GeliAdapter ) {
-            GeliFileReader reader = new GeliFileReader(file);
-            while ( reader.hasNext() )
-                ((GeliAdapter)targetStream).addGenotypeLikelihoods(reader.next());
-            reader.close();
-        }
-
-        // GLF
-        else if ( targetStream instanceof GLFWriter ) {
-            GLFReader reader = new GLFReader(file);
-            while ( reader.hasNext() ) {
-                 GLFRecord rec = reader.next();                    
-                ((GLFWriter)targetStream).addGLFRecord(rec.getContig(),(int)rec.getPosition(),rec);
-            }
-            reader.close();
-        }
-
-        file.delete();
     }
 
     public void addGenotypeCall(Genotype call) {
