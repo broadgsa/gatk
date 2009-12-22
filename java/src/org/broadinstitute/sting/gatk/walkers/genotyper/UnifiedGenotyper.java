@@ -48,7 +48,7 @@ import java.util.*;
  */
 @Reference(window=@Window(start=-20,stop=20))
 @ReadFilters({ZeroMappingQualityReadFilter.class,MappingQualityReadFilter.class,BadMateReadFilter.class})
-public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genotype>>, Integer> {
+public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genotype>>, Integer> implements TreeReducible<Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -62,8 +62,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     // samples in input
     private Set<String> samples;
 
-    // keep track of some metrics about our calls
-    private CallMetrics callsMetrics;
 
     /** Enable deletions in the pileup **/
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -144,8 +142,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
         // initialize the header
         GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), samples, headerInfo);
-
-        callsMetrics = new CallMetrics();
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
@@ -254,21 +250,20 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
     public Integer reduceInit() { return 0; }
 
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;        
+    }
+
     public Integer reduce(Pair<VariationCall, List<Genotype>> value, Integer sum) {
         // can't call the locus because of no coverage
         if ( value == null )
             return sum;
 
-        callsMetrics.nCalledBases++;
-
         // can't make a confident variant call here
         if ( value.second == null ||
                 (UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED && value.second.size() == 0) ) {
-            callsMetrics.nNonConfidentCalls++;
             return sum;
         }
-
-        callsMetrics.nConfidentCalls++;
 
         // if we have a single-sample call (single sample from PointEstimate model returns no VariationCall data)
         if ( value.first == null || (!writer.supportsMultiSample() && samples.size() <= 1) ) {
