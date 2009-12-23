@@ -89,6 +89,10 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, SAMFileWriter {
         return engine.getSAMFileHeader();    
     }
 
+    public SAMFileHeader getFileHeader() {
+        return getSAMFileHeader();
+    }
+
     /**
      * Retrieves the desired compression level for 
      * @return The current compression level.  Could be null if the user doesn't care.

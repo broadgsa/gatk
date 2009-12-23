@@ -58,6 +58,10 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
         writer.addAlignment(read);
     }
 
+    public SAMFileHeader getFileHeader() {
+        return writer.getFileHeader();
+    }
+
     public void close() {
         writer.close();
     }

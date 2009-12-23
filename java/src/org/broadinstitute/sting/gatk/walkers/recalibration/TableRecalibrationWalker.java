@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.*;
+import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -335,6 +336,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         read.setBaseQualities( recalQuals ); // Overwrite old qualities with new recalibrated qualities
         if ( read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // Save the old qualities if the tag isn't already taken in the read
             read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
+        }
+        if (read.getAttribute(SAMTag.UQ.name()) != null) {
+            // TODO - When refBases is switches to byte[], call the appropriate overload in SAM-JDK, and remove char[] overload from SAM-JDK.
+            read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, refBases, read.getAlignmentStart() - 1));
         }
 
         return read;

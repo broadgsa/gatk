@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.sam;
 
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
 
@@ -50,6 +51,13 @@ public class ArtificialSAMFileWriter implements SAMFileWriter {
 
     public void addAlignment( SAMRecord alignment ) {
         records.add(alignment);
+    }
+
+    public SAMFileHeader getFileHeader() {
+        if (records.size() > 0) {
+            return records.get(0).getHeader();
+        }
+        return null;
     }
 
     /** not much to do when we're fake */
