@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.bed;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -69,7 +70,7 @@ public class BedParserTest extends BaseTest {
     @Test
     public void testLoadBedFileOverlapping() {
         BedParser parser = new BedParser(bedFile);
-        List<GenomeLoc> location = parser.getSortedAndMergedLocations();
+        List<GenomeLoc> location = parser.getSortedAndMergedLocations(GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL);
         Assert.assertEquals(3, location.size());
     }
 }

@@ -57,7 +57,7 @@ public class GATKArgumentCollection {
     public List<File> samFiles = new ArrayList<File>();
 
     @ElementList(required = false)
-    @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually.", required=false)
+    @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually.", required = false)
     public List<String> readFilters = new ArrayList<String>();
 
     @ElementList(required = false)
@@ -136,13 +136,18 @@ public class GATKArgumentCollection {
     @Argument(fullName = "numthreads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public int numberOfThreads = 1;
 
+    /** What rule should we use when merging intervals */
+    @Element(required = false)
+    @Argument(fullName = "interval_merging", shortName = "im", doc = "What interval merging rule should we use {ALL [DEFAULT],OVERLAPPING_ONLY,NONE}.", required = false)
+    public INTERVAL_MERGING_RULE intervalMerging = INTERVAL_MERGING_RULE.ALL;
+
     /**
      * marshal the data out to a object
      *
      * @param collection the GATKArgumentCollection to load into
      * @param outputFile the file to write to
      */
-    public static void marshal( GATKArgumentCollection collection, String outputFile ) {
+    public static void marshal(GATKArgumentCollection collection, String outputFile) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         File result = new File(outputFile);
         try {
@@ -158,7 +163,7 @@ public class GATKArgumentCollection {
      * @param collection the GATKArgumentCollection to load into
      * @param outputFile the stream to write to
      */
-    public static void marshal( GATKArgumentCollection collection, PrintStream outputFile ) {
+    public static void marshal(GATKArgumentCollection collection, PrintStream outputFile) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         try {
             serializer.write(collection, outputFile);
@@ -172,7 +177,7 @@ public class GATKArgumentCollection {
      *
      * @param filename the filename to marshal from
      */
-    public static GATKArgumentCollection unmarshal( String filename ) {
+    public static GATKArgumentCollection unmarshal(String filename) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         File source = new File(filename);
         try {
@@ -188,7 +193,7 @@ public class GATKArgumentCollection {
      *
      * @param file the inputstream to marshal from
      */
-    public static GATKArgumentCollection unmarshal( InputStream file ) {
+    public static GATKArgumentCollection unmarshal(InputStream file) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         try {
             GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, file);
@@ -207,7 +212,7 @@ public class GATKArgumentCollection {
      *
      * @return true if they're equal
      */
-    public boolean equals( GATKArgumentCollection other ) {
+    public boolean equals(GATKArgumentCollection other) {
         if (other.samFiles.size() != samFiles.size()) {
             return false;
         }
@@ -260,18 +265,18 @@ public class GATKArgumentCollection {
             return false;
         }
         if (other.readMaxPileup != this.readMaxPileup) {
-             return false;
-         }
-        if (( other.filterZeroMappingQualityReads == null && this.filterZeroMappingQualityReads != null ) ||
-                ( other.filterZeroMappingQualityReads != null && !other.filterZeroMappingQualityReads.equals(this.filterZeroMappingQualityReads) )) {
             return false;
         }
-        if (( other.downsampleFraction == null && this.downsampleFraction != null ) ||
-                ( other.downsampleFraction != null && !other.downsampleFraction.equals(this.downsampleFraction) )) {
+        if ((other.filterZeroMappingQualityReads == null && this.filterZeroMappingQualityReads != null) ||
+                (other.filterZeroMappingQualityReads != null && !other.filterZeroMappingQualityReads.equals(this.filterZeroMappingQualityReads))) {
             return false;
         }
-        if (( other.downsampleCoverage == null && this.downsampleCoverage != null ) ||
-                ( other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage) )) {
+        if ((other.downsampleFraction == null && this.downsampleFraction != null) ||
+                (other.downsampleFraction != null && !other.downsampleFraction.equals(this.downsampleFraction))) {
+            return false;
+        }
+        if ((other.downsampleCoverage == null && this.downsampleCoverage != null) ||
+                (other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage))) {
             return false;
         }
         if (!other.outFileName.equals(this.outFileName)) {
@@ -286,7 +291,26 @@ public class GATKArgumentCollection {
         if (other.numberOfThreads != this.numberOfThreads) {
             return false;
         }
+        if (other.intervalMerging != this.intervalMerging) {
+            return false;
+        }
 
         return true;
     }
+
+    /**
+     * a class we use to determine the merging rules for intervals passed to the GATK
+     */
+    public enum INTERVAL_MERGING_RULE {
+        ALL, // we merge both overlapping intervals and abutting intervals
+        OVERLAPPING_ONLY, // We merge intervals that are overlapping, but NOT ones that only abut each other
+        NONE; // we merge neither overlapping or abutting intervals, the list of intervals is sorted, but not merged
+
+        public boolean check() {
+            if (this.compareTo(NONE) == 0)
+                throw new UnsupportedOperationException("We Currently do not support INTERVAL_MERGING_RULE.NONE");
+            return true;
+        }
+    }
 }
+

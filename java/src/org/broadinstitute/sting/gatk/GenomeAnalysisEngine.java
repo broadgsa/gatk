@@ -153,7 +153,7 @@ public class GenomeAnalysisEngine {
         initializeOutputStreams(my_walker, microScheduler.getOutputTracker());
 
         GenomeLocSortedSet locs = null;
-        if (argCollection.intervals != null) {
+        if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
             locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
         }
 
@@ -296,16 +296,16 @@ public class GenomeAnalysisEngine {
         for (String interval : intervals) {
             if (new File(interval).exists()) {
                 // support for the bed style interval format
-                if (interval.endsWith(".bed") || interval.endsWith(".BED")) {
-                    Utils.warnUser("Bed files are zero based half open intervals, which are converted to one based closed intervals in the GATK.  " +
-                            "Be aware that all output information and intervals are one based closed intervals.");
+                if (interval.toUpperCase().endsWith(".BED")) {
+                    Utils.warnUser("Bed files are 0 based half-open intervals, which are converted to 1-based closed intervals in the GATK.  " +
+                            "Be aware that all output information and intervals are 1-based closed intervals.");
                     BedParser parser = new BedParser(new File(interval));
-                    locs.addAll(parser.getSortedAndMergedLocations());
+                    locs.addAll(parser.getSortedAndMergedLocations(GenomeAnalysisEngine.instance.getArguments().intervalMerging));
                 } else {
-                    locs.addAll(GenomeLocParser.intervalFileToList(interval));
+                    locs.addAll(GenomeLocParser.intervalFileToList(interval,GenomeAnalysisEngine.instance.getArguments().intervalMerging));
                 }
             } else {
-                locs.addAll(GenomeLocParser.parseGenomeLocs(interval));
+                locs.addAll(GenomeLocParser.parseGenomeLocs(interval,GenomeAnalysisEngine.instance.getArguments().intervalMerging));
             }
 
         }

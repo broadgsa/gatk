@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -56,7 +57,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
 
     @Override
     public void initialize() {
-        intervals = new LinkedList<GenomeLoc>(GenomeLocParser.parseIntervals(intervalsSource));
+        intervals = new LinkedList<GenomeLoc>(GenomeLocParser.parseIntervals(intervalsSource, GenomeAnalysisEngine.instance.getArguments().intervalMerging));
         currentInterval = (intervals.size() > 0 ? intervals.removeFirst() : null);
     }
 

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.fasta;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
@@ -27,7 +28,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
     public void initialize() {
 		if ( SNP_MASK != null ) {
             logger.info("Loading SNP mask...  ");
-            mask_array = GenomeLocParser.parseIntervals(Arrays.asList(SNP_MASK)).toArray();
+            mask_array = GenomeLocParser.parseIntervals(Arrays.asList(SNP_MASK), GenomeAnalysisEngine.instance.getArguments().intervalMerging).toArray();
 		}
     }
 

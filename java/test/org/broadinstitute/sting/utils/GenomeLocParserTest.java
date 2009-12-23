@@ -1,13 +1,18 @@
 package org.broadinstitute.sting.utils;
 
 import static junit.framework.Assert.assertTrue;
+
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+
 import static org.junit.Assert.assertEquals;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
-import java.util.Arrays;
+
+import java.util.List;
 
 /**
  * @author aaron
@@ -78,17 +83,34 @@ public class GenomeLocParserTest extends BaseTest {
 
     @Test(expected = RuntimeException.class)
     public void testParseBadLocations() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;badChr:1-0");
+        GenomeLocParser.parseGenomeLocs("chr1:1-1;badChr:1-0", GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL);
     }
 
     @Test
     public void testParseGoodLocations() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;chr1:5-9");
+        GenomeLocParser.parseGenomeLocs("chr1:1-1;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL);
     }
 
     @Test(expected = RuntimeException.class)
     public void testParseGoodLocationsTooManySemiColons() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;;chr1:5-9;");
+        GenomeLocParser.parseGenomeLocs("chr1:1-1;;chr1:5-9;", GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL);
+    }
+
+    @Test
+    public void testOverlappingGoodLocationsWithAbuttingFlag() {
+        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.OVERLAPPING_ONLY);
+        assertEquals(1, locs.size());
+    }
+
+    @Test
+    public void testAbuttingGoodLocationsWithAbuttingOffFlag() {
+        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-4;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.OVERLAPPING_ONLY);
+        assertEquals(2, locs.size());
+    }
+    @Test
+    public void testAbuttingGoodLocationsWithNoneFlag() {
+        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.NONE);
+        assertEquals(2, locs.size());
     }
 
     @Test
@@ -145,7 +167,7 @@ public class GenomeLocParserTest extends BaseTest {
         long start = System.currentTimeMillis();
         List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(Arrays.asList(new String[]{"/humgen/gsa-scr1/GATK_Data/Validation_Data/bigChr1IntervalList.list"}));
         Collections.sort(parsedIntervals);
-        LinkedList<GenomeLoc> loc = new LinkedList<GenomeLoc>(GenomeLocParser.mergeOverlappingLocations(parsedIntervals));
+        LinkedList<GenomeLoc> loc = new LinkedList<GenomeLoc>(GenomeLocParser.mergeIntervalLocations(parsedIntervals));
         long stop = System.currentTimeMillis();
         logger.warn("Elapsed time = " + (stop - start));
     }*/
@@ -158,22 +180,22 @@ public class GenomeLocParserTest extends BaseTest {
         assertEquals(1, loc.getStart());
     }
 
-	@Test
+    @Test
     public void testGenomeLocParseOnlyChrome() {
-		GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1");
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1");
         assertEquals(0, loc.getContigIndex());
         assertEquals(10, loc.getStop()); // the size
         assertEquals(1, loc.getStart());
     }
-	
-	@Test(expected = StingException.class)
+
+    @Test(expected = StingException.class)
     public void testGenomeLocParseOnlyBadChrome() {
-		GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr12");
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr12");
         assertEquals(0, loc.getContigIndex());
         assertEquals(10, loc.getStop()); // the size
         assertEquals(1, loc.getStart());
     }
-	
+
     @Test(expected = StingException.class)
     public void testGenomeLocBad() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-");
@@ -181,16 +203,16 @@ public class GenomeLocParserTest extends BaseTest {
         assertEquals(10, loc.getStop()); // the size
         assertEquals(1, loc.getStart());
     }
-	
-	@Test(expected = StingException.class)
+
+    @Test(expected = StingException.class)
     public void testGenomeLocBad2() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-500-0");
         assertEquals(0, loc.getContigIndex());
         assertEquals(10, loc.getStop()); // the size
         assertEquals(1, loc.getStart());
     }
-	
-	@Test(expected = StingException.class)
+
+    @Test(expected = StingException.class)
     public void testGenomeLocBad3() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1--0");
         assertEquals(0, loc.getContigIndex());
