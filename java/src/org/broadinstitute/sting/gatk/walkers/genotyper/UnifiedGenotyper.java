@@ -40,6 +40,8 @@ import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
+import java.io.PrintWriter;
+import java.io.FileNotFoundException;
 
 
 /**
@@ -56,11 +58,18 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     @Argument(doc = "File to which variants should be written", required = false)
     public GenotypeWriter writer = null;
 
+    @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
+    public String VERBOSE = null;
+
+
+    // the verbose writer
+    private PrintWriter verboseWriter = null;
+
     // the model used for calculating genotypes
     private ThreadLocal<GenotypeCalculationModel> gcm = new ThreadLocal<GenotypeCalculationModel>();
 
     // samples in input
-    private Set<String> samples;
+    private Set<String> samples = new HashSet<String>();
 
 
     /** Enable deletions in the pileup **/
@@ -75,7 +84,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
      *
      **/
     public void setUnifiedArgumentCollection(UnifiedArgumentCollection UAC) {
-        //gcm.close();
         this.UAC = UAC;
         initialize();
     }
@@ -100,17 +108,36 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             throw new IllegalArgumentException(sb.toString());
         }
 
-        // get all of the unique sample names
-        // if we're supposed to assume a single sample
-        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-        else
-            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+        // some arguments can't be handled (for now) while we are multi-threaded
+        if ( getToolkit().getArguments().numberOfThreads > 1 ) {
+            // no ASSUME_SINGLE_SAMPLE because the IO system doesn't know how to get the sample name
+            if ( UAC.ASSUME_SINGLE_SAMPLE != null )
+                throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
+            // no VERBOSE because we'd need to deal with parallelizing the writing
+            if ( VERBOSE != null )
+                throw new IllegalArgumentException("For technical reasons, the VERBOSE argument cannot be used with multiple threads");
+        }
 
-        // print them out for debugging (need separate loop to ensure uniqueness)
-        // for ( String sample : samples )
-        //     logger.debug("SAMPLE: " + sample);
+        // get all of the unique sample names - unless we're in POOLED mode, in which case we ignore the sample names
+        if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
+            // if we're supposed to assume a single sample, do so
+            if ( UAC.ASSUME_SINGLE_SAMPLE != null )
+                samples.add(UAC.ASSUME_SINGLE_SAMPLE);
+            else
+                samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
+            // for ( String sample : samples )
+            //     logger.debug("SAMPLE: " + sample);
+        }
+
+        // initialize the verbose writer
+        if ( VERBOSE != null ) {
+            try {
+                verboseWriter = new PrintWriter(VERBOSE);
+            } catch (FileNotFoundException e) {
+                throw new StingException("Could not open file " + VERBOSE + " for writing");
+            }
+        }
         // *** If we were called by another walker, then we don't ***
         // *** want to do any of the other initialization steps.  ***
         if ( writer == null )
@@ -118,16 +145,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
         // *** If we got here, then we were instantiated by the GATK engine ***
 
-        // if we're in POOLED mode, we no longer want the sample names
-        // (although they're still stored in the gcm if needed)
-        if ( UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED )
-            samples.clear();
-
-        // get the optional header fields
-        Set<VCFHeaderLine> headerInfo = getHeaderInfo();
-
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), samples, headerInfo);
+        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), samples, getHeaderInfo());
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
@@ -177,20 +196,22 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
      * @param rawContext contextual information around the locus
      */
     public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        GenotypeWriterFactory.GENOTYPE_FORMAT format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-        if(writer != null) {
-            if(writer instanceof VCFGenotypeWriter)
-                format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-            else if(writer instanceof GLFGenotypeWriter)
-                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
-            else if(writer instanceof GeliGenotypeWriter)
-                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
-            else
-                throw new StingException("Unsupported genotype format: " + writer.getClass().getName());
+
+        // initialize the GenotypeCalculationModel for this thread if that hasn't been done yet
+        if ( gcm.get() == null ) {
+            GenotypeWriterFactory.GENOTYPE_FORMAT format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+            if ( writer != null ) {
+                if ( writer instanceof VCFGenotypeWriter )
+                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+                else if ( writer instanceof GLFGenotypeWriter )
+                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
+                else if ( writer instanceof GeliGenotypeWriter )
+                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
+                else
+                    throw new StingException("Unsupported genotype format: " + writer.getClass().getName());
+            }
+            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format, verboseWriter));
         }
-        
-        if(gcm.get() == null)
-            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format));
 
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
@@ -281,23 +302,9 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
     // Close any file writers
     public void onTraversalDone(Integer sum) {
-        //gcm.close();
+        if ( verboseWriter != null )
+            verboseWriter.close();
+
         logger.info("Processed " + sum + " loci that are callable for SNPs");
     }
-
-    /**
-     * A class to keep track of some basic metrics about our calls
-     */
-    protected class CallMetrics {
-        long nConfidentCalls = 0;
-        long nNonConfidentCalls = 0;
-        long nCalledBases = 0;
-
-        CallMetrics() {}
-
-        public String toString() {
-            return String.format("UG: %d confident and %d non-confident calls were made at %d bases",
-                    nConfidentCalls, nNonConfidentCalls, nCalledBases);
-        }
-    }      
 }

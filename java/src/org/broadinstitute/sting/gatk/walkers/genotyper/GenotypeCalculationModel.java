@@ -50,11 +50,13 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param logger        logger
      * @param UAC           unified arg collection
      * @param outputFormat  output format
+     * @param verboseWriter verbose writer
      */
     protected void initialize(Set<String> samples,
                               Logger logger,
                               UnifiedArgumentCollection UAC,
-                              GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat) {
+                              GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
+                              PrintWriter verboseWriter) {
         this.samples = new TreeSet<String>(samples);
         this.logger = logger;
         baseModel = UAC.baseModel;
@@ -66,23 +68,13 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         POOL_SIZE = UAC.POOLSIZE;
         CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
         MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
-        if ( UAC.VERBOSE != null ) {
-            try {
-                verboseWriter = new PrintWriter(UAC.VERBOSE);
-                initializeVerboseWriter(verboseWriter);
-            } catch (FileNotFoundException e) {
-                throw new StingException("Could not open file " + UAC.VERBOSE + " for writing");
-            }
-        }
         REPORT_SLOD = ! UAC.NO_SLOD;
+        this.verboseWriter = verboseWriter;
+        if ( verboseWriter != null )
+            initializeVerboseWriter(verboseWriter);
     }
 
     protected void initializeVerboseWriter(PrintWriter writer) { };
-
-    public void close() {
-        if ( verboseWriter != null )
-            verboseWriter.close();
-    }
 
     /**
      * Must be overridden by concrete subclasses

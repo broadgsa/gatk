@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.apache.log4j.Logger;
 
 import java.util.Set;
+import java.io.PrintWriter;
 
 
 public class GenotypeCalculationModelFactory {
@@ -55,7 +56,8 @@ public class GenotypeCalculationModelFactory {
     public static GenotypeCalculationModel makeGenotypeCalculation(Set<String> samples,
                                                                    Logger logger,
                                                                    UnifiedArgumentCollection UAC,
-                                                                   GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat) {
+                                                                   GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
+                                                                   PrintWriter verboseWriter) {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
             case EM_POINT_ESTIMATE:
@@ -70,7 +72,7 @@ public class GenotypeCalculationModelFactory {
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
 
-        gcm.initialize(samples, logger, UAC, outputFormat);
+        gcm.initialize(samples, logger, UAC, outputFormat, verboseWriter);
         return gcm;
     }
 }

@@ -50,9 +50,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "output_all_callable_bases", shortName = "all_bases", doc = "Should we output all callable bases?", required = false)
     public boolean ALL_BASES = false;
 
-    @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
-    public String VERBOSE = null;
-
     @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
 

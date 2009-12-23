@@ -48,8 +48,9 @@ public class AlleleBalance extends StandardVariantAnnotation {
             int aCount = Utils.countOccurrences(a, bases);
             int bCount = Utils.countOccurrences(b, bases);
 
-            refCount += a == ref.getBase() ? aCount : bCount;
-            altCount += a == ref.getBase() ? bCount : aCount;
+            // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
+            refCount += genotype.getNegLog10PError() * (a == ref.getBase() ? aCount : bCount);
+            altCount += genotype.getNegLog10PError() * (a == ref.getBase() ? bCount : aCount);
         }
 
         // sanity check
