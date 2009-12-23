@@ -60,16 +60,17 @@ public class CycleCovariate implements StandardCovariate {
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
 
+        int cycle = 0;
+
         //-----------------------------
         // ILLUMINA
         //-----------------------------
 
         if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) ) {
-            int cycle = offset;
+            cycle = offset;
 	        if( read.getReadNegativeStrandFlag() ) {
 	            cycle = read.getReadLength() - (offset + 1);
 	        }
-	        return cycle;
         }
 
         //-----------------------------
@@ -77,7 +78,6 @@ public class CycleCovariate implements StandardCovariate {
         //-----------------------------
 
         else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
-            int cycle = 0;
             byte[] bases = read.getReadBases();
 
             // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
@@ -106,8 +106,6 @@ public class CycleCovariate implements StandardCovariate {
                     if( iii >= offset && !BaseUtils.isRegularBase(bases[iii]) ) { iii--; }
                 }
             }
-
-            return cycle;
         }
 
         //-----------------------------
@@ -120,7 +118,7 @@ public class CycleCovariate implements StandardCovariate {
 	        if( read.getReadNegativeStrandFlag() ) {
 	            pos = read.getReadLength() - (offset + 1);
 	        }
-        	return pos / 5; // integer division
+        	cycle = pos / 5; // integer division
         }
 
         //-----------------------------
@@ -142,6 +140,13 @@ public class CycleCovariate implements StandardCovariate {
             read.getReadGroup().setPlatform( defaultPlatform );
             return getValue( read, offset ); // a recursive call
         }
+
+        // TODO -- Ryan: sanity check me [EB]
+        // differentiate between first and second of pair
+        if ( read.getReadPairedFlag() && read.getSecondOfPairFlag() )
+            cycle *= -1;
+
+        return cycle;
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
