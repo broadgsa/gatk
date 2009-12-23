@@ -57,7 +57,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     public GenotypeWriter writer = null;
 
     // the model used for calculating genotypes
-    private GenotypeCalculationModel gcm;
+    private ThreadLocal<GenotypeCalculationModel> gcm = new ThreadLocal<GenotypeCalculationModel>();
 
     // samples in input
     private Set<String> samples;
@@ -75,7 +75,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
      *
      **/
     public void setUnifiedArgumentCollection(UnifiedArgumentCollection UAC) {
-        gcm.close();
+        //gcm.close();
         this.UAC = UAC;
         initialize();
     }
@@ -110,20 +110,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // print them out for debugging (need separate loop to ensure uniqueness)
         // for ( String sample : samples )
         //     logger.debug("SAMPLE: " + sample);
-
-        GenotypeWriterFactory.GENOTYPE_FORMAT format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-        if(writer != null) {
-            if(writer instanceof VCFGenotypeWriter)
-                format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-            else if(writer instanceof GLFGenotypeWriter)
-                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
-            else if(writer instanceof GeliGenotypeWriter)
-                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
-            else
-                throw new StingException("Unsupported genotype format: " + writer.getClass().getName());
-        }
-
-        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format);
 
         // *** If we were called by another walker, then we don't ***
         // *** want to do any of the other initialization steps.  ***
@@ -191,6 +177,21 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
      * @param rawContext contextual information around the locus
      */
     public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+        GenotypeWriterFactory.GENOTYPE_FORMAT format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+        if(writer != null) {
+            if(writer instanceof VCFGenotypeWriter)
+                format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+            else if(writer instanceof GLFGenotypeWriter)
+                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
+            else if(writer instanceof GeliGenotypeWriter)
+                format = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
+            else
+                throw new StingException("Unsupported genotype format: " + writer.getClass().getName());
+        }
+        
+        if(gcm.get() == null)
+            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format));
+
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
@@ -218,7 +219,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
+        Pair<VariationCall, List<Genotype>> call = gcm.get().calculateGenotype(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
         // annotate the call, if possible
         if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
@@ -280,7 +281,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
     // Close any file writers
     public void onTraversalDone(Integer sum) {
-        gcm.close();
+        //gcm.close();
         logger.info("Processed " + sum + " loci that are callable for SNPs");
     }
 

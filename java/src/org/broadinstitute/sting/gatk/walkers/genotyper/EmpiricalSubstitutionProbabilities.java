@@ -48,17 +48,17 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         }
     }
 
-    private static SAMRecord lastReadForPL = null;
-    private static SequencerPlatform plOfLastRead = null;
+    private static ThreadLocal<SAMRecord> lastReadForPL = new ThreadLocal<SAMRecord>();
+    private static ThreadLocal<SequencerPlatform> plOfLastRead = new ThreadLocal<SequencerPlatform>();
     public static SequencerPlatform getReadSequencerPlatform( SAMRecord read ) {
-        if ( lastReadForPL != read ) {
-            lastReadForPL = read;
+        if ( lastReadForPL.get() != read ) {
+            lastReadForPL.set(read);
             SAMReadGroupRecord readGroup = read.getReadGroup();
             final String platformName = readGroup == null ? null : readGroup.getPlatform();
-            plOfLastRead = standardizeSequencerPlatform(platformName);
+            plOfLastRead.set(standardizeSequencerPlatform(platformName));
         }
 
-        return plOfLastRead;
+        return plOfLastRead.get();
     }
 
     public int getReadSequencerPlatformIndex( SAMRecord read ) {
