@@ -310,17 +310,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if( platform.equalsIgnoreCase("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
             originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases );
         }
-                
-        int startPos = 1;
-        int stopPos = read.getReadLength();
-
-        if( read.getReadNegativeStrandFlag() ) { // DinucCovariate is responsible for getting the complement base if needed
-            startPos = 0;
-            stopPos = read.getReadLength() - 1;
-        }
 
         // For each base in the read
-        for( int iii = startPos; iii < stopPos; iii++ ) { // Skip first or last base because there is no dinuc depending on the direction of the read
+        int readLength = read.getReadLength();
+        for( int iii = 0; iii < readLength; iii++ ) {
 
             // Get the covariate values which make up the key
             for( Covariate covariate : requestedCovariates ) {

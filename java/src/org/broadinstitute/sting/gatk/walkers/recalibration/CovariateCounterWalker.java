@@ -258,7 +258,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             SAMRecord read;
             int offset;
             byte refBase;
-            byte prevBase;
             byte[] bases;
 
             // For each read at this locus
@@ -269,39 +268,29 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 RecalDataManager.parseSAMRecord( read, RAC );
                 RecalDataManager.parseColorSpace( read );
 
-                // Skip first and last base because there is no dinuc
-                // BUGBUG: Technically we only have to skip the first base on forward reads and the last base on negative strand reads. Change after passing old integration tests.
-                if( offset > 0 && offset < read.getReadLength() - 1) {
-                    // Skip if base quality is zero
-                    if( read.getBaseQualities()[offset] > 0 ) {
+                // Skip if base quality is zero
+                if( read.getBaseQualities()[offset] > 0 ) {
 
-                        bases = read.getReadBases();
-                        refBase = (byte)ref.getBase();
-                        prevBase = bases[offset - 1];
+                    bases = read.getReadBases();
+                    refBase = (byte)ref.getBase();
 
-                        // DinucCovariate is responsible for getting the complement bases if needed
-                        if( read.getReadNegativeStrandFlag() ) {
-                            prevBase = bases[offset + 1];
-                        }
+                    // Skip if this base is an 'N' or etc.
+                    // BUGBUG: For DinucCovariate we should use previous reference base, not the previous base in this read.
+                    if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
-                        // Skip if this base or the previous one was an 'N' or etc.
-                        // BUGBUG: For DinucCovariate we should use previous reference base, not the previous base in this read.
-                        if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
+                        // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
+                        if( !read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
 
-                            // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                            if( !read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
+                            // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                            updateDataFromRead( read, offset, refBase );
 
-                                // This base finally passed all the checks for a good base, so add it to the big data hashmap
-                                updateDataFromRead( read, offset, refBase );
-
-                            } else { // calculate SOLID reference insertion rate
-                                if( ref.getBase() == (char)bases[offset] ) {
-                                    solidInsertedReferenceBases++;
-                                } else {
-                                    otherColorSpaceInconsistency++;
-                                }
+                        } else { // calculate SOLID reference insertion rate
+                            if( ref.getBase() == (char)bases[offset] ) {
+                                solidInsertedReferenceBases++;
+                            } else {
+                                otherColorSpaceInconsistency++;
                             }
-                        } 
+                        }
                     }
                 }
             }
@@ -380,7 +369,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         
         // Loop through the list of requested covariates and pick out the value from the read, offset, and reference
         for( Covariate covariate : requestedCovariates ) {
-        	key.add( covariate.getValue( read, offset ) );
+            key.add(covariate.getValue( read, offset ));
         }
 
     	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap

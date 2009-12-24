@@ -468,8 +468,9 @@ public class RecalDataManager {
      * @return Returns true if the base is inconsistent with the color space
      */
     public static boolean isInconsistentColorSpace( final SAMRecord read, final int offset ) {
-        if( read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) != null ) {
-            byte[] colorSpace = ((byte[])read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG));
+        Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG);
+        if( attr != null ) {
+            byte[] colorSpace = (byte[])attr;
             return colorSpace[offset] != 0;
         } else {
             return false;

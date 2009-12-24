@@ -141,7 +141,6 @@ public class CycleCovariate implements StandardCovariate {
             return getValue( read, offset ); // a recursive call
         }
 
-        // TODO -- Ryan: sanity check me [EB]
         // differentiate between first and second of pair
         if ( read.getReadPairedFlag() && read.getSecondOfPairFlag() )
             cycle *= -1;

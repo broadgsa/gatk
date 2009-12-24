@@ -42,6 +42,9 @@ import net.sf.samtools.SAMRecord;
 
 public class DinucCovariate implements StandardCovariate {
 
+    private static final byte NO_CALL = (byte)'N';
+    private static final Dinuc NO_DINUC = new Dinuc(NO_CALL, NO_CALL);
+
     HashMap<Integer, Dinuc> dinucHashMap;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
@@ -53,6 +56,8 @@ public class DinucCovariate implements StandardCovariate {
                 dinucHashMap.put( Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2) ); // This might seem silly, but Strings are too slow
             }
         }
+        // add the "no dinuc" entry too
+        dinucHashMap.put( Dinuc.hashBytes(NO_CALL, NO_CALL), NO_DINUC);
     }
 
     // Used to pick out the covariate's value from attributes of the read
@@ -63,12 +68,23 @@ public class DinucCovariate implements StandardCovariate {
         byte[] bases = read.getReadBases();
         // If this is a negative strand read then we need to reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
+            // no dinuc at the beginning of the read
+            if( offset == bases.length-1 )
+                return NO_DINUC;
             base = (byte)BaseUtils.simpleComplement( (char)(bases[offset]) );
             prevBase = (byte)BaseUtils.simpleComplement( (char)(bases[offset + 1]) );
         } else {
+            // no dinuc at the beginning of the read
+            if( offset == 0 )
+                return NO_DINUC;
             base = bases[offset];
             prevBase = bases[offset - 1];
         }
+
+        // make sure the previous base is good
+        if( !BaseUtils.isRegularBase(prevBase) )
+            return NO_DINUC;
+        
         return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
     }
 
