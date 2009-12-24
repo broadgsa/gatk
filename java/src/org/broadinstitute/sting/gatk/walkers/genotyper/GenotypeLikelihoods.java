@@ -328,7 +328,7 @@ public class GenotypeLikelihoods implements Cloneable {
         return 1;
     }
 
-    static GenotypeLikelihoods[][][][][][] CACHE = new GenotypeLikelihoods[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
+    static GenotypeLikelihoods[][][][][][] CACHE = new GenotypeLikelihoods[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY][2];
 
     private boolean inCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         return getCache(CACHE, observedBase, qualityScore, ploidy, read) != null;

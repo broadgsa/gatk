@@ -77,7 +77,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
     static double[][][][][][][][] CACHE = null;
     static int N_CACHED = 0;
     private static void makeCache(int pool_size) {
-        CACHE = new double[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][BaseUtils.BASES.length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][2][2 * pool_size+1];
+        CACHE = new double[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][BaseUtils.BASES.length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][2][2 * pool_size+1];
     }
 
     protected void setCache( int refIndex, int altIndex, int nAltAlleles, char base, byte qual, SAMRecord read, double val ) {

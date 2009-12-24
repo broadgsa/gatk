@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils;
 
+import net.sf.samtools.SAMUtils;
+
 /**
  * QualityUtils is a static class (no instantiation allowed!) with some utility methods for manipulating
  * quality scores.
@@ -7,7 +9,7 @@ package org.broadinstitute.sting.utils;
  * @author Kiran Garimella
  */
 public class QualityUtils {
-    public final static byte MAX_QUAL_SCORE = 63;
+    public final static byte MAX_QUAL_SCORE = SAMUtils.MAX_PHRED_SCORE;
     public final static double MIN_REASONABLE_ERROR = 0.0001;
     public final static byte MAX_REASONABLE_Q_SCORE = 40;
 
