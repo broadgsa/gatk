@@ -274,12 +274,12 @@ public class RecalDataManager {
                     if( read.getReadNegativeStrandFlag() ) {
                         readBases = BaseUtils.simpleReverseComplement( read.getReadBases() );
                     }
-                    byte[] inconsistency = new byte[readBases.length];
+                    int[] inconsistency = new int[readBases.length];
                     int iii;
                     byte prevBase = (byte) colorSpace[0]; // The sentinel
                     for( iii = 0; iii < readBases.length; iii++ ) {
                         byte thisBase = (byte)getNextBaseFromColor( (char)prevBase, colorSpace[iii + 1] );
-                        inconsistency[iii] = (byte)( thisBase == readBases[iii] ? 0 : 1 );
+                        inconsistency[iii] = ( thisBase == readBases[iii] ? 0 : 1 );
                         prevBase = readBases[iii];
                     }
                     read.setAttribute( RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency );
@@ -469,7 +469,7 @@ public class RecalDataManager {
      */
     public static boolean isInconsistentColorSpace( final SAMRecord read, final int offset ) {
         if( read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) != null ) {
-            byte[] colorSpace = ((byte[])read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG));
+            int[] colorSpace = ((int[])read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG));
             return colorSpace[offset] != 0;
         } else {
             return false;
