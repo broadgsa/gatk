@@ -30,6 +30,11 @@ public class HardyWeinberg implements VariantAnnotation {
         for ( Genotype genotype : genotypes ) {
             if ( genotype.isNoCall() )
                 continue;
+
+            // TODO - fix me:
+            // Right now we just ignore genotypes that are not confident, but this throws off
+            //  our HW ratios.  More analysis is needed to determine the right thing to do when
+            //  the genotyper cannot decide whether a given sample is het or hom var.
             if ( genotype.getNegLog10PError() < MIN_NEG_LOG10_PERROR )
                 continue;
 
@@ -41,8 +46,11 @@ public class HardyWeinberg implements VariantAnnotation {
                 homCount++;
         }
 
+        if ( refCount + hetCount + homCount == 0)
+            return null;
+
         double pvalue = HardyWeinbergCalculation.hwCalculate(refCount, hetCount, homCount);
-        System.out.println(refCount + " " + hetCount + " " + homCount + " " + pvalue);
+        //System.out.println(refCount + " " + hetCount + " " + homCount + " " + pvalue);
         return String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue));
     }
 
