@@ -71,6 +71,7 @@ public class VCFWriter {
                 for (String field : header.getGenotypeSamples()) b.append(field + FIELD_SEPERATOR);
             }
             mWriter.write(b.toString() + "\n");
+            mWriter.flush();  // necessary so that writing to an output stream will work
         }
         catch (IOException e) {
             throw new RuntimeException("IOException writing the VCF header", e);
@@ -89,6 +90,7 @@ public class VCFWriter {
         String vcfString = record.toStringEncoding(mHeader);
         try {
             mWriter.write(vcfString + "\n");
+            mWriter.flush();  // necessary so that writing to an output stream will work
         } catch (IOException e) {
             throw new RuntimeException("Unable to write the VCF object to a file");
         }

@@ -130,6 +130,13 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             //     logger.debug("SAMPLE: " + sample);
         }
 
+        // set up the writer manually if it needs to use the output stream
+        if ( writer == null && out != null ) {
+            logger.warn("For technical reasons, VCF format must be used when writing to standard out.");
+            logger.warn("Specify an output file if you would like to use a different output format.");
+            writer = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.VCF, out);
+        }
+
         // initialize the verbose writer
         if ( VERBOSE != null ) {
             try {

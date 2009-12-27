@@ -52,6 +52,7 @@ public class GeliTextWriter implements GeliGenotypeWriter {
     public void writeHeader(final SAMFileHeader fileHeader) {
         // ignore the SAM header; the geli text header is fixed.
         mWriter.println(headerLine);        
+        mWriter.flush();  // necessary so that writing to an output stream will work
     }
 
     /**
@@ -102,10 +103,12 @@ public class GeliTextWriter implements GeliGenotypeWriter {
                                       posteriors[7],
                                       posteriors[8],
                                       posteriors[9]));
+        mWriter.flush();  // necessary so that writing to an output stream will work
     }
 
     public void addGenotypeLikelihoods(GenotypeLikelihoods gl) {
         mWriter.println(gl.toString());
+        mWriter.flush();  // necessary so that writing to an output stream will work
     }
 
     /**
@@ -119,6 +122,7 @@ public class GeliTextWriter implements GeliGenotypeWriter {
 
     /** finish writing, closing any open files. */
     public void close() {
+        mWriter.flush();
         mWriter.close();
     }
 
