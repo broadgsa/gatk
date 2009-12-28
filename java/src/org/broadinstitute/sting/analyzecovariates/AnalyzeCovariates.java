@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.NHashMap;
 
 import java.util.ArrayList;
 import java.util.List;
