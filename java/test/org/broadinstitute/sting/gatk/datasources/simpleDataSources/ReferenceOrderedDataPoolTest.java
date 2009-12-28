@@ -32,8 +32,6 @@ import java.io.FileNotFoundException;
 
 public class ReferenceOrderedDataPoolTest extends BaseTest {
 
-    private static File sequenceFile = new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta");
-
     private ReferenceOrderedData<? extends ReferenceOrderedDatum> rod = null;
 
     private final GenomeLoc testSite1 = GenomeLocParser.createGenomeLoc("chrM",10);
@@ -42,6 +40,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
 
     @BeforeClass
     public static void init() throws FileNotFoundException {
+        File sequenceFile = new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta");
         GenomeLocParser.setupRefContigOrdering(new IndexedFastaSequenceFile(sequenceFile));
         TabularROD.setDelimiter(TabularROD.DEFAULT_DELIMITER, TabularROD.DEFAULT_DELIMITER_REGEX);
     }
