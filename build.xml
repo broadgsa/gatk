@@ -279,12 +279,14 @@
     <property name="test.classes" value="${build.dir}/testclasses"/>
     <property name="test.output" value="${dist.dir}/test"/>
     <property name="test.sources" value="java/test"/>
+    <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
+    <property name="test.maxmemory" value="2g"/>
 
     <!-- TEST -->
     <target name="test" depends="test.compile,agent" description="Run unit tests">
         <mkdir dir="${report}"/>
         <echo message="Sting: Running test cases!"/>
-        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
+        <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
             <jvmarg value="-javaagent:${build.dir}/TestAgent.jar"/>
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
@@ -309,7 +311,7 @@
             description="Run the long integration unit tests">
         <mkdir dir="${report}"/>
         <echo message="Sting: Running integration test cases!"/>
-        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
+        <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
                 <path refid="runtime.dependencies"/>
