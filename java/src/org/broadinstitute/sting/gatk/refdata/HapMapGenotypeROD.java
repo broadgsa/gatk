@@ -16,7 +16,9 @@ public class HapMapGenotypeROD extends TabularROD
 	{
 		//System.out.printf("chrom: %s; pos: %s\n", this.get("chrom"), this.get("pos"));
        
-		return GenomeLocParser.createGenomeLoc(this.get("chrom").replaceAll("chr", ""), Long.parseLong(this.get("pos")));
+		// For converting from Hg18 to b36 format:
+        // return GenomeLocParser.createGenomeLoc(this.get("chrom").replaceAll("chr", ""), Long.parseLong(this.get("pos")));
+        return GenomeLocParser.createGenomeLoc(this.get("chrom"), Long.parseLong(this.get("pos")));
     }
 
 	public String[] getSampleIDs()
