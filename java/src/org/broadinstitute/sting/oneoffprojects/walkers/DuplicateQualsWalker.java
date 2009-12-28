@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers.duplicates;
+package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.duplicates.DuplicateComp;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 class MismatchCounter {
     long nObs = 0;
@@ -160,41 +161,40 @@ public class DuplicateQualsWalker extends DuplicateWalker<List<DuplicateComp>, Q
     }
 
     // Print out data for regression
-    public List<DuplicateComp> map(GenomeLoc loc, byte[] refBases, AlignmentContext context,
-                                   List<SAMRecord> uniqueReads,
-                                   List<SAMRecord> duplicateReads) {
+    public List<DuplicateComp> map(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets ) {
         //logger.info(String.format("%s has %d duplicates and %d non-duplicates", loc, duplicateReads.size(), uniqueReads.size()));
         List<DuplicateComp> pairwiseComps = new ArrayList<DuplicateComp>();
-        
-        if ( ! ACTUALLY_DO_WORK )
-            return pairwiseComps;
 
-        if ( COMBINE_QUALS ) {
-            Pair<SAMRecord, SAMRecord> combinedReads = DupUtils.combinedReadPair( duplicateReads );
-            if ( combinedReads != null ) {
-                SAMRecord combined1 = combinedReads.first;
-                SAMRecord combined2 = combinedReads.second;
-
-                if ( comparePairToSingleton )
-                    pairwiseComps = addPairwiseMatches( pairwiseComps, combined1, duplicateReads.get(2), uniqueReads );
-                else
-                    pairwiseComps = addPairwiseMatches( pairwiseComps, combined1, combined2, uniqueReads );
-            }
-        } else {
-            int nComparisons = 0;
-            for ( SAMRecord read1 : duplicateReads ) {
-                for ( SAMRecord read2 : duplicateReads ) {
-                    if ( read1.hashCode() < read2.hashCode() && DupUtils.usableDuplicate(read1, read2) ) {
-                        // the hashcode insures we don't do A vs. B and B vs. A
-                        //System.out.printf("Comparing %s against %s%n", read1, read2);
-                        nComparisons++;
-                        pairwiseComps = addPairwiseMatches( pairwiseComps, read1, read2, uniqueReads );
-                        if ( nComparisons > MAX_PAIRSIZE_COMPS_PER_DUPLICATE_SET )
-                            break;
-                    }
-                }
-            }
-        }
+        // todo -- fixme -- the logic here is all wrong given new interface        
+//        if ( ! ACTUALLY_DO_WORK )
+//            return pairwiseComps;
+//
+//        if ( COMBINE_QUALS ) {
+//            Pair<SAMRecord, SAMRecord> combinedReads = DupUtils.combinedReadPair( duplicateReads );
+//            if ( combinedReads != null ) {
+//                SAMRecord combined1 = combinedReads.first;
+//                SAMRecord combined2 = combinedReads.second;
+//
+//                if ( comparePairToSingleton )
+//                    pairwiseComps = addPairwiseMatches( pairwiseComps, combined1, duplicateReads.get(2), uniqueReads );
+//                else
+//                    pairwiseComps = addPairwiseMatches( pairwiseComps, combined1, combined2, uniqueReads );
+//            }
+//        } else {
+//            int nComparisons = 0;
+//            for ( SAMRecord read1 : duplicateReads ) {
+//                for ( SAMRecord read2 : duplicateReads ) {
+//                    if ( read1.hashCode() < read2.hashCode() && DupUtils.usableDuplicate(read1, read2) ) {
+//                        // the hashcode insures we don't do A vs. B and B vs. A
+//                        //System.out.printf("Comparing %s against %s%n", read1, read2);
+//                        nComparisons++;
+//                        pairwiseComps = addPairwiseMatches( pairwiseComps, read1, read2, uniqueReads );
+//                        if ( nComparisons > MAX_PAIRSIZE_COMPS_PER_DUPLICATE_SET )
+//                            break;
+//                    }
+//                }
+//            }
+//        }
 
         return pairwiseComps;
     }

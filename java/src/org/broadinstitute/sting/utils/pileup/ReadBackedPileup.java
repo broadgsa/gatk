@@ -39,6 +39,13 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         this(loc, readsOffsets2Pileup(reads, offsets));
     }
 
+    /**
+     * Create a new version of a read backed pileup at loc without any aligned reads
+     *
+     */
+     public ReadBackedPileup(GenomeLoc loc ) {
+        this(loc, new ArrayList<PileupElement>(0));
+    }
 
     /**
      * Create a new version of a read backed pileup at loc, using the reads and their corresponding

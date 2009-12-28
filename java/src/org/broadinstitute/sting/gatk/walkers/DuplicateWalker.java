@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.List;
+import java.util.Set;
 
 import net.sf.samtools.SAMRecord;
 
@@ -17,9 +18,7 @@ import net.sf.samtools.SAMRecord;
 @Requires({DataSource.READS,DataSource.REFERENCE})
 public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
-    public boolean filter(GenomeLoc loc, byte[] refBases, AlignmentContext context,
-                          List<SAMRecord> uniqueReads,
-                          List<SAMRecord> duplicateReads) {
+    public boolean filter(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets ) {
         return true;    // We are keeping all the reads
     }
 
@@ -31,9 +30,14 @@ public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapTyp
      */
     public boolean mapUniqueReadsTooP() { return false; }
 
-    public abstract MapType map(GenomeLoc loc, byte[] refBases, AlignmentContext context,
-                                List<SAMRecord> uniqueReads,
-                                List<SAMRecord> duplicateReads);
+    /**
+     * Called by the traversal engine to decide whether to call map() at loci without duplicate reads
+     *
+     * @return true if you want to see non duplicates during the traversal
+     */
+    public boolean mapAtLociWithoutDuplicates() { return true; }
+    
+    public abstract MapType map(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets );
 
     // Given result of map function
     public abstract ReduceType reduceInit();

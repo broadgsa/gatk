@@ -29,40 +29,60 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.List;
+import java.util.Set;
+import java.util.ArrayList;
 
 /**
  * a class to store the traversal information we pass around
  */
 class DuplicateCount  {
-        public int count = 0; // the count of sites we were given
-        public int undupDepth = 0; // the unique read count
-        public int depth = 0; // the dupplicate read depth
-    }
+    public int count = 0;       // the count of sites we were given
+    public int nUniqueMolecules = 0;  // the unique read count
+    public int nDuplicatedMolecules = 0;  // the unique read count
+    public int depth = 0;       // the dupplicate read depth
+}
 
 /**
  * Count the number of unique reads, duplicates, and the average depth of unique reads and duplicates at all positions.
  * @author aaron
  */
 public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, DuplicateCount> {
+    @Argument(fullName="quiet", required=false, doc="If true, per locus information isn't printex")
+    public boolean quiet = false;
 
     /**
      * the map function, conforming to the duplicates interface
      * @param loc the genomic location
-     * @param refBases the reference bases that cover this position, which we turn off
      * @param context the AlignmentContext, containing all the reads overlapping this region
-     * @param uniqueReads all the unique reads, bundled together
-     * @param duplicateReads all the duplicate reads
+     * @param readSets all the duplicate reads
      * @return a DuplicateCount object, with the appropriate stats
      */
-    public DuplicateCount map(GenomeLoc loc, byte[] refBases, AlignmentContext context, List<SAMRecord> uniqueReads, List<SAMRecord> duplicateReads) {
+    public DuplicateCount map(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets ) {
+        if ( ! quiet ) out.printf("%s with %d read sets => ", loc, readSets.size());
+
         DuplicateCount dup = new DuplicateCount();
+        dup.depth = 0;
+        for ( List<SAMRecord> reads : readSets) {
+            List<String> names = new ArrayList<String>();
+            for ( SAMRecord read : reads ) {
+                names.add(read.getReadName());
+            }
+            if ( ! quiet ) out.printf("%d reads [%s] ", reads.size(), Utils.join(",", names));
+            dup.depth += reads.size();
+            dup.nDuplicatedMolecules += reads.size() > 1 ? 1 : 0;   // if there's more than 1 read per set, we're a duplicated reads
+        }
+        if ( ! quiet ) out.printf("%n");
+
         dup.count = 1;
-        dup.undupDepth = uniqueReads.size();
-        dup.depth = duplicateReads.size();
+        dup.nUniqueMolecules = readSets.size();
         return dup;
     }
+
+    public boolean mapAtLociWithoutDuplicates() { return true; }
 
     /**
      * setup our walker.  In this case, new a DuplicateCount object and return it
@@ -82,7 +102,8 @@ public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, Dupli
         DuplicateCount dup = new DuplicateCount();
         dup.count = sum.count + value.count;
         dup.depth = value.depth + sum.depth;
-        dup.undupDepth = value.undupDepth + sum.undupDepth;
+        dup.nDuplicatedMolecules = value.nDuplicatedMolecules + sum.nDuplicatedMolecules;
+        dup.nUniqueMolecules = value.nUniqueMolecules + sum.nUniqueMolecules;
         return dup;
     }
 
@@ -93,9 +114,10 @@ public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, Dupli
     public void onTraversalDone(DuplicateCount result) {
         out.println("[REDUCE RESULT] Traversal result is: ");
         out.println("traversal iterations = " + result.count);
-        out.println("average depth = " + (double)result.depth / (double)result.count);
-        out.println("duplicates seen = " + result.depth);
-        out.println("unique read count = " + result.undupDepth);
-        out.println("average unique read depth = " + (double)result.undupDepth / (double)result.count);
+        out.printf("average depth = %.2f%n", (double)result.depth / (double)result.count);
+        out.println("unique molecules seen = " + result.nUniqueMolecules);
+        out.println("duplicated molecules seen = " + result.nDuplicatedMolecules);
+        out.printf("percent duplicated = %.2f%%%n", result.nDuplicatedMolecules / (double)result.nUniqueMolecules * 100);
+        out.printf("average unique read depth = %.2f%n", (double)result.nUniqueMolecules / (double)result.count);
     }
 }
