@@ -51,13 +51,13 @@ public class DinucCovariate implements StandardCovariate {
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         final byte[] BASES = { (byte)'A', (byte)'C', (byte)'G', (byte)'T' };
         dinucHashMap = new HashMap<Integer, Dinuc>();
-        for(byte byte1 : BASES) {
-            for(byte byte2: BASES) {
+        for( byte byte1 : BASES ) {
+            for( byte byte2: BASES ) {
                 dinucHashMap.put( Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2) ); // This might seem silly, but Strings are too slow
             }
         }
-        // add the "no dinuc" entry too
-        dinucHashMap.put( Dinuc.hashBytes(NO_CALL, NO_CALL), NO_DINUC);
+        // Add the "no dinuc" entry too
+        dinucHashMap.put( Dinuc.hashBytes(NO_CALL, NO_CALL), NO_DINUC );
     }
 
     // Used to pick out the covariate's value from attributes of the read
@@ -68,29 +68,39 @@ public class DinucCovariate implements StandardCovariate {
         byte[] bases = read.getReadBases();
         // If this is a negative strand read then we need to reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
-            // no dinuc at the beginning of the read
-            if( offset == bases.length-1 )
+            // No dinuc at the beginning of the read
+            if( offset == bases.length-1 ) {
                 return NO_DINUC;
+            }
             base = (byte)BaseUtils.simpleComplement( (char)(bases[offset]) );
+            // Note: We are using the previous base in the read, not the previous base in the reference. This is done in part to be consistent with unmapped reads.
             prevBase = (byte)BaseUtils.simpleComplement( (char)(bases[offset + 1]) );
         } else {
-            // no dinuc at the beginning of the read
-            if( offset == 0 )
+            // No dinuc at the beginning of the read
+            if( offset == 0 ) {
                 return NO_DINUC;
+            }
             base = bases[offset];
+            // Note: We are using the previous base in the read, not the previous base in the reference. This is done in part to be consistent with unmapped reads.
             prevBase = bases[offset - 1];
         }
 
-        // make sure the previous base is good
-        if( !BaseUtils.isRegularBase(prevBase) )
+        // Make sure the previous base is good
+        if( !BaseUtils.isRegularBase( prevBase ) ) {
             return NO_DINUC;
+        }
         
         return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
-        return dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
+        Dinuc returnDinuc = dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
+        if( returnDinuc.compareTo(NO_DINUC) == 0 ) {
+            return null;
+        }
+        return returnDinuc;
+
     }
 
     // Used to estimate the amount space required for the full data HashMap

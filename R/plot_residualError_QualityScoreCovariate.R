@@ -20,9 +20,9 @@ f <- t[t$Qreported < Qcutoff,]
 e <- rbind(d.good, d.1000, d.10000)
 rmseGood = sqrt( sum(as.numeric((d.good$Qempirical-d.good$Qreported)^2 * d.good$nBases)) / sum(as.numeric(d.good$nBases)) ) # prevent integer overflow with as.numeric, ugh
 rmseAll = sqrt( sum(as.numeric((e$Qempirical-e$Qreported)^2 * e$nBases)) / sum(as.numeric(e$nBases)) )
-theTitle = paste("RMSE_good = ", round(rmseGood,digits=3), ", RMSE_all = ", round(rmseAll,digits=3))
+theTitle = paste("RMSE_good =", round(rmseGood,digits=3), ", RMSE_all =", round(rmseAll,digits=3))
 if( length(t$nBases) - length(f$nBases) == length(d.good$nBases) ) {
-	theTitle = paste("RMSE = ", round(rmseAll,digits=3));
+	theTitle = paste("RMSE =", round(rmseAll,digits=3));
 }
 plot(d.good$Qreported, d.good$Qempirical, type="p", col="blue", main=theTitle, xlim=c(0,40), ylim=c(0,40), pch=16, xlab="Reported quality score", ylab="Empirical quality score")
 points(d.1000$Qreported, d.1000$Qempirical, type="p", col="lightblue", pch=16)

@@ -38,8 +38,8 @@ import net.sf.samtools.SAMRecord;
  * The Cycle covariate.
  *  For Solexa the cycle is simply the position in the read (counting backwards if it is a negative strand read)
  *  For 454 the cycle is the TACG flow cycle, that is, each flow grabs all the TACG's in order in a single cycle
- *     For example, for the read: AAACCCCGAAATTTTTACT
- *             the cycle would be 1111111122233333334
+ *     For example, for the read: AAACCCCGAAATTTTTACTG
+ *             the cycle would be 00000000111222222233
  *  For SOLiD the cycle is a more complicated mixture of ligation cycle and primer round
  */
 
@@ -63,10 +63,10 @@ public class CycleCovariate implements StandardCovariate {
         int cycle = 0;
 
         //-----------------------------
-        // ILLUMINA
+        // ILLUMINA and SOLID
         //-----------------------------
 
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) ) {
+        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
             cycle = offset;
 	        if( read.getReadNegativeStrandFlag() ) {
 	            cycle = read.getReadLength() - (offset + 1);
@@ -109,17 +109,17 @@ public class CycleCovariate implements StandardCovariate {
         }
 
         //-----------------------------
-        // SOLID
+        // SOLID (unused), only to be used in conjunction with PrimerRoundCovariate
         //-----------------------------
 
-        else if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
-            // The ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
-            int pos = offset;
-	        if( read.getReadNegativeStrandFlag() ) {
-	            pos = read.getReadLength() - (offset + 1);
-	        }
-        	cycle = pos / 5; // integer division
-        }
+        //else if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
+        //    // The ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+        //    int pos = offset;
+	    //    if( read.getReadNegativeStrandFlag() ) {
+	    //        pos = read.getReadLength() - (offset + 1);
+	    //    }
+        //	cycle = pos / 5; // integer division
+        //}
 
         //-----------------------------
         // UNRECOGNIZED PLATFORM
@@ -127,10 +127,10 @@ public class CycleCovariate implements StandardCovariate {
 
         else { // Platform is unrecognized so revert to the default platform but warn the user first
         	if( !warnedUserBadPlatform ) {
-                if( defaultPlatform != null) { // the user set a default platform
+                if( defaultPlatform != null) { // The user set a default platform
                     Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
                             "Reverting to " + defaultPlatform + " definition of machine cycle." );
-                } else { // the user did not set a default platform
+                } else { // The user did not set a default platform
                     Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
                             "Reverting to Illumina definition of machine cycle. Users may set the default platform using the --default_platform <String> argument." );
                     defaultPlatform = "Illumina";
@@ -138,12 +138,13 @@ public class CycleCovariate implements StandardCovariate {
                 warnedUserBadPlatform = true;
             }
             read.getReadGroup().setPlatform( defaultPlatform );
-            return getValue( read, offset ); // a recursive call
+            return getValue( read, offset ); // A recursive call
         }
 
-        // differentiate between first and second of pair
-        if ( read.getReadPairedFlag() && read.getSecondOfPairFlag() )
+        // Differentiate between first and second of pair
+        if( read.getReadPairedFlag() && read.getSecondOfPairFlag() ) {
             cycle *= -1;
+        }
 
         return cycle;
     }
@@ -155,6 +156,6 @@ public class CycleCovariate implements StandardCovariate {
 
     // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
-        return 100;
+        return 80;
     }
 }

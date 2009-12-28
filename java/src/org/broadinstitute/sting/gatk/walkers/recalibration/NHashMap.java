@@ -41,7 +41,7 @@ import java.util.*;
 
 public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
 
-	private static final long serialVersionUID = 1L; //BUGBUG: what should I do here?, added by Eclipse
+	private static final long serialVersionUID = 1L; // Added by Eclipse
     private ArrayList<ArrayList<Comparable>> keyLists;
 
     public NHashMap() {
@@ -78,10 +78,7 @@ public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
         return super.put( key, value );
     }
 
-    // This method is very ugly but is here only to help facilitate direct comparison of old and refactored recalibrator.
-    // The old recalibrator prints out its mappings in a sorted order but the refactored recalibrator doesn't need to.
-    @SuppressWarnings(value = "unchecked")
-    public ArrayList<Pair<List<? extends Comparable>, T>> entrySetSorted4() {
+    public ArrayList<Pair<List<? extends Comparable>, T>> entrySetSorted() {
 
         ArrayList<Pair<List<? extends Comparable>, T>> theSet = new ArrayList<Pair<List<? extends Comparable>, T>>();
 
@@ -89,35 +86,49 @@ public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
             Collections.sort(list);
         }
 
-        if( keyLists.size() != 4 ) {
-            throw new StingException("Are you sure you want to be calling this ugly method? NHashMap.entrySetSorted4()");
+        int[] keyIndex = new int[ keyLists.size() ];
+        int[] maxIndex = new int[ keyLists.size() ];
+        for( int iii = 0; iii < keyLists.size(); iii++ ) {
+            keyIndex[iii] = 0;
+            maxIndex[iii] = keyLists.get(iii).size();
         }
 
+        // Try all the possible keys in sorted order, add them to the output set if they are in the hashMap
+        boolean triedAllKeys = false;
         ArrayList<Comparable> newKey = null;
-        for( Comparable c0 : keyLists.get(0) ) {
-            for( Comparable c1 : keyLists.get(1) ) {
-                for( Comparable c2 : keyLists.get(2) ) {
-                    for( Comparable c3 : keyLists.get(3) ) {
-                        newKey = new ArrayList<Comparable>();
-                        newKey.add(c0);
-                        newKey.add(c1);
-                        newKey.add(c2);
-                        newKey.add(c3);
-                        T value = this.get( newKey );
-                        if( value!= null ) {
-                            theSet.add(new Pair<List<? extends Comparable>,T>( newKey, value ) );
-                        }
+        while( !triedAllKeys ) {
+            newKey = new ArrayList<Comparable>();
+            for( int iii = 0; iii < keyLists.size(); iii++ ) {
+                newKey.add(keyLists.get(iii).get(keyIndex[iii]));
+            }
+            T value = this.get( newKey );
+            if( value!= null ) {
+                theSet.add(new Pair<List<? extends Comparable>,T>( newKey, value ) );
+            }
+
+            // Increment the keyIndex
+            keyIndex[keyLists.size() - 1]++;
+            for( int iii = keyLists.size() - 1; iii >= 0; iii-- ) {
+                if( keyIndex[iii] >= maxIndex[iii] ) { // Carry it forward
+                    keyIndex[iii] = 0;
+                    if( iii > 0 ) {
+                        keyIndex[iii-1]++;
+                    } else {
+                        triedAllKeys = true;
+                        break;
                     }
+                } else {
+                    break;
                 }
             }
         }
-
         return theSet;
     }
 
+    // Used to make the key from a list of <T> objects
 	public static <T> List<T> makeList(T... args) {
         List<T> list = new ArrayList<T>();
-        for (T arg : args)
+        for( T arg : args )
         {
             list.add(arg);
         }

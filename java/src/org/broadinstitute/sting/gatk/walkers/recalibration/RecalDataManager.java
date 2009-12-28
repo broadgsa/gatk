@@ -128,12 +128,15 @@ public class RecalDataManager {
             newKey = new ArrayList<Comparable>();
             newKey.add( key.get(0) ); // Make a new key with the read group ...
             newKey.add( key.get(1) ); //                                    and quality score ...
-            newKey.add( key.get(iii + 2) ); //                                                    and the given covariate
-            collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
-            if( collapsedDatum == null ) {
-                dataCollapsedByCovariate.get(iii).put( newKey, new RecalDatum(fullDatum) );
-            } else {
-                collapsedDatum.increment( fullDatum );
+            Comparable theCovariateElement = key.get(iii + 2); //                             and the given covariate
+            if( theCovariateElement != null ) {
+                newKey.add( theCovariateElement );
+                collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
+                if( collapsedDatum == null ) {
+                    dataCollapsedByCovariate.get(iii).put( newKey, new RecalDatum(fullDatum) );
+                } else {
+                    collapsedDatum.increment( fullDatum );
+                }
             }
         }
     }
@@ -218,12 +221,14 @@ public class RecalDataManager {
     public static void parseSAMRecord( final SAMRecord read, final RecalibrationArgumentCollection RAC ) {
 
         // Check if we need to use the original quality scores instead
-        if( RAC.USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-            Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
-            if( obj instanceof String )
-                read.setBaseQualities( QualityUtils.fastqToPhred((String)obj) );
-            else {
-                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+        if( RAC.USE_ORIGINAL_QUALS ) {
+            Object attr = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
+            if( attr != null ) {
+                if( attr instanceof String ) {
+                    read.setBaseQualities( QualityUtils.fastqToPhred((String)attr) );
+                } else {
+                    throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+                }
             }
         }
 
@@ -267,8 +272,16 @@ public class RecalDataManager {
         // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
         if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
             if( read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null ) { // Haven't calculated the inconsistency array yet for this read
-                if( read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG) != null ) {
-                    char[] colorSpace = ((String)read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG)).toCharArray();
+                Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
+                if( attr != null ) {
+                    char[] colorSpace;
+                    if( attr instanceof String ) {
+                        colorSpace = ((String)attr).toCharArray();
+                    } else {
+                        throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                    }
+
+
                     // Loop over the read and calculate first the infered bases from the color and then check if it is consistent with the read
                     byte[] readBases = read.getReadBases();
                     if( read.getReadNegativeStrandFlag() ) {
@@ -305,8 +318,15 @@ public class RecalDataManager {
      */
     public static byte[] calcColorSpace( SAMRecord read, byte[] originalQualScores, final String SOLID_RECAL_MODE, final Random coinFlip, final char[] refBases ) {
 
-        if( read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG) != null ) {
-            char[] colorSpace = ((String)read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG)).toCharArray();
+        Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
+        if( attr != null ) {
+            char[] colorSpace;
+            if( attr instanceof String ) {
+                colorSpace = ((String)attr).toCharArray();
+            } else {
+                throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+            }
+
             // Loop over the read and calculate first the infered bases from the color and then check if it is consistent with the read
             byte[] readBases = read.getReadBases();
             byte[] colorImpliedBases = readBases.clone();
@@ -334,7 +354,7 @@ public class RecalDataManager {
                 boolean setBaseN = true;
                 originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, isMappedToReference, setBaseN);
             } else if( SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") ) { // Use the color space quality to probabilistically remove ref bases at inconsistent color space bases
-                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBases, isMappedToReference, coinFlip);
+                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead, isMappedToReference, coinFlip);
             }
 
         } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
@@ -349,7 +369,7 @@ public class RecalDataManager {
     /**
      * Perform the SET_Q_ZERO solid recalibration. Inconsistent color space bases and their previous base are set to quality zero
      * @param read The SAMRecord to recalibrate
-     * @param readBases The bases in the read RC'd if necessary
+     * @param readBases The bases in the read which have been RC'd if necessary
      * @param inconsistency The array of 1/0 that says if this base is inconsistent with its color
      * @param originalQualScores The array of original quality scores to set to zero if needed
      * @param refBases The reference which has been RC'd if necessary
@@ -360,7 +380,7 @@ public class RecalDataManager {
     private static byte[] solidRecalSetToQZero( SAMRecord read, byte[] readBases, int[] inconsistency, byte[] originalQualScores,
                                                 final char[] refBases, final boolean isMappedToRef, final boolean setBaseN ) {
 
-        for( int iii = 1; iii < originalQualScores.length - 1; iii++ ) { // BUGBUG: This relies on the fact that in SOLID bams the first and last base are set to Q0 and aren't recalibrated anyway
+        for( int iii = 1; iii < originalQualScores.length - 1; iii++ ) {
             if( inconsistency[iii] == 1 ) {
                 if( !isMappedToRef || (char)readBases[iii] == refBases[iii] ) {
                     originalQualScores[iii] = (byte)0;
@@ -387,7 +407,7 @@ public class RecalDataManager {
     /**
      * Peform the REMOVE_REF_BIAS solid recalibration. Look at the color space qualities and probabilistically decide if the base should be change to match the color or left as reference
      * @param read The SAMRecord to recalibrate
-     * @param readBases The bases in the read RC'd if necessary
+     * @param readBases The bases in the read which have been RC'd if necessary
      * @param inconsistency The array of 1/0 that says if this base is inconsistent with its color
      * @param colorImpliedBases The bases implied by the color space, RC'd if necessary
      * @param refBases The reference which has been RC'd if necessary
@@ -396,8 +416,15 @@ public class RecalDataManager {
      */
     private static void solidRecalRemoveRefBias( SAMRecord read, byte[] readBases, int[] inconsistency, byte[] colorImpliedBases,
                                                  final char[] refBases, final boolean isMappedToRef, final Random coinFlip ) {
-        if( read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG) != null ) {
-            byte[] colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
+
+        Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG);
+        if( attr != null ) {
+            byte[] colorSpaceQuals;
+            if( attr instanceof String ) {
+                colorSpaceQuals = QualityUtils.fastqToPhred((String)attr);
+            } else {
+                throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+            }
 
             for( int iii = 1; iii < inconsistency.length - 2; iii++ ) {
                 if( inconsistency[iii] == 1 ) {
@@ -413,8 +440,8 @@ public class RecalDataManager {
                                 int minQuality = Math.min((int)colorSpaceQuals[jjj], (int)colorSpaceQuals[jjj+1]);
                                 int diffInQuality = maxQuality - minQuality;
                                 int numLow = minQuality;
-                                if(numLow == 0) { numLow = 1; }
-                                int numHigh = Math.round(numLow * (float)Math.pow(10.0f, (float) diffInQuality / 10.0f) ); // The color with higher quality is exponentially more likely
+                                if( numLow == 0 ) { numLow = 1; }
+                                int numHigh = Math.round( numLow * (float)Math.pow(10.0f, (float) diffInQuality / 10.0f) ); // The color with higher quality is exponentially more likely
                                 int rand = coinFlip.nextInt( numLow + numHigh );
                                 if( rand >= numLow ) {
                                     if( maxQuality == (int)colorSpaceQuals[jjj] ) {

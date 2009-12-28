@@ -101,9 +101,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
-    private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted. BUGBUG: I don't understand what is going on in this case
+    private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.1.2"; // Major version, minor version, and build number
+    private static final String versionString = "v2.1.3"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -261,7 +261,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             byte[] bases;
 
             // For each read at this locus
-            for ( PileupElement p : context.getPileup() ) {
+            for( PileupElement p : context.getPileup() ) {
                 read = p.getRead();
                 offset = p.getOffset();
 
@@ -275,7 +275,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     refBase = (byte)ref.getBase();
 
                     // Skip if this base is an 'N' or etc.
-                    // BUGBUG: For DinucCovariate we should use previous reference base, not the previous base in this read.
                     if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
                         // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
@@ -334,7 +333,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
     }
 
-    /**
+   /**
      * Validate the dbSNP reference mismatch rates.
      */
     private void validateDbsnpMismatchRate() {
@@ -463,7 +462,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         if( SORTED_OUTPUT && requestedCovariates.size() == 4 )
         {
-            for( Pair<List<? extends Comparable>,RecalDatum> entry : dataManager.data.entrySetSorted4() ) { //BUGBUG: entrySetSorted4 isn't correct here
+            for( Pair<List<? extends Comparable>,RecalDatum> entry : dataManager.data.entrySetSorted() ) {
                 for( Comparable comp : entry.first ) {
                     recalTableStream.print( comp + "," );
                 }
