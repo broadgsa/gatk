@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
@@ -11,6 +12,8 @@ import net.sf.samtools.SAMRecord;
 
 public class PooledCalculationModel extends JointEstimateGenotypeCalculationModel {
     protected static final String POOL_SAMPLE_NAME = "POOL";
+
+    private static final Double LOG10_OPTIMIZATION_EPSILON = 8.0;
 
     private static FourBaseProbabilities fourBaseLikelihoods = null;
     private static boolean USE_CACHE = true;
@@ -52,24 +55,33 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref);
         int altIndex = BaseUtils.simpleBaseToBaseIndex(alt);
 
-        for (int i = 0; i < pileup.getReads().size(); i++) {
-            int offset = pileup.getOffsets().get(i);
+        double maxLikelihoodSeen = -1.0 * Double.MAX_VALUE;
 
-            // ignore deletions
-            if ( offset == -1 )
-                continue;
+        // for each minor allele frequency, calculate log10PofDgivenAFi
+        for (int frequency = 0; frequency <= nChromosomes; frequency++) {
 
-            SAMRecord read = pileup.getReads().get(i);
-            char base = (char)read.getReadBases()[offset];
-            int bIndex = BaseUtils.simpleBaseToBaseIndex(base);
-            byte qual = read.getBaseQualities()[offset];
+            for ( PileupElement p : pileup ) {
+                // ignore deletions
+                if ( p.isDeletion() )
+                    continue;
 
-            if ( qual > 0 && bIndex != -1 ) {
+                char base = (char)p.getBase();
+                byte qual = p.getQual();
 
-                // for each minor allele frequency, calculate log10PofDgivenAFi
-                for (int frequency = 0; frequency <= nChromosomes; frequency++)
-                    log10PofDgivenAFi[altIndex][frequency] += calcPBGivenH(refIndex, altIndex, frequency, nChromosomes, base, qual, read, offset);
+                if ( qual > 0 && BaseUtils.simpleBaseToBaseIndex(base) != -1 )
+                    log10PofDgivenAFi[altIndex][frequency] += calcPBGivenH(refIndex, altIndex, frequency, nChromosomes, base, qual, p.getRead(), p.getOffset());
             }
+
+            // an optimization to speed up the calculation: if we are beyond the local maximum such
+            //  that subsequent likelihoods won't factor into the confidence score, just quit
+            if ( frequency > 0 && maxLikelihoodSeen - log10PofDgivenAFi[altIndex][frequency] > LOG10_OPTIMIZATION_EPSILON ) {
+                while ( ++frequency <= nChromosomes )
+                    log10PofDgivenAFi[altIndex][frequency] = -1.0 * Double.MAX_VALUE;
+                return;
+            }
+
+            if ( log10PofDgivenAFi[altIndex][frequency] > maxLikelihoodSeen )
+                maxLikelihoodSeen = log10PofDgivenAFi[altIndex][frequency];
         }
     }
 
