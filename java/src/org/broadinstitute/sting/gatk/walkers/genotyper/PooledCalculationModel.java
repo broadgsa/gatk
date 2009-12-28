@@ -13,8 +13,6 @@ import net.sf.samtools.SAMRecord;
 public class PooledCalculationModel extends JointEstimateGenotypeCalculationModel {
     protected static final String POOL_SAMPLE_NAME = "POOL";
 
-    private static final Double LOG10_OPTIMIZATION_EPSILON = 8.0;
-
     private static FourBaseProbabilities fourBaseLikelihoods = null;
     private static boolean USE_CACHE = true;
 
@@ -75,8 +73,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
             // an optimization to speed up the calculation: if we are beyond the local maximum such
             //  that subsequent likelihoods won't factor into the confidence score, just quit
             if ( frequency > 0 && maxLikelihoodSeen - log10PofDgivenAFi[altIndex][frequency] > LOG10_OPTIMIZATION_EPSILON ) {
-                while ( ++frequency <= nChromosomes )
-                    log10PofDgivenAFi[altIndex][frequency] = -1.0 * Double.MAX_VALUE;
+                ignoreAlleleFrequenciesAboveI(frequency, nChromosomes, altIndex);
                 return;
             }
 

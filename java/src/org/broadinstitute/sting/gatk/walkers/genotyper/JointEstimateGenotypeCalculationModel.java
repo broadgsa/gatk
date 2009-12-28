@@ -13,6 +13,10 @@ import java.io.PrintWriter;
 
 public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalculationModel {
 
+    // for use in optimizing the P(D|AF) calculations:
+    // how much off from the max likelihoods do we need to be before we can quit calculating?
+    protected static final Double LOG10_OPTIMIZATION_EPSILON = 8.0;
+
     // because the null allele frequencies are constant for a given N,
     // we cache the results to avoid having to recompute everything
     private HashMap<Integer, double[]> nullAlleleFrequencyCache = new HashMap<Integer, double[]>();
@@ -205,6 +209,15 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     /********************************************************************************/
 
+    /**
+     * @param freqI             allele frequency I
+     * @param numFrequencies    total number of allele frequencies
+     * @param altBaseIndex      the index of the alternate allele
+     */
+    protected void ignoreAlleleFrequenciesAboveI(int freqI, int numFrequencies, int altBaseIndex) {
+        while ( ++freqI <= numFrequencies )
+            log10PofDgivenAFi[altBaseIndex][freqI] = -1.0 * Double.MAX_VALUE;
+    }
 
     /**
      * @param ref                         the ref base
