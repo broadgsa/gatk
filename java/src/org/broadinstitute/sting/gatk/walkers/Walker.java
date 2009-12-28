@@ -61,6 +61,35 @@ public abstract class Walker<MapType, ReduceType> {
         return false;
     }
 
+    /**
+     * This method states whether you want to see pileups of "extended events" (currently, indels only)
+     * at every locus that has at least one indel associated with it. Consider the following situation:
+     *
+     * ref:    AT--CTGA  (note that we expanded the ref here with -- to accomodate insertion in read3)
+     * read1:  AT--CTGA  (perfectly matches the ref)
+     * read2:  AT----GA  (deletion -CT w.r.t. the ref)
+     * read3:  ATGGCTGA  (insertion +GG w.r.t the ref)
+     *
+     * Normally, the locus iterator only returns read base pileups over reference bases, optionally with deleted bases
+     * included (see #includeReadsWithDeletionAtLoci()). In other words, the pileup over the second reference base (T)
+     * will be [T,T,T] (all reads count), for the next reference base (C) the pileup will be [C,C] (or [C,-,C] if
+     * #includeReadsWithDeletionAtLoci() is true), next pileup generated over the next reference
+     * base (T) will be either [T,T], or [T,'-',T], etc. In this default mode, a) insertions are not seen by a walker at all, and
+     * b) deletions are (optionally) seen only on a base-by-base basis (as the step-by-step traversal over the reference
+     * bases is performed). In the extended event mode, however, if there is at least one indel associated with a reference
+     * locus, the engine will generate an <i>additional</i> call to the walker's map() method, with a pileup of
+     * full-length extended indel/noevent calls. This call will be made <i>after</i> the conventional base pileup call
+     * at that locus. Thus, in the example above, a conventional call will be first made at the second reference base (T),
+     * with the [T,T,T] pileup of read bases, then an extended event call will be made at the <i>same</i> locus with
+     * pileup [no_event, -CT, +GG] (i.e. extended events associated with that reference base). After that, the traversal
+     * engine will move to the next reference base.
+     *
+     * @return false if you do not want to receive extra pileups with extended events, or true if you do.
+     */
+    public boolean generateExtendedEvents() {
+        return false;
+    }
+
     public void initialize() { }
 
     /**

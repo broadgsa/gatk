@@ -33,6 +33,8 @@ public class Reads {
     private Collection<SamRecordFilter> supplementalFilters = null;
     private int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
     private boolean includeReadsWithDeletionAtLoci = false;
+    private boolean generateExtendedEvents = false; // do we want to generate additional piles of "extended" events (indels)
+                                                    // immediately after the reference base such event is associated with?
 
 
     /**
@@ -42,6 +44,18 @@ public class Reads {
      */
     public boolean includeReadsWithDeletionAtLoci() {
         return includeReadsWithDeletionAtLoci;
+    }
+
+    /**
+     * Return true if the walker wants to see additional piles of "extended" events (indels). An indel is associated,
+     * by convention, with the reference base immediately preceding the insertion/deletion, and if this flag is set
+     * to 'true', any locus with an indel associated with it will cause exactly two subsequent calls to walker's map(): first call
+     * will be made with a "conventional" base pileup, the next call will be made with a pileup of extended (indel/noevent)
+     * events.
+     * @return
+     */
+    public boolean generateExtendedEvents() {
+        return generateExtendedEvents;
     }
 
     /**
@@ -115,6 +129,12 @@ public class Reads {
      * @param downsampleCoverage downsampling per-locus.
      * @param beSafe Whether to enable safety checking.
      * @param supplementalFilters additional filters to dynamically apply.
+     * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
+     *        a pile of indel/noevent extended events at every locus with at least one indel associated with it
+     *        (in addition to a "regular" call to map() at this locus performed with base pileup)
+     * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
+     *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
+     *        bases will be seen in the pileups, and the deletions will be skipped silently.
      */
     Reads( List<File> samFiles,
            SAMFileReader.ValidationStringency strictness,
@@ -123,7 +143,8 @@ public class Reads {
            Boolean beSafe,
            Collection<SamRecordFilter> supplementalFilters,
            int maximumReadsAtLocus,
-           boolean includeReadsWithDeletionAtLoci) {
+           boolean includeReadsWithDeletionAtLoci,
+           boolean generateExtendedEvents) {
         this.readsFiles = samFiles;
         this.validationStringency = strictness;
         this.downsamplingFraction = downsampleFraction;
@@ -132,5 +153,6 @@ public class Reads {
         this.supplementalFilters = supplementalFilters;
         this.maximumReadsAtLocus = maximumReadsAtLocus;
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
+        this.generateExtendedEvents = generateExtendedEvents;
     }
 }

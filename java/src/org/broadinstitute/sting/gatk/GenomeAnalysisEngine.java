@@ -421,7 +421,8 @@ public class GenomeAnalysisEngine {
                 !argCollection.unsafe,
                 filters,
                 argCollection.readMaxPileup,
-                walker.includeReadsWithDeletionAtLoci());
+                walker.includeReadsWithDeletionAtLoci(),
+                walker.generateExtendedEvents());
     }
 
     /**
