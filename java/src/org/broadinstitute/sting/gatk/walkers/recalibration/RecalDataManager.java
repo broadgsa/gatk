@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.NHashMap;
 
 import java.util.*;
 

@@ -1,7 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.recalibration;
-
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
+package org.broadinstitute.sting.utils;
 
 import java.util.*;
 

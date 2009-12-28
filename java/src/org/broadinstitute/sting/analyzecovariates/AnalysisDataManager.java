@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.analyzecovariates;
 
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum;
-import org.broadinstitute.sting.gatk.walkers.recalibration.NHashMap;
+import org.broadinstitute.sting.utils.NHashMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +35,7 @@ public class AnalysisDataManager {
      * Add the given mapping to all of the collapsed hash tables
      * @param key The list of comparables that is the key for this mapping
      * @param fullDatum The RecalDatum which is the data for this mapping
+     * @param IGNORE_QSCORES_LESS_THAN The threshold in report quality for adding to the aggregate collapsed table
      */
     public final void addToAllTables( final List<? extends Comparable> key, final RecalDatum fullDatum, final int IGNORE_QSCORES_LESS_THAN ) {
 
