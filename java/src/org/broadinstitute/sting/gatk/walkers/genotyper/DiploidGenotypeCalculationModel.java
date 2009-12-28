@@ -46,7 +46,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
             for ( char alt : BaseUtils.BASES ) {
                 if ( alt != ref ) {
-                    DiploidGenotype hetGenotype = DiploidGenotype.unorderedValueOf(ref, alt);
+                    DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
                     DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
                     AFMatrixMap.get(alt).setLikelihoods(posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()], sample);
                 }
@@ -78,7 +78,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         // set up some variables we'll need in the loop
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
         DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
-        DiploidGenotype hetGenotype = DiploidGenotype.unorderedValueOf(ref, alt);
+        DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
         DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
 
         for ( String sample : GLs.keySet() ) {

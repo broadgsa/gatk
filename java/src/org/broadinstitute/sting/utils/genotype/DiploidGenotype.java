@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -53,28 +54,32 @@ public enum DiploidGenotype {
      * @return the diploid genotype
      */
     public static DiploidGenotype createHomGenotype(char hom) {
-        hom = Character.toUpperCase(hom);
-        switch (hom) {
-            case 'A': return DiploidGenotype.AA;
-            case 'C': return DiploidGenotype.CC;
-            case 'G': return DiploidGenotype.GG;
-            case 'T': return DiploidGenotype.TT;
-        }
-        throw new IllegalArgumentException(hom + " is not a valid base character");
+        int index = BaseUtils.simpleBaseToBaseIndex(hom);
+        if ( index == -1 )
+            throw new IllegalArgumentException(hom + " is not a valid base character");
+        return conversionMatrix[index][index];
     }
 
     /**
-     * get the genotype, given a string of 2 chars which may not necessarily be ordered correctly
+     * create a diploid genotype, given 2 chars which may not necessarily be ordered correctly
      * @param base1 base1
      * @param base2 base2
      * @return the diploid genotype
      */
-    public static DiploidGenotype unorderedValueOf(char base1, char base2) {
-        if ( base1 > base2 ) {
-            char temp = base1;
-            base1 = base2;
-            base2 = temp;
-        }
-        return valueOf(String.format("%c%c", base1, base2));
+    public static DiploidGenotype createDiploidGenotype(char base1, char base2) {
+        int index1 = BaseUtils.simpleBaseToBaseIndex(base1);
+        if ( index1 == -1 )
+            throw new IllegalArgumentException(base1 + " is not a valid base character");
+        int index2 = BaseUtils.simpleBaseToBaseIndex(base2);
+        if ( index2 == -1 )
+            throw new IllegalArgumentException(base2 + " is not a valid base character");
+        return conversionMatrix[index1][index2];
     }
+
+    private static final DiploidGenotype[][] conversionMatrix = {
+            { DiploidGenotype.AA, DiploidGenotype.AC, DiploidGenotype.AG, DiploidGenotype.AT },
+            { DiploidGenotype.AC, DiploidGenotype.CC, DiploidGenotype.CG, DiploidGenotype.CT },
+            { DiploidGenotype.AG, DiploidGenotype.CG, DiploidGenotype.GG, DiploidGenotype.GT },
+            { DiploidGenotype.AT, DiploidGenotype.CT, DiploidGenotype.GT, DiploidGenotype.TT }
+    };
 }
