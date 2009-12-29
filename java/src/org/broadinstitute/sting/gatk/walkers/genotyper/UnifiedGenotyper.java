@@ -180,7 +180,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // annotation (INFO) fields from UnifiedGenotyper
         headerInfo.add(new VCFHeaderLine("INFO_NOTE", "\"All annotations in the INFO field are generated only from the FILTERED context used for calling variants\""));
         headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
-        headerInfo.add(new VCFInfoHeaderLine(VCFRecord.SAMPLE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Number of Samples With Data"));
+        // no longer used: headerInfo.add(new VCFInfoHeaderLine(VCFRecord.SAMPLE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Number of Samples With Data"));
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 

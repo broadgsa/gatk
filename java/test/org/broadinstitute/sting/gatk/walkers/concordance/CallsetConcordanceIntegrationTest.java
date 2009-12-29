@@ -14,7 +14,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testSimpleVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -CT SimpleVenn", 1,
-                Arrays.asList("5c8e4757d2ce46bc50991a171f988327"));
+                Arrays.asList("f4c4b7430f0e293c27ce38cb89b9338b"));
         executeTest("testSimpleVenn", spec);
     }
 
@@ -22,7 +22,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testSNPConcordance() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -CT SNPGenotypeConcordance:qscore=5", 1,
-                Arrays.asList("b4904813cdfd37f0a092aa6cadcd3f71"));
+                Arrays.asList("f754e046bc0fa3a4b3430061e412ef0d"));
         executeTest("testSNPConcordance", spec);
     }
 
@@ -30,7 +30,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testNWayVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -B set3,VCF," + validationDataLocation + "CEU.sample.vcf -CT NWayVenn", 1,
-                Arrays.asList("cf915dc9762d6a44a7bdadc0d7eae9b8"));
+                Arrays.asList("0527ea8ec7de3a144bd0a56db80d62ba"));
         executeTest("testNWayVenn", spec);
     }
 
@@ -38,7 +38,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testMulti() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -CT SimpleVenn -CT NWayVenn -CT SNPGenotypeConcordance:qscore=5", 1,
-                Arrays.asList("d046599a2fef386fa0ad5dfc9671c3a9"));
+                Arrays.asList("6fbe00cb68d2cdc59dfcb79024fd9893"));
         executeTest("testMulti", spec);
     }
 }

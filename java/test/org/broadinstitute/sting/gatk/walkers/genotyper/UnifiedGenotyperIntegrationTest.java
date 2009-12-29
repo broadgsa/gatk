@@ -22,7 +22,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1PointEM() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,400-10,024,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("caeb030b47503e9d79cf1e18b86e8bc9"));
+                Arrays.asList("94c6c400cbeae33fcd6fea3388fcf73a"));
         executeTest("testMultiSamplePilot1 - Point Estimate EM", spec);
     }
 
@@ -30,7 +30,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2PointEM() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,010,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("f87c182b694a7baeab886d8f75c91e28"));
+                Arrays.asList("ee14f4328fde95b35e3b1cb919c3712b"));
         executeTest("testMultiSamplePilot2 - Point Estimate EM", spec);
     }
 
@@ -43,7 +43,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testPooled1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,000-10,024,000 -bm empirical -gm POOLED -ps 60 -confidence 30", 1,
-                Arrays.asList("acf8006174a460247fabbc650802c29b"));
+                Arrays.asList("68a4120d7dc9f1880f41311f095978ea"));
         executeTest("testPooled1", spec);
     }
 
@@ -56,7 +56,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,022,000-10,025,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("92b32599938bc60d6d636b425c5e0a6c"));
+                Arrays.asList("4504dd9c77dc502e9acbe687063a82c7"));
         executeTest("testMultiSamplePilot1 - Joint Estimate", spec);
     }
 
@@ -64,7 +64,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,050,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("cc90c3dd5d30dd4ac0fceb748283ddb9"));
+                Arrays.asList("15fefcebedae65c1f0c94b8498bc647a"));
         executeTest("testMultiSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -72,8 +72,21 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testSingleSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("d04c02cdbf1e1adbdf84540c861a64f7"));
+                Arrays.asList("d87b46694da0cc8b0ff82c1c69ee073f"));
         executeTest("testSingleSamplePilot2 - Joint Estimate", spec);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing joint estimation model
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testParallelization() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,400,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30 -nt 4", 1,
+                Arrays.asList("bcbdd0369a0621d40bbdd6ef4c13f057"));
+        executeTest("test parallelization", spec);
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -85,11 +98,11 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "ce888ec4bdd85e24b1129198327ff315" );
-        e.put( "-all_bases", "95be4777a8f89f98d0a033fc3d75a3c1" );
-        e.put( "--min_base_quality_score 10", "390802b120cba6019af39d4775f504d1" );
-        e.put( "--min_mapping_quality_score 10", "f7fe79dace81157bc83c8e4d27e1ae40" );
-        e.put( "--max_mismatches_in_40bp_window 5", "0e7741a7a683a6d4d00876372bb70991" );
+        e.put( "-genotype", "990d3e9b63310f56bf781959763804ae" );
+        e.put( "-all_bases", "6f24401c4b82b270739d596077da8582" );
+        e.put( "--min_base_quality_score 10", "2a53a3889fe1c32b066228f749ab4790" );
+        e.put( "--min_mapping_quality_score 10", "224c962fc6178059ae36ed9a4d614d26" );
+        e.put( "--max_mismatches_in_40bp_window 5", "fa8dd3c00d36ca62a88b5ceeb50ee33b" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -103,7 +116,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testConfidence() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -bm empirical -gm JOINT_ESTIMATE -confidence 10 ", 1,
-                Arrays.asList("c8c4a463ab23585d8373f3e8a7fbec22"));
+                Arrays.asList("13aad04333ef26eca6179221acf8abc0"));
         executeTest("testConfidence", spec);
     }
 

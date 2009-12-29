@@ -131,7 +131,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         }
 
         // info fields
-        Map<String, String> infoFields = getInfoFields((VCFVariationCall)locusdata, params);
+        Map<String, String> infoFields = getInfoFields((VCFVariationCall)locusdata);
 
         // q-score
         double qual = (locusdata == null) ? 0 : ((VCFVariationCall)locusdata).getConfidence();
@@ -165,11 +165,10 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
      * get the information fields of the VCF record, given the meta data and parameters
      *
      * @param locusdata the metadata associated with this multi sample call
-     * @param params   the parameters
      *
      * @return a mapping of info field to value
      */
-    private static Map<String, String> getInfoFields(VCFVariationCall locusdata, VCFParameters params) {
+    private static Map<String, String> getInfoFields(VCFVariationCall locusdata) {
         Map<String, String> infoFields = new HashMap<String, String>();
         if ( locusdata != null ) {
             if ( locusdata.getSLOD() != null )
@@ -181,7 +180,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
                 infoFields.putAll(otherFields);
             }
         }
-        infoFields.put(VCFRecord.SAMPLE_NUMBER_KEY, String.valueOf(params.getGenotypesRecords().size()));
+        // no longer used: infoFields.put(VCFRecord.SAMPLE_NUMBER_KEY, String.valueOf(params.getGenotypesRecords().size()));
         return infoFields;
     }
 
