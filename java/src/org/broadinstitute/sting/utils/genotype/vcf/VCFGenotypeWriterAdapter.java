@@ -16,13 +16,17 @@ import java.util.*;
  *         Adapt the VCF writter to the genotype output system
  */
 public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
+
     // our VCF objects
     private VCFWriter mWriter = null;
     private VCFHeader mHeader = null;
     private final Set<String> mSampleNames = new LinkedHashSet<String>();
 
-    /** our log, which we want to capture anything from this class */
+    // our log, which we want to capture anything from this class
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
+
+    // validation stringency
+    private VALIDATION_STRINGENCY validationStringency = VALIDATION_STRINGENCY.STRICT;
 
 
     public VCFGenotypeWriterAdapter(File writeTo) {
@@ -41,7 +45,6 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
      * @param sampleNames  the sample names
      * @param headerInfo  the optional header fields
      */
-    @Override
     public void writeHeader(Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
         mSampleNames.addAll(sampleNames);
 
@@ -96,7 +99,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         // get the location and reference
         if ( genotypes.size() == 0 ) {
             if ( locusdata == null )
-                throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry or have locusdata");
+                throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry or have variation data");
 
             params.setLocations(locusdata.getLocation(), locusdata.getReference().charAt(0));
 
@@ -121,7 +124,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
             }
         }
 
-        if (genotypeMap.size() > 0) {
+        if ( validationStringency == VALIDATION_STRINGENCY.STRICT && genotypeMap.size() > 0 ) {
             for (String name : genotypeMap.keySet())
                 logger.fatal("Genotype " + name + " was present in the VCFHeader");
             throw new IllegalArgumentException("Genotype array passed to VCFGenotypeWriterAdapter contained Genotypes not in the VCF header");
@@ -151,11 +154,11 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
                                             params.getFormatString(),
                                             params.getGenotypesRecords());
 
-        mWriter.addRecord(vcfRecord);
+        mWriter.addRecord(vcfRecord, validationStringency);
     }
 
     public void addRecord(VCFRecord vcfRecord) {
-        mWriter.addRecord(vcfRecord);
+        mWriter.addRecord(vcfRecord, validationStringency);
     }
 
     /**
@@ -227,4 +230,11 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         return map;
     }
 
+    /**
+     * set the validation stringency
+     * @param value   validation stringency value
+     */
+    public void setValidationStringency(VALIDATION_STRINGENCY value) {
+        validationStringency = value;
+    }
 }

@@ -504,6 +504,17 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @return a string
      */
     public String toStringEncoding(VCFHeader header) {
+        return toStringEncoding(header, VCFGenotypeWriter.VALIDATION_STRINGENCY.STRICT);
+    }
+
+    /**
+     * the generation of a string representation, which is used by the VCF writer
+     *
+     * @param header                the VCF header for this VCF Record
+     * @param validationStringency  the validation stringency
+     * @return a string
+     */
+    public String toStringEncoding(VCFHeader header, VCFGenotypeWriter.VALIDATION_STRINGENCY validationStringency) {
         StringBuilder builder = new StringBuilder();
 
         // CHROM \t POS \t ID \t REF \t ALT \t QUAL \t FILTER \t INFO
@@ -524,9 +535,15 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         builder.append(FIELD_SEPERATOR);
         builder.append(createInfoString());
 
-        if (this.hasGenotypeData()) {
-            addGenotypeData(builder, header);
+        if ( this.hasGenotypeData() ) {
+            try {
+                addGenotypeData(builder, header);
+            } catch (Exception e) {
+                if ( validationStringency == VCFGenotypeWriter.VALIDATION_STRINGENCY.STRICT )
+                    throw new RuntimeException(e.getMessage());
+            }
         }
+
         return builder.toString();
     }
 
@@ -553,28 +570,31 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @param header  the header object
      */
     private void addGenotypeData(StringBuilder builder, VCFHeader header) {
-        builder.append(FIELD_SEPERATOR + mGenotypeFormatString);
-        if (header.getGenotypeSamples().size() < getGenotypes().size())
-            throw new RuntimeException("We have more genotype samples than the header specified");
+        StringBuffer tempStr = new StringBuffer();
+        if ( header.getGenotypeSamples().size() < getGenotypes().size() )
+            throw new IllegalStateException("We have more genotype samples than the header specified");
+        tempStr.append(FIELD_SEPERATOR + mGenotypeFormatString);
 
         Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(getGenotypes());
         String[] genotypeFormatStrings = mGenotypeFormatString.split(":");
 
-        for (String genotype : header.getGenotypeSamples()) {
-            builder.append(FIELD_SEPERATOR);
-            if (gMap.containsKey(genotype)) {
+        for ( String genotype : header.getGenotypeSamples() ) {
+            tempStr.append(FIELD_SEPERATOR);
+            if ( gMap.containsKey(genotype) ) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
-                builder.append(rec.toStringEncoding(this.mAlts, genotypeFormatStrings));
+                tempStr.append(rec.toStringEncoding(this.mAlts, genotypeFormatStrings));
                 gMap.remove(genotype);
             } else {
-                builder.append(VCFGenotypeRecord.EMPTY_GENOTYPE);
+                tempStr.append(VCFGenotypeRecord.EMPTY_GENOTYPE);
             }
         }
-        if (gMap.size() != 0) {
-            for (String sample : gMap.keySet())
+        if ( gMap.size() != 0 ) {
+            for ( String sample : gMap.keySet() )
                 System.err.println("Sample " + sample + " is being genotyped but isn't in the header.");
-            throw new RuntimeException("We failed to use all the genotype samples; there must be an inconsistancy between the header and records");
+            throw new IllegalStateException("We failed to use all the genotype samples; there must be an inconsistancy between the header and records");
         }
+
+        builder.append(tempStr);
     }
 
     /**

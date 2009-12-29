@@ -50,4 +50,12 @@ public class VCFGenotypeWriterStub extends GenotypeWriterStub<VCFGenotypeWriter>
     public void addRecord(VCFRecord vcfRecord) {
         outputTracker.getStorage(this).addRecord(vcfRecord);
     }
+
+    /**
+     * set the validation stringency
+     * @param value   validation stringency value
+     */
+    public void setValidationStringency(VALIDATION_STRINGENCY value) {
+        outputTracker.getStorage(this).setValidationStringency(value);
+    }
 }

@@ -84,10 +84,20 @@ public class VCFWriter {
      * @param record the record to output
      */
     public void addRecord(VCFRecord record) {
+        addRecord(record, VCFGenotypeWriter.VALIDATION_STRINGENCY.STRICT);
+    }
+
+    /**
+     * output a record to the VCF file
+     *
+     * @param record                the record to output
+     * @param validationStringency  the validation stringency
+     */
+    public void addRecord(VCFRecord record, VCFGenotypeWriter.VALIDATION_STRINGENCY validationStringency) {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
-        String vcfString = record.toStringEncoding(mHeader);
+        String vcfString = record.toStringEncoding(mHeader, validationStringency);
         try {
             mWriter.write(vcfString + "\n");
             mWriter.flush();  // necessary so that writing to an output stream will work

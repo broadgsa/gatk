@@ -100,7 +100,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         if ( UAC.POOLSIZE < 1 && UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ) {
             throw new IllegalArgumentException("Attempting to use the POOLED model with a pool size less than 1. Please set the pool size to an appropriate value.");
         }
-        if ( UAC.LOD_THRESHOLD > Double.MIN_VALUE ) {
+        if ( UAC.LOD_THRESHOLD != Double.MIN_VALUE ) {
             StringBuilder sb = new StringBuilder();
             sb.append("\n***\tThe --lod_threshold argument is no longer supported; instead, please use --min_confidence_threshold.");
             sb.append("\n***\tThere is approximately a 10-to-1 mapping from confidence to LOD.");
@@ -108,7 +108,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             throw new IllegalArgumentException(sb.toString());
         }
 
-        // some arguments can't be handled (for now) while we are multi-threaded
+        // some arguments can't be handled (at least for now) while we are multi-threaded
         if ( getToolkit().getArguments().numberOfThreads > 1 ) {
             // no ASSUME_SINGLE_SAMPLE because the IO system doesn't know how to get the sample name
             if ( UAC.ASSUME_SINGLE_SAMPLE != null )
@@ -116,6 +116,13 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             // no VERBOSE because we'd need to deal with parallelizing the writing
             if ( VERBOSE != null )
                 throw new IllegalArgumentException("For technical reasons, the VERBOSE argument cannot be used with multiple threads");
+        }
+
+        // set up the writer manually if it needs to use the output stream
+        if ( writer == null && out != null ) {
+            logger.warn("For technical reasons, VCF format must be used when writing to standard out.");
+            logger.warn("Specify an output file if you would like to use a different output format.");
+            writer = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.VCF, out);
         }
 
         // get all of the unique sample names - unless we're in POOLED mode, in which case we ignore the sample names
@@ -130,11 +137,15 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             //     logger.debug("SAMPLE: " + sample);
         }
 
-        // set up the writer manually if it needs to use the output stream
-        if ( writer == null && out != null ) {
-            logger.warn("For technical reasons, VCF format must be used when writing to standard out.");
-            logger.warn("Specify an output file if you would like to use a different output format.");
-            writer = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.VCF, out);
+        // in pooled mode we need to check that the format is acceptable
+        if ( UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED && writer != null ) {
+            // only multi-sample calls use Variations
+            if ( !writer.supportsMultiSample() )
+                throw new IllegalArgumentException("The POOLED model is not compatible with the specified format; try using VCF instead");
+
+            // when using VCF with multiple threads, we need to turn down the validation stringency so that writing temporary files will work
+            if ( getToolkit().getArguments().numberOfThreads > 1 && writer instanceof VCFGenotypeWriter )
+                ((VCFGenotypeWriter)writer).setValidationStringency(VCFGenotypeWriterAdapter.VALIDATION_STRINGENCY.SILENT);
         }
 
         // initialize the verbose writer
@@ -175,10 +186,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
         // annotation (INFO) fields from UnifiedGenotyper
         headerInfo.add(new VCFHeaderLine("INFO_NOTE", "\"All annotations in the INFO field are generated only from the FILTERED context used for calling variants\""));
-        headerInfo.add(new VCFInfoHeaderLine("AF", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
-        headerInfo.add(new VCFInfoHeaderLine("NS", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Number of Samples With Data"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFRecord.SAMPLE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Number of Samples With Data"));
         if ( !UAC.NO_SLOD )
-            headerInfo.add(new VCFInfoHeaderLine("SB", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 
         // FORMAT fields if not in POOLED mode
         if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED )
