@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Provides temporary storage for GenotypeWriters.
@@ -43,6 +44,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
  */
 public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements GenotypeWriter, Storage<T> {
     protected final File file;
+    protected final PrintStream stream;
     protected final GenotypeWriter writer;
 
     /**
@@ -52,7 +54,13 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
      */
     public GenotypeWriterStorage( GenotypeWriterStub stub ) {
         this.file = stub.getFile();
-        writer = GenotypeWriterFactory.create(stub.getFormat(), file);
+        this.stream = stub.getOutputStream();
+        if(file != null)
+            writer = GenotypeWriterFactory.create(stub.getFormat(), file);
+        else if(stream != null)
+            writer = GenotypeWriterFactory.create(stub.getFormat(), stream);
+        else
+            throw new StingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
     }
 
     /**
@@ -62,6 +70,7 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
      */
     public GenotypeWriterStorage( GenotypeWriterStub stub, File file ) {
         this.file = file;
+        this.stream = null;
         writer = GenotypeWriterFactory.create(stub.getFormat(), file);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
         GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());

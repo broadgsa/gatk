@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.broadinstitute.sting.gatk.io.OutputTracker;
@@ -50,10 +51,16 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
     private final GenomeAnalysisEngine engine;
 
     /**
-     * The file that this stub should write to.  Should be passed along to
-     * whatever happens to create the StreamConnector.
+     * The file that this stub should write to.  Should be mutually
+     * exclusive with genotypeStream.
      */
     private final File genotypeFile;
+
+    /**
+     * The output stream to which stub data should be written.  Will be
+     * mutually exclusive with genotypeFile.
+     */
+    private final PrintStream genotypeStream;
 
     /**
      * Connects this stub with an external stream capable of serving the
@@ -69,14 +76,34 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
     public GenotypeWriterStub(GenomeAnalysisEngine engine,File genotypeFile) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
+        this.genotypeStream = null;
+    }
+
+    /**
+     * Create a new stub given the requested file.
+     * @param engine        GATK engine.
+     * @param genotypeStream  stream to (ultimately) write.
+     */
+    public GenotypeWriterStub(GenomeAnalysisEngine engine,PrintStream genotypeStream) {
+        this.engine = engine;
+        this.genotypeFile = null;
+        this.genotypeStream = genotypeStream;
     }
 
     /**
      * Retrieves the file to (ultimately) be created.
-     * @return The file.  Must not be null.
+     * @return The file.  Can be null if genotypeStream is not.
      */
     public File getFile() {
         return genotypeFile;
+    }
+
+    /**
+     * Retrieves the output stearm to which to (ultimately) write.
+     * @return The file.  Can be null if genotypeFile is not.
+     */
+    public PrintStream getOutputStream() {
+        return genotypeStream;
     }
 
     /**

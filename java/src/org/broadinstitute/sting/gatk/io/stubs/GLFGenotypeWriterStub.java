@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.genotype.glf.GLFRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
+import java.io.PrintStream;
 
 /**
  * Stub providing a passthrough for GLF files.
@@ -21,6 +22,15 @@ public class GLFGenotypeWriterStub extends GenotypeWriterStub<GLFGenotypeWriter>
      */
     public GLFGenotypeWriterStub(GenomeAnalysisEngine engine, File genotypeFile) {
         super(engine,genotypeFile);
+    }
+
+    /**
+     * Construct a new stub with the given engine and target stream.
+     * @param engine The engine, for extracting command-line arguments, etc.
+     * @param genotypeStream Target stream into which to write genotyping data.
+     */
+    public GLFGenotypeWriterStub(GenomeAnalysisEngine engine, PrintStream genotypeStream) {
+        super(engine,genotypeStream);
     }
 
     /**

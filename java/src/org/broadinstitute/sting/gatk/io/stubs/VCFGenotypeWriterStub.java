@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Set;
 
 /**
@@ -23,6 +24,15 @@ public class VCFGenotypeWriterStub extends GenotypeWriterStub<VCFGenotypeWriter>
      */
     public VCFGenotypeWriterStub(GenomeAnalysisEngine engine, File genotypeFile) {
         super(engine,genotypeFile);
+    }
+
+    /**
+     * Construct a new stub with the given engine and target stream.
+     * @param engine The engine, for extracting command-line arguments, etc.
+     * @param genotypeStream Target stream into which to write genotyping data.
+     */
+    public VCFGenotypeWriterStub(GenomeAnalysisEngine engine, PrintStream genotypeStream) {
+        super(engine,genotypeStream);
     }
 
     /**

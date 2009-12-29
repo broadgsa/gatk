@@ -67,10 +67,11 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      */
     @Override
     public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )  {
+        // Get the filename for the genotype file, if it exists.  If not, we'll need to send output to out.
         String writerFileName = getArgumentValue(createGenotypeFileArgumentDefinition(source),matches);
-        if(writerFileName == null)
-            throw new StingException("Genotype format was supplied, but no file was supplied to contain the genotype info..");
+        File writerFile = writerFileName != null ? new File(writerFileName) : null;
 
+        // Get the format of the genotype object, if it exists.
         String genotypeFormatText = getArgumentValue(createGenotypeFormatArgumentDefinition(source),matches);
         GenotypeWriterFactory.GENOTYPE_FORMAT genotypeFormat = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
         if(genotypeFormatText != null) {
@@ -82,19 +83,22 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
             }            
         }
 
+        // Create a stub for the given object.
         GenotypeWriterStub stub = null;
         switch(genotypeFormat) {
             case GELI:
-                stub = new GeliTextGenotypeWriterStub(engine, new File(writerFileName));
+                stub = (writerFile != null) ? new GeliTextGenotypeWriterStub(engine, writerFile) : new GeliTextGenotypeWriterStub(engine,System.out);
                 break;
             case GELI_BINARY:
-                stub = new GeliBinaryGenotypeWriterStub(engine, new File(writerFileName));
+                if(writerFile == null)
+                    throw new StingException("Geli binary files cannot be output to the console.");
+                stub = new GeliBinaryGenotypeWriterStub(engine, writerFile);
                 break;
             case GLF:
-                stub = new GLFGenotypeWriterStub(engine, new File(writerFileName));
+                stub = (writerFile != null) ? new GLFGenotypeWriterStub(engine, writerFile) : new GLFGenotypeWriterStub(engine,System.out);
                 break;
             case VCF:
-                stub = new VCFGenotypeWriterStub(engine, new File(writerFileName));
+                stub = (writerFile != null) ? new VCFGenotypeWriterStub(engine, writerFile) : new VCFGenotypeWriterStub(engine,System.out);
                 break;
             default:
                 throw new StingException("Unable to create stub for file format " + genotypeFormat);

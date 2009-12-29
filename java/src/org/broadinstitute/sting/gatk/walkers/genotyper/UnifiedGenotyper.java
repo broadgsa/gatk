@@ -118,13 +118,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
                 throw new IllegalArgumentException("For technical reasons, the VERBOSE argument cannot be used with multiple threads");
         }
 
-        // set up the writer manually if it needs to use the output stream
-        if ( writer == null && out != null ) {
-            logger.warn("For technical reasons, VCF format must be used when writing to standard out.");
-            logger.warn("Specify an output file if you would like to use a different output format.");
-            writer = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.VCF, out);
-        }
-
         // get all of the unique sample names - unless we're in POOLED mode, in which case we ignore the sample names
         if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
             // if we're supposed to assume a single sample, do so
