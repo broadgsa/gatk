@@ -33,8 +33,10 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.Pair;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Prints the alignment in the pileup format. In the pileup format, each line represents a genomic position,
@@ -89,7 +91,13 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
         if ( context.hasExtendedEventPileup() ) {
             ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-            out.printf("%s %s%n", indelPileup.getShortPileupString(), rods);
+            List<Pair<String,Integer>> eventCounts = indelPileup.getEventStringsWithCounts();
+            out.printf("%s %s ", indelPileup.getShortPileupString(), rods);
+            int i = 0;
+            for ( ; i < eventCounts.size() - 1 ; i++ ) {
+                out.printf("%s:%d,",eventCounts.get(i).first,eventCounts.get(i).second);
+            }
+            out.printf("%s:%d%n",eventCounts.get(i).first,eventCounts.get(i).second);
         }
         return 1;
     }
