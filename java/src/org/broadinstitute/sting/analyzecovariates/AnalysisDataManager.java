@@ -60,12 +60,15 @@ public class AnalysisDataManager {
             if( iii == 0 || !(qscore < IGNORE_QSCORES_LESS_THAN) ) { // use all data for the plot versus reported quality, but not for the other plots versus cycle and etc.
                 newKey = new ArrayList<Comparable>();
                 newKey.add( key.get(0) ); // Make a new key with the read group ...
-                newKey.add( key.get(iii + 1) ); //                                                    and the given covariate
-                collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
-                if( collapsedDatum == null ) {
-                    dataCollapsedByCovariate.get(iii).put( newKey, new RecalDatum(fullDatum) );
-                } else {
-                    collapsedDatum.combine( fullDatum );
+                Comparable theCovariateElement = key.get(iii + 1); //           and the given covariate
+                if( theCovariateElement != null ) {
+                    newKey.add( theCovariateElement );
+                    collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
+                    if( collapsedDatum == null ) {
+                        dataCollapsedByCovariate.get(iii).put( newKey, new RecalDatum(fullDatum) );
+                    } else {
+                        collapsedDatum.combine( fullDatum );
+                    }
                 }
             }
         }
