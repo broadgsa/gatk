@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -13,10 +12,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-
-import java.util.Arrays;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -96,24 +92,12 @@ public class TraverseReads extends TraversalEngine {
 
         // while we still have more reads
         for (SAMRecord read : reads) {
-
-            // our locus context
-            AlignmentContext locus = null;
-
             // an array of characters that represent the reference
             char[] refSeq = null;
 
-            if (needsReferenceBasesP && read.getReferenceIndex() >= 0) {
-                // get the genome loc from the read
-                GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
-
-                // Jump forward in the reference to this locus location
-                locus = new AlignmentContext(site, Arrays.asList(read), Arrays.asList(0));
-
-                // get the array of characters for the reference sequence, since we're a mapped read
-                if( dataProvider.hasReference() )
-                    refSeq = reference.getReferenceBases( read );
-            }
+            // get the array of characters for the reference sequence, since we're a mapped read
+            if (needsReferenceBasesP && !read.getReadUnmappedFlag() && dataProvider.hasReference())
+                refSeq = reference.getReferenceBases(read);
 
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
