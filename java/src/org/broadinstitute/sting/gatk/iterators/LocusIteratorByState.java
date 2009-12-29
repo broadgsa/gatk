@@ -160,8 +160,20 @@ public class LocusIteratorByState extends LocusIterator {
                     // we reenter in order to re-check cigarElementCounter against curElement's length
                     return stepForwardOnGenome();
                 } else {
-                    genomeOffset++; // extended events need that. Logically, it's legal to advance the genomic offset here:
-                                    // we do step forward on the ref, and by returning null we also indicate that we are past the read end.
+                    if ( generateExtendedEvents && eventDelayedFlag > 0 ) {
+                        genomeOffset++; // extended events need that. Logically, it's legal to advance the genomic offset here:
+                                        // we do step forward on the ref, and by returning null we also indicate that we are past the read end.
+
+                        // if we had an indel right before the read ended (i.e. insertion was the last cigar element),
+                        // we keep it until next reference base; then we discard it and this will allow the LocusIterator to
+                        // finally discard this read
+                        eventDelayedFlag--;
+                        if ( eventDelayedFlag == 0 )  {
+                            eventLength = -1; // reset event when we are past it
+                            insertedBases = null;
+                            eventStart = -1;
+                        }
+                    }
                     return null;
                 }
             }
