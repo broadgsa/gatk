@@ -61,6 +61,7 @@ public class TraverseDuplicates extends TraversalEngine {
     /** descriptor of the type */
     private static final String DUPS_STRING = "dups";
 
+    /** Turn this to true to enable logger.debug output */
     private final boolean DEBUG = false;
 
     private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter) {
@@ -73,11 +74,9 @@ public class TraverseDuplicates extends TraversalEngine {
 
             // the next read starts too late
             if (site2.getStart() != site.getStart()) {
-                //System.out.printf("site = %s, site2 = %s%n", site, site2);
                 iter.pushback(read2);
                 break;
             } else {
-                //System.out.printf("Read is a duplicate: %s%n", read.format());
                 l.add(read2);
             }
         }
@@ -85,11 +84,20 @@ public class TraverseDuplicates extends TraversalEngine {
         return l;
     }
 
+    /**
+     * Creates a set of lists of reads, where each list contains reads from the same underlying molecule according
+     * to their duplicate flag and their (and mate, if applicable) start/end positions.
+     *
+     * @param reads the list of reads to split into unique molecular samples
+     * @return
+     */
     protected Set<List<SAMRecord>> uniqueReadSets(List<SAMRecord> reads) {
         Set<List<SAMRecord>> readSets = new HashSet<List<SAMRecord>>();
+
+        // for each read, find duplicates, and either add the read to its duplicate list or start a new one
         for ( SAMRecord read : reads ) {
-            
             List<SAMRecord> readSet = findDuplicateReads(read, readSets);
+
             if ( readSet == null ) {
                 readSets.add(new ArrayList<SAMRecord>(Arrays.asList(read)));    // copy so I can add to the list
             } else {
@@ -100,6 +108,15 @@ public class TraverseDuplicates extends TraversalEngine {
         return readSets;
     }
 
+    /**
+     * Find duplicate reads for read in the set of unique reads.  This is effective a duplicate marking algorithm,
+     * but it relies for safety's sake on the file itself being marked by a true duplicate marking algorithm.  Pair
+     * and single-end read aware.
+     *
+     * @param read
+     * @param readSets
+     * @return The list of duplicate reads that read is a member of, or null if it's the only one of its kind
+     */
     protected List<SAMRecord> findDuplicateReads(SAMRecord read, Set<List<SAMRecord>> readSets ) {
         if ( read.getReadPairedFlag() ) {
             // paired
@@ -107,8 +124,6 @@ public class TraverseDuplicates extends TraversalEngine {
 
             for (List<SAMRecord> reads : readSets) {
                 SAMRecord key = reads.get(0);
-                //if (DEBUG)
-                //    logger.debug(String.format("Examining reads at %s vs. %s at %s / %s vs. %s / %s%n", key.getReadName(), read.getReadName(), keyLoc, keyMateLoc, readLoc, readMateLoc));
 
                 // read and key start at the same place, and either the this read and the key
                 // share a mate location or the read is flagged as a duplicate
@@ -191,18 +206,10 @@ public class TraverseDuplicates extends TraversalEngine {
                              Shard shard,
                              ShardDataProvider dataProvider,
                              T sum) {
-        //logger.debug(String.format("TraverseDuplicates.traverse Genomic interval is %s", shard.getGenomeLoc()));
-
+        // safety first :-)
         if (!(walker instanceof DuplicateWalker))
             throw new IllegalArgumentException("Walker isn't a duplicate walker!");
-
         DuplicateWalker<M, T> dupWalker = (DuplicateWalker<M, T>) walker;
-
-        // while we still have more reads
-        // ok, here's the idea.  We get all the reads that start at the same position in the genome
-        // We then split the list of reads into sublists of reads:
-        //   -> those with the same mate pair position, for paired reads
-        //   -> those flagged as unpaired and duplicated but having the same start and end and
 
         FilteringIterator filterIter = new FilteringIterator(new ReadView(dataProvider).iterator(), new duplicateStreamFilterFunc());
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(filterIter);
@@ -219,7 +226,7 @@ public class TraverseDuplicates extends TraversalEngine {
             GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
 
             Set<List<SAMRecord>> readSets = uniqueReadSets(readsAtLoc(read, iter));
-            logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d read sets", site, readSets.size()));
+            if ( DEBUG ) logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d read sets", site, readSets.size()));
 
             // Jump forward in the reference to this locus location
             AlignmentContext locus = new AlignmentContext(site, new ReadBackedPileup(site));
@@ -227,6 +234,7 @@ public class TraverseDuplicates extends TraversalEngine {
             // update the number of duplicate sets we've seen
             TraversalStatistics.nRecords++;
 
+            // actually call filter and map, accumulating sum
             final boolean keepMeP = dupWalker.filter(site, locus, readSets);
             if (keepMeP) {
                 M x = dupWalker.map(site, locus, readSets);

@@ -39,6 +39,10 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         this(loc, readsOffsets2Pileup(reads, offsets));
     }
 
+    public ReadBackedPileup(GenomeLoc loc, List<SAMRecord> reads, int offset ) {
+        this(loc, readsOffsets2Pileup(reads, offset));
+    }
+
     /**
      * Create a new version of a read backed pileup at loc without any aligned reads
      *
@@ -117,6 +121,25 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         ArrayList<PileupElement> pileup = new ArrayList<PileupElement>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
             pileup.add( new PileupElement( reads.get(i), offsets.get(i) ) );
+        }
+
+        return pileup;
+    }
+
+    /**
+     * Helper routine for converting reads and a single offset to a PileupElement list.
+     *
+     * @param reads
+     * @param offset
+     * @return
+     */
+    private static ArrayList<PileupElement> readsOffsets2Pileup(List<SAMRecord> reads, int offset ) {
+        if ( reads == null ) throw new StingException("Illegal null read list in ReadBackedPileup2");
+        if ( offset < 0 ) throw new StingException("Illegal offset < 0 ReadBackedPileup2");
+
+        ArrayList<PileupElement> pileup = new ArrayList<PileupElement>(reads.size());
+        for ( int i = 0; i < reads.size(); i++ ) {
+            pileup.add( new PileupElement( reads.get(i), offset ) );
         }
 
         return pileup;

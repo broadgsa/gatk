@@ -48,7 +48,7 @@ class DuplicateCount  {
 
 /**
  * Count the number of unique reads, duplicates, and the average depth of unique reads and duplicates at all positions.
- * @author aaron
+ * @author mark DePristo
  */
 public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, DuplicateCount> {
     @Argument(fullName="quiet", required=false, doc="If true, per locus information isn't printex")

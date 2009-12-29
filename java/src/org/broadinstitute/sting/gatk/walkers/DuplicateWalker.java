@@ -22,21 +22,6 @@ public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapTyp
         return true;    // We are keeping all the reads
     }
 
-    /**
-     * Called by the traversal engine to decide whether to send non-duplicates as lists of
-     * singleton reads to the map function.  By default it's false.
-     *
-     * @return true if you want to see non duplicates during the traversal
-     */
-    public boolean mapUniqueReadsTooP() { return false; }
-
-    /**
-     * Called by the traversal engine to decide whether to call map() at loci without duplicate reads
-     *
-     * @return true if you want to see non duplicates during the traversal
-     */
-    public boolean mapAtLociWithoutDuplicates() { return true; }
-    
     public abstract MapType map(GenomeLoc loc, AlignmentContext context, Set<List<SAMRecord>> readSets );
 
     // Given result of map function

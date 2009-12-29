@@ -21,20 +21,9 @@ public class CombineDuplicatesWalker extends DuplicateWalker<List<SAMRecord>, SA
     @Argument(fullName="outputBAM", shortName="outputBAM", required=false, doc="BAM File to write combined duplicates to")
     public SAMFileWriter outputBAM = null;
 
-    @Argument(fullName="includeUniqueReads", shortName="includeUniqueReads", required=false, doc="If true, also writes out non-duplicate reads in file")
-    public boolean INCLUDE_UNIQUE_READS = true;
-
     @Argument(fullName="maxQ", shortName="maxQ", required=false,
             doc="The maximum Q score allowed for combined reads, reflects the background error rate giving rise to perfect bases that don't correspond to the reference")
     public int MAX_QUALITY_SCORE = 50;
-
-    /**
-     * do we want to include unqiue reads?
-     * @return the user specified command line argument INCLUDE_UNIQUE_READS
-     */
-    public boolean mapUniqueReadsTooP() {
-        return INCLUDE_UNIQUE_READS;
-    }
 
     /**
      * start the walker with the command line argument specified SAMFileWriter
@@ -59,11 +48,15 @@ public class CombineDuplicatesWalker extends DuplicateWalker<List<SAMRecord>, SA
         return output;
     }
 
+
     /**
-     * We don't want to see loci without duplicates, since 
-     * @return
+     * when we're done, print out the collected stats
+     * @param result the result of the traversal engine, to be printed out
      */
-    public boolean mapAtLociWithoutDuplicates() { return false; }
+    public void onTraversalDone(SAMFileWriter result) {
+        return; // don't do anything
+    }
+
 
     /**
      * Build a combined read given the input list of non-unique reads.  If there's just one read in the
@@ -86,10 +79,12 @@ public class CombineDuplicatesWalker extends DuplicateWalker<List<SAMRecord>, SA
                 combinedRead = reads.get(0);
             } else {
                 // actually call the combine function
-                //for (SAMRecord read : duplicateReads ) {
-                //    System.out.printf("Read %s%n", read.format());
-                //}
+//                for (SAMRecord read : reads ) {
+//                    out.printf("Combining Read %s%n", read.format());
+//                }
+//
                 combinedRead = DupUtils.combineDuplicates(reads, MAX_QUALITY_SCORE);
+                //out.printf("  => into %s%n", combinedRead.format());
             }
 
             if ( combinedRead.getDuplicateReadFlag() )
