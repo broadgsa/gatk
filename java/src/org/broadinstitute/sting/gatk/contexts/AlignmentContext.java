@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 
 import java.util.*;
 
@@ -44,7 +44,8 @@ import java.util.*;
  */
 public class AlignmentContext {
     protected GenomeLoc loc = null;
-    protected ReadBackedPileup pileup = null;
+    protected ReadBackedPileup basePileup = null;
+    protected ReadBackedExtendedEventPileup extendedPileup = null;
 
     /**
      * The number of bases we've skipped over in the reference since the last map invocation.
@@ -77,26 +78,68 @@ public class AlignmentContext {
         if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
 
         this.loc = loc;
-        this.pileup = new ReadBackedPileup(loc, reads, offsets);
+        this.basePileup = new ReadBackedPileup(loc, reads, offsets);
         this.skippedBases = skippedBases;
     }
 
-    public AlignmentContext(GenomeLoc loc, ReadBackedPileup pileup ) {
-        this(loc, pileup, 0);
+    public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup) {
+        this(loc, basePileup, 0);
     }
 
+    public AlignmentContext(GenomeLoc loc, ReadBackedExtendedEventPileup extendedPileup) {
+        this(loc, extendedPileup, 0);
+    }
 
-    public AlignmentContext(GenomeLoc loc, ReadBackedPileup pileup, long skippedBases ) {
+    public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases ) {
         if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
-        if ( pileup == null ) throw new StingException("BUG: ReadBackedPileup in Alignment context is null");
+        if ( basePileup == null ) throw new StingException("BUG: ReadBackedPileup in Alignment context is null");
         if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
 
         this.loc = loc;
-        this.pileup = pileup;
+        this.basePileup = basePileup;
         this.skippedBases = skippedBases;
     }
 
-    public ReadBackedPileup getPileup() { return pileup; }
+    public AlignmentContext(GenomeLoc loc, ReadBackedExtendedEventPileup extendedPileup, long skippedBases ) {
+        if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
+        if ( extendedPileup == null ) throw new StingException("BUG: ReadBackedExtendedEventPileup in Alignment context is null");
+        if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
+
+        this.loc = loc;
+        this.extendedPileup = extendedPileup;
+        this.skippedBases = skippedBases;
+    }
+
+    /** Returns base pileup over the current genomic location. Deprectated. Use getBasePileup() to make your intentions
+     * clear.
+     * @return
+     */
+    @Deprecated
+    public ReadBackedPileup getPileup() { return basePileup; }
+
+    /** Returns base pileup over the current genomic location. May return null if this context keeps only
+     * extended event (indel) pileup.
+     * @return
+     */
+    public ReadBackedPileup getBasePileup() { return basePileup; }
+
+    /** Returns extended event (indel) pileup over the current genomic location. May return null if this context keeps
+     * only base pileup.
+     * @return
+     */
+    public ReadBackedExtendedEventPileup getExtendedEventPileup() { return extendedPileup; }
+
+    /** Returns true if this alignment context keeps base pileup over the current genomic location.
+     *
+     * @return
+     */
+    public boolean hasBasePileup() { return basePileup != null; }
+
+    /** Returns true if this alignment context keeps extended event (indel) pileup over the current genomic location.
+     *
+     * @return
+     */
+    public boolean hasExtendedEventPileup() { return extendedPileup != null; }
 
     /**
      * get all of the reads within this context
@@ -104,7 +147,8 @@ public class AlignmentContext {
      * @return
      */
     @Deprecated
-    public List<SAMRecord> getReads() { return pileup.getReads(); }
+    //todo: unsafe and tailored for current usage only; both pileups can be null or worse, bot can be not null in theory
+    public List<SAMRecord> getReads() { return ( basePileup == null ? extendedPileup.getReads() : basePileup.getReads() ); }
 
     /**
      * Are there any reads associated with this locus?
@@ -112,7 +156,7 @@ public class AlignmentContext {
      * @return
      */
     public boolean hasReads() {
-        return pileup.size() > 0;
+        return ( (basePileup != null && basePileup.size() > 0) || (extendedPileup != null && extendedPileup.size() > 0) ) ;
     }
 
     /**
@@ -120,7 +164,9 @@ public class AlignmentContext {
      * @return
      */
     public int size() {
-        return pileup.size();
+        if ( basePileup == null && extendedPileup == null ) return 0;
+        //todo: both pileups can be non-nulls in theory (but not in current usage), what if sizes differ?
+        return extendedPileup == null ? basePileup.size() : extendedPileup.size();
     }
 
     /**
@@ -130,7 +176,8 @@ public class AlignmentContext {
      */
     @Deprecated
     public List<Integer> getOffsets() {
-        return pileup.getOffsets();
+        //todo: both pileups can be non-nulls in theory (but not in current usage), what offsets should we return?
+        return extendedPileup == null ? basePileup.getOffsets() : extendedPileup.getOffsets();
     }
 
     public String getContig() { return getLocation().getContig(); }
@@ -138,7 +185,12 @@ public class AlignmentContext {
     public GenomeLoc getLocation() { return loc; }
 
     public void downsampleToCoverage(int coverage) {
-        pileup = pileup.getDownsampledPileup(coverage);
+        if ( basePileup != null ) {
+            basePileup = basePileup.getDownsampledPileup(coverage);
+        }
+        if ( extendedPileup != null ) {
+            extendedPileup = extendedPileup.getDownsampledPileup(coverage);
+        }
     }
 
     /**
