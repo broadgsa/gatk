@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
@@ -62,20 +63,34 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
     @Argument(fullName="ignore_uncovered_bases",shortName="skip_uncov",doc="Output nothing when a base is uncovered")
     public boolean IGNORE_UNCOVERED_BASES = false;
-    
+
+    @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
+    public boolean SHOW_INDEL_PILEUPS = false;
+
     public void initialize() {
     }
 
+    public boolean generateExtendedEvents() { return SHOW_INDEL_PILEUPS; }
+
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        ReadBackedPileup pileup = context.getPileup();
-        
-        String secondBasePileup = "";
-        if(shouldShowSecondaryBasePileup(pileup))
-            secondBasePileup = getSecondBasePileup(pileup);
+
         String rods = getReferenceOrderedData( tracker );
 
-        out.printf("%s%s %s%n", pileup.getPileupString(ref.getBase()), secondBasePileup, rods);
+        if ( context.hasBasePileup() ) {
 
+            ReadBackedPileup basePileup = context.getBasePileup();
+        
+            String secondBasePileup = "";
+            if(shouldShowSecondaryBasePileup(basePileup))
+                secondBasePileup = getSecondBasePileup(basePileup);
+
+            out.printf("%s%s %s%n", basePileup.getPileupString(ref.getBase()), secondBasePileup, rods);
+        }
+
+        if ( context.hasExtendedEventPileup() ) {
+            ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
+            out.printf("%s %s%n", indelPileup.getShortPileupString(), rods);
+        }
         return 1;
     }
 
