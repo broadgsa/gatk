@@ -65,6 +65,11 @@ public abstract class ArgumentTypeDescriptor {
         descriptors = allDescriptors;
     }
 
+    /**
+     * Fetch the given descriptor from the descriptor repository.
+     * @param type Class for which to specify a descriptor.
+     * @return descriptor for the given type.
+     */
     public static ArgumentTypeDescriptor create( Class type ) {
         for( ArgumentTypeDescriptor descriptor: descriptors ) {
             if( descriptor.supports(type) )
@@ -79,6 +84,22 @@ public abstract class ArgumentTypeDescriptor {
      * @return true if this descriptor supports the given type, false otherwise.
      */
     public abstract boolean supports( Class type );
+
+    /**
+     * This argument type descriptor wants to override any default value the user might have specified. 
+     * @return True if this descriptor wants to override any default the user specified.  False otherwise.
+     */
+    public boolean overridesDefault() {
+        return false;
+    }
+
+    /**
+     * Provides the default value for the command-line argument.
+     * @return Default value to load into the object.
+     */
+    public Object getDefault() {
+        throw new UnsupportedOperationException(String.format("Type descriptor %s cannot override default value of command-line argument",this.getClass()));   
+    }
 
     /**
      * Given the given argument source and attributes, synthesize argument definitions for command-line arguments.
@@ -115,6 +136,7 @@ public abstract class ArgumentTypeDescriptor {
     /**
      * Retrieves the full name of the argument, specifiable with the '--' prefix.  The full name can be
      * either specified explicitly with the fullName annotation parameter or implied by the field name.
+     * @param source Original field specifying command-line arguments.
      * @return full name of the argument.  Never null.
      */
     protected String getFullName( ArgumentSource source ) {
@@ -125,6 +147,7 @@ public abstract class ArgumentTypeDescriptor {
     /**
      * Retrieves the short name of the argument, specifiable with the '-' prefix.  The short name can
      * be specified or not; if left unspecified, no short name will be present.
+     * @param source Original field specifying command-line arguments.
      * @return short name of the argument.  Null if no short name exists.
      */
     protected String getShortName( ArgumentSource source ) {
@@ -134,6 +157,7 @@ public abstract class ArgumentTypeDescriptor {
 
     /**
      * Documentation for this argument.  Mandatory field.
+     * @param source Original field specifying command-line arguments.
      * @return Documentation for this argument.
      */
     protected String getDoc( ArgumentSource source ) {
@@ -143,6 +167,7 @@ public abstract class ArgumentTypeDescriptor {
 
     /**
      * Returns whether this field is required.  Note that flag fields are always forced to 'not required'.
+     * @param source Original field specifying command-line arguments.
      * @return True if the field is mandatory and not a boolean flag.  False otherwise.
      */
     protected boolean isRequired( ArgumentSource source ) {
@@ -152,6 +177,7 @@ public abstract class ArgumentTypeDescriptor {
 
     /**
      * Specifies other arguments which cannot be used in conjunction with tihs argument.  Comma-separated list.
+     * @param source Original field specifying command-line arguments.
      * @return A comma-separated list of exclusive arguments, or null if none are present.
      */
     protected String getExclusiveOf( ArgumentSource source ) {
@@ -161,6 +187,7 @@ public abstract class ArgumentTypeDescriptor {
 
     /**
      * A regular expression which can be used for validation.
+     * @param source Original field specifying command-line arguments.
      * @return a JVM regex-compatible regular expression, or null to permit any possible value.
      */
     protected String getValidationRegex( ArgumentSource source ) {

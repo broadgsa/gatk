@@ -49,6 +49,11 @@ public class ArgumentSource {
     public final Field field;
 
     /**
+     * Type descriptor to use when parsing new argument types.
+     */
+    private final ArgumentTypeDescriptor typeDescriptor;
+
+    /**
      * Create a new command-line argument target.
      * @param clazz Class containing the argument.
      * @param field Field containing the argument.  Field must be annotated with 'Argument'.
@@ -56,6 +61,7 @@ public class ArgumentSource {
     public ArgumentSource( Class clazz, Field field ) {
         this.clazz = clazz;
         this.field = field;
+        this.typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
     }
 
     /**
@@ -89,8 +95,23 @@ public class ArgumentSource {
      * @return A non-null, non-empty list of argument definitions.
      */
     public List<ArgumentDefinition> createArgumentDefinitions() {
-        ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
         return typeDescriptor.createArgumentDefinitions( this );
+    }
+
+    /**
+     * This argument type descriptor wants to override any default value the user might have specified.
+     * @return True if this descriptor wants to override any default the user specified.  False otherwise.
+     */
+    public boolean overridesDefault() {
+        return typeDescriptor.overridesDefault();
+    }
+
+    /**
+     * Provides the default value for the command-line argument.
+     * @return Default value to load into the object.
+     */
+    public Object getDefault() {
+        return typeDescriptor.getDefault();
     }
 
     /**
@@ -101,10 +122,8 @@ public class ArgumentSource {
      */
     public Object parse( ArgumentSource source, ArgumentMatches values ) {
         Object value = null;
-        if( !isFlag() ) {
-            ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
+        if( !isFlag() )
             value = typeDescriptor.parse( source, values );
-        }
         else
             value = true;
 

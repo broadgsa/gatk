@@ -59,6 +59,26 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
     }
 
     /**
+     * This command-line argument descriptor does want to override the provided default value.
+     * @return true always.
+     */
+    @Override
+    public boolean overridesDefault() {
+        return true;
+    }
+
+    /**
+     * Provide the default value for this argument.
+     * @return A VCFGenotypeWriter which writes to the default output stream.
+     */
+    @Override
+    public Object getDefault() {
+        GenotypeWriterStub defaultGenotypeWriter = new VCFGenotypeWriterStub(engine,System.out);
+        engine.addOutput(defaultGenotypeWriter);
+        return defaultGenotypeWriter;       
+    }
+
+    /**
      * Convert the given argument matches into a single object suitable for feeding into the ArgumentSource.
      * @param source Source for this argument.
      * @param type

@@ -250,7 +250,7 @@ public class ParsingEngine {
     public void loadArgumentsIntoObject( Object object ) {
         List<ArgumentSource> argumentSources = extractArgumentSources(object.getClass());
         for( ArgumentSource argumentSource: argumentSources )
-            loadMatchesIntoObject( argumentSource, object, argumentMatches.findMatches(argumentSource) );
+            loadValueIntoObject( argumentSource, object, argumentMatches.findMatches(argumentSource) );
     }
 
     /**
@@ -259,9 +259,9 @@ public class ParsingEngine {
      * @param source Argument source to load into the object.
      * @param instance Object into which to inject the value.  The target might be in a container within the instance.
      */
-    private void loadMatchesIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches ) {
+    private void loadValueIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches ) {
         // Nothing to load
-        if( argumentMatches.size() == 0 )
+        if( argumentMatches.size() == 0 && !source.overridesDefault())
             return;
 
         // Target instance into which to inject the value.
@@ -280,8 +280,8 @@ public class ParsingEngine {
             throw new StingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
-            Object value = source.parse( source, argumentMatches );
-            JVMUtils.setFieldValue( source.field, target, value );
+            Object value = (argumentMatches.size() != 0) ? source.parse(source,argumentMatches) : source.getDefault();
+            JVMUtils.setFieldValue(source.field,target,value);
         }
     }
 
