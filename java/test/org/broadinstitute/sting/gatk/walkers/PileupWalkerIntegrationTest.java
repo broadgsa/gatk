@@ -23,4 +23,15 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(expected_md5));
         executeTest("Testing the standard (no-indel) pileup on three merged FHS pools with 27 deletions in 969 bases", spec);
     }
+
+    @Test
+    public void testExtendedEventPileup() {
+        String gatk_args = "-T Pileup -I " + validationDataLocation + "OV-0930.normal.chunk.bam "
+                 + "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
+                + " -show_indels -o %s";
+        String expected_md5="afc9ef7f4668e82d0bf88ab8916944f4";
+        WalkerTestSpec spec = new WalkerTestSpec(gatk_args,1,Arrays.asList(expected_md5));
+        executeTest("Testing the extended pileup with indel records included on a small chunk of Ovarian dataset with 20 indels (1 D, 19 I)", spec);
+
+    }
 }
