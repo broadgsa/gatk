@@ -1,11 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.NHashMap;
+import org.broadinstitute.sting.utils.*;
 
 import java.util.*;
 
@@ -48,14 +44,10 @@ import net.sf.samtools.SAMReadGroupRecord;
 
 public class RecalDataManager {
     
-    public NHashMap<RecalDatum> data; // The full dataset
-    private NHashMap<RecalDatum> dataCollapsedReadGroup; // Table where everything except read group has been collapsed
-    private NHashMap<RecalDatum> dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
-    private ArrayList<NHashMap<RecalDatum>> dataCollapsedByCovariate; // Tables where everything except read group, quality score, and given covariate has been collapsed
-
-    private NHashMap<Double> dataCollapsedReadGroupDouble; // Table of empirical qualities where everything except read group has been collapsed
-    private NHashMap<Double> dataCollapsedQualityScoreDouble; // Table of empirical qualities where everything except read group and quality score has been collapsed
-    private ArrayList<NHashMap<Double>> dataCollapsedByCovariateDouble; // Table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
+    public NestedHashMap data; // The full dataset
+    private NestedHashMap dataCollapsedReadGroup; // Table where everything except read group has been collapsed
+    private NestedHashMap dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
+    private ArrayList<NestedHashMap> dataCollapsedByCovariate; // Tables where everything except read group, quality score, and given covariate has been collapsed
 
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // The tag that holds the color space quality scores for SOLID bams
@@ -65,76 +57,70 @@ public class RecalDataManager {
     private static boolean warnUserNoColorSpace = false;
 
     RecalDataManager() {
-    	data = new NHashMap<RecalDatum>();
+    	data = new NestedHashMap();
     }
 
-    RecalDataManager( final int estimatedCapacity, final boolean createCollapsedTables, final int numCovariates ) {
+    RecalDataManager( final boolean createCollapsedTables, final int numCovariates ) {
     	if( createCollapsedTables ) { // Initialize all the collapsed tables, only used by TableRecalibrationWalker
-            dataCollapsedReadGroup = new NHashMap<RecalDatum>();
-            dataCollapsedQualityScore = new NHashMap<RecalDatum>();
-            dataCollapsedByCovariate = new ArrayList<NHashMap<RecalDatum>>();
+            dataCollapsedReadGroup = new NestedHashMap();
+            dataCollapsedQualityScore = new NestedHashMap();
+            dataCollapsedByCovariate = new ArrayList<NestedHashMap>();
             for( int iii = 0; iii < numCovariates - 2; iii++ ) { // readGroup and QualityScore aren't counted here, their tables are separate
-                dataCollapsedByCovariate.add( new NHashMap<RecalDatum>() );
+                dataCollapsedByCovariate.add( new NestedHashMap() );
             }
         } else {
-            data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f);
+            data = new NestedHashMap();
         }            
     }
     
-    RecalDataManager( final int estimatedCapacity ) {
-        data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f ); // Second arg is the 'loading factor',
-                                                                    //   a number to monkey around with when optimizing performace of the HashMap
-    }
-
     /**
      * Add the given mapping to all of the collapsed hash tables
      * @param key The list of comparables that is the key for this mapping
      * @param fullDatum The RecalDatum which is the data for this mapping
      * @param PRESERVE_QSCORES_LESS_THAN The threshold in report quality for adding to the aggregate collapsed table
      */
-    public final void addToAllTables( final List<? extends Comparable> key, final RecalDatum fullDatum, final int PRESERVE_QSCORES_LESS_THAN ) {
+    public final void addToAllTables( final Object[] key, final RecalDatum fullDatum, final int PRESERVE_QSCORES_LESS_THAN ) {
 
         // The full dataset isn't actually ever used for anything because of the sequential calculation so no need to keep the full data HashMap around
         //data.put(key, thisDatum); // add the mapping to the main table
 
-        int qualityScore = Integer.parseInt( key.get(1).toString() );
-        ArrayList<Comparable> newKey;
+        int qualityScore = Integer.parseInt( key[1].toString() );
+        final Object[] readGroupCollapsedKey = new Object[1];
+        final Object[] qualityScoreCollapsedKey = new Object[2];
+        final Object[] covariateCollapsedKey = new Object[3];
         RecalDatum collapsedDatum;
 
         // Create dataCollapsedReadGroup, the table where everything except read group has been collapsed
         if( qualityScore >= PRESERVE_QSCORES_LESS_THAN ) {
-            newKey = new ArrayList<Comparable>();
-            newKey.add( key.get(0) ); // Make a new key with just the read group
-            collapsedDatum = dataCollapsedReadGroup.get( newKey );
+            readGroupCollapsedKey[0] = key[0]; // Make a new key with just the read group
+            collapsedDatum = (RecalDatum) dataCollapsedReadGroup.get( readGroupCollapsedKey );
             if( collapsedDatum == null ) {
-                dataCollapsedReadGroup.put( newKey, new RecalDatum(fullDatum) );
+                dataCollapsedReadGroup.put( new RecalDatum(fullDatum), readGroupCollapsedKey );
             } else {
                 collapsedDatum.combine( fullDatum ); // using combine instead of increment in order to calculate overall aggregateQReported
             }
         }
 
-        newKey = new ArrayList<Comparable>();
         // Create dataCollapsedQuality, the table where everything except read group and quality score has been collapsed
-        newKey.add( key.get(0) ); // Make a new key with the read group ...
-        newKey.add( key.get(1) ); //                                    and quality score
-        collapsedDatum = dataCollapsedQualityScore.get( newKey );
+        qualityScoreCollapsedKey[0] = key[0]; // Make a new key with the read group ...
+        qualityScoreCollapsedKey[1] = key[1]; //                                    and quality score
+        collapsedDatum = (RecalDatum) dataCollapsedQualityScore.get( qualityScoreCollapsedKey );
         if( collapsedDatum == null ) {
-            dataCollapsedQualityScore.put( newKey, new RecalDatum(fullDatum) );
+            dataCollapsedQualityScore.put( new RecalDatum(fullDatum), qualityScoreCollapsedKey );
         } else {
             collapsedDatum.increment( fullDatum );
         }
 
         // Create dataCollapsedByCovariate's, the tables where everything except read group, quality score, and given covariate has been collapsed
         for( int iii = 0; iii < dataCollapsedByCovariate.size(); iii++ ) {
-            newKey = new ArrayList<Comparable>();
-            newKey.add( key.get(0) ); // Make a new key with the read group ...
-            newKey.add( key.get(1) ); //                                    and quality score ...
-            Comparable theCovariateElement = key.get(iii + 2); //                             and the given covariate
+            covariateCollapsedKey[0] = key[0]; // Make a new key with the read group ...
+            covariateCollapsedKey[1] = key[1]; //                                    and quality score ...
+            Object theCovariateElement = key[iii + 2]; //                                              and the given covariate
             if( theCovariateElement != null ) {
-                newKey.add( theCovariateElement );
-                collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
+                covariateCollapsedKey[2] = theCovariateElement;
+                collapsedDatum = (RecalDatum) dataCollapsedByCovariate.get(iii).get( covariateCollapsedKey );
                 if( collapsedDatum == null ) {
-                    dataCollapsedByCovariate.get(iii).put( newKey, new RecalDatum(fullDatum) );
+                    dataCollapsedByCovariate.get(iii).put( new RecalDatum(fullDatum), covariateCollapsedKey );
                 } else {
                     collapsedDatum.increment( fullDatum );
                 }
@@ -145,42 +131,20 @@ public class RecalDataManager {
     /**
      * Loop over all the collapsed tables and turn the recalDatums found there into an empricial quality score
      *   that will be used in the sequential calculation in TableRecalibrationWalker
-     * @param numCovariates The number of covariates you have determines the number of tables to create
      * @param smoothing The smoothing paramter that goes into empirical quality score calculation
      */
-    public final void generateEmpiricalQualities( final int numCovariates, final int smoothing ) {
+    public final void generateEmpiricalQualities( final int smoothing ) {
 
-        dataCollapsedReadGroupDouble = new NHashMap<Double>();
-        dataCollapsedQualityScoreDouble = new NHashMap<Double>();
-        dataCollapsedByCovariateDouble = new ArrayList<NHashMap<Double>>();
-        for( int iii = 0; iii < numCovariates - 2; iii++ ) { // readGroup and QualityScore aren't counted here, their tables are separate
-            dataCollapsedByCovariateDouble.add( new NHashMap<Double>() );
+        for( Pair<Object[],Object> entry : dataCollapsedReadGroup.entrySetSorted() ) {
+            ((RecalDatum)entry.second).calcCombinedEmpiricalQuality(smoothing);
         }
-
-        // Hash the empirical quality scores so we don't have to call Math.log at every base for every read
-        // Looping over the entrySet is really expensive but worth it
-        for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedReadGroup.entrySet() ) {
-            dataCollapsedReadGroupDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ) );
+        for( Pair<Object[],Object> entry : dataCollapsedQualityScore.entrySetSorted() ) {
+            ((RecalDatum)entry.second).calcCombinedEmpiricalQuality(smoothing);
         }
-        for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedQualityScore.entrySet() ) {
-            dataCollapsedQualityScoreDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ) );
-        }
-        for( int iii = 0; iii < numCovariates - 2; iii++ ) {
-            for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedByCovariate.get(iii).entrySet() ) {
-                dataCollapsedByCovariateDouble.get(iii).put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ) );
+        for( NestedHashMap map : dataCollapsedByCovariate ) {
+            for( Pair<Object[],Object> entry : map.entrySetSorted() ) {
+                ((RecalDatum)entry.second).calcCombinedEmpiricalQuality(smoothing);        
             }
-        }
-
-        dataCollapsedQualityScore.clear();
-        for( int iii = 0; iii < numCovariates - 2; iii++ ) {
-            dataCollapsedByCovariate.get(iii).clear();
-        }
-        dataCollapsedByCovariate.clear();
-        dataCollapsedQualityScore = null; // Will never need this table again
-        dataCollapsedByCovariate = null; // Will never need this table again
-        if( data != null ) {
-            data.clear();
-            data = null; // Will never need this table again
         }
     }
 
@@ -189,28 +153,13 @@ public class RecalDataManager {
      * @param covariate Which covariate indexes the desired collapsed HashMap
      * @return The desired collapsed HashMap
      */
-    public final NHashMap<RecalDatum> getCollapsedTable( final int covariate ) {
+    public final NestedHashMap getCollapsedTable( final int covariate ) {
         if( covariate == 0) {
             return dataCollapsedReadGroup; // Table where everything except read group has been collapsed
         } else if( covariate == 1 ) {
             return dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
         } else {
             return dataCollapsedByCovariate.get( covariate - 2 ); // Table where everything except read group, quality score, and given covariate has been collapsed
-        }
-    }
-
-    /**
-     * Get the appropriate collapsed table of emprical quality out of the set of all the tables held by this Object
-     * @param covariate Which covariate indexes the desired collapsed NHashMap<Double>
-     * @return The desired collapsed NHashMap<Double>
-     */
-    public final NHashMap<Double> getCollapsedDoubleTable( final int covariate ) {
-        if( covariate == 0) {
-            return dataCollapsedReadGroupDouble;
-        } else if( covariate == 1 ) {
-            return dataCollapsedQualityScoreDouble; // Table of empirical qualities where everything except read group and quality score has been collapsed
-        } else {
-            return dataCollapsedByCovariateDouble.get( covariate - 2 ); // Table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
         }
     }
 

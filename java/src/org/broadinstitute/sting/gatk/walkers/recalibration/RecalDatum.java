@@ -43,6 +43,7 @@ public class RecalDatum {
     private long numObservations; // number of bases seen in total
     private long numMismatches; // number of bases seen that didn't match the reference
     private double estimatedQReported; // estimated reported quality score based on combined data's individual q-reporteds and number of observations
+    private double empiricalQuality; // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -53,18 +54,21 @@ public class RecalDatum {
         numObservations = 0L;
         numMismatches = 0L;
         estimatedQReported = 0.0;
+        empiricalQuality = 0.0;
     }
 
-    public RecalDatum( final long _numObservations, final long _numMismatches, final double _estimatedQReported ) {
+    public RecalDatum( final long _numObservations, final long _numMismatches, final double _estimatedQReported, final double _empiricalQuality ) {
         numObservations = _numObservations;
         numMismatches = _numMismatches;
         estimatedQReported = _estimatedQReported;
+        empiricalQuality = _empiricalQuality;
     }
 
     public RecalDatum( final RecalDatum copy ) {
         this.numObservations = copy.numObservations;
         this.numMismatches = copy.numMismatches;
         this.estimatedQReported = copy.estimatedQReported;
+        this.empiricalQuality = copy.empiricalQuality;
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -115,6 +119,8 @@ public class RecalDatum {
     }
     public final double empiricalQualDouble() { return empiricalQualDouble( 0 ); } // 'default' behavior is to use smoothing value of zero
 
+    public final void calcCombinedEmpiricalQuality(final int smoothing){ this.empiricalQuality = empiricalQualDouble(smoothing); }
+
 
     public final byte empiricalQualByte( final int smoothing ) {
         double doubleMismatches = (double) ( numMismatches + smoothing );
@@ -146,6 +152,10 @@ public class RecalDatum {
 
     public final double getEstimatedQReported() {
         return estimatedQReported;
+    }
+
+    public final double getEmpiricalQuality() {
+        return empiricalQuality;
     }
 
     private double calcExpectedErrors() {

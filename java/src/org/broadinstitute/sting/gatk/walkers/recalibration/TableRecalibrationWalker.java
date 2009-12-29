@@ -94,7 +94,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.1.3"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.0"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
@@ -145,7 +145,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         requestedCovariates = new ArrayList<Covariate>();
 
         // Read in the data from the csv file and populate the map
-        logger.info( "Reading in the data from input file..." );
+        logger.info( "Reading in the data from input csv file..." );
 
         try {
             for ( String line : new xReadLines(new File( RAC.RECAL_FILE )) ) {
@@ -203,7 +203,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                             cov.initialize( RAC );
                         }
                         // Initialize the data hashMaps
-                        dataManager = new RecalDataManager( estimatedCapacity, createCollapsedTables, requestedCovariates.size() );
+                        dataManager = new RecalDataManager( createCollapsedTables, requestedCovariates.size() );
 
                     }
                     addCSVData(line); // Parse the line and add the data to the HashMap
@@ -224,7 +224,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         // Create the tables of empirical quality scores that will be used in the sequential calculation
         logger.info( "Generating tables of empirical qualities for use in sequential calculation..." );
-        dataManager.generateEmpiricalQualities( requestedCovariates.size(), SMOOTHING );
+        dataManager.generateEmpiricalQualities( SMOOTHING );
         logger.info( "...done!" );
 
         // Take the header of the input SAM file and tweak it by adding in a new programRecord with the version number and list of covariates that were used
@@ -273,7 +273,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                     " --Perhaps the read group string contains a comma and isn't being parsed correctly.");
         }
 
-        ArrayList<Comparable> key = new ArrayList<Comparable>();
+        ArrayList<Object> key = new ArrayList<Object>();
         Covariate cov;
         int iii;
         for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
@@ -281,9 +281,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             key.add( cov.getValue( vals[iii] ) );
         }
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
-        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ) );
+        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
-        dataManager.addToAllTables( key, datum, PRESERVE_QSCORES_LESS_THAN );
+        dataManager.addToAllTables( key.toArray(), datum, PRESERVE_QSCORES_LESS_THAN );
         
     }
 
@@ -361,28 +361,31 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         // The global quality shift (over the read group only)
         collapsedTableKey.add( readGroupKeyElement );
-        Double globalDeltaQEmpirical = dataManager.getCollapsedDoubleTable(0).get( collapsedTableKey );
+        RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( collapsedTableKey.toArray() ));
         double globalDeltaQ = 0.0;
-        if( globalDeltaQEmpirical != null ) {
-            double aggregrateQReported = dataManager.getCollapsedTable(0).get( collapsedTableKey ).getEstimatedQReported();
+        if( globalRecalDatum != null ) {
+            double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
+            double aggregrateQReported = globalRecalDatum.getEstimatedQReported();
             globalDeltaQ = globalDeltaQEmpirical - aggregrateQReported;
         }
 
         // The shift in quality between reported and empirical
         collapsedTableKey.add( qualityScoreKeyElement );
-        Double deltaQReportedEmpirical = dataManager.getCollapsedDoubleTable(1).get( collapsedTableKey );
+        RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( collapsedTableKey.toArray() ));
         double deltaQReported = 0.0;
-        if( deltaQReportedEmpirical != null ) {
+        if( qReportedRecalDatum != null ) {
+            double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
             deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
         }
         
         // The shift in quality due to each covariate by itself in turn
         double deltaQCovariates = 0.0;
-        Double deltaQCovariateEmpirical;
+        double deltaQCovariateEmpirical;
         for( int iii = 2; iii < key.size(); iii++ ) {
             collapsedTableKey.add( key.get(iii) ); // The given covariate
-            deltaQCovariateEmpirical = dataManager.getCollapsedDoubleTable(iii).get( collapsedTableKey );
-            if( deltaQCovariateEmpirical != null ) {
+            RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii).get( collapsedTableKey.toArray() ));
+            if( covariateRecalDatum != null ) {
+                deltaQCovariateEmpirical = covariateRecalDatum.getEmpiricalQuality();
                 deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
             }
             collapsedTableKey.remove( 2 ); // This new covariate is always added in at position 2 in the collapsedTableKey list

@@ -87,12 +87,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private int PROCESS_EVERY_NTH_LOCUS = 1;
 
     /////////////////////////////
-    // Debugging-only Arguments
-    /////////////////////////////
-    @Argument(fullName="sorted_output", shortName="sorted", required=false, doc="The output table recalibration csv file will be in sorted order at the cost of added overhead. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
-    private boolean SORTED_OUTPUT = false;
-
-    /////////////////////////////
     // Private Member Variables
     /////////////////////////////
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
@@ -103,7 +97,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.1.3"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.0"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -364,7 +358,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     private void updateDataFromRead(final SAMRecord read, final int offset, final byte refBase) {
 
-        List<Comparable> key = new ArrayList<Comparable>();
+        List<Object> key = new ArrayList<Object>();
         
         // Loop through the list of requested covariates and pick out the value from the read, offset, and reference
         for( Covariate covariate : requestedCovariates ) {
@@ -372,14 +366,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
     	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
-        RecalDatum datum = dataManager.data.get( key );
+        RecalDatum datum = (RecalDatum) dataManager.data.get( key.toArray() );
         if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
             datum = new RecalDatum(); // initialized with zeros, will be incremented at end of method
-            if( SORTED_OUTPUT ) {
-                dataManager.data.sortedPut( key, datum );
-            } else {
-                dataManager.data.put( key, datum );
-            }
+            dataManager.data.put( datum, key.toArray() );
         }
         
         // Need the bases to determine whether or not we have a mismatch
@@ -459,26 +449,15 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
         recalTableStream.println("nObservations,nMismatches,Qempirical");
 
-
-        if( SORTED_OUTPUT && requestedCovariates.size() == 4 )
-        {
-            for( Pair<List<? extends Comparable>,RecalDatum> entry : dataManager.data.entrySetSorted() ) {
-                for( Comparable comp : entry.first ) {
-                    recalTableStream.print( comp + "," );
-                }
-                recalTableStream.println( entry.second.outputToCSV() );
+        // For each entry in the data hashmap
+        for( Pair<Object[], Object> entry : dataManager.data.entrySetSorted() ) {
+            // For each Covariate in the key
+            for( Object comp : entry.first ) {
+                // Output the Covariate's value
+                recalTableStream.print( comp + "," );
             }
-        } else {
-            // For each entry in the data hashmap
-            for( Map.Entry<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySet() ) {
-                // For each Covariate in the key
-                for( Comparable comp : entry.getKey() ) {
-                    // Output the Covariate's value
-                    recalTableStream.print( comp + "," );
-                }
-                // Output the RecalDatum entry
-                recalTableStream.println( entry.getValue().outputToCSV() );
-            }
+            // Output the RecalDatum entry
+            recalTableStream.println( ((RecalDatum)entry.second).outputToCSV() );
         }
     }
 }

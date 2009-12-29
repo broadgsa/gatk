@@ -177,7 +177,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
             key.add( cov.getValue( vals[iii] ) );
         }
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
-        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ) );
+        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
         dataManager.addToAllTables( key, datum, IGNORE_QSCORES_LESS_THAN );
 

@@ -36,7 +36,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov QualityScoreCovariate" +
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
-                            " --sorted_output" +
                             " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file
@@ -96,7 +95,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov QualityScoreCovariate" +
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
-                            " --sorted_output" +
                             " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file
@@ -125,7 +123,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
                             " --default_platform illumina" +
-                            " --sorted_output" +
                             " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file
@@ -166,7 +163,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "906e5a08401722cc9a5528d2fd20ea6a" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "850f2a2d5bc94cc22b3b038b424252c6" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -179,7 +176,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -I " + bam +
                             " -cov ReadGroupCovariate" +
                             " -cov QualityScoreCovariate" +
-                            " --sorted_output" +
                             " --solid_recal_mode DO_NOTHING" +
                             " -recalFile %s" +
                             " -U",
