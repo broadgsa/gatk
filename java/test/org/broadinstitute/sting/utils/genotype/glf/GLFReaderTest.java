@@ -20,7 +20,7 @@ public class GLFReaderTest extends BaseTest {
 
 
     // our test file
-    static final File glfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test_likelihoods.glf");
+    static final File glfFile = new File(validationDataLocation + "index_test_likelihoods.glf");
     //static final File glfFile = new File("CALLS.glf");
     static final int finalRecordCount = 484140; // the number of records in the above file
     static final int contigCount = 25;

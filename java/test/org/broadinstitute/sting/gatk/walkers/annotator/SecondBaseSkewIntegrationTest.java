@@ -28,10 +28,10 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
     @Test
     public void testOnE2File() {
         String test_args = "-T VariantAnnotator -A SecondBaseSkew "
-                +"-R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
-                +"-I /humgen/gsa-scr1/GATK_Data/Validation_Data/FHSP_pool3_2bannot.bam "
-                +"-B variant,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pilot_pool3_raw_calls.geli "
-                +"-vcf %s -sample variant -L /humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_test_intervals.interval_list";
+                +"-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
+                +"-I " + validationDataLocation + "FHSP_pool3_2bannot.bam "
+                +"-B variant,Variants," + validationDataLocation + "FHS_pilot_pool3_raw_calls.geli "
+                +"-vcf %s -sample variant -L " + validationDataLocation + "FHS_test_intervals.interval_list";
 
         String md5_for_this_test = "4bd8a28bcbad107b102fc796918d5932";
 
@@ -44,10 +44,10 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
     @Test
     public void testOnUnannotatedFile() {
         String test_args = "-T VariantAnnotator -A SecondBaseSkew "
-                +"-R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
-                +"-I /humgen/gsa-scr1/GATK_Data/Validation_Data/FHSP_pool3_test.bam "
-                +"-B variant,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pilot_pool3_raw_calls.geli "
-                +"-vcf %s -sample variant -L /humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_test_intervals.interval_list";
+                +"-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
+                +"-I " + validationDataLocation + "FHSP_pool3_test.bam "
+                +"-B variant,Variants," + validationDataLocation + "FHS_pilot_pool3_raw_calls.geli "
+                +"-vcf %s -sample variant -L " + validationDataLocation + "FHS_test_intervals.interval_list";
 
         String md5_for_this_test = "3eee411119888fc4633870a91ed2093d";
 
@@ -57,9 +57,9 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
 
     @Test
     public void testOnIndels() {
-        String test_args = "-T VariantAnnotator -I /humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_Pileup_Test.bam"
-                     + " -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -A SecondBaseSkew"
-                     + " -sample variant -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pileup_test_chr15.vcf"
+        String test_args = "-T VariantAnnotator -I " + validationDataLocation + "FHS_Pileup_Test.bam"
+                     + " -R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -A SecondBaseSkew"
+                     + " -sample variant -B variant,VCF," + validationDataLocation + "FHS_pileup_test_chr15.vcf"
                      + " -vcf %s -L chr15:46347148";
         String expected_md5 = "c70dfb30c3caa9184604f88bc7f62a07";
         WalkerTestSpec spec = new WalkerTestSpec(test_args,1,Arrays.asList(expected_md5));

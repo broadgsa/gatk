@@ -53,8 +53,8 @@ import java.util.List;
 public class TraverseReadsTest extends BaseTest {
 
     private ReferenceSequenceFile seq;
-    private File bam = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam"); // TCGA-06-0188.aligned.duplicates_marked.bam");
-    private File refFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/Homo_sapiens_assembly17.fasta");
+    private File bam = new File(validationDataLocation + "index_test.bam"); // TCGA-06-0188.aligned.duplicates_marked.bam");
+    private File refFile = new File(validationDataLocation + "Homo_sapiens_assembly17.fasta");
     private List<File> bamList;
     private Walker countReadWalker;
     private File output;

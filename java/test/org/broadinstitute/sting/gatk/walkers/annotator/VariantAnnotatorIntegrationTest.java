@@ -9,11 +9,11 @@ import java.util.Arrays;
 public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     public static String secondBaseTestString() {
-        return "-T VariantAnnotator -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -vcf %s -A SecondBaseSkew";
+        return "-T VariantAnnotator -R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -vcf %s -A SecondBaseSkew";
     }
 
     public static String validationDataPath() {
-         return "/humgen/gsa-scr1/GATK_Data/Validation_Data/";
+         return validationDataLocation + "";
     }
 
     public static String secondBaseTestFile( int testNo ) {
@@ -41,7 +41,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
     
     public static String baseTestString() {
-        return "-T VariantAnnotator -R /broad/1KG/reference/human_b36_both.fasta -vcf %s";
+        return "-T VariantAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta -vcf %s";
     }
 
 
@@ -49,7 +49,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testHasAnnotsNotAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
+                baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("fecfec68226bbd9b458ede55d48e0762"));
         executeTest("test file has annotations, not asking for annotations, #1", spec);
     }
@@ -57,7 +57,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testHasAnnotsNotAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample3.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
+                baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample3.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
                 Arrays.asList("59845ada9dc5bc66e0042cfefdf8f16f"));
         executeTest("test file has annotations, not asking for annotations, #2", spec);
     }
@@ -65,7 +65,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testHasAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -standard -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
+                baseTestString() + " -standard -B variant,VCF," + validationDataLocation + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("b0012ffce509196885bfdf1612086263"));
         executeTest("test file has annotations, asking for annotations, #1", spec);
     }
@@ -73,7 +73,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testHasAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -standard -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample3.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
+                baseTestString() + " -standard -B variant,VCF," + validationDataLocation + "vcfexample3.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
                 Arrays.asList("7e00e94a046e82ac41f6fd298a64cc74"));
         executeTest("test file has annotations, asking for annotations, #2", spec);
     }
@@ -81,7 +81,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testNoAnnotsNotAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2empty.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
+                baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("c70cc6bb6b83748ec8d968dc3bf879c4"));
         executeTest("test file doesn't have annotations, not asking for annotations, #1", spec);
     }
@@ -89,7 +89,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testNoAnnotsNotAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample3empty.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
+                baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
                 Arrays.asList("e7c8900ff9a18f2c8a033ae741e7143b"));
         executeTest("test file doesn't have annotations, not asking for annotations, #2", spec);
     }
@@ -97,7 +97,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testNoAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -standard -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2empty.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
+                baseTestString() + " -standard -B variant,VCF," + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("a6630eec84161a089dde204e09744c45"));
         executeTest("test file doesn't have annotations, asking for annotations, #1", spec);
     }
@@ -105,7 +105,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testNoAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -standard -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample3empty.vcf -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
+                baseTestString() + " -standard -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
                 Arrays.asList("130658564083f650981b28728b813917"));
         executeTest("test file doesn't have annotations, asking for annotations, #2", spec);
     }

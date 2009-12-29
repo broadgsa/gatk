@@ -22,12 +22,12 @@ import java.io.FileNotFoundException;
 public class GenotypeUtilsTest extends BaseTest {
 
     private static IndexedFastaSequenceFile seq;
-    private static File vcfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample.vcf");
+    private static File vcfFile = new File(validationDataLocation + "vcfexample.vcf");
 
     @BeforeClass
     public static void beforeTests() {
         try {
-            seq = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
+            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         } catch (FileNotFoundException e) {
             throw new StingException("unable to load the sequence dictionary");
         }

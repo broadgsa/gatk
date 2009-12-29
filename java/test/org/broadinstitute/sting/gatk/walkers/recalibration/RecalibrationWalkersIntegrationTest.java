@@ -16,21 +16,21 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariates1() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12892.SLX.SRP000031.2009_06.selected.bam", "c1b54d4221fb4fa88e0231a74310708e" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "337ea30c4dcc2fe6a9adc442ffd0706b");
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "ffbfd38b1720cfb67ba1bb63d4308552" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "60e227ea8c3409fa85b92cae7ea6574f" );
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "c1b54d4221fb4fa88e0231a74310708e" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "337ea30c4dcc2fe6a9adc442ffd0706b");
+        e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "ffbfd38b1720cfb67ba1bb63d4308552" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "60e227ea8c3409fa85b92cae7ea6574f" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R /broad/1KG/reference/human_b36_both.fasta" +
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
-                            ( bam.equals( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
+                            ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
                                 ? " -L 1:10,800,000-10,810,000" : " -L 1:10,000,000-10,200,000" ) +
                             " -cov ReadGroupCovariate" +
                             " -cov QualityScoreCovariate" +
@@ -49,10 +49,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibrator1() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12892.SLX.SRP000031.2009_06.selected.bam", "f7749792ffffbb86aec66e92a3bddf7f" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "f1780e3c3e12f07527e0468149312f10");
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "c54a67a1687a4139a8ae19762217987f" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "d9ddbacdafc621d830a1db637973d795" );
+        e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "f7749792ffffbb86aec66e92a3bddf7f" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "f1780e3c3e12f07527e0468149312f10");
+        e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "c54a67a1687a4139a8ae19762217987f" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "d9ddbacdafc621d830a1db637973d795" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -61,10 +61,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R /broad/1KG/reference/human_b36_both.fasta" +
+                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
-                                ( bam.equals( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
+                                ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
                                     ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
                                 " -outputBam %s" +
                                 " --no_pg_tag" +
@@ -80,15 +80,15 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesVCF() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "3ee0e811682c0f29951128204765ece9");
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "3ee0e811682c0f29951128204765ece9");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R /broad/1KG/reference/human_b36_both.fasta" +
-                            " -B dbsnp,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample3.vcf" +
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                            " -B dbsnp,VCF," + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -L 1:10,000,000-10,200,000" +
@@ -108,14 +108,14 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesNoReadGroups() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "f49bc79225bffbf8b64590b65a4b4305" );
+        e.put( validationDataLocation + "NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "f49bc79225bffbf8b64590b65a4b4305" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R /broad/1KG/reference/human_b36_both.fasta" +
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
@@ -138,7 +138,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorNoReadGroups() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "62413fdbfe99cd6e24992de4234de5bc" );
+        e.put( validationDataLocation + "NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "62413fdbfe99cd6e24992de4234de5bc" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -147,7 +147,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R /broad/1KG/reference/human_b36_both.fasta" +
+                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 " -L 1:10,100,000-10,300,000" +
@@ -166,14 +166,14 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "906e5a08401722cc9a5528d2fd20ea6a" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "906e5a08401722cc9a5528d2fd20ea6a" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R /broad/1KG/reference/human_b36_both.fasta" +
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
@@ -193,7 +193,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorNoIndex() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "aa38b04c6b58badabb6b09d590284a2a" );
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.noindex.bam", "aa38b04c6b58badabb6b09d590284a2a" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -202,7 +202,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R /broad/1KG/reference/human_b36_both.fasta" +
+                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 " -outputBam %s" +

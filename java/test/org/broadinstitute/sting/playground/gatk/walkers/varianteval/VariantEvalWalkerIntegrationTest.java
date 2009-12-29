@@ -36,8 +36,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
          */
         for ( Map.Entry<String, String> e : md5.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R /broad/1KG/reference/human_b36_both.fasta" +
-                            " --rodBind eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                            " --rodBind eval,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
                             " -T VariantEval" +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -L 1:10,000,000-11,000,000" +
@@ -68,8 +68,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
          * -minConfidenceScore 6
          */
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-R /broad/1KG/reference/human_b36_both.fasta" +
-                        " --rodBind eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
+                "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        " --rodBind eval,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
                         " -T VariantEval" +
                         " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                         " -L 1:10,000,000-11,000,000" +
@@ -100,8 +100,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
          * --includeViolations
          */
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-R /broad/1KG/reference/human_b36_both.fasta" +
-                        " --rodBind eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
+                "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        " --rodBind eval,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
                         " -T VariantEval" +
                         " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                         " -L 1:10,000,000-11,000,000" +
@@ -133,8 +133,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
          */
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-R /broad/1KG/reference/human_b36_both.fasta" +
-                        " --rodBind eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
+                "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        " --rodBind eval,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
                         " -T VariantEval" +
                         " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                         " -L 1:10,000,000-11,000,000" +
@@ -162,8 +162,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
          */
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T VariantEval -R /broad/1KG/reference/human_b36_both.fasta " +
-                "-B eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/UMichVsBroad.venn.set1Only.calls " +
+                "-T VariantEval -R " + oneKGLocation + "reference/human_b36_both.fasta " +
+                "-B eval,Variants," + validationDataLocation + "UMichVsBroad.venn.set1Only.calls " +
                 "-D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod -hc /humgen/gsa-scr1/GATK_Data/1KG_gffs/NA12878.1kg.gff " +
                 "-G " +
                 "--supressDateInformation " +
@@ -179,8 +179,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
         List<String> md5 = new ArrayList<String>();
         md5.add("");
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T VariantEval -R /broad/1KG/reference/human_b36_both.fasta " +
-                "-B eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.pilot_3.all.geli.calls " +
+                "-T VariantEval -R " + oneKGLocation + "reference/human_b36_both.fasta " +
+                "-B eval,Variants," + validationDataLocation + "NA12878.pilot_3.all.geli.calls " +
                 "-D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod " +
                 "--supressDateInformation " +
                 "-L /humgen/gsa-scr1/GATK_Data/thousand_genomes_alpha_redesign.targets.b36.interval_list " +

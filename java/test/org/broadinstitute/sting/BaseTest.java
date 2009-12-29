@@ -34,14 +34,16 @@ import java.util.Enumeration;
  * Class BaseTest
  * <p/>
  * This is the base test class for all of our test cases.  All test cases should extend from this
- * class, since it sets up the logger, and resolves any data directories that we rely on.
+ * class; it sets up the logger, and resolves the location of directories that we rely on.
  */
 public abstract class BaseTest {
     /** our log, which we want to capture anything from org.broadinstitute.sting */
-    public static Logger logger = Logger.getRootLogger();// .getLogger(CommandLineProgram.class);
+    public static Logger logger = Logger.getRootLogger();
 
-    protected static String seqLocation = "/seq";
-    protected static String oneKGLocation = "/broad/1KG";
+    protected static String seqLocation = "/seq/";
+    protected static String oneKGLocation = "/broad/1KG/";
+    protected static String validationDataLocation = "/humgen/gsa-scr1/GATK_Data/Validation_Data/";
+
     protected static String testDir = "testdata/";
     protected static boolean alreadySetup = false;
     
@@ -72,8 +74,7 @@ public abstract class BaseTest {
                 findFileLocations();
             } catch (IOException e) {
                 logger.fatal("We can't locate the base /seq and /broad/1KG directories, for the following reason: " + e.getMessage());
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                throw new RuntimeException("BaseTest setup failed: findFileLocations emited exception with a reason: " + e.getMessage());
+                throw new RuntimeException("BaseTest setup failed: findFileLocations emited exception",e);
             }
         }
     }
@@ -81,6 +82,8 @@ public abstract class BaseTest {
     public static void findFileLocations() throws IOException {
         // if either doesn't exist
         if (!fileExist(seqLocation) || !fileExist(oneKGLocation)) {
+
+            // get the working directory
             String workDir = System.getProperty("user.dir");
 
             if (!fileExist("test.conf")) {
@@ -110,7 +113,8 @@ public abstract class BaseTest {
                     seqLocation = array[1];
                 } else if (array[0].equals("1KG")) {
                     oneKGLocation = array[1];
-
+                } else if (array[0].equals("validation")) {
+                    validationDataLocation = array[1];    
                 } else {
                     throw new IOException("Line : " + line + ", unknown left side");
                 }

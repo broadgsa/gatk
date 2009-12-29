@@ -20,7 +20,7 @@ import java.util.List;
 public class ReferenceOrderedDataTest extends BaseTest {
     @Test
     public void extractRodsFromFileTest() {
-        String file = "/humgen/gsa-scr1/GATK_Data/Validation_Data/testRODFileImpl.csv";
+        String file = validationDataLocation + "testRODFileImpl.csv";
         List<String> lst = new ArrayList<String>();
         ReferenceOrderedData.extractRodsFromFile(lst,file);
         Assert.assertEquals(6,lst.size());
@@ -32,8 +32,8 @@ public class ReferenceOrderedDataTest extends BaseTest {
     }
     @Test
     public void extractRodsFromMultiFileTest() {
-        String file = "/humgen/gsa-scr1/GATK_Data/Validation_Data/testRODFileImpl.csv";
-        String file2 = "/humgen/gsa-scr1/GATK_Data/Validation_Data/testRODFileImpl2.csv";
+        String file = validationDataLocation + "testRODFileImpl.csv";
+        String file2 = validationDataLocation + "testRODFileImpl2.csv";
         List<String> lst = new ArrayList<String>();
         ReferenceOrderedData.extractRodsFromFile(lst,file);
         ReferenceOrderedData.extractRodsFromFile(lst,file2);

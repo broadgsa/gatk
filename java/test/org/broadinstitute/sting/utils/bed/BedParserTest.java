@@ -15,13 +15,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by IntelliJ IDEA.
- * User: aaron
- * Date: Oct 5, 2009
- * Time: 9:09:42 PM
- * To change this template use File | Settings | File Templates.
- */
+
 public class BedParserTest extends BaseTest {
 
     private static IndexedFastaSequenceFile seq;
@@ -30,7 +24,7 @@ public class BedParserTest extends BaseTest {
     @BeforeClass
     public static void beforeTests() {
         try {
-            seq = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
+            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         } catch (FileNotFoundException e) {
             throw new StingException("unable to load the sequence dictionary");
         }

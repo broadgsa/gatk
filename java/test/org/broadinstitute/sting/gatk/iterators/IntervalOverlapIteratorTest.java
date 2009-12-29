@@ -24,7 +24,7 @@ import java.util.Iterator;
  *         test the DuplicateDetectorIterator class.
  */
 public class IntervalOverlapIteratorTest extends BaseTest {
-    private final File bam = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam");
+    private final File bam = new File(validationDataLocation + "index_test.bam");
     private static IndexedFastaSequenceFile seq;
     private int chromosomeOneReadCount = 885;
 

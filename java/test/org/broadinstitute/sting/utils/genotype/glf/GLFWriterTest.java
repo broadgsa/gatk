@@ -68,7 +68,7 @@ public class GLFWriterTest extends BaseTest {
     @BeforeClass
     public static void beforeTests() {
         try {
-            seq = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
+            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         } catch (FileNotFoundException e) {
             throw new StingException("unable to load the sequence dictionary");
         }

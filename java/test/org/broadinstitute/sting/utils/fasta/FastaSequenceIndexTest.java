@@ -27,7 +27,7 @@ public class FastaSequenceIndexTest extends BaseTest {
     @BeforeClass
     public static void initialize() {
         sequenceIndexName = seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta.fai";
-        sequenceIndexColonSemiColonTestName = "/humgen/gsa-scr1/GATK_Data/Validation_Data/testing.fai";
+        sequenceIndexColonSemiColonTestName = validationDataLocation + "testing.fai";
     }
 
     @Before

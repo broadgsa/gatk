@@ -27,10 +27,10 @@ import java.io.File;
  * You'll notice that the first is a hom ref, and the other two are hom alt SNP's
  */
 public class RodGLFTest extends BaseTest {
-    static final File glfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/glfTestFile.glf");
+    static final File glfFile = new File(validationDataLocation + "glfTestFile.glf");
     static final int finalRecordCount = 100; // the number of records in the above file
     static final int contigCount = 1;
-    static final String ref = "/broad/1KG/reference/human_b36_both.fasta";
+    static final String ref = oneKGLocation + "reference/human_b36_both.fasta";
     static ReferenceSequenceFile r;
     private RodGLF iter = null;
 

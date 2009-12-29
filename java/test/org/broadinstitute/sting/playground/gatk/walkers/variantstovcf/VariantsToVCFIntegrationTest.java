@@ -37,8 +37,8 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
          *
          */
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-R /broad/1KG/reference/human_b36_both.fasta" +
-                        " --rodBind NA123AB,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
+                "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        " --rodBind NA123AB,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " --vcfout %s",
@@ -66,8 +66,8 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
          *
          */
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-R /broad/1KG/reference/human_b36_both.fasta" +
-                        " --rodBind NA123AB,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
+                "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        " --rodBind NA123AB,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " --vcfout %s",

@@ -20,7 +20,7 @@ public class AlignerIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R /humgen/gsa-scr1/GATK_Data/bwa/human_b36_both.fasta" +
                         " -T Align" +
-                        " -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878_Pilot1_20.trimmed.unmapped.bam" +
+                        " -I " + validationDataLocation + "NA12878_Pilot1_20.trimmed.unmapped.bam" +
                         " -ob %s",
                 1, // just one output file
                 Arrays.asList(md5));

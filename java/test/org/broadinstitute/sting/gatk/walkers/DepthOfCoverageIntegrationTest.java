@@ -10,7 +10,7 @@ import java.util.List;
 import java.io.File;
 
 public class DepthOfCoverageIntegrationTest extends WalkerTest {
-    private static String root = "-L 1:10,164,500-10,164,520 -R /broad/1KG/reference/human_b36_both.fasta -T DepthOfCoverage -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam";
+    private static String root = "-L 1:10,164,500-10,164,520 -R " + oneKGLocation + "reference/human_b36_both.fasta -T DepthOfCoverage -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam";
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
         expectations.put("-minMAPQ 1", "8b73fad5cce4620907d5da2a985219d5");
@@ -41,7 +41,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
     @Test
     public void testDepthOfCoverage454() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T DepthOfCoverage -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam -L 1:10,001,890-10,001,895 -o %s",
+                "-T DepthOfCoverage -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam -L 1:10,001,890-10,001,895 -o %s",
                 1, // just one output file
                 Arrays.asList("a332d1539b29dff615b198818a3d4dd1"));
         executeTest("testDepthOfCoverage454", spec);

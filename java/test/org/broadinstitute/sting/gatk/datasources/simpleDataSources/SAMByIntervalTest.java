@@ -87,7 +87,7 @@ public class SAMByIntervalTest extends BaseTest {
         //GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
 
         // setup the test files
-        fl.add(new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam"));
+        fl.add(new File(validationDataLocation + "index_test.bam"));
         reads = new Reads(fl);
     }
 

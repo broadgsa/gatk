@@ -10,9 +10,9 @@ import java.util.List;
 public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     public void testClipper(String name, String args, String md51, String md52) {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta " +
+                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta " +
                         "-T ClipReads " +
-                        "-I /humgen/gsa-scr1/GATK_Data/Validation_Data/clippingReadsTest.bam " +
+                        "-I " + validationDataLocation + "clippingReadsTest.bam " +
                         "-o %s " +
                         "-ob %s " + args,
                 2, // just one output file
@@ -32,9 +32,9 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     @Test public void testClipRange2() { testClipper("clipRange2", "-CT 1-5,11-15", "be4fcad5b666a5540028b774169cbad7", "f05ab5fe821b77cd5b066212ff56f8ff"); }
 
     @Test public void testClipSeq() { testClipper("clipSeqX", "-X CCCCC", "db199bd06561c9f2122f6ffb07941fbc", "c218c0649838423a06f3296430f65c4f"); }
-    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF /humgen/gsa-scr1/GATK_Data/Validation_Data/seqsToClip.fasta", "d011a3152b31822475afbe0281491f8d", "1151e10833da794203df2ba7cc76d5c5"); }
+    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF " + validationDataLocation + "seqsToClip.fasta", "d011a3152b31822475afbe0281491f8d", "1151e10833da794203df2ba7cc76d5c5"); }
 
-    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF /humgen/gsa-scr1/GATK_Data/Validation_Data/seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "4a1153d6f0600cf53ff7959a043e57cc"); }
+    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF " + validationDataLocation + "seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "4a1153d6f0600cf53ff7959a043e57cc"); }
 
     @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", Q10ClipOutput, "fb77d3122df468a71e03ca92b69493f4"); }
     @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", Q10ClipOutput, "24053a87b00c0bc2ddf420975e9fea4d"); }
