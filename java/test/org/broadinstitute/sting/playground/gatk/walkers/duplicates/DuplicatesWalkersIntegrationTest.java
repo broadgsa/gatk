@@ -35,6 +35,6 @@ public class DuplicatesWalkersIntegrationTest extends WalkerTest {
         List<File> result = executeTest(name, spec).getFirst();
     }
 
-    @Test public void testIntervalCombine() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 50", "d41d8cd98f00b204e9800998ecf8427e", "bbde777437fcf4386687e0d11547d0f3"); }
-    @Test public void testIntervalCombineQ60() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 60", "d41d8cd98f00b204e9800998ecf8427e", "93993440eb0455208c7f9881d1115a3c"); }
+    @Test public void testIntervalCombine() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 50", "d41d8cd98f00b204e9800998ecf8427e", "e2501d7e20564df9f7519fadef8cf283"); }
+    @Test public void testIntervalCombineQ60() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 60", "d41d8cd98f00b204e9800998ecf8427e", "b23f6436d230f57f969502ddd8d48c18"); }
 }
