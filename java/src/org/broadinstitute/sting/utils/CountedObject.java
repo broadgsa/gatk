@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils;
+package org.broadinstitute.sting.utils;
 
 /** Utility class that makes working with counted objects slightly easier (and faster). 
  * Consider a "generic" counter representation as Map<Object,Integer>: updating the counter would require
@@ -20,7 +20,7 @@ public class CountedObject<T> {
 	 * @param o object to start counting for
 	 */
 	public CountedObject(T o) {
-        assert o!=null : "Can not create counted object over null";
+        if ( o==null ) throw new StingException("BUG: Can not wrap null as a counted object");
 		mObject = o;
 		mCounter = 1;
 	}
