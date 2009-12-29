@@ -2,8 +2,7 @@ package org.broadinstitute.sting.utils.pileup;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.gatk.iterators.IterableIterator;
+import org.broadinstitute.sting.utils.Pair;
 
 import java.util.*;
 
@@ -288,6 +287,35 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
             i++;
         }
         return v;
+    }
+
+    public List<Pair<String,Integer>> getEventStringsWithCounts() {
+        Map<String, Integer> events = new HashMap<String,Integer>();
+
+        for ( ExtendedEventPileupElement e : this ) {
+            Integer cnt;
+            String indel = null;
+            switch ( e.getType() ) {
+                case INSERTION:
+                    indel = "+"+e.getEventBases();
+                    break;
+                case DELETION:
+                    indel = Integer.toString(e.getEventLength())+"D";
+                    break;
+                case NOEVENT: continue;
+                default: throw new StingException("Unknown event type encountered: "+e.getType());
+            }
+
+            cnt = events.get(indel);
+            if ( cnt == null ) events.put(indel,1);
+            else events.put(indel,cnt.intValue()+1);
+        }
+
+        List<Pair<String,Integer>> eventList = new ArrayList<Pair<String,Integer>>(events.size());
+        for ( Map.Entry<String,Integer> m : events.entrySet() ) {
+            eventList.add( new Pair<String,Integer>(m.getKey(),m.getValue()));
+        }
+        return eventList;
     }
 
 
