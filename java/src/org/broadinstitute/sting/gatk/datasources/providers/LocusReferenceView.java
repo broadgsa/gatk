@@ -149,9 +149,9 @@ public class LocusReferenceView extends ReferenceView {
      * @param genomeLoc location to verify.
      */
     private void validateLocation( GenomeLoc genomeLoc ) throws InvalidPositionException {
-        if( !genomeLoc.isSingleBP() )
-            throw new InvalidPositionException(
-                    String.format("Requested position larger than one base; start = %d, stop = %d", genomeLoc.getStart(), genomeLoc.getStop()));
+//        if( !genomeLoc.isSingleBP() )
+//            throw new InvalidPositionException(
+//                    String.format("Requested position larger than one base; start = %d, stop = %d", genomeLoc.getStart(), genomeLoc.getStop()));
         if( bounds != null && !bounds.containsP(genomeLoc) )
             throw new InvalidPositionException(
                     String.format("Requested position %s not within interval %s", genomeLoc, bounds));
