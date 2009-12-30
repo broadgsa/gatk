@@ -60,4 +60,9 @@ class Chunk implements Comparable<Chunk> {
         result = 31 * result + (int) (mChunkEnd ^ (mChunkEnd >>> 32));
         return result;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%d:%d-%d:%d",mChunkStart >> 16,mChunkStart & 0xFFFF,mChunkEnd >> 16,mChunkEnd & 0xFFFF);
+    }
 }

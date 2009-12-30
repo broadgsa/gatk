@@ -3,12 +3,13 @@ package net.sf.samtools;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 
 import java.io.IOException;
+import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
 /**
- * Read an individual block or chunk from the BGZF file.
+ * Read an individual block from the BGZF file.
  *
  * @author mhanna
  * @version 0.1
@@ -26,12 +27,20 @@ public class BlockReader {
 
     /**
      * Create a new block reader.  Block readers can operate independently on the same input file.
-     * @param channel File channel from which to read.
+     * @param inputStream InputStream from which to read.
      */
-    public BlockReader(final FileChannel channel) {
-        this.channel = channel;
+    public BlockReader(final FileInputStream inputStream) {
+        this.channel = inputStream.getChannel();
         this.buffer = ByteBuffer.allocateDirect(BlockCompressedStreamConstants.MAX_COMPRESSED_BLOCK_SIZE);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
+    }
+
+    /**
+     * Closes the block reader's channel.
+     * @throws IOException On failure to close channel.
+     */
+    public void close() throws IOException {
+        this.channel.close();
     }
 
     /**
@@ -51,7 +60,7 @@ public class BlockReader {
      * @return Chunk of the BGZF file, starting at position.
      * @throws IOException if the chunk could not be read.
      */
-    public Chunk getChunkAt(long position) throws IOException {
+    public Block getBlockAt(long position) throws IOException {
         buffer.rewind();
         buffer.limit(BlockCompressedStreamConstants.BLOCK_HEADER_LENGTH);
         int count = channel.read(buffer,position);
@@ -78,14 +87,18 @@ public class BlockReader {
         // Skip blocksize subfield intro
         buffer.position(buffer.position() + 4);
         // Read ushort
-        final int totalBlockSize = (buffer.getShort() & 0xffff) + 1;
-        if (totalBlockSize < BlockCompressedStreamConstants.BLOCK_HEADER_LENGTH || totalBlockSize > buffer.capacity()) {
-            throw new IOException("Unexpected compressed block length: " + totalBlockSize);
+        final int compressedBlockSize = (buffer.getShort() & 0xffff) + 1;
+        if (compressedBlockSize < BlockCompressedStreamConstants.BLOCK_HEADER_LENGTH || compressedBlockSize > buffer.capacity()) {
+            throw new IOException("Unexpected compressed block length: " + compressedBlockSize);
         }
 
-        final long chunkStart = position << 16;
-        final long chunkEnd = (position+totalBlockSize-1) << 16;
+        // Read the uncompressed block size
+        buffer.rewind();
+        buffer.limit(4);
+        channel.read(buffer,position+compressedBlockSize-4);
+        buffer.flip();
+        final int uncompressedBlockSize = buffer.getInt();
 
-        return new Chunk(chunkStart,chunkEnd);
+        return new Block(position,compressedBlockSize,uncompressedBlockSize);
     }
 }

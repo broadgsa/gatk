@@ -1,9 +1,18 @@
 package net.sf.samtools;
 
+import net.sf.samtools.util.BinaryCodec;
+import net.sf.samtools.util.BlockCompressedInputStream;
+import net.sf.samtools.util.StringLineReader;
+import net.sf.samtools.util.CloseableIterator;
+import net.sf.samtools.util.SeekableStream;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Arrays;
 import java.nio.channels.FileChannel;
 import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.File;
 
 /**
  * Walks over a BAM file, discovering and returning the starting location of each block
@@ -12,7 +21,7 @@ import java.io.IOException;
  * @author mhanna
  * @version 0.1
  */
-public class BAMChunkIterator implements Iterator<Chunk> {
+public class BAMBlockIterator implements CloseableIterator<Block> {
     /**
      * File channel from which to read chunks.  
      */
@@ -25,10 +34,14 @@ public class BAMChunkIterator implements Iterator<Chunk> {
 
     /**
      * Iterate through the BAM chunks in a file.
-     * @param channel File channel to use when accessing the BAM.
+     * @param file stream File to use when accessing the BAM.
      */
-    public BAMChunkIterator(FileChannel channel) {
-        this.blockReader = new BlockReader(channel);
+    public BAMBlockIterator(File file) throws IOException {
+        FileInputStream inputStream = new FileInputStream(file);
+        this.blockReader = new BlockReader(inputStream);
+    }
+
+    public void close() {
     }
 
     /**
@@ -48,19 +61,19 @@ public class BAMChunkIterator implements Iterator<Chunk> {
      * @return The next chunk.
      * @throw NoSuchElementException if no next chunk is available.
      */
-    public Chunk next() {
+    public Block next() {
         if(!hasNext())
             throw new NoSuchElementException("No next chunk is available.");
 
-        Chunk chunk = null;
+        Block block = null;
         try {
-            chunk = blockReader.getChunkAt(position);
-            position = (chunk.getChunkEnd() >> 16) + 1;
+            block = blockReader.getBlockAt(position);
+            position = block.position + block.compressedBlockSize;
         }
         catch(IOException ex) {
             throw new SAMException("Unable to completely read chunk at end of file.", ex);            
         }
-        return chunk;
+        return block;
     }
 
     /**
