@@ -39,16 +39,18 @@ import net.sf.samtools.util.StringUtil;
 /** Tests for viewing the reference from the perspective of a locus. */
 
 public class LocusReferenceViewTest extends ReferenceViewTemplate {
-    /** Multiple-base pair queries should generate exceptions. */
-    @Test(expected = InvalidPositionException.class)
-    public void testSingleBPFailure() {
-        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc(0, 1, 50));
 
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, null, sequenceFile, null);
-        LocusReferenceView view = new LocusReferenceView(dataProvider);
-
-        view.getReferenceContext(shard.getGenomeLoc()).getBase();
-    }
+//
+//    /** Multiple-base pair queries should generate exceptions. */
+//    @Test(expected = InvalidPositionException.class)
+//    public void testSingleBPFailure() {
+//        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc(0, 1, 50));
+//
+//        ShardDataProvider dataProvider = new ShardDataProvider(shard, null, sequenceFile, null);
+//        LocusReferenceView view = new LocusReferenceView(dataProvider);
+//
+//        view.getReferenceContext(shard.getGenomeLoc()).getBase();
+//    }
 
     @Test
     public void testOverlappingReferenceBases() {
