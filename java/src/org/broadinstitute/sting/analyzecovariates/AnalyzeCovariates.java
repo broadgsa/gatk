@@ -5,10 +5,10 @@ import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.NHashMap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.io.*;
 
@@ -169,12 +169,12 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                     " --Perhaps the read group string contains a comma and isn't being parsed correctly.");
         }
 
-        ArrayList<Comparable> key = new ArrayList<Comparable>();
+        Object[] key = new Object[requestedCovariates.size()];
         Covariate cov;
         int iii;
         for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
             cov = requestedCovariates.get( iii );
-            key.add( cov.getValue( vals[iii] ) );
+            key[iii] = cov.getValue( vals[iii] );
         }
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
         RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
@@ -188,12 +188,11 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
         int numReadGroups = 0;
 
         // for each read group
-        NHashMap<RecalDatum> readGroupTable = dataManager.getCollapsedTable(0);
-        for( List<? extends Comparable> readGroupKey : readGroupTable.keySet() ) {
+        for( Object readGroupKey : dataManager.getCollapsedTable(0).data.keySet() ) {
 
             if(NUM_READ_GROUPS_TO_PROCESS == -1 || ++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS) {
-                String readGroup = readGroupKey.get(0).toString();
-                RecalDatum readGroupDatum = readGroupTable.get(readGroupKey);
+                String readGroup = readGroupKey.toString();
+                RecalDatum readGroupDatum = (RecalDatum) dataManager.getCollapsedTable(0).data.get(readGroupKey);
                 System.out.print("Writing out data tables for read group: " + readGroup + "\twith " + readGroupDatum.getNumObservations() + " observations"  );
                 System.out.println("\tand aggregate residual error = " + String.format("%.3f", readGroupDatum.empiricalQualDouble(0) - readGroupDatum.getEstimatedQReported()));
 
@@ -214,17 +213,13 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                     // Output the header
                     output.println("Covariate\tQreported\tQempirical\tnMismatches\tnBases");
 
-                    // Loop through the covariate table looking for keys with matching read groups
-                    // BUGBUG: hopefully rewrite this to be more efficient
-                    for( List<? extends Comparable> covariateKey : dataManager.getCollapsedTable(iii).keySet() ) {
-                        if( covariateKey.get(0).toString().equals(readGroup) ) {
-                            output.print( covariateKey.get(1).toString() + "\t" );                              // Covariate
-                            RecalDatum thisDatum = dataManager.getCollapsedTable(iii).get(covariateKey);
-                            output.print( String.format("%.3f", thisDatum.getEstimatedQReported()) + "\t" );    // Qreported
-                            output.print( String.format("%.3f", thisDatum.empiricalQualDouble(0)) + "\t" );     // Qempirical
-                            output.print( thisDatum.getNumMismatches() + "\t" );                                // nMismatches
-                            output.println( thisDatum.getNumObservations() );                                   // nBases
-                        }
+                    for( Object covariateKey : ((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).keySet()) {
+                        output.print( covariateKey.toString() + "\t" );                              // Covariate
+                        RecalDatum thisDatum = (RecalDatum)((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).get(covariateKey);
+                        output.print( String.format("%.3f", thisDatum.getEstimatedQReported()) + "\t" );    // Qreported
+                        output.print( String.format("%.3f", thisDatum.empiricalQualDouble(0)) + "\t" );     // Qempirical
+                        output.print( thisDatum.getNumMismatches() + "\t" );                                // nMismatches
+                        output.println( thisDatum.getNumObservations() );                                   // nBases
                     }
 
                     // Close the PrintStream
@@ -242,11 +237,11 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
         int numReadGroups = 0;
         
         // for each read group
-        for( List<? extends Comparable> readGroupList : dataManager.getCollapsedTable(0).keySet() ) {
+        for( Object readGroupKey : dataManager.getCollapsedTable(0).data.keySet() ) {
 
             if(NUM_READ_GROUPS_TO_PROCESS == -1 || ++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS) {
 
-                String readGroup = readGroupList.get(0).toString();
+                String readGroup = readGroupKey.toString();
                 System.out.println("Analyzing read group: " + readGroup);
 
                 // for each covariate
