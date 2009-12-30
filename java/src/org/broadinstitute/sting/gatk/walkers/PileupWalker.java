@@ -91,7 +91,8 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
         if ( context.hasExtendedEventPileup() ) {
             ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
-            List<Pair<String,Integer>> eventCounts = indelPileup.getEventStringsWithCounts();
+            List<Pair<String,Integer>> eventCounts = indelPileup.getEventStringsWithCounts(ref.getBases());
+
             out.printf("%s %s ", indelPileup.getShortPileupString(), rods);
             int i = 0;
             for ( ; i < eventCounts.size() - 1 ; i++ ) {
