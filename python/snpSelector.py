@@ -249,7 +249,7 @@ def calculateBinsForValues(values, field, minValue, maxValue, partitions):
             bins[-1][1] = bin[0]
             bins[-1][2] += curSize
 
-    print 'Returning ', bins
+    #print 'Returning ', bins
     #sys.exit(1)
     return bins
 
