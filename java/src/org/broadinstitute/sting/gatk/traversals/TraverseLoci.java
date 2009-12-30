@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.ArrayList;
 
@@ -66,13 +67,23 @@ public class TraverseLoci extends TraversalEngine {
             // We keep processing while the next reference location is within the interval
             while( locusView.hasNext() ) {
                 AlignmentContext locus = locusView.next();
+                GenomeLoc location = locus.getLocation();
 
                 TraversalStatistics.nRecords++;
 
-                // Iterate forward to get all reference ordered data covering this locus
-                final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
+                if ( locus.hasExtendedEventPileup() ) {
+                    // if the alignment context we received holds an "extended" pileup (i.e. pileup of insertions/deletions
+                    // associated with the current site), we need to update the location. The updated location still starts
+                    // at the current genomic position, but it has to span the length of the longest deletion (if any).
+                    location = GenomeLocParser.setStop(location,location.getStop()+locus.getExtendedEventPileup().getMaxDeletionLength());
+                }
 
-                ReferenceContext refContext = referenceView.getReferenceContext(locus.getLocation());
+                // Iterate forward to get all reference ordered data covering this location
+                final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(location);
+
+                // create reference context. Note that if we have a pileup of "extended events", the context will
+                // hold the (longest) stretch of deleted reference bases (if deletions are present in the pileup).
+                ReferenceContext refContext = referenceView.getReferenceContext(location);
 
                 final boolean keepMeP = locusWalker.filter(tracker, refContext, locus);
                 if (keepMeP) {
