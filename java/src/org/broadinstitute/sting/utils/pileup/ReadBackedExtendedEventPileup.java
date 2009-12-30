@@ -20,6 +20,7 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
     private ArrayList<ExtendedEventPileupElement> pileup = null;
 
     private int size = 0;                   // cached value of the size of the pileup
+    private int maxDeletionLength = 0;      // cached value of the length of the longest deletion observed at the site
     private int nDeletions = 0;             // cached value of the number of deletions
     private int nInsertions = 0;
     private int nMQ0Reads = 0;              // cached value of the number of MQ0 reads
@@ -53,13 +54,15 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
      * @param loc
      * @param pileup
      */
-    public ReadBackedExtendedEventPileup(GenomeLoc loc, ArrayList<ExtendedEventPileupElement> pileup, int size, int nInsertions, int nDeletions, int nMQ0Reads ) {
+    public ReadBackedExtendedEventPileup(GenomeLoc loc, ArrayList<ExtendedEventPileupElement> pileup, int size,
+                                         int maxDeletionLength, int nInsertions, int nDeletions, int nMQ0Reads ) {
         if ( loc == null ) throw new StingException("Illegal null genomeloc in ReadBackedExtendedEventPileup");
         if ( pileup == null ) throw new StingException("Illegal null pileup in ReadBackedExtendedEventPileup");
 
         this.loc = loc;
         this.pileup = pileup;
         this.size = size;
+        this.maxDeletionLength = maxDeletionLength;
         this.nDeletions = nDeletions;
         this.nInsertions = nInsertions;
         this.nMQ0Reads = nMQ0Reads;
@@ -78,9 +81,11 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
         nMQ0Reads = 0;
 
         for ( ExtendedEventPileupElement p : this ) {
+
             size++;
             if ( p.isDeletion() ) {
                 nDeletions++;
+                maxDeletionLength = Math.max(maxDeletionLength, p.getEventLength());
             } else {
                 if ( p.isInsertion() ) nInsertions++;
             }
@@ -200,6 +205,16 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
         return nInsertions;
     }
 
+
+    /** Returns the length of the longest deletion observed at the site this
+     * pileup is associated with (NOTE: by convention, both insertions and deletions
+     * are associated with genomic location immediately before the actual event). If
+     * there are no deletions at the site, returns 0.
+     * @return
+     */
+    public int getMaxDeletionLength() {
+        return maxDeletionLength;
+    }
     /**
      * Returns the number of mapping quality zero reads in this pileup.
      * @return

@@ -320,15 +320,21 @@ public class LocusIteratorByState extends LocusIterator {
             if ( readInfo.generateExtendedEvents() && hasExtendedEvents ) {
                 ArrayList<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(readStates.size());
 
+                int maxDeletionLength = 0;
+
                 for ( SAMRecordState state : readStates ) {
                     if ( state.hadIndel() ) {
                         size++;
-                        if ( state.getEventBases() == null ) nDeletions++;
+                        if ( state.getEventBases() == null ) {
+                            nDeletions++;
+                            maxDeletionLength = Math.max(maxDeletionLength,state.getEventLength());
+                        }
                         else nInsertions++;
                         indelPile.add ( new ExtendedEventPileupElement(state.getRead(),
                                                                        state.getReadEventStartOffset(),
                                                                        state.getEventLength(),
                                                                        state.getEventBases()) );
+
                     }   else {
                         if ( state.getCurrentCigarOperator() != CigarOperator.N ) {
                             // this read has no indel associated with the previous position on the ref;
@@ -358,7 +364,7 @@ public class LocusIteratorByState extends LocusIterator {
                 GenomeLoc loc = GenomeLocParser.incPos(our1stState.getLocation(),-1);
 //                System.out.println("Indel(s) at "+loc);
 //               for ( ExtendedEventPileupElement pe : indelPile ) { if ( pe.isIndel() ) System.out.println("  "+pe.toString()); }
-                return new AlignmentContext(loc, new ReadBackedExtendedEventPileup(loc, indelPile, size, nInsertions, nDeletions, nMQ0Reads));
+                return new AlignmentContext(loc, new ReadBackedExtendedEventPileup(loc, indelPile, size, maxDeletionLength, nInsertions, nDeletions, nMQ0Reads));
             }  else {
 
                 ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
