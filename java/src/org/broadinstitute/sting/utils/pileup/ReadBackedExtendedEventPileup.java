@@ -304,7 +304,24 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
         return v;
     }
 
+    /** A shortcut for getEventStringsWithCounts(null);
+     * 
+     * @return
+     */
     public List<Pair<String,Integer>> getEventStringsWithCounts() {
+        return getEventStringsWithCounts(null);
+    }
+
+    /** Returns String representation of all distinct extended events (indels) at the site along with
+     * observation counts (numbers of reads) for each distinct event. If refBases is null, a simple string representation for
+     * deletions will be generated as "<length>D" (i.e. "5D"); if the reference bases are provided, the actual
+     * deleted sequence will be used in the string representation (e.g. "-AAC").
+      * @param refBases reference bases, starting with the current locus (i.e. the one immediately before the indel), and
+     * extending far enough to accomodate the longest deletion (i.e. size of refBases must be at least 1+<length of longest deletion>)
+     * @return list of distinct events; first element of a pair is a string representation of the event, second element
+     * gives the number of reads, in which that event was observed
+     */
+    public List<Pair<String,Integer>> getEventStringsWithCounts(char[] refBases) {
         Map<String, Integer> events = new HashMap<String,Integer>();
 
         for ( ExtendedEventPileupElement e : this ) {
@@ -315,7 +332,7 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
                     indel = "+"+e.getEventBases();
                     break;
                 case DELETION:
-                    indel = Integer.toString(e.getEventLength())+"D";
+                    indel = getDeletionString(e.getEventLength(),refBases);
                     break;
                 case NOEVENT: continue;
                 default: throw new StingException("Unknown event type encountered: "+e.getType());
@@ -333,6 +350,23 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
         return eventList;
     }
 
+    /**
+     * Builds string representation of the deletion event. If refBases is null, the representation will be
+     * "<length>D" (e.g. "5D"); if the reference bases are provided, a verbose representation (e.g. "-AAC")
+     *  will be generated. NOTE: refBases must start with the base prior to the actual deletion (i.e. deleted
+     * base(s) are refBase[1], refBase[2], ...), and the length of the passed array must be sufficient to accomodate the
+     * deletion length (i.e. size of refBase must be at least length+1).
+     * @param length
+     * @param refBases
+     * @return
+     */
+    private String getDeletionString(int length, char[] refBases) {
+        if ( refBases == null ) {
+            return  Integer.toString(length)+"D"; // if we do not have reference bases, we can only report something like "5D"
+        } else {
+            return "-"+new String(refBases,1,length);
+        }
+    }
 
     /**
      * Get an array of the mapping qualities
