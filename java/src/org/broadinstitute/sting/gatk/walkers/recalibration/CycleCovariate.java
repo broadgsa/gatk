@@ -78,7 +78,7 @@ public class CycleCovariate implements StandardCovariate {
         //-----------------------------
 
         else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
-            byte[] bases = read.getReadBases();
+            final byte[] bases = read.getReadBases();
 
             // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
             // For example, AAAAAAA was probably read in two flow cycles but here we count it as one

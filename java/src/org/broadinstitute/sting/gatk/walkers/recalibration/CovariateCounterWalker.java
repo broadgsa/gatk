@@ -87,6 +87,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private int PROCESS_EVERY_NTH_LOCUS = 1;
 
     /////////////////////////////
+    // Debugging-only Arguments
+    /////////////////////////////
+    @Argument(fullName="dont_sort_output", shortName="unsorted", required=false, doc="If specified, the output table recalibration csv file will be in an unsorted, arbitrary order to save some run time.")
+    private boolean DONT_SORT_OUTPUT = false;
+
+    /////////////////////////////
     // Private Member Variables
     /////////////////////////////
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
@@ -97,7 +103,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.2.0"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.1"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -207,11 +213,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             cov.initialize( RAC ); // Initialize any covariate member variables using the shared argument collection
         }
 
-        // Don't want to crash with out of heap space exception
-        //if( estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0 ) { // Could be negative if overflowed
-        //    estimatedCapacity = 300 * 40 * 200;
-        //}
-
         dataManager = new RecalDataManager();
     }
 
@@ -313,9 +314,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     private static void updateMismatchCounts(Pair<Long, Long> counts, AlignmentContext context, char ref) {
         for( PileupElement p : context.getPileup() ) {
-            char readChar = (char)(p.getBase());
-            int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
-            int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
+            final char readChar = (char)(p.getBase());
+            final int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
+            final int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
 
             if( readCharBaseIndex != -1 && refCharBaseIndex != -1 ) {
                 if( readCharBaseIndex != refCharBaseIndex ) {
@@ -331,12 +332,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * Validate the dbSNP reference mismatch rates.
      */
     private void validateDbsnpMismatchRate() {
-        if( novel_counts.second == 0 || dbSNP_counts.second == 0 ) {
+        if( novel_counts.second == 0L || dbSNP_counts.second == 0L ) {
             return;
         }
 
-        double fractionMM_novel = (double)novel_counts.first / (double)novel_counts.second;
-        double fractionMM_dbsnp = (double)dbSNP_counts.first / (double)dbSNP_counts.second;
+        final double fractionMM_novel = (double)novel_counts.first / (double)novel_counts.second;
+        final double fractionMM_dbsnp = (double)dbSNP_counts.first / (double)dbSNP_counts.second;
         
         if( fractionMM_dbsnp < DBSNP_VS_NOVEL_MISMATCH_RATE * fractionMM_novel ) {
             Utils.warnUser("The variation rate at the supplied list of known variant sites seems suspiciously low. Please double-check that the correct ROD is being used. " +
@@ -358,23 +359,24 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     private void updateDataFromRead(final SAMRecord read, final int offset, final byte refBase) {
 
-        List<Object> key = new ArrayList<Object>();
+        final Object[] key = new Object[requestedCovariates.size()];
         
-        // Loop through the list of requested covariates and pick out the value from the read, offset, and reference
+        // Loop through the list of requested covariates and pick out the value from the read and offset
+        int iii = 0;
         for( Covariate covariate : requestedCovariates ) {
-            key.add(covariate.getValue( read, offset ));
+            key[iii++] = covariate.getValue( read, offset );
         }
 
     	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
-        RecalDatum datum = (RecalDatum) dataManager.data.get( key.toArray() );
+        RecalDatum datum = (RecalDatum) dataManager.data.get( key );
         if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
             datum = new RecalDatum(); // initialized with zeros, will be incremented at end of method
-            dataManager.data.put( datum, key.toArray() );
+            dataManager.data.put( datum, (Object[])key );
         }
         
         // Need the bases to determine whether or not we have a mismatch
-        byte base = read.getReadBases()[offset];
-        long curMismatches = datum.getNumMismatches();
+        final byte base = read.getReadBases()[offset];
+        final long curMismatches = datum.getNumMismatches();
 
         // Add one to the number of observations and potentially one to the number of mismatches
         datum.increment( (char)base, (char)refBase ); // Dangerous: If you don't cast to char than the bytes default to the (long, long) version of the increment method which is really bad
@@ -449,15 +451,53 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
         recalTableStream.println("nObservations,nMismatches,Qempirical");
 
-        // For each entry in the data hashmap
-        for( Pair<Object[], Object> entry : dataManager.data.entrySetSorted() ) {
-            // For each Covariate in the key
-            for( Object comp : entry.first ) {
-                // Output the Covariate's value
-                recalTableStream.print( comp + "," );
+        if( DONT_SORT_OUTPUT ) {
+            printMappings(recalTableStream, 0, new Object[requestedCovariates.size()], dataManager.data.data);
+        } else {
+            printMappingsSorted(recalTableStream, 0, new Object[requestedCovariates.size()], dataManager.data.data);
+        }
+    }
+
+    private void printMappingsSorted( final PrintStream recalTableStream, final int curPos, final Object[] key, final Map data) {
+        final ArrayList<Comparable> keyList = new ArrayList<Comparable>();
+        for( Object comp : data.keySet() ) {
+            keyList.add((Comparable) comp);
+        }
+
+        Collections.sort(keyList);
+
+        for( Comparable comp : keyList ) {
+            key[curPos] = comp;
+            final Object val = data.get(comp);
+            if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
+                // For each Covariate in the key
+                for( Object compToPrint : key ) {
+                    // Output the Covariate's value
+                    recalTableStream.print( compToPrint + "," );
+                }
+                // Output the RecalDatum entry
+                recalTableStream.println( ((RecalDatum)val).outputToCSV() );
+            } else { // Another layer in the nested hash map
+                printMappingsSorted( recalTableStream, curPos + 1, key, (Map) val);
             }
-            // Output the RecalDatum entry
-            recalTableStream.println( ((RecalDatum)entry.second).outputToCSV() );
+        }
+    }
+
+    private void printMappings( final PrintStream recalTableStream, final int curPos, final Object[] key, final Map data) {
+        for( Object comp : data.keySet() ) {
+            key[curPos] = comp;
+            final Object val = data.get(comp);
+            if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
+                // For each Covariate in the key
+                for( Object compToPrint : key ) {
+                    // Output the Covariate's value
+                    recalTableStream.print( compToPrint + "," );
+                }
+                // Output the RecalDatum entry
+                recalTableStream.println( ((RecalDatum)val).outputToCSV() );
+            } else { // Another layer in the nested hash map
+                printMappings( recalTableStream, curPos + 1, key, (Map) val);
+            }
         }
     }
 }

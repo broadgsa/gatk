@@ -42,8 +42,7 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {
-    	
+    public final Comparable getValue( final SAMRecord read, final int offset ) {    	
     	return (int)(read.getBaseQualities()[offset]);
     }
 

@@ -73,7 +73,7 @@ public class HomopolymerCovariate implements ExperimentalCovariate {
         */
 
         int numAgree = 0; // The number of consecutive bases that agree with you in the previous numBack bases of the read
-        byte[] bases = read.getReadBases();
+        final byte[] bases = read.getReadBases();
         int iii = offset;
         if( !read.getReadNegativeStrandFlag() ) { // Forward direction
             while( iii <= bases.length-2 && bases[iii] == bases[iii+1] && numAgree < numBack ) {

@@ -89,12 +89,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     /////////////////////////////
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private ArrayList<Covariate> requestedCovariates; // List of covariates to be used in this calculation
-    private ArrayList<Comparable> fullCovariateKey; // The list that will be used over and over again to hold the full set of covariate values
-    private ArrayList<Comparable> collapsedTableKey; // The key that will be used over and over again to query the collapsed tables
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.2.0"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.1"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
@@ -137,9 +135,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if( foundDBSNP ) {
             Utils.warnUser("A dbSNP rod file was specified but TableRecalibrationWalker doesn't make use of it.");
         }
-
-        fullCovariateKey = new ArrayList<Comparable>(); // Initialize the key only once
-        collapsedTableKey = new ArrayList<Comparable>(); // Initialize the key only once
 
         // Read in the covariates that were used from the input file
         requestedCovariates = new ArrayList<Covariate>();
@@ -222,13 +217,17 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             logger.info( "\t" + cov.getClass().getSimpleName() );
         }
 
+        if( dataManager == null ) {
+            throw new StingException("Can't initialize the data manager. Perhaps the recal csv file contains no data?");
+        }
+
         // Create the tables of empirical quality scores that will be used in the sequential calculation
         logger.info( "Generating tables of empirical qualities for use in sequential calculation..." );
         dataManager.generateEmpiricalQualities( SMOOTHING );
         logger.info( "...done!" );
 
         // Take the header of the input SAM file and tweak it by adding in a new programRecord with the version number and list of covariates that were used
-        SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
+        final SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
         if( !NO_PG_TAG ) {
             SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
             programRecord.setProgramVersion( versionString );
@@ -255,7 +254,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         // Create the SAMFileWriter that we will be using to output the reads
         if( OUTPUT_BAM_FILE != null ) {
-            SAMFileWriterFactory factory = new SAMFileWriterFactory();
+            final SAMFileWriterFactory factory = new SAMFileWriterFactory();
             OUTPUT_BAM = factory.makeBAMWriter( header, true, new File(OUTPUT_BAM_FILE), 5 ); // BUGBUG: Bam compression hardcoded to 5
         }
     }
@@ -265,7 +264,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @param line A line of CSV data read from the recalibration table data file
      */
     private void addCSVData(String line) {
-        String[] vals = line.split(",");
+        final String[] vals = line.split(",");
 
         // Check if the data line is malformed, for example if the read group string contains a comma then it won't be parsed correctly
         if( vals.length != requestedCovariates.size() + 3 ) { // +3 because of nObservations, nMismatch, and Qempirical
@@ -273,17 +272,18 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                     " --Perhaps the read group string contains a comma and isn't being parsed correctly.");
         }
 
-        ArrayList<Object> key = new ArrayList<Object>();
+        final Object[] key = new Object[requestedCovariates.size()];
         Covariate cov;
         int iii;
         for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
             cov = requestedCovariates.get( iii );
-            key.add( cov.getValue( vals[iii] ) );
+            key[iii] = cov.getValue( vals[iii] );
         }
+
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
-        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
+        final RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
-        dataManager.addToAllTables( key.toArray(), datum, PRESERVE_QSCORES_LESS_THAN );
+        dataManager.addToAllTables( key, datum, PRESERVE_QSCORES_LESS_THAN );
         
     }
 
@@ -304,24 +304,26 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         RecalDataManager.parseSAMRecord( read, RAC );
         
         byte[] originalQuals = read.getBaseQualities();
-        byte[] recalQuals = originalQuals.clone();
+        final byte[] recalQuals = originalQuals.clone();
 
         String platform = read.getReadGroup().getPlatform();
         if( platform.equalsIgnoreCase("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
             originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases );
         }
 
-        // For each base in the read
-        int readLength = read.getReadLength();
-        for( int iii = 0; iii < readLength; iii++ ) {
+        final Object[] fullCovariateKey = new Object[requestedCovariates.size()];
 
-            // Get the covariate values which make up the key
+        // For each base in the read
+        final int readLength = read.getReadLength();
+        for( int offset = 0; offset < readLength; offset++ ) {
+
+            // Loop through the list of requested covariates and pick out the value from the read and offset
+            int iii = 0;
             for( Covariate covariate : requestedCovariates ) {
-                fullCovariateKey.add( covariate.getValue( read, iii ) ); // offset is zero based so passing iii is correct here
+                fullCovariateKey[iii++] = covariate.getValue( read, offset );
             }
 
-            recalQuals[iii] = performSequentialQualityCalculation( fullCovariateKey );
-            fullCovariateKey.clear();
+            recalQuals[offset] = performSequentialQualityCalculation( fullCovariateKey );
         }
 
         preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
@@ -353,15 +355,18 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @param key The list of Comparables that were calculated from the covariates
      * @return A recalibrated quality score as a byte
      */
-    private byte performSequentialQualityCalculation( List<? extends Comparable> key ) {
+    private byte performSequentialQualityCalculation(Object... key ) {
 
-        String readGroupKeyElement = key.get(0).toString();
-        int qualityScoreKeyElement = Integer.parseInt(key.get(1).toString());
-        byte qualFromRead = (byte)qualityScoreKeyElement;
+        final String readGroupKeyElement = key[0].toString();
+        final int qualityScoreKeyElement = Integer.parseInt(key[1].toString());
+        final byte qualFromRead = (byte)qualityScoreKeyElement;
+        final Object[] readGroupCollapsedKey = new Object[1];
+        final Object[] qualityScoreCollapsedKey = new Object[2];
+        final Object[] covariateCollapsedKey = new Object[3];
 
         // The global quality shift (over the read group only)
-        collapsedTableKey.add( readGroupKeyElement );
-        RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( collapsedTableKey.toArray() ));
+        readGroupCollapsedKey[0] = readGroupKeyElement;
+        RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( readGroupCollapsedKey ));
         double globalDeltaQ = 0.0;
         if( globalRecalDatum != null ) {
             double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
@@ -370,8 +375,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         // The shift in quality between reported and empirical
-        collapsedTableKey.add( qualityScoreKeyElement );
-        RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( collapsedTableKey.toArray() ));
+        qualityScoreCollapsedKey[0] = readGroupKeyElement;
+        qualityScoreCollapsedKey[1] = qualityScoreKeyElement;
+        RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( qualityScoreCollapsedKey ));
         double deltaQReported = 0.0;
         if( qReportedRecalDatum != null ) {
             double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
@@ -381,19 +387,19 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // The shift in quality due to each covariate by itself in turn
         double deltaQCovariates = 0.0;
         double deltaQCovariateEmpirical;
-        for( int iii = 2; iii < key.size(); iii++ ) {
-            collapsedTableKey.add( key.get(iii) ); // The given covariate
-            RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii).get( collapsedTableKey.toArray() ));
+        covariateCollapsedKey[0] = readGroupKeyElement;
+        covariateCollapsedKey[1] = qualityScoreKeyElement;
+        for( int iii = 2; iii < key.length; iii++ ) {
+            covariateCollapsedKey[2] =  key[iii]; // The given covariate
+            RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii).get( covariateCollapsedKey ));
             if( covariateRecalDatum != null ) {
                 deltaQCovariateEmpirical = covariateRecalDatum.getEmpiricalQuality();
                 deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
             }
-            collapsedTableKey.remove( 2 ); // This new covariate is always added in at position 2 in the collapsedTableKey list
-            // The collapsedTableKey should be: < ReadGroup, Reported Quality Score, This Covariate >
         }
 
-        double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
-        byte newQualityByte = QualityUtils.boundQual( (int)Math.round(newQuality), QualityUtils.MAX_REASONABLE_Q_SCORE );
+        final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
+        final byte newQualityByte = QualityUtils.boundQual( (int)Math.round(newQuality), QualityUtils.MAX_REASONABLE_Q_SCORE );
 
 
         // Verbose printouts used to validate with old recalibrator
@@ -406,7 +412,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         //                 key.get(0).toString(), key.get(3).toString(), key.get(2).toString(), key.get(1).toString(), qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte) );
         //}
 
-        collapsedTableKey.clear();
         return newQualityByte;
     }
 

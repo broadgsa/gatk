@@ -111,8 +111,8 @@ public class RecalDatum {
     //---------------------------------------------------------------------------------------------------------------
 
     public final double empiricalQualDouble( final int smoothing ) {
-        double doubleMismatches = (double) ( numMismatches + smoothing );
-        double doubleObservations = (double) ( numObservations + smoothing );
+        final double doubleMismatches = (double) ( numMismatches + smoothing );
+        final double doubleObservations = (double) ( numObservations + smoothing );
         double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
         if (empiricalQual > QualityUtils.MAX_REASONABLE_Q_SCORE) { empiricalQual = QualityUtils.MAX_REASONABLE_Q_SCORE; }
         return empiricalQual;
@@ -123,8 +123,8 @@ public class RecalDatum {
 
 
     public final byte empiricalQualByte( final int smoothing ) {
-        double doubleMismatches = (double) ( numMismatches + smoothing );
-        double doubleObservations = (double) ( numObservations + smoothing );
+        final double doubleMismatches = (double) ( numMismatches + smoothing );
+        final double doubleObservations = (double) ( numObservations + smoothing );
         return QualityUtils.probToQual( 1.0 - doubleMismatches / doubleObservations );
     }
     public final byte empiricalQualByte() { return empiricalQualByte( 0 ); } // 'default' behavior is to use smoothing value of zero

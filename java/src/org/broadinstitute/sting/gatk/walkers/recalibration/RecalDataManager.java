@@ -84,7 +84,7 @@ public class RecalDataManager {
         // The full dataset isn't actually ever used for anything because of the sequential calculation so no need to keep the full data HashMap around
         //data.put(key, thisDatum); // add the mapping to the main table
 
-        int qualityScore = Integer.parseInt( key[1].toString() );
+        final int qualityScore = Integer.parseInt( key[1].toString() );
         final Object[] readGroupCollapsedKey = new Object[1];
         final Object[] qualityScoreCollapsedKey = new Object[2];
         final Object[] covariateCollapsedKey = new Object[3];
@@ -135,15 +135,21 @@ public class RecalDataManager {
      */
     public final void generateEmpiricalQualities( final int smoothing ) {
 
-        for( Pair<Object[],Object> entry : dataCollapsedReadGroup.entrySetSorted() ) {
-            ((RecalDatum)entry.second).calcCombinedEmpiricalQuality(smoothing);
-        }
-        for( Pair<Object[],Object> entry : dataCollapsedQualityScore.entrySetSorted() ) {
-            ((RecalDatum)entry.second).calcCombinedEmpiricalQuality(smoothing);
-        }
+        recursivelyGenerateEmpiricalQualities(dataCollapsedReadGroup.data, smoothing);
+        recursivelyGenerateEmpiricalQualities(dataCollapsedQualityScore.data, smoothing);
         for( NestedHashMap map : dataCollapsedByCovariate ) {
-            for( Pair<Object[],Object> entry : map.entrySetSorted() ) {
-                ((RecalDatum)entry.second).calcCombinedEmpiricalQuality(smoothing);        
+            recursivelyGenerateEmpiricalQualities(map.data, smoothing);
+        }
+    }
+
+    private void recursivelyGenerateEmpiricalQualities( final Map data, final int smoothing ) {
+
+        for( Object comp : data.keySet() ) {
+            final Object val = data.get(comp);
+            if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
+                ((RecalDatum)val).calcCombinedEmpiricalQuality(smoothing);
+            } else { // Another layer in the nested hash map
+                recursivelyGenerateEmpiricalQualities( (Map) val, smoothing);
             }
         }
     }

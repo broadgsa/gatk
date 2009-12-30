@@ -49,10 +49,10 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
     public final Comparable getValue( final SAMRecord read, final int offset ) {
     	
     	// Loop over the list of base quality scores in the window and find the minimum
-        byte[] quals = read.getBaseQualities();
+        final byte[] quals = read.getBaseQualities();
         int minQual = quals[offset];
-        int minIndex = Math.max(offset - windowReach, 0);
-        int maxIndex = Math.min(offset + windowReach, quals.length - 1);
+        final int minIndex = Math.max(offset - windowReach, 0);
+        final int maxIndex = Math.min(offset + windowReach, quals.length - 1);
         for ( int iii = minIndex; iii < maxIndex; iii++ ) {
             if( quals[iii] < minQual ) {
                 minQual = quals[iii];

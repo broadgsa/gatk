@@ -65,7 +65,7 @@ public class DinucCovariate implements StandardCovariate {
 
         byte base;
         byte prevBase;
-        byte[] bases = read.getReadBases();
+        final byte[] bases = read.getReadBases();
         // If this is a negative strand read then we need to reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
             // No dinuc at the beginning of the read
@@ -95,7 +95,7 @@ public class DinucCovariate implements StandardCovariate {
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
-        Dinuc returnDinuc = dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
+        final Dinuc returnDinuc = dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
         if( returnDinuc.compareTo(NO_DINUC) == 0 ) {
             return null;
         }
