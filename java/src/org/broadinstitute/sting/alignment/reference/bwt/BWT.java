@@ -99,6 +99,25 @@ public class BWT {
     }
 
     /**
+     * Create a new BWT from the given reference sequence.
+     * @param referenceSequence Sequence from which to derive the BWT.
+     * @return reference sequence-derived BWT.
+     */
+    public static BWT createFromReferenceSequence(byte[] referenceSequence) {
+        SuffixArray suffixArray = SuffixArray.createFromReferenceSequence(referenceSequence);
+
+        byte[] bwt = new byte[(int)suffixArray.length()-1];
+        int bwtIndex = 0;
+        for(long suffixArrayIndex = 0; suffixArrayIndex < suffixArray.length(); suffixArrayIndex++) {
+            if(suffixArray.get(suffixArrayIndex) == 0)
+                continue;
+            bwt[bwtIndex++] = referenceSequence[(int)suffixArray.get(suffixArrayIndex)-1];
+        }
+
+        return new BWT(suffixArray.inverseSA0,suffixArray.occurrences,bwt);
+    }
+
+    /**
      * Gets the base at a given position in the BWT.
      * @param index The index to use.
      * @return The base at that location.

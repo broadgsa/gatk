@@ -2,6 +2,12 @@ package org.broadinstitute.sting.alignment.reference.packing;
 
 import org.broadinstitute.sting.utils.StingException;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
+import java.nio.ByteOrder;
+
 /**
  * Utilities designed for packing / unpacking bases.
  *
@@ -23,6 +29,24 @@ public class PackUtils {
      * How many bits fit into a single byte?
      */
     public static final int BITS_PER_BYTE = 8;
+
+    /**
+     * Writes a reference sequence to a PAC file.
+     * @param outputFile Filename for the PAC file.
+     * @param referenceSequence Reference sequence to write.
+     * @throws IOException If there's a problem writing to the output file.
+     */
+    public static void writeReferenceSequence( File outputFile, byte[] referenceSequence ) throws IOException {
+        OutputStream outputStream = new FileOutputStream(outputFile);
+
+        BasePackedOutputStream<Byte> basePackedOutputStream = new BasePackedOutputStream<Byte>(Byte.class, outputStream, ByteOrder.BIG_ENDIAN);
+        basePackedOutputStream.write(referenceSequence);
+
+        outputStream.write(referenceSequence.length%PackUtils.ALPHABET_SIZE);
+
+        outputStream.close();
+    }
+
 
     /**
      * How many bits can a given type hold?

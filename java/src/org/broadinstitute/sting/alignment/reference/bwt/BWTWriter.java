@@ -20,12 +20,12 @@ public class BWTWriter {
     private final OutputStream outputStream;
 
     /**
-     * Create a new BWT reader.
-     * @param inputFile File in which the BWT is stored.
+     * Create a new BWT writer.
+     * @param outputFile File in which the BWT is stored.
      */
-    public BWTWriter( File inputFile ) {
+    public BWTWriter( File outputFile ) {
         try {
-            this.outputStream = new BufferedOutputStream(new FileOutputStream(inputFile));
+            this.outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
         }
         catch( FileNotFoundException ex ) {
             throw new StingException("Unable to open output file", ex);

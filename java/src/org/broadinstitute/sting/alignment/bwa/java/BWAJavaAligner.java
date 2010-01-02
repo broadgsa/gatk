@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.reference.bwt.*;
-import org.broadinstitute.sting.alignment.bwa.java.LowerBound;
-import org.broadinstitute.sting.alignment.bwa.java.BWAAlignment;
-import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
+import org.broadinstitute.sting.alignment.bwa.BWAAligner;
+import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
@@ -20,7 +18,7 @@ import net.sf.samtools.SAMFileHeader;
  * @author mhanna
  * @version 0.1
  */
-public class BWAJavaAligner implements Aligner {
+public class BWAJavaAligner extends BWAAligner {
     /**
      * BWT in the forward direction.
      */
@@ -77,6 +75,7 @@ public class BWAJavaAligner implements Aligner {
     public final int INDEL_END_SKIP = 5;
 
     public BWAJavaAligner( File forwardBWTFile, File reverseBWTFile, File forwardSuffixArrayFile, File reverseSuffixArrayFile ) {
+        super(null,null);
         forwardBWT = new BWTReader(forwardBWTFile).read();
         reverseBWT = new BWTReader(reverseBWTFile).read();
         forwardSuffixArray = new SuffixArrayReader(forwardSuffixArrayFile,forwardBWT).read();
@@ -86,7 +85,18 @@ public class BWAJavaAligner implements Aligner {
     /**
      * Close this instance of the BWA pointer and delete its resources.
      */
-    public void close()  { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }   
+    @Override
+    public void close()  {
+        super.close();
+    }
+
+    /**
+     * Update the current parameters of this aligner.
+     * @param configuration New configuration to set.
+     */
+    public void updateConfiguration(BWAConfiguration configuration) {
+        throw new UnsupportedOperationException("Configuration of the BWA aligner can't currently be changed.");
+    }
 
     /**
      * Allow the aligner to choose one alignment randomly from the pile of best alignments.

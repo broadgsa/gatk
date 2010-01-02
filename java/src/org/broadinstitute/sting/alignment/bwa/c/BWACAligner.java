@@ -3,14 +3,12 @@ package org.broadinstitute.sting.alignment.bwa.c;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 
 import java.util.*;
-import java.io.File;
 
 /**
  * An aligner using the BWA/C implementation.
@@ -33,15 +31,24 @@ public class BWACAligner extends BWAAligner {
         if(thunkPointer != 0)
             throw new StingException("BWA/C attempting to reinitialize.");
 
-        if(!new File(bwtFiles.annFileName).exists()) throw new StingException("ANN file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(bwtFiles.ambFileName).exists()) throw new StingException("AMB file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(bwtFiles.pacFileName).exists()) throw new StingException("PAC file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(bwtFiles.forwardBWTFileName).exists()) throw new StingException("Forward BWT file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(bwtFiles.forwardSAFileName).exists()) throw new StingException("Forward SA file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(bwtFiles.reverseBWTFileName).exists()) throw new StingException("Reverse BWT file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(bwtFiles.reverseSAFileName).exists()) throw new StingException("Reverse SA file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.annFile.exists()) throw new StingException("ANN file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.ambFile.exists()) throw new StingException("AMB file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.pacFile.exists()) throw new StingException("PAC file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.forwardBWTFile.exists()) throw new StingException("Forward BWT file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.forwardSAFile.exists()) throw new StingException("Forward SA file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.reverseBWTFile.exists()) throw new StingException("Reverse BWT file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.reverseSAFile.exists()) throw new StingException("Reverse SA file is missing; please rerun 'bwa aln' to regenerate it.");
 
         thunkPointer = create(bwtFiles,configuration);
+    }
+
+    /**
+     * Create an aligner object using an array of bytes as a reference.
+     * @param referenceSequence Reference sequence to encode ad-hoc.
+     * @param configuration Configuration for the given aligner.
+     */
+    public BWACAligner(byte[] referenceSequence, BWAConfiguration configuration) {
+        this(BWTFiles.createFromReferenceSequence(referenceSequence),configuration);    
     }
 
     /**
@@ -63,6 +70,7 @@ public class BWACAligner extends BWAAligner {
         if(thunkPointer == 0)
             throw new StingException("BWA/C close attempted, but BWA/C is not properly initialized.");
         destroy(thunkPointer);
+        super.close();
     }
 
     /**

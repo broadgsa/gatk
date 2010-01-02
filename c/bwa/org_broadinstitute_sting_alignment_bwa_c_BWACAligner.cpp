@@ -12,27 +12,27 @@ typedef void (BWA::*int_setter)(int value);
 typedef void (BWA::*float_setter)(float value);
 
 static jobject convert_to_java_alignment(JNIEnv* env, const jbyte* read_bases, const jsize read_length, const Alignment& alignment);
-static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name);
+static jstring get_configuration_file(JNIEnv* env, jobject configuration, const char* field_name);
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter);
 static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
 static void throw_config_value_exception(JNIEnv* env, const char* field_name, const char* message);
 
 JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_create(JNIEnv* env, jobject instance, jobject bwtFiles, jobject configuration)
 {
-  jstring java_ann = get_configuration_string(env,bwtFiles,"annFileName");
-  if(env->ExceptionCheck()) return 0L;
-  jstring java_amb = get_configuration_string(env,bwtFiles,"ambFileName");
-  if(env->ExceptionCheck()) return 0L;
-  jstring java_pac = get_configuration_string(env,bwtFiles,"pacFileName");
-  if(env->ExceptionCheck()) return 0L;
-  jstring java_forward_bwt = get_configuration_string(env,bwtFiles,"forwardBWTFileName");
-  if(env->ExceptionCheck()) return 0L;
-  jstring java_forward_sa = get_configuration_string(env,bwtFiles,"forwardSAFileName");
-  if(env->ExceptionCheck()) return 0L;
-  jstring java_reverse_bwt = get_configuration_string(env,bwtFiles,"reverseBWTFileName");
-  if(env->ExceptionCheck()) return 0L;
-  jstring java_reverse_sa = get_configuration_string(env,bwtFiles,"reverseSAFileName");
-  if(env->ExceptionCheck()) return 0L;
+  jstring java_ann = get_configuration_file(env,bwtFiles,"annFile");
+  if(java_ann == NULL) return 0L;
+  jstring java_amb = get_configuration_file(env,bwtFiles,"ambFile");
+  if(java_amb == NULL) return 0L;
+  jstring java_pac = get_configuration_file(env,bwtFiles,"pacFile");
+  if(java_pac == NULL) return 0L;
+  jstring java_forward_bwt = get_configuration_file(env,bwtFiles,"forwardBWTFile");
+  if(java_forward_bwt == NULL) return 0L;
+  jstring java_forward_sa = get_configuration_file(env,bwtFiles,"forwardSAFile");
+  if(java_forward_sa == NULL) return 0L;
+  jstring java_reverse_bwt = get_configuration_file(env,bwtFiles,"reverseBWTFile");
+  if(java_reverse_bwt == NULL) return 0L;
+  jstring java_reverse_sa = get_configuration_file(env,bwtFiles,"reverseSAFile");
+  if(java_reverse_sa == NULL) return 0L;
 
   const char* ann_filename = env->GetStringUTFChars(java_ann,JNI_FALSE);
   if(env->ExceptionCheck()) return 0L;
@@ -332,16 +332,29 @@ static jobject convert_to_java_alignment(JNIEnv *env, const jbyte* read_bases, c
   return java_alignment;
 }
 
-static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name) {
+static jstring get_configuration_file(JNIEnv* env, jobject configuration, const char* field_name) {
   jclass configuration_class = env->GetObjectClass(configuration);
   if(configuration_class == NULL) return NULL;
 
-  jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/String;");
+  jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/io/File;");
   if(configuration_field == NULL) return NULL;
 
-  jstring result = (jstring)env->GetObjectField(configuration,configuration_field); 
-  env->DeleteLocalRef(configuration_class);    
-  return result;
+  jobject configuration_file = (jobject)env->GetObjectField(configuration,configuration_field); 
+
+  jclass file_class = env->FindClass("java/io/File");
+  if(file_class == NULL) return NULL;
+
+  jmethodID path_extractor = env->GetMethodID(file_class,"getAbsolutePath", "()Ljava/lang/String;");
+  if(path_extractor == NULL) return NULL;
+  
+  jstring path = (jstring)env->CallObjectMethod(configuration_file,path_extractor);
+  if(path == NULL) return NULL;
+
+  env->DeleteLocalRef(configuration_class);
+  env->DeleteLocalRef(file_class);
+  env->DeleteLocalRef(configuration_file);
+
+  return path;
 }
 
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter) {

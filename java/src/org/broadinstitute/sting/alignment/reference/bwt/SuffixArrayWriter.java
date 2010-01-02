@@ -20,11 +20,11 @@ public class SuffixArrayWriter {
 
     /**
      * Create a new suffix array reader.
-     * @param inputFile File in which the suffix array is stored.
+     * @param outputFile File in which the suffix array is stored.
      */
-    public SuffixArrayWriter( File inputFile ) {
+    public SuffixArrayWriter( File outputFile ) {
         try {
-            this.outputStream = new BufferedOutputStream(new FileOutputStream(inputFile));
+            this.outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
         }
         catch( FileNotFoundException ex ) {
             throw new StingException("Unable to open input file", ex);

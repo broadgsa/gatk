@@ -1,11 +1,6 @@
 package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.alignment.Aligner;
-import org.broadinstitute.sting.alignment.Alignment;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileHeader;
-
-import java.util.Iterator;
 
 /**
  * Align reads using BWA.
@@ -14,6 +9,15 @@ import java.util.Iterator;
  * @version 0.1
  */
 public abstract class BWAAligner implements Aligner {
+    /**
+     * The supporting files used by BWA.
+     */
+    protected BWTFiles bwtFiles;
+
+    /**
+     * The current configuration for the BWA aligner.
+     */
+    protected BWAConfiguration configuration;
 
     /**
      * Create a new BWAAligner.  Purpose of this call is to ensure that all BWA constructors accept the correct
@@ -21,7 +25,17 @@ public abstract class BWAAligner implements Aligner {
      * @param bwtFiles The many files representing BWTs persisted to disk.
      * @param configuration Configuration parameters for the alignment.
      */
-    public BWAAligner(BWTFiles bwtFiles, BWAConfiguration configuration) { }
+    public BWAAligner(BWTFiles bwtFiles, BWAConfiguration configuration) {
+        this.bwtFiles = bwtFiles;
+        this.configuration = configuration;
+    }
+
+    /**
+     * Close the existing aligner, freeing resources it consumed.
+     */
+    public void close() {
+        bwtFiles.close();    
+    }
 
     /**
      * Update the configuration passed to the BWA aligner.

@@ -2,6 +2,11 @@ package org.broadinstitute.sting.alignment.reference.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
 
+import java.util.Comparator;
+import java.util.TreeSet;
+
+import net.sf.samtools.util.StringUtil;
+
 /**
  * An in-memory representation of a suffix array.
  *
@@ -81,4 +86,74 @@ public class SuffixArray {
         }
         return (sequence[(int)(index/sequenceInterval)]+iterations) % length();
     }
+
+    /**
+     * Create a suffix array from a given reference sequence.
+     * @param sequence The reference sequence to use when building the suffix array.
+     * @return a constructed suffix array.
+     */
+    public static SuffixArray createFromReferenceSequence(byte[] sequence) {
+        // The builder for the suffix array.  Use an integer in this case because
+        // Java arrays can only hold an integer.
+        TreeSet<Integer> suffixArrayBuilder = new TreeSet<Integer>(new SuffixArrayComparator(sequence));
+
+        Counts occurrences = new Counts();
+        for( byte base: sequence )
+            occurrences.increment(base);
+
+        // Build out the suffix array using a custom comparator.
+        for( int i = 0; i <= sequence.length; i++ )
+            suffixArrayBuilder.add(i);
+
+        // Copy the suffix array into an array.
+        long[] suffixArray = new long[suffixArrayBuilder.size()];
+        int i = 0;
+        for( Integer element: suffixArrayBuilder )
+            suffixArray[i++] = element;
+
+        // Find the first element in the inverse suffix array.
+        long inverseSA0 = -1;
+        for(i = 0; i < sequence.length; i++) {
+            if(suffixArray[i] == 0)
+                inverseSA0 = i;
+        }
+        if(inverseSA0 < 0)
+            throw new StingException("Unable to find first inverse SA entry in generated suffix array.");
+
+        return new SuffixArray(inverseSA0,occurrences,suffixArray);
+    }    
+
+    /**
+     * Compares two suffix arrays of the given sequence.  Will return whichever string appears
+     * first in lexicographic order.
+     */
+    private static class SuffixArrayComparator implements Comparator<Integer> {
+        /**
+         * The data source for all suffix arrays.
+         */
+        private final String sequence;
+
+        /**
+         * Create a new comparator.
+         * @param sequence Reference sequence to use as basis for comparison.
+         */
+        public SuffixArrayComparator( byte[] sequence ) {
+            // Processing the suffix array tends to be easier as a string.
+            this.sequence = StringUtil.bytesToString(sequence);
+        }
+
+        /**
+         * Compare the two given suffix arrays.  Criteria for comparison is the lexicographic order of
+         * the two substrings sequence[lhs:], sequence[rhs:].
+         * @param lhs Left-hand side of comparison.
+         * @param rhs Right-hand side of comparison.
+         * @return How the suffix arrays represented by lhs, rhs compare.
+         */
+        public int compare( Integer lhs, Integer rhs ) {
+            String lhsSuffixArray = sequence.substring(lhs);
+            String rhsSuffixArray = sequence.substring(rhs);
+            return lhsSuffixArray.compareTo(rhsSuffixArray);
+        }
+    }
+
 }

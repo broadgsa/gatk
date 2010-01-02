@@ -28,11 +28,8 @@ package org.broadinstitute.sting.alignment.reference.bwt;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.util.StringUtil;
 
 import java.io.*;
-import java.util.TreeSet;
-import java.util.Comparator;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
@@ -44,45 +41,29 @@ import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
  * @version 0.1
  */
 public class CreateBWTFromReference {
-    private String loadReference( File inputFile ) {
+    private byte[] loadReference( File inputFile ) {
         // Read in the first sequence in the input file
         ReferenceSequenceFile reference = ReferenceSequenceFileFactory.getReferenceSequenceFile(inputFile);
         ReferenceSequence sequence = reference.nextSequence();
-        return StringUtil.bytesToString(sequence.getBases());
+        return sequence.getBases();
     }
 
-    private String loadReverseReference( File inputFile ) {
+    private byte[] loadReverseReference( File inputFile ) {
         ReferenceSequenceFile reference = ReferenceSequenceFileFactory.getReferenceSequenceFile(inputFile);
         ReferenceSequence sequence = reference.nextSequence();
         PackUtils.reverse(sequence.getBases());
-        return StringUtil.bytesToString(sequence.getBases());
+        return sequence.getBases();
     }
 
-    private Counts countOccurrences( String sequence ) {
+    private Counts countOccurrences( byte[] sequence ) {
         Counts occurrences = new Counts();
-        for( char base: sequence.toCharArray() )
-            occurrences.increment((byte)base);
+        for( byte base: sequence )
+            occurrences.increment(base);
         return occurrences;
     }
 
-    private long[] createSuffixArray( String sequence ) {
-        TreeSet<Integer> suffixArrayBuilder = new TreeSet<Integer>( new SuffixArrayComparator(sequence) );
-
-        // Build out the suffix array using a custom comparator.
-        System.out.printf("Creating sequence array of length %d%n", sequence.length() );
-        for( int i = 0; i <= sequence.length(); i++ ) {
-            suffixArrayBuilder.add(i);
-            if( i % 100000 == 0 )
-                System.out.printf("Added sequence %d%n", i);
-        }
-
-        // Copy the suffix array into an int array.
-        long[] suffixArray = new long[suffixArrayBuilder.size()];
-        int i = 0;
-        for( Integer element: suffixArrayBuilder )
-            suffixArray[i++] = element;
-
-        return suffixArray;
+    private long[] createSuffixArray( byte[] sequence ) {
+        return SuffixArray.createFromReferenceSequence(sequence).sequence;
     }
 
     private long[] invertSuffixArray( long[] suffixArray ) {
@@ -105,17 +86,6 @@ public class CreateBWTFromReference {
         for( int i = 0; i < compressedSuffixArray.length; i++ )
             inverseCompressedSuffixArray[compressedSuffixArray[i]] = i;
         return inverseCompressedSuffixArray;
-    }
-
-    private byte[] createBWT( String sequence, long[] suffixArray ) {
-        byte[] bwt = new byte[suffixArray.length-1];
-        int i = 0;
-        for( long suffixArrayEntry: suffixArray ) {
-            if( suffixArrayEntry == 0 )
-                continue;
-            bwt[i++] = (byte)sequence.charAt((int)suffixArrayEntry-1);
-        }
-        return bwt;
     }
 
     public static void main( String argv[] ) throws IOException {
@@ -141,8 +111,8 @@ public class CreateBWTFromReference {
 
         CreateBWTFromReference creator = new CreateBWTFromReference();
 
-        String sequence = creator.loadReference(inputFile);
-        String reverseSequence = creator.loadReverseReference(inputFile);
+        byte[] sequence = creator.loadReference(inputFile);
+        byte[] reverseSequence = creator.loadReverseReference(inputFile);
 
         // Count the occurences of each given base.
         Counts occurrences = creator.countOccurrences(sequence);
@@ -163,13 +133,6 @@ public class CreateBWTFromReference {
         SuffixArray reverseSuffixArray = new SuffixArray( reverseInverseSuffixArray[0], occurrences, reverseSuffixArrayData );
 
         /*
-        for( int i = 0; i < 8; i++ )
-            System.out.printf("suffixArray[%d] = %d (%s...)%n", i, suffixArray.sequence[i], sequence.substring(suffixArray.sequence[i],Math.min(suffixArray.sequence[i]+100,sequence.length())));
-        for( int i = 0; i < 8; i++ )
-            System.out.printf("inverseSuffixArray[%d] = %d (%s...)%n", i, inverseSuffixArray[i], sequence.substring(i,Math.min(i+100,sequence.length())));
-        */
-
-        /*
         // Create the data structure for the compressed suffix array and print diagnostics.
         int[] compressedSuffixArray = creator.createCompressedSuffixArray(suffixArray.sequence,inverseSuffixArray);
         int reconstructedInverseSA = compressedSuffixArray[0];
@@ -186,8 +149,8 @@ public class CreateBWTFromReference {
         */
 
         // Create the BWT.
-        BWT bwt = new BWT(inverseSuffixArray[0], occurrences, creator.createBWT(sequence, suffixArray.sequence));
-        BWT reverseBWT = new BWT( reverseInverseSuffixArray[0], occurrences, creator.createBWT(reverseSequence, reverseSuffixArray.sequence));
+        BWT bwt = BWT.createFromReferenceSequence(sequence);
+        BWT reverseBWT = BWT.createFromReferenceSequence(reverseSequence);
 
         byte[] bwtSequence = bwt.getSequence();
         System.out.printf("BWT: %s... (length = %d)%n", new String(bwtSequence,0,80),bwt.length());
@@ -231,38 +194,6 @@ public class CreateBWTFromReference {
                 System.out.printf("Validating suffix array entry %d%n", i);
             if( suffixArray.get(i) != existingSuffixArray.get(i) )
                 throw new StingException(String.format("Suffix array mismatch at %d; SA is %d; should be %d",i,existingSuffixArray.get(i),suffixArray.get(i)));
-        }
-    }
-
-    /**
-     * Compares two suffix arrays of the given sequence.  Will return whichever string appears
-     * first in lexicographic order.
-     */
-    public static class SuffixArrayComparator implements Comparator<Integer> {
-        /**
-         * The data source for all suffix arrays.
-         */
-        private final String sequence;
-
-        /**
-         * Create a new comparator.
-         * @param sequence Reference sequence to use as basis for comparison.
-         */
-        public SuffixArrayComparator( String sequence ) {
-            this.sequence = sequence;
-        }
-
-        /**
-         * Compare the two given suffix arrays.  Criteria for comparison is the lexicographic order of
-         * the two substrings sequence[lhs:], sequence[rhs:].
-         * @param lhs Left-hand side of comparison.
-         * @param rhs Right-hand side of comparison.
-         * @return How the suffix arrays represented by lhs, rhs compare.
-         */
-        public int compare( Integer lhs, Integer rhs ) {
-            String lhsSuffixArray = sequence.substring(lhs);
-            String rhsSuffixArray = sequence.substring(rhs);
-            return lhsSuffixArray.compareTo(rhsSuffixArray);
         }
     }
 
