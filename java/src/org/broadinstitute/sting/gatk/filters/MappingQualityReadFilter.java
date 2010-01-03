@@ -38,7 +38,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 public class MappingQualityReadFilter implements SamRecordFilter {
 
     @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
-    public int MIN_MAPPING_QUALTY_SCORE = 30;
+    public int MIN_MAPPING_QUALTY_SCORE = 10;
 
     public boolean filterOut(SAMRecord rec) {
         return (rec.getMappingQuality() < MIN_MAPPING_QUALTY_SCORE);

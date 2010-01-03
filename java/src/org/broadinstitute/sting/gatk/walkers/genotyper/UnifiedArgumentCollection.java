@@ -72,6 +72,12 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered", required = false)
     public double CONFIDENCE_THRESHOLD = 0.0;
 
+    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
+    public int MIN_BASE_QUALTY_SCORE = 20;
+
+    @Argument(fullName = "max_mismatches_in_40bp_window", shortName = "mm40", doc = "Maximum number of mismatches within a 40 bp window (20bp on either side) around the target position for a read to be used for calling", required = false)
+    public int MAX_MISMATCHES = 3;
+
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
@@ -80,10 +86,4 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "min_allele_frequency", shortName = "min_freq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)
     public double MINIMUM_ALLELE_FREQUENCY = 1e-8;
-
-    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
-    public int MIN_BASE_QUALTY_SCORE = 20;
-
-    @Argument(fullName = "max_mismatches_in_40bp_window", shortName = "mm40", doc = "Maximum number of mismatches within a 40 bp window (20bp on either side) around the target position for a read to be used for calling", required = false)
-    public int MAX_MISMATCHES = 3;
 }
