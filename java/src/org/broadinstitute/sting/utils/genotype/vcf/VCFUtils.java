@@ -139,6 +139,8 @@ public class VCFUtils {
         int SLODsSeen = 0;
         double totalFreq = 0.0;
         int freqsSeen = 0;
+        String id = null;
+        String filter = null;
 
         for ( RodVCF rod : rods ) {
             List<VCFGenotypeRecord> myGenotypes = rod.getVCFGenotypeRecords();
@@ -158,7 +160,7 @@ public class VCFUtils {
             if ( confidence > maxConfidence )
                 maxConfidence = confidence;
 
-            if ( rod.hasNonRefAlleleFrequency() ) {
+            if ( !rod.isReference() && rod.hasNonRefAlleleFrequency() ) {
                 totalFreq += rod.getNonRefAlleleFrequency();
                 freqsSeen++;
             }
@@ -167,6 +169,12 @@ public class VCFUtils {
                 totalSLOD += rod.getStrandBias();
                 SLODsSeen++;
             }
+
+            if ( rod.getID() != null )
+                id = rod.getID();
+
+            if ( rod.hasFilteringCodes() )
+                filter = rod.getFilterString();
         }
 
         Map<String, String> infoFields = new HashMap<String, String>();
@@ -178,16 +186,14 @@ public class VCFUtils {
             infoFields.put(VCFRecord.STRAND_BIAS_KEY, String.format("%.2f", (totalSLOD/(double)SLODsSeen)));
         if ( freqsSeen > 0 )
             infoFields.put(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%.2f", (totalFreq/(double)freqsSeen)));
-
-        // TODO -- "." and "0" are wrong -- need to use values from the records
-
+                
         return new VCFRecord(params.getReferenceBase(),
                 params.getContig(),
                 params.getPosition(),
-                ".",
+                (id != null ? id : "."),
                 params.getAlternateBases(),
                 maxConfidence,
-                "0",
+                (filter != null ? filter : "."),
                 infoFields,
                 params.getFormatString(),
                 params.getGenotypesRecords());

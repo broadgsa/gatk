@@ -29,7 +29,11 @@ public class SimpleVenn implements ConcordanceType {
     public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
 
         Genotype call1 = samplesToRecords.get(sample1);
+        if ( call1 != null && call1.isNoCall() )
+            call1 = null;
         Genotype call2 = samplesToRecords.get(sample2);
+        if ( call2 != null && call2.isNoCall() )
+            call2 = null;
 
         if ( call1 == null && call2 == null )
             return null;

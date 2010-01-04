@@ -30,7 +30,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testNWayVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -B set3,VCF," + validationDataLocation + "CEU.sample.vcf -CT NWayVenn", 1,
-                Arrays.asList("0527ea8ec7de3a144bd0a56db80d62ba"));
+                Arrays.asList("86d2342fabc8c0916a6d42a29f750ea2"));
         executeTest("testNWayVenn", spec);
     }
 
@@ -40,5 +40,13 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -CT SimpleVenn -CT NWayVenn -CT SNPGenotypeConcordance:qscore=5", 1,
                 Arrays.asList("6fbe00cb68d2cdc59dfcb79024fd9893"));
         executeTest("testMulti", spec);
+    }
+
+    @Test
+    public void testComplex() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -B set1,VCF," + validationDataLocation + "complexExample.vcf -B set2,VCF," + validationDataLocation + "complexExample.vcf -CT NWayVenn", 1,
+                Arrays.asList("8b72e557c0dd111738eaa69e9003fb3f"));
+        executeTest("testComplex", spec);
     }
 }

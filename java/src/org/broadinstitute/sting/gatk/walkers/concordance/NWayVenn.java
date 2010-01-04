@@ -25,7 +25,8 @@ public class NWayVenn implements ConcordanceType {
 
         TreeSet<String> concordantSamples = new TreeSet<String>();
         for ( Entry<String, Genotype> entry : samplesToRecords.entrySet() ) {
-            concordantSamples.add(entry.getKey());
+            if ( !entry.getValue().isNoCall() )
+                concordantSamples.add(entry.getKey());
         }
 
         StringBuffer tag = new StringBuffer();

@@ -247,19 +247,23 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
     public String toStringEncoding(List<VCFGenotypeEncoding> altAlleles, String[] genotypeFormatStrings) {
         StringBuilder builder = new StringBuilder();
         builder.append(toGenotypeString(altAlleles));
-        for ( String field : genotypeFormatStrings ) {
-            String value = mFields.get(field);
-            if ( value == null && field.equals(OLD_DEPTH_KEY) )
+
+        if ( !isEmptyGenotype() ) {
+            for ( String field : genotypeFormatStrings ) {
+                String value = mFields.get(field);
+                if ( value == null && field.equals(OLD_DEPTH_KEY) )
                     value = mFields.get(DEPTH_KEY);
-            if ( value == null )
+                if ( value == null )
                     continue;
 
-            builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
-            if (value.equals(""))
-                builder.append(getMissingFieldValue(field));
-            else
-                builder.append(value);
+                builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
+                if (value.equals(""))
+                    builder.append(getMissingFieldValue(field));
+                else
+                    builder.append(value);
+            }
         }
+
         return builder.toString();
     }
 
