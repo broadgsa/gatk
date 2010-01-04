@@ -45,7 +45,7 @@ public class SuffixArrayWriter {
             uintPackedOutputStream.write(1);
             // Length of the suffix array.
             uintPackedOutputStream.write(suffixArray.length()-1);
-            uintPackedOutputStream.write(suffixArray.sequence,1,suffixArray.sequence.length);
+            uintPackedOutputStream.write(suffixArray.sequence,1,suffixArray.sequence.length-1);
         }
         catch( IOException ex ) {
             throw new StingException("Unable to read BWT from input stream.", ex);
