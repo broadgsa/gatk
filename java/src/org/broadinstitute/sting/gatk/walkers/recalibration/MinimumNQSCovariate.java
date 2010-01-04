@@ -66,8 +66,4 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
         return Integer.parseInt( str );
     }
 
-    // Used to estimate the amount space required for the full data HashMap
-    public final int estimatedNumberOfBins() {
-        return 40;
-    }
 }

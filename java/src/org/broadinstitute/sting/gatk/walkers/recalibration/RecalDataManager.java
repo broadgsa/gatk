@@ -40,6 +40,7 @@ import net.sf.samtools.SAMReadGroupRecord;
  *
  * This helper class holds the data HashMap as well as submaps that represent the marginal distributions collapsed over all needed dimensions.
  * It also has static methods that are used to perform the various solid recalibration modes that attempt to correct the reference bias.
+ * This class holds the parsing methods that are shared between CountCovariates and TableRecalibration.
  */
 
 public class RecalDataManager {
@@ -347,10 +348,10 @@ public class RecalDataManager {
                     originalQualScores[iii-1] = (byte)0;
                     if( setBaseN ) { readBases[iii-1] = (byte)'N'; }
                 }
-                if( !isMappedToRef || (char)readBases[iii+1] == refBases[iii+1] ) {
-                    originalQualScores[iii+1] = (byte)0;
-                    if( setBaseN ) { readBases[iii+1] = (byte)'N'; }
-                }
+                //if( !isMappedToRef || (char)readBases[iii+1] == refBases[iii+1] ) {
+                //    originalQualScores[iii+1] = (byte)0;
+                //    if( setBaseN ) { readBases[iii+1] = (byte)'N'; }
+                //}
             }
         }
         if( read.getReadNegativeStrandFlag() ) {
@@ -382,9 +383,9 @@ public class RecalDataManager {
                 throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
             }
 
-            for( int iii = 1; iii < inconsistency.length - 2; iii++ ) {
+            for( int iii = 1; iii < inconsistency.length - 1; iii++ ) {
                 if( inconsistency[iii] == 1 ) {
-                    for( int jjj = iii - 1; jjj <= iii + 1; jjj++ ) { // Correct this base and the one before it along the direction of the read
+                    for( int jjj = iii - 1; jjj <= iii; jjj++ ) { // Correct this base and the one before it along the direction of the read
                         if( !isMappedToRef || (char)readBases[jjj] == refBases[jjj] ) {
                             if( colorSpaceQuals[jjj] == colorSpaceQuals[jjj+1] ) { // Equal evidence for the color implied base and the reference base, so flip a coin
                                 int rand = coinFlip.nextInt( 2 );

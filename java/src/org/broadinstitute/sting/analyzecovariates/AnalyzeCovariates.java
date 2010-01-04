@@ -84,7 +84,6 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
 
         int lineNumber = 0;
         boolean foundAllCovariates = false;
-        int estimatedCapacity = 1; // Capacity is multiplicitive so this starts at one
 
         // Read in the covariates that were used from the input file
         requestedCovariates = new ArrayList<Covariate>();
@@ -108,7 +107,6 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                                     try {
                                         Covariate covariate = (Covariate)covClass.newInstance();
                                         requestedCovariates.add( covariate );
-                                        estimatedCapacity *= covariate.estimatedNumberOfBins();
 
                                     } catch ( InstantiationException e ) {
                                         throw new RuntimeException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
@@ -133,11 +131,6 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                         // At this point all the covariates should have been found and initialized
                         if( requestedCovariates.size() < 2 ) {
                             throw new RuntimeException( "Malformed input recalibration file. Covariate names can't be found in file: " + RECAL_FILE );
-                        }
-
-                        // Don't want to crash with out of heap space exception
-                        if( estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0 ) { // Could be negative if overflowed
-                            estimatedCapacity = 300 * 40 * 200;
                         }
 
                         // Initialize any covariate member variables using the shared argument collection

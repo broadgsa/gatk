@@ -50,8 +50,4 @@ public class TileCovariate implements ExperimentalCovariate {
         return Integer.parseInt( str );
     }
 
-    // Used to estimate the amount space required for the full data HashMap
-    public int estimatedNumberOfBins() {
-        return 120;
-    }
 }

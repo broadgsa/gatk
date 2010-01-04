@@ -60,16 +60,16 @@ public class CycleCovariate implements StandardCovariate {
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
 
-        int cycle = 0;
+        int cycle = 1;
 
         //-----------------------------
         // ILLUMINA and SOLID
         //-----------------------------
 
         if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
-            cycle = offset;
+            cycle = offset + 1;
 	        if( read.getReadNegativeStrandFlag() ) {
-	            cycle = read.getReadLength() - (offset + 1);
+	            cycle = read.getReadLength() - offset;
 	        }
         }
 
@@ -114,9 +114,9 @@ public class CycleCovariate implements StandardCovariate {
 
         //else if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
         //    // The ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
-        //    int pos = offset;
+        //    int pos = offset + 1;
 	    //    if( read.getReadNegativeStrandFlag() ) {
-	    //        pos = read.getReadLength() - (offset + 1);
+	    //        pos = read.getReadLength() - offset;
 	    //    }
         //	cycle = pos / 5; // integer division
         //}
@@ -152,10 +152,5 @@ public class CycleCovariate implements StandardCovariate {
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         return Integer.parseInt( str );
-    }
-
-    // Used to estimate the amount space required for the full data HashMap
-    public final int estimatedNumberOfBins() {
-        return 80;
     }
 }

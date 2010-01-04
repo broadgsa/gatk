@@ -92,7 +92,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.2.1"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.2"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
@@ -123,7 +123,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         int lineNumber = 0;
         boolean foundAllCovariates = false;
-        int estimatedCapacity = 1; // Capacity is multiplicitive so this starts at one
 
         // Warn the user if a dbSNP file was specified since it isn't being used here
         boolean foundDBSNP = false;
@@ -161,7 +160,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                                     try {
                                         Covariate covariate = (Covariate)covClass.newInstance();
                                         requestedCovariates.add( covariate );
-                                        estimatedCapacity *= covariate.estimatedNumberOfBins();
 
                                     } catch ( InstantiationException e ) {
                                         throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
@@ -187,10 +185,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                             throw new StingException( "Malformed input recalibration file. Covariate names can't be found in file: " + RAC.RECAL_FILE );
                         }
 
-                        // Don't want to crash with out of heap space exception
-                        if( estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0 ) { // Could be negative if overflowed
-                            estimatedCapacity = 300 * 40 * 200;
-                        }
                         final boolean createCollapsedTables = true;
 
                         // Initialize any covariate member variables using the shared argument collection
