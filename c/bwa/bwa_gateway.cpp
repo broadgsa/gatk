@@ -17,6 +17,8 @@ BWA::BWA(const char* ann_filename,
   reference = new ubyte_t[bns->l_pac/4+1];
   rewind(bns->fp_pac);
   fread(reference, 1, bns->l_pac/4+1, bns->fp_pac);
+  fclose(bns->fp_pac);
+  bns->fp_pac = NULL;
 
   // Load the BWTs (both directions) and suffix arrays (both directions)
   bwts[0] = bwt_restore_bwt(forward_bwt_filename);
