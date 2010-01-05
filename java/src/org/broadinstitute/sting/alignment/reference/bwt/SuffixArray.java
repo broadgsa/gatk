@@ -113,7 +113,7 @@ public class SuffixArray {
 
         // Find the first element in the inverse suffix array.
         long inverseSA0 = -1;
-        for(i = 0; i < sequence.length; i++) {
+        for(i = 0; i < suffixArray.length; i++) {
             if(suffixArray[i] == 0)
                 inverseSA0 = i;
         }

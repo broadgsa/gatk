@@ -31,13 +31,6 @@ public abstract class BWAAligner implements Aligner {
     }
 
     /**
-     * Close the existing aligner, freeing resources it consumed.
-     */
-    public void close() {
-        bwtFiles.close();    
-    }
-
-    /**
      * Update the configuration passed to the BWA aligner.
      * @param configuration New configuration to set.
      */    

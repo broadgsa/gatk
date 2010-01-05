@@ -87,7 +87,7 @@ public class BWAJavaAligner extends BWAAligner {
      */
     @Override
     public void close()  {
-        super.close();
+        throw new UnsupportedOperationException("BWA aligner can't currently be closed.");
     }
 
     /**
