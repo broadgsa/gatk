@@ -229,7 +229,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
 
         if ( pl == SequencerPlatform.UNKNOWN ) {
             if ( raiseErrorOnUnknownPlatform )
-                throw new RuntimeException("Unknown Sequencer platform for read " + read.format());
+                throw new RuntimeException("Unknown Sequencer platform for read " + read.format() + "; your BAM file is missing the PL tag for some read groups.  Please specify a default platform.  See your walker's documentation to accomplish this");
             else {
                 pl = defaultPlatform;
                 //System.out.printf("Using default platform %s", pl);
