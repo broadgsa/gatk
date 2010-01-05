@@ -168,7 +168,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
                 variant.isSNP() ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(), null, null);
             if ( stratifiedContexts != null )
-                annotations = getAnnotations(ref, stratifiedContexts, variant, requestedAnnotations);
+                annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations);
         }
         writeVCF(tracker, ref, context, variant, annotations);
 
@@ -210,26 +210,26 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     }
 
     // option #1: don't specify annotations to be used: standard annotations are used by default
-    public static Map<String, String> getAnnotations(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, stratifiedContexts, variation, standardAnnotations.values());
+        return getAnnotations(tracker, ref, stratifiedContexts, variation, standardAnnotations.values());
     }
 
     // option #2: specify that all possible annotations be used
-    public static Map<String, String> getAllAnnotations(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public static Map<String, String> getAllAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         if ( allAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, stratifiedContexts, variation, allAnnotations.values());
+        return getAnnotations(tracker, ref, stratifiedContexts, variation, allAnnotations.values());
     }
 
     // option #3: specify the exact annotations to be used
-    public static Map<String, String> getAnnotations(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations) {
 
         HashMap<String, String> results = new HashMap<String, String>();
 
         for ( VariantAnnotation annotator : annotations) {
-            String annot = annotator.annotate(ref, stratifiedContexts, variation);
+            String annot = annotator.annotate(tracker, ref, stratifiedContexts, variation);
             if ( annot != null ) {
                 results.put(annotator.getKeyName(), annot);
             }

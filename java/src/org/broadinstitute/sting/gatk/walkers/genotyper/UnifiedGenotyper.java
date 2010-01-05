@@ -257,9 +257,9 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(refContext, stratifiedContexts, call.first);
+                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.first);
             else
-                annotations = VariantAnnotator.getAnnotations(refContext, stratifiedContexts, call.first);
+                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.first);
             ((ArbitraryFieldsBacked)call.first).setFields(annotations);
         }
 

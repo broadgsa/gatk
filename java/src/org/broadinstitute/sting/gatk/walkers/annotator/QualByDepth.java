@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
@@ -15,7 +16,7 @@ import java.util.ArrayList;
 
 public class QualByDepth extends StandardVariantAnnotation {
 
-    public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         if ( !(variation instanceof VariantBackedByGenotype) )
             return null;
         final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();

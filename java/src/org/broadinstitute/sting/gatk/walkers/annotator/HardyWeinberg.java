@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -16,7 +17,7 @@ public class HardyWeinberg implements VariantAnnotation {
     private static final int MIN_GENOTYPE_QUALITY = 10;
     private static final int MIN_NEG_LOG10_PERROR = MIN_GENOTYPE_QUALITY / 10;
 
-    public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
 
         if ( !(variation instanceof VariantBackedByGenotype) )
             return null;
