@@ -18,7 +18,7 @@ public class RMSMappingQuality extends StandardVariantAnnotation {
     public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         ArrayList<Integer> qualities = new ArrayList<Integer>();
         for ( String sample : stratifiedContexts.keySet() ) {
-            ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup();
+            ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
             for (PileupElement p : pileup )
                 qualities.add(p.getRead().getMappingQuality());
         }

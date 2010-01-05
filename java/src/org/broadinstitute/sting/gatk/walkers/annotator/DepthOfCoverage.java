@@ -14,7 +14,7 @@ public class DepthOfCoverage extends StandardVariantAnnotation {
     public String annotate(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         int depth = 0;
         for ( String sample : stratifiedContexts.keySet() )
-            depth += stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup().size();
+            depth += stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
         return String.format("%d", depth);
     }
 
