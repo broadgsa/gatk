@@ -100,6 +100,12 @@ public class ConcordanceTruthTable {
                 int callType = getGenotype(evalG, ref);
 
                 //System.out.printf("TEST: %d/%d %s vs. %s%n", truthIndex, callIndex, chip, eval);
+                if ( truthType == VARIANT && callType != VARIANT ) {
+                    violation = String.format("False negative: ref=%c chip=%s call=%s", ref, chipG, evalG);
+                } else if ( truthType == REF && callType == VARIANT ) {
+                    violation = String.format("False positive: chip=%s call=%s", chipG, evalG);
+                }
+
                 addGenotypeEntry(truthType, callType);
             }
         } else { // if we cannot associate tables with individuals, then we are working in a pooled context
