@@ -91,9 +91,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             samples.add(sampleName.toUpperCase());
         }
 
-        // if there are no valid samples, die
+        // if there are no valid samples, warn the user
         if ( samples.size() == 0 )
-            throw new StingException("There are no samples input at all; use the --sampleName argument to specify one");
+            logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
 
         determineAllAnnotations();
 
