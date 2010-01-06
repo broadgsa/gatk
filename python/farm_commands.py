@@ -30,7 +30,7 @@ die_on_fail_msg: if != None, die on command failure (non-zero return) and show d
         if jobName <> None:
             cmd_str += " -J %s" % (jobName)
 
-        cmd_str += " \""+cmd_str_from_user + "\""
+        cmd_str += " '"+cmd_str_from_user + "'"
         
         print ">>> Farming via "+cmd_str
     else:
