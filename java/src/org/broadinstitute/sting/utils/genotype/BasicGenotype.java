@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.List;
 
@@ -38,6 +40,12 @@ public class BasicGenotype implements Genotype {
      */
     public BasicGenotype(GenomeLoc location, String genotype, char ref, double negLog10PError) {
         mNegLog10PError = negLog10PError;
+
+        for ( char base : genotype.toCharArray() ) {
+            if (! ( BaseUtils.isRegularBase(base) || BaseUtils.isNBase((byte)base) ) )
+                throw new StingException(String.format("Unexpected base in Genotype at %s: '%s'", location, genotype));
+        }
+
         mGenotype = genotype;
         mLocation = location;
         mRef = ref;
