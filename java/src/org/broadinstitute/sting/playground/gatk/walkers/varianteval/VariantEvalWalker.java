@@ -6,8 +6,11 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,6 +57,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName = "samplesFile", shortName="samples", doc="When running an analysis on one or more individuals with truth data, this field provides a filepath to the listing of which samples are used (and are used to name corresponding rods with -B)", required=false)
     public String samplesFile = null;
+
+    @Argument(fullName = "sampleName", shortName="sampleName", doc="When running an analysis on one or more individuals with truth data, provide this parameter to only analyze the genotype of this sample", required=false)
+    public String sampleName = null;
 
     String analysisFilenameBase = null;
 
@@ -248,8 +254,24 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             if (eval != null)
                 if (eval.getNegLog10PError() * 10.0 < minConfidenceScore) eval = null;
 
-            if ( eval != null && (eval instanceof RodVCF) && ((RodVCF)eval).mCurrentRecord.isFiltered() ) {
-                if ( ! includeFilteredRecords ) eval = null;    // we are not including filtered records, so set eval to null
+            if ( eval != null && (eval instanceof RodVCF) ) {
+                if  ( ((RodVCF)eval).mCurrentRecord.isFiltered() && ! includeFilteredRecords ) {
+                    //System.out.printf("Rejecting filtered record %s%n", eval);
+		    eval = null;    // we are not including filtered records, so set eval to null
+                }
+//                } else if ( sampleName != null ) {
+//                    // code to grab a particular sample from a VCF
+//                    Variation evalOld = eval;
+//                    Genotype evalG = ((RodVCF)evalOld).getGenotype(sampleName);
+//                    if ( evalG == null ) throw new StingException("Unexpected null genotype for sample " + sampleName);
+//                    BasicGenotype g = new BasicGenotype(evalG.getLocation(), evalG.getBases(), ref.getBase(), evalG.getNegLog10PError());
+//                    if ( g.isVariant(ref.getBase()) ) {
+//                        eval = g.toVariation(ref.getBase());
+//                        System.out.printf("Replacing %s with %s%n", evalOld, eval);
+//                    } else {
+//                        eval = null;
+//                    }
+//                }
             }
 
             // update stats about all of the SNPs
