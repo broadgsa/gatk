@@ -237,24 +237,45 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                 String readGroup = readGroupKey.toString();
                 System.out.println("Analyzing read group: " + readGroup);
 
+                Process p = null;
                 // for each covariate
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
                     Covariate cov = requestedCovariates.get(iii);
+
                     try {
                         if( iii == 1 ) {
                             // Analyze reported quality
-                            Process p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
+                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
                                         IGNORE_QSCORES_LESS_THAN); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
                         } else { // Analyze all other covariates
-                            Process p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
+                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
                                         cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        System.exit(-1);
+                    } catch (IOException ex) {
+                        try {
+                            Thread.sleep(1600); // wait for 1.6 seconds and then try to spawn the process again
+                            if( iii == 1 ) {
+                                // Analyze reported quality
+                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
+                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
+                                            IGNORE_QSCORES_LESS_THAN); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
+                            } else { // Analyze all other covariates
+                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
+                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
+                                            cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
+                            }
+
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            System.exit(-1);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.exit(-1);
+                        }
                     }
+
                 }
             } else {
                 break;
