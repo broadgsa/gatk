@@ -232,52 +232,39 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
         // for each read group
         for( Object readGroupKey : dataManager.getCollapsedTable(0).data.keySet() ) {
 
-            if(NUM_READ_GROUPS_TO_PROCESS == -1 || ++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS) {
+            Process p = null;
+            if(++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS || NUM_READ_GROUPS_TO_PROCESS == -1) {
 
                 String readGroup = readGroupKey.toString();
                 System.out.println("Analyzing read group: " + readGroup);
 
-                Process p = null;
                 // for each covariate
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
                     Covariate cov = requestedCovariates.get(iii);
-
                     try {
                         if( iii == 1 ) {
                             // Analyze reported quality
                             p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
                                         IGNORE_QSCORES_LESS_THAN); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
+                            if(numReadGroups % 3 == 0) { // Don't want to spawn all the RScript jobs too quickly. So wait for this one to finish
+                                p.waitFor();
+                            }
                         } else { // Analyze all other covariates
-                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
+                            Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
                                         cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
                         }
-                    } catch (IOException ex) {
-                        try {
-                            Thread.sleep(1600); // wait for 1.6 seconds and then try to spawn the process again
-                            if( iii == 1 ) {
-                                // Analyze reported quality
-                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
-                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                            IGNORE_QSCORES_LESS_THAN); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
-                            } else { // Analyze all other covariates
-                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
-                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                            cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
-                            }
-
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                            System.exit(-1);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            System.exit(-1);
-                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        System.exit(-1);
+                    } catch (IOException e) {
+                        System.out.println("Fatal Exception: Perhaps RScript jobs are being spawned too quickly? One work around is to process fewer read groups using the -numRG option.");
+                        e.printStackTrace();
+                        System.exit(-1);
                     }
-
                 }
-            } else {
+            } else { // at the maximum number of read groups so break out
                 break;
             }
         }
