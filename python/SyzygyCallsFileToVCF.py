@@ -31,28 +31,31 @@ fields = header.split()
 #print(fields)
 
 # parse it for important offsets
-
-chrompos = fields.index("chr:offset")
-ref_offset = fields.index("ref_base")
-for_a_index = fields.index("A")
-for_c_index = fields.index("C")
-for_g_index = fields.index("G")
-for_t_index = fields.index("T")
-for_d_index = fields.index("D")
-for_i_index = fields.index("I")
-for_depth_index = fields.index("sum")
-rev_a_index = fields.index("AR")
-rev_c_index = fields.index("CR")
-rev_g_index = fields.index("GR")
-rev_t_index = fields.index("TR")
-rev_d_index = fields.index("DR")
-rev_i_index = fields.index("IR")
-rev_depth_index = fields.index("sumr")
-total_depth_index = fields.index("combined_sum")
-lod_score_index = fields.index("combined_lod")
-call_index = fields.index("allele2")
-fish_flag = fields.index("flag")
-fish_pval_index = fields.index("fisher-pval")
+try:
+    chrompos = fields.index("chr:offset")
+    ref_offset = fields.index("ref_base")
+    for_a_index = fields.index("A")
+    for_c_index = fields.index("C")
+    for_g_index = fields.index("G")
+    for_t_index = fields.index("T")
+    for_d_index = fields.index("D")
+    for_i_index = fields.index("I")
+    for_depth_index = fields.index("sum")
+    rev_a_index = fields.index("AR")
+    rev_c_index = fields.index("CR")
+    rev_g_index = fields.index("GR")
+    rev_t_index = fields.index("TR")
+    rev_d_index = fields.index("DR")
+    rev_i_index = fields.index("IR")
+    rev_depth_index = fields.index("sumr")
+    total_depth_index = fields.index("combined_sum")
+    lod_score_index = fields.index("combined_lod")
+    call_index = fields.index("allele2")
+    fish_flag = fields.index("flag")
+    fish_pval_index = fields.index("fisher-pval")
+except ValueError:
+    print("ERROR: no index for a header field in call file. Initial line was")
+    print(header)
 
 # now print the VCF header
 head1 = "##source=Syzygy"
@@ -63,6 +66,27 @@ head3 = "#" + "\t".join(fields)
 output_vcf_file.write(head1+"\n")
 output_vcf_file.write(head2+"\n")
 output_vcf_file.write(head3+"\n")
+
+def getProportionNonrefThatAreSNP(list):
+    ref_base = list[ref_offset]
+    a_bases = int(list[for_a_index].split(":")[1]) + int(list[rev_a_index].split(":")[1])
+    c_bases = int(list[for_c_index].split(":")[1]) + int(list[rev_c_index].split(":")[1])
+    g_bases = int(list[for_g_index].split(":")[1]) + int(list[rev_g_index].split(":")[1])
+    t_bases = int(list[for_t_index].split(":")[1]) + int(list[rev_t_index].split(":")[1])
+    if ( ref_base == "A" ):
+        snp_base_counts = max(c_bases,g_bases,t_bases)
+        nonref_counts = c_bases+g_bases+t_bases
+    elif ( ref_base == "C"):
+        snp_base_counts = max(a_bases,g_bases,t_bases)
+        nonref_counts = a_bases+g_bases+t_bases
+    elif ( ref_base == "G"):
+        snp_base_counts = max(a_bases,c_bases,t_bases)
+        nonref_counts = a_bases+c_bases+t_bases
+    else:
+        snp_base_counts = max(a_bases,c_bases,g_bases)
+        nonref_counts = a_bases+c_bases+g_bases
+
+    return ( float(snp_base_counts + 1)/float(nonref_counts+1) )
 
 def getProportionNonref(list):
     total_bases = int(list[total_depth_index]) - int(list[rev_i_index].split(":")[1]) - int(list[rev_d_index].split(":")[1]) - int(list[for_i_index].split(":")[1]) - int(list[for_d_index].split(":")[1])
@@ -115,7 +139,17 @@ for line in raw_calls_file.readlines():
     if ( not two_lines_ago ):
         continue # window not filled yet
     else:
-        if ( float(this_line[lod_score_index]) > 1 and this_line[call_index] != "D" and this_line[call_index] != "I"):
+        try:
+            is_potential_call = float(this_line[lod_score_index]) > 1 and this_line[call_index] != "D" and this_line[call_index] != "I"
+        except IndexError as err:
+            print(this_line)
+            print(lod_score_index)
+            raise IndexError(str(err))
+        except ValueError as err:
+            print(this_line)
+            print(lod_score_index)
+            raise(ValueError(str(err)))
+        if ( is_potential_call):
             # potential call
             chrom = this_line[chrompos].split(":")[0]
             pos = this_line[chrompos].split(":")[1]
@@ -136,14 +170,15 @@ for line in raw_calls_file.readlines():
             # do we want any other kind of annotations here ??
 
             # syzy neighborhood mismatch rate
+            pileup_noise = str(1.0-getProportionNonrefThatAreSNP(this_line))
             next_mmr = getProportionNonref(next_line) # from later in genome
             after_next_mmr = getProportionNonref(line_after_next) # from same
             prev_mmr = getProportionNonref(previous_line) # from earlier
             before_last_mmr = getProportionNonref(two_lines_ago) # same
             syzy_nmmr = str(next_mmr+after_next_mmr+prev_mmr+before_last_mmr)
             # turn these into key value pairs
-            INFO = [["syzy_DP",syz_depth],[";syzy_SB",syz_sb],[";syzy_NMMR",syzy_nmmr]] # semicolons are a complete hack
+            INFO = [["syzy_DP",syz_depth],[";syzy_SB",syz_sb],[";syzy_NMMR",syzy_nmmr],[";syzy_residMismatch",pileup_noise],[";syzy_originalLOD",lod]] # semicolons are a complete hack
             # get the vcf line
-            vcfLine = generateVCFLine(chrom, pos, dbsnp, ref, alt, filter, lod, INFO)
+            vcfLine = generateVCFLine(chrom, pos, dbsnp, ref, alt, filter, str(float(lod)*10.0), INFO)
             # print the sucker
             output_vcf_file.write(vcfLine+"\n")
