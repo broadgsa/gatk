@@ -41,14 +41,15 @@ import java.util.*;
 
 public class RecalDatumOptimized {
 
-    private long numObservations; // number of bases seen in total
-    private long numMismatches; // number of bases seen that didn't match the reference
+    protected long numObservations; // number of bases seen in total
+    protected long numMismatches; // number of bases seen that didn't match the reference
 
     //---------------------------------------------------------------------------------------------------------------
     //
     // constructors
     //
     //---------------------------------------------------------------------------------------------------------------
+
     public RecalDatumOptimized() {
         numObservations = 0L;
         numMismatches = 0L;
@@ -69,7 +70,6 @@ public class RecalDatumOptimized {
     // increment methods
     //
     //---------------------------------------------------------------------------------------------------------------
-
 
     public final void increment( final long incObservations, final long incMismatches ) {
         numObservations += incObservations;
@@ -118,13 +118,6 @@ public class RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public final String outputToCSV( ) {
-        return String.format( "%d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte() );
-    }
-    public final String outputToCSV( final int smoothing ) {
-        return String.format( "%d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte( smoothing ) );
-    }
-
     public final long getNumObservations() {
         return numObservations;
     }
@@ -133,7 +126,10 @@ public class RecalDatumOptimized {
         return numMismatches;
     }
 
-    public String toString() {
-    	return String.format( "RecalDatum: %d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte() );
+    public final String outputToCSV( ) {
+        return String.format( "%d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte() );
+    }
+    public final String outputToCSV( final int smoothing ) {
+        return String.format( "%d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte(smoothing) );
     }
 }
