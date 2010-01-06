@@ -1,0 +1,230 @@
+package org.broadinstitute.sting.oneoffprojects.walkers;
+
+import java.io.IOException;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.playground.utils.PoolUtils;
+import org.broadinstitute.sting.playground.gatk.walkers.poolseq.ReadOffsetQuad;
+import sun.misc.Cache;
+import net.sf.samtools.SAMRecord;
+
+import java.util.HashMap;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: Ghost
+ * Date: Dec 15, 2009
+ * Time: 11:56:22 AM
+ * To change this template use File | Settings | File Templates.
+ */
+/*
+ * This walker prints out quality score counts for forward and reverse stranded reads aggregated over all loci
+ * in the interval. Furthermore, it prints out quality score counts at a particular offset of forward and reverse
+ * reads, aggregated across all paired-end reads in the interval.
+ *
+ * @Author: Chris Hartl
+ */
+public class QualityScoreByStrandWalker extends LocusWalker<StrandedCounts,StrandedCounts> {
+    @Argument(fullName="readLength", shortName="rl", doc="Maximum length of the reads in the bam file", required=true)
+    int maxReadLength = -1;
+    @Argument(fullName="locusCountsOutput", shortName="lcf", doc="File to print locus count information to", required=true)
+    String locusOutput = null;
+    @Argument(fullName="pairCountsOutput", shortName="pcf", doc="File to print pair count information to", required=true)
+    String pairOutput = null;
+    @Argument(fullName="useCycle", shortName="c", doc="Use cycle directly rather than strand", required=false)
+    boolean useCycle = false;
+
+    public HashMap pairCache = new HashMap();
+
+    public StrandedCounts reduceInit() {
+        return new StrandedCounts(maxReadLength);
+    }
+
+    public StrandedCounts map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        StrandedCounts counts = new StrandedCounts(maxReadLength);
+        updateCounts(counts,context, ref);
+        return counts;
+    }
+
+    public StrandedCounts reduce( StrandedCounts map, StrandedCounts red ) {
+        map.update(red);
+        return map;
+    }
+
+    public void updateCounts( StrandedCounts counts, AlignmentContext context, ReferenceContext ref ) {
+        ReadBackedPileup p = context.getPileup();
+        for ( PileupElement e : p ) {
+            updateLocus(counts,e,ref);
+            updateReads(counts,e,ref);
+        }
+    }
+
+    public void updateLocus( StrandedCounts counts, PileupElement e, ReferenceContext ref ) {
+        if ( ! useCycle ) {
+            counts.updateLocus( (int) e.getQual(), ! e.getRead().getReadNegativeStrandFlag() );
+        } else {
+            counts.updateLocus( (int) e.getQual(), ! e.getRead().getFirstOfPairFlag() );
+        }
+    }
+
+    public void updateReads( StrandedCounts counts, PileupElement e, ReferenceContext ref ) {
+        SAMRecord read = e.getRead();
+        String readString = read.getReadName() + read.getReadNegativeStrandFlag();
+        String mateString = read.getReadName() + !read.getReadNegativeStrandFlag();
+        if ( pairCache.containsKey(readString) ) { // read is already in there
+            // do nothing
+        } else if ( pairCache.containsKey( mateString ) ) { // has the mate
+            byte[] mate = (byte[]) pairCache.remove(mateString);
+            updatePairCounts(counts,ref,e,read,mate);
+        } else { // has neither read nor mate
+            pairCache.put(readString, read.getBaseQualities() ); // only store qualities, should help gc going haywire
+        }
+    }
+
+    public void updatePairCounts( StrandedCounts counts, ReferenceContext ref, PileupElement e, SAMRecord read, byte[] mateQuals ) {
+        byte[] readQuals =  read.getBaseQualities();
+        if ( ! useCycle ) {
+            if ( read.getReadNegativeStrandFlag() ) {
+                updateReadQualities(mateQuals,readQuals,counts);
+            } else {
+                updateReadQualities(readQuals,mateQuals,counts);
+            }
+        } else {
+            if ( read.getFirstOfPairFlag() ) {
+                updateReadQualities(readQuals,mateQuals,counts);
+            } else {
+                updateReadQualities(mateQuals,readQuals,counts);
+            }
+        }
+    }
+
+    public void updateReadQualities(byte[] forQuals, byte[] revQuals, StrandedCounts counts) {
+        for ( int i = 0; i < forQuals.length; i ++ ) {
+            counts.updateReadPair((int) forQuals[i], (int) revQuals[forQuals.length-1-i],i,forQuals.length-1-i);
+        }
+    }
+
+    public void onTraversalDone(StrandedCounts finalCounts) {
+	try {
+	    PrintWriter locusOut = new PrintWriter(locusOutput);
+	    System.out.println("#$"); //delimeter
+	    System.out.print(finalCounts.locusCountsAsString());
+	    System.out.println("#$");
+	    System.out.println("Unmatched reads="+pairCache.size());
+	    System.out.println("#$");
+	    locusOut.printf(finalCounts.locusCountsAsString());
+	    PrintWriter pairOut = new PrintWriter(pairOutput);
+	    pairOut.printf(finalCounts.pairCountsAsString());
+	    System.out.println("#$");
+	    System.out.print(finalCounts.pairCountsAsString());
+	    System.out.print("#$");
+	} catch ( IOException e ) {
+	    throw new StingException("Outputfile could not be opened");
+	}
+    }
+}
+
+/*
+ * this class holds four arrays of longs for quality score counts
+ */
+class StrandedCounts {
+    public int readLength;
+    public long[][] forwardCountsByOffset;
+    public long[][] reverseCountsByOffset;
+    public long[] forwardCountsLocusAggregate;
+    public long[] reverseCountsLocusAggregate;
+
+    public StrandedCounts(int maxReadLength) {
+        readLength = maxReadLength;
+        forwardCountsByOffset = new long[maxReadLength][QualityUtils.MAX_REASONABLE_Q_SCORE+3];
+        reverseCountsByOffset = new long[maxReadLength][QualityUtils.MAX_REASONABLE_Q_SCORE+3];
+        forwardCountsLocusAggregate = new long[QualityUtils.MAX_REASONABLE_Q_SCORE+3];
+        reverseCountsLocusAggregate = new long[QualityUtils.MAX_REASONABLE_Q_SCORE+3];
+        for ( int q = 0; q < QualityUtils.MAX_REASONABLE_Q_SCORE+3; q ++ ) {
+            for ( int l = 0; l < maxReadLength; l ++ ) {
+                forwardCountsByOffset[l][q] = 0l;
+                reverseCountsByOffset[l][q] = 0l;
+            }
+            forwardCountsLocusAggregate[q] = 0l;
+            reverseCountsLocusAggregate[q] = 0l;
+        }
+    }
+
+    public void updateLocus( int quality, boolean forward) {
+        if ( forward ) {
+            forwardCountsLocusAggregate[quality < 0 ? 0 : quality > 40 ? 40 : quality]++;
+        } else {
+            reverseCountsLocusAggregate[quality < 0 ? 0 : quality > 40 ? 40 : quality]++;
+        }
+    }
+
+    public void updateReadPair( int fQual, int rQual, int fOff, int rOff ) {  // hehe f Off
+        if ( rOff < 0 || fOff < 0 )
+	    throw new StingException("Offset is negative. Should never happen.");
+	forwardCountsByOffset[fOff][fQual < 0 ? 0 : fQual > 40 ? 40 : fQual]++;
+        reverseCountsByOffset[rOff][rQual < 0 ? 0 : rQual > 40 ? 40 : rQual]++;
+    }
+
+    public void update( StrandedCounts otherCounts ) {
+
+        for ( int q = 0; q < QualityUtils.MAX_REASONABLE_Q_SCORE+3; q ++ ) {
+            for ( int l = 0; l < readLength; l ++ ) {
+                forwardCountsByOffset[l][q] += otherCounts.forwardCountsByOffset[l][q];
+                reverseCountsByOffset[l][q] += otherCounts.reverseCountsByOffset[l][q];
+            }
+
+            forwardCountsLocusAggregate[q] += otherCounts.forwardCountsLocusAggregate[q];
+            reverseCountsLocusAggregate[q] += otherCounts.reverseCountsLocusAggregate[q];
+        }
+    }
+
+    public String pairCountsAsString() {
+        StringBuffer buf = new StringBuffer();
+	StringBuffer check = new StringBuffer();
+        String test = "";
+	for ( int i = 0; i < readLength; i ++ ) {
+	    //System.out.println("APPENDING LINE: "+i);
+            buf.append(i);
+	    check.append(i);
+	    test = test+i;
+            for ( int j = 0; j < QualityUtils.MAX_REASONABLE_Q_SCORE+3; j ++ ) {
+                buf.append("\t");
+		buf.append(forwardCountsByOffset[i][j]);
+		test = test+"\t"+forwardCountsByOffset[i][j];
+                buf.append(";");
+                buf.append(reverseCountsByOffset[i][j]);
+		test = test+"\t"+reverseCountsByOffset[i][j];
+            }
+	    test = test+"\n";
+            buf.append("\n");
+	    check.append("\n");
+        }
+	//System.out.print(check.toString());
+        return buf.toString();
+    }
+
+    public String locusCountsAsString() {
+        StringBuffer buf = new StringBuffer();
+        for ( int i = 0; i < forwardCountsLocusAggregate.length; i ++ ) {
+            buf.append(i);
+            buf.append("\t");
+            buf.append(forwardCountsLocusAggregate[i]);
+            buf.append("\t");
+            buf.append(reverseCountsLocusAggregate[i]);
+            buf.append(String.format("%s%n",""));
+        }
+
+        return buf.toString();
+    }
+}

@@ -21,9 +21,9 @@ import java.util.Map;
  * To change this template use File | Settings | File Templates.
  */
 public class SecondBaseSkew implements VariantAnnotation {
-    private final static double epsilon = Math.pow(10.0,-12);
+    private final static double epsilon = Math.pow(10.0,-12.0);
     private final static String KEY_NAME = "2b_Chi";
-    private final static double[] UNIFORM_ON_OFF_RATIO = {1.0/3, 2.0/3};
+    private final static double[] UNIFORM_ON_OFF_RATIO = {1.0/3.0, 2.0/3.0};
     private double[] proportionExpectations = UNIFORM_ON_OFF_RATIO;
 
     public String getKeyName() { return KEY_NAME; }
@@ -34,11 +34,12 @@ public class SecondBaseSkew implements VariantAnnotation {
         if ( !variation.isBiallelic() || !variation.isSNP() )
             return null;
 
-        char snp = variation.getAlternativeBaseForSNP();
+        char alternate = variation.getAlternativeBaseForSNP();
 
         Pair<Integer, Integer> depth = new Pair<Integer, Integer>(0, 0);
         for ( String sample : stratifiedContexts.keySet() ) {
-            Pair<Integer, Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBase(), stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), snp);
+            //Pair<Integer,Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBase(),stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup(), alternate);
+            Pair<Integer, Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBase(), stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), alternate);
             depth.first += sampleDepth.first;
             depth.second += sampleDepth.second;
         }
@@ -47,12 +48,8 @@ public class SecondBaseSkew implements VariantAnnotation {
             return null;
 
         double biasedProportion = (1.0 + depth.second) / (1.0 + depth.first);
-
-        //System.out.printf("%d / %f%n", depthProp.getFirst(), depthProp.getSecond());
         double p_transformed = transform(biasedProportion, depth.first+1);
         double expected_transformed = transform(proportionExpectations[0], depth.first+1);
-        // System.out.println("p_transformed="+p_transformed+" e_transformed="+expected_transformed+" variantDepth="+depthProp.getFirst());
-        // System.out.println("Proportion variant bases with ref 2bb="+depthProp.getSecond()+" Expected="+proportionExpectations[0]);
         double chi_square =  Math.signum(biasedProportion - proportionExpectations[0])*Math.min(Math.pow(p_transformed - expected_transformed, 2), Double.MAX_VALUE);
         return String.format("%f", chi_square);
     }

@@ -209,6 +209,15 @@ public class QualityUtils {
         return rcCompressedQuals;
     }
 
+    /**
+     * Return the reverse of a byte array of qualities (compressed or otherwise)
+     * @param quals   the array of bytes to be reversed
+     * @return the reverse of the quality array
+     */
+    static public byte[] reverseQualityArray( byte[] quals ) {
+        return BaseUtils.reverse(quals); // no sense in duplicating functionality
+    }
+
     // TODO --
     // TODO --
     // TODO -- stolen from SAMUtils in picard -- remove when public access is granted
