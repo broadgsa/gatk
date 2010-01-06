@@ -1,8 +1,9 @@
-package org.broadinstitute.sting.gatk.walkers.annotator;
+package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotation;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.Pair;
@@ -11,7 +12,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.Map;
-
+ import org.broadinstitute.sting.gatk.walkers.annotator.*;
 /**
  * Created by IntelliJ IDEA.
  * User: chartl
@@ -19,7 +20,7 @@ import java.util.Map;
  * Time: 2:42:05 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ProportionOfSNPSecondBasesSupportingRef implements VariantAnnotation{
+public class ProportionOfSNPSecondBasesSupportingRef implements VariantAnnotation {
     public String KEY_NAME = "SNP_2B_SUPPORT_REF";
     public boolean USE_MAPQ0_READS = false;
     public String debug_file = "/humgen/gsa-scr1/chartl/temporary/ProportionOfRefSecondBasesSupportingSNP.debug.txt";
