@@ -6,17 +6,31 @@ import org.broadinstitute.sting.gatk.refdata.HapMapGenotypeROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.VariationCall;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
+import java.io.File;
 
 /**
  * Converts HapMap genotype information to VCF format
  */
 public class HapMap2VCF extends RodWalker<Integer, Integer> {
 
-    String[] sample_ids;
+    @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
+    protected File VCF_OUT;
+
+    private VCFGenotypeWriterAdapter vcfWriter;
+    String[] sample_ids = null;
+
+    public void initialize() {
+        vcfWriter = new VCFGenotypeWriterAdapter(VCF_OUT);
+    }
 
     /**
      * For each HapMap record, generate and print the VCF record string
@@ -26,100 +40,56 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Iterator<ReferenceOrderedDatum> rods = tracker.getAllRods().iterator();
-        boolean first_hapmap_rod = true;
-        while ( rods.hasNext() ) {
-            ReferenceOrderedDatum rod = rods.next();
+        for ( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
             if ( rod instanceof HapMapGenotypeROD ) {
                 HapMapGenotypeROD hapmap_rod = (HapMapGenotypeROD) rod;
-                if (first_hapmap_rod) {
-                    out.println(VCFHeaderString(hapmap_rod.getSampleIDs()));
-                    first_hapmap_rod = false;
+
+                // If this is the first time map is called, we need to fill out the sample_ids from the rod
+                if (sample_ids == null) {
+                    // ensure that there are no duplicate sample IDs
+                    sample_ids = hapmap_rod.getSampleIDs();
+                    Set<String> sample_id_set = new LinkedHashSet<String>(Arrays.asList(sample_ids));
+                    if (sample_id_set.size() != sample_ids.length)
+                        throw new IllegalStateException("Sample set passed into HapMap2VCF has repeated sample IDs");
+
+                    // setup the header fields
+                    Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+                    hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+                    hInfo.add(new VCFHeaderLine("source", "HapMap2VCF"));
+                    hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
+
+                    // write out the header once
+                    vcfWriter.writeHeader(sample_id_set, hInfo);
                 }
 
-                // Get reference and alternate bases
-
-                Character alt_allele, ref_allele;
-
-                Set<Character> observed_alleles = getObservedAlleles (hapmap_rod.getGenotypes());
-                if (observed_alleles.contains('N'))
-                    observed_alleles.remove('N');
-                ref_allele = ref.getBase();
-                if (observed_alleles.contains(ref_allele))
-                    observed_alleles.remove(ref_allele);
-                if (observed_alleles.isEmpty()) {
-                    alt_allele = ref_allele; // ## todo: Confirm that alt allele becomes ref allele 
-                }else{
-                    if (observed_alleles.size() != 1) {
-                        out.println("Error: more than 2 alleles found in hapmap chip position");
-                        alt_allele = 'N';
-                        System.exit(1);
-                    }else{
-                        alt_allele = observed_alleles.iterator().next();
-                    }
-                }
-
-                // Print all position specific info
-                String vcf = hapmap_rod.get("chrom")+"\t"+
-                             hapmap_rod.get("pos")+"\t"+
-                             hapmap_rod.get("rs#")+"\t"+
-                             ref_allele+"\t"+
-                             alt_allele+"\t"+
-                             "99\t0\t.\tGT:GQ";
-                out.print(vcf);
+                // Get reference base and locus
+                Character ref_allele = ref.getBase();
+                GenomeLoc loc = hapmap_rod.getLocation();
+                VCFVariationCall variation = new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP);
 
                 // Print each sample's genotype info
+                List<Genotype> genotype_calls = new ArrayList<Genotype>();
+                String[] hapmap_rod_genotypes = hapmap_rod.getGenotypes();
+                for (int i = 0; i < hapmap_rod_genotypes.length; i++) {
+                    String sample_id = sample_ids[i];
+                    String hapmap_rod_genotype = hapmap_rod_genotypes[i];
 
-                String allele_strings = "";
-                for (String genotype : hapmap_rod.getGenotypes()) {
-                    String allele_str = ""; // one allele string
-                    Integer GQ = 99;
-                    for (Character allele : genotype.toCharArray()) {
-                        if (allele == ref_allele) {
-                            allele_str += "0";
-                        }else{
-                            if (allele == alt_allele) {
-                                allele_str += "1";
-                            }else{
-                                if (allele == 'N') {
-                                    allele_str += "0";
-                                    GQ = 0;
-                                }else{
-                                    out.println("ERROR: Unexpected tri-allelic site detected");
-                                    System.exit(1);
-                                }
-                            }
-                        }
-                        if (allele_str.length() == 1) {
-                            allele_str += "/";
-                        }
+                    // for each sample, set the genotype if it exists
+                    VCFGenotypeCall genotype = new VCFGenotypeCall(ref_allele, loc);
+                    if (!hapmap_rod_genotype.contains("N")) {
+                        genotype.setGenotype(DiploidGenotype.createDiploidGenotype(hapmap_rod_genotype.charAt(0), hapmap_rod_genotype.charAt(1)));
+                        genotype.setSampleName(sample_id);
+                        genotype_calls.add(genotype);
                     }
-                    allele_strings += "\t" + allele_str+":"+GQ;
                 }
 
-                out.println(allele_strings);
+                // add each genotype to VCF record and write it
+                variation.setGenotypeCalls(genotype_calls);
+                vcfWriter.addMultiSampleCall(genotype_calls, new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP));
             }
         }
 
         return 1;
-    }
-
-    public static Set<Character> getObservedAlleles (String[] genotypes) {
-        Set<Character> observed_alleles = new HashSet<Character>();
-        for (String genotype : genotypes)
-            for (Character allele : genotype.toCharArray())
-                if (!observed_alleles.contains(allele))
-                    observed_alleles.add(allele);
-
-        return observed_alleles;
-    }
-
-    public String VCFHeaderString (String[] sample_ids) {
-        String header = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-        for (String sample_id : sample_ids)
-            header += "\t" + sample_id;
-
-        return header;
     }
 
     /**
@@ -128,10 +98,6 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
      * @return 0
      */
     public Integer reduceInit() {
-        out.println("#fileformat=VCFv3.3");
-        out.println("##reference=/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta");
-        out.println("##source=VariantsToVCF");
-
         return 0;
     }
 
