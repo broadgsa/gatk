@@ -283,6 +283,16 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     /**
+     * Returns the genotype associated with sample, or null if the genotype is missing
+     *
+     * @param sampleName the name of the sample genotype to fetch
+     * @return
+     */
+    public Genotype getGenotype(final String sampleName) {
+        return mCurrentRecord.getGenotype(sampleName);
+    }
+
+    /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.
      *
