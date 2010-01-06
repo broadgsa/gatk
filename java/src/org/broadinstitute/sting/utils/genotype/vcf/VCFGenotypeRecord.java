@@ -31,7 +31,7 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
     public static final String UNFILTERED = ".";
 
     public static final double MAX_QUAL_VALUE = 99.0;
-    
+
     // what kind of phasing this genotype has
     public enum PHASE {
         UNPHASED, PHASED, PHASED_SWITCH_PROB, UNKNOWN
@@ -150,7 +150,7 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
             if ( encoding.getType() == VCFGenotypeEncoding.TYPE.UNCALLED )
                 continue;
             if ( encoding.getType() != VCFGenotypeEncoding.TYPE.SINGLE_BASE ||
-                 encoding.getBases().charAt(0) != ref )
+                    encoding.getBases().charAt(0) != ref )
                 return true;
         }
         return false;
@@ -212,9 +212,13 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
                 }
                 first = false;
             }
-        }        
+        }
         return str;
 
+    }
+
+    @Override public String toString() {
+        return String.format("[VCFGenotype %s %s %s %s]", getLocation(), mSampleName, this.mGenotypeAlleles, mFields);
     }
 
     public boolean isEmptyGenotype() {
