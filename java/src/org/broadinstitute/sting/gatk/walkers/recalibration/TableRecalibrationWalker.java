@@ -351,16 +351,14 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     private byte performSequentialQualityCalculation(Object... key ) {
 
-        final String readGroupKeyElement = key[0].toString();
-        final int qualityScoreKeyElement = Integer.parseInt(key[1].toString());
-        final byte qualFromRead = (byte)qualityScoreKeyElement;
+        final byte qualFromRead = (byte)Integer.parseInt(key[1].toString());
         final Object[] readGroupCollapsedKey = new Object[1];
         final Object[] qualityScoreCollapsedKey = new Object[2];
         final Object[] covariateCollapsedKey = new Object[3];
 
         // The global quality shift (over the read group only)
-        readGroupCollapsedKey[0] = readGroupKeyElement;
-        RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( readGroupCollapsedKey ));
+        readGroupCollapsedKey[0] = key[0];
+        final RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( readGroupCollapsedKey ));
         double globalDeltaQ = 0.0;
         if( globalRecalDatum != null ) {
             double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
@@ -369,9 +367,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         // The shift in quality between reported and empirical
-        qualityScoreCollapsedKey[0] = readGroupKeyElement;
-        qualityScoreCollapsedKey[1] = qualityScoreKeyElement;
-        RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( qualityScoreCollapsedKey ));
+        qualityScoreCollapsedKey[0] = key[0];
+        qualityScoreCollapsedKey[1] = key[1];
+        final RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( qualityScoreCollapsedKey ));
         double deltaQReported = 0.0;
         if( qReportedRecalDatum != null ) {
             double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
@@ -381,11 +379,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // The shift in quality due to each covariate by itself in turn
         double deltaQCovariates = 0.0;
         double deltaQCovariateEmpirical;
-        covariateCollapsedKey[0] = readGroupKeyElement;
-        covariateCollapsedKey[1] = qualityScoreKeyElement;
+        covariateCollapsedKey[0] = key[0];
+        covariateCollapsedKey[1] = key[1];
         for( int iii = 2; iii < key.length; iii++ ) {
             covariateCollapsedKey[2] =  key[iii]; // The given covariate
-            RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii).get( covariateCollapsedKey ));
+            final RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii).get( covariateCollapsedKey ));
             if( covariateRecalDatum != null ) {
                 deltaQCovariateEmpirical = covariateRecalDatum.getEmpiricalQuality();
                 deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
@@ -393,7 +391,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
-        final byte newQualityByte = QualityUtils.boundQual( (int)Math.round(newQuality), QualityUtils.MAX_REASONABLE_Q_SCORE );
+        return QualityUtils.boundQual( (int)Math.round(newQuality), QualityUtils.MAX_REASONABLE_Q_SCORE );
 
 
         // Verbose printouts used to validate with old recalibrator
@@ -406,7 +404,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         //                 key.get(0).toString(), key.get(3).toString(), key.get(2).toString(), key.get(1).toString(), qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte) );
         //}
 
-        return newQualityByte;
+        //return newQualityByte;
     }
 
     /**
