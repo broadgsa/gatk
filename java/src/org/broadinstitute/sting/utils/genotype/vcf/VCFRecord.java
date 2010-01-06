@@ -417,6 +417,16 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         return names;
     }
 
+   public VCFGenotypeRecord getGenotype(final String sampleName) {
+       for ( VCFGenotypeRecord rec : getVCFGenotypeRecords() ) {
+           if ( rec.getSampleName().equals(sampleName) ) {
+               return rec;
+           }
+       }
+
+       return null;
+   }
+
     public String getGenotypeFormatString() {
         return mGenotypeFormatString;
     }// the formatting string for our genotype records
