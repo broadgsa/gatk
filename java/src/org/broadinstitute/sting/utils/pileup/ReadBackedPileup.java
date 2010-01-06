@@ -20,7 +20,9 @@ import net.sf.samtools.SAMRecord;
 public class ReadBackedPileup implements Iterable<PileupElement> {
     private GenomeLoc loc = null;
     private ArrayList<PileupElement> pileup = null;
-    
+    byte [] bases = null; // will be used to cache pileup bases after first call to getBases
+    byte [] mapquals = null; // will be used to cache pileup mapping quals after first call to getMappingQuals
+
     private int size = 0;                   // cached value of the size of the pileup
     private int nDeletions = 0;             // cached value of the number of deletions
     private int nMQ0Reads = 0;              // cached value of the number of MQ0 reads
@@ -395,9 +397,11 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * @return
      */
     public byte[] getBases() {
-        byte[] v = new byte[size()];
-        for ( ExtendedPileupElement pile : this.extendedForeachIterator() ) { v[pile.getPileupOffset()] = pile.getBase(); }
-        return v;
+        if ( bases == null ) {
+            bases = new byte[size()];
+            for ( ExtendedPileupElement pile : this.extendedForeachIterator() ) { bases[pile.getPileupOffset()] = pile.getBase(); }
+        }
+        return bases;
     }
 
     /**
@@ -425,9 +429,11 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * @return
      */
     public byte[] getMappingQuals() {
-       byte[] v = new byte[size()];
-       for ( ExtendedPileupElement pile : this.extendedForeachIterator() ) { v[pile.getPileupOffset()] = (byte)pile.getRead().getMappingQuality(); }
-       return v;
+       if ( mapquals == null ) {
+           mapquals = new byte[size()];
+           for ( ExtendedPileupElement pile : this.extendedForeachIterator() ) { mapquals[pile.getPileupOffset()] = (byte)pile.getRead().getMappingQuality(); }
+       }
+       return mapquals;
    }
 
 
