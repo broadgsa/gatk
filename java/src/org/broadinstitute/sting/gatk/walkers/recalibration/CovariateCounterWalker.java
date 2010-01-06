@@ -103,7 +103,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.2.1"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.2"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -156,7 +156,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( !foundDBSNP ) {
             Utils.warnUser("This calculation is critically dependent on being able to skip over known variant sites. Are you sure you want to be running without a dbSNP rod specified?");
         }
-
 
         // Initialize the requested covariates by parsing the -cov argument
         requestedCovariates = new ArrayList<Covariate>();
@@ -324,7 +323,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 }
                 counts.second++;
             }
-
         }
     }
 
@@ -368,9 +366,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
     	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
-        RecalDatum datum = (RecalDatum) dataManager.data.get( key );
+        RecalDatumOptimized datum = (RecalDatumOptimized) dataManager.data.get( key );
         if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
-            datum = new RecalDatum(); // initialized with zeros, will be incremented at end of method
+            datum = new RecalDatumOptimized(); // initialized with zeros, will be incremented at end of method
             dataManager.data.put( datum, (Object[])key );
         }
         
@@ -469,14 +467,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         for( Comparable comp : keyList ) {
             key[curPos] = comp;
             final Object val = data.get(comp);
-            if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
+            if( val instanceof RecalDatumOptimized ) { // We are at the end of the nested hash maps
                 // For each Covariate in the key
                 for( Object compToPrint : key ) {
                     // Output the Covariate's value
                     recalTableStream.print( compToPrint + "," );
                 }
                 // Output the RecalDatum entry
-                recalTableStream.println( ((RecalDatum)val).outputToCSV() );
+                recalTableStream.println( ((RecalDatumOptimized)val).outputToCSV() );
             } else { // Another layer in the nested hash map
                 printMappingsSorted( recalTableStream, curPos + 1, key, (Map) val);
             }
@@ -487,14 +485,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         for( Object comp : data.keySet() ) {
             key[curPos] = comp;
             final Object val = data.get(comp);
-            if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
+            if( val instanceof RecalDatumOptimized ) { // We are at the end of the nested hash maps
                 // For each Covariate in the key
                 for( Object compToPrint : key ) {
                     // Output the Covariate's value
                     recalTableStream.print( compToPrint + "," );
                 }
                 // Output the RecalDatum entry
-                recalTableStream.println( ((RecalDatum)val).outputToCSV() );
+                recalTableStream.println( ((RecalDatumOptimized)val).outputToCSV() );
             } else { // Another layer in the nested hash map
                 printMappings( recalTableStream, curPos + 1, key, (Map) val);
             }
