@@ -147,6 +147,11 @@ public class BaseUtils {
         return isRegularBase((char)base);
     }
 
+    static public boolean isNBase(byte base) {
+        return base == 'N';
+    }
+
+
     /**
      * Converts a base index to a simple base
      *
