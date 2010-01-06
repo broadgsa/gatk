@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
@@ -13,6 +14,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.ArrayList;
 
@@ -21,7 +23,7 @@ import java.util.ArrayList;
  */
 public class TraverseLoci extends TraversalEngine {
     final private static String LOCI_STRING = "sites";
-    final private static boolean ENABLE_ROD_TRAVERSAL = false;
+    //final private static boolean ENABLE_ROD_TRAVERSAL = false;
 
 
     /**
@@ -57,7 +59,7 @@ public class TraverseLoci extends TraversalEngine {
 
             //ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
             ReferenceOrderedView referenceOrderedDataView = null;
-            if ( ! ENABLE_ROD_TRAVERSAL || WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
+            if ( ! GenomeAnalysisEngine.instance.getArguments().enableRodWalkers || WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
                 referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
             else
                 referenceOrderedDataView = (RodLocusView)locusView;
@@ -102,12 +104,13 @@ public class TraverseLoci extends TraversalEngine {
 
             // We have a final map call to execute here to clean up the skipped based from the
             // last position in the ROD to that in the interval
-        if ( ENABLE_ROD_TRAVERSAL && WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
+        if ( GenomeAnalysisEngine.instance.getArguments().enableRodWalkers && WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
             RodLocusView rodLocusView = (RodLocusView)locusView;
             long nSkipped = rodLocusView.getLastSkippedBases();
             if ( nSkipped > 0 ) {
                 // no sense in making the call if you don't have anything interesting to say
-                AlignmentContext ac = new AlignmentContext(rodLocusView.getLocOneBeyondShard(), null, null, nSkipped);
+                GenomeLoc site = rodLocusView.getLocOneBeyondShard();
+                AlignmentContext ac = new AlignmentContext(site, new ReadBackedPileup(site), nSkipped);
                 M x = locusWalker.map(null, null, ac);
                 sum = locusWalker.reduce(x, sum);
             }
@@ -135,7 +138,7 @@ public class TraverseLoci extends TraversalEngine {
         DataSource dataSource = WalkerManager.getWalkerDataSource(walker);
         if( dataSource == DataSource.READS )
             return new CoveredLocusView(dataProvider);
-        else if( dataSource == DataSource.REFERENCE || ! ENABLE_ROD_TRAVERSAL )
+        else if( dataSource == DataSource.REFERENCE || ! GenomeAnalysisEngine.instance.getArguments().enableRodWalkers )
             return new AllLocusView(dataProvider);
         else if( dataSource == DataSource.REFERENCE_ORDERED_DATA )
             return new RodLocusView(dataProvider);

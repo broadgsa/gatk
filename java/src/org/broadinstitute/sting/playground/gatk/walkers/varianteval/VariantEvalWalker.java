@@ -22,8 +22,8 @@ import java.util.*;
  */
 @Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=ReferenceOrderedDatum.class)}) // right now we have no base variant class for rods, this should change
 //@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=ReferenceOrderedDatum.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=ReferenceOrderedDatum.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
-public class VariantEvalWalker extends RefWalker<Integer, Integer> {
-//public class VariantEvalWalker extends RodWalker<Integer, Integer> {
+//public class VariantEvalWalker extends RefWalker<Integer, Integer> {
+public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="minPhredConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public double minConfidenceScore = -1.0;
 

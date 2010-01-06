@@ -177,7 +177,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
 	public void testEvalRuntimeWithLotsOfIntervals() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("");
+        md5.add("d11ea079fc1835514d392056a2c2a28d");
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T VariantEval -R " + oneKGLocation + "reference/human_b36_both.fasta " +
                 "-B eval,Variants," + validationDataLocation + "NA12878.pilot_3.all.geli.calls " +

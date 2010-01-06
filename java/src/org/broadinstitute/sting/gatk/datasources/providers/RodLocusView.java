@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MergingIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
 
@@ -87,7 +88,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
 
         rodQueue = new MergingIterator<RODRecordList<ReferenceOrderedDatum>>(iterators);
 
-        throw new StingException("RodLocusView currently disabled");
+        //throw new StingException("RodLocusView currently disabled");
     }
 
     public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc ) {
@@ -127,7 +128,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         // calculate the number of skipped bases, and update lastLoc so we can do that again in the next()
         long skippedBases = getSkippedBases( rodSite );
         lastLoc = site;
-        return new AlignmentContext(site, new ArrayList<SAMRecord>(), new ArrayList<Integer>(), skippedBases);
+        return new AlignmentContext(site, new ReadBackedPileup(site), skippedBases);
     }
     
     private RefMetaDataTracker createTracker( Collection<RODRecordList<ReferenceOrderedDatum>> allTracksHere ) {

@@ -141,6 +141,11 @@ public class GATKArgumentCollection {
     @Argument(fullName = "interval_merging", shortName = "im", doc = "What interval merging rule should we use {ALL [DEFAULT],OVERLAPPING_ONLY,NONE}.", required = false)
     public INTERVAL_MERGING_RULE intervalMerging = INTERVAL_MERGING_RULE.ALL;
 
+    /** Should we enable rodWalkers?  This is currently unsafe */
+    @Element(required = false)
+    @Argument(fullName = "enableRodWalkers", shortName = "erw", doc = "Enable experimental rodWalker support.  TEMPORARY HACK TO ALLOW EXPERIMENTATION WITH ROD WALKERS.  [default is false]}.", required = false)
+    public boolean enableRodWalkers = false;
+
     /**
      * marshal the data out to a object
      *
@@ -292,6 +297,9 @@ public class GATKArgumentCollection {
             return false;
         }
         if (other.intervalMerging != this.intervalMerging) {
+            return false;
+        }
+        if (other.enableRodWalkers != this.enableRodWalkers) {
             return false;
         }
 
