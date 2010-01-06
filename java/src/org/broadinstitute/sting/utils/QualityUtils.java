@@ -78,7 +78,7 @@ public class QualityUtils {
     }
     
     /**
-     * Return a quality score, capped at 63.
+     * Return a quality score, capped at max qual.
      *
      * @param qual  the uncapped quality score
      * @return the capped quality score
@@ -242,7 +242,7 @@ public class QualityUtils {
      * @return Printable ASCII representation of phred score.
      */
     public static char phredToFastq(final int phredScore) {
-        if (phredScore < 0 || phredScore > 63) {
+        if (phredScore < 0 || phredScore > MAX_QUAL_SCORE) {
             throw new IllegalArgumentException("Cannot encode phred score: " + phredScore);
         }
         return (char) (33 + phredScore);
