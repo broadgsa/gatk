@@ -48,8 +48,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="supressDateInformation", doc="This flag indicates that we want to suppress the date information from the output, so that if can be diff'ed against previous evals.", required=false)
     public boolean supressDateInformation = false;
 
-    //@Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
-    //public int numPeopleInPool = -1;
+    @Argument(fullName="includeFilteredRecords", doc="If true, variation record with filter fields at are true will be included in the analysis", required=false)
+    public boolean includeFilteredRecords = false;
+
 
     @Argument(fullName = "samplesFile", shortName="samples", doc="When running an analysis on one or more individuals with truth data, this field provides a filepath to the listing of which samples are used (and are used to name corresponding rods with -B)", required=false)
     public String samplesFile = null;
@@ -248,8 +249,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 if (eval.getNegLog10PError() * 10.0 < minConfidenceScore) eval = null;
 
             if ( eval != null && (eval instanceof RodVCF) && ((RodVCF)eval).mCurrentRecord.isFiltered() ) {
-                //System.out.printf("Rejecting filtered record %s%n", eval);
-                eval = null;
+                if ( ! includeFilteredRecords ) eval = null;    // we are not including filtered records, so set eval to null
             }
 
             // update stats about all of the SNPs
