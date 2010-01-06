@@ -15,14 +15,15 @@ class SimpleCall {
     public String genotype;
     public double LOD;
     public GenomeLoc loc;
-
-    SimpleCall(GenomeLoc location, String gt, double lod) {
+    public char ref;
+    SimpleCall(GenomeLoc location, String gt, double lod, char reference) {
         genotype = gt;
         LOD = lod;
         loc = location;
+        this.ref = reference;
     }
 
     public String toString() {
-        return String.format("%s : %s with LOD %.4f", loc, genotype, LOD);
+        return String.format("%s\t%s\t%.4f\t%c", loc, genotype, LOD,ref);
     }
 }

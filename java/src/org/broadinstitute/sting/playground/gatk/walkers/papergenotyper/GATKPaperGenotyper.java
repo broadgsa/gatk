@@ -16,17 +16,19 @@ import java.io.PrintStream;
 /**
  * A simple Bayesian genotyper, that outputs a text based call format. Intended to be used only as an
  * example in the GATK publication.
+ *
  * @author aaron
- * @help.summary A simple, naive Bayesian genotyper that is used as an example locus walker in the GATK paper. THIS IS NOT TO BE USED FOR ANY ANALYSIS
  */
 public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> implements TreeReducible<Integer> {
 
     // the possible diploid genotype strings
     private static enum GENOTYPE { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
 
-    // where to write the genotyping data to
     @Argument(fullName = "call_location", shortName = "cl", doc = "File to which calls should be written", required = true)
-    public PrintStream outputStream;
+    private PrintStream outputStream;
+
+    @Argument(fullName = "log_odds_score", shortName = "LOD", doc = "The LOD threshold for us to call confidently a genotype", required = false)
+    private double LODScore = 3.0;
 
     /**
      * our map function, which takes the reads spanning this locus, any associated reference ordered data,
@@ -44,30 +46,33 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
         double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
                                                                                  DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
                                                                                  DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
+        // get the bases and qualities from the pileup
         byte bases[] = pileup.getBases();
         byte quals[] = pileup.getQuals();
+
+        // for each genotype, determine it's likelihood value
         for (GENOTYPE genotype : GENOTYPE.values())
             for (int index = 0; index < bases.length; index++) {
                 if (quals[index] > 0) {
+                    // our epsilon is the de-Phred scored base quality
                     double epsilon = Math.pow(10, quals[index] / -10.0);
+
                     byte pileupBase = bases[index];
-                    for (char genotypeBase : genotype.toString().toCharArray()) {
-                        double p = genotypeBase == pileupBase ? 1 - epsilon : epsilon / 3;
-                        likelihoods[genotype.ordinal()] += Math.log10(p / 2);
-                    }
+                    double p = 0;
+                    for (char r : genotype.toString().toCharArray())
+                        p += r == pileupBase ? 1 - epsilon : epsilon / 3;
+                    likelihoods[genotype.ordinal()] += Math.log10(p / genotype.toString().length());
                 }
             }
 
         Integer sortedList[] = Utils.SortPermutation(likelihoods);
 
-        // get our reference genotype
-        String refGenotype = (String.valueOf(ref.getBase()) + String.valueOf(ref.getBase())).toUpperCase();
-
         // create call using the best genotype (GENOTYPE.values()[sortedList[9]].toString())
-        // and calculate the LOD score from best - ref (likelihoods[sortedList[9]] - likelihoods[sortedList[8])
+        // and calculate the LOD score from best - next best (9 and 8 in the sorted list, since the best likelihoods are closest to zero)
         return new SimpleCall(context.getLocation(),
                               GENOTYPE.values()[sortedList[9]].toString(),
-                              likelihoods[sortedList[9]] - likelihoods[GENOTYPE.valueOf(refGenotype).ordinal()]);
+                              likelihoods[sortedList[9]] - likelihoods[sortedList[8]],
+                              ref.getBase());
     }
 
     /**
@@ -80,14 +85,16 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
     }
 
     /**
-     * Reduces a single map with the accumulator provided as the ReduceType.
+     * Reduces a single map with the accumulator provided as the ReduceType. We filter out calls,
+     * first making sure that the call is != null, secondly that the LOD score is above a moderate
+     * threshold (in this case 3).
      *
      * @param value result of the map.
      * @param sum   accumulator for the reduce.
      * @return accumulator with result of the map taken into account.
      */
     public Integer reduce(SimpleCall value, Integer sum) {
-        if (value != null) outputStream.println(value.toString());
+        if (value != null && value.LOD > LODScore) outputStream.println(value.toString());
         return sum + 1;
     }
 
