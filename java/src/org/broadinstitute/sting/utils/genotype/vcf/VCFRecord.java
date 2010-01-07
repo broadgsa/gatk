@@ -229,7 +229,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public boolean hasAlternateAllele() {
-        return getAlternateAlleles().size() > 0;
+        for ( VCFGenotypeEncoding alt : this.mAlts ) {
+            if ( alt.getType() != VCFGenotypeEncoding.TYPE.UNCALLED )
+                return true;
+        }
+
+        return false;
     }
 
     public boolean isBiallelic() {
@@ -279,6 +284,9 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         switch ( type ) {
             case SINGLE_BASE:
                 return VARIANT_TYPE.SNP;
+            case UNCALLED:
+                // If there are no alt alleles, all of the genotypes are reference or no calls, so we're a reference site
+                return VARIANT_TYPE.REFERENCE;
             case DELETION:
                 return VARIANT_TYPE.DELETION;
             case INSERTION:
