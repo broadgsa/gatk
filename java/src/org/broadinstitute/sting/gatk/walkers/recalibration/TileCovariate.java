@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.StingException;
@@ -30,17 +31,25 @@ import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
 /**
  * @author alecw@broadinstitute.org
  */
-public class TileCovariate implements ExperimentalCovariate {
+
+public class TileCovariate implements StandardCovariate {
+
+    private static boolean exceptionWhenNoTile = false;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
+        exceptionWhenNoTile = RAC.EXCEPTION_IF_NO_TILE;
     }
 
     // Used to pick out the covariate's value from attributes of the read
     public Comparable getValue(final SAMRecord read, final int offset) {
         Integer tile = IlluminaUtil.getTileFromReadName(read.getReadName());
         if (tile == null) {
-            throw new StingException("Tile number not defined for read");
+            if( exceptionWhenNoTile ) {
+                throw new StingException( "Tile number not defined for read: " + read.getReadName() );
+            } else {
+                return -1;
+            }            
         }
         return tile;
     }

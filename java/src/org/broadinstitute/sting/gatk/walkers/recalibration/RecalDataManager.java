@@ -141,6 +141,7 @@ public class RecalDataManager {
         recursivelyGenerateEmpiricalQualities(dataCollapsedQualityScore.data, smoothing, maxQual);
         for( NestedHashMap map : dataCollapsedByCovariate ) {
             recursivelyGenerateEmpiricalQualities(map.data, smoothing, maxQual);
+            checkForSingletons(map.data);
         }
     }
 
@@ -152,6 +153,20 @@ public class RecalDataManager {
                 ((RecalDatum)val).calcCombinedEmpiricalQuality(smoothing, maxQual);
             } else { // Another layer in the nested hash map
                 recursivelyGenerateEmpiricalQualities( (Map) val, smoothing, maxQual);
+            }
+        }
+    }
+
+    private void checkForSingletons( final Map data ) {
+
+        for( Object comp : data.keySet() ) {
+            final Object val = data.get(comp);
+            if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
+                if( data.keySet().size() == 1) {
+                    data.clear(); // don't TableRecalibrate a non-required covariate if it only has one element because that correction has already been done in a previous sequential step
+                }
+            } else { // Another layer in the nested hash map
+                checkForSingletons( (Map) val );
             }
         }
     }
