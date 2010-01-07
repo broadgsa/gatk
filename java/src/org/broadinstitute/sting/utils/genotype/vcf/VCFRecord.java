@@ -253,9 +253,6 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public double getNonRefAlleleFrequency() {
-        if ( isReference() )
-            throw new StingException("This VCF record is not variant.");
-
         if ( mInfoFields.containsKey(ALLELE_FREQUENCY_KEY) ) {
             return Double.valueOf(mInfoFields.get(ALLELE_FREQUENCY_KEY));
         } else {
