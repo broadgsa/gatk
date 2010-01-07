@@ -429,6 +429,22 @@ public class Utils {
         return count;
     }
 
+    // trim a string for the given character (i.e. not just whitespace)
+    public static String trim(String str, char ch) {
+        char[] array = str.toCharArray();
+
+
+        int start = 0;
+        while ( start < array.length && array[start] == ch )
+            start++;
+
+        int end = array.length - 1;
+        while ( end > start && array[end] == ch )
+            end--;
+
+        return str.substring(start, end+1);
+    }
+
     public static byte listMaxByte(List<Byte> quals) {
         if (quals.size() == 0) return 0;
         byte m = quals.get(0);

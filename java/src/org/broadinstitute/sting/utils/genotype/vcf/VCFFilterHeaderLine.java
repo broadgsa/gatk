@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broadinstitute.sting.utils.Utils;
+
 
 /**
  * @author ebanks
@@ -38,10 +40,10 @@ public class VCFFilterHeaderLine extends VCFHeaderLine {
             throw new IllegalArgumentException("There are too few values in the VCF FILTER header line: " + line);
 
         mName = pieces[0];
-        mDescription = pieces[1];
+        mDescription = Utils.trim(pieces[1], '"');
         // just in case there were some commas in the description
         for (int i = 1; i < pieces.length; i++)
-            mDescription += "," + pieces[i];
+            mDescription += "," + Utils.trim(pieces[i], '"');
     }
 
     protected String makeStringRep() {

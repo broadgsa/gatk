@@ -172,9 +172,9 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 if ( str.startsWith("##INFO=") )
                     metaData.add(new VCFInfoHeaderLine(str.substring(7)));
                 else if ( str.startsWith("##FILTER=") )
-                    metaData.add(new VCFFilterHeaderLine(str.substring(7)));
+                    metaData.add(new VCFFilterHeaderLine(str.substring(9)));
                 else if ( str.startsWith("##FORMAT=") )
-                    metaData.add(new VCFFormatHeaderLine(str.substring(7)));
+                    metaData.add(new VCFFormatHeaderLine(str.substring(9)));
                 else {
                     int equals = str.indexOf("=");
                     if ( equals != -1 )

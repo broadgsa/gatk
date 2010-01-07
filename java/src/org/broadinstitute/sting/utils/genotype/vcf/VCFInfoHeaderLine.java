@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broadinstitute.sting.utils.Utils;
+
 
 /**
  * @author ebanks
@@ -51,10 +53,10 @@ public class VCFInfoHeaderLine extends VCFHeaderLine {
         mName = pieces[0];
         mCount = Integer.valueOf(pieces[1]);
         mType = INFO_TYPE.valueOf(pieces[2]);
-        mDescription = pieces[3];
+        mDescription = Utils.trim(pieces[3], '"');
         // just in case there were some commas in the description
         for (int i = 4; i < pieces.length; i++)
-            mDescription += "," + pieces[i];
+            mDescription += "," + Utils.trim(pieces[i], '"');
     }
 
     protected String makeStringRep() {
