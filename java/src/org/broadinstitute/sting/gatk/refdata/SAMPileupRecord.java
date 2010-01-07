@@ -29,7 +29,7 @@ import net.sf.samtools.util.StringUtil;
  */
 
 
-public class SAMPileupRecord implements Genotype, GenotypeList {
+public class SAMPileupRecord {
     private static final int NO_VARIANT = -1;
     private static final int SNP_VARIANT = 0;
     private static final int INSERTION_VARIANT = 1;
@@ -428,13 +428,11 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
      *
      * @return reference allele, forward strand
      */
-    @Override
     public String getFWDRefBases() {
         return refBases;
     }
 
         
-    @Override
     public List<String> getFWDAlleles()  {
         return observedAlleles;
     }
@@ -500,34 +498,28 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
     }
     
     
-    @Override
     public double getVariantConfidence() {
         return variantScore;
     }
 
 
-    @Override
     public boolean isBiallelic() {
         return nNonref  < 2;
     }
 
-    @Override
     public double getConsensusConfidence() {
         return consensusScore;
     }
 
-    @Override
     public int length() {
         return eventLength;
     }
 
-	@Override
 	public boolean isIndelGenotype() {
 		return refBaseChar == '*';
 	}
 
 
-	@Override
 	public boolean isPointGenotype() {
 		return ! isIndelGenotype();
 	}
@@ -537,8 +529,7 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 	 * point genotype, this method returns null.
 	 * @return
 	 */
-	@Override
-	public Genotype getIndelGenotype() {
+	public SAMPileupRecord getIndelGenotype() {
 		if ( isIndelGenotype() ) return this;
 		else return null;
 	}
@@ -548,8 +539,7 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 	 * indel genotype, this method returns null.
 	 * @return
 	 */
-	@Override
-	public Genotype getPointGenotype() {
+	public SAMPileupRecord getPointGenotype() {
 		if ( isPointGenotype() ) return this;
 		else return null;
 	}
@@ -558,7 +548,6 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 	 * indel genotype is what it only has).
 	 * @return
 	 */
-	@Override
 	public boolean hasIndelGenotype() {
 		return isIndelGenotype();
 	}
@@ -567,13 +556,10 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 	 * point genotype is what it only has.
 	 * @return
 	 */
-	@Override
 	public boolean hasPointGenotype() {
 		return isPointGenotype();
 	}
 	
-
-	@Override
 	public int compareTo(ReferenceOrderedDatum o) {
 		return getLocation().compareTo(o.getLocation());
 	}
@@ -596,7 +582,6 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 			rodName = name;
 		}
 		
-		@Override
 		public boolean hasNext() {
 			return parser.hasNext();
 		}
@@ -605,7 +590,6 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
          * @return the next element in the iteration.
          * @throws NoSuchElementException - iterator has no more elements.
          */
-		@Override
 		public SAMPileupRecord next() {
              if (!this.hasNext()) throw new NoSuchElementException("SAMPileupRecord next called on iterator with no more elements");
 //			 if ( z == 0 ) t = System.currentTimeMillis();
@@ -621,7 +605,6 @@ public class SAMPileupRecord implements Genotype, GenotypeList {
 		}
 
 
-		@Override
 		public void remove() {
 			throw new UnsupportedOperationException("'remove' operation is not supported for file-backed SAM pileups");
 		}

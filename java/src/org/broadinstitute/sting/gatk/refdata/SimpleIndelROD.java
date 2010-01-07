@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import java.util.Arrays;
 import java.util.List;
 
-public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod {
+public class SimpleIndelROD extends TabularROD implements VariationRod {
 
     private boolean KGENOMES_FORMAT = false, checkedFormat = false;
 
@@ -24,7 +24,6 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
      *
      * @return the reference base or bases, as a string
      */
-    @Override
     public String getReference() {
         return String.valueOf(getRef());
     }
@@ -53,13 +52,11 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
      *
      * @return VariantFrequency with the stored frequency
      */
-    @Override
     public double getNonRefAlleleFrequency() {
         return 0.0;
     }
 
     /** @return the VARIANT_TYPE of the current variant */
-    @Override
     public VARIANT_TYPE getType() {
         return isInsertion() ? VARIANT_TYPE.INSERTION : VARIANT_TYPE.DELETION;
     }
@@ -85,7 +82,6 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getAlternativeBaseForSNP() {
         return getAltSnpFWD();
     }
@@ -95,7 +91,6 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getReferenceForSNP() {
         return getRefSnpFWD();
     }
@@ -110,7 +105,6 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
      *
      * @return the log based error estimate
      */
-    @Override
     public double getNegLog10PError() {
         return getVariationConfidence();
     }
@@ -123,7 +117,6 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
      *
      * @return an alternate allele list
      */
-    @Override
     public List<String> getAlternateAlleleList() {
         List<String> ret = getAlleleList();
         for (String val : ret) {
@@ -139,7 +132,6 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
      *
      * @return an alternate allele list
      */
-    @Override
     public List<String> getAlleleList() {
         return this.getFWDAlleles();
     }

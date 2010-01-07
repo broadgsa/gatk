@@ -1,172 +1,147 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-
-import java.util.List;
+import java.util.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: asivache
- * Date: Apr 1, 2009
- * Time: 11:02:03 AM
- * To change this template use File | Settings | File Templates.
+ * @author ebanks
+ *         <p/>
+ *         Class Genotype
+ *         <p/>
+ *         This class emcompasses all the basic information about a genotype
  */
-@Deprecated
-public interface Genotype extends Comparable<ReferenceOrderedDatum> {
-    // ----------------------------------------------------------------------
-    //
-    // manipulating the SNP information
-    //
-    // ----------------------------------------------------------------------
-    /** Location of this genotype on the reference (on the forward strand). If the allele is insertion/deletion, the first inserted/deleted base
-     *  is located right <i>after</i> the specified location
+public class Genotype {
+
+    private List<Allele> alleles;
+
+    private double negLog10PError;
+
+    private String sample;
+
+    private HashMap<Object, Object> attributes;
+
+
+    public Genotype(List<Allele> alleles, String sample, double negLog10PError) {
+        this.alleles = new ArrayList<Allele>(alleles);
+        this.sample = sample;
+        this.negLog10PError = negLog10PError;
+        attributes = new HashMap<Object, Object>();
+    }
+
+    /**
+      * @return the alleles for this genotype
+      */
+     public List<Allele> getAlleles() { return alleles; }
+
+    /**
+     * @return the ploidy of this genotype
+     */
+    public int getPloidy() { return alleles.size(); }
+
+    /**
+     * @return true if all observed alleles are the same (regardless of whether they are ref or alt)
+     */
+    public boolean isHom() {
+
+        // do not assume ploidy == 2
+
+        if ( alleles.size() == 0 )
+            return true;
+
+        Allele first = alleles.get(0);
+        for ( int i = 1; i < alleles.size(); i++ ) {
+            if ( !first.equals(alleles.get(i)) )
+                return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return true if we're het (observed alleles differ)
+     */
+    public boolean isHet() { return !isHom(); }
+
+    /**
+     * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF)
+     */
+    public boolean isNoCall() {
+        // TODO -- implement me
+        return false;
+    }
+
+    /**
+     * @return true if all alleles for this genotype are SNPs or reference
+     */
+    public boolean isPointGenotype() {
+        for ( Allele allele : alleles ) {
+            if ( allele.isVariant() && !allele.isSNP() )
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * @return true if this is a variant genotype, false if it's reference
+     */
+    public boolean isVariant() {
+        for ( Allele allele : alleles ) {
+            if ( allele.isVariant() )
+                return true;
+        }
+        return false;
+    }
+
+    /**
+      * @return the -1 * log10-based error estimate
+      */
+    public double getNegLog10PError() { return negLog10PError; }
+
+    /**
+      * @return the sample name
+      */
+    public String getSample() { return sample; }
+
+    /**
+     * Sets the sample name
      *
-     * @return position on the genome wrapped in GenomeLoc object
+     * @param sample    the sample name
      */
-    GenomeLoc getLocation();
+    public void setSample(String sample) {
+        this.sample = sample;
+    }
 
-    /** Returns actual observed alleles on the fwd strand. Allowed to return more than two alleles (@see #getPloidy()). 
-     * For point genotypes (those that report themselves as isPointGenotype()), the alleles are observed bases. For indels
-     * (i.e. if isIndelGenotype() is true), a no-event allele is represented by an empty string, 
-     * while the event allele is represented by '+' (insertion) or '-' (deletion) followed by actual inserted or deleted bases. 
-     * @return list of alleles
-     */
-    List<String> getFWDAlleles() ;
-
-    
-    /** Returns bases on the fwd strand in the true reference allele (regardless of whether the reference allele 
-     * was observed at this site in this particular genotype!) 
-     * as a String. String can be empty (if alt allele is insertion into
-     * the reference), can contain a single character (as in SNP or one-base deletion), or multiple characters
-     * (if alt is a longer deletion). For the actually observed alleles, see #getFWDAlleles()
+    /**
+     * @param ref the reference base
      *
-     * @return reference allele, forward strand
+     * @return this genotype as a variation
      */
-    String getFWDRefBases();
-    
-    /** Returns reference base (regardless of whether the reference allele was actually observed. This method 
-     * is similar to getFWDRefBases() except it returns a single char. For non-point variants (i.e. indels), behavior
-     * of this method is not specified and can be defined by implementing classes.
-     * @return
-     */
-    char getRef() ;
+    // TODO -- implement me
+    // public Variation toVariation(char ref);
 
-    /** Returns true if the object represents a point genotype (e.g. reference base vs. a SNP),
-     * regardless of what the actual observation is (see isReference() and isSNP()).
-     * @return
-     */
-    boolean isPointGenotype() ;
-    
-    /** Returns true if the object represents an extended (indel) genotype (e.g. insertion/deletion event vs. no event),
-     * regardless of what the actual observation is (see isReference(), isIndel(), isInsertion(), isDeletion()).
-     * @return
-     */
-    boolean isIndelGenotype() ;
-
-    
-    /** Is this variant a SNP? Returns true only if this is point genotype AND a non-reference base was observed, false otherwise.
-    *
-    * @return true or false
-    */
-   boolean isSNP();
-
-   /** Returns true if all observed alleles are reference ones (only reference base was observed if this is a point genotype,
-    * or no indel events were observed if this is an indel genotype). All is"Variant" methods (where Variant=SNP,Insertion, etc) should
-    * return false at a site where isReference() is true to ensure consistency. 
-    * @return
-    */
-   boolean isReference();
-
-   
-   /** Is this variant an insertion? Returns true if this is indel genotype AND only insertion event(s) was observed,
-    * false otherwise. The contract requires isIndel() to return true
-    * whenever isInsertion() method returns true.
-    *
-    * @return true or false
-    */
-   boolean isInsertion();
-
-   
-   /** Is this variant a deletion? Returns true if this is indel genotype AND only deletion event(s) was observed,
-    * false otherwise. The contract requires isIndel() to return true
-    * whenever isDeletion() method returns true.
-    *
-    * @return true or false
-    */
-   boolean isDeletion();
-
-  
-   /** Is this variant an insertion or a deletion? The contract requires
-    * this to be true if either isInsertion() or isDeletion() returns true. However,
-    * this method is also allowed to return true even if neither isInsertion()
-    * nor isDeletion() do (e.g. a het genotype with one insertion and one deletion). Always returns
-    * false if the object does not represent indel genotype. 
-    * @return
-    */
-   boolean isIndel();
-  
-   
-   /** Returns phred-scaled confidence for the variation event (e.g. MAQ's SNP confidence, or AlleleCaller's best vs. ref).
-   *
-   * @return
-   */
-  double getVariantConfidence();
-
-  /** Returns phred-mapped confidence in called genotype (e.g. MAQ's consensus confidence, or AlleleCaller's
-   * best vs next-best.
-   * @return
-   */
-  double getConsensusConfidence();
-
-
-  /** Returns true if the site has at most two known or observed alleles (ref and non-ref), or false if there are > 2 allelic variants known or observed. When
-   * the implementing class is a genotype, alleles should be always counted including the reference allele whether it was observed in the particular
-   * individual or not: i.e. if the reference is 'C', then both 'CA' and 'AA' genotypes must be reported as bi-allelic, while 'AT' is <i>not</i> bi-allelic (since there are
-   * two allelic variants, 'A' and 'T' <i>in addition</i> to the (known) reference variant 'C'). 
-   * @return
-   */
-  boolean isBiallelic() ;
-  
-  /** Returns true if both observed alleles are the same (regardless of whether they are ref or alt)
-   *  
-   * @return
-   */
-  boolean isHom() ;
-
-  /** Returns true if observed alleles differ (regardless of whether they are ref or alt)
-   *  
-   * @return
-   */
-  boolean isHet() ;
-
-  /** Returns reference (major) allele base for a SNP variant as a character; should throw IllegalStateException
-     * if variant is not a SNP.
+    /**
+     * Sets the given attribute
      *
-     * @return reference base on the forward strand
+     * @param key    the attribute key
+     * @param value  the attribute value
      */
-    //char getRefSnpFWD() throws IllegalStateException;
+    public void setAttribute(Object key, Object value) {
+        attributes.put(key, value);
+    }
 
-    /** Returns bases in the alternative allele as a String. String can be empty (as in deletion from
-     * the reference), can contain a single character (as in SNP or one-base insertion), or multiple characters
-     * (for longer indels).
+    /**
+     * @param key    the attribute key
      *
-     * @return alternative allele, forward strand
+     * @return the attribute value for the given key (or null if not set)
      */
-    //String getAltBasesFWD();
+    public Object getAttribute(Object key) {
+        return attributes.get(key);
+    }
 
-    /** Returns alternative (minor) allele base for a SNP variant as a character; should throw IllegalStateException
-     * if variant is not a SNP.
-     *
-     * @return alternative allele base on the forward starnd
+    /**
+     * @return the attribute map
      */
-  //  char getAltSnpFWD() throws IllegalStateException;
-    
-  int length();
+    public Map<Object, Object> getAttributes() {
+        return attributes;
+    }
 
-
-    /** Return actual number of observed alleles (chromosomes) in the genotype.
-     * @return
-     */
-//    int getPloidy() throws IllegalStateException;
-    
- }
+}

@@ -30,7 +30,7 @@ import net.sf.picard.reference.ReferenceSequenceFileWalker;
 
 
 
-public class rodSAMPileup extends BasicReferenceOrderedDatum implements GenotypeList {
+public class rodSAMPileup extends BasicReferenceOrderedDatum {
 	// ----------------------------------------------------------------------
 	//
 	// Constructors
@@ -71,22 +71,18 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
 		return b.toString();
 	}
 
-	@Override
-	public Genotype getIndelGenotype() {
+	public SAMPileupRecord getIndelGenotype() {
 		return indelGenotype;
 	}
 
-	@Override
-	public Genotype getPointGenotype() {
+	public SAMPileupRecord getPointGenotype() {
 		return pointGenotype;
 	}
 
-	@Override
 	public boolean hasIndelGenotype() {
 		return indelGenotype != null;
 	}
 
-	@Override
 	public boolean hasPointGenotype() {
 		return pointGenotype != null;
 	}
@@ -108,7 +104,6 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
 			rodName = name;
 		}
 		
-		@Override
 		public boolean hasNext() {
 			return parser.hasNext();
 		}
@@ -117,7 +112,6 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
          * @return the next element in the iteration.
          * @throws NoSuchElementException - iterator has no more elements.
          */
-		@Override
 		public rodSAMPileup next() {
             if (!this.hasNext()) throw new NoSuchElementException("rodSAMPileup next called on iterator with no more elements");
 			rodSAMPileup result = new rodSAMPileup(rodName);
@@ -170,7 +164,6 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
 		}
 
 
-		@Override
 		public void remove() {
 			throw new UnsupportedOperationException("'remove' operation is not supported for file-backed SAM pileups");
 		}

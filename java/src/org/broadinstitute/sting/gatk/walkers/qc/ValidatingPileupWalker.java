@@ -24,7 +24,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
     public boolean CONTINUE_AFTER_AN_ERROR = false;
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        ReadBackedPileup pileup = context.getPileup();
+        ReadBackedPileup pileup = context.getBasePileup();
         SAMPileupRecord truePileup = getTruePileup( tracker );
 
         if ( truePileup == null ) {
@@ -105,9 +105,9 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
             return null;
 
         if( pileup.hasPointGenotype() )
-            return (SAMPileupRecord)pileup.getPointGenotype();
+            return pileup.getPointGenotype();
         else if( pileup.hasIndelGenotype() )
-            return (SAMPileupRecord)pileup.getIndelGenotype();
+            return pileup.getIndelGenotype();
         else
             throw new StingException("Unsupported pileup type: " + pileup);
     }
