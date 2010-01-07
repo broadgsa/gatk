@@ -77,6 +77,35 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testTableRecalibratorMaxQ70() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "c12b4fd5b4905cc632aa1da19be5c66a" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+            String paramsFile = paramsFiles.get(bam);
+            System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
+            if ( paramsFile != null ) {
+                WalkerTestSpec spec = new WalkerTestSpec(
+                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                                " -T TableRecalibration" +
+                                " -I " + bam +
+                                ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
+                                    ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
+                                " -outputBam %s" +
+                                " --no_pg_tag" +
+                                " -maxQ 70" +
+                                " --solid_recal_mode SET_Q_ZERO" +
+                                " -recalFile " + paramsFile,
+                        1, // just one output file
+                        Arrays.asList(md5));
+                executeTest("testTableRecalibratorMaxQ70", spec);
+            }
+        }
+    }
+
+    @Test
     public void testCountCovariatesVCF() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "d90342547ed228cf446caf594586f4b0");

@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.utils.QualityUtils;
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -77,7 +75,7 @@ public class RecalDatum extends RecalDatumOptimized {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
         this.increment( other.numObservations, other.numMismatches );
         this.estimatedQReported = -10 * Math.log10(sumErrors / (double)this.numObservations);
-        if( this.estimatedQReported > QualityUtils.MAX_REASONABLE_Q_SCORE ) { this.estimatedQReported = QualityUtils.MAX_REASONABLE_Q_SCORE; }
+        //if( this.estimatedQReported > QualityUtils.MAX_REASONABLE_Q_SCORE ) { this.estimatedQReported = QualityUtils.MAX_REASONABLE_Q_SCORE; }
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -86,7 +84,9 @@ public class RecalDatum extends RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public final void calcCombinedEmpiricalQuality(final int smoothing){ this.empiricalQuality = empiricalQualDouble(smoothing); }
+    public final void calcCombinedEmpiricalQuality( final int smoothing, final int maxQual ) {
+        this.empiricalQuality = empiricalQualDouble(smoothing, maxQual); // cache the value so we don't call log over and over again
+    }
 
     //---------------------------------------------------------------------------------------------------------------
     //

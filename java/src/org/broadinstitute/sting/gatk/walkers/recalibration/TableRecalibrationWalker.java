@@ -77,6 +77,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private int PRESERVE_QSCORES_LESS_THAN = 5;
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points")
     private int SMOOTHING = 1;
+    @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default is 40")
+    private int MAX_QUALITY_SCORE = 40;
 
     /////////////////////////////
     // Debugging-only Arguments
@@ -92,7 +94,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.2.3"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.4"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
@@ -217,7 +219,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         // Create the tables of empirical quality scores that will be used in the sequential calculation
         logger.info( "Generating tables of empirical qualities for use in sequential calculation..." );
-        dataManager.generateEmpiricalQualities( SMOOTHING );
+        dataManager.generateEmpiricalQualities( SMOOTHING, MAX_QUALITY_SCORE );
         logger.info( "...done!" );
 
         // Take the header of the input SAM file and tweak it by adding in a new programRecord with the version number and list of covariates that were used

@@ -4,6 +4,7 @@ args <- commandArgs(TRUE)
 
 input = args[1]
 Qcutoff = as.numeric(args[2])
+maxQ = as.numeric(args[3])
 
 t=read.table(input, header=T)
 
@@ -24,7 +25,7 @@ theTitle = paste("RMSE_good =", round(rmseGood,digits=3), ", RMSE_all =", round(
 if( length(t$nBases) - length(f$nBases) == length(d.good$nBases) ) {
 	theTitle = paste("RMSE =", round(rmseAll,digits=3));
 }
-plot(d.good$Qreported, d.good$Qempirical, type="p", col="blue", main=theTitle, xlim=c(0,40), ylim=c(0,40), pch=16, xlab="Reported quality score", ylab="Empirical quality score")
+plot(d.good$Qreported, d.good$Qempirical, type="p", col="blue", main=theTitle, xlim=c(0,maxQ), ylim=c(0,maxQ), pch=16, xlab="Reported quality score", ylab="Empirical quality score")
 points(d.1000$Qreported, d.1000$Qempirical, type="p", col="lightblue", pch=16)
 points(d.10000$Qreported, d.10000$Qempirical, type="p", col="cornflowerblue", pch=16)
 points(f$Qreported, f$Qempirical, type="p", col="maroon1", pch=16)
@@ -41,7 +42,7 @@ hst=subset(data.frame(e$Qempirical, e$nBases), e.nBases != 0)
 hst2=subset(data.frame(f$Qempirical, f$nBases), f.nBases != 0)
 percentBases=hst$e.nBases / sum(as.numeric(hst$e.nBases))
 entropy = -sum(log2(percentBases)*percentBases)
-plot(hst$e.Qempirical, hst$e.nBases, type="h", lwd=4, xlim=c(0,40), ylim=c(0,max(hst$e.nBases)), main=paste("Empirical quality score histogram, entropy = ",round(entropy,digits=3)), xlab="Empirical quality score", ylab="Number of Bases",yaxt="n")
+plot(hst$e.Qempirical, hst$e.nBases, type="h", lwd=4, xlim=c(0,maxQ), ylim=c(0,max(hst$e.nBases)), main=paste("Empirical quality score histogram, entropy = ",round(entropy,digits=3)), xlab="Empirical quality score", ylab="Number of Bases",yaxt="n")
 points(hst2$f.Qempirical, hst2$f.nBases, type="h", lwd=4, col="maroon1")
 axis(2,axTicks(2), format(axTicks(2), scientific=F))
 dev.off()
@@ -54,7 +55,7 @@ outfile = paste(input, ".quality_rep_hist.pdf", sep="")
 pdf(outfile, height=7, width=7)
 hst=subset(data.frame(e$Qreported, e$nBases), e.nBases != 0)
 hst2=subset(data.frame(f$Qreported, f$nBases), f.nBases != 0)
-plot(hst$e.Qreported, hst$e.nBases, type="h", lwd=4, xlim=c(0,40), ylim=c(0,max(hst$e.nBases)), main=paste("Reported quality score histogram, entropy = ",round(entropy,digits=3)), xlab="Reported quality score", ylab="Number of Bases",yaxt="n")
+plot(hst$e.Qreported, hst$e.nBases, type="h", lwd=4, xlim=c(0,maxQ), ylim=c(0,max(hst$e.nBases)), main=paste("Reported quality score histogram, entropy = ",round(entropy,digits=3)), xlab="Reported quality score", ylab="Number of Bases",yaxt="n")
 points(hst2$f.Qreported, hst2$f.nBases, type="h", lwd=4, col="maroon1")
 axis(2,axTicks(2), format(axTicks(2), scientific=F))
 dev.off()

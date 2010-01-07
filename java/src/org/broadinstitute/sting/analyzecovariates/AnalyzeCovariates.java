@@ -38,6 +38,9 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
     private int IGNORE_QSCORES_LESS_THAN = 5;
     @Argument(fullName = "numRG", shortName = "numRG", doc = "Only process N read groups. Default value: -1 (process all read groups)", required = false)            
     private int NUM_READ_GROUPS_TO_PROCESS = -1; // -1 means process all read groups
+    @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default is 40")
+    private int MAX_QUALITY_SCORE = 40;
+
 
     /////////////////////////////
     // Private Member Variables
@@ -187,7 +190,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                 String readGroup = readGroupKey.toString();
                 RecalDatum readGroupDatum = (RecalDatum) dataManager.getCollapsedTable(0).data.get(readGroupKey);
                 System.out.print("Writing out data tables for read group: " + readGroup + "\twith " + readGroupDatum.getNumObservations() + " observations"  );
-                System.out.println("\tand aggregate residual error = " + String.format("%.3f", readGroupDatum.empiricalQualDouble(0) - readGroupDatum.getEstimatedQReported()));
+                System.out.println("\tand aggregate residual error = " + String.format("%.3f", readGroupDatum.empiricalQualDouble(0, MAX_QUALITY_SCORE) - readGroupDatum.getEstimatedQReported()));
 
                 // for each covariate
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
@@ -207,12 +210,12 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                     output.println("Covariate\tQreported\tQempirical\tnMismatches\tnBases");
 
                     for( Object covariateKey : ((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).keySet()) {
-                        output.print( covariateKey.toString() + "\t" );                              // Covariate
+                        output.print( covariateKey.toString() + "\t" );                                                     // Covariate
                         RecalDatum thisDatum = (RecalDatum)((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).get(covariateKey);
-                        output.print( String.format("%.3f", thisDatum.getEstimatedQReported()) + "\t" );    // Qreported
-                        output.print( String.format("%.3f", thisDatum.empiricalQualDouble(0)) + "\t" );     // Qempirical
-                        output.print( thisDatum.getNumMismatches() + "\t" );                                // nMismatches
-                        output.println( thisDatum.getNumObservations() );                                   // nBases
+                        output.print( String.format("%.3f", thisDatum.getEstimatedQReported()) + "\t" );                    // Qreported
+                        output.print( String.format("%.3f", thisDatum.empiricalQualDouble(0, MAX_QUALITY_SCORE)) + "\t" );  // Qempirical
+                        output.print( thisDatum.getNumMismatches() + "\t" );                                                // nMismatches
+                        output.println( thisDatum.getNumObservations() );                                                   // nBases
                     }
 
                     // Close the PrintStream
@@ -246,7 +249,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                             // Analyze reported quality
                             p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                        IGNORE_QSCORES_LESS_THAN); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
+                                        IGNORE_QSCORES_LESS_THAN + " " + MAX_QUALITY_SCORE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
                             if(numReadGroups % 3 == 0) { // Don't want to spawn all the RScript jobs too quickly. So wait for this one to finish
                                 p.waitFor();
                             }

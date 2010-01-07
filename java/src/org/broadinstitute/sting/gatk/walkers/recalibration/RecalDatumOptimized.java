@@ -96,19 +96,19 @@ public class RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public final double empiricalQualDouble( final int smoothing ) {
+    public final double empiricalQualDouble( final int smoothing, final double maxQual ) {
         final double doubleMismatches = (double) ( numMismatches + smoothing );
         final double doubleObservations = (double) ( numObservations + smoothing );
         double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
-        if (empiricalQual > QualityUtils.MAX_REASONABLE_Q_SCORE) { empiricalQual = QualityUtils.MAX_REASONABLE_Q_SCORE; }
+        if (empiricalQual > maxQual) { empiricalQual = maxQual; }
         return empiricalQual;
     }
-    public final double empiricalQualDouble() { return empiricalQualDouble( 0 ); } // 'default' behavior is to use smoothing value of zero
+    public final double empiricalQualDouble() { return empiricalQualDouble( 0, QualityUtils.MAX_REASONABLE_Q_SCORE ); } // 'default' behavior is to use smoothing value of zero
 
     public final byte empiricalQualByte( final int smoothing ) {
         final double doubleMismatches = (double) ( numMismatches + smoothing );
         final double doubleObservations = (double) ( numObservations + smoothing );
-        return QualityUtils.probToQual( 1.0 - doubleMismatches / doubleObservations );
+        return QualityUtils.probToQual( 1.0 - doubleMismatches / doubleObservations ); // This is capped at Q40
     }
     public final byte empiricalQualByte() { return empiricalQualByte( 0 ); } // 'default' behavior is to use smoothing value of zero
 

@@ -133,24 +133,25 @@ public class RecalDataManager {
      * Loop over all the collapsed tables and turn the recalDatums found there into an empricial quality score
      *   that will be used in the sequential calculation in TableRecalibrationWalker
      * @param smoothing The smoothing paramter that goes into empirical quality score calculation
+     * @param maxQual At which value to cap the quality scores 
      */
-    public final void generateEmpiricalQualities( final int smoothing ) {
+    public final void generateEmpiricalQualities( final int smoothing, final int maxQual ) {
 
-        recursivelyGenerateEmpiricalQualities(dataCollapsedReadGroup.data, smoothing);
-        recursivelyGenerateEmpiricalQualities(dataCollapsedQualityScore.data, smoothing);
+        recursivelyGenerateEmpiricalQualities(dataCollapsedReadGroup.data, smoothing, maxQual);
+        recursivelyGenerateEmpiricalQualities(dataCollapsedQualityScore.data, smoothing, maxQual);
         for( NestedHashMap map : dataCollapsedByCovariate ) {
-            recursivelyGenerateEmpiricalQualities(map.data, smoothing);
+            recursivelyGenerateEmpiricalQualities(map.data, smoothing, maxQual);
         }
     }
 
-    private void recursivelyGenerateEmpiricalQualities( final Map data, final int smoothing ) {
+    private void recursivelyGenerateEmpiricalQualities( final Map data, final int smoothing, final int maxQual ) {
 
         for( Object comp : data.keySet() ) {
             final Object val = data.get(comp);
             if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
-                ((RecalDatum)val).calcCombinedEmpiricalQuality(smoothing);
+                ((RecalDatum)val).calcCombinedEmpiricalQuality(smoothing, maxQual);
             } else { // Another layer in the nested hash map
-                recursivelyGenerateEmpiricalQualities( (Map) val, smoothing);
+                recursivelyGenerateEmpiricalQualities( (Map) val, smoothing, maxQual);
             }
         }
     }
