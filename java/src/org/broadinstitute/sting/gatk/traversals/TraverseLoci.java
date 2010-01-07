@@ -81,7 +81,7 @@ public class TraverseLoci extends TraversalEngine {
                 }
 
                 // Iterate forward to get all reference ordered data covering this location
-                final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(location);
+                final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
 
                 // create reference context. Note that if we have a pileup of "extended events", the context will
                 // hold the (longest) stretch of deleted reference bases (if deletions are present in the pileup).
