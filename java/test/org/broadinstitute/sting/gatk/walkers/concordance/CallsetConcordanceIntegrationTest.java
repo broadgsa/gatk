@@ -46,7 +46,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testComplex() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "complexExample.vcf -B set2,VCF," + validationDataLocation + "complexExample.vcf -CT NWayVenn", 1,
-                Arrays.asList("8b72e557c0dd111738eaa69e9003fb3f"));
+                Arrays.asList("7bc72ec5f8b0fda5d59ebd2526b53e48"));
         executeTest("testComplex", spec);
     }
 }

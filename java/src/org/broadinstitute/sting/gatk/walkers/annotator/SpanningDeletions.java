@@ -20,7 +20,7 @@ public class SpanningDeletions extends StandardVariantAnnotation {
             deletions += pileup.getNumberOfDeletions();
             depth += pileup.size();
         }
-        return String.format("%.2f", (double)deletions/(double)depth);
+        return String.format("%.2f", depth == 0 ? 0.0 : (double)deletions/(double)depth);
     }
 
     public String getKeyName() { return "Dels"; }

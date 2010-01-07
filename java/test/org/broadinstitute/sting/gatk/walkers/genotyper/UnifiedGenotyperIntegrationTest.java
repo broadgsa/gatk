@@ -98,8 +98,8 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "2a8b8d4da5ceed494e2210b15c2c3eb0" );
-        e.put( "-all_bases", "69b20ce7fc18f78011ee02b48a8d69aa" );
+        e.put( "-genotype", "b3161d019d467d5f9045d2f5d7203006" );
+        e.put( "-all_bases", "655c7b8ce2f794a055fa49962b5a6a79" );
         e.put( "--min_base_quality_score 26", "67175e0262e626d46aaf3bc8680cf888" );
         e.put( "--min_mapping_quality_score 26", "8edb24206529a7a344008280ab69cbb2" );
         e.put( "--max_mismatches_in_40bp_window 5", "870812ed23b2c656439dc1c8e6376f89" );

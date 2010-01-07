@@ -24,8 +24,11 @@ public class QualByDepth extends StandardVariantAnnotation {
             return null;
 
         //double QbyD = genotypeQualByDepth(ref.getBase(), genotypes, stratifiedContexts);
-        double QbyD = 10.0 * variation.getNegLog10PError() / (double)variationQualByDepth(ref.getBase(), genotypes, stratifiedContexts);
+        int qDepth = variationQualByDepth(ref.getBase(), genotypes, stratifiedContexts);
+        if ( qDepth == 0 )
+            return null;
 
+        double QbyD = 10.0 * variation.getNegLog10PError() / (double)qDepth;
         return String.format("%.2f", QbyD);
     }
 
