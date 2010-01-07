@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.HapMapGenotypeROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.genotype.Variation;
@@ -42,6 +43,7 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
 
         for ( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
             if ( rod instanceof HapMapGenotypeROD ) {
+                GenomeLoc loc = context.getLocation();
                 HapMapGenotypeROD hapmap_rod = (HapMapGenotypeROD) rod;
 
                 // If this is the first time map is called, we need to fill out the sample_ids from the rod
@@ -62,9 +64,8 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
                     vcfWriter.writeHeader(sample_id_set, hInfo);
                 }
 
-                // Get reference base and locus
+                // Get reference base
                 Character ref_allele = ref.getBase();
-                GenomeLoc loc = hapmap_rod.getLocation();
                 VCFVariationCall variation = new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP);
 
                 // Print each sample's genotype info
@@ -85,7 +86,11 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
 
                 // add each genotype to VCF record and write it
                 variation.setGenotypeCalls(genotype_calls);
-                vcfWriter.addMultiSampleCall(genotype_calls, new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP));
+                VCFVariationCall call = new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP);
+                rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+                if (dbsnp != null)
+                    call.setID(dbsnp.getRS_ID());
+                vcfWriter.addMultiSampleCall(genotype_calls, call);
             }
         }
 
