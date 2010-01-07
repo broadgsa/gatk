@@ -337,10 +337,10 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         return mCurrentRecord.isFiltered();
     }
 
-    public boolean hasFilteringCodes() {
-        assertNotNull();
-        return mCurrentRecord.hasFilteringCodes();
-    }
+//    public boolean hasFilteringCodes() {
+//        assertNotNull();
+//        return mCurrentRecord.hasFilteringCodes();
+//    }
 
     public String getFilterString() {
         assertNotNull();

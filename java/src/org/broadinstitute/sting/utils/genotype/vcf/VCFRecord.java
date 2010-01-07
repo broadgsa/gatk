@@ -350,9 +350,9 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         return !codes[0].equals(UNFILTERED) && !codes[0].equals(PASSES_FILTERS);
     }
 
-    public boolean hasFilteringCodes() {
-        return mFilterString != null;
-    }
+//    public boolean hasFilteringCodes() {
+//        return mFilterString != null;
+//    }
 
     public String getFilterString() {
         return mFilterString;

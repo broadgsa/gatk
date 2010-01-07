@@ -26,7 +26,7 @@ public class SimpleVenn implements ConcordanceType {
         sample2 = iter.next();
     }
 
-    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
+    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref ) {
 
         Genotype call1 = samplesToRecords.get(sample1);
         if ( call1 != null && call1.isNoCall() )

@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
@@ -140,7 +141,7 @@ public class VCFUtils {
         double totalFreq = 0.0;
         int freqsSeen = 0;
         String id = null;
-        String filter = null;
+        List<String> filters = new ArrayList<String>();
 
         for ( RodVCF rod : rods ) {
             List<VCFGenotypeRecord> myGenotypes = rod.getVCFGenotypeRecords();
@@ -173,8 +174,8 @@ public class VCFUtils {
             if ( rod.getID() != null )
                 id = rod.getID();
 
-            if ( rod.hasFilteringCodes() )
-                filter = rod.getFilterString();
+            if ( rod.isFiltered() )
+                filters.add(rod.getFilterString());
         }
 
         Map<String, String> infoFields = new HashMap<String, String>();
@@ -193,7 +194,7 @@ public class VCFUtils {
                 (id != null ? id : "."),
                 params.getAlternateBases(),
                 maxConfidence,
-                (filter != null ? filter : "."),
+                filters.size() == 0 ? "0" : Utils.join(";", filters),
                 infoFields,
                 params.getFormatString(),
                 params.getGenotypesRecords());
