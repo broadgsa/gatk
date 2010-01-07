@@ -78,6 +78,12 @@ public class TraverseLoci extends TraversalEngine {
                     // associated with the current site), we need to update the location. The updated location still starts
                     // at the current genomic position, but it has to span the length of the longest deletion (if any).
                     location = GenomeLocParser.setStop(location,location.getStop()+locus.getExtendedEventPileup().getMaxDeletionLength());
+
+                    // it is possible that the new expanded location spans the current shard boundary; the next method ensures
+                    // that when it is the case, the reference sequence held by the ReferenceView will be reloaded so that
+                    // the view has all the bases we are gonna need. If the location fits within the current view bounds,
+                    // the next call will not do anything to the view:
+                    referenceView.expandBoundsToAccomodateLoc(location);
                 }
 
                 // Iterate forward to get all reference ordered data covering this location
