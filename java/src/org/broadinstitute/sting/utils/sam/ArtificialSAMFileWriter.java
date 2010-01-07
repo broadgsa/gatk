@@ -38,7 +38,7 @@ import java.util.List;
  *         <p/>
  *         Class ArtificialSAMFileWriter
  *         <p/>
- * generates a fike samwriter, that you can get the output reads
+ * generates a fake samwriter, that you can get the output reads
  * from when you're done.  
  */
 public class ArtificialSAMFileWriter implements SAMFileWriter {

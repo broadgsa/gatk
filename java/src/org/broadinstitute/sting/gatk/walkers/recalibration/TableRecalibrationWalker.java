@@ -94,7 +94,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.2.4"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.5"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
@@ -393,8 +393,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
-        return QualityUtils.boundQual( (int)Math.round(newQuality), QualityUtils.MAX_REASONABLE_Q_SCORE );
-
+        return QualityUtils.boundQual( (int)Math.round(newQuality), (byte)MAX_QUALITY_SCORE );
 
         // Verbose printouts used to validate with old recalibrator
         //if(key.contains(null)) {
