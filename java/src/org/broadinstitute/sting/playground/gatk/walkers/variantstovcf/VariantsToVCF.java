@@ -137,16 +137,18 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
                 str.put("GQ", lod);
                 if (depth > 0) str.put("DP", String.valueOf(depth));
 
-                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str));
+                VCFGenotypeRecord rec = new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED);
+                for ( Map.Entry<String, String> entry : str.entrySet() )
+                    rec.setField(entry.getKey(), entry.getValue());
+                gt.add(rec);
 
                 numSNPs++;
                 snpQual += av.getNegLog10PError();
             } else if (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1) {
-                Map<String, String> str = new HashMap<String, String>();
                 List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
                 alleles.add(new VCFGenotypeEncoding(String.valueOf(ref.getBase())));
                 alleles.add(new VCFGenotypeEncoding(String.valueOf(ref.getBase())));
-                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str));
+                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED));
 
                 numRefs++;
             }

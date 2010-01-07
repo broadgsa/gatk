@@ -85,13 +85,12 @@ public class VCFWriterTest extends BaseTest {
 
         List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
         for (String name : header.getGenotypeSamples()) {
-            Map<String,String> str = new HashMap<String,String>();
-            str.put("bb","0");
-
             List<VCFGenotypeEncoding> myAlleles = new ArrayList<VCFGenotypeEncoding>();
             myAlleles.add(new VCFGenotypeEncoding("C"));
             myAlleles.add(new VCFGenotypeEncoding("D1"));
-            gt.add(new VCFGenotypeRecord(name, myAlleles, VCFGenotypeRecord.PHASE.PHASED, str));
+            VCFGenotypeRecord rec = new VCFGenotypeRecord(name, myAlleles, VCFGenotypeRecord.PHASE.PHASED);
+            rec.setField("bb", "0");
+            gt.add(rec);
         }
         return new VCFRecord('A',"chr1",1,"RANDOM",altBases,0,".",infoFields, "GT:AA",gt);
 

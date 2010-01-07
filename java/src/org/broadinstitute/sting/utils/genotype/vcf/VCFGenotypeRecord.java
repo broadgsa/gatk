@@ -58,20 +58,12 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
      * @param sampleName  sample name
      * @param genotypes   list of genotypes
      * @param phasing     phasing
-     * @param otherFlags  other flags
      */
-    public VCFGenotypeRecord(String sampleName, List<VCFGenotypeEncoding> genotypes, PHASE phasing, Map<String, String> otherFlags) {
+    public VCFGenotypeRecord(String sampleName, List<VCFGenotypeEncoding> genotypes, PHASE phasing) {
         mSampleName = sampleName;
-        if (genotypes != null) this.mGenotypeAlleles.addAll(genotypes);
+        if (genotypes != null)
+            this.mGenotypeAlleles.addAll(genotypes);
         mPhaseType = phasing;
-        if (otherFlags != null) {
-            // we need to be backwards compatible
-            if ( otherFlags.containsKey(OLD_DEPTH_KEY) ) {
-                otherFlags.put(DEPTH_KEY, otherFlags.get(OLD_DEPTH_KEY));
-                otherFlags.remove(OLD_DEPTH_KEY);
-            }
-            mFields.putAll(otherFlags);
-        }
     }
 
     public void setVCFRecord(VCFRecord record) {
@@ -80,6 +72,23 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
 
     public void setSampleName(String name) {
         mSampleName = name;
+    }
+
+    /**
+     * Adds a field to the genotype record.
+     * Throws an exception if the key is GT, as that's computed internally.
+     *
+     * @param key    the field name (use static variables above for common fields)
+     * @param value  the field value
+     */
+    public void setField(String key, String value) {
+        // make sure the GT field isn't being set
+        if ( key.equals(GENOTYPE_KEY) )
+            throw new IllegalArgumentException("Setting the GT field is not allowed as that's done internally");
+        // we need to be backwards compatible
+        if ( key.equals(OLD_DEPTH_KEY) )
+             key = DEPTH_KEY;
+        mFields.put(key, value);
     }
 
     /**
@@ -217,7 +226,8 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
 
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return String.format("[VCFGenotype %s %s %s %s]", getLocation(), mSampleName, this.mGenotypeAlleles, mFields);
     }
 

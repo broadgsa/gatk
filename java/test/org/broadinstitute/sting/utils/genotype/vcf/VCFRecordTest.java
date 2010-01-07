@@ -56,12 +56,12 @@ public class VCFRecordTest extends BaseTest {
      * @return a VCFGenotypeRecord
      */
     private static VCFGenotypeRecord createGenotype(String name, String Allele1, String Allele2) {
-        Map<String, String> keyValues = new HashMap<String, String>();
-        keyValues.put("AA", "2");
         List<VCFGenotypeEncoding> Alleles = new ArrayList<VCFGenotypeEncoding>();
         Alleles.add(new VCFGenotypeEncoding(Allele1));
         Alleles.add(new VCFGenotypeEncoding(Allele2));
-        return new VCFGenotypeRecord(name, Alleles, VCFGenotypeRecord.PHASE.PHASED, keyValues);
+        VCFGenotypeRecord rec = new VCFGenotypeRecord(name, Alleles, VCFGenotypeRecord.PHASE.PHASED);
+        rec.setField("AA", "2");
+        return rec;
     }
 
     @Test

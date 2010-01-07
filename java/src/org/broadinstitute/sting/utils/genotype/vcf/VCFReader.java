@@ -256,7 +256,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      */
     public static VCFGenotypeRecord getVCFGenotype(String sampleName, String[] keyStrings, String genotypeString, String altAlleles[], char referenceBase) {
         // parameters to create the VCF genotype record
-        Map<String, String> tagToValue = new HashMap<String, String>();
+        HashMap<String, String> tagToValue = new HashMap<String, String>();
         VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNKNOWN;
         List<VCFGenotypeEncoding> bases = new ArrayList<VCFGenotypeEncoding>();
 
@@ -294,7 +294,11 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         else if ( genotypeString.length() > 0 )
             throw new RuntimeException("VCFReader: genotype string contained additional unprocessed fields: " + genotypeString
                     + ".  This most likely means that the format string is shorter then the value fields.");
-        return new VCFGenotypeRecord(sampleName, bases, phase, tagToValue);
+
+        VCFGenotypeRecord rec = new VCFGenotypeRecord(sampleName, bases, phase);
+        for ( Map.Entry<String, String> entry : tagToValue.entrySet() )
+            rec.setField(entry.getKey(), entry.getValue());
+        return rec;
     }
 
 

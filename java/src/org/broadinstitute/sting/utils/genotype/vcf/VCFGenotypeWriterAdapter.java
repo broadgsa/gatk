@@ -192,18 +192,12 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
      * @return a VCFGenotypeRecord for the no call situation
      */
     private VCFGenotypeRecord createNoCallRecord(String sampleName) {
-        Map<String, String> map = new HashMap<String, String>();
-
 
         List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
         alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
         alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
 
-        VCFGenotypeRecord record = new VCFGenotypeRecord(sampleName,
-                                                         alleles,
-                                                         VCFGenotypeRecord.PHASE.UNPHASED,
-                                                         map);
-        return record;
+        return new VCFGenotypeRecord(sampleName, alleles, VCFGenotypeRecord.PHASE.UNPHASED);
     }
 
     /** @return true if we support multisample, false otherwise */
