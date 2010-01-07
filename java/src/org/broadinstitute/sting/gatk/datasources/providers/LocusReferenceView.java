@@ -41,7 +41,7 @@ public class LocusReferenceView extends ReferenceView {
     /**
      * Bound the reference view to make sure all accesses are within the shard.
      */
-    private final GenomeLoc bounds;
+    private GenomeLoc bounds;
 
     /**
      * Start of the expanded window for which the reference context should be provided,
@@ -102,6 +102,33 @@ public class LocusReferenceView extends ReferenceView {
             long expandedStop  = getWindowStop( bounds );
             initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
         }
+    }
+
+    /** Returns true if the specified location is fully within the bounds of the reference window loaded into
+     *  this LocusReferenceView object.
+     */
+    public boolean isLocationWithinBounds(GenomeLoc loc) {
+        return bounds.containsP(loc);
+    }
+
+    /** Ensures that specified location is within the bounds of the reference window loaded into this
+     * LocusReferenceView object. If the location loc is within the current bounds (or if it is null), then nothing is done.
+     * Otherwise, the bounds are expanded on either side, as needed, to accomodate the location, and the reference seuqence for the
+     * new bounds is reloaded (can be costly!).
+     * @param loc
+     */
+    public void expandBoundsToAccomodateLoc(GenomeLoc loc) {
+        if ( bounds==null || loc==null) return; // can bounds be null actually???
+        if ( isLocationWithinBounds(loc) ) return;
+        if ( loc.getContigIndex() != bounds.getContigIndex() )
+            throw new StingException("Illegal attempt to expand reference view bounds to accomodate location on a different contig.");
+
+        bounds = GenomeLocParser.createGenomeLoc(bounds.getContigIndex(),
+                                                 Math.min(bounds.getStart(),loc.getStart()),
+                                                 Math.max(bounds.getStop(),loc.getStop()));
+        long expandedStart = getWindowStart( bounds );
+        long expandedStop  = getWindowStop( bounds );
+        initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
     }
 
     /**
