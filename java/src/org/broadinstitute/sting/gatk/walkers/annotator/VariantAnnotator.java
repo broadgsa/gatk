@@ -166,7 +166,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 &&
                 variant.isBiallelic() &&
                 variant.isSNP() ) {
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(), null, null);
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null )
                 annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations);
         }

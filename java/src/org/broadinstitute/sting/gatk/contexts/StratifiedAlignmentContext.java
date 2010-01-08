@@ -44,7 +44,7 @@ public class StratifiedAlignmentContext {
 
     // Definitions:
     //   COMPLETE = full alignment context
-    //   FORWARD  = reads on forward strand 
+    //   FORWARD  = reads on forward strand
     //   REVERSE  = reads on forward strand
     //
     public enum StratifiedContextType { COMPLETE, FORWARD, REVERSE }
@@ -81,6 +81,18 @@ public class StratifiedAlignmentContext {
         reads[StratifiedContextType.COMPLETE.ordinal()].add(read);
         offsets[StratifiedContextType.COMPLETE.ordinal()].add(offset);
      }
+
+    /**
+     * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.
+     *
+     * @param pileup                the original pileup
+     *
+     * @return a Map of sample name to StratifiedAlignmentContext
+     *
+     **/
+    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedPileup pileup) {
+        return splitContextBySample(pileup, null, null);
+    }
 
     /**
      * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.

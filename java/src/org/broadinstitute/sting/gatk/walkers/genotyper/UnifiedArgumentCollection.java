@@ -75,8 +75,14 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALTY_SCORE = 20;
 
+    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
+    public int MIN_MAPPING_QUALTY_SCORE = 10;
+
     @Argument(fullName = "max_mismatches_in_40bp_window", shortName = "mm40", doc = "Maximum number of mismatches within a 40 bp window (20bp on either side) around the target position for a read to be used for calling", required = false)
     public int MAX_MISMATCHES = 3;
+
+    @Argument(fullName = "use_reads_with_bad_mates", shortName = "bad_mates", doc = "Use reads whose mates are mapped excessively far away for calling", required = false)
+    public boolean USE_BADLY_MATED_READS = false;
 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;

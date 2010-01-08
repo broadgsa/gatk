@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import java.util.Map;
 
 
-public class MappingQualityZero implements VariantAnnotation {
+public class MappingQualityZero extends StandardVariantAnnotation {
 
     public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
         int mq0 = 0;

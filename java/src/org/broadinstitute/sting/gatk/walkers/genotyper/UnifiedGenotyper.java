@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -49,7 +48,6 @@ import java.io.FileNotFoundException;
  * multi-sample, and pooled data.  The user can choose from several different incorporated calculation models.
  */
 @Reference(window=@Window(start=-20,stop=20))
-@ReadFilters({ZeroMappingQualityReadFilter.class,MappingQualityReadFilter.class,BadMateReadFilter.class})
 public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genotype>>, Integer> implements TreeReducible<Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -178,15 +176,16 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             headerInfo.addAll(VariantAnnotator.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        headerInfo.add(new VCFHeaderLine("INFO_NOTE", "\"All annotations in the INFO field are generated only from the FILTERED context used for calling variants\""));
         headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
-        // no longer used: headerInfo.add(new VCFInfoHeaderLine(VCFRecord.SAMPLE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Number of Samples With Data"));
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 
         // FORMAT fields if not in POOLED mode
-        if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED )
+        if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
             headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 2, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total number of alleles in called genotypes"));
+        }
 
         // all of the arguments from the argument collection
         Set<Object> args = new HashSet<Object>();
@@ -229,10 +228,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             return null;
 
         // filter the context based on min base and mapping qualities
-        ReadBackedPileup pileup = rawContext.getPileup().getBaseFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE);
+        ReadBackedPileup pileup = rawContext.getBasePileup().getBaseFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE);
 
-        // filter the context based on mismatches
-        pileup = filterPileup(pileup, refContext, UAC.MAX_MISMATCHES);
+        // filter the context based on mapping quality and mismatch rate
+        pileup = filterPileup(pileup, refContext, UAC);
 
         // an optimization to speed things up when there is no coverage or when overly covered
         if ( pileup.size() == 0 ||
@@ -255,6 +254,9 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
         // annotate the call, if possible
         if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
+            // first off, we want to use the *unfiltered* context for the annotations
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
+
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
                 annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.first);
@@ -267,14 +269,16 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     }
 
     // filter based on maximum mismatches and bad mates
-    private static ReadBackedPileup filterPileup(ReadBackedPileup pileup, ReferenceContext refContext, int maxMismatches) {
+    private static ReadBackedPileup filterPileup(ReadBackedPileup pileup, ReferenceContext refContext, UnifiedArgumentCollection UAC) {
+
         ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
         for ( PileupElement p : pileup ) {
-            if ( AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= maxMismatches )
+            if  ( p.getMappingQual() >= UAC.MIN_MAPPING_QUALTY_SCORE &&
+                  (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
+                  AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
                 filteredPileup.add(p);
         }
         return new ReadBackedPileup(pileup.getLocation(), filteredPileup);
-
     }
 
     private static boolean isValidDeletionFraction(double d) {

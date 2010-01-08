@@ -16,9 +16,10 @@ class VCFParameters {
     private int position = 0;
     private String contig = null;
     private boolean initialized = false;
-    private List<VCFGenotypeRecord> genotypesRecord = new ArrayList<VCFGenotypeRecord>();
+    private List<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
     private List<String> formatList = new ArrayList<String>();
     private List<VCFGenotypeEncoding> alternateBases = new ArrayList<VCFGenotypeEncoding>();
+    private List<Integer> alleleCounts = new ArrayList<Integer>();
 
     public void setLocations(GenomeLoc location, char refBase) {
         // if we haven't set it up, we initialize the object
@@ -56,7 +57,12 @@ class VCFParameters {
     }
 
     public void addGenotypeRecord(VCFGenotypeRecord record) {
-        this.genotypesRecord.add(record);
+        genotypeRecords.add(record);
+        for ( VCFGenotypeEncoding allele : record.getAlleles() ) {
+            int index = alternateBases.indexOf(allele);
+            if ( index != -1 ) // we don't keep track of ref alleles here
+                alleleCounts.set(index, alleleCounts.get(index)+1);
+        }
     }
 
     public void addFormatItem(String item) {
@@ -67,19 +73,26 @@ class VCFParameters {
     public void addAlternateBase(VCFGenotypeEncoding base) {
         if ( !alternateBases.contains(base) &&
              !base.toString().equals(String.valueOf(getReferenceBase()).toUpperCase()) &&
-             !base.toString().equals(VCFGenotypeRecord.EMPTY_ALLELE) )
+             !base.toString().equals(VCFGenotypeRecord.EMPTY_ALLELE) ) {
             alternateBases.add(base);
+            alleleCounts.add(0);
+        }
     }
 
     public List<VCFGenotypeEncoding> getAlternateBases() {
         return alternateBases;
     }
 
+    // the list of allele counts where each entry relates to the corresponding entry in the Alternate Base list
+    public List<Integer> getAlleleCounts() {
+        return alleleCounts;
+    }
+
     public String getFormatString() {
         return Utils.join(VCFRecord.FORMAT_FIELD_SEPERATOR, formatList);
     }
 
-    public List<VCFGenotypeRecord> getGenotypesRecords() {
-        return genotypesRecord;
+    public List<VCFGenotypeRecord> getGenotypeRecords() {
+        return genotypeRecords;
     }
 }

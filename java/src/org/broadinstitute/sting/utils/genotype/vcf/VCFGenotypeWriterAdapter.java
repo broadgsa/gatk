@@ -112,11 +112,13 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
 
         Map<String, VCFGenotypeCall> genotypeMap = genotypeListToSampleNameMap(genotypes);
 
+        int totalAlleles = 0;
         for (String name : mHeader.getGenotypeSamples()) {
             if (genotypeMap.containsKey(name)) {
                 Genotype gtype = genotypeMap.get(name);
                 VCFGenotypeRecord record = VCFUtils.createVCFGenotypeRecord(params, (VCFGenotypeCall)gtype);
                 params.addGenotypeRecord(record);
+                totalAlleles += record.getAlleles().size();
                 genotypeMap.remove(name);
             } else {
                 VCFGenotypeRecord record = createNoCallRecord(name);
@@ -132,6 +134,20 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
 
         // info fields
         Map<String, String> infoFields = getInfoFields((VCFVariationCall)locusdata);
+        if ( totalAlleles > 0 ) {
+            infoFields.put(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", totalAlleles));
+
+            // the allele counts are a bit trickier - we need to count up the alternate counts to get the ref count
+            List<Integer> altAlleleCounts = params.getAlleleCounts();
+            int totalAltAlleles = 0;
+            StringBuffer sb = new StringBuffer();
+            for ( int alleleCount : altAlleleCounts ) {
+                sb.append(",");
+                sb.append(alleleCount);
+                totalAltAlleles += alleleCount;
+            }
+            infoFields.put(VCFRecord.ALLELE_COUNT_KEY, String.format("%d%s", (totalAlleles - totalAltAlleles), sb.toString()));
+        }
 
         // q-score
         double qual = (locusdata == null) ? 0 : ((VCFVariationCall)locusdata).getConfidence();
@@ -152,7 +168,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
                                             VCFRecord.UNFILTERED,
                                             infoFields,
                                             params.getFormatString(),
-                                            params.getGenotypesRecords());
+                                            params.getGenotypeRecords());
 
         mWriter.addRecord(vcfRecord, validationStringency);
     }
@@ -180,7 +196,6 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
                 infoFields.putAll(otherFields);
             }
         }
-        // no longer used: infoFields.put(VCFRecord.SAMPLE_NUMBER_KEY, String.valueOf(params.getGenotypesRecords().size()));
         return infoFields;
     }
 

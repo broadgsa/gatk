@@ -180,7 +180,6 @@ public class VCFUtils {
 
         Map<String, String> infoFields = new HashMap<String, String>();
         infoFields.put(VCFRecord.DEPTH_KEY, String.format("%d", totalReadDepth));
-        // no longer used: infoFields.put(VCFRecord.SAMPLE_NUMBER_KEY, String.valueOf(params.getGenotypesRecords().size()));
 
         // set the overall strand bias and allele frequency to be the average of all entries we've seen
         if ( SLODsSeen > 0 )
@@ -197,7 +196,7 @@ public class VCFUtils {
                 filters.size() == 0 ? "0" : Utils.join(";", filters),
                 infoFields,
                 params.getFormatString(),
-                params.getGenotypesRecords());
+                params.getGenotypeRecords());
     }
 
     /**
