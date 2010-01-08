@@ -113,7 +113,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
     private Pair<ReadBackedPileup, GenotypeLikelihoods> getSingleSampleLikelihoods(StratifiedAlignmentContext sampleContext, DiploidGenotypePriors priors, StratifiedAlignmentContext.StratifiedContextType contextType) {
         // create the pileup
         AlignmentContext myContext = sampleContext.getContext(contextType);
-        ReadBackedPileup pileup = myContext.getPileup();
+        ReadBackedPileup pileup = myContext.getBasePileup();
 
         // create the GenotypeLikelihoods object
         GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
@@ -137,7 +137,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
         for ( String sample : contexts.keySet() ) {
             StratifiedAlignmentContext context = contexts.get(sample);
-            ReadBackedPileup pileup = context.getContext(contextType).getPileup();
+            ReadBackedPileup pileup = context.getContext(contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
             GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, AFPriors, defaultPlatform);

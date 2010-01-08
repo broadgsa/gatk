@@ -81,7 +81,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
 
             // calculate the sum of quality scores for each base
-            ReadBackedPileup pileup = context.getPileup();
+            ReadBackedPileup pileup = context.getBasePileup();
             for ( PileupElement p : pileup ) {
                 // ignore deletions
                 if ( p.isDeletion() )
@@ -341,8 +341,22 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestAFguess == 0) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
             return new Pair<VariationCall, List<Genotype>>(null, null);
 
-        // populate the sample-specific data
+        // output to beagle file if requested
+        if ( beagleWriter != null ) {
+            beagleWriter.print(loc);
+            beagleWriter.print(' ');
+            beagleWriter.print(ref);
+            beagleWriter.print(' ');
+            beagleWriter.print(bestAlternateAllele);
+        }
+
+        // populate the sample-specific data (output it to beagle also if requested)
         List<Genotype> calls = makeGenotypeCalls(ref, bestAlternateAllele, bestAFguess, contexts, loc);
+
+        // close beagle record (if requested)
+        if ( beagleWriter != null ) {
+            beagleWriter.println();
+        }
 
         // next, the general locus data
         // *** note that calculating strand bias involves overwriting data structures, so we do that last

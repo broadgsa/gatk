@@ -105,7 +105,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
             call.setGenotype(bestGenotype);
 
             if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup();
+                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
                 ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {

@@ -33,7 +33,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
         for ( String sample : contexts.keySet() ) {
             StratifiedAlignmentContext context = contexts.get(sample);
-            ReadBackedPileup pileup = context.getContext(contextType).getPileup();
+            ReadBackedPileup pileup = context.getContext(contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
             GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
@@ -109,7 +109,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
 
             if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup();
+                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
                 ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {
@@ -126,6 +126,24 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             }
 
             calls.add(call);
+        }
+
+        // output to beagle file if requested
+        if ( beagleWriter != null ) {
+            for ( String sample : samples ) {
+                GenotypeLikelihoods gl = GLs.get(sample);
+                if ( gl == null ) {
+                    beagleWriter.print(" 0.0 0.0 0.0");
+                    continue;
+                }
+                double[] likelihoods = gl.getLikelihoods();
+                beagleWriter.print(' ');
+                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[GenotypeType.REF.ordinal()])));
+                beagleWriter.print(' ');
+                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[GenotypeType.HET.ordinal()])));
+                beagleWriter.print(' ');
+                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[GenotypeType.HOM.ordinal()])));
+            }
         }
 
         return calls;

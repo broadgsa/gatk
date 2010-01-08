@@ -59,9 +59,13 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     public String VERBOSE = null;
 
+    @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = false)
+    public String BEAGLE = null;
 
-    // the verbose writer
+
+    // the verbose and beagle writers
     private PrintWriter verboseWriter = null;
+    private PrintWriter beagleWriter = null;
 
     // the model used for calculating genotypes
     private ThreadLocal<GenotypeCalculationModel> gcm = new ThreadLocal<GenotypeCalculationModel>();
@@ -105,15 +109,20 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             sb.append("\n***\tUse Q" + (10.0 * UAC.LOD_THRESHOLD) + " as an approximate equivalent to your LOD " + UAC.LOD_THRESHOLD + " cutoff");
             throw new IllegalArgumentException(sb.toString());
         }
+        if ( BEAGLE != null && UAC.genotypeModel == GenotypeCalculationModel.Model.EM_POINT_ESTIMATE ) {
+            throw new IllegalArgumentException("BEAGLE output is not currently supported in the EM_POINT_ESTIMATE calculation model.");
+        }
 
         // some arguments can't be handled (at least for now) while we are multi-threaded
         if ( getToolkit().getArguments().numberOfThreads > 1 ) {
             // no ASSUME_SINGLE_SAMPLE because the IO system doesn't know how to get the sample name
             if ( UAC.ASSUME_SINGLE_SAMPLE != null )
                 throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
+
+            // TODO -- it would be nice to be able to handle verbose and beagle even with multiple threads
             // no VERBOSE because we'd need to deal with parallelizing the writing
-            if ( VERBOSE != null )
-                throw new IllegalArgumentException("For technical reasons, the VERBOSE argument cannot be used with multiple threads");
+            if ( VERBOSE != null || BEAGLE != null )
+                throw new IllegalArgumentException("For technical reasons, the VERBOSE and BEAGLE arguments cannot be used with multiple threads");
         }
 
         // get all of the unique sample names - unless we're in POOLED mode, in which case we ignore the sample names
@@ -139,14 +148,16 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
                 ((VCFGenotypeWriter)writer).setValidationStringency(VCFGenotypeWriterAdapter.VALIDATION_STRINGENCY.SILENT);
         }
 
-        // initialize the verbose writer
-        if ( VERBOSE != null ) {
-            try {
+        // initialize the writers
+        try {
+            if ( VERBOSE != null )
                 verboseWriter = new PrintWriter(VERBOSE);
-            } catch (FileNotFoundException e) {
-                throw new StingException("Could not open file " + VERBOSE + " for writing");
-            }
+            if ( BEAGLE != null )
+                beagleWriter = new PrintWriter(BEAGLE);
+        } catch (FileNotFoundException e) {
+            throw new StingException("UnifiedGenotyper [verbose/beagle]: could not open file for writing");
         }
+
         // *** If we were called by another walker, then we don't ***
         // *** want to do any of the other initialization steps.  ***
         if ( writer == null )
@@ -220,7 +231,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
                 else
                     throw new StingException("Unsupported genotype format: " + writer.getClass().getName());
             }
-            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format, verboseWriter));
+            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format, verboseWriter, beagleWriter));
         }
 
         char ref = Character.toUpperCase(refContext.getBase());
@@ -319,6 +330,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     public void onTraversalDone(Integer sum) {
         if ( verboseWriter != null )
             verboseWriter.close();
+        if ( beagleWriter != null )
+            beagleWriter.close();
 
         logger.info("Processed " + sum + " loci that are callable for SNPs");
     }

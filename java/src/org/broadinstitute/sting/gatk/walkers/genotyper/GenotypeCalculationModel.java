@@ -36,6 +36,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected double MINIMUM_ALLELE_FREQUENCY;
     protected boolean REPORT_SLOD;
     protected PrintWriter verboseWriter;
+    protected PrintWriter beagleWriter;
 
     /**
      * Create a new GenotypeCalculationModel object
@@ -51,12 +52,14 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param UAC           unified arg collection
      * @param outputFormat  output format
      * @param verboseWriter verbose writer
+     * @param beagleWriter  beagle writer
      */
     protected void initialize(Set<String> samples,
                               Logger logger,
                               UnifiedArgumentCollection UAC,
                               GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
-                              PrintWriter verboseWriter) {
+                              PrintWriter verboseWriter,
+                              PrintWriter beagleWriter) {
         this.samples = new TreeSet<String>(samples);
         this.logger = logger;
         baseModel = UAC.baseModel;
@@ -72,9 +75,21 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         this.verboseWriter = verboseWriter;
         if ( verboseWriter != null )
             initializeVerboseWriter(verboseWriter);
+        this.beagleWriter = beagleWriter;
+        if ( beagleWriter != null )
+            initializeBeagleWriter(beagleWriter);
     }
 
-    protected void initializeVerboseWriter(PrintWriter writer) { };
+    protected void initializeVerboseWriter(PrintWriter writer) { }
+
+    protected void initializeBeagleWriter(PrintWriter writer) {
+        writer.print("marker alleleA alleleB");
+        for ( String sample : samples ) {
+            writer.print(' ');
+            writer.print(sample);
+        }
+        writer.println();
+    }
 
     /**
      * Must be overridden by concrete subclasses

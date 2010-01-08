@@ -51,13 +51,17 @@ public class GenotypeCalculationModelFactory {
      * @param logger        logger
      * @param UAC           the unified argument collection
      * @param outputFormat  the output format
+     * @param verboseWriter verbose writer
+     * @param beagleWriter  beagle writer
+     *
      * @return model
      */
     public static GenotypeCalculationModel makeGenotypeCalculation(Set<String> samples,
                                                                    Logger logger,
                                                                    UnifiedArgumentCollection UAC,
                                                                    GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
-                                                                   PrintWriter verboseWriter) {
+                                                                   PrintWriter verboseWriter,
+                                                                   PrintWriter beagleWriter) {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
             case EM_POINT_ESTIMATE:
@@ -72,7 +76,7 @@ public class GenotypeCalculationModelFactory {
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
 
-        gcm.initialize(samples, logger, UAC, outputFormat, verboseWriter);
+        gcm.initialize(samples, logger, UAC, outputFormat, verboseWriter, beagleWriter);
         return gcm;
     }
 }
