@@ -103,7 +103,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.2.2"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.3"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -311,7 +311,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param context The AlignmentContext which holds the reads covered by this locus
      * @param ref The reference base
      */
-    private static void updateMismatchCounts(Pair<Long, Long> counts, AlignmentContext context, char ref) {
+    private static void updateMismatchCounts(final Pair<Long, Long> counts, final AlignmentContext context, final char ref) {
         for( PileupElement p : context.getPileup() ) {
             final char readChar = (char)(p.getBase());
             final int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
@@ -377,7 +377,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         final long curMismatches = datum.getNumMismatches();
 
         // Add one to the number of observations and potentially one to the number of mismatches
-        datum.increment( (char)base, (char)refBase ); // Dangerous: If you don't cast to char than the bytes default to the (long, long) version of the increment method which is really bad
+        datum.increment( (char)base, (char)refBase ); // Dangerous: If you don't cast to char then the bytes default to the (long, long) version of the increment method which is really bad
         countedBases++;
         novel_counts.second++;
         novel_counts.first += datum.getNumMismatches() - curMismatches; // For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable
