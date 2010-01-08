@@ -1,15 +1,9 @@
 package net.sf.samtools;
 
-import net.sf.samtools.util.BinaryCodec;
-import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.StringLineReader;
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.samtools.util.SeekableStream;
+import net.sf.picard.PicardException;
 
-import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Arrays;
-import java.nio.channels.FileChannel;
 import java.io.IOException;
 import java.io.FileInputStream;
 import java.io.File;
@@ -23,6 +17,11 @@ import java.io.File;
  */
 public class BAMBlockIterator implements CloseableIterator<Block> {
     /**
+     * The input stream for back files.
+     */
+    private FileInputStream inputStream;
+
+    /**
      * File channel from which to read chunks.  
      */
     private BlockReader blockReader;
@@ -35,13 +34,23 @@ public class BAMBlockIterator implements CloseableIterator<Block> {
     /**
      * Iterate through the BAM chunks in a file.
      * @param file stream File to use when accessing the BAM.
+     * @throws IOException in case of problems reading from the file.
      */
     public BAMBlockIterator(File file) throws IOException {
-        FileInputStream inputStream = new FileInputStream(file);
-        this.blockReader = new BlockReader(inputStream);
+        inputStream = new FileInputStream(file);
+        blockReader = new BlockReader(inputStream);
     }
 
+    /**
+     * Close the existing file.
+     */
     public void close() {
+        try {
+            inputStream.close();
+        }
+        catch(IOException ex) {
+            throw new PicardException("Unable to close file", ex);
+        }
     }
 
     /**
@@ -59,7 +68,7 @@ public class BAMBlockIterator implements CloseableIterator<Block> {
     /**
      * Get the next chunk from the iterator.
      * @return The next chunk.
-     * @throw NoSuchElementException if no next chunk is available.
+     * @throws NoSuchElementException if no next chunk is available.
      */
     public Block next() {
         if(!hasNext())

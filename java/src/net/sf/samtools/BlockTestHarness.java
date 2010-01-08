@@ -2,6 +2,7 @@ package net.sf.samtools;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 
 /**
  * Test harness for playing with sharding by BGZF block.
@@ -30,6 +31,14 @@ public class BlockTestHarness {
         Chunk headerLocation = BAMFileHeaderLoader.load(bamFile).getLocation();
         System.out.printf("Header location = %s%n", headerLocation);
 
+        BAMChunkIterator chunkIterator = new BAMChunkIterator(new BAMBlockIterator(bamFile),
+                                                              Collections.singletonList(headerLocation));
+        while(chunkIterator.hasNext()) {
+            Chunk chunk = chunkIterator.next();
+        }
+
+        // The following test code blocks a bunch of files together.
+        /*
         BAMBlockIterator blockIterator = new BAMBlockIterator(bamFile);
         long blockCount = 0;
 
@@ -37,10 +46,11 @@ public class BlockTestHarness {
         while(blockIterator.hasNext()) {
             Block block = blockIterator.next();
             blockCount++;
-            //System.out.println(block);
+            System.out.println(block);
         }
         long endTime = System.currentTimeMillis();
 
         System.out.printf("Number of chunks: %d; elapsed time: %dms%n", blockCount, endTime-startTime);
+        */
     }
 }
