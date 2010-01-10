@@ -83,7 +83,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
         // get the list of all sample names from the various VCF input rods
         TreeSet<String> samples = new TreeSet<String>();
-        VCFUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
+        SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
 
         // add the non-VCF sample from the command-line, if applicable
         if ( sampleName != null ) {

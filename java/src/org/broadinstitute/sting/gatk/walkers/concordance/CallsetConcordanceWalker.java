@@ -56,7 +56,7 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
 
         // get the list of all sample names from the various input rods (they need to be uniquified in case there's overlap)
         HashSet<String> samples = new HashSet<String>();
-        VCFUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, rodNamesToSampleNames);
+        SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, rodNamesToSampleNames);
 
         for ( java.util.Map.Entry<Pair<String, String>, String> entry : rodNamesToSampleNames.entrySet() ) {
             logger.debug("Uniquified sample mapping: " + entry.getKey().first + "/" + entry.getKey().second + " -> " + entry.getValue());
