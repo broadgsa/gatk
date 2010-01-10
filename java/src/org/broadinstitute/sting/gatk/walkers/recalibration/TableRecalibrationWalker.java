@@ -71,7 +71,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     // Command Line Arguments
     /////////////////////////////
     @Argument(fullName="output_bam", shortName="outputBam", doc="output BAM file", required=true)
-    private String OUTPUT_BAM_FILE = null;
+    private SAMFileWriter OUTPUT_BAM = null;
     @Argument(fullName="preserve_qscores_less_than", shortName="pQ",
         doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
     private int PRESERVE_QSCORES_LESS_THAN = 5;
@@ -95,7 +95,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
     private static final String versionString = "v2.2.6"; // Major version, minor version, and build number
-    private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
 
@@ -245,12 +244,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             commandLineString += "smoothing = " + SMOOTHING;
             programRecord.setCommandLine( commandLineString );
             header.addProgramRecord( programRecord );
-        }
-
-        // Create the SAMFileWriter that we will be using to output the reads
-        if( OUTPUT_BAM_FILE != null ) {
-            final SAMFileWriterFactory factory = new SAMFileWriterFactory();
-            OUTPUT_BAM = factory.makeBAMWriter( header, true, new File(OUTPUT_BAM_FILE), 5 ); // BUGBUG: Bam compression hardcoded to 5
         }
     }
 
@@ -451,12 +444,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     }
 
     /**
-     * Close the output bam file
      * @param output The SAMFileWriter that outputs the bam file
      */
-    public void onTraversalDone(SAMFileWriter output) {
-        if ( output != null ) {
-            output.close();
-        }
-    }
+    public void onTraversalDone(SAMFileWriter output) { }
 }
