@@ -8,12 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariationCall;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.*;
 import java.io.File;
@@ -26,11 +21,11 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
 
-    private VCFGenotypeWriterAdapter vcfWriter;
+    private VCFWriter vcfWriter;
     String[] sample_ids = null;
 
     public void initialize() {
-        vcfWriter = new VCFGenotypeWriterAdapter(VCF_OUT);
+        vcfWriter = new VCFWriter(VCF_OUT);
     }
 
     /**
@@ -43,7 +38,6 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
 
         for ( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
             if ( rod instanceof HapMapGenotypeROD ) {
-                GenomeLoc loc = context.getLocation();
                 HapMapGenotypeROD hapmap_rod = (HapMapGenotypeROD) rod;
 
                 // If this is the first time map is called, we need to fill out the sample_ids from the rod
@@ -58,37 +52,49 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
                     Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
                     hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
                     hInfo.add(new VCFHeaderLine("source", "HapMap2VCF"));
-                    hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
+                    hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
                     // write out the header once
-                    vcfWriter.writeHeader(sample_id_set, hInfo);
+                    vcfWriter.writeHeader(new VCFHeader(hInfo, sample_id_set));
                 }
 
                 // Get reference base
                 Character ref_allele = ref.getBase();
+                VCFGenotypeEncoding refAllele = new VCFGenotypeEncoding(ref_allele.toString());
 
-                // Print each sample's genotype info
-                List<Genotype> genotype_calls = new ArrayList<Genotype>();
+                // Create a new record
+                VCFRecord record = new VCFRecord(ref_allele, context.getLocation(), "GT");
+
+                // Record each sample's genotype info
                 String[] hapmap_rod_genotypes = hapmap_rod.getGenotypes();
                 for (int i = 0; i < hapmap_rod_genotypes.length; i++) {
                     String sample_id = sample_ids[i];
                     String hapmap_rod_genotype = hapmap_rod_genotypes[i];
 
                     // for each sample, set the genotype if it exists
-                    VCFGenotypeCall genotype = new VCFGenotypeCall(ref_allele, loc);
                     if (!hapmap_rod_genotype.contains("N")) {
-                        genotype.setGenotype(DiploidGenotype.createDiploidGenotype(hapmap_rod_genotype.charAt(0), hapmap_rod_genotype.charAt(1)));
-                        genotype.setSampleName(sample_id);
-                        genotype_calls.add(genotype);
+                        List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
+                        VCFGenotypeEncoding allele1 = new VCFGenotypeEncoding(hapmap_rod_genotype.substring(0,1));
+                        VCFGenotypeEncoding allele2 = new VCFGenotypeEncoding(hapmap_rod_genotype.substring(1));
+                        alleles.add(allele1);
+                        alleles.add(allele2);
+
+                        VCFGenotypeRecord genotype = new VCFGenotypeRecord(sample_id, alleles, VCFGenotypeRecord.PHASE.UNPHASED);
+                        record.addGenotypeRecord(genotype);
+                        if ( !allele1.equals(refAllele) )
+                            record.addAlternateBase(allele1);
+                        if ( !allele2.equals(refAllele) )
+                            record.addAlternateBase(allele2);
                     }
                 }
 
-                // add each genotype to VCF record and write it
-                VCFVariationCall call = new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP);
+                // Add dbsnp ID
                 rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
                 if (dbsnp != null)
-                    call.setID(dbsnp.getRS_ID());
-                vcfWriter.addMultiSampleCall(genotype_calls, call);
+                    record.setID(dbsnp.getRS_ID());
+
+                // Write the VCF record
+                vcfWriter.addRecord(record);
             }
         }
 

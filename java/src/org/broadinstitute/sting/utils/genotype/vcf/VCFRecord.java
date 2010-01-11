@@ -56,10 +56,23 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     private final String mGenotypeFormatString;
 
     // our genotype sample fields
-    private final List<Genotype> mGenotypeFields = new ArrayList<Genotype>();
+    private final List<Genotype> mGenotypeRecords = new ArrayList<Genotype>();
 
     /**
-     * given a VCF header, and the values for each of the columns, create a VCF record.
+     * given a reference base, a location, and the format string, create a VCF record.
+     *
+     * @param referenceBase   the reference base to use
+     * @param location        our genomic location
+     * @param genotypeFormatString  the format string
+     */
+    public VCFRecord(char referenceBase, GenomeLoc location, String genotypeFormatString) {
+        setReferenceBase(referenceBase);
+        setLocation(location);
+        mGenotypeFormatString = genotypeFormatString;
+    }
+
+    /**
+     * given the values for each of the columns, create a VCF record.
      *
      * @param columnValues    a mapping of header strings to values
      * @param formatString    the format string for the genotype records
@@ -67,8 +80,18 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     public VCFRecord(Map<VCFHeader.HEADER_FIELDS, String> columnValues, String formatString, List<VCFGenotypeRecord> genotypeRecords) {
         extractFields(columnValues);
-        mGenotypeFields.addAll(genotypeRecords);
+        mGenotypeRecords.addAll(genotypeRecords);
         mGenotypeFormatString = formatString;
+    }
+
+    /**
+     * given the values for each of the columns, create a VCF record.
+     *
+     * @param columnValues    a mapping of header strings to values
+     */
+    public VCFRecord(Map<VCFHeader.HEADER_FIELDS, String> columnValues) {
+        extractFields(columnValues);
+        mGenotypeFormatString = "";
     }
 
     /**
@@ -95,8 +118,8 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
                      Map<String, String> infoFields,
                      String genotypeFormatString,
                      List<VCFGenotypeRecord> genotypeObjects) {
-        this.setReferenceBase(referenceBase);
-        this.setLocation(contig, position);
+        setReferenceBase(referenceBase);
+        setLocation(contig, position);
         this.mID = ID;
         for (VCFGenotypeEncoding alt : altBases)
             this.addAlternateBase(alt);
@@ -104,17 +127,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         this.setFilterString(filters);
         this.mInfoFields.putAll(infoFields);
         this.mGenotypeFormatString = genotypeFormatString;
-        this.mGenotypeFields.addAll(genotypeObjects);
-    }
-
-    /**
-     * given a VCF header, and the values for each of the columns, create a VCF record.
-     *
-     * @param columnValues a mapping of header strings to values
-     */
-    public VCFRecord(Map<VCFHeader.HEADER_FIELDS, String> columnValues) {
-        extractFields(columnValues);
-        mGenotypeFormatString = "";
+        this.mGenotypeRecords.addAll(genotypeObjects);
     }
 
     /**
@@ -135,12 +148,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
                     position = Integer.valueOf(columnValues.get(val));
                     break;
                 case ID:
-                    this.setID(columnValues.get(val));
+                    setID(columnValues.get(val));
                     break;
                 case REF:
                     if (columnValues.get(val).length() != 1)
                         throw new IllegalArgumentException("Reference base should be a single character");
-                    this.setReferenceBase(columnValues.get(val).charAt(0));
+                    setReferenceBase(columnValues.get(val).charAt(0));
                     break;
                 case ALT:
                     String values[] = columnValues.get(val).split(",");
@@ -148,19 +161,19 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
                         addAlternateBase(new VCFGenotypeEncoding(alt));
                     break;
                 case QUAL:
-                    this.setQual(Double.valueOf(columnValues.get(val)));
+                    setQual(Double.valueOf(columnValues.get(val)));
                     break;
                 case FILTER:
-                    this.setFilterString(columnValues.get(val));
+                    setFilterString(columnValues.get(val));
                     break;
                 case INFO:
                     String vals[] = columnValues.get(val).split(";");
                     for (String alt : vals) {
                         String keyVal[] = alt.split("=");
                         if ( keyVal.length == 1 )
-                            this.addInfoField(keyVal[0], "");
+                            addInfoField(keyVal[0], "");
                         else if (keyVal.length == 2)
-                            this.addInfoField(keyVal[0], keyVal[1]);
+                            addInfoField(keyVal[0], keyVal[1]);
                         else
                             throw new IllegalArgumentException("info field key-value pair did not parse into key->value pair: " + alt);
                     }
@@ -177,21 +190,21 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
 
     public boolean hasGenotypeData() {
-        return (mGenotypeFields.size() > 0);
+        return (mGenotypeRecords.size() > 0);
     }
 
     /**
      * @return this VCF record's location
      */
     public GenomeLoc getLocation() {
-        return this.mLoc;
+        return mLoc;
     }
 
     /**
      * @return the ID value for this record
      */
     public String getID() {
-        return this.mID;
+        return mID == null ? EMPTY_ID_FIELD : mID;
     }
 
     /**
@@ -225,11 +238,11 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public List<VCFGenotypeEncoding> getAlternateAlleles() {
-        return this.mAlts;
+        return mAlts;
     }
 
     public boolean hasAlternateAllele() {
-        for ( VCFGenotypeEncoding alt : this.mAlts ) {
+        for ( VCFGenotypeEncoding alt : mAlts ) {
             if ( alt.getType() != VCFGenotypeEncoding.TYPE.UNCALLED )
                 return true;
         }
@@ -325,14 +338,14 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @return the phred-scaled quality score
      */
     public double getQual() {
-        return this.mQual;
+        return mQual;
     }
 
     /**
      * @return the -log10PError
      */
     public double getNegLog10PError() {
-        return this.mQual / 10.0;
+        return mQual / 10.0;
     }
 
     /**
@@ -364,46 +377,46 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @return a map, of the info key-value pairs
      */
     public Map<String, String> getInfoValues() {
-        if (this.mInfoFields.size() < 1) {
+        if (mInfoFields.size() < 1) {
             Map<String, String> map = new HashMap<String, String>();
             map.put(".", "");
             return map;
         }
-        return this.mInfoFields;
+        return mInfoFields;
     }
 
     /**
      * @return the number of columnsof data we're storing
      */
     public int getColumnCount() {
-        if (this.hasGenotypeData()) return mGenotypeFields.size() + VCFHeader.HEADER_FIELDS.values().length;
+        if (hasGenotypeData()) return mGenotypeRecords.size() + VCFHeader.HEADER_FIELDS.values().length;
         return VCFHeader.HEADER_FIELDS.values().length;
     }
 
     public List<VCFGenotypeRecord> getVCFGenotypeRecords() {
         ArrayList<VCFGenotypeRecord> list = new ArrayList<VCFGenotypeRecord>();
-        for ( Genotype g : mGenotypeFields )
+        for ( Genotype g : mGenotypeRecords )
             list.add((VCFGenotypeRecord)g);       
         return list;
     }
 
     public List<Genotype> getGenotypes() {
-        return mGenotypeFields;
+        return mGenotypeRecords;
     }
 
     public Genotype getCalledGenotype() {
-        if ( mGenotypeFields == null || mGenotypeFields.size() != 1 )
+        if ( mGenotypeRecords == null || mGenotypeRecords.size() != 1 )
             throw new IllegalStateException("There is not one and only one genotype associated with this record");
-        VCFGenotypeRecord record = (VCFGenotypeRecord)mGenotypeFields.get(0);
+        VCFGenotypeRecord record = (VCFGenotypeRecord)mGenotypeRecords.get(0);
         if ( record.isEmptyGenotype() )
             return null;
         return record;
     }
 
     public boolean hasGenotype(DiploidGenotype x) {
-        if ( mGenotypeFields == null )
+        if ( mGenotypeRecords == null )
             return false;
-        for ( Genotype g : mGenotypeFields ) {
+        for ( Genotype g : mGenotypeRecords ) {
             if ( DiploidGenotype.valueOf(g.getBases()).equals(x) )
                 return true;
         }
@@ -414,9 +427,9 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @return a List of the sample names
      */
     public String[] getSampleNames() {
-        String names[] = new String[mGenotypeFields.size()];
-        for (int i = 0; i < mGenotypeFields.size(); i++) {
-            VCFGenotypeRecord rec = (VCFGenotypeRecord)mGenotypeFields.get(i);
+        String names[] = new String[mGenotypeRecords.size()];
+        for (int i = 0; i < mGenotypeRecords.size(); i++) {
+            VCFGenotypeRecord rec = (VCFGenotypeRecord)mGenotypeRecords.get(i);
             names[i] = rec.getSampleName();
         }
         return names;
@@ -441,7 +454,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         referenceBase = (char) ((referenceBase > 96) ? referenceBase - 32 : referenceBase);
         if (referenceBase != 'A' && referenceBase != 'C' && referenceBase != 'T' && referenceBase != 'G' && referenceBase != 'N')
             throw new IllegalArgumentException("Reference base must be one of A,C,G,T,N, we saw: " + referenceBase);
-        this.mReferenceBase = referenceBase;
+        mReferenceBase = referenceBase;
     }
 
     public void setLocation(String chrom, int position) {
@@ -449,25 +462,29 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
             throw new IllegalArgumentException("Chromosomes cannot be missing");
         if ( position < 0 )
             throw new IllegalArgumentException("Position values must be greater than 0");
-        this.mLoc = GenomeLocParser.createGenomeLoc(chrom, position);
+        mLoc = GenomeLocParser.createGenomeLoc(chrom, position);
     }
 
-    public void setID(String mID) {
-        this.mID = mID;
+    public void setLocation(GenomeLoc location) {
+        mLoc = location.clone();
     }
 
-    public void setQual(double mQual) {
-        if (mQual < 0)
+    public void setID(String ID) {
+        mID = ID;
+    }
+
+    public void setQual(double qual) {
+        if (qual < 0)
             throw new IllegalArgumentException("Qual values must be greater than 0");
-        this.mQual = mQual;
+        mQual = qual;
     }
 
-    public void setFilterString(String mFilterString) {
-        this.mFilterString = mFilterString;
+    public void setFilterString(String filterString) {
+        mFilterString = filterString;
     }
 
-    public void addGenotypeField(VCFGenotypeRecord mGenotypeFields) {
-        this.mGenotypeFields.add(mGenotypeFields);
+    public void addGenotypeRecord(VCFGenotypeRecord mGenotypeRecord) {
+        mGenotypeRecords.add(mGenotypeRecord);
     }
 
     /**
@@ -488,7 +505,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     public void addInfoField(String key, String value) {
         //System.out.printf("Adding info field %s=%s%n", key, value);
-        this.mInfoFields.put(key, value);
+        mInfoFields.put(key, value);
 
         // remove the empty token if it's present
         if ( mInfoFields.containsKey(".") )
@@ -496,7 +513,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public void printInfoFields() {
-        for ( Map.Entry<String, String> e : this.mInfoFields.entrySet() ) {
+        for ( Map.Entry<String, String> e : mInfoFields.entrySet() ) {
             System.out.printf("  Current info field %s=%s this=%s%n", e.getKey(), e.getValue(), this);
         }
     }
@@ -542,7 +559,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         builder.append(getReferenceBase());
         builder.append(FIELD_SEPERATOR);
         String alts = "";
-        for (VCFGenotypeEncoding str : this.getAlternateAlleles()) alts += str.toString() + ",";
+        for (VCFGenotypeEncoding str : getAlternateAlleles()) alts += str.toString() + ",";
         builder.append((alts.length() > 0) ? alts.substring(0, alts.length() - 1) + FIELD_SEPERATOR : "." + FIELD_SEPERATOR);
         builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, getQual()));
         builder.append(FIELD_SEPERATOR);
@@ -550,7 +567,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         builder.append(FIELD_SEPERATOR);
         builder.append(createInfoString());
 
-        if ( this.hasGenotypeData() ) {
+        if ( hasGenotypeData() ) {
             try {
                 addGenotypeData(builder, header);
             } catch (Exception e) {
@@ -569,7 +586,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     protected String createInfoString() {
         String info = "";
-        for (String str : this.getInfoValues().keySet()) {
+        for (String str : getInfoValues().keySet()) {
             if (str.equals(EMPTY_INFO_FIELD))
                 return EMPTY_INFO_FIELD;
             else
@@ -597,7 +614,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
             tempStr.append(FIELD_SEPERATOR);
             if ( gMap.containsKey(genotype) ) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
-                tempStr.append(rec.toStringEncoding(this.mAlts, genotypeFormatStrings));
+                tempStr.append(rec.toStringEncoding(mAlts, genotypeFormatStrings));
                 gMap.remove(genotype);
             } else {
                 tempStr.append(VCFGenotypeRecord.EMPTY_GENOTYPE);
@@ -628,7 +645,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
             if ( other.mFilterString != null ) return false;
         } else if ( !this.mFilterString.equals(other.mFilterString) ) return false;            
         if (!this.mInfoFields.equals(other.mInfoFields)) return false;
-        if (!this.mGenotypeFields.equals(other.mGenotypeFields)) return false;
+        if (!this.mGenotypeRecords.equals(other.mGenotypeRecords)) return false;
         return true;
     }
 

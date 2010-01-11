@@ -92,7 +92,7 @@ public class VCFRecordTest extends BaseTest {
     public void testGetGenotypes() {
         Map<String, String> infoFields = new HashMap<String, String>();
         VCFRecord rec = makeFakeVCFRecord(infoFields);
-        rec.addGenotypeField(createGenotype("sample2", "C", "A"));
+        rec.addGenotypeRecord(createGenotype("sample2", "C", "A"));
         List<VCFGenotypeRecord> genotypeObjects = rec.getVCFGenotypeRecords();
         Assert.assertEquals(2, genotypeObjects.size());
         Assert.assertTrue(genotypeObjects.get(0).getSampleName().equals("sample1"));

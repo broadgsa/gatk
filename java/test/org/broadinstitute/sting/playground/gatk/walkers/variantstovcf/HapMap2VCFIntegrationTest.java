@@ -21,7 +21,7 @@ public class HapMap2VCFIntegrationTest extends WalkerTest {
     @Test
     public void testHapMap2VCF() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("5f525309d7bfb28b639cdf5d3e22ee3c");
+        md5.add("a4de8775433c8228eeac2c91d4d3737a");
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
