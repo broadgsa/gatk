@@ -103,7 +103,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.2.3"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.4"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -170,7 +170,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( USE_STANDARD_COVARIATES ) {
             for( Class<?> covClass : standardClasses ) {
                 try {
-                    Covariate covariate = (Covariate)covClass.newInstance();
+                    final Covariate covariate = (Covariate)covClass.newInstance();
                     requestedCovariates.add( covariate );
                 } catch ( InstantiationException e ) {
                     throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
@@ -189,7 +189,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         if( !requiredClasses.contains( covClass ) && (!USE_STANDARD_COVARIATES || !standardClasses.contains( covClass )) ) {
                             try {
                                 // Now that we've found a matching class, try to instantiate it
-                                Covariate covariate = (Covariate)covClass.newInstance();
+                                final Covariate covariate = (Covariate)covClass.newInstance();
                                 requestedCovariates.add( covariate );
                             } catch ( InstantiationException e ) {
                                 throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );

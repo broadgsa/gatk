@@ -94,7 +94,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.2.6"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.7"; // Major version, minor version, and build number
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
 
@@ -120,7 +120,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         // Get a list of all available covariates
-        List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
+        final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
 
         int lineNumber = 0;
         boolean foundAllCovariates = false;
@@ -223,7 +223,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // Take the header of the input SAM file and tweak it by adding in a new programRecord with the version number and list of covariates that were used
         final SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
         if( !NO_PG_TAG ) {
-            SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
+            final SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
             programRecord.setProgramVersion( versionString );
             String commandLineString = "Covariates used = [";
             for( Covariate cov : requestedCovariates ) {
@@ -232,10 +232,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             commandLineString = commandLineString.substring(0, commandLineString.length() - 2); // trim off the trailing comma
             commandLineString += "] ";
             // Add all of the arguments from the recalibraiton argument collection to the command line string
-            Field[] fields = RAC.getClass().getFields();
+            final Field[] fields = RAC.getClass().getFields();
             for( Field field : fields ) {
-                ArgumentTypeDescriptor atd = ArgumentTypeDescriptor.create(field.getType());
-                List<ArgumentDefinition> adList = atd.createArgumentDefinitions(new ArgumentSource(field.getType(), field));
+                final ArgumentTypeDescriptor atd = ArgumentTypeDescriptor.create(field.getType());
+                final List<ArgumentDefinition> adList = atd.createArgumentDefinitions(new ArgumentSource(field.getType(), field));
                 for( ArgumentDefinition ad : adList ) {
                     commandLineString += (ad.fullName + "=" + JVMUtils.getFieldValue(field, RAC) + ", ");
                 }
@@ -355,8 +355,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         final RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( readGroupCollapsedKey ));
         double globalDeltaQ = 0.0;
         if( globalRecalDatum != null ) {
-            double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
-            double aggregrateQReported = globalRecalDatum.getEstimatedQReported();
+            final double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
+            final double aggregrateQReported = globalRecalDatum.getEstimatedQReported();
             globalDeltaQ = globalDeltaQEmpirical - aggregrateQReported;
         }
 
@@ -366,7 +366,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         final RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( qualityScoreCollapsedKey ));
         double deltaQReported = 0.0;
         if( qReportedRecalDatum != null ) {
-            double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
+            final double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
             deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
         }
         

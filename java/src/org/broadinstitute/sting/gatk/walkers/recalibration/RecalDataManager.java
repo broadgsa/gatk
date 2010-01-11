@@ -45,10 +45,10 @@ import net.sf.samtools.SAMReadGroupRecord;
 
 public class RecalDataManager {
     
-    public NestedHashMap data; // The full dataset
-    private NestedHashMap dataCollapsedReadGroup; // Table where everything except read group has been collapsed
-    private NestedHashMap dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
-    private ArrayList<NestedHashMap> dataCollapsedByCovariate; // Tables where everything except read group, quality score, and given covariate has been collapsed
+    public final NestedHashMap data; // The full dataset
+    private final NestedHashMap dataCollapsedReadGroup; // Table where everything except read group has been collapsed
+    private final NestedHashMap dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
+    private final ArrayList<NestedHashMap> dataCollapsedByCovariate; // Tables where everything except read group, quality score, and given covariate has been collapsed
 
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // The tag that holds the color space quality scores for SOLID bams
@@ -59,10 +59,14 @@ public class RecalDataManager {
 
     RecalDataManager() {
     	data = new NestedHashMap();
+        dataCollapsedReadGroup = null;
+        dataCollapsedQualityScore = null;
+        dataCollapsedByCovariate = null;
     }
 
     RecalDataManager( final boolean createCollapsedTables, final int numCovariates ) {
     	if( createCollapsedTables ) { // Initialize all the collapsed tables, only used by TableRecalibrationWalker
+            data = null;
             dataCollapsedReadGroup = new NestedHashMap();
             dataCollapsedQualityScore = new NestedHashMap();
             dataCollapsedByCovariate = new ArrayList<NestedHashMap>();
@@ -71,6 +75,9 @@ public class RecalDataManager {
             }
         } else {
             data = new NestedHashMap();
+            dataCollapsedReadGroup = null;
+            dataCollapsedQualityScore = null;
+            dataCollapsedByCovariate = null;
         }            
     }
     
@@ -321,10 +328,10 @@ public class RecalDataManager {
 
             // Now that we have the inconsistency array apply the desired correction to the inconsistent bases
             if( SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ) { // Set inconsistent bases and the one before it to Q0
-                boolean setBaseN = false;
+                final boolean setBaseN = false;
                 originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, isMappedToReference, setBaseN);
             } else if( SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO_BASE_N") ) {
-                boolean setBaseN = true;
+                final boolean setBaseN = true;
                 originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, isMappedToReference, setBaseN);
             } else if( SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") ) { // Use the color space quality to probabilistically remove ref bases at inconsistent color space bases
                 solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead, isMappedToReference, coinFlip);
@@ -469,13 +476,33 @@ public class RecalDataManager {
      * Check if this base is inconsistent with its color space. If it is then SOLID inserted the reference here and we should reduce the quality
      * @param read The read which contains the color space to check against
      * @param offset The offset in the read at which to check
-     * @return Returns true if the base is inconsistent with the color space
+     * @return Returns true if the base was inconsistent with the color space
      */
     public static boolean isInconsistentColorSpace( final SAMRecord read, final int offset ) {
         final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG);
         if( attr != null ) {
-            final byte[] colorSpace = (byte[])attr;
-            return colorSpace[offset] != 0;
+            final byte[] inconsistency = (byte[])attr;
+            // NOTE: The inconsistency array is in the direction of the read, not aligned to the reference!
+            if( read.getReadNegativeStrandFlag() ) { // Negative direction
+                return inconsistency[inconsistency.length - offset - 1] != 0;
+            } else { // Forward direction
+                return inconsistency[offset] != 0;
+            }
+
+            // This block of code is if you want to check both the offset and the next base for color space inconsistency
+            //if( read.getReadNegativeStrandFlag() ) { // Negative direction
+            //    if( offset == 0 ) {
+            //        return inconsistency[0] != 0;
+            //    } else {
+            //        return (inconsistency[inconsistency.length - offset - 1] != 0) || (inconsistency[inconsistency.length - offset] != 0);
+            //    }
+            //} else { // Forward direction
+            //    if( offset == inconsistency.length - 1 ) {
+            //        return inconsistency[inconsistency.length - 1] != 0;
+            //    } else {
+            //        return (inconsistency[offset] != 0) || (inconsistency[offset + 1] != 0);
+            //    }
+            //}
         } else {
             return false;
         }
