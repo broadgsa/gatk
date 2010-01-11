@@ -162,10 +162,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         Map<String, String> annotations = new HashMap<String, String>();
         VariationRod variant = (VariationRod)rods.getRecords().get(0);
 
-        // if the reference base is not ambiguous, the variant is a SNP, and it's the appropriate type, we can annotate
-        if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 &&
-                variant.isBiallelic() &&
-                variant.isSNP() ) {
+        // if the reference base is not ambiguous, we can annotate
+        if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null )
                 annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations);

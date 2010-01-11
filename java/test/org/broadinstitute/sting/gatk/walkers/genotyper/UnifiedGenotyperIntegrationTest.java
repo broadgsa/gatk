@@ -22,7 +22,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1PointEM() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,400-10,024,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("b7ea2739f9190ea6c5c63ffd1150454e"));
+                Arrays.asList("ee02dbbbbe957ccf0ee79dcdfd7abff6"));
         executeTest("testMultiSamplePilot1 - Point Estimate EM", spec);
     }
 

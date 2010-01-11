@@ -15,7 +15,7 @@ public class AlleleBalance extends StandardVariantAnnotation {
 
     public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
 
-        if ( !(variation instanceof VariantBackedByGenotype) )
+        if ( !variation.isBiallelic() || !(variation instanceof VariantBackedByGenotype) )
             return null;
         final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )

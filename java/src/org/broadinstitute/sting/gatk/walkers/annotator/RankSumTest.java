@@ -20,8 +20,9 @@ public class RankSumTest implements VariantAnnotation {
 
     public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
 
-        if ( !(variation instanceof VariantBackedByGenotype) )
+        if ( !variation.isBiallelic() || !variation.isSNP() || !(variation instanceof VariantBackedByGenotype) )
             return null;
+        
         final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
