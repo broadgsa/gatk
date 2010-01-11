@@ -71,7 +71,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     // Command Line Arguments
     /////////////////////////////
     @Argument(fullName="output_bam", shortName="outputBam", doc="output BAM file", required=true)
-    private SAMFileWriter OUTPUT_BAM = null;
+    private String OUTPUT_BAM_FILE = null;
     @Argument(fullName="preserve_qscores_less_than", shortName="pQ",
         doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
     private int PRESERVE_QSCORES_LESS_THAN = 5;
@@ -79,6 +79,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private int SMOOTHING = 1;
     @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default is 40")
     private int MAX_QUALITY_SCORE = 40;
+    @Argument(fullName="compression_level", shortName="compress", required = false, doc="Compression level parameter passed to SAMFileWriter, higher value means more compression at added cost in run time, default is 5")
+    private int COMPRESSION_LEVEL = 5;
 
     /////////////////////////////
     // Debugging-only Arguments
@@ -94,7 +96,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.2.7"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.8"; // Major version, minor version, and build number
+    private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
 
@@ -245,6 +248,13 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             programRecord.setCommandLine( commandLineString );
             header.addProgramRecord( programRecord );
         }
+
+        // Create the SAMFileWriter that we will be using to output the reads
+        if( OUTPUT_BAM_FILE != null ) {
+            final SAMFileWriterFactory factory = new SAMFileWriterFactory();
+            OUTPUT_BAM = factory.makeBAMWriter( header, true, new File(OUTPUT_BAM_FILE), COMPRESSION_LEVEL );
+        }
+
     }
 
     /**
@@ -434,7 +444,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @return The FileWriter
      */
     public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
-        if ( output != null ) {
+        if( output != null ) {
             output.addAlignment(read);
         } else {
             out.println(read.format());
@@ -444,7 +454,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     }
 
     /**
+     * Close the output bam file
      * @param output The SAMFileWriter that outputs the bam file
      */
-    public void onTraversalDone(SAMFileWriter output) { }
+    public void onTraversalDone(SAMFileWriter output) {
+        if( output != null ) {
+            output.close();
+        }
+    }
 }
