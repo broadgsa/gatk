@@ -223,4 +223,12 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
     public String getSampleName() {
         return mSampleName;
     }
+
+    /**
+     *
+     * @return a new VCFGenotypeCall with the same internal data as this one
+     */
+    public VCFGenotypeCall cloneCall() {
+        return new VCFGenotypeCall(this.mRefBase, this.mLocation, this.mGenotype, this.mNegLog10PError, this.mCoverage, this.mSampleName);
+    }
 }

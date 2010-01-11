@@ -66,7 +66,6 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
 
                 // Get reference base
                 Character ref_allele = ref.getBase();
-                VCFVariationCall variation = new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP);
 
                 // Print each sample's genotype info
                 List<Genotype> genotype_calls = new ArrayList<Genotype>();
@@ -85,7 +84,6 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
                 }
 
                 // add each genotype to VCF record and write it
-                variation.setGenotypeCalls(genotype_calls);
                 VCFVariationCall call = new VCFVariationCall(ref_allele, loc, Variation.VARIANT_TYPE.SNP);
                 rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
                 if (dbsnp != null)
