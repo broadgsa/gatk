@@ -34,6 +34,7 @@ import java.io.File;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * A stub for routing and management of SAM file reading and writing.
@@ -75,6 +76,13 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
     private OutputTracker outputTracker = null;
 
     /**
+     * Has the write started?  If so, throw an exception if someone tries to
+     * change write parameters to the file (compression level, presorted flag,
+     * header, etc).
+     */
+    private boolean writeStarted = false;
+
+    /**
      * Create a new stub given the requested SAM file and compression level.
      * @param engine source of header data, maybe other data about input files.
      * @param samFile SAM file to (ultimately) create.
@@ -113,6 +121,8 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * @param compressionLevel The suggested compression level.
      */
     public void setCompressionLevel( Integer compressionLevel ) {
+        if(writeStarted)
+            throw new StingException("User attempted to change the compression level of a file with alignments already in it.");        
         this.compressionLevel = compressionLevel;
     }
 
@@ -129,6 +139,8 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * @param presorted True if the BAM file is presorted.  False otherwise.
      */
     public void setPresorted(boolean presorted) {
+        if(writeStarted)
+            throw new StingException("User attempted to change the presorted state of a file with alignments already in it.");
         this.presorted = presorted;
     }
 
@@ -145,6 +157,8 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * @param header The header to write.
      */
     public void writeHeader(SAMFileHeader header) {
+        if(writeStarted)
+            throw new StingException("User attempted to change the header of a file with alignments already in it.");
         this.headerOverride = header;
     }
 
@@ -152,6 +166,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * @{inheritDoc}
      */
     public void addAlignment( SAMRecord alignment ) {
+        writeStarted = true;
         outputTracker.getStorage(this).addAlignment(alignment);
     }
 
