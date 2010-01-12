@@ -5,16 +5,14 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
 
-public class RankSumTest implements VariantAnnotation {
+public abstract class RankSumTest implements VariantAnnotation {
     private final static boolean DEBUG = false;
     private static final double minPValue = 1e-10;
 
@@ -68,21 +66,5 @@ public class RankSumTest implements VariantAnnotation {
         return String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue));
     }
 
-    public String getKeyName() { return "RankSum"; }
-
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("RankSum", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities"); }
-
-    private void fillQualsFromPileup(char ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
-        for ( PileupElement p : pileup ) {
-            // ignore deletions
-            if ( p.isDeletion() )
-                continue;
-
-            char base = (char)p.getBase();
-            if ( base == ref )
-                refQuals.add((int)p.getQual());
-            else if ( base == alt )
-                altQuals.add((int)p.getQual());
-        }
-    }
+    protected abstract void fillQualsFromPileup(char ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals);
 }

@@ -21,8 +21,8 @@ public class AlleleBalance extends StandardVariantAnnotation {
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
-        int refCount = 0;
-        int altCount = 0;
+        double ratio = 0.0;
+        double totalWeights = 0.0;
         for ( Genotype genotype : genotypes ) {
             // we care only about het calls
             if ( !genotype.isHet() )
@@ -49,17 +49,23 @@ public class AlleleBalance extends StandardVariantAnnotation {
             int aCount = Utils.countOccurrences(a, bases);
             int bCount = Utils.countOccurrences(b, bases);
 
+            int refCount = (a == ref.getBase() ? aCount : bCount);
+            int altCount = (a == ref.getBase() ? bCount : aCount);
+
+            // sanity check
+            if ( refCount + altCount == 0 )
+                continue;
+
             // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
-            refCount += genotype.getNegLog10PError() * (a == ref.getBase() ? aCount : bCount);
-            altCount += genotype.getNegLog10PError() * (a == ref.getBase() ? bCount : aCount);
+            ratio += genotype.getNegLog10PError() * ((double)refCount / (double)(refCount + altCount));
+            totalWeights += genotype.getNegLog10PError();
         }
 
-        // sanity check
-        if ( refCount + altCount == 0 )
+        // make sure we had a het genotype
+        if ( MathUtils.compareDoubles(totalWeights, 0.0) == 0 )
             return null;
 
-        double ratio = (double)refCount / (double)(refCount + altCount);
-        return String.format("%.2f", ratio);
+        return String.format("%.2f", (ratio / totalWeights));
     }
 
     public String getKeyName() { return "AB"; }
