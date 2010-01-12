@@ -3,8 +3,6 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
-import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
