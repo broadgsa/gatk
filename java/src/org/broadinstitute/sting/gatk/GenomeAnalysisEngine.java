@@ -597,7 +597,7 @@ public class GenomeAnalysisEngine {
         if (walker instanceof LocusWalker) {
             if (walker instanceof RodWalker) SHARD_SIZE *= 1000;
 
-            if (intervals != null) {
+            if (intervals != null && !intervals.isEmpty()) {
                 shardType = (walker.isReduceByInterval()) ?
                         ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
                         ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
@@ -615,7 +615,7 @@ public class GenomeAnalysisEngine {
 
             shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
 
-            if (intervals != null) {
+            if (intervals != null && !intervals.isEmpty()) {
                 shardStrategy = ShardStrategyFactory.shatter(shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
@@ -626,7 +626,7 @@ public class GenomeAnalysisEngine {
                         SHARD_SIZE, maxIterations);
             }
         } else if (walker instanceof LocusWindowWalker) {
-            if (intervals == null)
+            if (intervals == null || intervals.isEmpty())
                 throw new StingException("Unable to shard: walker is of type LocusWindow, but no intervals were provided");
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
                     drivingDataSource.getSequenceDictionary(),

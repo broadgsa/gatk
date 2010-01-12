@@ -85,7 +85,6 @@ public class IntervalShardStrategy implements ShardStrategy {
             throw new StingException("IntervalShardStrategy: genomic regions list is empty.");
         }
         this.regions = locations.clone();
-        this.size = size;
     }
 
     /**
