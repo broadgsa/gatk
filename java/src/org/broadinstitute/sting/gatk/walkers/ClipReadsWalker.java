@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -26,7 +27,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
      * an optional argument to dump the reads out to a BAM file
      */
     @Argument(fullName = "outputBam", shortName = "ob", doc = "Write output to this BAM filename instead of STDOUT", required = false)
-    String outputBamFile = null;
+    StingSAMFileWriter outputBam = null;
 
     @Argument(fullName = "qTrimmingThreshold", shortName = "QT", doc = "", required = false)
     int qTrimmingThreshold = -1;
@@ -117,6 +118,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
                 }
             }
         }
+
+        outputBam.setPresorted(clippingRepresentation != ClippingRepresentation.SOFTCLIP_BASES);
     }
 
     /**
@@ -277,23 +280,15 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
      * @return
      */
     public ClippingData reduceInit() {
-        SAMFileWriter outputBam = null;
-
-        if ( outputBamFile != null ) {
-            SAMFileHeader header = this.getToolkit().getSAMFileHeader();
-            boolean maintainsSort = clippingRepresentation != ClippingRepresentation.SOFTCLIP_BASES;
-            outputBam = Utils.createSAMFileWriterWithCompression(header, maintainsSort, outputBamFile, 5);
-        }
-
-        return new ClippingData(outputBam, sequencesToClip);
+        return new ClippingData(sequencesToClip);
     }
 
     public ClippingData reduce(ReadClipper clipper, ClippingData data) {
         if ( clipper == null )
             return data;
 
-        if (data.output != null) {
-            data.output.addAlignment(clipper.clipRead(clippingRepresentation));
+        if (outputBam != null) {
+            outputBam.addAlignment(clipper.clipRead(clippingRepresentation));
         } else {
             out.println(clipper.clipRead(clippingRepresentation).format());
         }
@@ -321,9 +316,6 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     }
 
     public void onTraversalDone(ClippingData data) {
-        if (data.output != null)
-            data.output.close();
-
         out.printf(data.toString());
     }
 
@@ -522,8 +514,6 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     }
 
     public class ClippingData {
-        public SAMFileWriter output = null;
-
         public long nTotalReads = 0;
         public long nTotalBases = 0;
         public long nClippedReads = 0;
@@ -534,8 +524,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
 
         HashMap<String, Long> seqClipCounts = new HashMap<String, Long>();
 
-        public ClippingData(SAMFileWriter output, List<SeqToClip> clipSeqs) {
-            this.output = output;
+        public ClippingData(List<SeqToClip> clipSeqs) {
             for (SeqToClip clipSeq : clipSeqs) {
                 seqClipCounts.put(clipSeq.seq, 0L);
             }

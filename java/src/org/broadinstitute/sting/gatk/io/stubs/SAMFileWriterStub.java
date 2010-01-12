@@ -32,6 +32,7 @@ import net.sf.samtools.SAMFileHeader;
 import java.io.File;
 
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 /**
@@ -40,11 +41,16 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
  * @author mhanna
  * @version 0.1
  */
-public class SAMFileWriterStub implements Stub<SAMFileWriter>, SAMFileWriter {
+public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWriter {
     /**
      * Engine to use for collecting attributes for the output SAM file.
      */
     private final GenomeAnalysisEngine engine;
+
+    /**
+     * A header supplied by the user that overrides the merged header from the input BAM.
+     */
+    private SAMFileHeader headerOverride = null;
 
     /**
      * The sam file that this stub should write to.  Should be passed along to
@@ -58,6 +64,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, SAMFileWriter {
     private Integer compressionLevel = null;
 
     /**
+     * Should this BAM be presorted?
+     */
+    private boolean presorted = true;
+
+    /**
      * Connects this stub with an external stream capable of serving the
      * requests of the consumer of this stub.
      */
@@ -66,7 +77,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, SAMFileWriter {
     /**
      * Create a new stub given the requested SAM file and compression level.
      * @param engine source of header data, maybe other data about input files.
-     * @param samFile SAM file to (ultimately) cerate.
+     * @param samFile SAM file to (ultimately) create.
      */
     public SAMFileWriterStub( GenomeAnalysisEngine engine, File samFile ) {
         this.engine = engine;
@@ -85,12 +96,8 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, SAMFileWriter {
      * Retrieves the header to use when creating the new SAM file.
      * @return header to use when creating the new SAM file.
      */
-    public SAMFileHeader getSAMFileHeader() {
-        return engine.getSAMFileHeader();    
-    }
-
     public SAMFileHeader getFileHeader() {
-        return getSAMFileHeader();
+        return headerOverride != null ? headerOverride : engine.getSAMFileHeader();
     }
 
     /**
@@ -110,11 +117,35 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, SAMFileWriter {
     }
 
     /**
+     * Whether the BAM file to create is actually presorted.
+     * @return True if the BAM file is presorted.  False otherwise.
+     */
+    public boolean isPresorted() {
+        return this.presorted;
+    }
+
+    /**
+     * Set Whether the BAM file to create is actually presorted.
+     * @param presorted True if the BAM file is presorted.  False otherwise.
+     */
+    public void setPresorted(boolean presorted) {
+        this.presorted = presorted;
+    }
+
+    /**
      * Registers the given streamConnector with this stub.
      * @param outputTracker The connector used to provide an appropriate stream.
      */
     public void register( OutputTracker outputTracker ) {
         this.outputTracker = outputTracker;
+    }
+
+    /**
+     * Use the given header as the target for this writer.
+     * @param header The header to write.
+     */
+    public void writeHeader(SAMFileHeader header) {
+        this.headerOverride = header;
     }
 
     /**

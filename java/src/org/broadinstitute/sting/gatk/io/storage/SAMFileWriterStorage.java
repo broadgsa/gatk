@@ -49,17 +49,17 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
     public SAMFileWriterStorage( SAMFileWriterStub stub, File file ) {
         this.file = file;
         if( stub.getCompressionLevel() != null )
-            this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getSAMFileHeader(), true, file, stub.getCompressionLevel() );
+            this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
         else
-            this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getSAMFileHeader(), true, file );
-    }
-
-    public void addAlignment( SAMRecord read ) {
-        writer.addAlignment(read);
+            this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
     }
 
     public SAMFileHeader getFileHeader() {
         return writer.getFileHeader();
+    }
+
+    public void addAlignment( SAMRecord read ) {
+        writer.addAlignment(read);
     }
 
     public void close() {

@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import net.sf.samtools.SAMFileWriter;
 
 import java.util.List;
@@ -60,7 +61,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public boolean supports( Class type ) {
-        return SAMFileWriter.class.isAssignableFrom(type);
+        return SAMFileWriter.class.equals(type) || StingSAMFileWriter.class.equals(type);
     }
 
     @Override
