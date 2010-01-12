@@ -257,8 +257,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     totalMismatchSum += mismatchScore;
                 aRead.setMismatchScoreToReference(mismatchScore);
                 // if it has an indel, let's see if that's the best consensus
-                if ( numBlocks == 2 )
+                if ( numBlocks == 2 )  {
                     altConsenses.add(createAlternateConsensus(aRead.getAlignmentStart() - (int)leftmostIndex, aRead.getCigar(), reference, aRead.getRead().getReadBases()));
+                }
                 else {
                     //                    if ( debugOn ) System.out.println("Going to test...");
                     altAlignmentsToTest.add(aRead);
@@ -456,8 +457,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             case M:
                 if ( reference.length() < refIdx + elementLength )
                     ok_flag = false;
-                else
+                else  {
                     sb.append(reference.substring(refIdx, refIdx + elementLength));
+                }
                 refIdx += elementLength;
                 altIdx += elementLength;
                 break;
@@ -700,6 +702,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         CigarElement ce1 = cigar.getCigarElement(0);
         CigarElement ce2 = cigar.getCigarElement(1);
 
+        // we currently can not handle clipped reads; alternatively, if the alignment starts from insertion, there
+        // is no place on the read to move that insertion further left; so we are done:
+        if ( ce1.getOperator() != CigarOperator.M ) return cigar;
+
         int difference = 0; // we can move indel 'difference' bases left
         final int indel_length = ce2.getLength();
 
@@ -775,9 +781,50 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
                         
         if ( difference > 0 ) {
+
+            // The following if() statement: this should've never happened, unless the alignment is really screwed up.
+            // A real life example:
+            //
+            //   ref:    TTTTTTTTTTTTTTTTTT***TTTTTACTTATAGAAGAAAT...
+            //  read:    GTCTTTTTTTTTTTTTTTTTTTTTTTACTTATAGAAGAAAT...
+            //
+            //  i.e. the alignment claims 6 T's to be inserted. The alignment is clearly incorrect since we could
+            // have just 3 T's inserted (so that the beginning of the read maps right onto the beginning of the
+            // reference fragment shown): that would leave us with same 2 mismatches at the beginning of the read
+            // (G and C) but lower gap penalty. While it is unclear how the alignment shown above could be generated
+            // in the first place, we are not in the business of fixing incorrect alignments in this method; all we are
+            // trying to do is to left-adjust correct ones. So if something like that happens, we refuse to change the cigar
+            // and bail out.
+            if ( ce1.getLength()-difference < 0 ) return cigar;
+
             Cigar newCigar = new Cigar();
-            newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
-            newCigar.add(ce2);
+            // do not add leading M cigar element if its length is zero (i.e. if we managed to left-shift the
+            // insertion all the way to the read start):
+            if ( ce1.getLength() - difference > 0 )
+                newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
+            newCigar.add(ce2);  // add the indel, now it's left shifted since we decreased the number of preceding matching bases
+
+            if ( cigar.numCigarElements() > 2 ) {
+                // if we got something following the indel element:
+
+                if ( cigar.getCigarElement(2).getOperator() == CigarOperator.M  ) {
+                    // if indel was followed by matching bases (that's the most common situation),
+                    // increase the length of the matching section after the indel by the amount of left shift
+                    // (matching bases that were on the left are now *after* the indel; we have also checked at the beginning
+                    // that the first cigar element was also M):
+                    newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
+                } else {
+                    // if the element after the indel was not M, we have to add just the matching bases that were on the left
+                    // and now appear after the indel after we performed the shift. Then add the original element that followed the indel.
+                    newCigar.add(new CigarElement(difference, CigarOperator.M));
+                    newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength(),cigar.getCigarElement(2).getOperator()));
+                }
+                // now add remaining (unchanged) cigar elements, if any:
+                for ( int i = 3 ; i < cigar.numCigarElements() ; i++ )  {
+                    newCigar.add(new CigarElement(cigar.getCigarElement(i).getLength(),cigar.getCigarElement(i).getOperator()));                    
+                }
+            }
+
             newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
 
             //logger.debug("Realigning indel: " + AlignmentUtils.cigarToString(cigar) + " to " + AlignmentUtils.cigarToString(newCigar));
