@@ -134,6 +134,34 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testCountCovariatesVCFPlusDBsnp() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "cc1cc9c1ff184d388d81574fdccc608e");
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                            " -B anyNameABCD,VCF," + validationDataLocation + "vcfexample3.vcf" +
+                            " -T CountCovariates" +
+                            " -I " + bam +
+                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " -L 1:10,000,000-10,200,000" +
+                            " -cov ReadGroupCovariate" +
+                            " -cov QualityScoreCovariate" +
+                            " -cov CycleCovariate" +
+                            " -cov DinucCovariate" +
+                            " --solid_recal_mode SET_Q_ZERO" +
+                            " -recalFile %s",
+                    1, // just one output file
+                    Arrays.asList(md5));
+            executeTest("testCountCovariatesVCFPlusDBsnp", spec);
+        }
+    }
+
+    @Test
     public void testCountCovariatesNoReadGroups() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "a86c64f649b847b7f81ac50a808d3d45" );

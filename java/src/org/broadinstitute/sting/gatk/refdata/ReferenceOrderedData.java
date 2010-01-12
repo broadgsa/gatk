@@ -125,7 +125,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     }
 
     /**
-     * given a existing file, open it and append all the valid triplet lines to an existing list
+     * given an existing file, open it and append all the valid triplet lines to an existing list
      *
      * @param rodTripletList the list of existing triplets
      * @param filename       the file to attempt to extract ROD triplets from

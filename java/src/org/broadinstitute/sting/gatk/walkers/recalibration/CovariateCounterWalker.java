@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
@@ -103,7 +104,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.2.4"; // Major version, minor version, and build number
+    private static final String versionString = "v2.2.5"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -149,8 +150,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         // Warn the user if no dbSNP file was specified
         boolean foundDBSNP = false;
         for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
-            if( rod.getName().equalsIgnoreCase( "dbsnp" ) ) {
+            if( rod != null ) {
                 foundDBSNP = true;
+                break;
             }
         }
         if( !foundDBSNP ) {
@@ -232,15 +234,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
-        // Pull out anything passed by -B name,type,file that has the name "dbsnp"
-        final RODRecordList<ReferenceOrderedDatum> dbsnpRODs = tracker.getTrackData( "dbsnp", null );
+        // Pull out data for this locus for all the input RODs and check if this is a known variant site in any of them
         boolean isSNP = false;
-        if (dbsnpRODs != null) {
-            for( ReferenceOrderedDatum rod : dbsnpRODs ) {
-                if( ((Variation)rod).isSNP() ) {
-                    isSNP = true; // At least one of the rods says this is a snp site
-                    break;
-                }
+        for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
+            if( rod != null && rod instanceof Variation && ((Variation)rod).isSNP() ) {
+                isSNP = true; // At least one of the rods says this is a snp site
+                break;
             }
         }
 
