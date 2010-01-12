@@ -65,8 +65,8 @@ public class IntervalShardStrategyTest extends BaseTest {
         mSortedSet = new GenomeLocSortedSet();
     }
 
-    @Test(expected = StingException.class)
-    public void testExceptionOnEmpty() {
+    @Test
+    public void testNoExceptionOnEmpty() {
         IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet,Shard.ShardType.LOCUS_INTERVAL);
     }
 

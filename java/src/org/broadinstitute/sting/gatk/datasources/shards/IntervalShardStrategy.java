@@ -57,7 +57,7 @@ public class IntervalShardStrategy implements ShardStrategy {
      * @param size the next recommended shard size.
      */
     public void adjustNextShardSize( long size ) {
-        this.size = size;
+        this.size = size; // we don't do anything with the size in this case, but we should store it anyway
     }
 
     /**
@@ -67,24 +67,9 @@ public class IntervalShardStrategy implements ShardStrategy {
      * @param locations
      */
     IntervalShardStrategy( long size, GenomeLocSortedSet locations, Shard.ShardType shardType ) {
-        if (locations == null || locations.isEmpty()) {
-            throw new StingException("IntervalShardStrategy: genomic regions list is empty.");
-        }
         type = shardType;
-        this.regions = locations.clone();
+        this.regions = locations == null ? new GenomeLocSortedSet() : locations.clone();
         this.size = size;
-    }
-
-    /**
-     * the default constructor
-     *
-     * @param dict the sequence dictionary to use
-     */
-    IntervalShardStrategy( SAMSequenceDictionary dict, GenomeLocSortedSet locations ) {
-        if (locations == null || locations.isEmpty()) {
-            throw new StingException("IntervalShardStrategy: genomic regions list is empty.");
-        }
-        this.regions = locations.clone();
     }
 
     /**

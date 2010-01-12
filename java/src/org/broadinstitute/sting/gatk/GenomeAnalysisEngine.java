@@ -626,8 +626,9 @@ public class GenomeAnalysisEngine {
                         SHARD_SIZE, maxIterations);
             }
         } else if (walker instanceof LocusWindowWalker) {
-            if (intervals == null || intervals.isEmpty())
-                throw new StingException("Unable to shard: walker is of type LocusWindow, but no intervals were provided");
+            if ((intervals == null || intervals.isEmpty()) && !this.argCollection.unsafe)
+                Utils.warnUser("walker is of type LocusWindow (which operates over intervals), but no intervals were provided." +
+                               "This may be unintentional, check your command-line arguments.");
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
                     drivingDataSource.getSequenceDictionary(),
                     SHARD_SIZE,
