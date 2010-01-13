@@ -98,7 +98,11 @@ if( is.numeric(c$Covariate) ) {
 } else { # Dinuc (and other non-numeric covariates) are different to make their plots look nice
 	hst=subset(data.frame(c$Covariate, c$nBases), c.nBases != 0)
 	plot(1:length(hst$c.Covariate), hst$c.nBases, type="h", lwd=lwdSize, main=paste(covariateName,"histogram"), ylim=c(0, max(hst$c.nBases)),xlab=covariateName, ylab="Number of Bases",yaxt="n",xaxt="n")
-	axis(1, at=seq(1,length(hst$c.Covariate),2), labels = hst$c.Covariate[seq(1,length(hst$c.Covariate),2)])
+	if( length(hst$c.Covariate) > 9 ) {
+	    axis(1, at=seq(1,length(hst$c.Covariate),2), labels = hst$c.Covariate[seq(1,length(hst$c.Covariate),2)])
+	} else {
+	    axis(1, at=seq(1,length(hst$c.Covariate),1), labels = hst$c.Covariate)
+	}
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 }
 dev.off()
