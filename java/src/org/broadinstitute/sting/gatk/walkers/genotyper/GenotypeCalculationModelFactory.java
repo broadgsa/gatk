@@ -30,7 +30,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.apache.log4j.Logger;
 
 import java.util.Set;
-import java.io.PrintWriter;
+import java.io.PrintStream;
 
 
 public class GenotypeCalculationModelFactory {
@@ -60,8 +60,8 @@ public class GenotypeCalculationModelFactory {
                                                                    Logger logger,
                                                                    UnifiedArgumentCollection UAC,
                                                                    GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
-                                                                   PrintWriter verboseWriter,
-                                                                   PrintWriter beagleWriter) {
+                                                                   PrintStream verboseWriter,
+                                                                   PrintStream beagleWriter) {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
             case EM_POINT_ESTIMATE:

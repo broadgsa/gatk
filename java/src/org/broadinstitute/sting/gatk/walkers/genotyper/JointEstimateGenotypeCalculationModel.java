@@ -107,16 +107,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
     }
 
-    protected void initializeVerboseWriter(PrintWriter verboseWriter) {
-        StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
-        for ( char altAllele : BaseUtils.BASES ) {
-            char base = Character.toLowerCase(altAllele);
-            header.append("POfDGivenAFFor" + base + "\t");
-            header.append("PosteriorAFFor" + base + "\t");
-        }
-        verboseWriter.println(header);
-    }
-
     protected void initialize(char ref, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
         // by default, no initialization is done
         return;
