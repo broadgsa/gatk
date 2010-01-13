@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -94,9 +95,9 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      * @return an alternate allele list
      */
     public List<String> getAlternateAlleleList() {
-        List<String> ret = getAlleleList();
-        for (String allele : ret)
-            if (allele.equals(getReference())) ret.remove(allele);
+        List<String> ret = new ArrayList<String>();
+        for (String allele : getAlleleList())
+            if (!allele.equals(getReference())) ret.add(allele);
         return ret;
     }
 
@@ -160,8 +161,8 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     }
 
     /**
-     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException in the case
-     * of
+     * gets the alternate base is the case of a SNP.  Throws a StingException when we can't parse out a
+     * single base to return, the site isn't a snp, or the site isn't biallelic
      *
      * @return a char, representing the alternate base
      */
@@ -175,7 +176,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     }
 
     /**
-     * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     * gets the reference base is the case of a SNP.  Throws a StingException if we're not a SNP.
      *
      * @return a char, representing the alternate base
      */
@@ -276,7 +277,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     }
 
     public boolean isBiallelic() {
-        return getAlleleList().size() == 2;
+        return getAlternateAlleleList().size() == 1;
     }
 
     public static rodDbSNP getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
