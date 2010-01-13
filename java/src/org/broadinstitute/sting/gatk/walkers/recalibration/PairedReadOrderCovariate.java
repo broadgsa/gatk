@@ -6,17 +6,19 @@ import net.sf.samtools.SAMRecord;
  * Created by IntelliJ IDEA.
  * User: chartl
  * Date: Dec 16, 2009
- * Time: 3:22:19 PM
- * To change this template use File | Settings | File Templates.
  */
-public class PairedReadOrderCovariate implements ExperimentalCovariate{
 
-    public void initialize (final RecalibrationArgumentCollection rac ) { /* do nothing */ }
+public class PairedReadOrderCovariate implements StandardCovariate{
 
-    public final Comparable getValue(final SAMRecord read, final int offset) {
-        return read.getReadPairedFlag() ? "Not_Paired" : read.getMateUnmappedFlag() ? "Mate_Unmapped" : read.getFirstOfPairFlag() ? "First_Read" : "Second_Read";
+    // Initialize any member variables using the command-line arguments passed to the walkers
+    public void initialize ( final RecalibrationArgumentCollection rac ) { /* do nothing */ }
+
+    // Used to pick out the covariate's value from attributes of the read
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
+        return read.getReadPairedFlag() ? (read.getFirstOfPairFlag() ? "First_Read" : "Second_Read") : "Not_Paired";
     }
 
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         return str;
     }

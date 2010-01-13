@@ -123,7 +123,7 @@ public class RecalDataManager {
         for( int iii = 0; iii < dataCollapsedByCovariate.size(); iii++ ) {
             covariateCollapsedKey[0] = key[0]; // Make a new key with the read group ...
             covariateCollapsedKey[1] = key[1]; //                                    and quality score ...
-            Object theCovariateElement = key[iii + 2]; //                                              and the given covariate
+            final Object theCovariateElement = key[iii + 2]; //                                        and the given covariate
             if( theCovariateElement != null ) {
                 covariateCollapsedKey[2] = theCovariateElement;
                 collapsedDatum = (RecalDatum) dataCollapsedByCovariate.get(iii).get( covariateCollapsedKey );
@@ -202,7 +202,7 @@ public class RecalDataManager {
 
         // Check if we need to use the original quality scores instead
         if( RAC.USE_ORIGINAL_QUALS ) {
-            Object attr = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
+            final Object attr = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
             if( attr != null ) {
                 if( attr instanceof String ) {
                     read.setBaseQualities( QualityUtils.fastqToPhred((String)attr) );
@@ -229,7 +229,7 @@ public class RecalDataManager {
         }
 
         if( RAC.FORCE_READ_GROUP != null && !readGroup.getReadGroupId().equals(RAC.FORCE_READ_GROUP) ) { // Collapse all the read groups into a single common String provided by the user
-            String oldPlatform = readGroup.getPlatform();
+            final String oldPlatform = readGroup.getPlatform();
             readGroup = new SAMReadGroupRecord( RAC.FORCE_READ_GROUP );
             readGroup.setPlatform( oldPlatform );
             ((GATKSAMRecord)read).setReadGroup( readGroup );
@@ -252,7 +252,7 @@ public class RecalDataManager {
         // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
         if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
             if( read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null ) { // Haven't calculated the inconsistency array yet for this read
-                Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
+                final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
                 if( attr != null ) {
                     char[] colorSpace;
                     if( attr instanceof String ) {
@@ -309,7 +309,7 @@ public class RecalDataManager {
 
             // Loop over the read and calculate first the infered bases from the color and then check if it is consistent with the read
             byte[] readBases = read.getReadBases();
-            byte[] colorImpliedBases = readBases.clone();
+            final byte[] colorImpliedBases = readBases.clone();
             char[] refBasesDirRead = refBases;
             if( read.getReadNegativeStrandFlag() ) {
                 readBases = BaseUtils.simpleReverseComplement( read.getReadBases() );
@@ -489,7 +489,7 @@ public class RecalDataManager {
                 return inconsistency[offset] != 0;
             }
 
-            // This block of code is if you want to check both the offset and the next base for color space inconsistency
+            // This block of code is for if you want to check both the offset and the next base for color space inconsistency
             //if( read.getReadNegativeStrandFlag() ) { // Negative direction
             //    if( offset == 0 ) {
             //        return inconsistency[0] != 0;
@@ -503,6 +503,7 @@ public class RecalDataManager {
             //        return (inconsistency[offset] != 0) || (inconsistency[offset + 1] != 0);
             //    }
             //}
+            
         } else {
             return false;
         }

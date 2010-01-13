@@ -26,6 +26,7 @@
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.HomopolymerCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PairedReadOrderCovariate</class>
       <!-- Local realignment around indels -->
       <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>
       <class>org.broadinstitute.sting.gatk.walkers.indels.IndelIntervalWalker</class>
@@ -65,6 +66,7 @@
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.HomopolymerCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PairedReadOrderCovariate</class>
     </dependencies>
   </executable>
   <resources>

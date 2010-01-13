@@ -39,7 +39,7 @@ import net.sf.samtools.SAMRecord;
  *  For Solexa the cycle is simply the position in the read (counting backwards if it is a negative strand read)
  *  For 454 the cycle is the TACG flow cycle, that is, each flow grabs all the TACG's in order in a single cycle
  *     For example, for the read: AAACCCCGAAATTTTTACTG
- *             the cycle would be 00000000111222222233
+ *             the cycle would be 11111111222333333344
  *  For SOLiD the cycle is a more complicated mixture of ligation cycle and primer round
  */
 
@@ -82,7 +82,7 @@ public class CycleCovariate implements StandardCovariate {
 
             // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
             // For example, AAAAAAA was probably read in two flow cycles but here we count it as one
-            if( !read.getReadNegativeStrandFlag() ) { // forward direction
+            if( !read.getReadNegativeStrandFlag() ) { // Forward direction
                 int iii = 0;
                 while( iii <= offset )
                 {
@@ -94,7 +94,7 @@ public class CycleCovariate implements StandardCovariate {
                     if( iii <= offset && !BaseUtils.isRegularBase(bases[iii]) ) { iii++; }
 
                 }
-            } else { // negative direction
+            } else { // Negative direction
                 int iii = bases.length-1;
                 while( iii >= offset )
                 {
@@ -141,10 +141,11 @@ public class CycleCovariate implements StandardCovariate {
             return getValue( read, offset ); // A recursive call
         }
 
+        // This functionality was moved to PairedReadOrderCovariate
         // Differentiate between first and second of pair
-        if( read.getReadPairedFlag() && read.getSecondOfPairFlag() ) {
-            cycle *= -1;
-        }
+        //if( read.getReadPairedFlag() && read.getSecondOfPairFlag() ) {
+        //    cycle *= -1;
+        //}
 
         return cycle;
     }
