@@ -36,6 +36,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     public static final String PASSES_FILTERS = "0";
     public static final String EMPTY_INFO_FIELD = ".";
     public static final String EMPTY_ID_FIELD = ".";
+    public static final String EMPTY_ALLELE_FIELD = ".";
     public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
 
     // the reference base
@@ -75,13 +76,13 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * given the values for each of the columns, create a VCF record.
      *
      * @param columnValues    a mapping of header strings to values
-     * @param formatString    the format string for the genotype records
+     * @param genotypeFormatString    the format string for the genotype records
      * @param genotypeRecords the genotype records
      */
-    public VCFRecord(Map<VCFHeader.HEADER_FIELDS, String> columnValues, String formatString, List<VCFGenotypeRecord> genotypeRecords) {
+    public VCFRecord(Map<VCFHeader.HEADER_FIELDS, String> columnValues, String genotypeFormatString, List<VCFGenotypeRecord> genotypeRecords) {
         extractFields(columnValues);
         mGenotypeRecords.addAll(genotypeRecords);
-        mGenotypeFormatString = formatString;
+        mGenotypeFormatString = genotypeFormatString;
     }
 
     /**
@@ -385,14 +386,6 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         return mInfoFields;
     }
 
-    /**
-     * @return the number of columnsof data we're storing
-     */
-    public int getColumnCount() {
-        if (hasGenotypeData()) return mGenotypeRecords.size() + VCFHeader.HEADER_FIELDS.values().length;
-        return VCFHeader.HEADER_FIELDS.values().length;
-    }
-
     public List<VCFGenotypeRecord> getVCFGenotypeRecords() {
         ArrayList<VCFGenotypeRecord> list = new ArrayList<VCFGenotypeRecord>();
         for ( Genotype g : mGenotypeRecords )
@@ -450,8 +443,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }// the formatting string for our genotype records
 
     public void setReferenceBase(char referenceBase) {
-        // upppercase the character
-        referenceBase = (char) ((referenceBase > 96) ? referenceBase - 32 : referenceBase);
+        referenceBase = Character.toUpperCase(referenceBase);
         if (referenceBase != 'A' && referenceBase != 'C' && referenceBase != 'T' && referenceBase != 'G' && referenceBase != 'N')
             throw new IllegalArgumentException("Reference base must be one of A,C,G,T,N, we saw: " + referenceBase);
         mReferenceBase = referenceBase;
@@ -558,9 +550,17 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         builder.append(FIELD_SEPERATOR);
         builder.append(getReferenceBase());
         builder.append(FIELD_SEPERATOR);
-        String alts = "";
-        for (VCFGenotypeEncoding str : getAlternateAlleles()) alts += str.toString() + ",";
-        builder.append((alts.length() > 0) ? alts.substring(0, alts.length() - 1) + FIELD_SEPERATOR : "." + FIELD_SEPERATOR);
+        List<VCFGenotypeEncoding> alts = getAlternateAlleles();
+        if ( alts.size() > 0 ) {
+            builder.append(alts.get(0));
+            for ( int i = 1; i < alts.size(); i++ ) {
+                builder.append(",");
+                builder.append(alts.get(i));
+            }
+        } else {
+            builder.append(EMPTY_ALLELE_FIELD);
+        }
+        builder.append(FIELD_SEPERATOR);
         builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, getQual()));
         builder.append(FIELD_SEPERATOR);
         builder.append(Utils.join(FILTER_CODE_SEPERATOR, getFilteringCodes()));
