@@ -17,7 +17,7 @@ import java.util.List;
 public class SequenomToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testSequenomToVCFWithoutSmartHardy() {
-        String testMD5 = "c6c2055d304674c2f7014c50f5cc160e";
+        String testMD5 = "a16ce402ce4492c8c0552073c0a8bdf5";
         String testPedFile = "/humgen/gsa-hpprojects/GATK/data/Validation_Data/Sequenom_Test_File.txt";
         String testArgs = "-R "+oneKGLocation+"reference/human_b36_both.fasta -L 1:1000000-2000000 "+
                           "-T SequenomToVCF -b36contig -ns 10 -sPed "+testPedFile+" -vcf %s";

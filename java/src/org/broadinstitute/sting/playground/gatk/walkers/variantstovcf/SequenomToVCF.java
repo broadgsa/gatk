@@ -33,6 +33,12 @@ public class SequenomToVCF extends RefWalker<VCFRecord,Integer> {
     public File popFile = null;
     @Argument(fullName="useb36ContigNames",shortName="b36contig",doc="Uses b36 contig names (1:1,000,000) rather than hg18 (chr1:1,000,000) for comparison with ref", required=false)
     public boolean useb36contigs=false;
+    @Argument(fullName="maxHardy", doc="Maximum Hardy-Weinberg score to consider an assay valid", required=false)
+    public double maxHardy = 10;
+    @Argument(fullName="maxNoCall", doc="Maximum no-call rate (as a proportion) to consider an assay valid", required=false)
+    public double maxNoCall = 0.05;
+    @Argument(fullName="maxHomNonref", doc="Maximum homozygous-nonreference rate (as a proportion) to consider an assay valid", required = false)
+    public double maxHomNonref = 1.1;
 
     private final int INIT_NUMBER_OF_POPULATIONS = 10;
     private final int DEFAULT_QUALITY = 20;
@@ -136,41 +142,52 @@ public class SequenomToVCF extends RefWalker<VCFRecord,Integer> {
             sampleNumber++;
         }
 
+        double noCallProp = ( (double) numNoCalls )/( (double) sampleNames.size());
+        double homNonRProp = ( (double) numHomNonrefCalls )/( (double) sampleNames.size() - numNoCalls);
+
         record.setQual(DEFAULT_QUALITY);
-        record.addInfoFields(generateInfoField(record, numNoCalls,numHomNonrefCalls,numNonrefAlleles,ref, varInfo));
+        String hw = hardyWeinbergCalculation(ref,record);
+        double hwScore = hw != null ? Double.valueOf(hw) : -0.0;
+        record.addInfoFields(generateInfoField(record, numNoCalls,numHomNonrefCalls,numNonrefAlleles,ref, varInfo, hwScore));
+        if ( hwScore > maxHardy ) {
+            record.setFilterString("Hardy-Weinberg");
+        } else if ( noCallProp > maxNoCall ) {
+            record.setFilterString("No-calls");
+        } else if ( homNonRProp > maxHomNonref) {
+            record.setFilterString("HomNonref-calls");
+        }
+        
         return record;
 
     }
 
+    private String hardyWeinbergCalculation(ReferenceContext ref, VCFRecord rec) {
+        if ( useSmartHardy ) {
+            return smartHardy(ref, rec);
+        } else {
+            VCFVariationCall variant = new VCFVariationCall(ref.getBase(),ref.getLocus(),VCFVariationCall.VARIANT_TYPE.SNP);
+            variant.setGenotypeCalls(rec.getGenotypes());
+            return HWCalc.annotate(null, ref, null, variant);
+        }
+    }
+
     private Map<String,String> generateInfoField(VCFRecord rec, int nocall, int homnonref, int allnonref,
-                                                 ReferenceContext ref, SequenomVariantInfo info) {
+                                                 ReferenceContext ref, SequenomVariantInfo info, double hwScore) {
         double propNoCall = ( ( double ) nocall / (double) nSamples );
         double propHomNR = ( (double) homnonref / (double) nSamples );
-        String hardy;
-
-        VCFVariationCall variant = new VCFVariationCall(ref.getBase(),ref.getLocus(),VCFVariationCall.VARIANT_TYPE.SNP);
-        variant.setGenotypeCalls(rec.getGenotypes());
-
-        if ( useSmartHardy ) {
-            hardy = smartHardy(ref, rec);
-        } else {
-            hardy = HWCalc.annotate(null, ref, null, variant);
-        }
-
-
         HashMap<String,String> infoMap = new HashMap<String,String>(1);
-        putInfoStrings(infoMap,propNoCall,propHomNR,allnonref,hardy,info.getName());
+        putInfoStrings(infoMap,propNoCall,propHomNR,allnonref,hwScore,info.getName());
 
         return infoMap;
     }
 
-    private void putInfoStrings(HashMap<String,String> infoMap, double pnc, double phnr, int nra, String hw, String nm) {
+    private void putInfoStrings(HashMap<String,String> infoMap, double pnc, double phnr, int nra, double hw, String nm) {
 
         infoMap.put("snpID",nm);
         infoMap.put("noCallPct",String.format("%.2f",100.0*pnc));
         infoMap.put("homNonrefPct",String.format("%.2f",100.0*phnr));
         infoMap.put("nonrefAlleles",String.format("%d",nra));
-        infoMap.put("HW",hw);
+        infoMap.put("HW",String.format("%.2f",hw));
 
         //return String.format("snpID=%s;nocall=%f;homNonref=%4f;numNonrefAlleles=%d;HW=%s",nm,pnc,phnr,nra,hw);
 
