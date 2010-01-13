@@ -94,7 +94,8 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
             throw new IllegalArgumentException("Only VCFVariationCall objects should be passed in to the VCF writers");
 
         VCFParameters params = new VCFParameters();
-        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
+        if ( genotypes.size() > 0 )
+            params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
 
         // get the location and reference
         if ( genotypes.size() == 0 ) {

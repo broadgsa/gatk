@@ -567,7 +567,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         builder.append(FIELD_SEPERATOR);
         builder.append(createInfoString());
 
-        if ( hasGenotypeData() ) {
+        if ( mGenotypeFormatString != null && mGenotypeFormatString.length() > 0 ) {
             try {
                 addGenotypeData(builder, header);
             } catch (Exception e) {
