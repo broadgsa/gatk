@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.BufferedReader;
@@ -20,7 +21,7 @@ import java.util.*;
 /**
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
-public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
+public class SequenomToVCF extends RefWalker<VCFRecord,Integer> {
     @Argument(fullName="sequenomePedFile", shortName="sPed", doc="The sequenome file from which to generate a VCF", required=true)
     public File seqFile = null;
     @Argument(fullName="outputVCF", shortName="vcf", doc="The VCF file to write to", required=true)
@@ -52,7 +53,7 @@ public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("source", "Sequenom2VCF"));
-        hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
+        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
         vcfWriter.writeHeader(new TreeSet<String>(sampleNames),hInfo);
         nSamples = sampleNames.size();
     }
@@ -62,7 +63,7 @@ public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
         return numberOfVariantsProcessed;
     }
 
-    public VCFVariationCall map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public VCFRecord map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( sequenomResults.containsKey(context.getLocation().toString()) ) {
             SequenomVariantInfo varInfo = sequenomResults.remove(context.getLocation().toString());
             return addVariantInformationToCall(ref,varInfo);
@@ -71,7 +72,7 @@ public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
         }
     }
 
-    public Integer reduce(VCFVariationCall call, Integer numVariants) {
+    public Integer reduce(VCFRecord call, Integer numVariants) {
         if ( call == null ) {
             return numVariants;
         } else {
@@ -85,65 +86,78 @@ public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
         vcfWriter.close();
     }
 
-    private void printToVCF(VCFVariationCall call) {
-        vcfWriter.addMultiSampleCall(call.getGenotypes(),call);
+    private void printToVCF(VCFRecord call) {
+        try {
+            vcfWriter.addRecord(call);
+        } catch ( RuntimeException e ) {
+            if ( e.getLocalizedMessage().equalsIgnoreCase("We have more genotype samples than the header specified")) {
+                throw new StingException("We have more sample genotypes than sample names -- check that there are no duplicates in the .ped file",e);
+            } else {
+                throw new StingException("Error in VCF creation: "+e.getLocalizedMessage(),e);
+            }
+        }
     }
 
-    private VCFVariationCall addVariantInformationToCall(ReferenceContext ref, SequenomVariantInfo varInfo) {
+    private VCFRecord addVariantInformationToCall(ReferenceContext ref, SequenomVariantInfo varInfo) {
         int numNoCalls = 0;
         int numHomNonrefCalls = 0;
         int numNonrefAlleles = 0;
 
         int sampleNumber = 0;
-        //System.out.println("Genotypes from varinfo:");
-        //for ( String g : varInfo.getGenotypes()) {
-            //System.out.println(g);
-        //}
-        ArrayList<VCFGenotypeCall> vcfGenotypeCalls = new ArrayList<VCFGenotypeCall>(nSamples);
-        ArrayList<Genotype> genotypeCalls = new ArrayList<Genotype>(nSamples);
-        VCFGenotypeCall vcfCall = new VCFGenotypeCall(ref.getBase(),ref.getLocus());
-        boolean isSNP = false;
+        VCFRecord record = new VCFRecord(ref.getBase(),ref.getLocus(),"GT");
 
         for ( String genTypeStr : varInfo.getGenotypes() ) {
             if ( genTypeStr.indexOf("0") == -1 ) {
-                vcfCall.setGenotype(DiploidGenotype.createDiploidGenotype(genTypeStr.charAt(0),genTypeStr.charAt(2)));
-                vcfCall.setNegLog10PError((double) DEFAULT_QUALITY/10);
-                vcfCall.setSampleName(sampleNames.get(sampleNumber));
-                genotypeCalls.add( vcfCall.cloneCall() );
-                vcfGenotypeCalls.add( vcfCall.cloneCall() );
-                if ( vcfCall.isVariant(ref.getBase()) ) {
-                    isSNP = true;
-                    if ( vcfCall.isHom() ) {
+                VCFGenotypeEncoding allele1 = new VCFGenotypeEncoding(genTypeStr.substring(0,1));
+                VCFGenotypeEncoding allele2 = new VCFGenotypeEncoding(genTypeStr.substring(1));
+                List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>(2);
+                alleles.add(allele1);
+                alleles.add(allele2);
+
+                VCFGenotypeRecord genotype = new VCFGenotypeRecord(sampleNames.get(sampleNumber), alleles, VCFGenotypeRecord.PHASE.UNPHASED);
+                genotype.setField("GQ",String.format("%d",DEFAULT_QUALITY));
+
+                if ( genotype.isVariant(ref.getBase()) ) {
+                    if ( genotype.isHom() ) {
                         numHomNonrefCalls++;
                         numNonrefAlleles+=2;
+                        record.addAlternateBase(allele1);
                     } else {
                         numNonrefAlleles++;
+                        record.addAlternateBase(allele1.getBases().equalsIgnoreCase(String.format("%c",ref.getBase())) ? allele2 : allele1);
                     }
                 }
+
+                record.addGenotypeRecord(genotype);
+
             } else {
                 numNoCalls++;
             }
             sampleNumber++;
         }
 
-        VCFVariationCall variantCall = new VCFVariationCall(ref.getBase(),ref.getLocus(), isSNP ? VCFVariationCall.VARIANT_TYPE.SNP : VCFVariationCall.VARIANT_TYPE.REFERENCE);
-        variantCall.setGenotypeCalls(genotypeCalls);
-        variantCall.setConfidence((double) DEFAULT_QUALITY);
-        variantCall.setFields(generateInfoField(numNoCalls,numHomNonrefCalls,numNonrefAlleles,variantCall,ref, varInfo, vcfGenotypeCalls));
+        record.setQual(DEFAULT_QUALITY);
+        record.addInfoFields(generateInfoField(record, numNoCalls,numHomNonrefCalls,numNonrefAlleles,ref, varInfo));
+        return record;
 
-        return variantCall;
     }
 
-    private Map<String,String> generateInfoField(int nocall, int homnonref, int allnonref, VCFVariationCall call,
-                                                 ReferenceContext ref, SequenomVariantInfo info, List<VCFGenotypeCall> vcfCalls) {
+    private Map<String,String> generateInfoField(VCFRecord rec, int nocall, int homnonref, int allnonref,
+                                                 ReferenceContext ref, SequenomVariantInfo info) {
         double propNoCall = ( ( double ) nocall / (double) nSamples );
         double propHomNR = ( (double) homnonref / (double) nSamples );
         String hardy;
+
+        VCFVariationCall variant = new VCFVariationCall(ref.getBase(),ref.getLocus(),VCFVariationCall.VARIANT_TYPE.SNP);
+        variant.setGenotypeCalls(rec.getGenotypes());
+
         if ( useSmartHardy ) {
-            hardy = smartHardy(ref, call, info, vcfCalls);
+            hardy = smartHardy(ref, rec);
         } else {
-            hardy = HWCalc.annotate(null,ref, null, call);
+            hardy = HWCalc.annotate(null, ref, null, variant);
         }
+
+
         HashMap<String,String> infoMap = new HashMap<String,String>(1);
         putInfoStrings(infoMap,propNoCall,propHomNR,allnonref,hardy,info.getName());
 
@@ -162,7 +176,7 @@ public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
 
     }
 
-    private String smartHardy(ReferenceContext ref, VCFVariationCall call, SequenomVariantInfo info, List<VCFGenotypeCall> vcfCalls) {
+    private String smartHardy(ReferenceContext ref, VCFRecord rec) {
         HashMap<String,ArrayList<Genotype>> genotypesByPopulation = new HashMap<String,ArrayList<Genotype>>(INIT_NUMBER_OF_POPULATIONS);
         HashMap<String,String> hardyWeinbergByPopulation = new HashMap<String,String>(INIT_NUMBER_OF_POPULATIONS);
 
@@ -170,8 +184,11 @@ public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
             genotypesByPopulation.put(population,new ArrayList<Genotype>());
         }
 
-        for ( VCFGenotypeCall vgc : vcfCalls ) {
-            genotypesByPopulation.get(vgc.getSampleName()).add(vgc);
+        for ( String name : sampleNames ) {
+            String pop = samplesToPopulation.get(name);
+            if ( rec.getGenotype(name) != null ) {
+                genotypesByPopulation.get(pop).add(rec.getGenotype(name));
+            }
         }
 
         for ( String population : samplesToPopulation.values() ) {
@@ -180,10 +197,10 @@ public class SequenomToVCF extends RefWalker<VCFVariationCall,Integer> {
             hardyWeinbergByPopulation.put(population,HWCalc.annotate(null,ref,null,v));
         }
 
-        return smartHardyString(hardyWeinbergByPopulation,info);
+        return smartHardyString(hardyWeinbergByPopulation);
     }
 
-    private String smartHardyString(HashMap<String,String> hwByPop, SequenomVariantInfo varInfo) {
+    private String smartHardyString(HashMap<String,String> hwByPop) {
         // for now just return the maximum:
         int maxH = -100;
         for ( String pop : samplesToPopulation.values() ) {
@@ -329,7 +346,8 @@ class SequenomVariantInfo {
     }
 
     public void addGenotype(String genotype) {
-        genotypes.add(genotype);
+        String[] alleles = genotype.split(" ");
+        genotypes.add(alleles[0]+alleles[1]);
     }
 
     public String getName() {

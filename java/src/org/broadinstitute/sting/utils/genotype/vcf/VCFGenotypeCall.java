@@ -12,7 +12,7 @@ import org.broadinstitute.sting.utils.genotype.*;
  *         <p/>
  *         The implementation of the genotype interface, specific to VCF
  */
-public class VCFGenotypeCall extends AlleleConstrainedGenotype implements GenotypeCall, ReadBacked, SampleBacked {
+public class VCFGenotypeCall extends AlleleConstrainedGenotype implements GenotypeCall, ReadBacked, SampleBacked, Cloneable {
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
@@ -222,13 +222,5 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
      */
     public String getSampleName() {
         return mSampleName;
-    }
-
-    /**
-     *
-     * @return a new VCFGenotypeCall with the same internal data as this one
-     */
-    public VCFGenotypeCall cloneCall() {
-        return new VCFGenotypeCall(this.mRefBase, this.mLocation, this.mGenotype, this.mNegLog10PError, this.mCoverage, this.mSampleName);
     }
 }
