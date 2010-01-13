@@ -212,13 +212,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------------------------------------
     @Test
     public void testOtherOutput() {
-        String[] md5s = {"a5dce541f00d3fe364d110f1cae53538", "677963a26f867fbbd5f030cc3df55075", "cea954546a304aa98fc3a18d4305090a"};
+        String[] md5s = {"a5dce541f00d3fe364d110f1cae53538", "cea954546a304aa98fc3a18d4305090a"};
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper" +
                         " -R " + oneKGLocation + "reference/human_b36_both.fasta" +
                         " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam" +
                         " -varout %s" +
-                        " -verbose %s" +
                         " -beagle %s" +
                         " -L 1:10,023,400-10,024,000" +
                         " -bm empirical" +
