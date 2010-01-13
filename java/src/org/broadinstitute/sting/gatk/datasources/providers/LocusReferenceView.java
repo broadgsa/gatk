@@ -176,9 +176,6 @@ public class LocusReferenceView extends ReferenceView {
      * @param genomeLoc location to verify.
      */
     private void validateLocation( GenomeLoc genomeLoc ) throws InvalidPositionException {
-//        if( !genomeLoc.isSingleBP() )
-//            throw new InvalidPositionException(
-//                    String.format("Requested position larger than one base; start = %d, stop = %d", genomeLoc.getStart(), genomeLoc.getStop()));
         if( bounds != null && !bounds.containsP(genomeLoc) )
             throw new InvalidPositionException(
                     String.format("Requested position %s not within interval %s", genomeLoc, bounds));
@@ -190,6 +187,8 @@ public class LocusReferenceView extends ReferenceView {
      * @return The expanded window.
      */
     private long getWindowStart( GenomeLoc locus ) {
+        // If the locus is not within the bounds of the contig it allegedly maps to, don't expand the locus at all. 
+        if(locus.getStart() < 1) return locus.getStart();
         return Math.max( locus.getStart() + windowStart, 1 );
     }
 
@@ -199,6 +198,9 @@ public class LocusReferenceView extends ReferenceView {
      * @return The expanded window.
      */    
     private long getWindowStop( GenomeLoc locus ) {
-        return Math.min( locus.getStop() + windowStop, reference.getSequenceDictionary().getSequence(locus.getContig()).getSequenceLength() );
+        // If the locus is not within the bounds of the contig it allegedly maps to, don't expand the locus at all.
+        long sequenceLength = reference.getSequenceDictionary().getSequence(locus.getContig()).getSequenceLength();
+        if(locus.getStop() > sequenceLength) return locus.getStop();
+        return Math.min( locus.getStop() + windowStop, sequenceLength );
     }
 }
