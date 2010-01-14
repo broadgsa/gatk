@@ -49,8 +49,14 @@ public class AlignmentUtils {
                             mm_count++;
                     }
                     break;
-                case I: i_read += ce.getLength(); break;
-                case D: i_ref += ce.getLength(); break;
+                case I:
+                case S:
+                    i_read += ce.getLength();
+                    break;
+                case D:
+                case N:
+                    i_ref += ce.getLength();
+                    break;
                 default: throw new RuntimeException("Unrecognized cigar element");
             }
 
@@ -86,9 +92,15 @@ public class AlignmentUtils {
                              mm_count++;
                     }
                     break;
-                case I: i_read += ce.getLength(); break;
-                case D: i_ref += ce.getLength(); break;
-                default: throw new RuntimeException("Unrecognized cigar element");
+                case I:
+                case S:
+                    i_read += ce.getLength();
+                    break;
+                case D:
+                case N:
+                    i_ref += ce.getLength();
+                    break;
+                default: throw new RuntimeException("Unrecognized cigar element: " + ce.getOperator());
             }
 
         }
@@ -143,12 +155,14 @@ public class AlignmentUtils {
                     }
                     break;
                 case I:
+                case S:
                     readIdx += ce.getLength();
                     break;
                 case D:
+                case N:
                     refIndex += ce.getLength();
                     break;
-                default: throw new StingException("Only M,I,D cigar elements are currently supported");
+                default: throw new StingException("The " + ce.getOperator() + " cigar element is not currently supported");
             }
 
         }
@@ -216,17 +230,18 @@ public class AlignmentUtils {
                     }
                     break;
                 case I:
+                case S:
                     readIndex += cigarElementLength;
                     break;
                 case D:
+                case N:
                     currentPos += cigarElementLength;
                     if ( currentPos > windowStart )
                         refIndex += Math.min(cigarElementLength, currentPos - windowStart);
                     break;
-                case S:
-                    readIndex += cigarElementLength;
-                    break;
-                default: throw new StingException("Only M,I,D,S cigar elements are currently supported; there was " + ce.getOperator());
+                default:
+                    // fail silently
+                    return 0;
             }
 
         }
