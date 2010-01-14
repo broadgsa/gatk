@@ -112,12 +112,15 @@ class ReferenceOrderedDataPool extends ResourcePool<SeekableRODIterator,Seekable
             throw new StingException("Reference-ordered data cannot utilitize unmapped segments.");
 
         GenomeLoc position = ((MappedStreamSegment)segment).locus;
-
+        //#########################################
+//## System.out.printf("Searching for iterator at locus %s; %d resources available%n", position, resources.size());
         for( SeekableRODIterator iterator: resources ) {
+//##System.out.printf("Examining iterator at position %s [last query location: %s]%n", iterator.position(),iterator.lastQueryLocation());
             if( (iterator.position() == null && iterator.hasNext()) ||
                 (iterator.position() != null && iterator.position().isBefore(position)) )
                 return iterator;
         }
+//##System.out.printf("Failed to find iterator at locus %s%n", position);
         return null;
     }
 
