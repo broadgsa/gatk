@@ -223,7 +223,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -bm empirical" +
                         " -gm JOINT_ESTIMATE" +
 		        " -vf GELI",
-                3,
+                2,
                 Arrays.asList(md5s));
 
         executeTest(String.format("testOtherOutput"), spec);
