@@ -32,7 +32,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     /**
      * The data sources along with their current states.
      */
-    private MergingIterator<RODRecordList<ReferenceOrderedDatum>> rodQueue = null;
+    private MergingIterator<ReferenceOrderedDatum> rodQueue = null;
 
     RefMetaDataTracker tracker = null;
     GenomeLoc lastLoc = null;
@@ -86,7 +86,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             }
         }
 
-        rodQueue = new MergingIterator<RODRecordList<ReferenceOrderedDatum>>(iterators);
+        rodQueue = new MergingIterator<ReferenceOrderedDatum>(iterators);
 
         //throw new StingException("RodLocusView currently disabled");
     }
@@ -99,8 +99,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         if ( ! rodQueue.hasNext() )
             return false;
         else {
-            RODRecordList<ReferenceOrderedDatum> peeked = rodQueue.peek();
-            return ! peeked.getLocation().isPast(shard.getGenomeLoc());
+            return ! rodQueue.peekLocation().isPast(shard.getGenomeLoc());
         }
     }
 
