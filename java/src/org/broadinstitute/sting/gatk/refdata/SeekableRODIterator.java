@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.gatk.iterators.PeekingIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -78,6 +79,11 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
     public SeekableRODIterator(Iterator<ROD> it) {
         this.it = new PushbackIterator<ROD>(it);
         records = new LinkedList<ROD>();
+        // the following is a trick: we would like the iterator to know the actual name assigned to
+        // the ROD implementing object we are working with. But the only way to do that is to
+        // get an instance of that ROD and query it for its name. Now, the only generic way we have at this point to instantiate
+        // the ROD is to make the underlying stream iterator to do it for us. So we are reading (or rather peeking into)
+        // the first line of the track data file just to get the ROD object created.
         ROD r = null;
         if (this.it.hasNext()) r = this.it.element();
         name = (r==null?null:r.getName());
@@ -98,6 +104,21 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
         return it.hasNext();
     }
 
+    // Returns point location (i.e. genome loc of length 1) on the reference, to which this iterator will advance
+    // upon next call to next().
+    public GenomeLoc peekNextLocation() {
+        if ( curr_position + 1 <= max_position ) return GenomeLocParser.createGenomeLoc(curr_contig,curr_position+1);
+
+        // sorry, next reference position is not covered by the RODs we are currently holding. In this case,
+        // the location we will jump to upon next call to next() is the start of the next ROD record that we did
+        // not read yet:
+        if ( it.hasNext() ) {
+            ROD r = it.element(); // peek, do not load!
+            return GenomeLocParser.createGenomeLoc(r.getLocation().getContigIndex(),r.getLocation().getStart());
+        }
+        return null; // underlying iterator has no more records, there is no next location!
+    }
+
     /** Advances iterator to the next genomic position that has ROD record(s) associated with it,
      * and returns all the records overlapping with that position as a RODList. The location of the whole
      * RODList object will be set to the smallest interval subsuming genomic intervals of all returned records.
@@ -110,7 +131,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
 
          curr_position++;
  //        curr_query_end = -1;
-         
+
          if ( curr_position <= max_position ) {
 
              // we still have bases covered by at least one currently loaded record;
@@ -161,7 +182,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
          // 'records' and current position are fully updated. Last, we need to set the location of the whole track
         // (collection of ROD records) to the genomic site we are currently looking at, and return the list
 
-         return new RODRecordList(name,records,GenomeLocParser.createGenomeLoc(curr_contig,curr_position));
+         return new RODRecordList(name,records, GenomeLocParser.createGenomeLoc(curr_contig,curr_position));
      }
 
     /**
@@ -180,6 +201,20 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
      */
     public void remove() {
         throw new UnsupportedOperationException("SeekableRODIterator does not implement remove() operation");
+    }
+
+    /**
+     *
+     */
+    public GenomeLoc lastQueryLocation() {
+        if ( curr_contig < 0 ) return null;
+        if ( curr_query_end > curr_position )  {
+            return GenomeLocParser.createGenomeLoc(curr_contig,curr_position,curr_query_end);
+        }
+        else {
+            return GenomeLocParser.createGenomeLoc(curr_contig,curr_position);
+        }
+
     }
 
     /**
@@ -275,7 +310,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
 
             if ( r.getLocation().getStop() < curr_position ) continue; // did not reach the requested interval yet
 
-            if ( r.getLocation().getStart() > interval.getStop() ) {
+            if ( r.getLocation().getStart() > curr_query_end ) {
                 // past the query interval
                 it.pushback(r);
                 break;
@@ -309,4 +344,5 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
         }
 
     }
+
 }
