@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>VCFValidator</name>
-  <executable>
-    <name>VCFValidator</name>
-    <main-class>org.broadinstitute.sting.utils.genotype.vcf.VCFValidator</main-class>
-  </executable>
-</package>
