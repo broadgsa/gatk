@@ -142,9 +142,9 @@ public class GATKArgumentCollection {
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
     /** Should we enable rodWalkers?  This is currently unsafe */
-    @Element(required = false)
-    @Argument(fullName = "enableRodWalkers", shortName = "erw", doc = "Enable experimental rodWalker support.  TEMPORARY HACK TO ALLOW EXPERIMENTATION WITH ROD WALKERS.  [default is false]}.", required = false)
-    public boolean enableRodWalkers = false;
+//    @Element(required = false)
+//    @Argument(fullName = "enableRodWalkers", shortName = "erw", doc = "Enable experimental rodWalker support.  TEMPORARY HACK TO ALLOW EXPERIMENTATION WITH ROD WALKERS.  [default is false]}.", required = false)
+//    public boolean enableRodWalkers = false;
 
     @Element(required = false)
     @Argument(fullName = "experimental_sharding",shortName="es", doc="Use the experimental sharding strategy.  Will not work for all traversal types.", required = false)
@@ -303,9 +303,9 @@ public class GATKArgumentCollection {
         if (other.intervalMerging != this.intervalMerging) {
             return false;
         }
-        if (other.enableRodWalkers != this.enableRodWalkers) {
-            return false;
-        }
+//        if (other.enableRodWalkers != this.enableRodWalkers) {
+//            return false;
+//        }
 
         return true;
     }
