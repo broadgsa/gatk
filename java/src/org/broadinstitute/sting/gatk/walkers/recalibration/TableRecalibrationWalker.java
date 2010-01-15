@@ -95,7 +95,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.2.9"; // Major version, minor version, and build number
     private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
 
@@ -112,7 +111,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     public void initialize() {
 
-        logger.info( "TableRecalibrationWalker version: " + versionString );
+        logger.info( "Recalibrator version: " + RecalDataManager.versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
         coinFlip = new Random(RANDOM_SEED);
@@ -225,7 +224,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         final SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
         if( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
-            programRecord.setProgramVersion( versionString );
+            programRecord.setProgramVersion( RecalDataManager.versionString );
             String commandLineString = "Covariates used = [";
             for( Covariate cov : requestedCovariates ) {
                 commandLineString += cov.getClass().getSimpleName() + ", ";

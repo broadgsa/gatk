@@ -57,6 +57,8 @@ public class RecalDataManager {
     private static boolean warnUserNullReadGroup = false;
     private static boolean warnUserNoColorSpace = false;
 
+    public static final String versionString = "v2.2.10"; // Major version, minor version, and build number
+
     RecalDataManager() {
     	data = new NestedHashMap();
         dataCollapsedReadGroup = null;
@@ -261,7 +263,6 @@ public class RecalDataManager {
                         throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
                     }
 
-
                     // Loop over the read and calculate first the infered bases from the color and then check if it is consistent with the read
                     byte[] readBases = read.getReadBases();
                     if( read.getReadNegativeStrandFlag() ) {
@@ -310,10 +311,10 @@ public class RecalDataManager {
             // Loop over the read and calculate first the infered bases from the color and then check if it is consistent with the read
             byte[] readBases = read.getReadBases();
             final byte[] colorImpliedBases = readBases.clone();
-            char[] refBasesDirRead = refBases;
+            char[] refBasesDirRead = AlignmentUtils.alignmentToCharArray( read.getCigar(), read.getReadString().toCharArray(), refBases ); //BUGBUG: This needs to change when read walkers are changed to give the aligned refBases
             if( read.getReadNegativeStrandFlag() ) {
                 readBases = BaseUtils.simpleReverseComplement( read.getReadBases() );
-                refBasesDirRead = BaseUtils.simpleReverseComplement( refBases );
+                refBasesDirRead = BaseUtils.simpleReverseComplement( refBasesDirRead.clone() );
             }
             final int[] inconsistency = new int[readBases.length];
             byte prevBase = (byte) colorSpace[0]; // The sentinel
@@ -324,17 +325,15 @@ public class RecalDataManager {
                 prevBase = readBases[iii];
             }
 
-            final boolean isMappedToReference = (refBases != null && refBases.length == inconsistency.length);
-
             // Now that we have the inconsistency array apply the desired correction to the inconsistent bases
             if( SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ) { // Set inconsistent bases and the one before it to Q0
                 final boolean setBaseN = false;
-                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, isMappedToReference, setBaseN);
+                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, setBaseN);
             } else if( SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO_BASE_N") ) {
                 final boolean setBaseN = true;
-                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, isMappedToReference, setBaseN);
+                originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, setBaseN);
             } else if( SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") ) { // Use the color space quality to probabilistically remove ref bases at inconsistent color space bases
-                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead, isMappedToReference, coinFlip);
+                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead, coinFlip);
             } 
 
         } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
@@ -353,23 +352,22 @@ public class RecalDataManager {
      * @param inconsistency The array of 1/0 that says if this base is inconsistent with its color
      * @param originalQualScores The array of original quality scores to set to zero if needed
      * @param refBases The reference which has been RC'd if necessary
-     * @param isMappedToRef Is this read mapped fully to a reference
      * @param setBaseN Should we also set the base to N as well as quality zero in order to visualize in IGV or something similar
      * @return The byte array of original quality scores some of which might have been set to zero
      */
     private static byte[] solidRecalSetToQZero( final SAMRecord read, byte[] readBases, final int[] inconsistency, final byte[] originalQualScores,
-                                                final char[] refBases, final boolean isMappedToRef, final boolean setBaseN ) {
+                                                final char[] refBases, final boolean setBaseN ) {
 
         final boolean negStrand = read.getReadNegativeStrandFlag();
         for( int iii = 1; iii < originalQualScores.length - 1; iii++ ) {
             if( inconsistency[iii] == 1 ) {
-                if( !isMappedToRef || (char)readBases[iii] == refBases[iii] ) {
+                if( (char)readBases[iii] == refBases[iii] ) {
                     if( negStrand ) { originalQualScores[originalQualScores.length-(iii+1)] = (byte)0; }
                     else { originalQualScores[iii] = (byte)0; }
                     if( setBaseN ) { readBases[iii] = (byte)'N'; }
                 }
                 // Set the prev base to Q0 as well
-                if( !isMappedToRef || (char)readBases[iii-1] == refBases[iii-1] ) {
+                if( (char)readBases[iii-1] == refBases[iii-1] ) {
                     if( negStrand ) { originalQualScores[originalQualScores.length-iii] = (byte)0; }
                     else { originalQualScores[iii-1] = (byte)0; }
                     if( setBaseN ) { readBases[iii-1] = (byte)'N'; }
@@ -390,11 +388,10 @@ public class RecalDataManager {
      * @param inconsistency The array of 1/0 that says if this base is inconsistent with its color
      * @param colorImpliedBases The bases implied by the color space, RC'd if necessary
      * @param refBases The reference which has been RC'd if necessary
-     * @param isMappedToRef Is this read mapped fully to a reference
      * @param coinFlip A random number generator
      */
     private static void solidRecalRemoveRefBias( final SAMRecord read, byte[] readBases, final int[] inconsistency, final byte[] colorImpliedBases,
-                                                 final char[] refBases, final boolean isMappedToRef, final Random coinFlip) {
+                                                 final char[] refBases, final Random coinFlip) {
 
         final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG);
         if( attr != null ) {
@@ -409,7 +406,7 @@ public class RecalDataManager {
                 if( inconsistency[iii] == 1 ) {
                     for( int jjj = iii - 1; jjj <= iii; jjj++ ) { // Correct this base and the one before it along the direction of the read
                         if( jjj == iii || inconsistency[jjj] == 0 ) { // Don't want to correct the previous base a second time if it was already corrected in the previous step
-                            if( !isMappedToRef || (char)readBases[jjj] == refBases[jjj] ) {
+                            if( (char)readBases[jjj] == refBases[jjj] ) {
                                 if( colorSpaceQuals[jjj] == colorSpaceQuals[jjj+1] ) { // Equal evidence for the color implied base and the reference base, so flip a coin
                                     final int rand = coinFlip.nextInt( 2 );
                                     if( rand == 0 ) { // The color implied base won the coin flip

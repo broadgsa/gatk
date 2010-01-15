@@ -353,6 +353,41 @@ public class AlignmentUtils {
         return refLine.toString();
     }
 
+    public static char[] alignmentToCharArray( final Cigar cigar, final char[] read, final char[] ref ) {
+
+        final char[] alignment = new char[read.length];
+        int refPos = 0;
+        int alignPos = 0;
+
+        for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(iii);
+
+            switch( ce.getOperator() ) {
+            case I:
+            case S:
+                for ( int jjj = 0 ; jjj < ce.getLength(); jjj++ ) {
+                    alignment[alignPos++] = '+';
+                }
+                break;
+            case D:
+            case N:
+                refPos++;
+                break;
+            case M:
+                for ( int jjj = 0 ; jjj < ce.getLength(); jjj++ ) {
+                    alignment[alignPos] = ref[refPos];
+                    alignPos++;
+                    refPos++;
+                }
+                break;
+            default:
+                throw new StingException( "Unsupported cigar operator: " + ce.getOperator() );
+            }
+        }
+        return alignment;
+    }
+
     /**
      * Due to (unfortunate) multiple ways to indicate that read is unmapped allowed by SAM format
      * specification, one may need this convenience shortcut. Checks both 'read unmapped' flag and

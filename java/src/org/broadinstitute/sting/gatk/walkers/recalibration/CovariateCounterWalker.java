@@ -102,7 +102,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.2.5"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -121,7 +120,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public void initialize() {
 
-        logger.info( "CovariateCounterWalker version: " + versionString );
+        logger.info( "Recalibrator version: " + RecalDataManager.versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
         DBSNP_VALIDATION_CHECK_FREQUENCY *= PROCESS_EVERY_NTH_LOCUS;
