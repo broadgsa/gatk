@@ -57,7 +57,7 @@ public class RecalDataManager {
     private static boolean warnUserNullReadGroup = false;
     private static boolean warnUserNoColorSpace = false;
 
-    public static final String versionString = "v2.2.10"; // Major version, minor version, and build number
+    public static final String versionString = "v2.2.11"; // Major version, minor version, and build number
 
     RecalDataManager() {
     	data = new NestedHashMap();
@@ -251,6 +251,7 @@ public class RecalDataManager {
      * @param read The SAMRecord to parse
      */
     public static void parseColorSpace( final SAMRecord read ) {
+
         // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
         if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
             if( read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null ) { // Haven't calculated the inconsistency array yet for this read
@@ -279,8 +280,8 @@ public class RecalDataManager {
                     read.setAttribute( RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency );
 
                 } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
-                    Utils.warnUser("Unable to find color space information in SOLID read. First observed at read with name = " + read.getReadName());
-                    Utils.warnUser("This calculation is critically dependent on being able to know when reference bases were inserted into the SOLID read. Are you sure you want to proceed?");
+                    Utils.warnUser("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName());
+                    Utils.warnUser("This calculation is critically dependent on being able to know when reference bases were inserted into SOLiD reads. Are you sure you want to proceed?");
                     warnUserNoColorSpace = true;
                 }
             }
@@ -337,13 +338,13 @@ public class RecalDataManager {
             } 
 
         } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
-            Utils.warnUser("Unable to find color space information in SOLID read. First observed at read with name = " + read.getReadName());
-            Utils.warnUser("This calculation is critically dependent on being able to know when reference bases were inserted into the SOLID read. Are you sure you want to proceed?");
+            Utils.warnUser("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName());
+            Utils.warnUser("This calculation is critically dependent on being able to know when reference bases were inserted into SOLiD reads. Are you sure you want to proceed?");
             warnUserNoColorSpace = true;
         }
+
         return originalQualScores;
     }
-
 
     /**
      * Perform the SET_Q_ZERO solid recalibration. Inconsistent color space bases and their previous base are set to quality zero
@@ -378,6 +379,7 @@ public class RecalDataManager {
             readBases = BaseUtils.simpleReverseComplement( readBases.clone() ); // Put the bases back in reverse order to stuff them back in the read
         }
         read.setReadBases( readBases );
+
         return originalQualScores;
     }
 

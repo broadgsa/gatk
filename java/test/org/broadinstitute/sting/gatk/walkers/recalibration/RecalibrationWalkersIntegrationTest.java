@@ -107,6 +107,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
+    //TODO -- Add an integration test which tests SOLiD files that contain indels to make sure the Cigar string is processed correctly in the solid_recal_modes
+    // Currently we don't have any such data
+
     @Test
     public void testCountCovariatesVCF() {
         HashMap<String, String> e = new HashMap<String, String>();
