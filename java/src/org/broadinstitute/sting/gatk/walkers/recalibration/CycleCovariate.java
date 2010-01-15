@@ -143,10 +143,12 @@ public class CycleCovariate implements StandardCovariate {
             return getValue( read, offset ); // A recursive call
         }
 
-        // Differentiate between first and second of pair
+        // Differentiate between first and second of pair.
         // The sequencing machine cycle keeps incrementing for the second read in a pair. So it is possible for a read group
-        // to have an error affecting quality at a particular cycle on only second of pair reads. Therefore the cycle covariate must differentiate
-        // between first and second of pair reads.
+        // to have an error affecting quality at a particular cycle on the first of pair which carries over to the second of pair.
+        // Therefore the cycle covariate must differentiate between first and second of pair reads.
+        // This effect can not be corrected by pulling out the first of pair and second of pair flags into a separate covariate because
+        //   the current sequential model would consider the effects independently instead of jointly.
         if( read.getReadPairedFlag() && read.getSecondOfPairFlag() ) {
             cycle *= -1;
         }
