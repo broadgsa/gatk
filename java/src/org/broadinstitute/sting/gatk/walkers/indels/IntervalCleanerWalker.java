@@ -243,8 +243,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
             if ( numBlocks == 2 ) {
                 Cigar newCigar = indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex, 0);
-                if ( aRead.setCigar(newCigar) )
+                if ( aRead.setCigar(newCigar) ) {
                     leftMovedIndels.add(aRead);
+                }
             }
 
             int mismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
@@ -258,7 +259,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 aRead.setMismatchScoreToReference(mismatchScore);
                 // if it has an indel, let's see if that's the best consensus
                 if ( numBlocks == 2 )  {
-                    altConsenses.add(createAlternateConsensus(aRead.getAlignmentStart() - (int)leftmostIndex, aRead.getCigar(), reference, aRead.getRead().getReadBases()));
+                    Consensus c = createAlternateConsensus(aRead.getAlignmentStart() - (int)leftmostIndex, aRead.getCigar(), reference, aRead.getRead().getReadBases());
+                    if ( c==null) {} //System.out.println("ERROR: Failed to create alt consensus for read "+aRead.getRead().getReadName());
+                    else altConsenses.add(c);
                 }
                 else {
                     //                    if ( debugOn ) System.out.println("Going to test...");
@@ -785,13 +788,15 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             // The following if() statement: this should've never happened, unless the alignment is really screwed up.
             // A real life example:
             //
-            //   ref:    TTTTTTTTTTTTTTTTTT***TTTTTACTTATAGAAGAAAT...
-            //  read:    GTCTTTTTTTTTTTTTTTTTTTTTTTACTTATAGAAGAAAT...
+            //   ref:    TTTTTTTTTTTTTTTTTT******TTTTTACTTATAGAAGAAAT...
+            //  read:       GTCTTTTTTTTTTTTTTTTTTTTTTTACTTATAGAAGAAAT...
             //
-            //  i.e. the alignment claims 6 T's to be inserted. The alignment is clearly incorrect since we could
+            //  i.e. the alignment claims 6 T's to be inserted. The alignment is clearly malformed/non-conforming since we could
             // have just 3 T's inserted (so that the beginning of the read maps right onto the beginning of the
             // reference fragment shown): that would leave us with same 2 mismatches at the beginning of the read
-            // (G and C) but lower gap penalty. While it is unclear how the alignment shown above could be generated
+            // (G and C) but lower gap penalty. Note that this has nothing to do with the alignment being "right" or "wrong"
+            // with respect to where on the DNA the read actually came from. It is the assumptions of *how* the alignments are
+            // built and represented that are broken here. While it is unclear how the alignment shown above could be generated
             // in the first place, we are not in the business of fixing incorrect alignments in this method; all we are
             // trying to do is to left-adjust correct ones. So if something like that happens, we refuse to change the cigar
             // and bail out.
@@ -824,8 +829,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     newCigar.add(new CigarElement(cigar.getCigarElement(i).getLength(),cigar.getCigarElement(i).getOperator()));                    
                 }
             }
-
-            newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
 
             //logger.debug("Realigning indel: " + AlignmentUtils.cigarToString(cigar) + " to " + AlignmentUtils.cigarToString(newCigar));
             cigar = newCigar;
