@@ -194,7 +194,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // FORMAT fields if not in POOLED mode
         if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
             headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 2, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total number of alleles in called genotypes"));
         }
 

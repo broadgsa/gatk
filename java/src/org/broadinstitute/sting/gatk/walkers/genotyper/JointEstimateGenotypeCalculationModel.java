@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.*;
 
 import java.util.*;
-import java.io.PrintWriter;
 
 public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalculationModel {
 

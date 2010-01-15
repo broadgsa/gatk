@@ -138,16 +138,17 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         if ( totalAlleles > 0 ) {
             infoFields.put(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", totalAlleles));
 
-            // the allele counts are a bit trickier - we need to count up the alternate counts to get the ref count
+            // count up the alternate counts
             List<Integer> altAlleleCounts = params.getAlleleCounts();
-            int totalAltAlleles = 0;
-            StringBuffer sb = new StringBuffer();
-            for ( int alleleCount : altAlleleCounts ) {
-                sb.append(",");
-                sb.append(alleleCount);
-                totalAltAlleles += alleleCount;
+            if ( altAlleleCounts.size() > 0 ) {
+                StringBuffer sb = new StringBuffer();
+                sb.append(altAlleleCounts.get(0));
+                for (int i = 1; i < altAlleleCounts.size(); i++ ) {
+                    sb.append(",");
+                    sb.append(altAlleleCounts.get(i));
+                }
+                infoFields.put(VCFRecord.ALLELE_COUNT_KEY, sb.toString());
             }
-            infoFields.put(VCFRecord.ALLELE_COUNT_KEY, String.format("%d%s", (totalAlleles - totalAltAlleles), sb.toString()));
         }
 
         // q-score
