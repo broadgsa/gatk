@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk;
 
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.utils.StingException;

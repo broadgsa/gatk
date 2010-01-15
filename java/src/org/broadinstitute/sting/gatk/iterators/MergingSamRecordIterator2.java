@@ -33,6 +33,7 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -101,7 +102,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
             String msg = String.format("The GATK requires your bam have %s sort order, but your BAM file header %s.  Continuing beyond this point is unsafe -- please update your BAM file to have a compatible sort order using samtools sort or Picard MergeBamFiles",
                     this.sortOrder, reader.getFileHeader().getAttribute("SO") == null ? "is missing the SO sort order flag" : "has an SO flag set to " + reader.getFileHeader().getAttribute("SO"));
-            if (reads.getSafetyChecking()) {
+            if (!reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.ALLOW_UNSET_BAM_SORT_ORDER)) {
                 throw new PicardException(msg);
             } else if (!warnedUserAboutSortOrder) {
                 warnedUserAboutSortOrder = true;

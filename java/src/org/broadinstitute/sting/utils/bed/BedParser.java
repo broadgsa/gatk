@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.bed;
 
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -104,7 +104,7 @@ public class BedParser {
      * @param rule the rule to merge intervals with
      * @return a list of genome locs, sorted and merged
      */
-    public List<GenomeLoc> getSortedAndMergedLocations(GATKArgumentCollection.INTERVAL_MERGING_RULE rule) {
+    public List<GenomeLoc> getSortedAndMergedLocations(IntervalMergingRule rule) {
         List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
         locs.addAll(mLocations);
         Collections.sort(locs);

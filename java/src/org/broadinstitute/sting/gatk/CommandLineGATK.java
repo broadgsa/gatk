@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk;
 
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.utils.GATKErrorReport;
 import org.broadinstitute.sting.utils.TextFormattingUtils;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;

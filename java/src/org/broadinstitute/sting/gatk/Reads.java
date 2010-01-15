@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMFileReader;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -29,12 +30,12 @@ public class Reads {
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
     private Double downsamplingFraction = null;
     private Integer downsampleToCoverage = null;
-    private Boolean beSafe = null;
+    private ValidationExclusion exclusionList = null;
     private Collection<SamRecordFilter> supplementalFilters = null;
     private int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
     private boolean includeReadsWithDeletionAtLoci = false;
     private boolean generateExtendedEvents = false; // do we want to generate additional piles of "extended" events (indels)
-                                                    // immediately after the reference base such event is associated with?
+// immediately after the reference base such event is associated with?
 
 
     /**
@@ -102,8 +103,8 @@ public class Reads {
      * Return whether to 'verify' the reads as we pass through them.
      * @return Whether to verify the reads.
      */
-    public Boolean getSafetyChecking() {
-        return beSafe;
+    public ValidationExclusion getValidationExclusionList() {
+        return exclusionList;
     }
 
     public Collection<SamRecordFilter> getSupplementalFilters() {
@@ -117,6 +118,7 @@ public class Reads {
     public Reads( List<File> readsFiles ) {
         this.readsFiles = readsFiles;
         this.supplementalFilters = new ArrayList<SamRecordFilter>();
+        this.exclusionList = new ValidationExclusion();
     }
 
     /**
@@ -127,7 +129,7 @@ public class Reads {
      * @param strictness Stringency of reads file parsing.
      * @param downsampleFraction fraction of reads to downsample.
      * @param downsampleCoverage downsampling per-locus.
-     * @param beSafe Whether to enable safety checking.
+     * @param exclusionList what safety checks we're willing to let slide
      * @param supplementalFilters additional filters to dynamically apply.
      * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
      *        a pile of indel/noevent extended events at every locus with at least one indel associated with it
@@ -140,7 +142,7 @@ public class Reads {
            SAMFileReader.ValidationStringency strictness,
            Double downsampleFraction,
            Integer downsampleCoverage,
-           Boolean beSafe,
+           ValidationExclusion exclusionList,
            Collection<SamRecordFilter> supplementalFilters,
            int maximumReadsAtLocus,
            boolean includeReadsWithDeletionAtLoci,
@@ -149,7 +151,7 @@ public class Reads {
         this.validationStringency = strictness;
         this.downsamplingFraction = downsampleFraction;
         this.downsampleToCoverage = downsampleCoverage;
-        this.beSafe = beSafe;
+        this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;
         this.supplementalFilters = supplementalFilters;
         this.maximumReadsAtLocus = maximumReadsAtLocus;
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;

@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantstovcf;
 
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;

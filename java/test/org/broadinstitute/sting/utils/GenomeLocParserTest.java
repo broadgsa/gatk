@@ -4,7 +4,7 @@ import static junit.framework.Assert.assertTrue;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import static org.junit.Assert.assertEquals;
@@ -83,33 +83,33 @@ public class GenomeLocParserTest extends BaseTest {
 
     @Test(expected = RuntimeException.class)
     public void testParseBadLocations() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;badChr:1-0", GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL);
+        GenomeLocParser.parseGenomeLocs("chr1:1-1;badChr:1-0", IntervalMergingRule.ALL);
     }
 
     @Test
     public void testParseGoodLocations() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL);
+        GenomeLocParser.parseGenomeLocs("chr1:1-1;chr1:5-9", IntervalMergingRule.ALL);
     }
 
     @Test(expected = RuntimeException.class)
     public void testParseGoodLocationsTooManySemiColons() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;;chr1:5-9;", GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL);
+        GenomeLocParser.parseGenomeLocs("chr1:1-1;;chr1:5-9;", IntervalMergingRule.ALL);
     }
 
     @Test
     public void testOverlappingGoodLocationsWithAbuttingFlag() {
-        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.OVERLAPPING_ONLY);
+        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", IntervalMergingRule.OVERLAPPING_ONLY);
         assertEquals(1, locs.size());
     }
 
     @Test
     public void testAbuttingGoodLocationsWithAbuttingOffFlag() {
-        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-4;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.OVERLAPPING_ONLY);
+        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-4;chr1:5-9", IntervalMergingRule.OVERLAPPING_ONLY);
         assertEquals(2, locs.size());
     }
     @Test
     public void testAbuttingGoodLocationsWithNoneFlag() {
-        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", GATKArgumentCollection.INTERVAL_MERGING_RULE.NONE);
+        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", IntervalMergingRule.NONE);
         assertEquals(2, locs.size());
     }
 

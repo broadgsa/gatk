@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShard;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -19,7 +20,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
-import java.util.List;
 import java.util.Collection;
 
 /*
@@ -164,14 +164,14 @@ public class SAMDataSource implements SimpleDataSource {
             iterator = applyDecoratingIterators(true,
                     iterator,
                     reads.getDownsamplingFraction(),
-                    reads.getSafetyChecking(),
+                    reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                     reads.getSupplementalFilters());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS) {
             iterator = seekLocus(shard);
             iterator = applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
-                    reads.getSafetyChecking(),
+                    reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                     reads.getSupplementalFilters());
         } else if ((shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) ||
                    (shard.getShardType() == Shard.ShardType.READ_INTERVAL)) {
@@ -179,7 +179,7 @@ public class SAMDataSource implements SimpleDataSource {
             iterator = applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
-                    reads.getSafetyChecking(),
+                    reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                     reads.getSupplementalFilters());
 
             // add the new overlapping detection iterator, if we have a last interval and we're a read based shard
@@ -430,21 +430,23 @@ public class SAMDataSource implements SimpleDataSource {
      * @param enableVerification Verify the order of reads.
      * @param wrappedIterator the raw data source.
      * @param downsamplingFraction whether and how much to downsample the reads themselves (not at a locus).
-     * @param beSafeP Another trigger for the verifying iterator?  TODO: look into this.
+     * @param noValidationOfReadOrder Another trigger for the verifying iterator?  TODO: look into this.
      * @param supplementalFilters additional filters to apply to the reads.
      * @return An iterator wrapped with filters reflecting the passed-in parameters.  Will not be null.
      */
     private StingSAMIterator applyDecoratingIterators(boolean enableVerification,
                                                       StingSAMIterator wrappedIterator,
                                                       Double downsamplingFraction,
-                                                      Boolean beSafeP,
+                                                      Boolean noValidationOfReadOrder,
                                                       Collection<SamRecordFilter> supplementalFilters) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (downsamplingFraction != null)
             wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
 
-        if (beSafeP != null && beSafeP && enableVerification)
+        // unless they've said not to validate read ordering (!noValidationOfReadOrder) and we've enabled verification,
+        // verify the read ordering by applying a sort order iterator
+        if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
 
         for( SamRecordFilter supplementalFilter: supplementalFilters )

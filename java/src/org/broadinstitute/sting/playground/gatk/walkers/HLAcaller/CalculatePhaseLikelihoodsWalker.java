@@ -2,7 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;

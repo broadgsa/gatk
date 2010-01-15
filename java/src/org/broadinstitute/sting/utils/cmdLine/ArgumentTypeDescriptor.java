@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.cmdLine;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -270,8 +271,14 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 return valueOf.invoke(null,value.trim());
             } else if (type.isEnum()) {
                 Object[] vals = type.getEnumConstants();
-                for (Object val : vals)
+                Object defaultEnumeration = null;  // as we look at options, record the default option if it exists
+                for (Object val : vals) {
                     if (String.valueOf(val).equalsIgnoreCase(value)) return val;
+                    try { if (type.getField(val.toString()).isAnnotationPresent(EnumerationArgumentDefault.class)) defaultEnumeration = val; }
+                    catch (NoSuchFieldException e) { throw new StingException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
+                }
+                // if their argument has no value (null), and there's a default, return that default for the enum value
+                if (defaultEnumeration != null && value == null) return defaultEnumeration;
                 throw new UnknownEnumeratedValueException(value, type.getName());
             } else {
                 Constructor ctor = type.getConstructor(String.class);

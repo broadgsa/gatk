@@ -38,6 +38,8 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -157,7 +159,11 @@ public class GenomeAnalysisEngine {
             locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
         }
 
-        ShardStrategy shardStrategy = getShardStrategy(my_walker, microScheduler.getReference(), locs, argCollection.maximumEngineIterations);
+        ShardStrategy shardStrategy = getShardStrategy(my_walker,
+                                                       microScheduler.getReference(),
+                                                       locs,
+                                                       argCollection.maximumEngineIterations,
+                                                       readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
@@ -418,7 +424,7 @@ public class GenomeAnalysisEngine {
                 argCollection.strictnessLevel,
                 argCollection.downsampleFraction,
                 argCollection.downsampleCoverage,
-                !argCollection.unsafe,
+                new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
                 argCollection.readMaxPileup,
                 walker.includeReadsWithDeletionAtLoci(),
@@ -573,9 +579,10 @@ public class GenomeAnalysisEngine {
     protected ShardStrategy getShardStrategy(Walker walker,
                                              ReferenceSequenceFile drivingDataSource,
                                              GenomeLocSortedSet intervals,
-                                             Integer maxIterations) {
+                                             Integer maxIterations,
+                                             ValidationExclusion exclusions) {
         if(readsDataSource != null && !readsDataSource.hasIndex()) {
-            if(!getArguments().unsafe || intervals != null)
+            if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM) || intervals != null)
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
             Shard.ShardType shardType;
@@ -626,7 +633,7 @@ public class GenomeAnalysisEngine {
                         SHARD_SIZE, maxIterations);
             }
         } else if (walker instanceof LocusWindowWalker) {
-            if ((intervals == null || intervals.isEmpty()) && !this.argCollection.unsafe)
+            if ((intervals == null || intervals.isEmpty()) && !exclusions.contains(ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST))
                 Utils.warnUser("walker is of type LocusWindow (which operates over intervals), but no intervals were provided." +
                                "This may be unintentional, check your command-line arguments.");
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,

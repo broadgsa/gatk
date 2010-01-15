@@ -1,6 +1,7 @@
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.sting.gatk.arguments;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.junit.After;
 import static org.junit.Assert.fail;
 import org.junit.Before;
@@ -85,7 +86,7 @@ public class GATKArgumentCollectionTest extends BaseTest {
         collect.DBSNPFile = "DBSNPFile".toLowerCase();
         collect.HAPMAPFile = "HAPMAPFile".toLowerCase();
         collect.HAPMAPChipFile = "HAPMAPChipFile".toLowerCase();
-        collect.unsafe = false;
+        collect.unsafe = ValidationExclusion.TYPE.ALL;
         collect.downsampleFraction = null;
         collect.downsampleCoverage = null;
         collect.intervals = new ArrayList<String>();

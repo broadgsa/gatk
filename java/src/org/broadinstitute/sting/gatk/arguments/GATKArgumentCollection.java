@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.utils.StingException;
@@ -121,7 +121,7 @@ public class GATKArgumentCollection {
 
     @Element(required = false)
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)
-    public Boolean unsafe = false;
+    public ValidationExclusion.TYPE unsafe;
 
     @Element(required = false)
     @Argument(fullName = "max_reads_at_locus", shortName = "mrl", doc = "Sets the upper limit for the number of reads presented at a single locus. int.MAX_VALUE by default.", required = false)
@@ -139,12 +139,13 @@ public class GATKArgumentCollection {
     /** What rule should we use when merging intervals */
     @Element(required = false)
     @Argument(fullName = "interval_merging", shortName = "im", doc = "What interval merging rule should we use {ALL [DEFAULT],OVERLAPPING_ONLY,NONE}.", required = false)
-    public INTERVAL_MERGING_RULE intervalMerging = INTERVAL_MERGING_RULE.ALL;
+    public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
     /** Should we enable rodWalkers?  This is currently unsafe */
     @Element(required = false)
     @Argument(fullName = "enableRodWalkers", shortName = "erw", doc = "Enable experimental rodWalker support.  TEMPORARY HACK TO ALLOW EXPERIMENTATION WITH ROD WALKERS.  [default is false]}.", required = false)
     public boolean enableRodWalkers = false;
+
 
     /**
      * marshal the data out to a object
@@ -306,19 +307,5 @@ public class GATKArgumentCollection {
         return true;
     }
 
-    /**
-     * a class we use to determine the merging rules for intervals passed to the GATK
-     */
-    public enum INTERVAL_MERGING_RULE {
-        ALL, // we merge both overlapping intervals and abutting intervals
-        OVERLAPPING_ONLY, // We merge intervals that are overlapping, but NOT ones that only abut each other
-        NONE; // we merge neither overlapping or abutting intervals, the list of intervals is sorted, but not merged
-
-        public boolean check() {
-            if (this.compareTo(NONE) == 0)
-                throw new UnsupportedOperationException("We Currently do not support INTERVAL_MERGING_RULE.NONE");
-            return true;
-        }
-    }
 }
 

@@ -7,8 +7,9 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -137,7 +138,7 @@ public class GenomeLocParser {
      * @param rule the merging rule we're using
      * @return a list of sorted, merged intervals.
      */
-    public static List<GenomeLoc> parseIntervals(List<String> intervalsSource, GATKArgumentCollection.INTERVAL_MERGING_RULE rule) {
+    public static List<GenomeLoc> parseIntervals(List<String> intervalsSource, IntervalMergingRule rule) {
         List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource);
 	Collections.sort(parsedIntervals);
 	return GenomeLocParser.mergeIntervalLocations(parsedIntervals, rule);
@@ -202,7 +203,7 @@ public class GenomeLocParser {
      *
      * @return Array of GenomeLoc objects corresponding to the locations in the string, sorted by coordinate order
      */
-    public static List<GenomeLoc> parseGenomeLocs(final String str, GATKArgumentCollection.INTERVAL_MERGING_RULE rule) {
+    public static List<GenomeLoc> parseGenomeLocs(final String str, IntervalMergingRule rule) {
         // Null string means no filter.
         if (str == null) return null;
 
@@ -214,9 +215,7 @@ public class GenomeLocParser {
             for (String loc : str.split(";"))
                 locs.add(parseGenomeLoc(loc.trim()));
             Collections.sort(locs);
-            //logger.info(String.format("Going to process %d locations", locs.length));
-            locs = mergeIntervalLocations(locs, rule);
-            logger.debug("Locations are:" + Utils.join(", ", locs));
+            locs = mergeIntervalLocations(locs, rule);            
             return locs;
         } catch (Exception e) { // TODO: fix this so that it passes the message from the exception, and doesn't print it out
             throw new StingException(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str), e);
@@ -242,9 +241,9 @@ public class GenomeLocParser {
      *
      * @return the list of merged locations
      */
-    public static List<GenomeLoc> mergeIntervalLocations(final List<GenomeLoc> raw, GATKArgumentCollection.INTERVAL_MERGING_RULE rule) {
+    public static List<GenomeLoc> mergeIntervalLocations(final List<GenomeLoc> raw, IntervalMergingRule rule) {
         logger.debug("  Raw locations are: " + Utils.join(", ", raw));
-        if (raw.size() <= 1 || rule == GATKArgumentCollection.INTERVAL_MERGING_RULE.NONE)
+        if (raw.size() <= 1 || rule == IntervalMergingRule.NONE)
             return raw;
         else {
             ArrayList<GenomeLoc> merged = new ArrayList<GenomeLoc>();
@@ -254,7 +253,7 @@ public class GenomeLocParser {
                 GenomeLoc curr = it.next();
                 if (prev.overlapsP(curr)) {
                     prev = prev.merge(curr);
-                } else if (prev.contiguousP(curr) && rule == GATKArgumentCollection.INTERVAL_MERGING_RULE.ALL) {
+                } else if (prev.contiguousP(curr) && rule == IntervalMergingRule.ALL) {
                     prev = prev.merge(curr);
                 } else {
                     merged.add(prev);
@@ -315,7 +314,7 @@ public class GenomeLocParser {
      * @param file_name
      * @param rule also merge abutting intervals
      */
-    public static List<GenomeLoc> intervalFileToList(final String file_name, GATKArgumentCollection.INTERVAL_MERGING_RULE rule) {
+    public static List<GenomeLoc> intervalFileToList(final String file_name, IntervalMergingRule rule) {
         /**
          * first try to read it as an interval file since that's well structured
          * we'll fail quickly if it's not a valid file.  Then try to parse it as
@@ -327,7 +326,7 @@ public class GenomeLocParser {
 
             // sometimes we see an empty file passed as a parameter, if so return an empty list
             if (inputFile.exists() && inputFile.length() < 1) {
-                if (GenomeAnalysisEngine.instance.getArguments().unsafe)
+                if (GenomeAnalysisEngine.instance.getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST)
                     return new ArrayList<GenomeLoc>();
                 else {
                     Utils.warnUser("The interval file " + file_name + " is empty. The GATK will continue processing but you " +
