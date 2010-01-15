@@ -191,7 +191,7 @@ public class LocusIteratorByState extends LocusIterator {
                         // past the insertion right after that
                         if ( eventDelayedFlag > 1 ) throw new StingException("Adjacent I/D events in read "+read.getReadName());
                         insertedBases = Arrays.copyOfRange(read.getReadBases(),readOffset+1,readOffset+1+curElement.getLength());
-                        eventLength = cigarElementCounter ;
+                        eventLength = curElement.getLength() ;
                         eventStart = readOffset;
                         eventDelayedFlag = 2; // insertion causes re-entry into stepForwardOnGenome, so we set the delay to 2
 //                        System.out.println("Inserted "+(new String (insertedBases)) +" after "+readOffset);
