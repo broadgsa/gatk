@@ -52,9 +52,9 @@ import net.sf.samtools.SAMRecord;
  * Since there is a large amount of data one can then calculate an empirical probability of error
  *   given the particular covariates seen at this site, where p(error) = num mismatches / num observations
  * The output file is a CSV list of (the several covariate values, num observations, num mismatches, empirical quality score)
- * The first lines of the output file give the name of the covariate classes that were used for this calculation.
+ * The first non-comment line of the output file gives the name of the covariates that were used for this calculation.
  *
- * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and must be at the start of the list.
+ * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and will be added for the user regardless of whether or not they were specified
  * Note: This walker is designed to be used in conjunction with TableRecalibrationWalker.
  *
  * @author rpoplin
@@ -472,7 +472,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 // Output the RecalDatum entry
                 recalTableStream.println( ((RecalDatumOptimized)val).outputToCSV() );
             } else { // Another layer in the nested hash map
-                printMappingsSorted( recalTableStream, curPos + 1, key, (Map) val);
+                printMappingsSorted( recalTableStream, curPos + 1, key, (Map) val );
             }
         }
     }
@@ -490,7 +490,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 // Output the RecalDatum entry
                 recalTableStream.println( ((RecalDatumOptimized)val).outputToCSV() );
             } else { // Another layer in the nested hash map
-                printMappings( recalTableStream, curPos + 1, key, (Map) val);
+                printMappings( recalTableStream, curPos + 1, key, (Map) val );
             }
         }
     }
