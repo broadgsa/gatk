@@ -50,7 +50,8 @@ public class CycleCovariate implements StandardCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
-        if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) || RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) ) {
+        if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SLX" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) ||
+            RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) ) {
             defaultPlatform = RAC.DEFAULT_PLATFORM;
         } else {
             throw new StingException( "The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
@@ -66,7 +67,8 @@ public class CycleCovariate implements StandardCovariate {
         // ILLUMINA and SOLID
         //-----------------------------
 
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
+        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SLX" ) ||
+                read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) { // Some bams have "illumina" and others have "SLX"
             cycle = offset + 1;
 	        if( read.getReadNegativeStrandFlag() ) {
 	            cycle = read.getReadLength() - offset;
@@ -141,11 +143,13 @@ public class CycleCovariate implements StandardCovariate {
             return getValue( read, offset ); // A recursive call
         }
 
-        // This functionality was moved to PairedReadOrderCovariate
         // Differentiate between first and second of pair
-        //if( read.getReadPairedFlag() && read.getSecondOfPairFlag() ) {
-        //    cycle *= -1;
-        //}
+        // The sequencing machine cycle keeps incrementing for the second read in a pair. So it is possible for a read group
+        // to have an error affecting quality at a particular cycle on only second of pair reads. Therefore the cycle covariate must differentiate
+        // between first and second of pair reads.
+        if( read.getReadPairedFlag() && read.getSecondOfPairFlag() ) {
+            cycle *= -1;
+        }
 
         return cycle;
     }
