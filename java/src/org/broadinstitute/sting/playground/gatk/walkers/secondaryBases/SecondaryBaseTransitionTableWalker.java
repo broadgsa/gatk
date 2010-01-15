@@ -4,102 +4,117 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
+import org.broadinstitute.sting.playground.utils.NamedTable;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.genotype.VariationCall;
+import org.broadinstitute.sting.utils.pileup.ExtendedPileupElement;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import java.util.HashMap;
-
+import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
- * User: michael
+ * Created By User: Michael Melgar
  * Date: Nov 2, 2009
  * Time: 8:45:32 PM
- * To change this template use File | Settings | File Templates.
+ * Given a secondary base annotated .bam file and a reference, this walker generates a table of secondary base counts
+ * for all called loci in the .bam. Each base call made is an instance included in the table. Specifically, the walker
+ * maps the following vector to a count of secondary bases:
+ * <Called Genotype, Reference Base, Primary Base, Previous Genome Base, Read Group, Secondary Base>.
  */
+
 @Reference(window=@Window(start=-1,stop=1))
 public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Integer> {
 
     HashMap<String,Long> counts = new HashMap<String,Long>();
-    public IndexedFastaSequenceFile refSeq;
+    private UnifiedArgumentCollection uac;
+    private UnifiedGenotyper ug;
+    private NamedTable altTable;
 
-    /*public void initialize() {
-        File refFile = this.getToolkit().getArguments().referenceFile;
+    public void initialize() {
+        uac = new UnifiedArgumentCollection();
+        uac.genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
+        uac.CONFIDENCE_THRESHOLD = 50;
+        uac.ALL_BASES = true;
 
-        try {
-            refSeq = new IndexedFastaSequenceFile(refFile);
-        } catch (IOException e) {
-            refSeq = null;
-        }
-    }*/
+        ug = new UnifiedGenotyper();
+        ug.initialize();
+        ug.setUnifiedArgumentCollection(uac);
+
+        altTable = new NamedTable();
+    }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return 0;
+        char refBase = Character.toUpperCase(ref.getBase());
+        ReadBackedPileup pileup = context.getBasePileup();
+        char[] contextBases = ref.getBases();
+        char prevBase = Character.toUpperCase(contextBases[0]);
+        char nextBase = Character.toUpperCase(contextBases[contextBases.length - 1]);
+
+        if (contextBases.length == 3 && refBase != 'N' && pileup.getBases() != null && pileup.getSecondaryBases() != null) {
+            Pair<VariationCall,List<Genotype>> ugResult = ug.map(tracker,ref,context);
+            if (ugResult != null && ugResult.first != null) {
+                Genotype res = ugResult.second.get(0);
+                String call = res.getBases();
+                String type;
+                if (!res.isVariant(refBase)) {type = "homref";}
+                else if (!res.isHet()) {type = "homvar";}
+                else if (call.contains(Character.toString(refBase))) {type = "het";}
+                else {type = "bad";}
+                if (type != "bad") {
+                    for (PileupElement element : pileup) {
+                        char primaryBase = Character.toUpperCase((char)element.getBase());
+                        char secondaryBase = Character.toUpperCase((char)element.getSecondBase());
+                        String RG = element.getRead().getReadGroup().getReadGroupId();
+                        if (secondaryBase != 'N' && secondaryBase != '.' && primaryBase != 'N') {
+                            String strandRef;
+                            String strandPrimary;
+                            String strandPrev;
+                            String strandSecondary;
+                            if (!element.getRead().getReadNegativeStrandFlag()) {
+                                strandRef = Character.toString(refBase);
+                                strandPrimary = Character.toString(primaryBase);
+                                strandPrev = Character.toString(prevBase);
+                                strandSecondary = Character.toString(secondaryBase);
+                            }
+                            else {
+                                strandRef = Character.toString(BaseUtils.simpleComplement(refBase));
+                                strandPrimary = Character.toString(BaseUtils.simpleComplement(primaryBase));
+                                strandPrev = Character.toString(BaseUtils.simpleComplement(nextBase));
+                                strandSecondary = Character.toString(BaseUtils.simpleComplement(secondaryBase));
+                            }
+                            if (strandPrev.charAt(0) != 'N') {
+                                String key = RG+' '+type+' '+call+' '+strandRef+' '+strandPrimary+' '+strandPrev+' '+strandSecondary;
+                                if (counts.containsKey(key)) {
+                                    counts.put(key, counts.get(key) + Long.valueOf(1));
+                                }
+                                else {
+                                    counts.put(key, Long.valueOf(1));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    return 1;
     }
-//        String refBase = Character.toString(ref.getBase());
-//        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(),context);
-//        String primaryBases = pileup.getBasesWithStrand();
-//        String secondaryBases = pileup.getSecondaryBasePileup();
-//        String contextBases = new String(ref.getBases());
-//
-//        /*if (refSeq != null) {
-//            long startPos = context.getPosition() - 1;
-//            long stopPos = context.getPosition() + 1;
-//
-//            ReferenceSequence prevRefSequence = refSeq.getSubsequenceAt(context.getContig(), startPos, context.getPosition() - 1);
-//            ReferenceSequence nextRefSequence = refSeq.getSubsequenceAt(context.getContig(), context.getPosition() + 1, stopPos);
-//
-//            String prev = new String(prevRefSequence.getBases());
-//            String next = new String(nextRefSequence.getBases());
-//            String total = new String(refSeq.getSubsequenceAt(context.getContig(),startPos,stopPos).getBases());
-//            out.println(total + "  " + prev + " " + refBase + " " + next);
-//        }*/
-//
-//        String precedingBase = contextBases.substring(0,1);
-//        String nextBase = contextBases.substring(2);
-//        /*out.println(contextBases + "  " + precedingBase + " " + refBase + " " + nextBase);*/
-//        /*out.println(" ");*/
-//
-//        boolean rods = false;
-//        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
-//            if (datum != null && !(datum instanceof IntervalRod)) {
-//                rods = true;}
-//        }
-//
-//        if (!rods && precedingBase != null && secondaryBases != null) {
-//            for (int i = 0; i < primaryBases.length(); i ++) {
-//                if (secondaryBases.charAt(i) != 'N' && secondaryBases.charAt(i) != '.' && Character.toUpperCase(primaryBases.charAt(i)) != 'N') {
-//                    String quenchingBase;
-//                    if (primaryBases.charAt(i) == Character.toUpperCase(primaryBases.charAt(i))) {
-//                        quenchingBase = precedingBase;
-//                    }
-//                    else {
-//                        quenchingBase = nextBase;
-//                    }
-//                    String reference = Character.toString(Character.toUpperCase(refBase.charAt(0)));
-//                    String primary = Character.toString(Character.toUpperCase(primaryBases.charAt(i)));
-//                    String quencher = Character.toString(Character.toUpperCase(quenchingBase.charAt(0)));
-//                    String secondary = Character.toString(Character.toUpperCase(secondaryBases.charAt(i)));
-//                    String key = reference + primary + quencher + secondary;
-//                    if (counts.containsKey(key)) {
-//                        counts.put(key, counts.get(key) + Long.valueOf(1));
-//                    }
-//                    else {
-//                        counts.put(key, Long.valueOf(1));
-//                    }
-//                }
-//            }
-//        }
-//        return 1;
-//    }
 
     public Integer reduceInit() {return 0;}
 
     public Integer reduce(Integer value, Integer sum) {return sum + value;}
 
     public void onTraversalDone(Integer result) {
-        out.println("ReferenceBase \tPrimaryBase \tPreviousBase \tSecondaryBase \tCount");
+        out.println(">>>");
+        out.println("ReadGroup CallType CalledGenotype ReferenceBase PrimaryBase PreviousBase SecondaryBase Count");
         for (String key : counts.keySet()) {
-            out.println(key.charAt(0)+"\t"+key.charAt(1)+"\t"+key.charAt(2)+"\t"+key.charAt(3)+"\t"+counts.get(key));
+            out.println(key + ' ' + counts.get(key).toString());
         }
+        out.println("Processed " + result.toString() + " loci.");
     }
 }
