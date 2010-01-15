@@ -7,6 +7,9 @@
     <name>GATK-GSA-Pipeline</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
     <dependencies>
+      <!-- Text extracted from the javadocs -->
+      <properties>StingText.properties</properties>
+      <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
       <!-- Quality scores recalibration -->
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>

@@ -5,7 +5,11 @@
     <name>GenomeAnalysisTK</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
     <dependencies>
+      <!-- Text extracted from the javadocs -->
+      <properties>StingText.properties</properties>
+      <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
+      <!-- Basic qc walkers -->
       <class>org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>

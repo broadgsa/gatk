@@ -24,6 +24,10 @@
 	<available property="is.{current()}.present" classpath="{$classpath}" classname="{current()}"/>
 	<fail message="Class {current()} not found" unless="is.{current()}.present" />
       </xsl:for-each>
+      <xsl:for-each select="//properties">
+	<available property="is.{current()}.present" file="{$staging.dir}/{current()}"/>
+	<fail message="Property file {current()} not found" unless="is.{current()}.present" />
+      </xsl:for-each>
 
       <!-- Create an output directory for the package -->
       <mkdir dir="{$package.dir}"/>
@@ -40,8 +44,11 @@
               <root classname="{current()}" />
             </xsl:for-each>
           </classfileset>
+          <xsl:for-each select="dependencies/properties">
+            <fileset file="{$staging.dir}/{current()}" />
+          </xsl:for-each>
           <xsl:for-each select="dependencies/file">
-            <fileset file="{current()}" />
+            <fileset file="{$staging.dir}/{current()}" />
           </xsl:for-each>
           <manifest>
             <attribute name="Main-Class" value="{main-class}"/>

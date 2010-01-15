@@ -58,19 +58,11 @@ public class WalkerManager extends PluginManager<Walker> {
     /**
      * A collection of help text for walkers and their enclosing packages.
      */
-    private Properties helpText = new Properties();
+    private ResourceBundle helpText;
 
     public WalkerManager() {
         super(Walker.class,"walker","Walker");
-        InputStream helpSourceFile = getClass().getClassLoader().getResourceAsStream("help.properties");
-        if(helpSourceFile != null) {
-            try {
-                helpText.load(helpSourceFile);
-            }
-            catch(IOException ex) {
-                throw new StingException("Unable to process help data");
-            }
-        }
+        helpText = ResourceBundle.getBundle("StingText");
     }
 
     /**
@@ -100,7 +92,7 @@ public class WalkerManager extends PluginManager<Walker> {
         String displayNameKey = String.format("%s.%s",packageName,DisplayNameTaglet.NAME);
         String displayName = null;
         if(helpText.containsKey(displayNameKey)) {
-            displayName = helpText.getProperty(displayNameKey);
+            displayName = helpText.getString(displayNameKey);
         }
         else {
             // If no override exists...
@@ -121,7 +113,7 @@ public class WalkerManager extends PluginManager<Walker> {
         String key = String.format("%s.%s",packageName,SummaryTaglet.NAME);
         if(!helpText.containsKey(key))
             return "";
-        return helpText.getProperty(key);    
+        return helpText.getString(key);
     }
 
     /**
@@ -133,7 +125,7 @@ public class WalkerManager extends PluginManager<Walker> {
         String walkerSummary = String.format("%s.%s",walkerType.getName(), SummaryTaglet.NAME);
         if(!helpText.containsKey(walkerSummary))
             return "";
-        return helpText.getProperty(walkerSummary);
+        return helpText.getString(walkerSummary);
     }
 
     /**
@@ -145,7 +137,7 @@ public class WalkerManager extends PluginManager<Walker> {
         String walkerDescription = String.format("%s.%s",walkerType.getName(), DescriptionTaglet.NAME);
         if(!helpText.containsKey(walkerDescription))
             return "";
-        return helpText.getProperty(walkerDescription);
+        return helpText.getString(walkerDescription);
     }
 
     /**

@@ -6,7 +6,7 @@
     <property name="source.dir" value="java/src" />
     <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
-    <property name="help.file" value="${build.dir}/help.properties" />
+    <property name="resource.file" value="StingText.properties" />
 
     <property name="single" value="*Test" />
     <property name="singleintegration" value="*IntegrationTest" />
@@ -99,10 +99,10 @@
     <target name="extracthelp" depends="compile" 
 	    description="Extract help key/value pair file from the JavaDoc tags."
 	    unless="disable.help">
-      <javadoc doclet="org.broadinstitute.sting.utils.help.HelpExtractorDoclet"
+      <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
 	       docletpath="build"
 	       classpathref="runtime.dependencies"
-	       additionalparam="-out ${help.file}">
+	       additionalparam="-out ${build.dir}/${resource.file}">
 	<packageset refid="source.files"/>
       </javadoc>
     </target>
@@ -124,7 +124,7 @@
 
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <fileset dir="build">
-	      <include name="help.properties" />
+	      <include name="${resource.file}" />
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
               <include name="**/oneoffprojects/**/*.class" />

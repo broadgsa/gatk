@@ -17,7 +17,12 @@ import org.broadinstitute.sting.utils.StingException;
  * @author mhanna
  * @version 0.1
  */
-public class HelpExtractorDoclet {
+public class ResourceBundleExtractorDoclet {
+    /**
+     * Taglet for the particular version number.
+     */
+    private static final String VERSION_TAGLET_NAME = "version";
+
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
      * @param rootDoc The documentation root.
@@ -72,6 +77,7 @@ public class HelpExtractorDoclet {
     private static void renderHelpText(String elementName, Doc element, PrintStream out) {
         // Extract overrides from the doc tags.
         String name = null;
+        String version = null;
         StringBuilder summaryBuilder = new StringBuilder();
         for(Tag tag: element.firstSentenceTags())
              summaryBuilder.append(tag.text());
@@ -84,6 +90,8 @@ public class HelpExtractorDoclet {
                     throw new StingException("Only one display name tag can be used per package / walker.");
                 name = tag.text();
             }
+            else if(tag.name().equals("@"+VERSION_TAGLET_NAME))
+                version = tag.text();
             else if(tag.name().equals("@"+SummaryTaglet.NAME))
                 summary = tag.text();
             else if(tag.name().equals("@"+DescriptionTaglet.NAME))
@@ -93,6 +101,9 @@ public class HelpExtractorDoclet {
         // Write out an alternate element name, if exists.
         if(name != null)
             out.printf("%s.%s=%s%n",elementName,DisplayNameTaglet.NAME,name);
+
+        if(version != null)
+            out.printf("%s.%s=%s%n",elementName,VERSION_TAGLET_NAME,version);
 
         // Write out an alternate element summary, if exists.
         out.printf("%s.%s=%s%n",elementName,SummaryTaglet.NAME,formatText(summary));

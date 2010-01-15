@@ -4,8 +4,10 @@
   <executable>
     <name>GenomeAnalysisTK</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    
     <dependencies>
+      <!-- Text extracted from the javadocs -->
+      <properties>StingText.properties</properties>
+      <!-- The walker -->
       <class>org.broadinstitute.sting.gatk.walkers.FixBAMSortOrderTag</class>
     </dependencies>
   </executable>
