@@ -101,11 +101,11 @@ public class SAMByIntervalTest extends BaseTest {
         int unmappedReadsSeen = 0;
         int iterations = 0;
 
-        SAMDataSource data = new SAMDataSource(reads);
+        IndexDrivenSAMDataSource data = new IndexDrivenSAMDataSource(reads);
         data.setResourcePool(gen);
         GenomeLocSortedSet set = new GenomeLocSortedSet();
         set.add(GenomeLocParser.createGenomeLoc(0, start, stop));
-        ShardStrategy strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL, gen.getHeader().getSequenceDictionary(), UNMAPPED_READ_COUNT, set);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL, gen.getHeader().getSequenceDictionary(), UNMAPPED_READ_COUNT, set);
 
         StingSAMIterator iter = data.seek(strat.next());
         int count = 0;

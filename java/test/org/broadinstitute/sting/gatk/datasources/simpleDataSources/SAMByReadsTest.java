@@ -79,7 +79,7 @@ public class SAMByReadsTest extends BaseTest {
             int unmappedReadsSeen = 0;
             int iterations = 0;
 
-            SAMDataSource data = new SAMDataSource(reads);
+            IndexDrivenSAMDataSource data = new IndexDrivenSAMDataSource(reads);
             data.setResourcePool(gen);
             ++iterations;
             StingSAMIterator ret = data.toUnmappedReads(100);
@@ -109,10 +109,10 @@ public class SAMByReadsTest extends BaseTest {
         targetReadCount = 5;
         try {
             int readCount = 0;
-            SAMDataSource data = new SAMDataSource(reads);
+            IndexDrivenSAMDataSource data = new IndexDrivenSAMDataSource(reads);
 
             data.setResourcePool(gen);
-            shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
+            shardStrategy = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
                 StingSAMIterator ret = data.seek(shardStrategy.next());
                 assertTrue(ret != null);
@@ -140,11 +140,11 @@ public class SAMByReadsTest extends BaseTest {
         targetReadCount = 3;
         try {
             int readCount = 0;
-            SAMDataSource data = new SAMDataSource(reads);
+            IndexDrivenSAMDataSource data = new IndexDrivenSAMDataSource(reads);
 
 
             data.setResourcePool(gen);
-            shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
+            shardStrategy = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
 
 

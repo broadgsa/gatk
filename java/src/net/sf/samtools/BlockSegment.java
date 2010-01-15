@@ -51,7 +51,7 @@ class BlockSegment {
      * @return the chunk equivalent of this block.
      */
     public Chunk toChunk() {
-        return new Chunk(position << 16 & blockStart,position << 16 & blockStop);
+        return new Chunk(position << 16 | blockStart,position << 16 | blockStop);
     }
 
     /**

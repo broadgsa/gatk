@@ -71,12 +71,7 @@ public class TraverseReads extends TraversalEngine {
                              ShardDataProvider dataProvider,
                              T sum) {
 
-        if (shard instanceof ReadShard) {
-            logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard) shard).getSize()));
-        } else if (shard instanceof IntervalShard) {
-            logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((IntervalShard) shard).getGenomeLoc()));
-        }
-
+        logger.debug(String.format("TraverseReads.traverse Covered dataset is %s", shard));
 
         if (!(walker instanceof ReadWalker))
             throw new IllegalArgumentException("Walker isn't a read walker!");

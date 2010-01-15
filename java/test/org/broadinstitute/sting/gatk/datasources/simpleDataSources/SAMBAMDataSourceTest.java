@@ -81,16 +81,17 @@ public class SAMBAMDataSourceTest extends BaseTest {
     @Test
     public void testLinearBreakIterateAll() {
         logger.warn("Executing testLinearBreakIterateAll");
-        // the sharding strat.
-        ShardStrategy strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
-        int count = 0;
 
         // setup the data
         fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
         Reads reads = new Reads(fl);
 
+        // the sharding strat.
+        SAMDataSource data = new IndexDrivenSAMDataSource(reads);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        int count = 0;
+
         try {
-            SAMDataSource data = new SAMDataSource(reads);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;
@@ -124,13 +125,14 @@ public class SAMBAMDataSourceTest extends BaseTest {
     @Test
     public void testMergingTwoBAMFiles() {
         logger.warn("Executing testMergingTwoBAMFiles");
-        // the sharding strat.
-        ShardStrategy strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
-
 
         // setup the test files
         fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam"));
-        Reads reads = new Reads(fl);           
+        Reads reads = new Reads(fl);                   
+
+        // the sharding strat.
+        SAMDataSource data = new IndexDrivenSAMDataSource(reads);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();
@@ -140,7 +142,6 @@ public class SAMBAMDataSourceTest extends BaseTest {
         int count = 0;
 
         try {
-            SAMDataSource data = new SAMDataSource(reads);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;
@@ -173,11 +174,11 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         count = 0;
         // the sharding strat.
-        strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        data = new IndexDrivenSAMDataSource(reads);
+        strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
 
         logger.debug("Pile two:");
         try {
-            SAMDataSource data = new SAMDataSource(reads);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;

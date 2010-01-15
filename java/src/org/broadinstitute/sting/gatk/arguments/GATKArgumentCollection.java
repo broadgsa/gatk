@@ -146,6 +146,9 @@ public class GATKArgumentCollection {
     @Argument(fullName = "enableRodWalkers", shortName = "erw", doc = "Enable experimental rodWalker support.  TEMPORARY HACK TO ALLOW EXPERIMENTATION WITH ROD WALKERS.  [default is false]}.", required = false)
     public boolean enableRodWalkers = false;
 
+    @Element(required = false)
+    @Argument(fullName = "experimental_sharding",shortName="es", doc="Use the experimental sharding strategy.  Will not work for all traversal types.", required = false)
+    public boolean experimentalSharding = false;
 
     /**
      * marshal the data out to a object

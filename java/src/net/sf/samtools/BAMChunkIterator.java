@@ -36,6 +36,7 @@ public class BAMChunkIterator implements Iterator<Chunk> {
         this.blockIterator = blockIterator;
         this.prefetchedSegments = new LinkedList<BlockSegment>();
         this.filters = new PriorityQueue<Chunk>(filters);
+        seedNextSegments();
     }
 
     /**

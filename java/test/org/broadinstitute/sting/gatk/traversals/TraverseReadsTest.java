@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.IndexDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -115,12 +116,11 @@ public class TraverseReadsTest extends BaseTest {
         }
         GenomeLocParser.setupRefContigOrdering(ref);
 
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,
+        SAMDataSource dataSource = new IndexDrivenSAMDataSource(new Reads(bamList));
+        dataSource.viewUnmappedReads(false);
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
                 readSize);
-
-        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
-        dataSource.viewUnmappedReads(false);
 
         countReadWalker.initialize();
         Object accumulator = countReadWalker.reduceInit();
@@ -162,12 +162,11 @@ public class TraverseReadsTest extends BaseTest {
         }
         GenomeLocParser.setupRefContigOrdering(ref);
 
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,
+        SAMDataSource dataSource = new IndexDrivenSAMDataSource(new Reads(bamList));
+        dataSource.viewUnmappedReads(true);
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
                 readSize);
-
-        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
-        dataSource.viewUnmappedReads(true);
 
         countReadWalker.initialize();
         Object accumulator = countReadWalker.reduceInit();

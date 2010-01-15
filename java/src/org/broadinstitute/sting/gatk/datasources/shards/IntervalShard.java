@@ -62,4 +62,13 @@ public class IntervalShard implements Shard {
     public Shard.ShardType getShardType() {
         return mType;
     }
+
+    /**
+     * String representation of this shard.
+     * @return A string representation of the boundaries of this shard.
+     */
+    @Override
+    public String toString() {
+        return mSet.toString();
+    }    
 }

@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SimpleDataSourceLoadException;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.IndexDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
@@ -83,22 +84,21 @@ public class BoundedReadIteratorTest extends BaseTest {
     @Test
     public void testBounding() {
         logger.warn("Executing testBounding");
-        // the sharding strat.
-        ShardStrategy strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
-        int count = 0;
-
 
         // setup the test files
         fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam"));
         Reads reads = new Reads(fl);
+
+        SAMDataSource data = new IndexDrivenSAMDataSource(reads);
+        // the sharding strat.
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        int count = 0;
 
         // our target read
         final long boundedReadCount = 100;
         long shardReadCount = 0;
 
         try {
-            SAMDataSource data = new SAMDataSource(reads);
-
             // make sure we have a shard
             if (!strat.hasNext()) {
                 fail("Our shatter didn't give us a single piece, this is bad");

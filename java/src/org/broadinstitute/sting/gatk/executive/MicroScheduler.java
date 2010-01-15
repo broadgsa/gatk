@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.*;

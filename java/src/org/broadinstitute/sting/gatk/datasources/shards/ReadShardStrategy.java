@@ -40,85 +40,12 @@ import java.util.Iterator;
  * The sharding strategy for reads using a simple counting mechanism.  Each read shard
  * has a specific number of reads (default to 100K) which is configured in the constructor.
  */
-public class ReadShardStrategy implements ShardStrategy {
+public abstract class ReadShardStrategy implements ShardStrategy {
 
     // do we use unmapped reads in the sharding strategy
     private boolean unMappedReads = true;
 
-    // our read bucket size, default
-    protected long readCount = 100000L;
-
-    // our sequence dictionary
-    final private SAMSequenceDictionary dic;
-
-    // our hasnext flag
-    boolean hasNext = true;
-
-    // our limiting factor
-    long limitedSize = -1;
-    boolean stopDueToLimitingFactor = false;
-
-    /**
-     * the default constructor
-     * @param dic the sequence dictionary to use
-     * @param size the read count to iterate over
-     */
-    ReadShardStrategy(SAMSequenceDictionary dic, long size, long limitedSize) {
-        this.dic = dic;
-        readCount = size;
-        this.limitedSize = limitedSize;
-    }
-
-    /**
-     * do we have another read shard?
-     * @return
-     */
-    public boolean hasNext() {
-        if (stopDueToLimitingFactor) {
-            return false;
-        }
-        return hasNext;
-    }
-
-    public Shard next() {
-        if (limitedSize > 0) {
-            if (limitedSize > readCount) {
-                limitedSize = limitedSize - readCount;
-            }
-            else {
-                readCount = limitedSize;
-                limitedSize = 0;
-                stopDueToLimitingFactor = true;
-            }
-        }
-        
-        return new ReadShard((int)readCount, this);
-    }
-
-    public void remove() {
-        throw new UnsupportedOperationException("Remove not supported");
-    }
-
     public Iterator<Shard> iterator() {
         return this;
-    }
-
-    /**
-     * set the next shards size
-     *
-     * @param size adjust the next size to this
-     */
-    public void adjustNextShardSize(long size) {
-        readCount = size;
-    }
-
-
-    /**
-     * this function is a work-around for the fact that
-     * we don't know when we're out of reads until the SAM data source
-     * tells us so.  
-     */
-    public void signalDone() {
-        hasNext = false;    
     }
 }

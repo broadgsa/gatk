@@ -4,6 +4,9 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+
+import java.io.File;
 
 /**
  *
@@ -37,6 +40,7 @@ public class ShardStrategyFactory {
         LINEAR,
         EXPONENTIAL,
         READS,
+        READS_EXPERIMENTAL,
         INTERVAL,
         MONOLITHIC   // Put all of the available data into one shard.
     }
@@ -48,31 +52,35 @@ public class ShardStrategyFactory {
     /**
      * get a new shatter strategy
      *
+     * @param dataSource   File pointer to BAM.  TODO: Eliminate this argument; pass a data source instead!
      * @param strat        what's our strategy - SHATTER_STRATEGY type
      * @param dic          the seq dictionary
      * @param startingSize the starting size
-     * @return
+     * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
-        return ShardStrategyFactory.shatter(strat, dic, startingSize, -1L);    
+    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
+        return ShardStrategyFactory.shatter(dataSource, strat, dic, startingSize, -1L);
     }
 
     /**
      * get a new shatter strategy
      *
+     * @param dataSource   File pointer to BAM.
      * @param strat        what's our strategy - SHATTER_STRATEGY type
      * @param dic          the seq dictionary
      * @param startingSize the starting size
-     * @return
+     * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
+    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
         switch (strat) {
             case LINEAR:
                 return new LinearLocusShardStrategy(dic, startingSize, limitByCount);
             case EXPONENTIAL:
                 return new ExpGrowthLocusShardStrategy(dic, startingSize, limitByCount);
             case READS:
-                return new ReadShardStrategy(dic, startingSize, limitByCount);
+                return new ReadDelimitedReadShardStrategy(startingSize, limitByCount);
+            case READS_EXPERIMENTAL:
+                return new BlockDelimitedReadShardStrategy(dataSource);
             case INTERVAL:
                 throw new StingException("Requested trategy: " + strat + " doesn't work with the limiting count (-M) command line option");
             default:
@@ -90,8 +98,8 @@ public class ShardStrategyFactory {
      * @param startingSize the starting size
      * @return
      */
-    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst) {
-        return ShardStrategyFactory.shatter(strat, dic, startingSize, lst, -1l);    
+    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst) {
+        return ShardStrategyFactory.shatter(dataSource, strat, dic, startingSize, lst, -1l);    
 
     }
 
@@ -103,7 +111,7 @@ public class ShardStrategyFactory {
      * @param startingSize the starting size
      * @return
      */
-    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
+    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
         switch (strat) {
             case LINEAR:
                 return new LinearLocusShardStrategy(dic, startingSize, lst, limitDataCount);
@@ -113,6 +121,8 @@ public class ShardStrategyFactory {
                 return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.LOCUS_INTERVAL);
             case READS:
                 return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.READ_INTERVAL);
+            case READS_EXPERIMENTAL:
+                throw new UnsupportedOperationException("Cannot do experimental read sharding with intervals");
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented");
         }

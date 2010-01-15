@@ -490,10 +490,7 @@ class BAMFileReader2
                     mFilePointerLimit = endOffset;
                 }
                 // Pull next record from stream
-                final SAMRecord record = super.getNextRecord();
-                if (record == null) {
-                    return null;
-                }
+                return super.getNextRecord();
             }
         }
     }

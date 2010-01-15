@@ -12,7 +12,7 @@ import java.util.ArrayList;
  * @author mhanna
  * @version 0.1
  */
-class Chunk implements Comparable<Chunk> {
+public class Chunk implements Comparable<Chunk> {
 
     private long mChunkStart;
     private long mChunkEnd;

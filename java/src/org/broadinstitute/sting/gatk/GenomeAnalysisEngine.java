@@ -26,13 +26,14 @@
 package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.*;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.IndexDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -329,11 +330,11 @@ public class GenomeAnalysisEngine {
     public List<Set<String>> getSamplesByReaders() {
 
 
-        SamFileHeaderMerger hm = getDataSource().getHeaderMerger();
+        Collection<SAMFileReader> readers = getDataSource().getReaders();
 
-        List<Set<String>> sample_sets = new ArrayList<Set<String>>(hm.getReaders().size());
+        List<Set<String>> sample_sets = new ArrayList<Set<String>>(readers.size());
 
-        for (SAMFileReader r : hm.getReaders()) {
+        for (SAMFileReader r : readers) {
 
             Set<String> samples = new HashSet<String>(1);
             sample_sets.add(samples);
@@ -358,11 +359,11 @@ public class GenomeAnalysisEngine {
     public List<Set<String>> getLibrariesByReaders() {
 
 
-        SamFileHeaderMerger hm = getDataSource().getHeaderMerger();
+        Collection<SAMFileReader> readers = getDataSource().getReaders();
 
-        List<Set<String>> lib_sets = new ArrayList<Set<String>>(hm.getReaders().size());
+        List<Set<String>> lib_sets = new ArrayList<Set<String>>(readers.size());
 
-        for (SAMFileReader r : hm.getReaders()) {
+        for (SAMFileReader r : readers) {
 
             Set<String> libs = new HashSet<String>(2);
             lib_sets.add(libs);
@@ -387,20 +388,20 @@ public class GenomeAnalysisEngine {
     public List<Set<String>> getMergedReadGroupsByReaders() {
 
 
-        SamFileHeaderMerger hm = getDataSource().getHeaderMerger();
+        Collection<SAMFileReader> readers = getDataSource().getReaders();
 
-        List<Set<String>> rg_sets = new ArrayList<Set<String>>(hm.getReaders().size());
+        List<Set<String>> rg_sets = new ArrayList<Set<String>>(readers.size());
 
-        for (SAMFileReader r : hm.getReaders()) {
+        for (SAMFileReader r : readers) {
 
             Set<String> groups = new HashSet<String>(5);
             rg_sets.add(groups);
 
             for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
-                if (hm.hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
+                if (getDataSource().hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
                     // use HeaderMerger to translate original read group id from the reader into the read group id in the
                     // merged stream, and save that remapped read group id to associate it with specific reader
-                    groups.add(hm.getReadGroupId(r, g.getReadGroupId()));
+                    groups.add(getDataSource().getReadGroupId(r, g.getReadGroupId()));
                 } else {
                     // otherwise, pass through the unmapped read groups since this is what Picard does as well
                     groups.add(g.getReadGroupId());
@@ -609,26 +610,29 @@ public class GenomeAnalysisEngine {
                         ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
                         ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
 
-                shardStrategy = ShardStrategyFactory.shatter(shardType,
+                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                        shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else
-                shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
         } else if (walker instanceof ReadWalker ||
                 walker instanceof DuplicateWalker) {
-
-            shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
+            if(argCollection.experimentalSharding)
+                shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL;
+            else
+                shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
 
             if (intervals != null && !intervals.isEmpty()) {
-                shardStrategy = ShardStrategyFactory.shatter(shardType,
+                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else {
-                shardStrategy = ShardStrategyFactory.shatter(shardType,
+                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
             }
@@ -636,7 +640,8 @@ public class GenomeAnalysisEngine {
             if ((intervals == null || intervals.isEmpty()) && !exclusions.contains(ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST))
                 Utils.warnUser("walker is of type LocusWindow (which operates over intervals), but no intervals were provided." +
                                "This may be unintentional, check your command-line arguments.");
-            shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
+            shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                    ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
                     drivingDataSource.getSequenceDictionary(),
                     SHARD_SIZE,
                     intervals, maxIterations);
@@ -657,7 +662,11 @@ public class GenomeAnalysisEngine {
         if (reads.getReadsFiles().size() == 0)
             return null;
 
-        SAMDataSource dataSource = new SAMDataSource(reads);
+        SAMDataSource dataSource = null;
+        if(argCollection.experimentalSharding)
+            dataSource = new BlockDrivenSAMDataSource(reads);
+        else
+            dataSource = new IndexDrivenSAMDataSource(reads);
 
         return dataSource;
     }
