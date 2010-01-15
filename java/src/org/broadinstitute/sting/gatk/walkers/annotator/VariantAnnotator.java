@@ -20,7 +20,7 @@ import java.io.*;
 //@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-20,stop=20))
-public class VariantAnnotator extends RodWalker<Integer, Integer> {
+public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
