@@ -8,12 +8,6 @@
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
     <dependencies>
       <package>org.broadinstitute.sting.gatk.filters</package>
-      <class>org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker</class>
       <!-- Quality scores recalibration -->
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker</class>
