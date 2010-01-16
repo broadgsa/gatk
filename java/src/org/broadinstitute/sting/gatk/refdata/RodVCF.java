@@ -21,15 +21,24 @@ import java.util.*;
  *         An implementation of the ROD for VCF.
  */
 public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, Iterator<RodVCF> {
+    public VCFReader getReader() {
+        return mReader;
+    }
+
     // our VCF related information
     private VCFReader mReader;
+
+    public VCFRecord getRecord() {
+        return mCurrentRecord;
+    }
+
     public VCFRecord mCurrentRecord;
 
     public RodVCF(String name) {
         super(name);
     }
 
-    private RodVCF(String name, VCFRecord currentRecord, VCFReader reader) {
+    public RodVCF(String name, VCFRecord currentRecord, VCFReader reader) {
         super(name);
         mCurrentRecord = currentRecord;
         mReader = reader;
