@@ -19,7 +19,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     public void testEvalVariantROD() {
         HashMap<String, String> md5 = new HashMap<String, String>();
         md5.put("", "d6b8c2d6c37d42d1ca2288799a8bd8e4");
-        md5.put("-A", "b868aac194f6d0bd1fd2c0c63ddfaeab");
+        md5.put("-A", "0294b2e3915e88dfe2547e9db64ed1b3");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -189,5 +189,33 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
                 md5);
         List<File> result = executeTest("testEvalRuntimeWithLotsOfIntervals", spec).getFirst();
     }
+
+    @Test
+    public void testVCFVariantEvals() {
+        HashMap<String, String> md5 = new HashMap<String, String>();
+        md5.put("", "3dda57ac7a9c8f3800726c9affb9d9bd");
+        md5.put("-A", "d985e61fd0d7fc34c9c1a553e2881c67");
+        md5.put("-A --includeFilteredRecords", "434c60986aa54c5fd07c22df1910ec44");
+        md5.put("-A --sampleName NA12878", "aff844b88f71824a6cd3cce553325b17");
+        md5.put("-A -vcfInfoSelector AF=0.50", "9ab9fa5d89cd6e3278d0d2b13cabbd51");
+
+        for ( Map.Entry<String, String> e : md5.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                            " --rodBind eval,VCF," + validationDataLocation + "NA12878.example1.vcf" +
+                            " -T VariantEval" +
+                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " -hc /humgen/gsa-scr1/GATK_Data/1KG_gffs/NA12878.1kg.gff" +
+                            " -G" +
+                            " -L 1:1-10,000" +
+                            " --outerr %s" +
+                            " --supressDateInformation " + e.getKey(),
+                    1, // just one output file
+                    Arrays.asList(e.getValue()));
+            List<File> result = executeTest("testVCFVariantEvals", spec).getFirst();
+        }
+    }
+
+
 }
 
