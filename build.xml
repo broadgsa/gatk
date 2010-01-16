@@ -99,10 +99,13 @@
     <target name="extracthelp" depends="compile" 
 	    description="Extract help key/value pair file from the JavaDoc tags."
 	    unless="disable.help">
+      <exec executable="svnversion" outputproperty="svn.version" failonerror="true">
+          <arg value="--no-newline" />
+      </exec>
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
 	       docletpath="build"
 	       classpathref="runtime.dependencies"
-	       additionalparam="-out ${build.dir}/${resource.file}">
+	       additionalparam="-version-suffix .${svn.version} -out ${build.dir}/${resource.file}">
 	<packageset refid="source.files"/>
       </javadoc>
     </target>

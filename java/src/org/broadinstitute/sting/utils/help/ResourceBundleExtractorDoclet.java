@@ -31,10 +31,15 @@ public class ResourceBundleExtractorDoclet {
      */
     public static boolean start(RootDoc rootDoc) throws FileNotFoundException {
         PrintStream out = System.out;
+        String versionPrefix = null, versionSuffix = null;
 
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-out"))
                 out = new PrintStream(options[1]);
+            if(options[0].equals("-version-prefix"))
+                versionPrefix = options[1];
+            if(options[0].equals("-version-suffix"))
+                versionSuffix = options[1];
         }
 
         // Cache packages as we see them, since there's no direct way to iterate over packages.
@@ -47,11 +52,11 @@ public class ResourceBundleExtractorDoclet {
                     String.format("%s.%s",containingPackage.name(),currentClass.name()) :
                     String.format("%s",currentClass.name());
 
-            renderHelpText(className,currentClass,out);
+            renderHelpText(className,currentClass,out,versionPrefix,versionSuffix);
         }
 
         for(PackageDoc currentPackage: packages)
-            renderHelpText(currentPackage.name(),currentPackage,out);
+            renderHelpText(currentPackage.name(),currentPackage,out,versionPrefix,versionSuffix);
 
         return true;
     }
@@ -62,7 +67,7 @@ public class ResourceBundleExtractorDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if(option.equals("-out")) {
+        if(option.equals("-out") || option.equals("-version-prefix") || option.equals("-version-suffix")) {
             return 2;
         }
         return 0;
@@ -73,8 +78,9 @@ public class ResourceBundleExtractorDoclet {
      * @param elementName element name to use as the key
      * @param element Doc element to process.
      * @param out Output stream to which to write.
+     * @param versionSuffix Text to add to the end of the version string.
      */
-    private static void renderHelpText(String elementName, Doc element, PrintStream out) {
+    private static void renderHelpText(String elementName, Doc element, PrintStream out, String versionPrefix, String versionSuffix) {
         // Extract overrides from the doc tags.
         String name = null;
         String version = null;
@@ -91,7 +97,9 @@ public class ResourceBundleExtractorDoclet {
                 name = tag.text();
             }
             else if(tag.name().equals("@"+VERSION_TAGLET_NAME))
-                version = tag.text();
+                version = String.format("%s%s%s", (versionPrefix != null) ? versionPrefix : "",
+                                                  tag.text(),
+                                                  (versionSuffix != null) ? versionSuffix : "");
             else if(tag.name().equals("@"+SummaryTaglet.NAME))
                 summary = tag.text();
             else if(tag.name().equals("@"+DescriptionTaglet.NAME))
