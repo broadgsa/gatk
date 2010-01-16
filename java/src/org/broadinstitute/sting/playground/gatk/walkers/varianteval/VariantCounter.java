@@ -29,7 +29,7 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
     }
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        nSNPs += eval == null || eval.isReference()? 0 : 1;
+        nSNPs += eval == null || eval.isReference() ? 0 : 1;
 
         // TODO -- break the het check out to a different module used only for single samples
 

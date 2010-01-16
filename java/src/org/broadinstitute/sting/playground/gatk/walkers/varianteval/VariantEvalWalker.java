@@ -7,10 +7,15 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
+import java.util.regex.Pattern;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -60,6 +65,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName = "sampleName", shortName="sampleName", doc="When running an analysis on one or more individuals with truth data, provide this parameter to only analyze the genotype of this sample", required=false)
     public String sampleName = null;
+    @Argument(fullName = "vcfInfoSelector", shortName="vcfInfoSelector", doc="When running an analysis on one or more individuals with truth data, provide this parameter to only analyze the genotype of this sample", required=false)
+    public String vcfInfoSelector = null;
 
     String analysisFilenameBase = null;
 
@@ -75,7 +82,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // the types of analysis we support, and the string tags we associate with the enumerated value
     enum ANALYSIS_TYPE {
 	// todo -- differeniate into three classes -- snps at known snp sites, snps not at known snp site but covered by known indel, and novel 
-        ALL_SNPS("all"), SINGLETON_SNPS("singletons"), TWOHIT_SNPS("2plus_hit"), KNOWN_SNPS("known"), SNPS_AT_NON_SNP_SITES("snp_at_known_non_snps"), NOVEL_SNPS("novel");
+        ALL_SNPS("all"),
+        SINGLETON_SNPS("singletons"),
+        TWOHIT_SNPS("2plus_hit"),
+        KNOWN_SNPS("known"),
+        SNPS_AT_NON_SNP_SITES("snp_at_known_non_snps"),
+        NOVEL_SNPS("novel"),
+        FILTERED_SNPS("filtered");
 
         private final String value;
         ANALYSIS_TYPE(String value) { this.value = value;}
@@ -84,16 +97,30 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     }
 
+//    final ANALYSIS_TYPE[] POPULATION_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS,
+//            ANALYSIS_TYPE.SINGLETON_SNPS,
+//            ANALYSIS_TYPE.TWOHIT_SNPS,
+//            ANALYSIS_TYPE.KNOWN_SNPS,
+//            ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES,
+//            ANALYSIS_TYPE.NOVEL_SNPS};
+//    final ANALYSIS_TYPE[] GENOTYPE_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS,
+//            ANALYSIS_TYPE.KNOWN_SNPS,
+//            ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES,
+//            ANALYSIS_TYPE.NOVEL_SNPS};
+
     final ANALYSIS_TYPE[] POPULATION_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS,
             ANALYSIS_TYPE.SINGLETON_SNPS,
             ANALYSIS_TYPE.TWOHIT_SNPS,
             ANALYSIS_TYPE.KNOWN_SNPS,
             ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES,
-            ANALYSIS_TYPE.NOVEL_SNPS};
+            ANALYSIS_TYPE.NOVEL_SNPS,
+            ANALYSIS_TYPE.FILTERED_SNPS};
     final ANALYSIS_TYPE[] GENOTYPE_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS,
             ANALYSIS_TYPE.KNOWN_SNPS,
             ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES,
-            ANALYSIS_TYPE.NOVEL_SNPS};
+            ANALYSIS_TYPE.NOVEL_SNPS,
+            ANALYSIS_TYPE.FILTERED_SNPS};
+
     final ANALYSIS_TYPE[] SIMPLE_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS};
     ANALYSIS_TYPE[] ALL_ANALYSIS_NAMES = null;
 
@@ -246,6 +273,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
             // Iterate over each analysis, and update it
             Variation eval = (Variation) tracker.lookup("eval", null);
+            Variation evalForFilter = null;
 
             // ensure that the variation we're looking at is bi-allelic
             if ( eval != null && ! eval.isBiallelic() )
@@ -255,23 +283,34 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 if (eval.getNegLog10PError() * 10.0 < minConfidenceScore) eval = null;
 
             if ( eval != null && (eval instanceof RodVCF) ) {
-                if  ( ((RodVCF)eval).mCurrentRecord.isFiltered() && ! includeFilteredRecords ) {
-                    //System.out.printf("Rejecting filtered record %s%n", eval);
-		    eval = null;    // we are not including filtered records, so set eval to null
-                }
-//                } else if ( sampleName != null ) {
-//                    // code to grab a particular sample from a VCF
-//                    Variation evalOld = eval;
-//                    Genotype evalG = ((RodVCF)evalOld).getGenotype(sampleName);
-//                    if ( evalG == null ) throw new StingException("Unexpected null genotype for sample " + sampleName);
-//                    BasicGenotype g = new BasicGenotype(evalG.getLocation(), evalG.getBases(), ref.getBase(), evalG.getNegLog10PError());
-//                    if ( g.isVariant(ref.getBase()) ) {
-//                        eval = g.toVariation(ref.getBase());
+                if ( sampleName != null ) {
+                    // code to grab a particular sample from a VCF
+                    Variation evalOld = eval;
+//                    System.out.printf("original is %s%n", evalOld);
+                    eval = fakeVCFForSample((RodVCF)eval, ref, sampleName);
+                    if ( eval != null && eval.isSNP() ) {
+//                        System.out.printf("sample   is %s%n", eval);
 //                        System.out.printf("Replacing %s with %s%n", evalOld, eval);
-//                    } else {
-//                        eval = null;
-//                    }
-//                }
+//                        System.out.printf("%n");
+                    } else {
+                        eval = null;
+                    }
+                }
+
+                if ( vcfInfoSelector != null && eval != null ) {
+                    String[] keyValue = vcfInfoSelector.split("=");
+                    Map<String, String> map = ((RodVCF)eval).getRecord().getInfoValues();
+                    if ( map.containsKey(keyValue[0]) && ! Pattern.matches(keyValue[1], map.get(keyValue[0]) ) )
+                        eval = null;
+                }
+
+                if ( eval != null && ((RodVCF)eval).mCurrentRecord.isFiltered() ) {
+                    evalForFilter = eval;
+                    if ( ! includeFilteredRecords ) {
+                        eval = null;    // we are not including filtered records, so set eval to null
+                    }
+                    //System.out.printf("Rejecting filtered record %s%n", eval);
+                }
             }
 
             // update stats about all of the SNPs
@@ -282,6 +321,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 ANALYSIS_TYPE noveltySet = getNovelAnalysisType(tracker);
                 updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
             }
+
+            if (evalForFilter != null) {
+                updateAnalysisSet(ANALYSIS_TYPE.FILTERED_SNPS, evalForFilter, tracker, ref.getBase(), context);
+            }
+
 
             // are we a population backed call? then update
             if (eval instanceof SNPCallFromGenotypes) {
@@ -294,6 +338,21 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         }
 
         return 1;
+    }
+
+    private RodVCF fakeVCFForSample(RodVCF eval, ReferenceContext ref, final String sampleName) {
+        VCFGenotypeRecord genotype = (VCFGenotypeRecord)eval.getGenotype(sampleName);
+        if ( genotype.getNegLog10PError() > 0 ) {
+            VCFRecord record = new VCFRecord(ref.getBase(), ref.getLocus(), "GT");
+            record.setAlternateBases(eval.getRecord().getAlternateAlleles());
+            record.addGenotypeRecord(genotype);
+            record.setQual(10*genotype.getNegLog10PError());
+            record.setFilterString(eval.getFilterString());
+            record.addInfoFields(eval.getInfoValues());
+            return new RodVCF("fakeVCFForSample", record, eval.getReader());
+        } else {
+            return null;
+        }
     }
 
     private ANALYSIS_TYPE getNovelAnalysisType(RefMetaDataTracker tracker) {
