@@ -24,7 +24,6 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
         UNION, MERGE
     }
 
-
     @Argument(fullName="vcf_output_file", shortName="O", doc="VCF file to write results", required=false)
     protected File OUTPUT_FILE = null;
 
@@ -34,9 +33,10 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
     @Argument(fullName="rod_priority_list", shortName="priority", doc="For the UNION combination type: a comma-separated string describing the priority ordering for the rods as far as which record gets emitted; if not specified, then the first rod seen will be used", required=false)
     protected String PRIORITY_STRING = null;
 
+    @Argument(fullName="annotateUnion", shortName="A", doc="For the UNION combination type: if provided, the output union VCF will contain venn information about where each call came from", required=false)
+    protected boolean annotateUnion = false;
 
     private VCFWriter vcfWriter = null;
-
     private String[] priority = null;
 
     // a map of rod name to uniquified sample name
@@ -56,6 +56,9 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
         else
             vcfWriter = new VCFWriter(out);
 
+        if ( PRIORITY_STRING != null )
+            priority = PRIORITY_STRING.toLowerCase().split(",");
+
         Set<String> samples;
         switch (COMBO_TYPE ) {
             case MERGE:
@@ -65,6 +68,10 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
                 SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, rodNamesToSampleNames);
                 break;
             case UNION:
+                if ( annotateUnion ) {
+                    validateAnnotateUnionArguments(priority);
+                }
+
                 samples = SampleUtils.getUniqueSamplesFromRods(getToolkit());
                 break;
             default:
@@ -72,9 +79,25 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
         }
 
         vcfWriter.writeHeader(new VCFHeader(hInfo, samples));
+    }
 
-        if ( PRIORITY_STRING != null )
-            priority = PRIORITY_STRING.split(",");
+    private void validateAnnotateUnionArguments(String[] priority) {
+        Set<ReferenceOrderedData> rods = VCFUtils.getRodVCFs(getToolkit());
+        if ( rods.size() != priority.length ) {
+            throw new StingException("A complete priority list must be provided when annotateUnion is provided");
+        }
+        if ( priority.length != 2 ) {
+            throw new StingException("When annotateUnion is provided only 2 VCF files can be merged");
+        }
+
+        for ( String p : priority ) {
+            boolean good = false;
+            for ( ReferenceOrderedData data : rods ) {
+                if ( p.equals(data.getName()) )
+                    good = true;
+            }
+            if ( ! good ) throw new StingException("Priority item not provided as a ROD! " + p);
+        }
     }
 
     public VCFRecord map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -116,10 +139,53 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
         if ( priority == null )
             return rods.get(0).mCurrentRecord;
 
-        for ( String rodname : priority ) {
-            for ( RodVCF rod : rods ) {
-                if ( rod.getName().equals(rodname) )
-                    return rod.mCurrentRecord;
+        if ( annotateUnion ) {
+            Map<String, RodVCF> rodMap = new HashMap<String, RodVCF>();
+            for ( RodVCF vcf : rods ) { rodMap.put(vcf.getName(), vcf); }
+
+            String priority1 = priority[0];
+            String priority2 = priority[1];
+            VCFRecord vcf1 = rodMap.containsKey(priority1) ? rodMap.get(priority1).getRecord() : null;
+            VCFRecord vcf2 = rodMap.containsKey(priority2) ? rodMap.get(priority2).getRecord() : null;
+
+            // for simplicity, we are setting set and call for vcf1
+            String set = priority1;
+            VCFRecord call = vcf1;
+
+            if ( vcf1 == null ) {
+                if ( vcf2 == null )
+                    //return null;
+                    throw new StingException("BUG: VCF1 and VCF2 are both null!");
+                else {
+                    set = priority2;
+                    call = vcf2;
+                }
+            } else if ( vcf1.isFiltered() ) {
+                if ( vcf2 != null ) {
+                    if ( vcf2.isFiltered() ) {
+                        set = "filteredInBoth";
+                    } else {
+                        set = priority2 + "-filteredInOther";
+                        call = vcf2;
+                    }
+                }
+            } else { // good call
+                if ( vcf2 != null ) {
+                    if ( vcf2.isFiltered() )
+                        set = priority1 + "-filteredInOther";
+                    else
+                        set = "Intersection";
+                }
+            }
+
+            call.addInfoField("set", set);
+            return call;
+        } else {
+            for ( String rodname : priority ) {
+                for ( RodVCF rod : rods ) {
+                    if ( rod.getName().equals(rodname) )
+                        return rod.mCurrentRecord;
+                }
             }
         }
 
