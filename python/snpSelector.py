@@ -91,7 +91,7 @@ class RecalibratedCall:
     def __str__(self):
         return '[%s: %s => Q%d]' % (str(self.call), self.featureStringList(), phredScale(self.jointFPErrorRate()))
 
-def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1, filter = None, minQScore = -1, mustBeVariant = False ):
+def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1, filter = None, minQScore = -1, mustBeVariant = False, skip = None ):
     if filter == None:
         filter = not OPTIONS.unfiltered
         
@@ -99,15 +99,21 @@ def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction 
     header, columnNames, lines = readVCFHeader(f)
 
     nLowQual = 0
+    counter = 0
     def parseVariant(args):
-        global nLowQual
+        global nLowQual, counter
         header1, VCF, counter = args
+        counter += 1
+        #print counter, skip, counter % skip
         if filter and not VCF.passesFilters() or ( False and mustBeVariant == True and not VCF.isVariant() ): # currently ignore mustBeVariant
             #print 'filtering', VCF
             return None
         elif VCF.getQual() <= minQScore:
             #print 'filtering', VCF
             #nLowQual += 1
+            return None
+        elif skip <> None and counter % skip <> 0:
+            #print 'skipping'
             return None
         elif random.random() <= downsampleFraction:
             return VCF
@@ -481,7 +487,7 @@ def sensitivitySpecificity(variants, truth):
             variant.setField("TP", 0)
             #print t, variant, "is a FP!"
             FPs.append(variant)
-    nRef = len(filter(lambda x: not x.isVariant(), truth.itervalues()))
+    nRef = 0 # len(filter(lambda x: not x.isVariant(), truth.itervalues()))
     nFN = variantsInTruth(truth.itervalues()) - nTP - nRef
     #print 'nRef', nTP, nFP, nFN, nRef
     return CallCmp(nTP, nFP, nFN), FPs
@@ -571,6 +577,9 @@ def setup():
     parser.add_option("-b", "--bootstrap", dest="bootStrap",
                        type='float', default=None,
                        help="If provided, the % of the calls used to generate the recalibration tables. [default: %default]")
+    parser.add_option("-k", "--skip", dest="skip",
+                       type=int, default=None,
+                       help="If provided, we'll only take every nth record [default: %default]")
     parser.add_option("-s", "--useSample", dest="useSample",
                         type='string', default=False,
                         help="If provided, we will examine sample genotypes for this sample, and consider TP/FP/FN in the truth conditional on sample genotypes [default: %default]")
@@ -585,11 +594,15 @@ def setup():
 
 def assessCalls(file):
     print 'Counting records in VCF', file
-    numberOfRecords = quickCountRecords(open(file))
-    if OPTIONS.maxRecords <> None and OPTIONS.maxRecords < numberOfRecords:
-        numberOfRecords = OPTIONS.maxRecords
-    downsampleFraction = min(float(OPTIONS.maxRecordsForCovariates) / numberOfRecords, 1)
-    header, allCalls = readVariants(file, OPTIONS.maxRecords, downsampleFraction=downsampleFraction, minQScore = OPTIONS.minQScore)
+    numberOfRecords = 1
+    downsampleFraction = 1
+    if OPTIONS.maxRecords <> None:
+        numberOfRecords = quickCountRecords(open(file))
+        if OPTIONS.maxRecords < numberOfRecords:
+            numberOfRecords = OPTIONS.maxRecords
+        downsampleFraction = min(float(OPTIONS.maxRecordsForCovariates) / numberOfRecords, 1)
+    #print 'Reading variants', OPTIONS.skip, downsampleFraction
+    header, allCalls = readVariants(file, OPTIONS.maxRecords, downsampleFraction=downsampleFraction, minQScore = OPTIONS.minQScore, skip = OPTIONS.skip)
     allCalls = list(allCalls)
     print 'Number of VCF records', numberOfRecords, ', max number of records for covariates is', OPTIONS.maxRecordsForCovariates, 'so keeping', downsampleFraction * 100, '% of records'
     print 'Number of selected VCF records', len(allCalls)
@@ -684,7 +697,8 @@ def main():
     header, allCalls, titvTarget = assessCalls(args[0])
     if not OPTIONS.dontRecalibrate: 
         covariates = determineCovariates(allCalls, titvTarget, fields)
-        header, callsToRecalibate = readVariants(args[0], OPTIONS.maxRecords, minQScore = OPTIONS.minQScore)
+        print OPTIONS
+        header, callsToRecalibate = readVariants(args[0], OPTIONS.maxRecords, minQScore = OPTIONS.minQScore, skip = OPTIONS.skip)
         RecalibratedCalls = recalibrateCalls(callsToRecalibate, fields, covariates)
         writeRecalibratedCalls(OPTIONS.outputVCF, header, RecalibratedCalls)
     else:
