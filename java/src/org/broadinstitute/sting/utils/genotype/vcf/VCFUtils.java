@@ -19,6 +19,18 @@ public class VCFUtils {
      */
     private VCFUtils() { }
 
+    public static Set<ReferenceOrderedData> getRodVCFs(GenomeAnalysisEngine toolkit) {
+        Set<ReferenceOrderedData> vcfs = new HashSet<ReferenceOrderedData>();
+
+        for ( ReferenceOrderedDataSource source : toolkit.getRodDataSources() ) {
+            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            if ( rod.getType().equals(RodVCF.class) ) {
+                vcfs.add(rod);
+            }
+        }
+
+        return vcfs;
+    }
 
     /**
      * Gets the header fields from all VCF rods input by the user

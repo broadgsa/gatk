@@ -283,7 +283,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
     
     public VARIANT_TYPE getType() {
-        if ( !hasAlternateAllele() )
+        if ( ! hasAlternateAllele() )
             return VARIANT_TYPE.REFERENCE;
 
         VCFGenotypeEncoding.TYPE type = mAlts.get(0).getType();
@@ -479,6 +479,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         mGenotypeRecords.add(mGenotypeRecord);
     }
 
+    public void setGenotypeRecords(List<VCFGenotypeRecord> records) {
+        mGenotypeRecords.clear();
+        for ( VCFGenotypeRecord g : records )
+            addGenotypeRecord(g);
+    }
+
     /**
      * add an alternate base to our alternate base list.  All bases are uppercased
      * before being added to the list.
@@ -487,6 +493,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     public void addAlternateBase(VCFGenotypeEncoding base) {
         if (!mAlts.contains(base)) mAlts.add(base);
+    }
+
+    public void setAlternateBases(List<VCFGenotypeEncoding> bases) {
+        mAlts.clear();
+        for ( VCFGenotypeEncoding e : bases )
+            addAlternateBase(e);
     }
 
     /**
