@@ -70,7 +70,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         GENOTYPE_MODE = UAC.GENOTYPE;
         POOL_SIZE = UAC.POOLSIZE;
         CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
-        MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
         REPORT_SLOD = ! UAC.NO_SLOD;
         this.verboseWriter = verboseWriter;
         this.beagleWriter = beagleWriter;

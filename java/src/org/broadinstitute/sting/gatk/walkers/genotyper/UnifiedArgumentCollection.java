@@ -66,9 +66,6 @@ public class UnifiedArgumentCollection {
 
 
     // control the various parameters to be used
-    @Argument(fullName = "lod_threshold", shortName = "lod", doc = "[DEPRECATED] The lod threshold by which variants should be filtered", required = false)
-    public double LOD_THRESHOLD = Double.MIN_VALUE;
-
     @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered", required = false)
     public double CONFIDENCE_THRESHOLD = 0.0;
 
@@ -89,7 +86,4 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "max_coverage", shortName = "mc", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
     public Integer MAX_READS_IN_PILEUP = 10000;
-
-    @Argument(fullName = "min_allele_frequency", shortName = "min_freq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)
-    public double MINIMUM_ALLELE_FREQUENCY = 1e-8;
 }

@@ -228,34 +228,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         PofFs[baseIndex] = Math.min(sum, 1.0); // deal with precision errors
     }
 
-    /***
-    protected double[] getHardyWeinbergValues(double f) {
-        double[] HWvalues = hardyWeinbergValueCache.get(f);
-
-        // if it hasn't been calculated yet, do so now
-        if ( HWvalues == null ) {
-
-            // create Hardy-Weinberg based allele frequencies (p^2, 2pq, q^2) converted to log-space
-            double p = 1.0 - f;
-            double q = f;
-
-            // allele frequencies don't actually equal 0...
-            if ( MathUtils.compareDoubles(q, 0.0) == 0 ) {
-                q = MINIMUM_ALLELE_FREQUENCY;
-                p -= MINIMUM_ALLELE_FREQUENCY;
-            } else if ( MathUtils.compareDoubles(p, 0.0) == 0 ) {
-                p = MINIMUM_ALLELE_FREQUENCY;
-                q -= MINIMUM_ALLELE_FREQUENCY;
-            }
-
-            HWvalues = new double[] { Math.pow(p, 2), 2.0 * p * q, Math.pow(q, 2) };
-            hardyWeinbergValueCache.put(f, HWvalues);
-        }
-
-        return HWvalues;
-    }
-    ***/
-
     /**
      * @param ref                         the ref base
      * @param loc                         the GenomeLoc

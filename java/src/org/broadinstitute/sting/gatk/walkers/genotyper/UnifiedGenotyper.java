@@ -96,22 +96,12 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         if ( UAC.POOLSIZE < 1 && UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ) {
             throw new IllegalArgumentException("Attempting to use the POOLED model with a pool size less than 1. Please set the pool size to an appropriate value.");
         }
-        if ( UAC.LOD_THRESHOLD != Double.MIN_VALUE ) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("\n***\tThe --lod_threshold argument is no longer supported; instead, please use --min_confidence_threshold.");
-            sb.append("\n***\tThere is approximately a 10-to-1 mapping from confidence to LOD.");
-            sb.append("\n***\tUse Q" + (10.0 * UAC.LOD_THRESHOLD) + " as an approximate equivalent to your LOD " + UAC.LOD_THRESHOLD + " cutoff");
-            throw new IllegalArgumentException(sb.toString());
-        }
         if ( beagleWriter != null && UAC.genotypeModel == GenotypeCalculationModel.Model.EM_POINT_ESTIMATE ) {
             throw new IllegalArgumentException("BEAGLE output is not currently supported in the EM_POINT_ESTIMATE calculation model.");
         }
-
-        // some arguments can't be handled (at least for now) while we are multi-threaded
-        if ( getToolkit().getArguments().numberOfThreads > 1 ) {
-            // no ASSUME_SINGLE_SAMPLE because the IO system doesn't know how to get the sample name
-            if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-                throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
+        if ( getToolkit().getArguments().numberOfThreads > 1 && UAC.ASSUME_SINGLE_SAMPLE != null ) {
+            // the ASSUME_SINGLE_SAMPLE argument can't be handled (at least for now) while we are multi-threaded because the IO system doesn't know how to get the sample name
+            throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
         }
 
         // get all of the unique sample names - unless we're in POOLED mode, in which case we ignore the sample names
