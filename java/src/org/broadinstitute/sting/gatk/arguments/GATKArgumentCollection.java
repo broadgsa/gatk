@@ -112,7 +112,7 @@ public class GATKArgumentCollection {
     public Double downsampleFraction = null;
 
     @Element(required = false)
-    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to", required = false)
+    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus (use max_reads_at_locus to stop the engine from reading in all reads)", required = false)
     public Integer downsampleCoverage = null;
 
     @Element(required = false)
@@ -124,7 +124,7 @@ public class GATKArgumentCollection {
     public ValidationExclusion.TYPE unsafe;
 
     @Element(required = false)
-    @Argument(fullName = "max_reads_at_locus", shortName = "mrl", doc = "Sets the upper limit for the number of reads presented at a single locus. int.MAX_VALUE by default.", required = false)
+    @Argument(fullName = "max_reads_at_locus", shortName = "mrl", doc = "Sets the upper limit for the number of reads presented at a single locus; use this argument if you are running into memory issues resulting from too many reads piled up at a given locus (but use downsample_to_coverage instead if you are trying to downsample); int.MAX_VALUE by default.", required = false)
     public int readMaxPileup = Integer.MAX_VALUE;
 
     @Element(required = false)
