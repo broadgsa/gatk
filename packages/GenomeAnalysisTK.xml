@@ -48,6 +48,8 @@
       <class>org.broadinstitute.sting.gatk.walkers.annotator.QualByDepth</class>
       <class>org.broadinstitute.sting.gatk.walkers.annotator.RMSMappingQuality</class>
       <class>org.broadinstitute.sting.gatk.walkers.annotator.SpanningDeletions</class>
+      <!-- VCF validator -->
+      <class>org.broadinstitute.sting.gatk.walkers.qc.VCFValidator</class>
     </dependencies>
   </executable>
   <executable>
