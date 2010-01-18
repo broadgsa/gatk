@@ -57,7 +57,7 @@ public class RecalDataManager {
     private static boolean warnUserNullReadGroup = false;
     private static boolean warnUserNoColorSpace = false;
 
-    public static final String versionString = "v2.2.12"; // Major version, minor version, and build number
+    public static final String versionString = "v2.2.13"; // Major version, minor version, and build number
 
     RecalDataManager() {
     	data = new NestedHashMap();

@@ -94,16 +94,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
-    private ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
+    private final RecalDataManager dataManager = new RecalDataManager(); // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
+    private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // A list to hold the covariate objects that were requested
     private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
     private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted.
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
-    private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
+    private final Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
+    private final Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
     private int DBSNP_VALIDATION_CHECK_FREQUENCY = 1000000;                // how often to validate dbsnp mismatch rate (in terms of loci seen)
     private int lociSinceLastDbsnpCheck = 0;                               // loci since last dbsnp validation
@@ -157,7 +157,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         // Initialize the requested covariates by parsing the -cov argument
-        requestedCovariates = new ArrayList<Covariate>();
         // First add the required covariates
         if( requiredClasses.size() == 2) { // readGroup and reported quality score
             requestedCovariates.add( new ReadGroupCovariate() ); // Order is important here
@@ -210,8 +209,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             logger.info( "\t" + cov.getClass().getSimpleName() );
             cov.initialize( RAC ); // Initialize any covariate member variables using the shared argument collection
         }
-
-        dataManager = new RecalDataManager();
     }
 
 

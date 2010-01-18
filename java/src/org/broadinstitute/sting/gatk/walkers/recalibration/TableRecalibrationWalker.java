@@ -91,12 +91,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     // Private Member Variables
     /////////////////////////////
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
-    private ArrayList<Covariate> requestedCovariates; // List of covariates to be used in this calculation
+    private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // List of covariates to be used in this calculation
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
     private static final long RANDOM_SEED = 1032861495;
+    private final Random coinFlip = new Random( RANDOM_SEED ); // Random number generator is used to remove reference bias in solid bams
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -114,7 +114,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         logger.info( "Recalibrator version: " + RecalDataManager.versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
-        coinFlip = new Random(RANDOM_SEED);
         if( !RAC.checkSolidRecalMode() ) {
             throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS");
         }
@@ -136,18 +135,16 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             Utils.warnUser("A dbSNP rod file was specified but TableRecalibrationWalker doesn't make use of it.");
         }
 
-        // Read in the covariates that were used from the input file
-        requestedCovariates = new ArrayList<Covariate>();
-
-        // Read in the data from the csv file and populate the map
+        // Read in the data from the csv file and populate the data map and covariates list
         logger.info( "Reading in the data from input csv file..." );
 
         try {
             for ( String line : new xReadLines(new File( RAC.RECAL_FILE )) ) {
                 lineNumber++;
-                if( COMMENT_PATTERN.matcher(line).matches() || OLD_RECALIBRATOR_HEADER.matcher(line).matches())  {
+                if( COMMENT_PATTERN.matcher(line).matches() || OLD_RECALIBRATOR_HEADER.matcher(line).matches() )  {
                     ; // Skip over the comment lines, (which start with '#')
                 }
+                // Read in the covariates that were used from the input file
                 else if( COVARIATE_PATTERN.matcher(line).matches() ) { // The line string is either specifying a covariate or is giving csv data
                     if( foundAllCovariates ) {
                         throw new StingException( "Malformed input recalibration file. Found covariate names intermingled with data in file: " + RAC.RECAL_FILE );
