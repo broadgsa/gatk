@@ -615,7 +615,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         public IndelPrecall(WindowContext context, long position, int nqs_width) {
             this.pos = position;
             this.nqs = nqs_width;
-            total_coverage = context.coverageAt(pos);
+            total_coverage = context.coverageAt(pos,true);
             List<IndelVariant> variants = context.indelsAt(pos);
             findConsensus(variants);
 
@@ -962,13 +962,35 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             public Set<ExpandedSAMRecord> getReads() { return reads; }
 
             /** Returns the number of reads spanning over the specified reference position                                                                                                       
-             * (regardless of whether they have a base or indel at that specific location)                                                                                                       
-             * @param refPos position on the reference; must be within the bounds of the window     
+             * (regardless of whether they have a base or indel at that specific location).
+             * The second argument controls whether to count with indels in mind (this is relevant for insertions only,
+             * deletions do not require any special treatment since they occupy non-zero length on the ref and since
+             * alignment can not start or end with a deletion). For insertions, note that, internally, we assign insertions
+             * to the reference position right after the actual event, and we count all events assigned to a given position.
+             * This count (reads with indels) should be contrasted to reads without indels, or more rigorously, reads
+             * that support the ref rather than the indel. Few special cases may occur here:
+             * 1) an alignment that ends (as per getAlignmentEnd()) right before the current position but has I as its
+             * last element: we have to count that read into the "coverage" at the current position for the purposes of indel
+             * assessment, as the indel in that read <i>will</i> be counted at the current position, so the total coverage
+             * should be consistent with that.
              */
-            public int coverageAt(final long refPos) {
+             /* NOT IMPLEMENTED: 2) alsignments that start exactly at the current position do <i>not</i> count for the purpose of insertion
+             * assessment since they do not contribute any evidence to either Ref or Alt=insertion hypothesis, <i>unless</i>
+             * the alignment starts with I (so that we do have evidence for an indel assigned to the current position and
+             * read should be counted). For deletions, reads starting at the current position should always be counted (as they
+             * show no deletion=ref).
+             * @param refPos position on the reference; must be within the bounds of the window
+             */
+            public int coverageAt(final long refPos, boolean countForIndels) {
                 int cov = 0;
                 for ( ExpandedSAMRecord read : reads ) {
-                    if ( read.getSAMRecord().getAlignmentStart() > refPos || read.getSAMRecord().getAlignmentEnd() < refPos ) continue;
+                    if ( read.getSAMRecord().getAlignmentStart() > refPos || read.getSAMRecord().getAlignmentEnd() < refPos ) {
+                        if ( countForIndels && read.getSAMRecord().getAlignmentEnd() == refPos - 1) {
+                            Cigar c = read.getSAMRecord().getCigar();
+                            if ( c.getCigarElement(c.numCigarElements()-1).getOperator() == CigarOperator.I ) cov++;
+                        }
+                        continue;
+                    }
                     cov++;
                 } 
                 return cov;
