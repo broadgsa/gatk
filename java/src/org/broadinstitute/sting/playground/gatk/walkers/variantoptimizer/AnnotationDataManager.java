@@ -4,10 +4,7 @@ import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.Map;
-import java.util.Iterator;
+import java.util.*;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 

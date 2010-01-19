@@ -179,7 +179,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
                         // At this point all the covariates should have been found and initialized
                         if( requestedCovariates.size() < 2 ) {
-                            throw new StingException( "Malformed input recalibration file. Covariate names can't be found in file: " + RAC.RECAL_FILE );
+                            throw new StingException( "Malformed input recalibration csv file. Covariate names can't be found in file: " + RAC.RECAL_FILE );
                         }
 
                         final boolean createCollapsedTables = true;
@@ -226,15 +226,17 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             for( Covariate cov : requestedCovariates ) {
                 commandLineString += cov.getClass().getSimpleName() + ", ";
             }
-            commandLineString = commandLineString.substring(0, commandLineString.length() - 2); // trim off the trailing comma
+            commandLineString = commandLineString.substring( 0, commandLineString.length() - 2 ); // Trim off the trailing comma
             commandLineString += "] ";
-            // Add all of the arguments from the recalibraiton argument collection to the command line string
+            // Add all of the arguments from the recalibration argument collection to the command line string
             final Field[] fields = RAC.getClass().getFields();
             for( Field field : fields ) {
                 final ArgumentTypeDescriptor atd = ArgumentTypeDescriptor.create(field.getType());
                 final List<ArgumentDefinition> adList = atd.createArgumentDefinitions(new ArgumentSource(field.getType(), field));
                 for( ArgumentDefinition ad : adList ) {
-                    commandLineString += (ad.fullName + "=" + JVMUtils.getFieldValue(field, RAC) + ", ");
+                    if( !ad.fullName.equalsIgnoreCase( "recalFile" ) && !ad.fullName.equalsIgnoreCase( "recal_file" ) ) { // recalFile argument is not added to the PG tag
+                        commandLineString += (ad.fullName + "=" + JVMUtils.getFieldValue(field, RAC) + ", ");
+                    }
                 }
             }
             commandLineString += "pQ = " + PRESERVE_QSCORES_LESS_THAN + ", ";
@@ -242,7 +244,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             programRecord.setCommandLine( commandLineString );
             header.addProgramRecord( programRecord );
 
-            // write out the new header
+            // Write out the new header
             OUTPUT_BAM.writeHeader( header );
         }
     }
