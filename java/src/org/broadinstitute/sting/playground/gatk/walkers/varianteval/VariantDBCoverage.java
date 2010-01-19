@@ -64,7 +64,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
 
         Variation dbsnp = null;
         for (ReferenceOrderedDatum d : dbsnpList) {
-            if (((Variation) d).isSNP()) {
+            if (((Variation) d).isSNP() && (! (d instanceof RodVCF) || ! ((RodVCF)d).isFiltered())) {
                 dbsnp = (Variation)d;
                 break;
             }
