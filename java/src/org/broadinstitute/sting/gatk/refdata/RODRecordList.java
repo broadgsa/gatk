@@ -64,13 +64,24 @@ public class RODRecordList<ROD extends ReferenceOrderedDatum> implements Iterabl
     public Iterator<ROD> iterator() { return records.iterator() ; }
     public void clear() { records.clear(); }
     public boolean isEmpty() { return records.isEmpty(); }
-    public void add(ROD record) {
+
+    public void add(ROD record) { add(record, false); }
+
+    public void add(ROD record, boolean allowNameMismatch) {
         if ( record != null ) {
-            if ( ! name.equals(record.getName() ) )
+            if ( ! allowNameMismatch && ! name.equals(record.getName() ) )
                 throw new StingException("Attempt to add ROD with non-matching name "+record.getName()+" to the track "+name);
         }
         records.add(record);
     }
+
+    public void add(RODRecordList<ROD> records ) { add( records, false ); }
+
+    public void add(RODRecordList<ROD> records, boolean allowNameMismatch) {
+        for ( ROD record : records )
+            add(record, allowNameMismatch);
+    }    
+
     public int size() { return records.size() ; }
 
     /**
@@ -104,7 +115,7 @@ public class RODRecordList<ROD extends ReferenceOrderedDatum> implements Iterabl
      * <tt>0</tt>, or <tt>1</tt> according to whether the value of
      * <i>expression</i> is negative, zero or positive.
      *
-     * @param o the object to be compared.
+     * @param that the object to be compared.
      * @return a negative integer, zero, or a positive integer as this object
      *         is less than, equal to, or greater than the specified object.
      * @throws ClassCastException if the specified object's type prevents it

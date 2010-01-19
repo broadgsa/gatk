@@ -71,6 +71,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     String analysisFilenameBase = null;
 
     final String knownSNPDBName = "dbSNP";
+    final String One1KGSNPNames = "1kg";
     final String genotypeChipName = "hapmap-chip";
 
     HashMap<ANALYSIS_TYPE, ArrayList<VariantAnalysis>> analysisSets;
@@ -164,6 +165,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
+        analyses.add(new VariantDBCoverage(One1KGSNPNames));
 
         if ( samplesFile != null ) {
             //if ( numPeopleInPool < 1 )

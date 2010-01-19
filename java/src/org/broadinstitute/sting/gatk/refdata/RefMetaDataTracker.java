@@ -60,20 +60,41 @@ public class RefMetaDataTracker {
      * @param defaultValue
      * @return
      */
-    public RODRecordList<ReferenceOrderedDatum> getTrackData(final String name, ReferenceOrderedDatum defaultValue) {
+    public RODRecordList<ReferenceOrderedDatum> getTrackData(final String name, ReferenceOrderedDatum defaultValue, boolean requireExactMatch) {
         //logger.debug(String.format("Lookup %s%n", name));
-        final String luName = canonicalName(name);
-        if ( map.containsKey(luName) )
-            return map.get(luName);
-        else {
 
-            if ( defaultValue == null )
-                return null;
-            return new RODRecordList<ReferenceOrderedDatum>(defaultValue.getName(),
-                                                            Collections.singletonList(defaultValue),
-                                                            defaultValue.getLocation());
+        final String luName = canonicalName(name);
+        RODRecordList<ReferenceOrderedDatum> trackData = null;
+
+        if ( requireExactMatch ) {
+            if ( map.containsKey(luName) )
+                trackData = map.get(luName);
+        } else {
+            for ( Map.Entry<String, RODRecordList<ReferenceOrderedDatum>> datum : map.entrySet() ) {
+                final String rodName = datum.getKey();
+                if ( rodName.startsWith(luName) ) {
+                    if ( trackData == null ) trackData = new RODRecordList<ReferenceOrderedDatum>(name);
+                    //System.out.printf("Adding bindings from %s to %s at %s%n", rodName, name, datum.getValue().getLocation());
+                    trackData.add(datum.getValue(), true);
+                }
+            }
         }
+
+        if ( trackData != null )
+            return trackData;
+        else if ( defaultValue == null )
+            return null;
+        else
+            return new RODRecordList<ReferenceOrderedDatum>(defaultValue.getName(),
+                    Collections.singletonList(defaultValue),
+                    defaultValue.getLocation());
     }
+
+    public RODRecordList<ReferenceOrderedDatum> getTrackData(final String name, ReferenceOrderedDatum defaultValue) {
+        return getTrackData(name, defaultValue, true);
+    }
+
+
     /**
      * @see this.lookup
      * @param name

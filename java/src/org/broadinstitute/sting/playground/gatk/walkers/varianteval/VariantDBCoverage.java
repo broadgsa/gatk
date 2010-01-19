@@ -58,11 +58,26 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         return nConcordant() / (1.0 * nSNPsAtdbSNPs());
     }
 
+    public static Variation getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
+        if (dbsnpList == null)
+            return null;
+
+        Variation dbsnp = null;
+        for (ReferenceOrderedDatum d : dbsnpList) {
+            if (((Variation) d).isSNP()) {
+                dbsnp = (Variation)d;
+                break;
+            }
+        }
+
+        return dbsnp;
+    }
+
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        rodDbSNP dbSNP = rodDbSNP.getFirstRealSNP(tracker.getTrackData( dbName, null ));
+        Variation dbSNP = getFirstRealSNP(tracker.getTrackData( dbName, null, false ));
         String result = null;
 
-        if (dbSNP != null) nDBSNPs++;               // count the number of real dbSNP events
+        if ( dbSNP != null ) nDBSNPs++;               // count the number of real dbSNP events
         if ( eval != null && eval.isSNP() ) {       // ignore indels right now
             nEvalObs++;                             // count the number of eval snps we've seen
 
@@ -76,13 +91,13 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
             }
         }
 
-        if ( dbSNP != null && dbSNP.isSNP() ) {
-            BrokenRODSimulator.attach("dbSNP");
-            rodDbSNP dbsnp = (rodDbSNP) BrokenRODSimulator.simulate_lookup("dbSNP", context.getLocation(), tracker);
-            if ( ! dbSNP.getRS_ID().equals(dbsnp.getRS_ID()) && dbsnp.isSNP() ) {
-                System.out.printf("Discordant site! %n%s%n vs.%n%s%n", dbSNP, dbsnp);
-            }
-        }
+//        if ( dbSNP != null && dbSNP.isSNP() ) {
+//            BrokenRODSimulator.attach("dbSNP");
+//            rodDbSNP dbsnp = (rodDbSNP) BrokenRODSimulator.simulate_lookup("dbSNP", context.getLocation(), tracker);
+//            if ( ! dbSNP.getRS_ID().equals(dbsnp.getRS_ID()) && dbsnp.isSNP() ) {
+//                System.out.printf("Discordant site! %n%s%n vs.%n%s%n", dbSNP, dbsnp);
+//            }
+//        }
 
         return result;
     }
@@ -97,7 +112,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         s.add(String.format("n_concordant             %d", nConcordant()));
         s.add(String.format("n_novel_sites            %d", nNovelSites()));
 
-        s.add(String.format("dbsnp_rate               %.2f       # percent eval snps at dbsnp snps", 100 * dbSNPRate()));
+        s.add(String.format("%s_rate               %.2f       # percent eval snps at dbsnp snps", dbName.toLowerCase(), 100 * dbSNPRate()));
         s.add(String.format("concordance_rate         %.2f", 100 * concordanceRate()));
 
         return s;
