@@ -15,12 +15,6 @@
     <dependencies>
       <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
-      <!-- Recalibration Covariates -->
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PositionCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.MinimumNQSCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.MappingQualityCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PrimerRoundCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.HomopolymerCovariate</class>
       <!-- From playground -->
       <class>org.broadinstitute.sting.playground.gatk.walkers.varianteval.VariantEvalWalker</class>
       <class>org.broadinstitute.sting.playground.gatk.walkers.contamination.FindContaminatingReadGroupsWalker</class>
