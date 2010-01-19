@@ -240,6 +240,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                 }
             }
             commandLineString += "pQ=" + PRESERVE_QSCORES_LESS_THAN + ", ";
+            commandLineString += "maxQ=" + MAX_QUALITY_SCORE + ", ";
             commandLineString += "smoothing=" + SMOOTHING;
             programRecord.setCommandLine( commandLineString );
             header.addProgramRecord( programRecord );
