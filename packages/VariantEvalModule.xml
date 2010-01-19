@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>VariantEval</name>
+  <executable>
+    <name>VariantEval</name>
+    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <dependencies>
+      <class>org.broadinstitute.sting.playground.gatk.walkers.varianteval.VariantEvalWalker</class>
+    </dependencies>
+  </executable>
+</package>

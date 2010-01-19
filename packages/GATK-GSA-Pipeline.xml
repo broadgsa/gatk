@@ -12,12 +12,11 @@
     <module>UnifiedGenotyperModule.xml</module>
     <module>VariantFiltrationModule.xml</module>
     <module>VariantAnnotatorModule.xml</module>
+    <module>VariantEvalModule.xml</module>
+    <module>FindContaminatingReadGroupsModule.xml</module>
     <dependencies>
       <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
-      <!-- From playground -->
-      <class>org.broadinstitute.sting.playground.gatk.walkers.varianteval.VariantEvalWalker</class>
-      <class>org.broadinstitute.sting.playground.gatk.walkers.contamination.FindContaminatingReadGroupsWalker</class>
     </dependencies>
   </executable>
 </package>
