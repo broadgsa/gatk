@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.help;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinition;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinitionGroup;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinitions;
-import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.TextFormattingUtils;
 import org.apache.log4j.Logger;
 
@@ -45,6 +44,14 @@ public class HelpFormatter {
      */
     public void printHelp( ApplicationDetails applicationDetails, ArgumentDefinitions argumentDefinitions ) {
         List<ArgumentDefinitionGroup> argumentGroups = prepareArgumentGroups( argumentDefinitions );
+
+        List<String> header = applicationDetails.applicationHeader;
+        String barrier = createBarrier(header);
+
+        System.out.printf("%s%n",barrier);
+        for(String headerLine: header)
+            System.out.printf("%s%n",headerLine);
+        System.out.printf("%s%n",barrier);
 
         String synopsis = getSynopsis(applicationDetails.runningInstructions,argumentGroups);
         String additionalDetails = applicationDetails.additionalHelp != null ? applicationDetails.additionalHelp : "";
@@ -234,7 +241,9 @@ public class HelpFormatter {
         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         java.util.Date date = new java.util.Date();
 
-        logger.info("-------------------------------------------------------");
+        String barrier = createBarrier(applicationDetails.applicationHeader);
+
+        logger.info(barrier);
         for (String headerLine : applicationDetails.applicationHeader)
             logger.info(headerLine);
         String output = "";
@@ -243,6 +252,18 @@ public class HelpFormatter {
         }
         logger.info("Program Args: " + output);
         logger.info("Date/Time: " + dateFormat.format(date));
-        logger.info("-------------------------------------------------------");
+        logger.info(barrier);
+    }
+
+    /**
+     * Create a barrier to use to distinguish the header from the rest of the output.
+     * @param text A collection of lines to output as part of a header.
+     * @return A barrier consisting of the '-' character.
+     */
+    private static String createBarrier(List<String> text) {
+        int barrierWidth = 0;
+        for(String headerLine: text)
+            barrierWidth = Math.max(headerLine.length(),barrierWidth);
+        return String.format("%0" + barrierWidth + "d",0).replace('0','-');
     }
 }

@@ -75,7 +75,7 @@
         <arg value="--no-newline"/>
       </exec>
       <tstamp>
-        <format property="build.timestamp" pattern="dd MMMM yyyy hh:mm aa"/>
+        <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
       </tstamp>
 
       <echo message="Compiling module: ${target}"/>

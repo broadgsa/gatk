@@ -99,12 +99,16 @@ public class CommandLineGATK extends CommandLineExecutable {
      * @return The application header.
      */
     public static List<String> createApplicationHeader() {
+        ResourceBundle headerInfo = ResourceBundle.getBundle("StingText");
+
+        String versionNumber = headerInfo.getString("org.broadinstitute.sting.gatk.version");
+        String timestamp = headerInfo.getString("build.timestamp");
+
         List<String> header = new ArrayList<String>();
-        header.add("The Genome Analysis Toolkit (GATK)");
+        header.add(String.format("The Genome Analysis Toolkit (GATK) v%s, Compiled %s",versionNumber,timestamp));
         header.add("Copyright (c) 2009 The Broad Institute");
         header.add("Please view our documentation at http://www.broadinstitute.org/gsa/wiki");
         header.add("For support, email gsahelp@broadinstitute.org");
-        header.add("");
         return header;
     }
 
