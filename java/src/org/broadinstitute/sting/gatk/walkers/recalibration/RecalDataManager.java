@@ -57,7 +57,7 @@ public class RecalDataManager {
     private static boolean warnUserNullReadGroup = false;
     private static boolean warnUserNoColorSpace = false;
 
-    public static final String versionString = "v2.2.14"; // Major version, minor version, and build number
+    public static final String versionString = "v2.2.15"; // Major version, minor version, and build number
 
     RecalDataManager() {
     	data = new NestedHashMap();
@@ -253,7 +253,7 @@ public class RecalDataManager {
     public static void parseColorSpace( final SAMRecord read ) {
 
         // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
+        if( read.getReadGroup().getPlatform().toUpperCase().contains("SOLID") ) {
             if( read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null ) { // Haven't calculated the inconsistency array yet for this read
                 final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
                 if( attr != null ) {
@@ -360,7 +360,7 @@ public class RecalDataManager {
                                                 final char[] refBases, final boolean setBaseN ) {
 
         final boolean negStrand = read.getReadNegativeStrandFlag();
-        for( int iii = 1; iii < originalQualScores.length - 1; iii++ ) {
+        for( int iii = 1; iii < originalQualScores.length; iii++ ) {
             if( inconsistency[iii] == 1 ) {
                 if( (char)readBases[iii] == refBases[iii] ) {
                     if( negStrand ) { originalQualScores[originalQualScores.length-(iii+1)] = (byte)0; }

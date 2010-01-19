@@ -298,7 +298,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         final byte[] recalQuals = originalQuals.clone();
 
         final String platform = read.getReadGroup().getPlatform();
-        if( platform.equalsIgnoreCase("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
+        if( platform.toUpperCase().contains("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
             originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases );
         }
 

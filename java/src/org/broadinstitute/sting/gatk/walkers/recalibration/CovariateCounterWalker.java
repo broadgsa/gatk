@@ -265,7 +265,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
                         // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                        if( !read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
+                        if( !read.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
 
                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
                             updateDataFromRead( read, offset, refBase );

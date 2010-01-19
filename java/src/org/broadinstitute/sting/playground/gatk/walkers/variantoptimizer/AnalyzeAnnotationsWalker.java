@@ -46,7 +46,6 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-
     @Argument(fullName = "output_dir", shortName = "outputDir", doc = "The directory in which to output all the plots and intermediate data files", required = false)
     private String OUTPUT_DIR = "analyzeAnnotations/";
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)

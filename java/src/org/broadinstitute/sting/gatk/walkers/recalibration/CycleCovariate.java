@@ -51,7 +51,7 @@ public class CycleCovariate implements StandardCovariate {
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SLX" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) ||
-            RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) ) {
+            RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ABI_SOLID" ) ) {
             defaultPlatform = RAC.DEFAULT_PLATFORM;
         } else {
             throw new StingException( "The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
@@ -67,8 +67,8 @@ public class CycleCovariate implements StandardCovariate {
         // ILLUMINA and SOLID
         //-----------------------------
 
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SLX" ) ||
-                read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) { // Some bams have "illumina" and others have "SLX"
+        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SLX" ) || // Some bams have "illumina" and others have "SLX"
+            read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "ABI_SOLID" )) { // Some bams have "solid" and others have "ABI_SOLID"
             cycle = offset + 1;
 	        if( read.getReadNegativeStrandFlag() ) {
 	            cycle = read.getReadLength() - offset;
@@ -131,10 +131,10 @@ public class CycleCovariate implements StandardCovariate {
         	if( !warnedUserBadPlatform ) {
                 if( defaultPlatform != null) { // The user set a default platform
                     Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
-                            "Reverting to " + defaultPlatform + " definition of machine cycle." );
+                            "Reverting to platform = " + defaultPlatform + ". Users may set the default platform using the --default_platform <String> argument." );
                 } else { // The user did not set a default platform
                     Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
-                            "Reverting to Illumina definition of machine cycle. Users may set the default platform using the --default_platform <String> argument." );
+                            "Reverting to platform = Illumina. Users may set the default platform using the --default_platform <String> argument." );
                     defaultPlatform = "Illumina";
                 }
                 warnedUserBadPlatform = true;
