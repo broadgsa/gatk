@@ -70,7 +70,17 @@
 
     <!-- define some key locations that might change based on how the build is run -->
     <target name="init">
-      <echo message="Compiling module ${target}"/>
+      <!-- define build version and timestamp -->
+      <exec executable="svnversion" outputproperty="build.version" failonerror="true">
+        <arg value="--no-newline"/>
+      </exec>
+      <tstamp>
+        <format property="build.timestamp" pattern="dd MMMM yyyy hh:mm aa"/>
+      </tstamp>
+
+      <echo message="Compiling module: ${target}"/>
+      <echo message="source revision : ${build.version}"/>
+      <echo message="build time      : ${build.timestamp}" />
       
       <condition property="include.oneoffs">
         <equals arg1="${target}" arg2="oneoffs" casesensitive="false" />
@@ -96,16 +106,13 @@
       </javac>
     </target>
 
-    <target name="extracthelp" depends="compile" 
+    <target name="extracthelp" depends="init,compile" 
 	    description="Extract help key/value pair file from the JavaDoc tags."
 	    unless="disable.help">
-      <!-- exec executable="svnversion" outputproperty="svn.version" -->
-          <!--arg value="*dash*dash*no-newline"/-->
-      <!--/exec-->
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
 	       docletpath="build"
 	       classpathref="runtime.dependencies"
-	       additionalparam="-version-suffix .${svn.version} -out ${build.dir}/${resource.file}">
+	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${build.dir}/${resource.file}">
 	<packageset refid="source.files"/>
       </javadoc>
     </target>

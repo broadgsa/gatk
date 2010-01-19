@@ -5,8 +5,9 @@ import com.sun.javadoc.*;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Scanner;
+import java.util.Properties;
 import java.io.PrintStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import org.broadinstitute.sting.utils.StingException;
 
@@ -23,24 +24,30 @@ public class ResourceBundleExtractorDoclet {
      */
     private static final String VERSION_TAGLET_NAME = "version";
 
+    private static final Properties helpText = new Properties();
+
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
      * @param rootDoc The documentation root.
      * @return Whether the JavaDoc run succeeded.
-     * @throws FileNotFoundException if output can't be written.
+     * @throws IOException if output can't be written.
      */
-    public static boolean start(RootDoc rootDoc) throws FileNotFoundException {
+    public static boolean start(RootDoc rootDoc) throws IOException {
         PrintStream out = System.out;
-        String versionPrefix = null, versionSuffix = null;
+        String buildTimestamp = null, versionPrefix = null, versionSuffix = null;
 
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-out"))
                 out = new PrintStream(options[1]);
+            if(options[0].equals("-build-timestamp"))
+                buildTimestamp = options[1];
             if(options[0].equals("-version-prefix"))
                 versionPrefix = options[1];
             if(options[0].equals("-version-suffix"))
                 versionSuffix = options[1];
         }
+
+        helpText.setProperty("build.timestamp",buildTimestamp);
 
         // Cache packages as we see them, since there's no direct way to iterate over packages.
         Set<PackageDoc> packages = new HashSet<PackageDoc>();
@@ -52,11 +59,13 @@ public class ResourceBundleExtractorDoclet {
                     String.format("%s.%s",containingPackage.name(),currentClass.name()) :
                     String.format("%s",currentClass.name());
 
-            renderHelpText(className,currentClass,out,versionPrefix,versionSuffix);
+            renderHelpText(className,currentClass,versionPrefix,versionSuffix);
         }
 
         for(PackageDoc currentPackage: packages)
-            renderHelpText(currentPackage.name(),currentPackage,out,versionPrefix,versionSuffix);
+            renderHelpText(currentPackage.name(),currentPackage,versionPrefix,versionSuffix);
+
+        helpText.store(out,"Strings displayed by the Sting help system");
 
         return true;
     }
@@ -67,7 +76,7 @@ public class ResourceBundleExtractorDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if(option.equals("-out") || option.equals("-version-prefix") || option.equals("-version-suffix")) {
+        if(option.equals("-build-timestamp") || option.equals("-version-prefix") || option.equals("-version-suffix") || option.equals("-out")) {
             return 2;
         }
         return 0;
@@ -77,10 +86,10 @@ public class ResourceBundleExtractorDoclet {
      * Renders all the help text required for a given name.
      * @param elementName element name to use as the key
      * @param element Doc element to process.
-     * @param out Output stream to which to write.
+     * @param versionPrefix Text to add to the start of the version string.
      * @param versionSuffix Text to add to the end of the version string.
      */
-    private static void renderHelpText(String elementName, Doc element, PrintStream out, String versionPrefix, String versionSuffix) {
+    private static void renderHelpText(String elementName, Doc element, String versionPrefix, String versionSuffix) {
         // Extract overrides from the doc tags.
         String name = null;
         String version = null;
@@ -108,16 +117,16 @@ public class ResourceBundleExtractorDoclet {
 
         // Write out an alternate element name, if exists.
         if(name != null)
-            out.printf("%s.%s=%s%n",elementName,DisplayNameTaglet.NAME,name);
+            helpText.setProperty(String.format("%s.%s",elementName,DisplayNameTaglet.NAME),name);
 
         if(version != null)
-            out.printf("%s.%s=%s%n",elementName,VERSION_TAGLET_NAME,version);
+            helpText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),version);
 
         // Write out an alternate element summary, if exists.
-        out.printf("%s.%s=%s%n",elementName,SummaryTaglet.NAME,formatText(summary));
+        helpText.setProperty(String.format("%s.%s",elementName,SummaryTaglet.NAME),formatText(summary));
 
         // Write out an alternate description, if present.
-        out.printf("%s.%s=%s%n",elementName,DescriptionTaglet.NAME,formatText(description));
+        helpText.setProperty(String.format("%s.%s",elementName,DescriptionTaglet.NAME),formatText(description));
     }
 
     /**
