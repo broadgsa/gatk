@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>VariantFiltration</name>
+  <executable>
+    <name>VariantFiltration</name>
+    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <dependencies>
+      <!-- Variant filtration -->
+      <class>org.broadinstitute.sting.gatk.walkers.filters.VariantFiltrationWalker</class>
+    </dependencies>
+  </executable>
+</package>

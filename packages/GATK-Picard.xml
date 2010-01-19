@@ -7,9 +7,13 @@
   <executable>
     <name>GATK-Picard</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <properties>StingText.properties</properties>
+    <module>QualityScoresRecalibrationModule.xml</module>
+    <module>LocalRealignmentAroundIndelsModule.xml</module>
+    <module>UnifiedGenotyperModule.xml</module>
+    <module>VariantFiltrationModule.xml</module>
+    <module>VariantAnnotatorModule.xml</module>
     <dependencies>
-      <!-- Text extracted from the javadocs -->
-      <properties>StingText.properties</properties>
       <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
       <class>org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker</class>
@@ -18,41 +22,12 @@
       <class>org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker</class>
       <class>org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker</class>
-      <!-- Quality scores recalibration -->
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker</class>
       <!-- Recalibration Covariates -->
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.PositionCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.MinimumNQSCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.MappingQualityCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.PrimerRoundCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.HomopolymerCovariate</class>
-      <!-- Local realignment around indels -->
-      <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>
-      <class>org.broadinstitute.sting.gatk.walkers.indels.IndelIntervalWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalCleanerWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalMergerWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.indels.MismatchIntervalWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.indels.SNPClusterWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.indels.IndelGenotyperWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.indels.IndelGenotyperV2Walker</class>
-      <!-- Unified genotyper -->
-      <class>org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper</class>
-      <!-- Variant filtration -->
-      <class>org.broadinstitute.sting.gatk.walkers.filters.VariantFiltrationWalker</class>
-      <!-- Variant annotator -->
-      <class>org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator</class>
-      <!-- And the annotations -->
-      <class>org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance</class>
-      <class>org.broadinstitute.sting.gatk.walkers.annotator.DepthOfCoverage</class>
-      <class>org.broadinstitute.sting.gatk.walkers.annotator.HomopolymerRun</class>
-      <class>org.broadinstitute.sting.gatk.walkers.annotator.RMSMappingQuality</class>
-      <class>org.broadinstitute.sting.gatk.walkers.annotator.SpanningDeletions</class>
     </dependencies>
   </executable>
   <resources>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>VariantAnnotator</name>
+  <executable>
+    <name>VariantAnnotator</name>
+    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <dependencies>
+      <!-- Variant annotator -->
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator</class>
+      <!-- And the annotations -->
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance</class>
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.DepthOfCoverage</class>
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.HomopolymerRun</class>
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.MappingQualityZero</class>
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.QualByDepth</class>
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.RMSMappingQuality</class>
+      <class>org.broadinstitute.sting.gatk.walkers.annotator.SpanningDeletions</class>
+    </dependencies>
+  </executable>
+</package>

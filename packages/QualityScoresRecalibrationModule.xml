@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>QualityScoresRecalibration</name>
+  <executable>
+    <name>QualityScoresRecalibration</name>
+    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <dependencies>
+      <!-- Quality scores recalibration -->
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker</class>
+      <!-- Recalibration Covariates -->
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
+    </dependencies>
+  </executable>
+</package>

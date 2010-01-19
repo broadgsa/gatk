@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>LocalRealignmentAroundIndels</name>
+  <executable>
+    <name>LocalRealignmentAroundIndels</name>
+    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <dependencies>
+      <!-- Local realignment around indels -->
+      <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>
+      <class>org.broadinstitute.sting.gatk.walkers.indels.IndelIntervalWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalCleanerWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalMergerWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.indels.MismatchIntervalWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.indels.SNPClusterWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.indels.IndelGenotyperWalker</class>
+      <class>org.broadinstitute.sting.gatk.walkers.indels.IndelGenotyperV2Walker</class> 
+    </dependencies>
+  </executable>
+</package>

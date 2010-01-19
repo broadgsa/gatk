@@ -32,28 +32,12 @@
       <!-- Create an output directory for the package -->
       <mkdir dir="{$package.dir}"/>
 
-      <xsl:for-each select="executable">
-	<!-- Create a jar file containing the specified classes / packages and all their dependencies -->
-	<jar jarfile="{concat($package.dir,name,'.jar')}">
-          <classfileset dir="{$staging.dir}">
-            <root classname="{main-class}"/>
-            <xsl:for-each select="dependencies/package">
-              <rootfileset dir="{$staging.dir}" includes="{concat(translate(current(),'.','/'),'/','*.class')}" />
-            </xsl:for-each>
-            <xsl:for-each select="dependencies/class">
-              <root classname="{current()}" />
-            </xsl:for-each>
-          </classfileset>
-          <xsl:for-each select="dependencies/properties">
-            <fileset file="{$staging.dir}/{current()}" />
-          </xsl:for-each>
-          <xsl:for-each select="dependencies/file">
-            <fileset file="{$staging.dir}/{current()}" />
-          </xsl:for-each>
-          <manifest>
-            <attribute name="Main-Class" value="{main-class}"/>
-          </manifest>
-	</jar>
+      <!-- Create the executable sections -->
+      <xsl:apply-templates select="executable" />
+
+      <!-- Add in other modules -->
+      <xsl:for-each select="module">
+	<xsl:apply-templates select="document(current())/package/executable" />
       </xsl:for-each>
 
       <!-- Include various script files -->
@@ -95,6 +79,39 @@
   <fail message="File {$file.name} not found" unless="is.{$short.name}.present" />
   <delete file="{concat($target.dir,'/',$short.name)}" />
   <symlink link="{concat($target.dir,'/',$short.name)}" resource="{$full.path}" overwrite="true" />
+</xsl:template>
+
+<xsl:template match="executable">
+  <!-- Create a jar file containing the specified classes / packages and all their dependencies -->
+  <jar jarfile="{concat($package.dir,name,'.jar')}">
+    <classfileset dir="{$staging.dir}">
+      <root classname="{main-class}"/>
+    </classfileset>
+    <xsl:for-each select="properties">
+      <fileset file="{$staging.dir}/{current()}" />
+    </xsl:for-each>
+    <xsl:for-each select="module">
+      <xsl:apply-templates select="document(current())/package/executable/dependencies" />
+    </xsl:for-each>
+    <xsl:apply-templates select="dependencies" />
+    <manifest>
+      <attribute name="Main-Class" value="{main-class}"/>
+    </manifest>
+  </jar>
+</xsl:template>
+
+<xsl:template match="dependencies">
+  <classfileset dir="{$staging.dir}">
+    <xsl:for-each select="package">
+      <rootfileset dir="{$staging.dir}" includes="{concat(translate(current(),'.','/'),'/','*.class')}" />
+    </xsl:for-each>
+    <xsl:for-each select="class">
+      <root classname="{current()}" />
+    </xsl:for-each>
+  </classfileset>
+  <xsl:for-each select="file">
+    <fileset file="{$staging.dir}/{current()}" />
+  </xsl:for-each>
 </xsl:template>
 
 <!-- Determine the short name (filename w/o directory structure of the given filename -->

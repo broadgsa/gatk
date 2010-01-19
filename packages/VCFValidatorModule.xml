@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>VCFValidator</name>
+  <executable>
+    <name>VCFValidator</name>
+    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <dependencies>
+      <!-- VCF validator -->
+      <class>org.broadinstitute.sting.gatk.walkers.qc.VCFValidator</class>
+    </dependencies>
+  </executable>
+</package>
