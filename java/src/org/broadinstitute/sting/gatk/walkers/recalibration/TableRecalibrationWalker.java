@@ -222,12 +222,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
             programRecord.setProgramVersion( RecalDataManager.versionString );
-            String commandLineString = "Covariates used = [";
+            String commandLineString = "Covariates=[";
             for( Covariate cov : requestedCovariates ) {
                 commandLineString += cov.getClass().getSimpleName() + ", ";
             }
             commandLineString = commandLineString.substring( 0, commandLineString.length() - 2 ); // Trim off the trailing comma
-            commandLineString += "] ";
+            commandLineString += "], ";
             // Add all of the arguments from the recalibration argument collection to the command line string
             final Field[] fields = RAC.getClass().getFields();
             for( Field field : fields ) {
@@ -239,8 +239,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                     }
                 }
             }
-            commandLineString += "pQ = " + PRESERVE_QSCORES_LESS_THAN + ", ";
-            commandLineString += "smoothing = " + SMOOTHING;
+            commandLineString += "pQ=" + PRESERVE_QSCORES_LESS_THAN + ", ";
+            commandLineString += "smoothing=" + SMOOTHING;
             programRecord.setCommandLine( commandLineString );
             header.addProgramRecord( programRecord );
 
