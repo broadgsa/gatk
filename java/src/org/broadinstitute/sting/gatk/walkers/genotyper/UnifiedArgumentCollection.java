@@ -84,6 +84,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
-    @Argument(fullName = "max_coverage", shortName = "mc", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
-    public Integer MAX_READS_IN_PILEUP = 10000;
+    @Argument(fullName = "max_coverage", shortName = "mc", doc = "Maximum reads at this locus (after filtering bad bases/reads) for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
+    public Integer MAX_READS_IN_PILEUP = 100000;
 }
