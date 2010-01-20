@@ -183,7 +183,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                 throw new StingException("Frequency was incremented past N; how is this possible?");
             frequency++;
 
-            double greedy = -1.0 * Double.MAX_VALUE;
+            double greedy = VALUE_NOT_CALCULATED;
             int greedyIndex = -1;
             for (int i = 0; i < N; i++) {
 

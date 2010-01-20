@@ -132,7 +132,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             if(UAC.genotypeModel != GenotypeCalculationModel.Model.EM_POINT_ESTIMATE) {
                 StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
                 for ( char altAllele : BaseUtils.BASES ) {
-                    char base = Character.toLowerCase(altAllele);
+                    char base = Character.toUpperCase(altAllele);
                     header.append("POfDGivenAFFor" + base + "\t");
                     header.append("PosteriorAFFor" + base + "\t");
                 }
