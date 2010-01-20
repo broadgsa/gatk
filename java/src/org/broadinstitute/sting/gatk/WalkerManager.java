@@ -26,8 +26,6 @@
 package org.broadinstitute.sting.gatk;
 
 import java.util.*;
-import java.io.InputStream;
-import java.io.IOException;
 
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -35,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.PluginManager;
+import org.broadinstitute.sting.utils.TextFormattingUtils;
 import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
 import org.broadinstitute.sting.utils.help.DescriptionTaglet;
 import org.broadinstitute.sting.utils.help.SummaryTaglet;
@@ -62,7 +61,7 @@ public class WalkerManager extends PluginManager<Walker> {
 
     public WalkerManager() {
         super(Walker.class,"walker","Walker");
-        helpText = ResourceBundle.getBundle("StingText");
+        helpText = TextFormattingUtils.loadResourceBundle("StingText");
     }
 
     /**
