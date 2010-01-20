@@ -5,12 +5,12 @@
     <name>GenomeAnalysisTK</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
     <properties>StingText.properties</properties>
-    <module>QualityScoresRecalibrationModule.xml</module>
-    <module>LocalRealignmentAroundIndelsModule.xml</module>
-    <module>UnifiedGenotyperModule.xml</module>
-    <module>VariantFiltrationModule.xml</module>
-    <module>VariantAnnotatorModule.xml</module>
-    <module>VCFValidatorModule.xml</module>
+    <module>QualityScoresRecalibration.xml</module>
+    <module>LocalRealignmentAroundIndels.xml</module>
+    <module>UnifiedGenotyper.xml</module>
+    <module>VariantFiltration.xml</module>
+    <module>VariantAnnotator.xml</module>
+    <module>VCFValidator.xml</module>
     <dependencies>
       <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
