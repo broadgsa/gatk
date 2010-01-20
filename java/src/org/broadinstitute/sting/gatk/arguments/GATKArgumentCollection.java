@@ -116,7 +116,7 @@ public class GATKArgumentCollection {
     public Integer downsampleCoverage = null;
 
     @Element(required = false)
-    @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation (LENIENT|SILENT|STRICT)", required = false)
+    @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
 
     @Element(required = false)
@@ -138,7 +138,7 @@ public class GATKArgumentCollection {
 
     /** What rule should we use when merging intervals */
     @Element(required = false)
-    @Argument(fullName = "interval_merging", shortName = "im", doc = "What interval merging rule should we use {ALL [DEFAULT],OVERLAPPING_ONLY,NONE}.", required = false)
+    @Argument(fullName = "interval_merging", shortName = "im", doc = "What interval merging rule should we use.", required = false)
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
     /** Should we enable rodWalkers?  This is currently unsafe */

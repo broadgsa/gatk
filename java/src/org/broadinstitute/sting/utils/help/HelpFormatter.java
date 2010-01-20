@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinition;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinitionGroup;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinitions;
 import org.broadinstitute.sting.utils.TextFormattingUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.apache.log4j.Logger;
 
 import java.util.Formatter;
@@ -83,7 +84,7 @@ public class HelpFormatter {
                 else
                     lineFormatter.format("--%s", argumentDefinition.fullName);
                 if( !argumentDefinition.isFlag )
-                    lineFormatter.format(" <%s>", argumentDefinition.fullName);
+                    lineFormatter.format(" <%s>", argumentDefinition.fullName);                
                 if( !argumentDefinition.required ) lineFormatter.format("]");
             }
         }
@@ -137,7 +138,7 @@ public class HelpFormatter {
 
         for( ArgumentDefinition argumentDefinition: argumentDefinitions ) {
             Iterator<String> wordWrappedArgs = TextFormattingUtils.wordWrap( getArgumentCallingInfo(argumentDefinition), argWidth ).iterator();
-            Iterator<String> wordWrappedDoc  = TextFormattingUtils.wordWrap( argumentDefinition.doc, docWidth ).iterator();
+            Iterator<String> wordWrappedDoc  = TextFormattingUtils.wordWrap( getArgumentDoc(argumentDefinition), docWidth ).iterator();
 
             while( wordWrappedArgs.hasNext() || wordWrappedDoc.hasNext() ) {
                 String arg = wordWrappedArgs.hasNext() ? wordWrappedArgs.next() : "";
@@ -167,6 +168,22 @@ public class HelpFormatter {
         if( !argumentDefinition.isFlag )
             formatter.format(" <%s>", argumentDefinition.fullName);
 
+        return builder.toString();
+    }
+
+    /**
+     * Gets a string of argument documentation.
+     * @param argumentDefinition Argument definition for which help should be printed.
+     * @return Brief description for this argument.
+     */
+    private String getArgumentDoc( ArgumentDefinition argumentDefinition ) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(argumentDefinition.doc);
+        if( argumentDefinition.validOptions != null ) {
+            builder.append(" (");
+            builder.append(Utils.join("|",argumentDefinition.validOptions));
+            builder.append(")");
+        }
         return builder.toString();
     }
 

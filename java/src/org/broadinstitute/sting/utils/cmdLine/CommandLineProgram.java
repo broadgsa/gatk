@@ -40,7 +40,7 @@ public abstract class CommandLineProgram {
     /** the default log level */
     @Argument(fullName = "logging_level",
               shortName = "l",
-              doc = "Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging. (DEBUG, INFO, WARN, ERROR, FATAL, OFF). ",
+              doc = "Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging.",
               required = false)
     protected String logging_level = "WARN";
 

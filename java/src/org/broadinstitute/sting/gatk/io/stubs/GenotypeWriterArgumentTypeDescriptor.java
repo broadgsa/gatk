@@ -159,7 +159,8 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
                                        false,
                                        source.isMultiValued(),
                                        getExclusiveOf(source),
-                                       getValidationRegex(source) );
+                                       getValidationRegex(source),
+                                       null );
     }
 
     /**
@@ -174,6 +175,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
                                        false,
                                        false,
                                        false,
+                                       null,
                                        null,
                                        null );
     }

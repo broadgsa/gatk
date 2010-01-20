@@ -27,6 +27,9 @@ package org.broadinstitute.sting.utils.cmdLine;
 
 import org.broadinstitute.sting.utils.Utils;
 
+import java.util.List;
+import java.util.Collections;
+
 /**
  * A specific argument definition.  Maps one-to-one with a field in some class.
  */
@@ -72,6 +75,11 @@ public class ArgumentDefinition {
     public final String validation;
 
     /**
+     * A list of valid options for this argument, if there is a compelling subset.
+     */
+    public final List<String> validOptions;
+
+    /**
      * Creates a new argument definition.
      * @param fullName Full name for this argument definition.
      * @param shortName Short name for this argument definition.
@@ -81,6 +89,7 @@ public class ArgumentDefinition {
      * @param isMultiValued Whether or not this argument supports multiple values.
      * @param exclusiveOf Whether this command line argument is mutually exclusive of other arguments.
      * @param validation A regular expression for command-line argument validation.
+     * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null. 
      */
     public ArgumentDefinition( String fullName,
                                String shortName,
@@ -89,7 +98,8 @@ public class ArgumentDefinition {
                                boolean isFlag,
                                boolean isMultiValued,
                                String exclusiveOf,
-                               String validation ) {
+                               String validation,
+                               List<String> validOptions) {
         this.fullName = fullName;
         this.shortName = shortName;
         this.doc = doc;
@@ -98,16 +108,13 @@ public class ArgumentDefinition {
         this.isMultiValued = isMultiValued;
         this.exclusiveOf = exclusiveOf;
         this.validation = validation;
+        this.validOptions = validOptions;
     }
 
     @Override
     public int hashCode() {
         int hashCode = fullName.hashCode();
         if(shortName != null) hashCode ^= shortName.hashCode();
-        if(doc != null) hashCode ^= doc.hashCode();
-        hashCode ^= Boolean.valueOf(required).hashCode();
-        if(exclusiveOf != null) hashCode ^= exclusiveOf.hashCode();
-        if(validation != null) hashCode ^= validation.hashCode();
         return hashCode;
     }
 
@@ -120,12 +127,6 @@ public class ArgumentDefinition {
         ArgumentDefinition other = (ArgumentDefinition)o;
 
         return Utils.equals(fullName,other.fullName) &&
-               Utils.equals(shortName,other.shortName) &&
-               Utils.equals(doc,other.doc) &&
-               required == other.required &&
-               isFlag == other.isFlag &&
-               isMultiValued == other.isMultiValued &&
-               Utils.equals(exclusiveOf,other.exclusiveOf) &&
-               Utils.equals(validation,other.validation);
+               Utils.equals(shortName,other.shortName);
     }
 }

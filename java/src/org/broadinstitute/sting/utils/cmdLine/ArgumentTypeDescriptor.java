@@ -129,7 +129,8 @@ public abstract class ArgumentTypeDescriptor {
                                        source.isFlag(),
                                        source.isMultiValued(),
                                        getExclusiveOf(source),
-                                       getValidationRegex(source) );
+                                       getValidationRegex(source),
+                                       getValidOptions(source) );
     }
 
     protected abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
@@ -194,6 +195,21 @@ public abstract class ArgumentTypeDescriptor {
     protected String getValidationRegex( ArgumentSource source ) {
         Argument description = getArgumentDescription(source);
         return description.validation().trim().length() > 0 ? description.validation().trim() : null;
+    }
+
+    /**
+     * If the argument source only accepts a small set of options, populate the returned list with
+     * those options.  Otherwise, leave the list empty.
+     * @param source 
+     * @return
+     */
+    protected List<String> getValidOptions( ArgumentSource source ) {
+        if(!source.field.getType().isEnum())
+            return null;
+        List<String> validOptions = new ArrayList<String>();
+        for(Object constant: source.field.getType().getEnumConstants())
+            validOptions.add(constant.toString());
+        return validOptions;
     }
 
     /**
@@ -284,7 +300,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 // TODO: Clean this up so that null values never make it to this point.  To fix this, we'll have to clean up the implementation of -U.
                 if (value == null)
                     throw new MissingArgumentValueException(Collections.singleton(createDefaultArgumentDefinition(source)));
-                throw new UnknownEnumeratedValueException(value, type.getName());
+                throw new UnknownEnumeratedValueException(createDefaultArgumentDefinition(source),value);
             } else {
                 Constructor ctor = type.getConstructor(String.class);
                 return ctor.newInstance(value);

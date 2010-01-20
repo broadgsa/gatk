@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.cmdLine;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.JVMUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 import org.apache.log4j.Logger;
@@ -397,6 +398,8 @@ class MissingArgumentValueException extends ArgumentException {
                 sb.append( String.format("%nValue for argument with name '--%s' (-%s) is missing.", missingArgument.fullName, missingArgument.shortName) );
             else
                 sb.append( String.format("%nValue for argument with name '--%s' is missing.", missingArgument.fullName) );
+            if(missingArgument.validOptions != null)
+                sb.append( String.format("  Valid options are (%s).", Utils.join(",",missingArgument.validOptions)));
         }
         return sb.toString();
     }
@@ -494,11 +497,11 @@ class ArgumentsAreMutuallyExclusiveException extends ArgumentException {
  * An exception for when an argument doesn't match an of the enumerated options for that var type
  */
 class UnknownEnumeratedValueException extends ArgumentException {
-    public UnknownEnumeratedValueException(String argumentPassed, String typeName ) {
-        super( formatArguments(argumentPassed, typeName) );
+    public UnknownEnumeratedValueException(ArgumentDefinition definition, String argumentPassed) {
+        super( formatArguments(definition,argumentPassed) );
     }
 
-    private static String formatArguments(String argumentPassed, String typeName  ) {
-        return new String("Enumerated constant " + argumentPassed + " Not found in type " + typeName);
+    private static String formatArguments(ArgumentDefinition definition, String argumentPassed) {
+        return String.format("Invalid value %s specified for argument %s; valid options are (%s).", argumentPassed, definition.fullName, Utils.join(",",definition.validOptions));
     }
 }

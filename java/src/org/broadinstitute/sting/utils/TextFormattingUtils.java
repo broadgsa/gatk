@@ -34,7 +34,7 @@ public class TextFormattingUtils {
      * @return A list of word-wrapped lines.
      */
     public static List<String> wordWrap( String text, int width ) {
-        Pattern wrapper = Pattern.compile( String.format(".{0,%d}(?:\\S(?: |$)|$)", width-1) );
+        Pattern wrapper = Pattern.compile( String.format(".{0,%d}(?:\\S(?:[\\s|]|$)|$)", width-1) );
         Matcher matcher = wrapper.matcher( text );
 
         List<String> wrapped = new ArrayList<String>();
