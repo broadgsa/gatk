@@ -4,6 +4,7 @@
   <executable>
     <name>QualityScoresRecalibration</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <properties>StingText.properties</properties>
     <dependencies>
       <!-- Quality scores recalibration -->
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>

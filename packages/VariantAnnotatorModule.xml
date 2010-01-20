@@ -4,6 +4,7 @@
   <executable>
     <name>VariantAnnotator</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <properties>StingText.properties</properties>
     <dependencies>
       <!-- Variant annotator -->
       <class>org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator</class>

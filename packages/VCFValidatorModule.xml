@@ -4,6 +4,7 @@
   <executable>
     <name>VCFValidator</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <properties>StingText.properties</properties>
     <dependencies>
       <!-- VCF validator -->
       <class>org.broadinstitute.sting.gatk.walkers.qc.VCFValidator</class>

@@ -4,6 +4,7 @@
   <executable>
     <name>AnalyzeCovariates</name>
     <main-class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</main-class>
+    <properties>StingText.properties</properties>
     <dependencies>
       <!-- Recalibration analysis script -->
       <class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</class>

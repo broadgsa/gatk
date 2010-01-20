@@ -4,6 +4,7 @@
   <executable>
     <name>LocalRealignmentAroundIndels</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <properties>StingText.properties</properties>
     <dependencies>
       <!-- Local realignment around indels -->
       <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>

@@ -4,6 +4,7 @@
   <executable>
     <name>FindContaminatingReadGroups</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+    <properties>StingText.properties</properties>
     <dependencies>
       <class>org.broadinstitute.sting.playground.gatk.walkers.contamination.FindContaminatingReadGroupsWalker</class>
     </dependencies>
