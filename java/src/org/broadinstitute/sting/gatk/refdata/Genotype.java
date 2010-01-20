@@ -11,6 +11,10 @@ import java.util.*;
  */
 public class Genotype {
 
+    public enum StandardAttributes {
+        DELETION_LENGTH, INVERSION_LENGTH
+    }
+
     private List<Allele> alleles;
 
     private double negLog10PError;

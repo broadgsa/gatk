@@ -17,7 +17,7 @@ public class Allele {
 
     // the types of variants we currently allow
     public enum AlleleType {
-        REFERENCE, SNP, INSERTION, DELETION, INVERSION
+        REFERENCE, SNP, INSERTION, DELETION, INVERSION, UNKNOWN_POINT_ALLELE
     }
 
     public Allele(AlleleType type, String bases) {
@@ -26,7 +26,7 @@ public class Allele {
             throw new IllegalArgumentException("Constructor: the Allele base string cannot be null");
         if ( type == AlleleType.DELETION && bases.length() > 0 )
             throw new IllegalArgumentException("Constructor: deletions cannot have observed bases");
-        if ( (type == AlleleType.REFERENCE || type == AlleleType.SNP) && bases.length() > 1 )
+        if ( (type == AlleleType.REFERENCE || type == AlleleType.SNP || type == AlleleType.UNKNOWN_POINT_ALLELE) && bases.length() > 1 )
             throw new IllegalArgumentException("Constructor: point alleles cannot have more than one observed base");
         this.bases = bases.toUpperCase();
     }

@@ -157,6 +157,10 @@ class SequenomVariantInfo implements Comparable {
     private ArrayList<Genotype> genotypes;
     private ArrayList<String> sampleNames;
 
+    private ArrayList<Allele> deletionHolder = new ArrayList<Allele>();
+    private ArrayList<String> sampleHolder = new ArrayList<String>();
+    private int siteDeletionLength = -1;
+
     public GenomeLoc getLocation() {
         return loc;
     }
@@ -188,14 +192,103 @@ class SequenomVariantInfo implements Comparable {
 
     public void addGenotypeEntry(String genotypeString, String sampleName) {
         String[] alleleStrs = genotypeString.split(" ");
-        ArrayList<Allele> alleles = new ArrayList<Allele>(2); // most, if not all, will be bi-allelic
-        for ( String alStr : alleleStrs ) {
-            Allele.AlleleType type = alStr.indexOf("-") > -1 ? Allele.AlleleType.DELETION : alStr.length() > 1 ? Allele.AlleleType.INSERTION : Allele.AlleleType.SNP;
-            alleles.add(new Allele(type,alStr));
+        // identify if we're dealing with a deletion
+        if ( genotypeString.contains("-") ) {
+            this.addDeletion(alleleStrs, sampleName);
+        } else {
+            // simple SNP or indel (easier to handle)
+            this.addIndelOrSNP(alleleStrs,sampleName);
         }
+    }
 
-        this.genotypes.add( new Genotype(alleles, sampleName, 20.0));
+    private void addIndelOrSNP(String[] alleleStrings, String sampleName) {
+        ArrayList<Allele> alleles = new ArrayList<Allele>(2);
+
+        if ( alleleStrings[0].length() > 1 || alleleStrings[1].length() > 1 ) {
+            // insertion
+            for ( String alStr : alleleStrings ) {
+                if ( alStr.length() > 1 ) {
+                    alleles.add(new Allele(Allele.AlleleType.INSERTION,alStr));
+                } else {
+                    alleles.add(new Allele(Allele.AlleleType.REFERENCE, alStr));
+                }
+            }
+        } else {
+            // SNP
+            for ( String alStr : alleleStrings ) {
+                alleles.add(new Allele(Allele.AlleleType.UNKNOWN_POINT_ALLELE,alStr));
+            }
+        }
+    }
+
+    private void addDeletion(String[] alleleStrings, String sampleName) {
+        String alleleStr1 = alleleStrings[0];
+        String alleleStr2 = alleleStrings[1];
+        Allele allele1 = null;
+        Allele allele2 = null;
+
+        if ( alleleStr1.contains("-") && alleleStr2.contains("-") ) {
+            // homozygous deletion
+            this.addHomDeletion(allele1,allele2, sampleName);
+        } else {
+            // heterozygous deletion
+            if ( alleleStr1.contains("-") ) {
+                this.addHetDeletion(allele1,allele2, alleleStr1, alleleStr2, sampleName);
+            } else {
+                this.addHetDeletion(allele2,allele1, alleleStr2, alleleStr1, sampleName); // note the order change
+            }
+        }
+    }
+
+    private void addHetDeletion(Allele del, Allele ref, String delStr, String refStr, String sampleName) {
+        del = new Allele(Allele.AlleleType.DELETION,"");
+        ref = new Allele(Allele.AlleleType.REFERENCE,refStr.substring(0,1));
+        this.setDeletionLength(del,refStr.length());
+        if ( ! deletionHolder.isEmpty() ) {
+            siteDeletionLength = refStr.length();
+            this.addHeldDeletions();
+        }
+        Genotype indel = new Genotype(Arrays.asList(ref,del), sampleName, 20.0);
+        this.setIndelGenotypeLength(indel,siteDeletionLength);
+        this.genotypes.add(indel);
         this.sampleNames.add(sampleName);
+    }
+
+    private void addHomDeletion(Allele allele1, Allele allele2, String sampleName) {
+        allele1 = new Allele(Allele.AlleleType.DELETION,"");
+        allele2 = new Allele(Allele.AlleleType.DELETION,"");
+        if ( siteDeletionLength != -1 ) {
+            this.setDeletionLength(allele1,siteDeletionLength);
+            this.setDeletionLength(allele2,siteDeletionLength);
+            Genotype indel = new Genotype(Arrays.asList(allele1,allele2), sampleName, 20.0);
+            this.setIndelGenotypeLength(indel, siteDeletionLength);
+            this.genotypes.add(indel);
+            this.sampleNames.add(sampleName);
+        } else {
+            deletionHolder.add(allele1);
+            deletionHolder.add(allele2);
+            sampleHolder.add(sampleName);
+        }
+    }
+
+    private void setIndelGenotypeLength(Genotype g, int length) {
+        g.setAttribute(Genotype.StandardAttributes.DELETION_LENGTH,length);
+    }
+
+    private void addHeldDeletions() {
+        Allele del1;
+        Allele del2;
+        int startingSize = deletionHolder.size();
+        for ( int i = 0; i < startingSize ; i+=2 ) {
+            del1 = deletionHolder.get(i);
+            del2 = deletionHolder.get(i+1);
+            this.addHomDeletion(del1,del2,sampleHolder.get(i/2));
+            if ( deletionHolder.size() != startingSize ) {
+                throw new StingException("Halting algorithm -- possible infinite loop");
+            }
+        }
+        deletionHolder.clear();
+        sampleHolder.clear();
     }
 
     public int compareTo(Object obj) {
@@ -204,5 +297,11 @@ class SequenomVariantInfo implements Comparable {
         }
 
         return loc.compareTo(((SequenomVariantInfo) obj).getLocation());
+    }
+
+    private void setDeletionLength(Allele al, int length) {
+        // Todo -- once alleles support deletion lengths add that information
+        // Todo -- into the object; for now this can just return
+        return;
     }
 }

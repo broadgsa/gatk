@@ -40,6 +40,8 @@ public class ProportionOfNonrefBasesSupportingSNP implements VariantAnnotation {
                 totalNonref_totalSNP = getNonrefAndSNP(pileup, ref.getBase(), var.getAlternativeBaseForSNP(), totalNonref_totalSNP);
 
             }
+            if ( totalNonref_totalSNP.equals(new Pair<Integer,Integer>(0,0)) )
+                return null;
             double p = getProportionOfNonrefBasesThatAreSNP(totalNonref_totalSNP);
             return String.format("%f", p );
         }

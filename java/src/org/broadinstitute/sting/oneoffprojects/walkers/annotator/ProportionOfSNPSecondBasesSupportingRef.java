@@ -39,6 +39,8 @@ public class ProportionOfSNPSecondBasesSupportingRef implements VariantAnnotatio
                 totalAndSNPSupporting = getTotalSNPandRefSupporting(pileup, ref.getBase(), var.getAlternativeBaseForSNP(), totalAndSNPSupporting);
 
             }
+            if ( totalAndSNPSupporting.equals(new Pair<Integer,Integer>(0,0)) )
+                return null;
             double p = getProportionOfSNPSecondaryBasesSupportingRef(totalAndSNPSupporting);
             return String.format("%f", p );
         }
