@@ -37,14 +37,16 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 
 import java.util.*;
 
-/**
- * Iterator that traverses a SAM File, accumulating information on a per-locus basis
- */
+/** Iterator that traverses a SAM File, accumulating information on a per-locus basis */
 public class LocusIteratorByState extends LocusIterator {
 
     /**
-     * our log, which we want to capture anything from this class
+     * the overflow tracker, which makes sure we get a limited number of warnings for locus pile-ups that
+     * exceed the max depth
      */
+    private LocusOverflowTracker overflowTracker;
+
+    /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -77,16 +79,16 @@ public class LocusIteratorByState extends LocusIterator {
         // events immediately preceding the current reference base).
 
         boolean generateExtendedEvents = true; // should we generate an additional,  special pile for indels between the ref bases?
-                                               // the only purpose of this flag is to shield away a few additional lines of code
-                                               // when extended piles are not needed, it may not be even worth it...
+        // the only purpose of this flag is to shield away a few additional lines of code
+        // when extended piles are not needed, it may not be even worth it...
         byte[] insertedBases = null; // remember full inserted sequence if we are generating piles of extended events (indels)
         int eventLength = -1; // will be set to the length of insertion/deletion if we are generating piles of extended events
         byte eventDelayedFlag = 0; // will be set to non-0 if there was an event (indel) right before the
-                                   // current base on the ref. We use a counter-like variable here since clearing the indel event is
-                                   // delayed by one base, so we need to remember how long ago we have seen the actual event
+        // current base on the ref. We use a counter-like variable here since clearing the indel event is
+        // delayed by one base, so we need to remember how long ago we have seen the actual event
         int eventStart = -1; // where on the read the extended event starts (i.e. the last position on the read prior to the
-                             // event, or -1 if alignment starts with an insertion); this one is easy to recompute on the fly,
-                             // we cache it here mainly for convenience
+        // event, or -1 if alignment starts with an insertion); this one is easy to recompute on the fly,
+        // we cache it here mainly for convenience
 
 
         public SAMRecordState(SAMRecord read, boolean extended) {
@@ -257,6 +259,7 @@ public class LocusIteratorByState extends LocusIterator {
     public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation) {
         this.it = new PushbackIterator<SAMRecord>(samIterator);
         this.readInfo = readInformation;
+        overflowTracker = new LocusOverflowTracker(readInformation.getMaxReadsAtLocus());
     }
 
     public Iterator<AlignmentContext> iterator() {
@@ -270,6 +273,9 @@ public class LocusIteratorByState extends LocusIterator {
     public boolean hasNext() {
         boolean r = ! readStates.isEmpty() || it.hasNext();
         //if ( DEBUG ) System.out.printf("hasNext() = %b%n", r);
+
+        // if we don't have a next record, make sure we clean the warning queue
+        if (!r) overflowTracker.cleanWarningQueue();
         return r;
     }
 
@@ -437,39 +443,30 @@ public class LocusIteratorByState extends LocusIterator {
 //        }
 //    }
 
-    private void collectPendingReads(final int maximumPileupSize) {
+    private void collectPendingReads(int maxReads) {
         //if (DEBUG) {
         //    logger.debug(String.format("entering collectPendingReads..., hasNext=%b", it.hasNext()));
         //    printState();
         //}
 
-        Boolean warned = false;             // warn them once per locus
         int curSize = readStates.size();    // simple performance improvement -- avoids unnecessary size() operation
         while (it.hasNext()) {
             SAMRecord read = it.next();
-
-//            if (DEBUG) logger.debug(String.format("Considering read %s: %s vs. %s",
-//                    read.getReadName(), getLocation(), GenomeLocParser.createGenomeLoc(read)));
-
-            if ( readIsPastCurrentPosition(read) ) {
-                // We've collected up enough reads
+            if (readIsPastCurrentPosition(read)) {
+                // We've collected up all the reads that span this region
                 it.pushback(read);
                 break;
             } else {
-                if ( curSize >= maximumPileupSize ) {
-                    if (!warned) {
-                        warned = true;
-                        Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maximumPileupSize + " at location " + getLocation());
-                    }
-                } else {
+                if (curSize < maxReads) {
                     SAMRecordState state = new SAMRecordState(read, readInfo.generateExtendedEvents());
                     state.stepForwardOnGenome();
                     readStates.add(state);
                     curSize++;
-                    if ( state.hadIndel() ) hasExtendedEvents = true;
+                    if (state.hadIndel()) hasExtendedEvents = true;
                     //if (DEBUG) logger.debug(String.format("  ... added read %s", read.getReadName()));
                 }
             }
+            overflowTracker.exceeded(read, curSize);
         }
     }
 
@@ -512,5 +509,100 @@ public class LocusIteratorByState extends LocusIterator {
 
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
+    }
+
+    /**
+     * a method for setting the overflow tracker, for dependency injection
+     * @param tracker
+     */
+    protected void setLocusOverflowTracker(LocusOverflowTracker tracker) {
+        this.overflowTracker = tracker;
+    }
+
+    /**
+     * a method for getting the overflow tracker, for testing
+     * @return
+     */
+    protected LocusOverflowTracker getLocusOverflowTracker() {
+        return this.overflowTracker;
+    }
+}
+
+/**
+ * a helper class that organizes the output of warning messages from read pile-ups that
+ * are greater than the max pile-up size.  We only want a single warning from each non-contigous
+ * interval, up until the maximum warning limit.
+ */
+class LocusOverflowTracker {
+    // the last location we found a warning at
+    protected GenomeLoc lastLocation = null;
+
+    // the maximum warning count, and the number of warnings emitted
+    protected static int warningsEmitted = 0;
+    public static final int MAX_WARNINGS = 100;
+
+    // our maximum pileup size
+    protected final int maxPileupSize;
+
+    // do we have a pending warning?
+    protected boolean warningInQueue = false;
+
+    /**
+     * create a LocusOverflowTracker
+     *
+     * @param maxPileup the maximum allowed pile-up size
+     */
+    public LocusOverflowTracker(int maxPileup) {
+        warningInQueue = false;
+        maxPileupSize = maxPileup;
+    }
+
+    /**
+     * have we exceeded the maximum pile-up size?
+     *
+     * @param read       the current read, we use this to get the GenomeLoc only if needed (for efficiency)
+     * @param pileupSize the pile-up size
+     *
+     * @return return true if we're greater, false if we're not
+     */
+    public boolean exceeded(SAMRecord read, int pileupSize) {
+        boolean exceeded = pileupSize >= maxPileupSize;
+        if (exceeded) {
+            warningInQueue = true;
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
+            if (lastLocation == null) lastLocation = loc;
+            else if (lastLocation.contiguousP(loc))
+                lastLocation = lastLocation.merge(loc);
+            else {
+                warnUser();
+                lastLocation = loc;
+            }
+        } else if (warningInQueue) {
+            lastLocation = null;
+            warnUser();
+        }
+        return exceeded;
+    }
+
+    /**
+     * clean up the warning queue, making sure we haven't stored a warning
+     * that hasn't been emitted yet.
+     */
+    public void cleanWarningQueue() {
+        if (warningInQueue) warnUser();
+    }
+
+    /** warn the user, checking to make sure we haven't exceeded the maximum warning level. */
+    protected void warnUser() {
+        if (!warningInQueue) throw new IllegalStateException("Without a warning in the queue, we shouldn't see a call to warnUser()"); 
+        warningInQueue = false;
+        if (warningsEmitted < MAX_WARNINGS) {
+            warningsEmitted++;
+            Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maxPileupSize + " at location " + lastLocation);
+        } else if (warningsEmitted == MAX_WARNINGS) {
+            warningsEmitted++;
+            Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maxPileupSize + " at location " + lastLocation +
+                    "; the maximum warning count has been reached, we will no longer emit warnings of this nature!!");
+        }        
     }
 }

@@ -32,7 +32,7 @@ public class Reads {
     private Integer downsampleToCoverage = null;
     private ValidationExclusion exclusionList = null;
     private Collection<SamRecordFilter> supplementalFilters = null;
-    private int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
+    protected int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
     private boolean includeReadsWithDeletionAtLoci = false;
     private boolean generateExtendedEvents = false; // do we want to generate additional piles of "extended" events (indels)
 // immediately after the reference base such event is associated with?
