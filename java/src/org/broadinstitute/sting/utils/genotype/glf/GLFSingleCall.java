@@ -37,7 +37,7 @@ import net.sf.samtools.util.BinaryCodec;
  */
 public class GLFSingleCall extends GLFRecord {
 
-    // our likelihoods object
+    // our likelihoods array
     private double likelihoods[];
 
     /**
@@ -64,9 +64,12 @@ public class GLFSingleCall extends GLFRecord {
     void write(BinaryCodec out, GLFRecord lastRec) {
         super.write(out, lastRec);
         short[] adjusted = new short[likelihoods.length];
+        // find the minimum likelihood as a double
+        double minLikelihood = GLFRecord.findMin(likelihoods);
+        
         // we want to scale our values
         for (int x = 0; x < likelihoods.length; x++) {
-            adjusted[x] = GLFRecord.toCappedShort(LIKELIHOOD_SCALE_FACTOR * (Math.round(likelihoods[x]) - this.minimumLikelihood));
+            adjusted[x] = GLFRecord.toCappedShort(Math.round(LIKELIHOOD_SCALE_FACTOR * (likelihoods[x] - minLikelihood)));
         }
         try {
             for (short value : adjusted) {

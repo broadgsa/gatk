@@ -172,13 +172,12 @@ public abstract class GLFRecord {
      *
      * @param chromosome        the reference contig, as a String
      * @param base              the reference base in the reference, as a REF_BASE
-     * @param offset            the offset from the last call
      * @param position          the distance from the beginning of the reference seq
      * @param minimumLikelihood it's minimum likelihood
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    private void validateInput(String chromosome, REF_BASE base, long position, short minimumLikelihood, int readDepth, short rmsMapQ) {
+    private void validateInput(String chromosome, REF_BASE base, long position, double minimumLikelihood, int readDepth, short rmsMapQ) {
         // add any validation to the contig string here
         this.contig = chromosome;
 
@@ -189,11 +188,10 @@ public abstract class GLFRecord {
         }
         this.position = position;
 
-
         if (minimumLikelihood > 255 || minimumLikelihood < 0) {
             throw new IllegalArgumentException("minimumLikelihood is out of bounds (0 to 0xffffffff) value passed = " + minimumLikelihood);
         }
-        this.minimumLikelihood = minimumLikelihood;
+        this.minimumLikelihood = GLFRecord.toCappedShort(minimumLikelihood);
 
         if (readDepth > 16777215 || readDepth < 0) {
             throw new IllegalArgumentException("readDepth is out of bounds (0 to 0xffffff) value passed = " + readDepth);
@@ -259,14 +257,14 @@ public abstract class GLFRecord {
      *
      * @return
      */
-    protected static short findMin(double vals[]) {
+    protected static double findMin(double vals[]) {
         if (vals.length < 1) throw new StingException("findMin: an array of size < 1 was passed in");
 
         double min = vals[0];
         for (double d : vals)
             if (d < min) min = d;
 
-        return GLFRecord.toCappedShort(min);
+        return min;
     }
 
     public REF_BASE getRefBase() {
