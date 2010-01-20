@@ -27,7 +27,7 @@ import java.util.Enumeration;
  * <p/>
  * <p/>
  * This class is our implementation of the command line parser, similar to Pickard's.  We instead
- * support GNU style command line arguements, and use this class to setup the global parser.
+ * support GNU style command line arguments, and use this class to setup the global parser.
  */
 public abstract class CommandLineProgram {
 

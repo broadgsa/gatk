@@ -278,7 +278,12 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     catch (NoSuchFieldException e) { throw new StingException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
                 }
                 // if their argument has no value (null), and there's a default, return that default for the enum value
-                if (defaultEnumeration != null && value == null) return defaultEnumeration;
+                if (defaultEnumeration != null && value == null)
+                    return defaultEnumeration;
+                // if their argument has no value and there's no default, throw a missing argument value exception.
+                // TODO: Clean this up so that null values never make it to this point.  To fix this, we'll have to clean up the implementation of -U.
+                if (value == null)
+                    throw new MissingArgumentValueException(Collections.singleton(createDefaultArgumentDefinition(source)));
                 throw new UnknownEnumeratedValueException(value, type.getName());
             } else {
                 Constructor ctor = type.getConstructor(String.class);
