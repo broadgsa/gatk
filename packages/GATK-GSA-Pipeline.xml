@@ -1,25 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- NOTE: Uses playground.
      ant clean playground package -Dexecutable=GATK-GSA-Pipeline -->
-<package>
-  <name>GATK-GSA-Pipeline</name>
+<package name="GATK-GSA-Pipeline">
   <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
-  <executable>
-    <name>GATK-GSA-Pipeline</name>
-    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    <resource-bundle>StingText.properties</resource-bundle>
+  <executable name="GATK-GSA-Pipeline">
+    <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
+    <resource-bundle file="StingText.properties" />
     <modules>
-      <module>QualityScoresRecalibration.xml</module>
-      <module>LocalRealignmentAroundIndels.xml</module>
-      <module>UnifiedGenotyper.xml</module>
-      <module>VariantFiltration.xml</module>
-      <module>VariantAnnotator.xml</module>
-      <module>VariantEval.xml</module>
-      <module>FindContaminatingReadGroups.xml</module>
+      <module name="QualityScoresRecalibration.xml" />
+      <module name="LocalRealignmentAroundIndels.xml" />
+      <module name="UnifiedGenotyper.xml" />
+      <module name="VariantFiltration.xml" />
+      <module name="VariantAnnotator.xml" />
+      <module name="VariantEval.xml" />
+      <module name="FindContaminatingReadGroups.xml" />
     </modules>
     <dependencies>
       <!-- Filters -->
-      <package>org.broadinstitute.sting.gatk.filters</package>
+      <package name="org.broadinstitute.sting.gatk.filters" />
     </dependencies>
   </executable>
 </package>

@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>VariantFiltration</name>
-  <executable>
-    <name>VariantFiltration</name>
-    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    <properties>StingText.properties</properties>
+<package name="VariantFiltration">
+  <executable name="VariantFiltration">
+    <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
+    <resource-bundle file="StingText.properties" />
     <dependencies>
       <!-- Variant filtration -->
-      <class>org.broadinstitute.sting.gatk.walkers.filters.VariantFiltrationWalker</class>
+      <class name="org.broadinstitute.sting.gatk.walkers.filters.VariantFiltrationWalker" />
     </dependencies>
   </executable>
 </package>

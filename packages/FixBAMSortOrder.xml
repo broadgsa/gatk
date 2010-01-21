@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>FixBAMSortOrder</name>
-  <executable>
-    <name>GenomeAnalysisTK</name>
-    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+<package name="FixBAMSortOrder">
+  <executable name="FixBAMSortOrder">
+    <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
+    <resource-bundle file="StingText.properties" />
     <dependencies>
-      <!-- Text extracted from the javadocs -->
-      <properties>StingText.properties</properties>
       <!-- The walker -->
-      <class>org.broadinstitute.sting.gatk.walkers.FixBAMSortOrderTag</class>
+      <class name="org.broadinstitute.sting.gatk.walkers.FixBAMSortOrderTag" />
     </dependencies>
   </executable>
 </package>

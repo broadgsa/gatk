@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>Aligner</name>
-  <executable>
-    <name>Aligner</name>
+<package name="Aligner">
+  <executable name="Aligner">
     <dependencies>
       <!-- BWA/C aligner implementation -->
-      <class>org.broadinstitute.sting.alignment.bwa.c.BWACAligner</class>
+      <class name="org.broadinstitute.sting.alignment.bwa.c.BWACAligner" />
     </dependencies>
   </executable>
 </package>

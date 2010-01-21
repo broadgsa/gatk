@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>VCFValidator</name>
-  <executable>
-    <name>VCFValidator</name>
-    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    <properties>StingText.properties</properties>
+<package name="VCFValidator">
+  <executable name="VCFValidator">
+    <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
+    <resource-bundle file="StingText.properties" />
     <dependencies>
       <!-- VCF validator -->
-      <class>org.broadinstitute.sting.gatk.walkers.qc.VCFValidator</class>
+      <class name="org.broadinstitute.sting.gatk.walkers.qc.VCFValidator" />
     </dependencies>
   </executable>
 </package>

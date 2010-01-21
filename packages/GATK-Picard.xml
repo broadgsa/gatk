@@ -2,55 +2,53 @@
         <!-- In order to update this file, copy GenomeAnalysisTK.xml, change the name of the
         package and executable to GATK-Picard, and add TileCovariate to the list of dependencies.
         Remove the AnalyzeCovariates executable. -->
-<package>
-  <name>GATK-Picard</name>
+<package name="GATK-Picard">
   <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
-  <executable>
-    <name>GATK-Picard</name>
-    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    <resource-bundle>StingText.properties</resource-bundle>
+  <executable name="GATK-Picard">
+    <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
+    <resource-bundle file="StingText.properties" />
     <modules>
-      <module>QualityScoresRecalibration.xml</module>
-      <module>LocalRealignmentAroundIndels.xml</module>
-      <module>UnifiedGenotyper.xml</module>
-      <module>VariantFiltration.xml</module>
-      <module>VariantAnnotator.xml</module>
+      <module name="QualityScoresRecalibration.xml" />
+      <module name="LocalRealignmentAroundIndels.xml" />
+      <module name="UnifiedGenotyper.xml" />
+      <module name="VariantFiltration.xml" />
+      <module name="VariantAnnotator.xml" />
     </modules>
     <dependencies>
       <!-- Filters -->
-      <package>org.broadinstitute.sting.gatk.filters</package>
-      <class>org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker</class>
-      <class>org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker</class>
+      <package name="org.broadinstitute.sting.gatk.filters" />
+      <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.PileupWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.PrintReadsWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker" />
       <!-- Recalibration Covariates -->
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PositionCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.MinimumNQSCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.MappingQualityCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.PrimerRoundCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.HomopolymerCovariate</class>
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.PositionCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.MinimumNQSCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.MappingQualityCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.PrimerRoundCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.HomopolymerCovariate" />
     </dependencies>
   </executable>
   <resources>
     <!-- GATK sample code and build scripts -->
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLociWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReadsWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileupWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/examples/build.xml</file>
+    <file name="java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java" />
+    <file name="java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java" />
+    <file name="java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java" />
+    <file name="java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLociWalker.java" />
+    <file name="java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReadsWalker.java" />
+    <file name="java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileupWalker.java" />
+    <file name="java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java" />
+    <file name="java/src/org/broadinstitute/sting/gatk/examples/build.xml" />
     <!-- Sample reads and reference files -->
-    <file>testdata/exampleBAM.bam</file>
-    <file>testdata/exampleBAM.bam.bai</file>
-    <file>testdata/exampleFASTA.fasta</file>
-    <file>testdata/exampleFASTA.fasta.fai</file>
-    <file>testdata/exampleFASTA.dict</file>
+    <file name="testdata/exampleBAM.bam" />
+    <file name="testdata/exampleBAM.bam.bai" />
+    <file name="testdata/exampleFASTA.fasta" />
+    <file name="testdata/exampleFASTA.fasta.fai" />
+    <file name="testdata/exampleFASTA.dict" />
     <!-- Supplemental scripts for graph generation, etc. -->
-    <file>R/plot_residualError_OtherCovariate.R</file>
-    <file>R/plot_residualError_QualityScoreCovariate.R</file>
+    <file name="R/plot_residualError_OtherCovariate.R" />
+    <file name="R/plot_residualError_QualityScoreCovariate.R" />
   </resources>
 </package>

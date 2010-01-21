@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>UnifiedGenotyper</name>
-  <executable>
-    <name>UnifiedGenotyper</name>
-    <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    <properties>StingText.properties</properties>
+<package name="UnifiedGenotyper">
+  <executable name="UnifiedGenotyper">
+    <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
+    <resource-bundle file="StingText.properties" />
     <dependencies>
       <!-- Unified genotyper -->
-      <class>org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper</class>
+      <class name="org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper" />
     </dependencies>
   </executable>
 </package>

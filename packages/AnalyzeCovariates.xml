@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>AnalyzeCovariates</name>
-  <executable>
-    <name>AnalyzeCovariates</name>
-    <main-class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</main-class>
-    <properties>StingText.properties</properties>
+<package name="AnalyzeCovariates">
+  <executable name="AnalyzeCovariates">
+    <main-class name="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
+    <resource-bundle file="StingText.properties" />
     <dependencies>
       <!-- Recalibration analysis script -->
-      <class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
+      <class name="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
+      <class name=">org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate" />
+      <class name=">org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate" />
+      <class name=">org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate" />
+      <class name=">org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate" />
+      <class name=">org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate" />
     </dependencies>
   </executable>
 </package>
