@@ -448,7 +448,7 @@ public class LocusIteratorByState extends LocusIterator {
         //    logger.debug(String.format("entering collectPendingReads..., hasNext=%b", it.hasNext()));
         //    printState();
         //}
-
+        GenomeLoc location = null;
         int curSize = readStates.size();    // simple performance improvement -- avoids unnecessary size() operation
         while (it.hasNext()) {
             SAMRecord read = it.next();
@@ -464,10 +464,13 @@ public class LocusIteratorByState extends LocusIterator {
                     curSize++;
                     if (state.hadIndel()) hasExtendedEvents = true;
                     //if (DEBUG) logger.debug(String.format("  ... added read %s", read.getReadName()));
+                } else if (location == null) {
+                    location = GenomeLocParser.createGenomeLoc(read);
                 }
+
             }
-            overflowTracker.exceeded(read, curSize);
         }
+        if (location != null) overflowTracker.exceeded(location, curSize);
     }
 
     // fast testing of position
@@ -560,16 +563,15 @@ class LocusOverflowTracker {
     /**
      * have we exceeded the maximum pile-up size?
      *
-     * @param read       the current read, we use this to get the GenomeLoc only if needed (for efficiency)
+     * @param loc        the current location
      * @param pileupSize the pile-up size
      *
      * @return return true if we're greater, false if we're not
      */
-    public boolean exceeded(SAMRecord read, int pileupSize) {
+    public boolean exceeded(GenomeLoc loc, int pileupSize) {
         boolean exceeded = pileupSize >= maxPileupSize;
-        if (exceeded) {
+        if (exceeded && warningsEmitted <= MAX_WARNINGS) {
             warningInQueue = true;
-            GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
             if (lastLocation == null) lastLocation = loc;
             else if (lastLocation.contiguousP(loc))
                 lastLocation = lastLocation.merge(loc);
@@ -598,10 +600,10 @@ class LocusOverflowTracker {
         warningInQueue = false;
         if (warningsEmitted < MAX_WARNINGS) {
             warningsEmitted++;
-            Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maxPileupSize + " at location " + lastLocation);
+            Utils.warnUser("Unable to add a reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation);
         } else if (warningsEmitted == MAX_WARNINGS) {
             warningsEmitted++;
-            Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maxPileupSize + " at location " + lastLocation +
+            Utils.warnUser("Unable to add a reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation +
                     "; the maximum warning count has been reached, we will no longer emit warnings of this nature!!");
         }        
     }
