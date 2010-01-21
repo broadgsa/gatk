@@ -5,14 +5,14 @@
     <resource-bundle file="StingText.properties" />
     <dependencies>
       <!-- Quality scores recalibration -->
-      <class file="org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker" />
-      <class file=">org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker" />
       <!-- Recalibration Covariates -->
-      <class file=">org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate" />
-      <class file=">org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate" />
-      <class file=">org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate" />
-      <class file=">org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate" />
-      <class file=">org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate" />
+      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate" />
     </dependencies>
   </executable>
 </package>

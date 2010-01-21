@@ -8,11 +8,11 @@
     <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
     <resource-bundle file="StingText.properties" />
     <modules>
-      <module name="QualityScoresRecalibration.xml" />
-      <module name="LocalRealignmentAroundIndels.xml" />
-      <module name="UnifiedGenotyper.xml" />
-      <module name="VariantFiltration.xml" />
-      <module name="VariantAnnotator.xml" />
+      <module file="QualityScoresRecalibration.xml" />
+      <module file="LocalRealignmentAroundIndels.xml" />
+      <module file="UnifiedGenotyper.xml" />
+      <module file="VariantFiltration.xml" />
+      <module file="VariantAnnotator.xml" />
     </modules>
     <dependencies>
       <!-- Filters -->
