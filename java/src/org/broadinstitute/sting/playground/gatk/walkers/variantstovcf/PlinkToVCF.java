@@ -40,6 +40,7 @@ public class PlinkToVCF extends RefWalker<VCFRecord,Integer> {
     @Argument(fullName="maxHomNonref", doc="Maximum homozygous-nonreference rate (as a proportion) to consider an assay valid", required = false)
     public double maxHomNonref = 1.1;
 
+    private final Set<String> HEADER_FIELDS = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex","Paternal ID","Maternal ID","Phenotype"));
     private final int INIT_NUMBER_OF_POPULATIONS = 10;
     private final int DEFAULT_QUALITY = 20;
     private HashMap<String, SequenomVariantInfo> sequenomResults = new HashMap<String,SequenomVariantInfo>();
@@ -268,7 +269,8 @@ public class PlinkToVCF extends RefWalker<VCFRecord,Integer> {
         String[] fields = header.split("\t");
         int fieldOffset = 0;
         for ( String entry : fields ) {
-            if ( fieldOffset > 5 ) {
+            if ( ! HEADER_FIELDS.contains(entry) ) {
+                //System.out.println(entry);
                 // actually a SNP
                 String snpName = entry.split("\\|")[1];
                 //System.out.println("Entry: "+entry+" Name: "+snpName);
@@ -294,7 +296,7 @@ public class PlinkToVCF extends RefWalker<VCFRecord,Integer> {
         }
         sampleNames.add(entries[1]);
         for ( String entry : entries ) {
-            if ( offset > 5 ) { // actual SNP
+            if ( variants.containsKey(offset) ) { // actual SNP
                 variants.get(offset).addGenotype(entry);
                 //System.out.println("Added: "+entry+"To "+offset);
             }
