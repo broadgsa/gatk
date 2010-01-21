@@ -43,8 +43,5 @@
     <file name="testdata/exampleFASTA.fasta" />
     <file name="testdata/exampleFASTA.fasta.fai" />
     <file name="testdata/exampleFASTA.dict" />
-    <!-- Supplemental scripts for graph generation, etc. -->
-    <file name="R/plot_residualError_OtherCovariate.R" />
-    <file name="R/plot_residualError_QualityScoreCovariate.R" />
   </resources>
 </package>

@@ -40,21 +40,10 @@
 	<xsl:apply-templates select="document(@file)/package/executable" />
       </xsl:for-each>
 
-      <!-- Include various script files -->
-      <xsl:for-each select="scripts/file">
-        <xsl:call-template name="symlink">
-          <xsl:with-param name="file.name" select="@name" />
-          <xsl:with-param name="target.dir" select="$package.dir" />
-        </xsl:call-template>
-      </xsl:for-each>
-
-      <!-- Include various resource files -->
-      <xsl:for-each select="resources/file">
-        <mkdir dir="{$resources.dir}"/>
-        <xsl:call-template name="symlink">
-          <xsl:with-param name="file.name" select="@name" />
-          <xsl:with-param name="target.dir" select="$resources.dir" />
-        </xsl:call-template>
+      <!-- Include various resource files explicitly specified in this file and in all other modules -->
+      <xsl:apply-templates select="resources" />
+      <xsl:for-each select="//modules/module">
+	<xsl:apply-templates select="document(@file)/package/resources" />
       </xsl:for-each>
 
       <!-- Bundle the package into a single zip file -->
@@ -113,6 +102,17 @@
       <attribute name="Main-Class" value="{main-class/@name}"/>
     </manifest>
   </jar>
+</xsl:template>
+
+<!-- Transform a resource file into a symlink operation -->
+<xsl:template match="resources">
+  <xsl:for-each select="file">
+    <mkdir dir="{$resources.dir}"/>
+    <xsl:call-template name="symlink">
+      <xsl:with-param name="file.name" select="@name" />
+      <xsl:with-param name="target.dir" select="$resources.dir" />
+    </xsl:call-template>
+  </xsl:for-each>
 </xsl:template>
 
 <!-- Transform a dependency list into a fileset for embedding in a jar -->

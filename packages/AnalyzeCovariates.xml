@@ -13,4 +13,9 @@
       <class name=">org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate" />
     </dependencies>
   </executable>
+  <resources>
+    <!-- Supplemental scripts for graph generation, etc. -->
+    <file name="R/plot_residualError_OtherCovariate.R" />
+    <file name="R/plot_residualError_QualityScoreCovariate.R" />
+  </resources>
 </package>
