@@ -52,6 +52,11 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
     private String PATH_TO_RESOURCES = "R/";
+    @Argument(fullName = "min_variants_per_bin", shortName = "minBinSize", doc = "The minimum number of variants in a bin in order to calculate truth metrics.", required = false)
+    private int MIN_VARIANTS_PER_BIN = 1000;
+    @Argument(fullName = "max_variants_per_bin", shortName = "maxBinSize", doc = "The maximum number of variants in a bin.", required = false)
+    private int MAX_VARIANTS_PER_BIN = 20000;
+
 
     /////////////////////////////
     // Private Member Variables
@@ -116,6 +121,6 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     public void onTraversalDone( Integer sum ) {
 
         // For each annotation, decide how to cut up the data, output intermediate cumulative p(true) tables, and call RScript to plot the tables
-        dataManager.plotCumulativeTables(PATH_TO_RSCRIPT, PATH_TO_RESOURCES, OUTPUT_DIR);
+        dataManager.plotCumulativeTables(PATH_TO_RSCRIPT, PATH_TO_RESOURCES, OUTPUT_DIR, MIN_VARIANTS_PER_BIN, MAX_VARIANTS_PER_BIN);
     }
 }

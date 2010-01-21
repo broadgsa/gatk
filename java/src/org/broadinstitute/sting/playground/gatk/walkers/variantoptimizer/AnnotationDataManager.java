@@ -52,11 +52,14 @@ public class AnnotationDataManager {
         // Loop over each annotation in the vcf record
         final Map<String,String> infoField = variant.getInfoValues();
         for( String annotationKey : infoField.keySet() ) {
+            if( annotationKey.equalsIgnoreCase("AC") ) {
+                continue; // This annotation isn't a float value
+            }
             final float value = Float.parseFloat( infoField.get( annotationKey ) );
 
             TreeSet<AnnotationDatum> treeSet = data.get( annotationKey );
             if( treeSet == null ) { // This annotation hasn't been seen before
-                treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() );
+                treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
                 data.put( annotationKey, treeSet );
             }
             AnnotationDatum datum = new AnnotationDatum( value );
@@ -66,6 +69,7 @@ public class AnnotationDataManager {
                 treeSet.add(datum);
             }
 
+            // Decide if it was a Ti or a Tv
             if( BaseUtils.isTransition(variant.getReferenceForSNP(), variant.getAlternativeBaseForSNP()) ) {
                 datum.incrementTi();
             } else {
@@ -74,21 +78,25 @@ public class AnnotationDataManager {
         }
     }
 
-    public void plotCumulativeTables(final String PATH_TO_RSCRIPT, final String PATH_TO_RESOURCES, final String OUTPUT_DIR) {
+    public void plotCumulativeTables( final String PATH_TO_RSCRIPT, final String PATH_TO_RESOURCES, final String OUTPUT_DIR,
+                                      final int MIN_VARIANTS_PER_BIN, final int MAX_VARIANTS_PER_BIN ) {
 
         for( String annotationKey: data.keySet() ) {
+
+            /*
             PrintStream output;
             try {
-                output = new PrintStream(OUTPUT_DIR + annotationKey + ".dat");
+                output = new PrintStream(OUTPUT_DIR + annotationKey + ".cumulative.dat");
             } catch (FileNotFoundException e) {
                 throw new StingException("Can't create intermediate output annotation data file.");
             }
             // Output a header line
             output.println("value\tcumulativeTiTv\tnumVariants\tGT");
 
+            // Filter SNPs greater than this annotation value
             int numTi = 0;
             int numTv = 0;
-            for( AnnotationDatum datum : data.get( annotationKey )) {
+            for( AnnotationDatum datum : data.get( annotationKey ) ) {
                 numTi += datum.numTransitions;
                 numTv += datum.numTransversions;
                 float titv;
@@ -98,6 +106,7 @@ public class AnnotationDataManager {
 
             }
 
+            // Filter SNPs less than this annotation value
             numTi = 0;
             numTv = 0;
             Iterator<AnnotationDatum> iter = data.get( annotationKey ).descendingIterator();
@@ -111,15 +120,66 @@ public class AnnotationDataManager {
                 output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv) +"\t0");
 
             }
+            */
 
+            PrintStream output;
+            try {
+                output = new PrintStream(OUTPUT_DIR + annotationKey + ".binned.dat");
+            } catch (FileNotFoundException e) {
+                throw new StingException("Can't create intermediate output annotation data file.");
+            }
+
+            // Output a header line
+            output.println("value\ttitv\tnumVariants\t");
+
+            // Bin SNPs and calculate truth metrics for each bin, right now this is just TiTv
+            int numTi = 0;
+            int numTv = 0;
+            AnnotationDatum lastDatum = null;
+            for( AnnotationDatum datum : data.get( annotationKey ) ) {
+                numTi += datum.numTransitions;
+                numTv += datum.numTransversions;
+                lastDatum = datum;
+                if( numTi + numTv >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
+                    float titv;
+                    if( numTv == 0) { titv = 0.0f; }
+                    else { titv = ((float) numTi) / ((float) numTv); }
+                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv));
+                    numTi = 0;
+                    numTv = 0;
+                }
+                // else, continue accumulating variants because this bin isn't full yet
+            }
+            if( numTi != 0 || numTv != 0 ) { // one final bin that may not have been dumped out
+                float titv;
+                if( numTv == 0) { titv = 0.0f; }
+                else { titv = ((float) numTi) / ((float) numTv); }
+                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv));
+            }
+
+            /*
             System.out.println(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_CumulativeTiTv.R" + " " +
-                                        OUTPUT_DIR + annotationKey + ".dat" + " " + annotationKey);
+                                        OUTPUT_DIR + annotationKey + ".cumulative.dat" + " " + OUTPUT_DIR + " " + annotationKey);
 
             try {
                 Process p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_CumulativeTiTv.R" + " " +
-                                        OUTPUT_DIR + annotationKey + ".dat" + " " + annotationKey);
+                                        OUTPUT_DIR + annotationKey + ".cumulative.dat"+  " " + OUTPUT_DIR + " " + annotationKey);
             } catch (Exception e) {
-                throw new StingException("Unable to run RScript command");
+                throw new StingException("Unable to execute RScript command");
+            }
+            */
+
+            //System.out.println(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTiTv.R" + " " +
+            //                            OUTPUT_DIR + annotationKey + ".binned.dat" + " " + OUTPUT_DIR + " " + annotationKey +
+            //                            " " + MIN_VARIANTS_PER_BIN);
+
+            // Execute the RScript command to plot the table of TiTv values
+            try {
+                final Process p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTiTv.R" + " " +
+                                        OUTPUT_DIR + annotationKey + ".binned.dat" + " " + OUTPUT_DIR + " " + annotationKey +
+                                        " " + MIN_VARIANTS_PER_BIN);
+            } catch (Exception e) {
+                throw new StingException("Unable to execute RScript command");
             }
         }
     }
