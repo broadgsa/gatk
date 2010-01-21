@@ -6,7 +6,7 @@
   <xsl:variable name="classpath" select="'${sting.dir}/staging:${additional.jars}'" />
   <xsl:variable name="dist.dir" select="'${sting.dir}/dist'" />
   <xsl:variable name="staging.dir" select="'${sting.dir}/staging'" />
-  <xsl:variable name="package.dir" select="'${package.dir}/'" />
+  <xsl:variable name="package.dir" select="'${package.dir}'" />
   <xsl:variable name="resources.dir" select="'${package.dir}/resources'" />
 
 <xsl:template match="package">
@@ -16,7 +16,7 @@
 
   <project name="{$project.name}" default="package">
     <property name="sting.dir" value="{$ant.basedir}" />
-    <property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name)}" />
+    <property name="package.dir" value="{$dist.dir}/packages/{$project.name}" />
 
     <target name="package">
       <!-- Verify that all classes specified are present -->
@@ -24,9 +24,9 @@
 	<available property="is.{current()}.present" classpath="{$classpath}" classname="{current()}"/>
 	<fail message="Class {current()} not found" unless="is.{current()}.present" />
       </xsl:for-each>
-      <xsl:for-each select="//properties">
+      <xsl:for-each select="//resource-bundle">
 	<available property="is.{current()}.present" file="{$staging.dir}/{current()}"/>
-	<fail message="Property file {current()} not found" unless="is.{current()}.present" />
+	<fail message="Resource bundle {current()} not found" unless="is.{current()}.present" />
       </xsl:for-each>
 
       <!-- Create an output directory for the package -->
@@ -36,7 +36,7 @@
       <xsl:apply-templates select="executable" />
 
       <!-- Add in other modules -->
-      <xsl:for-each select="module">
+      <xsl:for-each select="modules/module">
 	<xsl:apply-templates select="document(current())/package/executable" />
       </xsl:for-each>
 
@@ -53,9 +53,23 @@
         <mkdir dir="{$resources.dir}"/>
         <xsl:call-template name="symlink">
           <xsl:with-param name="file.name" select="." />
-          <xsl:with-param name="target.dir" select="concat($resources.dir,'/')" />
+          <xsl:with-param name="target.dir" select="$resources.dir" />
         </xsl:call-template>
       </xsl:for-each>
+
+      <!-- Bundle the package into a single zip file -->
+      <xsl:choose>
+	<xsl:when test="version">
+	  <property file="{$staging.dir}/{version/@file}" />
+	  <xsl:variable name="version.property" select="concat('${',version/@property,'}')" />
+	  <property name="package.filename" value="{name}-{$version.property}.tar.bz2" />
+	</xsl:when>
+	<xsl:otherwise>
+	  <property name="package.filename" value="{name}.tar.bz2" />
+	</xsl:otherwise>
+      </xsl:choose>
+      <xsl:variable name="package.filename" select="'${package.filename}'" />
+      <tar destfile="{$dist.dir}/{$package.filename}" basedir="{$package.dir}" compression="bzip2" />
     </target>
   </project>
 </xsl:template>
@@ -77,20 +91,21 @@
   </xsl:variable>
   <available property="is.{$short.name}.present" file="{$file.name}"/>
   <fail message="File {$file.name} not found" unless="is.{$short.name}.present" />
-  <delete file="{concat($target.dir,'/',$short.name)}" />
-  <symlink link="{concat($target.dir,'/',$short.name)}" resource="{$full.path}" overwrite="true" />
+  <delete file="{$target.dir}/{$short.name}" />
+  <symlink link="{$target.dir}/{$short.name}" resource="{$full.path}" overwrite="true" />
 </xsl:template>
 
+<!-- Transform an executable tag into an ant 'jar' task with nested fileset -->
 <xsl:template match="executable">
   <!-- Create a jar file containing the specified classes / packages and all their dependencies -->
-  <jar jarfile="{concat($package.dir,name,'.jar')}">
+  <jar jarfile="{$package.dir}/{name}.jar">
     <classfileset dir="{$staging.dir}">
       <root classname="{main-class}"/>
     </classfileset>
-    <xsl:for-each select="properties">
+    <xsl:for-each select="resource-bundle">
       <fileset file="{$staging.dir}/{current()}" />
     </xsl:for-each>
-    <xsl:for-each select="module">
+    <xsl:for-each select="modules/module">
       <xsl:apply-templates select="document(current())/package/executable/dependencies" />
     </xsl:for-each>
     <xsl:apply-templates select="dependencies" />
@@ -100,6 +115,7 @@
   </jar>
 </xsl:template>
 
+<!-- Transform a dependency list into a fileset for embedding in a jar -->
 <xsl:template match="dependencies">
   <classfileset dir="{$staging.dir}">
     <xsl:for-each select="package">

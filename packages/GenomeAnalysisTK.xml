@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package>
   <name>GenomeAnalysisTK</name>
+  <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
   <executable>
     <name>GenomeAnalysisTK</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    <properties>StingText.properties</properties>
-    <module>QualityScoresRecalibration.xml</module>
-    <module>LocalRealignmentAroundIndels.xml</module>
-    <module>UnifiedGenotyper.xml</module>
-    <module>VariantFiltration.xml</module>
-    <module>VariantAnnotator.xml</module>
-    <module>VCFValidator.xml</module>
+    <resource-bundle>StingText.properties</resource-bundle>
+    <modules>
+      <module>QualityScoresRecalibration.xml</module>
+      <module>LocalRealignmentAroundIndels.xml</module>
+      <module>UnifiedGenotyper.xml</module>
+      <module>VariantFiltration.xml</module>
+      <module>VariantAnnotator.xml</module>
+      <module>VCFValidator.xml</module>
+    </modules>
     <dependencies>
       <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
@@ -23,19 +26,9 @@
       <class>org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker</class>
     </dependencies>
   </executable>
-  <executable>
-    <name>AnalyzeCovariates</name>
-    <main-class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</main-class>
-    <dependencies>
-      <!-- Recalibration analysis script -->
-      <class>org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
-      <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
-    </dependencies>
-  </executable>
+  <modules>
+    <module>AnalyzeCovariates.xml</module>
+  </modules>
   <resources>
     <!-- GATK sample code and build scripts -->
     <file>java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java</file>

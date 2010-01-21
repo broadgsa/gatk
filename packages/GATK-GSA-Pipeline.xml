@@ -3,17 +3,20 @@
      ant clean playground package -Dexecutable=GATK-GSA-Pipeline -->
 <package>
   <name>GATK-GSA-Pipeline</name>
+  <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
   <executable>
     <name>GATK-GSA-Pipeline</name>
     <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-    <properties>StingText.properties</properties>
-    <module>QualityScoresRecalibration.xml</module>
-    <module>LocalRealignmentAroundIndels.xml</module>
-    <module>UnifiedGenotyper.xml</module>
-    <module>VariantFiltration.xml</module>
-    <module>VariantAnnotator.xml</module>
-    <module>VariantEval.xml</module>
-    <module>FindContaminatingReadGroups.xml</module>
+    <resource-bundle>StingText.properties</resource-bundle>
+    <modules>
+      <module>QualityScoresRecalibration.xml</module>
+      <module>LocalRealignmentAroundIndels.xml</module>
+      <module>UnifiedGenotyper.xml</module>
+      <module>VariantFiltration.xml</module>
+      <module>VariantAnnotator.xml</module>
+      <module>VariantEval.xml</module>
+      <module>FindContaminatingReadGroups.xml</module>
+    </modules>
     <dependencies>
       <!-- Filters -->
       <package>org.broadinstitute.sting.gatk.filters</package>
