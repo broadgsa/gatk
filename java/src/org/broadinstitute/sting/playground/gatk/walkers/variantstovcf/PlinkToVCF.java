@@ -21,7 +21,7 @@ import java.util.*;
 /**
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
-public class SequenomToVCF extends RefWalker<VCFRecord,Integer> {
+public class PlinkToVCF extends RefWalker<VCFRecord,Integer> {
     @Argument(fullName="sequenomePedFile", shortName="sPed", doc="The sequenome file from which to generate a VCF", required=true)
     public File seqFile = null;
     @Argument(fullName="outputVCF", shortName="vcf", doc="The VCF file to write to", required=true)
