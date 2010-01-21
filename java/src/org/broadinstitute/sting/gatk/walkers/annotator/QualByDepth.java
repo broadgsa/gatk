@@ -34,7 +34,7 @@ public class QualByDepth extends StandardVariantAnnotation {
 
     public String getKeyName() { return "QD"; }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Genotype Quality by Depth"); }
+    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Variant Confidence/Quality by Depth"); }
 
     private int variationQualByDepth(char ref, final List<Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
         int depth = 0;

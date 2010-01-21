@@ -141,10 +141,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         }
         if ( beagleWriter != null ) {
             beagleWriter.print("marker alleleA alleleB");
-            for ( String sample : samples ) {
-                beagleWriter.print(' ');
-                beagleWriter.print(sample);
-            }
+            for ( String sample : samples )
+                beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
             beagleWriter.println();
         }
 
