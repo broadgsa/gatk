@@ -259,10 +259,6 @@ public class RecalDataManager {
                 if( attr != null ) {
                     char[] colorSpace;
                     if( attr instanceof String ) {
-                        if( ((String)attr).contains(".") ) { // empty color space, abort
-                            read.getReadGroup().setPlatform("illumina");
-                            return;
-                        }
                         colorSpace = ((String)attr).toCharArray();
                     } else {
                         throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
@@ -308,16 +304,12 @@ public class RecalDataManager {
         if( attr != null ) {
             char[] colorSpace;
             if( attr instanceof String ) {
-                if( ((String)attr).contains(".") ) { // empty color space, abort
-                    read.getReadGroup().setPlatform("illumina");
-                    return originalQualScores;
-                }
                 colorSpace = ((String)attr).toCharArray();
             } else {
                 throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
             }
 
-            // Loop over the read and calculate first the infered bases from the color and then check if it is consistent with the read
+            // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
             byte[] readBases = read.getReadBases();
             final byte[] colorImpliedBases = readBases.clone();
             char[] refBasesDirRead = AlignmentUtils.alignmentToCharArray( read.getCigar(), read.getReadString().toCharArray(), refBases ); //BUGBUG: This needs to change when read walkers are changed to give the aligned refBases
@@ -475,7 +467,8 @@ public class RecalDataManager {
             case '3': // simple complement
                 return BaseUtils.simpleComplement( prevBase );
             default:
-                throw new StingException( "Unrecognized color space in SOLID read, color = " + color );
+                throw new StingException( "Unrecognized color space in SOLID read, color = " + color +
+                                          " Unfortunately this bam file can not be recalibrated without full color space information because of potential reference bias.");
         }
     }
 

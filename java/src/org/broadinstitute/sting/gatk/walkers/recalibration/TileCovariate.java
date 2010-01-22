@@ -32,7 +32,7 @@ import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
  * @author alecw@broadinstitute.org
  */
 
-public class TileCovariate implements StandardCovariate {
+public class TileCovariate implements ExperimentalCovariate {
 
     private static boolean exceptionWhenNoTile = false;
 
