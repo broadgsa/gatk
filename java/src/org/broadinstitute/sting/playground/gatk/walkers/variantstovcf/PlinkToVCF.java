@@ -40,7 +40,8 @@ public class PlinkToVCF extends RefWalker<VCFRecord,Integer> {
     @Argument(fullName="maxHomNonref", doc="Maximum homozygous-nonreference rate (as a proportion) to consider an assay valid", required = false)
     public double maxHomNonref = 1.1;
 
-    private final Set<String> HEADER_FIELDS = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex","Paternal ID","Maternal ID","Phenotype"));
+    private final Set<String> HEADER_FIELDS = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex","Paternal ID","Maternal ID","Phenotype",
+                "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
     private final int INIT_NUMBER_OF_POPULATIONS = 10;
     private final int DEFAULT_QUALITY = 20;
     private HashMap<String, SequenomVariantInfo> sequenomResults = new HashMap<String,SequenomVariantInfo>();
