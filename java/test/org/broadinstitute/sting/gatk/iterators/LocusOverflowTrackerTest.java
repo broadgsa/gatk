@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -40,10 +41,11 @@ public class LocusOverflowTrackerTest extends BaseTest {
     @Test
     public void testLocusOverflow() {
         SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, 1, 100);
-        if (tracker.exceeded(rec, MAX_READS - 1))
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(rec);
+        if (tracker.exceeded(loc, MAX_READS - 1))
             Assert.fail("We shouldn't be exceeded when MAX_READS -1 is the input");
-        if (!tracker.exceeded(rec, MAX_READS)) Assert.fail("We should be exceeded when MAX_READS is the input");
-        if (!tracker.exceeded(rec, MAX_READS + 1))
+        if (!tracker.exceeded(loc, MAX_READS)) Assert.fail("We should be exceeded when MAX_READS is the input");
+        if (!tracker.exceeded(loc, MAX_READS + 1))
             Assert.fail("We shouldn't be exceeded when MAX_READS +1 is the input");
     }
 
@@ -51,7 +53,8 @@ public class LocusOverflowTrackerTest extends BaseTest {
     public void testContinuousLocus() {
         for (int x = 1; x < 5; x++) {
             SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, x, 100);
-            tracker.exceeded(rec, MAX_READS + 1);
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(rec);
+            tracker.exceeded(loc, MAX_READS + 1);
         }
         tracker.cleanWarningQueue();
         Assert.assertEquals(1, ((LocusIteratorOverride) tracker).getWarningCount());
@@ -61,11 +64,13 @@ public class LocusOverflowTrackerTest extends BaseTest {
     public void testTwoSeperateContinuousLoci() {
         for (int x = 1; x < 5; x++) {
             SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, x, 2);
-            tracker.exceeded(rec, MAX_READS + 1);
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(rec);
+            tracker.exceeded(loc, MAX_READS + 1);
         }
         for (int x = 10; x < 15; x++) {
             SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, x, 2);
-            tracker.exceeded(rec, MAX_READS + 1);
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(rec);
+            tracker.exceeded(loc, MAX_READS + 1);
         }
         tracker.cleanWarningQueue();
         Assert.assertEquals(2, ((LocusIteratorOverride) tracker).getWarningCount());
@@ -76,7 +81,8 @@ public class LocusOverflowTrackerTest extends BaseTest {
     public void testOverflow() {
         for (int x = 1; x < (LocusOverflowTracker.warningsEmitted * 3); x += 2) {
             SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, x, 100);
-            tracker.exceeded(rec, MAX_READS + 1);
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(rec);
+            tracker.exceeded(loc, MAX_READS + 1);
         }
         tracker.cleanWarningQueue();
         Assert.assertEquals(LocusOverflowTracker.warningsEmitted, ((LocusIteratorOverride) tracker).getWarningCount());

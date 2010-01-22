@@ -571,17 +571,18 @@ class LocusOverflowTracker {
     public boolean exceeded(GenomeLoc loc, int pileupSize) {
         boolean exceeded = pileupSize >= maxPileupSize;
         if (exceeded && warningsEmitted <= MAX_WARNINGS) {
-            warningInQueue = true;
             if (lastLocation == null) lastLocation = loc;
-            else if (lastLocation.contiguousP(loc))
+            else if (lastLocation.contiguousP(loc)) {
                 lastLocation = lastLocation.merge(loc);
+            }
             else {
                 warnUser();
                 lastLocation = loc;
             }
+            warningInQueue = true;
         } else if (warningInQueue) {
-            lastLocation = null;
             warnUser();
+            lastLocation = null;
         }
         return exceeded;
     }

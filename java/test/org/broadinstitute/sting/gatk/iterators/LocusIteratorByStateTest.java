@@ -82,6 +82,7 @@ public class LocusIteratorByStateTest extends BaseTest {
             AlignmentContext context = li.next();
             //System.err.println(context.getLocation() + " " + context.getPileup().size());
         }
+        li.getLocusOverflowTracker().cleanWarningQueue();
         Assert.assertEquals(2, ((LocusIteratorOverride) li.getLocusOverflowTracker()).getWarningCount());
     }
 }
