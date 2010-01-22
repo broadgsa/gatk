@@ -41,10 +41,16 @@ import java.io.FileNotFoundException;
 
 public class AnnotationDataManager {
 
-    public final HashMap<String, TreeSet<AnnotationDatum>> data;
+    public final HashMap<String, TreeSet<AnnotationDatum>> dataFull;
+    public final HashMap<String, TreeSet<AnnotationDatum>> dataNovel;
+    public final HashMap<String, TreeSet<AnnotationDatum>> dataDBsnp;
+    public final HashMap<String, TreeSet<AnnotationDatum>> dataTruthSet;
 
     public AnnotationDataManager() {
-        data = new HashMap<String, TreeSet<AnnotationDatum>>();
+        dataFull = new HashMap<String, TreeSet<AnnotationDatum>>();
+        dataNovel = new HashMap<String, TreeSet<AnnotationDatum>>();
+        dataDBsnp = new HashMap<String, TreeSet<AnnotationDatum>>();
+        dataTruthSet = new HashMap<String, TreeSet<AnnotationDatum>>();
     }
 
     public void addAnnotations( RodVCF variant ) {
@@ -57,10 +63,51 @@ public class AnnotationDataManager {
             }
             final float value = Float.parseFloat( infoField.get( annotationKey ) );
 
-            TreeSet<AnnotationDatum> treeSet = data.get( annotationKey );
+            if( variant.getID().equals(".") ) { // This is a novel variant
+                TreeSet<AnnotationDatum> treeSet = dataNovel.get( annotationKey );
+                if( treeSet == null ) { // This annotation hasn't been seen before
+                    treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
+                    dataNovel.put( annotationKey, treeSet );
+                }
+                AnnotationDatum datum = new AnnotationDatum( value );
+                if( treeSet.contains(datum) ) {
+                    datum = treeSet.tailSet(datum).first();
+                } else {
+                    treeSet.add(datum);
+                }
+
+                // Decide if it was a Ti or a Tv
+                if( BaseUtils.isTransition(variant.getReferenceForSNP(), variant.getAlternativeBaseForSNP()) ) {
+                    datum.incrementTi();
+                } else {
+                    datum.incrementTv();
+                }
+            } else { // This is a DBsnp variant
+                TreeSet<AnnotationDatum> treeSet = dataDBsnp.get( annotationKey );
+                if( treeSet == null ) { // This annotation hasn't been seen before
+                    treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
+                    dataDBsnp.put( annotationKey, treeSet );
+                }
+                AnnotationDatum datum = new AnnotationDatum( value );
+                if( treeSet.contains(datum) ) {
+                    datum = treeSet.tailSet(datum).first();
+                } else {
+                    treeSet.add(datum);
+                }
+
+                // Decide if it was a Ti or a Tv
+                if( BaseUtils.isTransition(variant.getReferenceForSNP(), variant.getAlternativeBaseForSNP()) ) {
+                    datum.incrementTi();
+                } else {
+                    datum.incrementTv();
+                }
+            }
+
+            // the overall set, containing both novel and DBsnp variants
+            TreeSet<AnnotationDatum> treeSet = dataFull.get( annotationKey );
             if( treeSet == null ) { // This annotation hasn't been seen before
                 treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
-                data.put( annotationKey, treeSet );
+                dataFull.put( annotationKey, treeSet );
             }
             AnnotationDatum datum = new AnnotationDatum( value );
             if( treeSet.contains(datum) ) {
@@ -81,7 +128,7 @@ public class AnnotationDataManager {
     public void plotCumulativeTables( final String PATH_TO_RSCRIPT, final String PATH_TO_RESOURCES, final String OUTPUT_DIR,
                                       final int MIN_VARIANTS_PER_BIN, final int MAX_VARIANTS_PER_BIN ) {
 
-        for( String annotationKey: data.keySet() ) {
+        for( String annotationKey: dataFull.keySet() ) {
 
             /*
             PrintStream output;
@@ -130,13 +177,13 @@ public class AnnotationDataManager {
             }
 
             // Output a header line
-            output.println("value\ttitv\tnumVariants\t");
+            output.println("value\ttitv\tnumVariants\tcategory");
 
             // Bin SNPs and calculate truth metrics for each bin, right now this is just TiTv
             int numTi = 0;
             int numTv = 0;
             AnnotationDatum lastDatum = null;
-            for( AnnotationDatum datum : data.get( annotationKey ) ) {
+            for( AnnotationDatum datum : dataFull.get( annotationKey ) ) {
                 numTi += datum.numTransitions;
                 numTv += datum.numTransversions;
                 lastDatum = datum;
@@ -144,7 +191,7 @@ public class AnnotationDataManager {
                     float titv;
                     if( numTv == 0) { titv = 0.0f; }
                     else { titv = ((float) numTi) / ((float) numTv); }
-                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv));
+                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv) + "\t0");
                     numTi = 0;
                     numTv = 0;
                 }
@@ -154,8 +201,58 @@ public class AnnotationDataManager {
                 float titv;
                 if( numTv == 0) { titv = 0.0f; }
                 else { titv = ((float) numTi) / ((float) numTv); }
-                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv));
+                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv)+ "\t0");
             }
+
+
+            numTi = 0;
+            numTv = 0;
+            lastDatum = null;
+            for( AnnotationDatum datum : dataNovel.get( annotationKey ) ) {
+                numTi += datum.numTransitions;
+                numTv += datum.numTransversions;
+                lastDatum = datum;
+                if( numTi + numTv >= MAX_VARIANTS_PER_BIN/3 ) { // This annotation bin is full
+                    float titv;
+                    if( numTv == 0) { titv = 0.0f; }
+                    else { titv = ((float) numTi) / ((float) numTv); }
+                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv) + "\t1");
+                    numTi = 0;
+                    numTv = 0;
+                }
+                // else, continue accumulating variants because this bin isn't full yet
+            }
+            if( numTi != 0 || numTv != 0 ) { // one final bin that may not have been dumped out
+                float titv;
+                if( numTv == 0) { titv = 0.0f; }
+                else { titv = ((float) numTi) / ((float) numTv); }
+                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv)+ "\t1");
+            }
+
+            numTi = 0;
+            numTv = 0;
+            lastDatum = null;
+            for( AnnotationDatum datum : dataDBsnp.get( annotationKey ) ) {
+                numTi += datum.numTransitions;
+                numTv += datum.numTransversions;
+                lastDatum = datum;
+                if( numTi + numTv >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
+                    float titv;
+                    if( numTv == 0) { titv = 0.0f; }
+                    else { titv = ((float) numTi) / ((float) numTv); }
+                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv) + "\t2");
+                    numTi = 0;
+                    numTv = 0;
+                }
+                // else, continue accumulating variants because this bin isn't full yet
+            }
+            if( numTi != 0 || numTv != 0 ) { // one final bin that may not have been dumped out
+                float titv;
+                if( numTv == 0) { titv = 0.0f; }
+                else { titv = ((float) numTi) / ((float) numTv); }
+                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv)+ "\t2");
+            }
+
 
             /*
             System.out.println(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_CumulativeTiTv.R" + " " +
@@ -169,9 +266,9 @@ public class AnnotationDataManager {
             }
             */
 
-            //System.out.println(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTiTv.R" + " " +
-            //                            OUTPUT_DIR + annotationKey + ".binned.dat" + " " + OUTPUT_DIR + " " + annotationKey +
-            //                            " " + MIN_VARIANTS_PER_BIN);
+            System.out.println(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTiTv.R" + " " +
+                                        OUTPUT_DIR + annotationKey + ".binned.dat" + " " + OUTPUT_DIR + " " + annotationKey +
+                                        " " + MIN_VARIANTS_PER_BIN);
 
             // Execute the RScript command to plot the table of TiTv values
             try {
