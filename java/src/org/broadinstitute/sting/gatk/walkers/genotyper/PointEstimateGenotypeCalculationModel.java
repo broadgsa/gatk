@@ -26,7 +26,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
 
     // overload this method so we can special-case the single sample
-    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
+    public VariantCallContext callLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
 
         // we don't actually want to run EM for single samples
         if ( samples.size() == 1 ) {
@@ -63,7 +63,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
             // are we above the lod threshold for emitting calls (and not in all-bases mode)?
             if ( !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestIsRef) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
-                return new Pair<VariationCall, List<Genotype>>(null, null);
+                return new VariantCallContext(phredScaledConfidence >= CONFIDENCE_THRESHOLD);
 
             // we can now create the genotype call object
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, loc);
@@ -104,10 +104,10 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             
             call.setVariation(locusdata);
 
-            return new Pair<VariationCall, List<Genotype>>(locusdata, Arrays.asList((Genotype)call));
+            return new VariantCallContext(locusdata, Arrays.asList((Genotype)call), phredScaledConfidence >= CONFIDENCE_THRESHOLD);
         }
 
-        return super.calculateGenotype(tracker, ref, loc, contexts, priors);
+        return super.callLocus(tracker, ref, loc, contexts, priors);
     }
 
     private Pair<ReadBackedPileup, GenotypeLikelihoods> getSingleSampleLikelihoods(StratifiedAlignmentContext sampleContext, DiploidGenotypePriors priors, StratifiedAlignmentContext.StratifiedContextType contextType) {

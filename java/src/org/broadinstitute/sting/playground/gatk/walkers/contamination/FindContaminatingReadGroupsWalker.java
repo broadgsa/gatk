@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -80,10 +81,10 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         double altBalance = ((double) altCount)/((double) totalCount);
 
         if (altBalance > 0.70) {
-            Pair<VariationCall, List<Genotype>> ugResult = ug.map(tracker, ref, context);
+            VariantCallContext ugResult = ug.map(tracker, ref, context);
 
-            if (ugResult != null && ugResult.second != null && ugResult.second.size() > 0) {
-                return ugResult.second.get(0).isHet();
+            if (ugResult != null && ugResult.genotypes != null && ugResult.genotypes.size() > 0) {
+                return ugResult.genotypes.get(0).isHet();
             }
         }
 

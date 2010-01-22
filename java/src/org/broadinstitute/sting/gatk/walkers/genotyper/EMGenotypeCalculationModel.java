@@ -19,7 +19,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
     protected EMGenotypeCalculationModel() {}
 
-    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
+    public VariantCallContext callLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
 
         // run the EM calculation
         EMOutput overall = runEM(ref, contexts, priors, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
@@ -40,7 +40,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
         // are we above the lod threshold for emitting calls (and not in all-bases mode)?
         if ( !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestIsRef) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
-            return new Pair<VariationCall, List<Genotype>>(null, null);
+            return new VariantCallContext(phredScaledConfidence >= CONFIDENCE_THRESHOLD);
 
         // generate the calls
         List<Genotype> calls = genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts);
@@ -81,7 +81,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
             for ( Genotype call : calls )
                 ((GenotypeCall)call).setVariation(locusdata);
         }
-        return new Pair<VariationCall, List<Genotype>>(locusdata, calls);
+        return new VariantCallContext(locusdata, calls, phredScaledConfidence >= CONFIDENCE_THRESHOLD);
     }
 
     protected List<Genotype> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, Map<String, StratifiedAlignmentContext> contexts) {

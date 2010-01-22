@@ -165,11 +165,11 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     }
 
     private Genotype getGenotype( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        Pair<VariationCall, List<Genotype>> calls = ug.map(tracker,ref,context);
-        if ( calls == null || calls.first == null || calls.second == null )
+        VariantCallContext calls = ug.map(tracker,ref,context);
+        if ( calls == null || calls.variation == null || calls.genotypes == null )
             return null;
         else {
-            return calls.second.get(0);
+            return calls.genotypes.get(0);
         }
     }
 

@@ -39,8 +39,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     protected JointEstimateGenotypeCalculationModel() {}
 
-    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
-
+    public VariantCallContext callLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
         int numSamples = getNSamples(contexts);
         int frequencyEstimationPoints = (2 * numSamples) + 1;  // (add 1 for allele frequency of zero)
 
@@ -50,8 +49,11 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         // if there are no non-ref bases...
         if ( bestAlternateAllele == null ) {
             // if we don't want all bases, then we can just return
-            if ( !ALL_BASE_MODE && !GENOTYPE_MODE )
-                return new Pair<VariationCall, List<Genotype>>(null, null);
+
+            // todo -- we still need to calculate the confidence in the reference base.
+            // todo -- we can still include this optimization, but we should calculate a confidence score
+//            if ( !ALL_BASE_MODE && !GENOTYPE_MODE )
+//                return new VariantCallContext(false);
 
             // otherwise, choose any alternate allele (it doesn't really matter)
             bestAlternateAllele = (ref != 'A' ? 'A' : 'C');
@@ -282,7 +284,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         return new ArrayList<Genotype>();
     }    
 
-    protected Pair<VariationCall, List<Genotype>> createCalls(RefMetaDataTracker tracker, char ref, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
+    protected VariantCallContext createCalls(RefMetaDataTracker tracker, char ref, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
         // only need to look at the most likely alternate allele
         int indexOfMax = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
@@ -304,7 +306,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
         if ( !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestAFguess == 0) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
-            return new Pair<VariationCall, List<Genotype>>(null, null);
+            return new VariantCallContext(phredScaledConfidence >= CONFIDENCE_THRESHOLD);
 
         // output to beagle file if requested
         if ( beagleWriter != null ) {
@@ -380,6 +382,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 ((GenotypeCall)call).setVariation(locusdata);
         }
 
-        return new Pair<VariationCall, List<Genotype>>(locusdata, calls);
+        return new VariantCallContext(locusdata, calls, phredScaledConfidence >= CONFIDENCE_THRESHOLD);
     }
 }

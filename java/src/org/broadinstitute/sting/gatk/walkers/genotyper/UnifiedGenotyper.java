@@ -47,8 +47,7 @@ import java.io.PrintStream;
  * multi-sample, and pooled data.  The user can choose from several different incorporated calculation models.
  */
 @Reference(window=@Window(start=-20,stop=20))
-public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genotype>>, Integer> implements TreeReducible<Integer> {
-
+public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     // control the output
@@ -67,9 +66,26 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     // samples in input
     private Set<String> samples = new HashSet<String>();
 
-
     /** Enable deletions in the pileup **/
     public boolean includeReadsWithDeletionAtLoci() { return true; }
+
+    /**
+     * Inner class for collecting output statistics from the UG
+     */
+    public class UGStatistics {
+        /** The total number of passes examined -- i.e., the number of map calls */
+        long nBasesVisited = 0;
+
+        /** The number of bases that were potentially callable -- i.e., those not at excessive coverage or masked with N */
+        long nBasesCallable = 0;
+
+        /** The number of bases called confidently (according to user threshold), either ref or other */
+        long nBasesCalledConfidently = 0;
+
+        double percentCallableOfAll()    { return (100.0 * nBasesCallable) / nBasesVisited; }
+        double percentCalledOfAll()      { return (100.0 * nBasesCalledConfidently) / nBasesVisited; }
+        double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / nBasesCallable; }
+    }
 
     /**
      * Sets the argument collection for the UnifiedGenotyper.
@@ -204,7 +220,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
      * @param refContext the reference base
      * @param rawContext contextual information around the locus
      */
-    public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+    public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
 
         // initialize the GenotypeCalculationModel for this thread if that hasn't been done yet
         if ( gcm.get() == null ) {
@@ -249,19 +265,19 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        Pair<VariationCall, List<Genotype>> call = gcm.get().calculateGenotype(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
+        VariantCallContext call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
         // annotate the call, if possible
-        if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
+        if ( call != null && call.variation != null && call.variation instanceof ArbitraryFieldsBacked ) {
             // first off, we want to use the *unfiltered* context for the annotations
             stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
 
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.first);
+                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.variation);
             else
-                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.first);
-            ((ArbitraryFieldsBacked)call.first).setFields(annotations);
+                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.variation);
+            ((ArbitraryFieldsBacked)call.variation).setFields(annotations);
         }
 
         return call;
@@ -284,38 +300,61 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         return ( d >= 0.0 && d <= 1.0 );
     }
 
-    public Integer reduceInit() { return 0; }
+    // ------------------------------------------------------------------------------------------------
+    //
+    // Reduce
+    //
+    // ------------------------------------------------------------------------------------------------
+    public UGStatistics reduceInit() { return new UGStatistics(); }
 
-    public Integer treeReduce(Integer lhs, Integer rhs) {
-        return lhs + rhs;        
+    public UGStatistics treeReduce(UGStatistics lhs, UGStatistics rhs) {
+        lhs.nBasesCallable += rhs.nBasesCallable;
+        lhs.nBasesCalledConfidently += rhs.nBasesCalledConfidently;
+        lhs.nBasesVisited += rhs.nBasesVisited;
+        return lhs;
     }
 
-    public Integer reduce(Pair<VariationCall, List<Genotype>> value, Integer sum) {
+    public UGStatistics reduce(VariantCallContext value, UGStatistics sum) {
+        // We get a point for reaching reduce :-)
+        sum.nBasesVisited++;
+
         // can't call the locus because of no coverage
         if ( value == null )
             return sum;
 
+        // A call was attempted -- the base was potentially callable
+        sum.nBasesCallable++;
+
+        // if the base was confidently called something, print it out 
+        sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
+
         // can't make a confident variant call here
-        if ( value.second == null ||
-                (UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED && value.second.size() == 0) ) {
+        if ( value.genotypes == null ||
+                (UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED && value.genotypes.size() == 0) ) {
             return sum;
         }
 
         // if we have a single-sample call (single sample from PointEstimate model returns no VariationCall data)
-        if ( value.first == null || (!writer.supportsMultiSample() && samples.size() <= 1) ) {
-            writer.addGenotypeCall(value.second.get(0));
+        if ( value.variation == null || (!writer.supportsMultiSample() && samples.size() <= 1) ) {
+            writer.addGenotypeCall(value.genotypes.get(0));
         }
 
         // use multi-sample mode if we have multiple samples or the output type allows it
         else {
-            writer.addMultiSampleCall(value.second, value.first);
+            writer.addMultiSampleCall(value.genotypes, value.variation);
         }
 
-        return sum + 1;
+        return sum;
     }
 
     // Close any file writers
-    public void onTraversalDone(Integer sum) {
-        logger.info("Processed " + sum + " loci that are callable for SNPs");
+    public void onTraversalDone(UGStatistics sum) {
+        logger.info(String.format("Visited bases                                %d", sum.nBasesVisited));
+        logger.info(String.format("Callable bases                               %d", sum.nBasesCallable));
+        logger.info(String.format("Confidently called bases                     %d", sum.nBasesCalledConfidently));
+        logger.info(String.format("%% callable bases of all loci                 %3.3f", sum.percentCallableOfAll()));
+        logger.info(String.format("%% confidently called bases of all loci       %3.3f", sum.percentCalledOfAll()));
+        logger.info(String.format("%% confidently called bases of callable loci  %3.3f", sum.percentCalledOfCallable()));
+//        logger.info("Processed " + sum.nBasesCallable + " loci that are callable for SNPs");
     }
 }

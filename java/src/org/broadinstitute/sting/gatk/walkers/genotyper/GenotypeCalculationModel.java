@@ -85,11 +85,11 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      *
      * @return calls
      */
-    public abstract Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker,
-                                                                          char ref,
-                                                                          GenomeLoc loc,
-                                                                          Map<String, StratifiedAlignmentContext> stratifiedContexts,
-                                                                          DiploidGenotypePriors priors);
+    public abstract VariantCallContext callLocus(RefMetaDataTracker tracker,
+                                                 char ref,
+                                                 GenomeLoc loc,
+                                                 Map<String, StratifiedAlignmentContext> stratifiedContexts,
+                                                 DiploidGenotypePriors priors);
 
     /**
      * @param tracker   rod data
@@ -98,16 +98,5 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      */
     public static rodDbSNP getDbSNP(RefMetaDataTracker tracker) {
         return rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
-    }
-
-    /**
-     * Determine whether we're at a Hapmap site
-     *
-     * @param tracker the meta data tracker
-     *
-     * @return true if we're at a Hapmap site, false if otherwise
-     */
-    private static boolean isHapmapSite(RefMetaDataTracker tracker) {
-        return tracker.getTrackData("hapmap", null) != null;
     }
 }

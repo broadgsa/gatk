@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
+import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.playground.utils.NamedTable;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Pair;
@@ -57,9 +58,9 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
         char nextBase = Character.toUpperCase(contextBases[contextBases.length - 1]);
 
         if (contextBases.length == 3 && refBase != 'N' && pileup.getBases() != null && pileup.getSecondaryBases() != null) {
-            Pair<VariationCall,List<Genotype>> ugResult = ug.map(tracker,ref,context);
-            if (ugResult != null && ugResult.first != null) {
-                Genotype res = ugResult.second.get(0);
+            VariantCallContext ugResult = ug.map(tracker,ref,context);
+            if (ugResult != null && ugResult.variation != null) {
+                Genotype res = ugResult.genotypes.get(0);
                 String call = res.getBases();
                 String type;
                 if (!res.isVariant(refBase)) {type = "homref";}
