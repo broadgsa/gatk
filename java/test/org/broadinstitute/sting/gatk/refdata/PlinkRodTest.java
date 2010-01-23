@@ -47,7 +47,7 @@ public class PlinkRodTest extends BaseTest {
 
     @Test
     public void testStandardPedFile() {
-        PlinkRodWithGenomeLoc rod = new PlinkRodWithGenomeLoc("test");
+        PlinkRod rod = new PlinkRod("test");
         try {
             rod.initialize( new File("/humgen/gsa-hpprojects/GATK/data/Validation_Data/test/plink_rod_test/standard_plink_test.ped") );
         } catch ( FileNotFoundException e ) {
@@ -117,7 +117,7 @@ public class PlinkRodTest extends BaseTest {
 
     @Test
     public void testStandardPedFileWithIndels() {
-        PlinkRodWithGenomeLoc rod = new PlinkRodWithGenomeLoc("test");
+        PlinkRod rod = new PlinkRod("test");
         try {
             rod.initialize(new File("/humgen/gsa-hpprojects/GATK/data/Validation_Data/test/plink_rod_test/standard_plink_with_indels.ped") );
         } catch ( FileNotFoundException e) {
@@ -155,7 +155,7 @@ public class PlinkRodTest extends BaseTest {
 
     @Test
     public void testBinaryPedFileNoIndels() {
-        PlinkRodWithGenomeLoc rod = new PlinkRodWithGenomeLoc("binaryTest1");
+        PlinkRod rod = new PlinkRod("binaryTest1");
         try {
             rod.initialize(new File("/humgen/gsa-hpprojects/GATK/data/Validation_Data/test/plink_rod_test/binary_noindel_test.bed"));
         } catch (FileNotFoundException e) {
@@ -206,7 +206,7 @@ public class PlinkRodTest extends BaseTest {
 
     @Test
     public void testIndelBinary() {
-        PlinkRodWithGenomeLoc rod = new PlinkRodWithGenomeLoc("binaryTest2");
+        PlinkRod rod = new PlinkRod("binaryTest2");
         try {
             rod.initialize(new File("/humgen/gsa-hpprojects/GATK/data/Validation_Data/test/plink_rod_test/binary_indel_test.bed"));
         } catch (FileNotFoundException e) {

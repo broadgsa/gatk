@@ -20,7 +20,7 @@ import net.sf.samtools.SAMFileHeader;
  * Time: 10:24:18 AM
  * To change this template use File | Settings | File Templates.
  */
-public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements ReferenceOrderedDatum {
+public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrderedDatum {
     private final Set<String> headerEntries = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex",
                 "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
     private final byte SNP_MAJOR_MODE = 1;
@@ -37,7 +37,7 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
 
     // // // CONSTRUCTOR // // //
 
-    public PlinkRodWithGenomeLoc(String name) {
+    public PlinkRod(String name) {
         super(name);
     }
 
