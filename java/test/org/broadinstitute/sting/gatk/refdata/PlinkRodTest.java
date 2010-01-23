@@ -161,5 +161,46 @@ public class PlinkRodTest extends BaseTest {
         } catch (FileNotFoundException e) {
             throw new StingException("Test file for testBinaryPedFileNoIndels() could not be found",e);
         }
+
+        // iterate through the ROD and get stuff
+        ArrayList<GenomeLoc> lociInRod = new ArrayList<GenomeLoc>();
+        ArrayList<ArrayList<Genotype>> genotypesInRod = new ArrayList<ArrayList<Genotype>>();
+        ArrayList<ArrayList<String>> samplesInRod = new ArrayList<ArrayList<String>>();
+
+        do {
+            lociInRod.add(rod.getLocation());
+            genotypesInRod.add(rod.getGenotypes());
+            samplesInRod.add(rod.getVariantSampleNames());
+        } while ( rod.parseLine(null,null) );
+
+        List<String> expecLoc = Arrays.asList("1:123456","1:14327877","2:22074511","3:134787","3:178678","4:829645","4:5234132","12:1268713");
+
+        for ( int i = 0; i < expecLoc.size(); i ++ ) {
+            Assert.assertEquals("That locus "+(i+1)+" in the rod is correct", expecLoc.get(i), lociInRod.get(i).toString());
+        }
+
+        List<String> expecAlleles = Arrays.asList("AA","AA","AA","GG","GG","GG","AA","TA","TT","CC","CC","GC","TC","CC","TT",
+                                                  "GG","GG","AG","TT","CC","CT","TG","GG","GG");
+        List<Boolean> expecHet = Arrays.asList(false,false,false,false,false,false,false,true,false,false,false,true,true,false,
+                    false,false,false,true,false,false,true,true,false,false);
+        List<String> expecName = Arrays.asList("NA12878","NA12890","NA07000","NA12878","NA12890","NA07000","NA12878","NA12890","NA07000",
+                    "NA12878","NA12890","NA07000","NA12878","NA12890","NA07000","NA12878","NA12890","NA07000","NA12878","NA12890","NA07000",
+                "NA12878","NA12890","NA07000");
+        int snpNo = 1;
+        int indiv = 1;
+        int alleleOffset = 0;
+        for ( ArrayList<Genotype> snp : genotypesInRod ) {
+            for ( Genotype gen : snp ) {
+                String alStr = gen.getAlleles().get(0).getBases()+gen.getAlleles().get(1).getBases();
+                Assert.assertEquals("That the allele of person "+indiv+" for snp "+snpNo+" is correct "+
+                                    "(allele offset "+alleleOffset+")", expecAlleles.get(alleleOffset),alStr);
+                Assert.assertEquals("That the genotype of person "+indiv+" for snp "+snpNo+" is properly set", expecHet.get(alleleOffset),gen.isHet());
+                Assert.assertEquals("That the name of person "+indiv+" for snp "+snpNo+" is correct", expecName.get(alleleOffset),samplesInRod.get(snpNo-1).get(indiv-1));
+                indiv++;
+                alleleOffset++;
+            }
+            indiv = 1;
+            snpNo++;
+        }
     }
 }

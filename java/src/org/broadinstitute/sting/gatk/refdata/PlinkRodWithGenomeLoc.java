@@ -273,7 +273,7 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
                 if ( line != null ) {
                     String[] snpInfo = line.split("\\s+");
                     PlinkVariantInfo variant = new PlinkVariantInfo(snpInfo[1],true);
-                    variant.setGenomeLoc(GenomeLocParser.parseGenomeLoc(snpInfo[0],Long.valueOf(snpInfo[2]), Long.valueOf(snpInfo[2])+1));
+                    variant.setGenomeLoc(GenomeLocParser.parseGenomeLoc(snpInfo[0],Long.valueOf(snpInfo[3]), Long.valueOf(snpInfo[3])));
                     variant.setAlleles(snpInfo[4],snpInfo[5]);
                     variants.add(variant);
                 }
@@ -337,15 +337,15 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
 
                         if ( snpMajorMode ) {
                             sampleOffset = sampleOffset + 4;
-                            while ( sampleOffset > samples.size() -1 ) {
+                            if ( sampleOffset > samples.size() -1 ) {
                                 snpOffset ++;
-                                sampleOffset = sampleOffset % samples.size();
+                                sampleOffset = 0;
                             }
                         } else {
                             snpOffset = snpOffset + 4;
-                            while ( snpOffset > variants.size() -1 ) {
+                            if ( snpOffset > variants.size() -1 ) {
                                 sampleOffset ++;
-                                snpOffset = snpOffset % samples.size();
+                                snpOffset = 0;
                             }
                         }
 
@@ -371,22 +371,12 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
 
             if ( major ) {
                 sampleOffset++;
-                while ( sampleOffset > sampleNames.size()-1 ) {  //using offsets for comparison; size 5 == offset 4
-                    snpOffset++;
-                    sampleOffset = sampleOffset % sampleNames.size();
-                }
-                if ( snpOffset > variants.size()-1) {
-                    // done with file; early return
+                if ( sampleOffset > sampleNames.size()-1 ) {  //using offsets for comparison; size 5 == offset 4
                     return;
                 }
             } else {
                 snpOffset++;
-                while( snpOffset > variants.size()-1 ) {
-                    sampleOffset++;
-                    snpOffset = snpOffset % variants.size();
-                }
-                if ( sampleOffset > sampleNames.size()-1 ) {
-                    // done with file; early return
+                if( snpOffset > variants.size()-1 ) {
                     return;
                 }
             }
@@ -444,11 +434,17 @@ class PlinkVariantInfo implements Comparable {
     }
 
     public void setAlleles(String al1, String al2) {
-        locAllele1 = al1;
+        if ( al1.equals("0") ) {
+            // encoding for a site at which no variants were detected
+            locAllele1 = al2;
+        } else {
+            locAllele1 = al1;
+        }
         locAllele2 = al2;
         if ( ! isSNP() ) {
             siteIndelLength = Math.max(locAllele1.length(),locAllele2.length());
         }
+
     }
 
     // CONSTRUCTOR
@@ -501,7 +497,7 @@ class PlinkVariantInfo implements Comparable {
         if ( genoTYPE == 0 ) {
             alleleStr[0] = locAllele1;
             alleleStr[1] = locAllele1;
-        } else if (genoTYPE == 1) {
+        } else if (genoTYPE == 2) {
             alleleStr[0] = locAllele1;
             alleleStr[1] = locAllele2;
         } else if (genoTYPE == 3 ) {
