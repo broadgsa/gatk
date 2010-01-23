@@ -4,9 +4,14 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 
 import java.io.*;
 import java.util.*;
+
+import net.sf.samtools.SAMFileHeader;
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,7 +21,7 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements ReferenceOrderedDatum {
-
+    private boolean allowTest = false;
     private final Set<String> headerEntries = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex",
                 "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
     private final byte SNP_MAJOR_MODE = 0x00000001;
@@ -24,7 +29,6 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
     private ArrayList<PlinkVariantInfo> variants;
     private PlinkVariantInfo currentVariant;
     private ListIterator<PlinkVariantInfo> variantIterator;
-
 
     private PlinkFileType plinkFileType;
 
@@ -93,10 +97,11 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
         return currentVariant.getGenotypes();
     }
 
+
     // AM I PARSING A TEXT OR A BINARY FILE ??
 
     private ArrayList<PlinkVariantInfo> parsePlinkFile(File file) {
-        String[] splitFileName = file.getName().split(".");
+        String[] splitFileName = file.getName().split("\\.");
         String extension = splitFileName[splitFileName.length-1];
         if ( extension.equals("ped") || extension.equals("raw") ) {
             return parseTextFormattedPlinkFile(file);
@@ -127,6 +132,7 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
                 incorporateInfo(seqVars,snpOffsets,line);
             } while ( line != null );
 
+
             java.util.Collections.sort(seqVars); // because the comparable uses the GenomeLoc comparable; these
                                                  // are sorted in standard reference order
 
@@ -140,6 +146,10 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
     }
 
     private void incorporateInfo(List<PlinkVariantInfo> vars, List<Integer> offsets, String plinkLine) {
+        if ( plinkLine == null ) {
+            return;
+        }
+        
         String[] plinkInfo;
         if ( plinkFileType == PlinkFileType.STANDARD_PED) {
             plinkInfo = plinkLine.split("\t");
@@ -190,7 +200,7 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
         ArrayList<Integer> offsets = new ArrayList<Integer>();
         String[] headerFields;
         if ( plinkFileType == PlinkFileType.STANDARD_PED ) {
-            headerFields = header.split("\t");
+            headerFields = header.split("\t+");
         } else {
             headerFields = header.split("\\s+");
         }
@@ -439,6 +449,7 @@ class PlinkVariantInfo implements Comparable {
 
     public PlinkVariantInfo(String variantName) {
         this.variantName = variantName;
+        parseName();
     }
 
     public PlinkVariantInfo(String variantName, boolean onlyLookForIndelInfo ) {
@@ -451,7 +462,7 @@ class PlinkVariantInfo implements Comparable {
     }
 
     private void parseName() {
-        String chrom = this.variantName.split("_c")[1].split("_")[0];
+        String chrom = this.variantName.split("\\|c")[1].split("_")[0];
         String pos = this.variantName.split("_p")[1].split("_")[0];
         this.loc = GenomeLocParser.parseGenomeLoc(chrom+":"+pos);
         this.parseNameForIndels();
@@ -505,6 +516,8 @@ class PlinkVariantInfo implements Comparable {
         for ( String alStr : alleleStrings ) {
             alleles.add(new Allele(Allele.AlleleType.UNKNOWN_POINT_ALLELE,alStr));
         }
+        genotypes.add(new Genotype(alleles,sampleName,20.0) );
+        sampleNames.add(sampleName);
     }
 
     private void addIndel(String[] alleleStrings, String sampleName) {
