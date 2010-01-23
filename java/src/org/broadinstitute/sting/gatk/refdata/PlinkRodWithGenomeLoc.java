@@ -23,7 +23,7 @@ import net.sf.samtools.SAMFileHeader;
 public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements ReferenceOrderedDatum {
     private final Set<String> headerEntries = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex",
                 "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
-    private final byte SNP_MAJOR_MODE = 0x00000001;
+    private final byte SNP_MAJOR_MODE = 1;
 
     private ArrayList<PlinkVariantInfo> variants;
     private PlinkVariantInfo currentVariant;
@@ -240,10 +240,10 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
         PlinkBinaryTrifecta trifecta = new PlinkBinaryTrifecta();
         String absolute_path = file.getAbsolutePath();
         String[] directory_tree = absolute_path.split("/");
-        String file_name = directory_tree[directory_tree.length-1].split(".")[0];
+        String file_name = directory_tree[directory_tree.length-1].split("\\.")[0];
         StringBuilder pathBuilder = new StringBuilder();
-        for ( String folder : directory_tree ) {
-            pathBuilder.append(String.format("%s/",folder));
+        for ( int i = 0; i < directory_tree.length - 1; i ++ ) {
+            pathBuilder.append(String.format("%s/",directory_tree[i]));
         }
         String path = pathBuilder.toString();
         trifecta.bedFile = new File(path+file_name+".bed");
@@ -337,20 +337,20 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
 
                         if ( snpMajorMode ) {
                             sampleOffset = sampleOffset + 4;
-                            while ( sampleOffset > samples.size() ) {
+                            while ( sampleOffset > samples.size() -1 ) {
                                 snpOffset ++;
                                 sampleOffset = sampleOffset % samples.size();
                             }
                         } else {
                             snpOffset = snpOffset + 4;
-                            while ( snpOffset > variants.size() ) {
+                            while ( snpOffset > variants.size() -1 ) {
                                 sampleOffset ++;
                                 snpOffset = snpOffset % samples.size();
                             }
                         }
 
                     } else {
-                        if ( bytesRead == 2) {
+                        if ( bytesRead == 3) {
                             snpMajorMode = genotype == SNP_MAJOR_MODE;
                         }
                     }
@@ -371,21 +371,21 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
 
             if ( major ) {
                 sampleOffset++;
-                while ( sampleOffset > sampleNames.size() ) {
+                while ( sampleOffset > sampleNames.size()-1 ) {  //using offsets for comparison; size 5 == offset 4
                     snpOffset++;
                     sampleOffset = sampleOffset % sampleNames.size();
                 }
-                if ( snpOffset >= variants.size() ) {
+                if ( snpOffset > variants.size()-1) {
                     // done with file; early return
                     return;
                 }
             } else {
                 snpOffset++;
-                while( snpOffset > variants.size() ) {
+                while( snpOffset > variants.size()-1 ) {
                     sampleOffset++;
                     snpOffset = snpOffset % variants.size();
                 }
-                if ( sampleOffset >= sampleNames.size() ) {
+                if ( sampleOffset > sampleNames.size()-1 ) {
                     // done with file; early return
                     return;
                 }
@@ -395,10 +395,10 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
 
     private int[] parseGenotypes(byte genotype) {
         int[] genotypes = new int[4];
-        genotypes[0] = ( genotype & 0x00000011 );
-        genotypes[1] = ( ( genotype & 0x00001100 ) >>> 2 );
-        genotypes[2] = ( ( genotype & 0x00110000 ) >>> 4 );
-        genotypes[3] = ( ( genotype & 0x11000000 ) >>> 6 );
+        genotypes[0] = ( genotype & 3 );
+        genotypes[1] = ( ( genotype & 12 ) >>> 2 );
+        genotypes[2] = ( ( genotype & 48 ) >>> 4 );
+        genotypes[3] = ( ( genotype & 192 ) >>> 6 );
         return genotypes;
     }
 }
@@ -504,9 +504,12 @@ class PlinkVariantInfo implements Comparable {
         } else if (genoTYPE == 1) {
             alleleStr[0] = locAllele1;
             alleleStr[1] = locAllele2;
-        } else {
+        } else if (genoTYPE == 3 ) {
             alleleStr[0] = locAllele2;
             alleleStr[1] = locAllele2;
+        } else {
+            alleleStr[0] = "0";
+            alleleStr[1] = "0";
         }
 
         if ( this.isSNP() ) {

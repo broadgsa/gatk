@@ -152,4 +152,14 @@ public class PlinkRodTest extends BaseTest {
         Assert.assertEquals("That the insertion bases are correct","CTC",genotypesInRod.get(1).get(2).getAlleles().get(0).getBases());
         Assert.assertEquals("That the snp bases are correct","GC",genotypesInRod.get(2).get(2).getAlleles().get(0).getBases()+genotypesInRod.get(2).get(2).getAlleles().get(1).getBases());
     }
+
+    @Test
+    public void testBinaryPedFileNoIndels() {
+        PlinkRodWithGenomeLoc rod = new PlinkRodWithGenomeLoc("binaryTest1");
+        try {
+            rod.initialize(new File("/humgen/gsa-hpprojects/GATK/data/Validation_Data/test/plink_rod_test/binary_noindel_test.bed"));
+        } catch (FileNotFoundException e) {
+            throw new StingException("Test file for testBinaryPedFileNoIndels() could not be found",e);
+        }
+    }
 }
