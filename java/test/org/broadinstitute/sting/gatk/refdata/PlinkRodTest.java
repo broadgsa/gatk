@@ -203,4 +203,41 @@ public class PlinkRodTest extends BaseTest {
             snpNo++;
         }
     }
+
+    @Test
+    public void testIndelBinary() {
+        PlinkRodWithGenomeLoc rod = new PlinkRodWithGenomeLoc("binaryTest2");
+        try {
+            rod.initialize(new File("/humgen/gsa-hpprojects/GATK/data/Validation_Data/test/plink_rod_test/binary_indel_test.bed"));
+        } catch (FileNotFoundException e) {
+            throw new StingException("Test file for testBinaryPedFileNoIndels() could not be found",e);
+        }
+
+        ArrayList<ArrayList<Genotype>> genotypesInRod = new ArrayList<ArrayList<Genotype>>();
+        do {
+            genotypesInRod.add(rod.getGenotypes());
+        } while ( rod.parseLine(null,null) );
+
+        List<String> expecAlleles = Arrays.asList("ACCA","","ACCAACCA","GGGG","GG","","AA","TA","00","","CCTCCT","CCT",
+                    "TC","CC","TT","GG","GG","AG","","CTTGCTTG","CTTG","TG","GG","GG");
+        List<Boolean> expecDeletion = Arrays.asList(false,false,false,false,false,false,false,false,false,true,false,true,
+                    false,false,false,false,false,false,true,false,true,false,false,false);
+        List<Boolean> expecInsertion = Arrays.asList(true,false,true,true,true,false,false,false,false,false,false,false,
+                    false,false,false,false,false,false,false,false,false,false,false,false);
+
+        int al = 0;
+        for ( ArrayList<Genotype> snp : genotypesInRod ) {
+            for ( Genotype gen : snp ) {
+                String alStr = gen.getAlleles().get(0).getBases()+gen.getAlleles().get(1).getBases();
+                Allele firstAl = gen.getAlleles().get(0);
+                Allele secondAl = gen.getAlleles().get(1);
+                boolean isInsertion = ( firstAl.getType() == Allele.AlleleType.INSERTION || secondAl.getType() == Allele.AlleleType.INSERTION );
+                boolean isDeletion =  ( firstAl.getType() == Allele.AlleleType.DELETION || secondAl.getType() == Allele.AlleleType.DELETION );
+                Assert.assertEquals("That the indel file has the correct alleles for genotype "+al,expecAlleles.get(al), alStr);
+                Assert.assertEquals("That the insertion property of genotype "+al+" is correct",expecInsertion.get(al),isInsertion);
+                Assert.assertEquals("That the deletion property of genotype "+al+" is correct", expecDeletion.get(al), isDeletion);
+                al++;
+            }
+        }
+    }
 }
