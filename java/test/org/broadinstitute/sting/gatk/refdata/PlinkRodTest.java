@@ -85,7 +85,7 @@ public class PlinkRodTest extends BaseTest {
         ArrayList<Genotype> snp3 = genotypesInRod.get(2);
 
         Assert.assertEquals("That there are three Genotypes in SNP 1",3,snp1.size());
-        Assert.assertEquals("That there are three samples in SNP 1", 3, sampleNamesInRod.get(0).size());
+        Assert.assertEquals("That there are three samples in SNP 2", 3, sampleNamesInRod.get(1).size());
         Assert.assertEquals("That there are three Genotypes in SNP 3",3,snp3.size());
 
 
@@ -113,5 +113,43 @@ public class PlinkRodTest extends BaseTest {
         for ( int i = 0; i < 3; i ++ ) {
             lociCorrect = lociCorrect && lociInRod.get(i).toString().equals(expectedLoci.get(i));
         }
+    }
+
+    @Test
+    public void testStandardPedFileWithIndels() {
+        PlinkRodWithGenomeLoc rod = new PlinkRodWithGenomeLoc("test");
+        try {
+            rod.initialize(new File("/humgen/gsa-hpprojects/GATK/data/Validation_Data/test/plink_rod_test/standard_plink_with_indels.ped") );
+        } catch ( FileNotFoundException e) {
+            throw new StingException("Test file for testStandardPedFileWithIndels() could not be found", e);
+        }
+
+        // Iterate through the rod
+
+        List<ArrayList<Genotype>> genotypesInRod = new ArrayList<ArrayList<Genotype>>();
+        ArrayList<ArrayList<String>> sampleNamesInRod = new ArrayList<ArrayList<String>>();
+        ArrayList<GenomeLoc> lociInRod = new ArrayList<GenomeLoc>();
+        ArrayList<Boolean> snpSites = new ArrayList<Boolean>();
+        do {
+            genotypesInRod.add(rod.getGenotypes());
+            sampleNamesInRod.add(rod.getVariantSampleNames());
+            lociInRod.add(rod.getLocation());
+            snpSites.add(rod.variantIsSNP());
+        } while ( rod.parseLine(null,null) );
+
+        boolean snpOrder = true;
+        List<Boolean> expectedOrder = Arrays.asList(true,false,true,false);
+        for ( int i = 0; i < 4; i ++ ) {
+            snpOrder = snpOrder && ( expectedOrder.get(i) == snpSites.get(i) );
+        }
+
+        Assert.assertTrue("That the variant type order is as expected", snpOrder);
+        Assert.assertTrue("That the second genotype of second variant is not a point mutation", ! genotypesInRod.get(1).get(1).isPointGenotype() );
+        Assert.assertTrue("That the second genotype of fourth variant is not a point mutation", ! genotypesInRod.get(3).get(1).isPointGenotype() );
+        Assert.assertTrue("That the second genotype of fourth variant is homozygous", genotypesInRod.get(3).get(1).isHom());
+        Assert.assertTrue("That the fourth genotype of fourth variant is heterozygous",genotypesInRod.get(3).get(3).isHet());
+        Assert.assertEquals("That the reference deletion genotype has the correct string", "ATTTAT",genotypesInRod.get(3).get(2).getAlleles().get(0).getBases());
+        Assert.assertEquals("That the insertion bases are correct","CTC",genotypesInRod.get(1).get(2).getAlleles().get(0).getBases());
+        Assert.assertEquals("That the snp bases are correct","GC",genotypesInRod.get(2).get(2).getAlleles().get(0).getBases()+genotypesInRod.get(2).get(2).getAlleles().get(1).getBases());
     }
 }

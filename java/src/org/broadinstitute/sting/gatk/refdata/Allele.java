@@ -17,7 +17,7 @@ public class Allele {
 
     // the types of variants we currently allow
     public enum AlleleType {
-        REFERENCE, SNP, INSERTION, DELETION, INVERSION, UNKNOWN_POINT_ALLELE
+        REFERENCE, SNP, INSERTION, DELETION, INVERSION, UNKNOWN_POINT_ALLELE, DELETION_REFERENCE
     }
 
     public Allele(AlleleType type, String bases) {

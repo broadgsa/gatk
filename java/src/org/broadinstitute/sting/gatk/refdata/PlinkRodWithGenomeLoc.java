@@ -21,7 +21,6 @@ import net.sf.samtools.SAMFileHeader;
  * To change this template use File | Settings | File Templates.
  */
 public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements ReferenceOrderedDatum {
-    private boolean allowTest = false;
     private final Set<String> headerEntries = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex",
                 "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
     private final byte SNP_MAJOR_MODE = 0x00000001;
@@ -95,6 +94,10 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
 
     public ArrayList<Genotype> getGenotypes() {
         return currentVariant.getGenotypes();
+    }
+
+    public boolean variantIsSNP() {
+        return currentVariant.isSNP();
     }
 
 
@@ -226,6 +229,9 @@ public class PlinkRodWithGenomeLoc extends BasicReferenceOrderedDatum implements
         ArrayList<PlinkVariantInfo> parsedVariants = instantiateVariantsFromBimFile(binaryFiles.bimFile);
         ArrayList<String> sampleNames = getSampleNameOrderingFromFamFile(binaryFiles.famFile);
         ArrayList<PlinkVariantInfo> updatedVariants = getGenotypesFromBedFile(parsedVariants,sampleNames,binaryFiles.bedFile);
+
+        java.util.Collections.sort(updatedVariants);
+
         return updatedVariants;
     }
 
@@ -429,7 +435,7 @@ class PlinkVariantInfo implements Comparable {
         return genotypes;
     }
 
-    private boolean isSNP() {
+    public boolean isSNP() {
         return this.indelType == null;
     }
 
@@ -516,6 +522,7 @@ class PlinkVariantInfo implements Comparable {
         for ( String alStr : alleleStrings ) {
             alleles.add(new Allele(Allele.AlleleType.UNKNOWN_POINT_ALLELE,alStr));
         }
+        
         genotypes.add(new Genotype(alleles,sampleName,20.0) );
         sampleNames.add(sampleName);
     }
@@ -544,7 +551,7 @@ class PlinkVariantInfo implements Comparable {
             alt = new Allele(indelType,baseStr);
         } else {
             alt = new Allele(indelType,"");
-            ref = new Allele(Allele.AlleleType.REFERENCE,baseStr);
+            ref = new Allele(Allele.AlleleType.DELETION_REFERENCE,baseStr);
         }
 
         this.setIndelLength(alt,baseStr.length());
@@ -571,8 +578,8 @@ class PlinkVariantInfo implements Comparable {
                 allele2 = new Allele(indelType,"");
                 reference = false;
             } else {
-                allele1 = new Allele(Allele.AlleleType.REFERENCE,strand1);
-                allele2 = new Allele(Allele.AlleleType.REFERENCE,strand2);
+                allele1 = new Allele(Allele.AlleleType.DELETION_REFERENCE,strand1);
+                allele2 = new Allele(Allele.AlleleType.DELETION_REFERENCE,strand2);
                 reference = true;
             }
         } else {
@@ -597,6 +604,7 @@ class PlinkVariantInfo implements Comparable {
 
         if ( reference || siteIndelLength != -1 ) { // if we're ref or know the insertion/deletion length of the site
             Genotype gen = new Genotype(Arrays.asList(allele1,allele2), sampleName, 20.0);
+            setIndelGenotypeLength(gen,siteIndelLength);
             this.genotypes.add(gen);
             this.sampleNames.add(sampleName);
         } else { // hold on the variants until we *do* know the in/del length at this site
