@@ -24,9 +24,9 @@ import net.sf.picard.reference.ReferenceSequenceFileWalker;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 
-import org.apache.commons.math.optimization.*;
-import org.apache.commons.math.optimization.direct.*;
-import org.apache.commons.math.analysis.MultivariateRealFunction;
+//import org.apache.commons.math.optimization.*;
+//import org.apache.commons.math.optimization.direct.*;
+//import org.apache.commons.math.analysis.MultivariateRealFunction;
 
 // First draft of a program for working with VCF files in various ways.
 
