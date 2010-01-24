@@ -66,10 +66,13 @@ class VCFSequenomAnalysis extends CommandLineProgram
 			VCFRecord record1 = reader1.next();
 			VCFRecord record2 = reader2.next();
 
+
 			while(true)
 			{
 				if (record1 == null) { break; }
 				if (record2 == null) { break; }
+
+				String[] sample_names = record2.getSampleNames();
 
 				Interval interval1 = VCFTool.getIntervalFromRecord(record1);
 				Interval interval2 = VCFTool.getIntervalFromRecord(record2);
@@ -97,7 +100,7 @@ class VCFSequenomAnalysis extends CommandLineProgram
 					int n_alt_sequenom = VCFTool.Compute_n_alt(record1);
 					int n_alt_sequencing = VCFTool.Compute_n_alt(record2);
 
-					double HWE_sequenom = VCFTool.Compute_HWE(record1);
+					double HWE_sequenom = VCFTool.Compute_HWE(record1, sample_names);
 					double HWE_sequencing = VCFTool.Compute_HWE(record2);
 
 					boolean isPolymorphic_sequenom   = (n_alt_sequenom   > 0) ? true : false;

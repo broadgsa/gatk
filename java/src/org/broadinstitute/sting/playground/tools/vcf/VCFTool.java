@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import edu.mit.broad.picard.util.Interval;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 
 import java.io.*;
@@ -76,7 +77,6 @@ class VCFValidate extends CommandLineProgram
 class VCFStats extends CommandLineProgram 
 {
 		@Argument(fullName = "input", shortName = "input", doc = "file to read", required = true) public String in_filename;
-		//@Argument(fullName = "output", shortName = "output", doc = "file to write", required = true) public String out_filename;
 		@Argument(fullName = "auto_correct", shortName = "auto_correct", doc = "auto-correct the VCF file if it's off-spec", required = false) public Boolean autocorrect = false;
 		@Argument(fullName = "locus", shortName = "locus", doc = "file listing loci to extract", required = true) public String locus_string;
 
@@ -102,25 +102,56 @@ class VCFStats extends CommandLineProgram
 			// Stats collectors
 			int transitions = 0;
 			int transversions = 0;
+			int dbsnp = 0;
 			int total_snps = 0;
-			int[] AC_histogram = new int[1000]; int highest_AC = 0;
+			int[] AC_histogram    = new int[1000]; int highest_AC = 0;
+			int[] DP_histogram    = new int[1000000]; int highest_DP = 0;
+
+			int[] AC_transitions = new int[1000]; 
+			int[] DP_transitions = new int[1000]; 
+
+			int depth_sum = 0;
 
 			boolean before = true;
 
 			while(reader.hasNext())
 			{
-				VCFRecord record = reader.next();
+				VCFRecord record = null;
+				try
+				{
+					record = reader.next();
+				}
+				catch (Exception e)
+				{
+					System.err.printf("WARNING: %s\n", e.toString());
+					continue;
+				}
 				Interval this_locus = VCFTool.getIntervalFromRecord(record);
 				if (locus.intersects(this_locus)) 
 				{ 
 					before = false;
 
 					Map<String,String> info = record.getInfoValues();
-					int AC = Integer.parseInt(info.get("AC"));
+
+					int AC = 0;
+					int DP = 0;
+					int DB = 0;
+
+					if (info.containsKey("AC")) { AC = Integer.parseInt(info.get("AC")); }
+					if (info.containsKey("DP")) { DP = Integer.parseInt(info.get("DP")); }
+					if (info.containsKey("DB")) { DB = Integer.parseInt(info.get("DB")); }
+
+					depth_sum += DP;
+
+					dbsnp += DB; // 1 if in dbsnp, 0 otherwise
+
 					AC_histogram[AC] += 1;
 					if (AC > highest_AC) { highest_AC = AC; }
 
-					if (VCFTool.isTransition(record)) { transitions += 1; }
+					DP_histogram[DP] += 1;
+					if (DP > highest_DP) { highest_DP = DP; }
+
+					if (VCFTool.isTransition(record)) { transitions += 1; AC_transitions[AC] += 1; DP_transitions[DP] += 1; }
 					else { transversions += 1; }
 
 					total_snps += 1;
@@ -129,13 +160,49 @@ class VCFStats extends CommandLineProgram
 				else if ((before == false) && (this_locus.compareTo(locus) > 0)) { break; }
 			}
 
-			System.out.printf("Total SNPs : %d\n", total_snps);
-			System.out.printf("Ts/Tv      : %.02f\n", (double)transitions / (double)transversions);
+			double mean_depth = (double)depth_sum / (double)total_snps;
+			double snp_rate = 1.0 / ((double)total_snps / (double)locus.length());
+
+			int DP_running_sum = 0;
+			int DP_1percent_low = -1;
+			int DP_5percent_low = -1;
+			for (int DP = 1; DP <= highest_DP; DP++)
+			{	
+				if ((DP_1percent_low == -1) && (DP_running_sum >= 0.01*(double)total_snps)) { DP_1percent_low = DP; } 
+				if ((DP_5percent_low == -1) && (DP_running_sum >= 0.05*(double)total_snps)) { DP_5percent_low = DP; } 
+				DP_running_sum += DP_histogram[DP];
+			}
+
+			DP_running_sum = 0;
+			int DP_1percent_high = -1;
+			int DP_5percent_high = -1;
+			for (int DP = highest_DP; DP >= 0; DP--)
+			{	
+				if ((DP_1percent_high == -1) && (DP_running_sum >= 0.01*(double)total_snps)) { DP_1percent_high = DP; } 
+				if ((DP_5percent_high == -1) && (DP_running_sum >= 0.05*(double)total_snps)) { DP_5percent_high = DP; } 
+				DP_running_sum += DP_histogram[DP];
+			}
+
+
+			System.out.printf("Locus           : %s\n", locus.toString());
+			System.out.printf("Total SNPs      : %d\n", total_snps);
+			System.out.printf("SNP Rate        : 1/%f\n", snp_rate);
+			System.out.printf("Ts/Tv           : %.02f\n", (double)transitions / (double)transversions);
+			System.out.printf("%%dbsnp          : %.02f\n", 100.0 * (double)dbsnp / (double)total_snps);
+			System.out.printf("Average Depth   : %f\n", mean_depth);
+			System.out.printf("1%% Depth bounds : %d %d\n", DP_1percent_low, DP_1percent_high);
+			System.out.printf("5%% Depth bounds : %d %d\n", DP_5percent_low, DP_5percent_high);
 			System.out.printf("\n");
-			System.out.printf("AAF\tCount\n");
+			System.out.printf("table\tAAF\tCount\tTs/Tv\n");
 			for (int AC = 1; AC <= highest_AC; AC++)
 			{	
-				System.out.printf("%d\t%d\n", AC, AC_histogram[AC]);
+				System.out.printf("AAF\t%d\t%d\t%f\n", AC, AC_histogram[AC], (double)AC_transitions[AC]/(double)(AC_histogram[AC]-AC_transitions[AC]));
+			}
+			System.out.printf("\n");
+			System.out.printf("DEPTH\ttable\tDepth\tCount\tTs/Tv\n");
+			for (int DP = 1; DP <= highest_DP; DP++)
+			{	
+				System.out.printf("%d\t%d\t%f\n", DP, DP_histogram[DP], (double)DP_transitions[DP]/(double)(DP_histogram[DP]-DP_transitions[DP]));
 			}
 			System.out.printf("\n");
 
@@ -307,8 +374,59 @@ class FixRefFields extends CommandLineProgram
 		}
 }
 
-
 class VCFGrep extends CommandLineProgram 
+{
+		@Argument(fullName = "input", shortName = "input", doc = "file to read", required = true) public String in_filename;
+		@Argument(fullName = "output", shortName = "output", doc = "file to write", required = true) public String out_filename;
+		@Argument(fullName = "auto_correct", shortName = "auto_correct", doc = "auto-correct the VCF file if it's off-spec", required = false) public Boolean autocorrect = false;
+		@Argument(fullName = "loci", shortName = "loci", doc = "file listing loci to extract", required = true) public String loci_filename;
+
+		@Override
+		protected int execute() 
+		{
+			HashSet<String> loci = new HashSet<String>();
+			try
+			{
+				Scanner loci_reader = new Scanner(new File(loci_filename));
+				while(loci_reader.hasNextLine())
+				{
+					String line = loci_reader.nextLine();
+					line = line.replaceAll("\\s+", "");
+					loci.add(line);
+				}
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+
+			try
+			{
+				PrintStream output = new PrintStream(new File(out_filename));
+
+				Scanner reader = new Scanner(new File(in_filename));
+				while(reader.hasNextLine())
+				{
+					String line = reader.nextLine();
+
+					if (line.matches("^\\#.*$")) { output.print(line + "\n"); continue; }
+
+					String[] tokens = line.split("\\s+");
+					String locus = tokens[0] + ":" + tokens[1];
+					if (loci.contains(locus)) { output.print(line + "\n"); continue; }
+				}
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+
+			return 0;
+		}
+
+}
+
+class VCFGrep_old extends CommandLineProgram 
 {
 		@Argument(fullName = "input", shortName = "input", doc = "file to read", required = true) public String in_filename;
 		@Argument(fullName = "output", shortName = "output", doc = "file to write", required = true) public String out_filename;
@@ -579,193 +697,6 @@ class VCFSimpleStats extends CommandLineProgram
 			return 0;
 		}
 }
-/*
-{
-		@Argument(fullName = "vcf1", shortName = "vcf1", doc = "file to open", required = true) public String filename1;
-		@Argument(fullName = "vcf2", shortName = "vcf2", doc = "file to open", required = true) public String filename2;
-		@Argument(fullName = "out", shortName = "out", doc = "file to write results to", required = true) public String output_filename;
-		@Argument(fullName = "auto_correct", shortName = "auto_correct", doc = "auto-correct the VCF file if it's off-spec", required = false) public Boolean autocorrect = false;
-		@Argument(fullName = "verbose", shortName = "verbose", doc = "print extremely detailed stats", required = false) public Boolean verbose = false;
-
-		@Override
-		protected int execute() 
-		{
-			//System.out.println("Loading " + filename + "...");
-		
-			PrintStream output = null;
-			try
-			{
-				output = new PrintStream(new FileOutputStream(output_filename));
-			}
-			catch (Exception e)
-			{
-				throw new RuntimeException(e);
-			}
-
-			VCFReader reader1;
-			VCFReader reader2;
-
-			if (autocorrect) 
-			{ 
-				reader1 = new VCFReader(VCFHomogenizer.create(filename1)); 
-				reader2 = new VCFReader(VCFHomogenizer.create(filename2)); 
-			}
-			else 
-			{ 
-				reader1 = new VCFReader(new File(filename1)); 
-				reader2 = new VCFReader(new File(filename2)); 
-			}
-		
-			VCFHeader header1 = reader1.getHeader();
-			VCFHeader header2 = reader2.getHeader();
-
-			VCFRecord record1 = reader1.next();
-			VCFRecord record2 = reader2.next();
-
-			int TP = 0;
-			int FP = 0;
-			int TN = 0;
-			int FN = 0;
-			int total = 0;
-
-			while(true)
-			{
-				if (record1 == null) { break; }
-				if (record2 == null) { break; }
-
-				Interval interval1 = VCFTool.getIntervalFromRecord(record1);
-				Interval interval2 = VCFTool.getIntervalFromRecord(record2);
-
-				int comparison = interval1.compareTo(interval2);
-				
-				if (comparison == 0)
-				{
-					// records match! compute concordance.
-					
-					// (unless one of them is "filtered")
-					if (record1.isFiltered() || record2.isFiltered())
-					{
-						record1 = reader1.next();
-						record2 = reader2.next();
-					}
-					
-					char ref = record1.getReferenceBase();
-					
-					String[] sample_names1 = record1.getSampleNames();
-					String[] sample_names2 = record2.getSampleNames();
-
-					List<VCFGenotypeRecord> genotypes1 = record1.getVCFGenotypeRecords();
-					List<VCFGenotypeRecord> genotypes2 = record2.getVCFGenotypeRecords();
-
-					Map<String, VCFGenotypeRecord> map2 = new HashMap<String, VCFGenotypeRecord>();
-					for (int i = 0; i < genotypes2.size(); i++)
-					{
-						map2.put(genotypes2.get(i).getSampleName(), genotypes2.get(i));
-					}
-
-					long n_ref_1 = 0;
-					long n_alt_1 = 0;
-
-					long n_ref_2 = 0;
-					long n_alt_2 = 0;
-
-					for (int i = 0; i < sample_names1.length; i++)
-					{
-						VCFGenotypeRecord rec1 = genotypes1.get(i);
-						VCFGenotypeRecord rec2 = map2.get(sample_names1[i]);
-
-						if (rec2 == null) { continue; }
-
-						Long gq1;
-
-						if (rec1.getFields().get("GQ") != null)
-						{
-							Double gq1_double = Double.parseDouble(rec1.getFields().get("GQ"));
-							gq1 = gq1_double.longValue();
-						}
-						else
-						{
-							gq1 = 0L;
-						}
-
-						List<VCFGenotypeEncoding> alleles1 = rec1.getAlleles();
-						List<VCFGenotypeEncoding> alleles2 = rec2.getAlleles();
-
-						String g1 = "";
-						String g2 = "";
-
-						for (int j = 0; j < alleles1.size(); j++) { g1 += alleles1.get(j).getBases(); }
-						for (int j = 0; j < alleles2.size(); j++) { g2 += alleles2.get(j).getBases(); }
-
-						char[] c1 = g1.toCharArray();
-						char[] c2 = g2.toCharArray();
-
-						Arrays.sort(c1);
-						Arrays.sort(c2);
-
-						g1 = new String(c1);
-						g2 = new String(c2);
-
-						if ((g1.equals("..")) ||
-							(g2.equals("..")))
-						{
-							continue;
-						}
-
-						if (g1.charAt(0) == ref) { n_ref_1 += 1; } else { n_alt_1 += 1; }
-						if (g1.charAt(1) == ref) { n_ref_1 += 1; } else { n_alt_1 += 1; }
-
-						if (g2.charAt(0) == ref) { n_ref_2 += 1; } else { n_alt_2 += 1; }
-						if (g2.charAt(1) == ref) { n_ref_2 += 1; } else { n_alt_2 += 1; }
-					}
-
-					if ((n_alt_1 > 0) && (n_alt_2 > 0)) { TP += 1; }
-					if ((n_alt_1 > 0) && (n_alt_2 == 0)) { FP += 1; }
-					if ((n_alt_1 == 0) && (n_alt_2 > 0)) { FN += 1; }
-					if ((n_alt_1 == 0) && (n_alt_2 == 0)) { TN += 1; }
-					total += 1;
-
-					if (verbose)
-					{
-						output.printf("SNP " 
-										+ interval1.toString() 
-										+ " " + n_ref_1 + " " + n_alt_1 
-										+ " " + n_ref_2 + " " + n_alt_2 + "\n"); 
-					}
-
-					record1 = reader1.next();
-					record2 = reader2.next();
-				}
-				else if (comparison > 0)
-				{
-					// interval1 is later than interval2.
-					record2 = reader2.next();
-				}
-				else if (comparison < 0)
-				{
-					// interval2 is later than interval1.
-					record1 = reader1.next();
-				}
-
-			}
-
-
-			// Now output the statistics.
-
-			output.printf("TP FP TN FN\n%d(%f) %d(%f) %d(%f) %d(%f)\n",
-							TP, (double)TP/(double)total,		
-							FP, (double)FP/(double)total,		
-							TN, (double)TN/(double)total,		
-							FN, (double)FN/(double)total);
-
-			output.flush();
-			output.close();
-
-
-			return 0;
-		}
-}
-*/
 
 
 class VCFConcordance extends CommandLineProgram 
@@ -775,7 +706,9 @@ class VCFConcordance extends CommandLineProgram
 		@Argument(fullName = "out", shortName = "out", doc = "file to write results to", required = true) public String output_filename;
 		@Argument(fullName = "auto_correct", shortName = "auto_correct", doc = "auto-correct the VCF file if it's off-spec", required = false) public Boolean autocorrect = false;
 		@Argument(fullName = "verbose", shortName = "verbose", doc = "print extremely detailed stats", required = false) public Boolean verbose = false;
+		@Argument(fullName = "list_genotypes", shortName = "list_genotypes", doc = "print each person's genotype for debugging", required = false) public Boolean list_genotypes = false;
 		@Argument(fullName = "qual_threshold", shortName = "qual_threshold", doc = "minimum genotype quality to consider", required = false) public long qual_threshold = 1;
+		@Argument(fullName = "samples", shortName = "samples", doc = "optional list of individuals to score", required = false) public String samples_filename = null;
 
 
 		@Override
@@ -792,7 +725,28 @@ class VCFConcordance extends CommandLineProgram
 
 			// 
 			/////////////////////////////////
-		
+
+			HashSet<String> sample_mask = new HashSet<String>();
+			if (samples_filename != null)
+			{
+				Scanner samples_reader = null;
+				try
+				{
+					samples_reader = new Scanner(new File(samples_filename));
+				}
+				catch (Exception e)
+				{
+					throw new RuntimeException(e);
+				}
+				while(samples_reader.hasNextLine())
+				{
+					String line = samples_reader.nextLine();
+					line.replaceAll("^\\s+|\\s+$", "");
+					sample_mask.add(line);
+				}
+			}
+
+
 			PrintStream output = null;
 			try
 			{
@@ -833,6 +787,8 @@ class VCFConcordance extends CommandLineProgram
 				Interval interval2 = VCFTool.getIntervalFromRecord(record2);
 
 				int comparison = interval1.compareTo(interval2);
+
+				//System.out.println("DBG: " + interval1 + " " + interval2);
 				
 				if (comparison == 0)
 				{
@@ -866,13 +822,19 @@ class VCFConcordance extends CommandLineProgram
 
 					for (int i = 0; i < sample_names1.length; i++)
 					{
+						if ((samples_filename != null) &&
+							(! sample_mask.contains(sample_names1[i])))
+						{
+							continue;
+						}
+
+
 						VCFGenotypeRecord rec1 = genotypes1.get(i);
 						VCFGenotypeRecord rec2 = map2.get(sample_names1[i]);
 
 						if (rec2 == null) { continue; }
 
 						Long gq1;
-
 						if (rec1.getFields().get("GQ") != null)
 						{
 							Double gq1_double = Double.parseDouble(rec1.getFields().get("GQ"));
@@ -881,6 +843,17 @@ class VCFConcordance extends CommandLineProgram
 						else
 						{
 							gq1 = 0L;
+						}
+
+						Long gq2;
+						if (rec2.getFields().get("GQ") != null)
+						{
+							Double gq2_double = Double.parseDouble(rec2.getFields().get("GQ"));
+							gq2 = gq2_double.longValue();
+						}
+						else
+						{
+							gq2 = 0L;
 						}
 
 						List<VCFGenotypeEncoding> alleles1 = rec1.getAlleles();
@@ -901,6 +874,20 @@ class VCFConcordance extends CommandLineProgram
 						g1 = new String(c1);
 						g2 = new String(c2);
 
+						if (list_genotypes) 
+						{ 
+							String flag = "";
+							if (! g1.equals(g2)) { flag = "X"; }
+							output.printf("GENOTYPES " 
+												+ interval1.toString() 
+												+ " " + sample_names1[i] 
+												+ " " + g1 
+												+ " " + g2 
+												+ " " + gq1 
+												+ " " + gq2 
+												+ " " + flag +  "\n"); 
+						}
+
 						if ((g1.equals("..")) ||
 							(g2.equals("..")))
 						{
@@ -917,18 +904,12 @@ class VCFConcordance extends CommandLineProgram
 						Qual.get(gq1).add(ref, g1, g2);
 						SNP.add(ref, g1, g2);
 
-						/*
-						if (verbose) 
-						{ 
-							String flag = "";
-							if (! g1.equals(g2)) { flag = "X"; }
-							output.printf("GENOTYPES " + interval1.toString() + " " + sample_names1[i] + " " + g1 + " " + g2 + " " + flag +  "\n"); 
-						}
-						*/
-
 					}
 
-					if (verbose) { output.printf("SNP " + SNP.toString()); }
+					if (verbose) 
+					{ 
+						output.printf("SNP " + SNP.toString()); 
+					}
 
 					if (! AAF.containsKey(n_alt)) { AAF.put(n_alt, new GenotypeConcordance(Long.toString(n_alt))); }
 					AAF.get(n_alt).add(SNP);
@@ -1019,6 +1000,8 @@ public class VCFTool
 {
 		public static void main(String args[]) 
 		{
+			SetupSequenceDictionary();
+
 			String mode = args[0];
 			String[] realArgs = Arrays.copyOfRange(args, 1, args.length);
 
@@ -1099,6 +1082,20 @@ public class VCFTool
 				System.exit(0);
 			}
 
+			if (mode.equals("optimize"))
+			{
+				VCFOptimize cm = new VCFOptimize();
+				CommandLineProgram.start(cm,realArgs);
+				System.exit(0);
+			}
+
+			if (mode.equals("apply_cuts"))
+			{
+				VCFApplyCuts cm = new VCFApplyCuts();
+				CommandLineProgram.start(cm,realArgs);
+				System.exit(0);
+			}
+
 			System.out.printf("ERROR: mode %s not defined.\n", mode);			
 			System.exit(-1);
 
@@ -1107,7 +1104,22 @@ public class VCFTool
 
 		/////////////////////////
 		// Some helpful utilities.
-		
+	
+		// Total hack to set up a sequence dictionary for 1kG hg18/build36 without needing to load a fasta.
+		public static SAMSequenceDictionary dict;
+		public static void SetupSequenceDictionary()
+		{
+			dict = new SAMSequenceDictionary();
+			for (int i = 1; i <= 22; i++)
+			{
+				dict.addSequence(new SAMSequenceRecord(String.format("%d", i)));
+			}
+			dict.addSequence(new SAMSequenceRecord("X"));
+			dict.addSequence(new SAMSequenceRecord("Y"));
+			dict.addSequence(new SAMSequenceRecord("M"));
+			GenomeLocParser.setupRefContigOrdering(dict);
+		}
+
 		public static Interval getIntervalFromRecord(VCFRecord record)
 		{
 			String chr = record.getLocation().getContig();

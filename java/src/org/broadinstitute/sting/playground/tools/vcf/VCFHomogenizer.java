@@ -158,6 +158,37 @@ class VCFHomogenizer extends InputStream
 		}
 
 		/////////
+		// Info-level corrections
+
+		String info = tokens[7];
+		String new_info = "";
+		String[] info_tokens = info.split(";");				
+		for (int i = 0; i < info_tokens.length; i++)
+		{
+
+			// Fix the case where AC includes the ref count first.
+			if (info_tokens[i].startsWith("AC="))
+			{
+				String[] ACs  = info_tokens[i].replaceAll("^AC=", "").split(",");
+				if (ACs.length == alts.length+1)
+				{
+					String new_ACs = "";
+					for (int j = 1; j < ACs.length; j++)
+					{
+						new_ACs += ACs[j];
+						if (j != (ACs.length-1)) { new_ACs += ","; }
+					}	
+					info_tokens[i] = "AC=" + new_ACs;
+				}
+			}
+
+			new_info += info_tokens[i];
+			if (i != (info_tokens.length-1)) { new_info += ";"; }
+		}
+		tokens[7] = new_info;
+
+
+		/////////
 		// Now put it back together and emit.
 		String output = tokens[0];
 		for (int i = 1; i < tokens.length; i++)
