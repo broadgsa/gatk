@@ -56,8 +56,9 @@ public class RecalDataManager {
     public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC"; // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullReadGroup = false;
     private static boolean warnUserNoColorSpace = false;
+    private static boolean warnUserNullPlatform = false;
 
-    public static final String versionString = "v2.2.16"; // Major version, minor version, and build number
+    public static final String versionString = "v2.2.17"; // Major version, minor version, and build number
 
     RecalDataManager() {
     	data = new NestedHashMap();
@@ -242,6 +243,13 @@ public class RecalDataManager {
         }
 
         if ( readGroup.getPlatform() == null ) {
+            if( !warnUserNullPlatform ) {
+                Utils.warnUser("The input .bam file contains reads with no read group. " +
+                                    "Defaulting to platform = " + RAC.DEFAULT_PLATFORM + ". " +
+                                    "First observed at read with name = " + read.getReadName() );
+                Utils.warnUser("Users may set the default platform using the --default_platform <String> argument.");
+                warnUserNullPlatform = true;
+            }
             readGroup.setPlatform( RAC.DEFAULT_PLATFORM );            
         }
     }

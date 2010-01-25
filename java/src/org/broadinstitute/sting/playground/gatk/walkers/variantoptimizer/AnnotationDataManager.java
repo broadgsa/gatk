@@ -58,10 +58,17 @@ public class AnnotationDataManager {
         // Loop over each annotation in the vcf record
         final Map<String,String> infoField = variant.getInfoValues();
         for( String annotationKey : infoField.keySet() ) {
-            if( annotationKey.equalsIgnoreCase("AC") ) {
-                continue; // This annotation isn't a float value
+
+            float value = 0.0f;
+            boolean skipThisAnnotation = false;
+            try {
+                value = Float.parseFloat( infoField.get( annotationKey ) );
+            } catch( Exception e ) { // BUGBUG: Make this exception more specific. NumberFormatException??
+                skipThisAnnotation = true; // skip over annotations that aren't floats, like "AC"?? and "DB"
             }
-            final float value = Float.parseFloat( infoField.get( annotationKey ) );
+            if( skipThisAnnotation ) {
+                continue; // skip over annotations that aren't floats, like "AC"?? and "DB"
+            }
 
             if( variant.getID().equals(".") ) { // This is a novel variant
                 TreeSet<AnnotationDatum> treeSet = dataNovel.get( annotationKey );
@@ -212,7 +219,7 @@ public class AnnotationDataManager {
                 numTi += datum.numTransitions;
                 numTv += datum.numTransversions;
                 lastDatum = datum;
-                if( numTi + numTv >= MAX_VARIANTS_PER_BIN/3 ) { // This annotation bin is full
+                if( numTi + numTv >= MAX_VARIANTS_PER_BIN/2 ) { // This annotation bin is full
                     float titv;
                     if( numTv == 0) { titv = 0.0f; }
                     else { titv = ((float) numTi) / ((float) numTv); }
