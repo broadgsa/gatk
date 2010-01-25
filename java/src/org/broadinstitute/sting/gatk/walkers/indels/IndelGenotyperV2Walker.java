@@ -1105,13 +1105,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 int eventPosition = posOnRef;
 
                 switch(ce.getOperator()) {
+                case H: break; // hard clipped reads do not have clipped bases in their sequence, so we just ignore the H element...
                 case I:
                     type = IndelVariant.Type.I;
                     bases = readBases.substring(posOnRead,posOnRead+ce.getLength());
                     // will increment position on the read below, there's no 'break' statement yet...
-                case H:
                 case S:
-                    // here we also skip hard and soft-clipped bases on the read; according to SAM format specification,
+                    // here we also skip soft-clipped bases on the read; according to SAM format specification,
                     // alignment start position on the reference points to where the actually aligned
                     // (not clipped) bases go, so we do not need to increment reference position here
                     posOnRead += ce.getLength();
