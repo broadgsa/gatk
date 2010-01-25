@@ -28,7 +28,8 @@ xmax = max(d$value)
 outfile = paste(outputDir, "binnedTiTv.", annotationName, ".pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
-plot(all$value,all$titv,xlab=annotationName,ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax));
+plot(all$value,all$titv,xlab=annotationName,ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax),xaxt="n");
+axis(1,axTicks(1), format(axTicks(1), scientific=F))
 m = weighted.mean(all$value,all$numVariants/sum(all$numVariants))
 ma = all[all$value > m,]
 mb = all[all$value < m,]
@@ -45,7 +46,8 @@ dev.off()
 outfile = paste(outputDir, "binnedTiTv_log.", annotationName, ".pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
-plot(all$value,all$titv,xlab=annotationName,log="x",ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax));
+plot(all$value,all$titv,xlab=annotationName,log="x",ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax),xaxt="n");
+axis(1,axTicks(1), format(axTicks(1), scientific=F))
 abline(v=m,lty=2)
 abline(v=m75,lty=2)
 abline(v=m25,lty=2)
@@ -58,5 +60,6 @@ dev.off()
 outfile = paste(outputDir, "binnedTiTv_hist.", annotationName, ".pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
-plot(all$value,all$numVariants,xlab=annotationName,ylab="num Variants in bin",type="h");
+plot(all$value,all$numVariants,xlab=annotationName,ylab="num Variants in bin",type="h",xaxt="n");
+axis(1,axTicks(1), format(axTicks(1), scientific=F))
 dev.off()

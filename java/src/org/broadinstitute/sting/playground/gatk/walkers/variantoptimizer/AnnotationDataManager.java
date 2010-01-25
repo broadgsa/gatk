@@ -53,7 +53,13 @@ public class AnnotationDataManager {
         dataTruthSet = new HashMap<String, TreeSet<AnnotationDatum>>();
     }
 
-    public void addAnnotations( RodVCF variant ) {
+    public void addAnnotations( RodVCF variant, String sampleName ) {
+
+        if( sampleName != null ) { // only process variants that are found in the sample with this sampleName
+            if( variant.getGenotype(sampleName).isNoCall() ) { // this variant isn't found in this sample so break out
+                return;
+            }
+        } // else, process all samples
 
         // Loop over each annotation in the vcf record
         final Map<String,String> infoField = variant.getInfoValues();

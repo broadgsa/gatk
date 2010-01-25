@@ -56,6 +56,8 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     private int MIN_VARIANTS_PER_BIN = 1000;
     @Argument(fullName = "max_variants_per_bin", shortName = "maxBinSize", doc = "The maximum number of variants in a bin.", required = false)
     private int MAX_VARIANTS_PER_BIN = 20000;
+    @Argument(fullName = "sampleName", shortName = "sampleName", doc = "Only process variants for this sample.", required = false)
+    private String SAMPLE_NAME = null;
 
 
     /////////////////////////////
@@ -95,7 +97,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
                 if( rod != null && rod instanceof RodVCF ) {
                     RodVCF variant = (RodVCF) rod;
                     if( variant.isSNP() ) {
-                        dataManager.addAnnotations( variant );
+                        dataManager.addAnnotations( variant, SAMPLE_NAME );
                     }
                 }
             }
