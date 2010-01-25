@@ -244,7 +244,7 @@ public class RecalDataManager {
 
         if ( readGroup.getPlatform() == null ) {
             if( !warnUserNullPlatform ) {
-                Utils.warnUser("The input .bam file contains reads with no read group. " +
+                Utils.warnUser("The input .bam file contains reads with no platform information. " +
                                     "Defaulting to platform = " + RAC.DEFAULT_PLATFORM + ". " +
                                     "First observed at read with name = " + read.getReadName() );
                 Utils.warnUser("Users may set the default platform using the --default_platform <String> argument.");
