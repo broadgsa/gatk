@@ -100,7 +100,9 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
      */
     private void checkSortOrder(SAMFileReader reader) {
         if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
-            String msg = String.format("The GATK requires your bam have %s sort order, but your BAM file header %s.  Continuing beyond this point is unsafe -- please update your BAM file to have a compatible sort order using samtools sort or Picard MergeBamFiles",
+            String msg = String.format("The GATK requires your bam have %s sort order, but your BAM file header %s.  Continuing beyond this point is unsafe" +
+                    "-- please update your BAM file to have a compatible sort order using samtools sort or Picard MergeBamFiles.  You may overcome this error by " +
+                    "passing the \'-U ALLOW_UNSET_BAM_SORT_ORDER\' on the command line; before doing so make sure that your input BAM is sorted even if it can't be marked as such.",
                     this.sortOrder, reader.getFileHeader().getAttribute("SO") == null ? "is missing the SO sort order flag" : "has an SO flag set to " + reader.getFileHeader().getAttribute("SO"));
             if (!reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.ALLOW_UNSET_BAM_SORT_ORDER)) {
                 throw new PicardException(msg);
