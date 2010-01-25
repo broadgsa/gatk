@@ -2,14 +2,14 @@ package org.broadinstitute.sting.utils.help;
 
 import com.sun.javadoc.*;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Scanner;
-import java.util.Properties;
+import java.util.*;
 import java.io.PrintStream;
 import java.io.IOException;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.JVMUtils;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 
 /**
  * Extracts certain types of javadoc (specifically package and class descriptions) and makes them available
@@ -24,7 +24,15 @@ public class ResourceBundleExtractorDoclet {
      */
     private static final String VERSION_TAGLET_NAME = "version";
 
-    private static final Properties helpText = new Properties();
+    /**
+     * Maintains a collection of resources in memory as they're accumulated.
+     */
+    private static final Properties resourceText = new Properties();
+
+    /**
+     * Maintains a collection of classes that should really be documented.
+     */
+    private static final Set<String> undocumentedWalkers = new HashSet<String>();
 
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
@@ -47,7 +55,7 @@ public class ResourceBundleExtractorDoclet {
                 versionSuffix = options[1];
         }
 
-        helpText.setProperty("build.timestamp",buildTimestamp);
+        resourceText.setProperty("build.timestamp",buildTimestamp);
 
         // Cache packages as we see them, since there's no direct way to iterate over packages.
         Set<PackageDoc> packages = new HashSet<PackageDoc>();
@@ -55,17 +63,20 @@ public class ResourceBundleExtractorDoclet {
         for(ClassDoc currentClass: rootDoc.classes()) {
             PackageDoc containingPackage = currentClass.containingPackage();
             packages.add(containingPackage);
-            String className = containingPackage.name().length() > 0 ?
-                    String.format("%s.%s",containingPackage.name(),currentClass.name()) :
-                    String.format("%s",currentClass.name());
 
-            renderHelpText(className,currentClass,versionPrefix,versionSuffix);
+            if(isRequiredJavadocMissing(currentClass) && isWalker(currentClass))
+                undocumentedWalkers.add(currentClass.name());
+
+            renderHelpText(getClassName(currentClass),currentClass,versionPrefix,versionSuffix);
         }
 
         for(PackageDoc currentPackage: packages)
             renderHelpText(currentPackage.name(),currentPackage,versionPrefix,versionSuffix);
 
-        helpText.store(out,"Strings displayed by the Sting help system");
+        resourceText.store(out,"Strings displayed by the Sting help system");
+
+        if(undocumentedWalkers.size() > 0)
+            Utils.warnUser("The following walkers are currently undocumented: " + Utils.join(" ",undocumentedWalkers));
 
         return true;
     }
@@ -80,6 +91,45 @@ public class ResourceBundleExtractorDoclet {
             return 2;
         }
         return 0;
+    }
+
+    /**
+     * Determine whether a given class is a walker.
+     * @param classDoc the type of the given class.
+     * @return True if the class of the given name is a walker.  False otherwise.
+     */
+    private static boolean isWalker(ClassDoc classDoc) {
+        try {
+            Class type = Class.forName(getClassName(classDoc));
+            return Walker.class.isAssignableFrom(type) && JVMUtils.isConcrete(type);
+        }
+        catch(Throwable t) {
+            // Ignore errors.
+            return false;
+        }
+    }
+
+    /**
+     * Reconstitute the class name from the given class JavaDoc object.
+     * @param classDoc the Javadoc model for the given class.
+     * @return The (string) class name of the given class.
+     */
+    private static String getClassName(ClassDoc classDoc) {
+        PackageDoc containingPackage = classDoc.containingPackage();
+        return containingPackage.name().length() > 0 ?
+                String.format("%s.%s",containingPackage.name(),classDoc.name()) :
+                String.format("%s",classDoc.name());
+    }
+
+    /**
+     * Is the javadoc for the given class missing?
+     * @param classDoc Class for which to inspect the JavaDoc.
+     * @return True if the JavaDoc is missing.  False otherwise.
+     */
+    private static boolean isRequiredJavadocMissing(ClassDoc classDoc) {
+        if(classDoc.containingPackage().name().contains("oneoffprojects"))
+            return false;
+        return classDoc.commentText().length() == 0 || classDoc.commentText().contains("Created by IntelliJ");
     }
 
     /**
@@ -117,16 +167,16 @@ public class ResourceBundleExtractorDoclet {
 
         // Write out an alternate element name, if exists.
         if(name != null)
-            helpText.setProperty(String.format("%s.%s",elementName,DisplayNameTaglet.NAME),name);
+            resourceText.setProperty(String.format("%s.%s",elementName,DisplayNameTaglet.NAME),name);
 
         if(version != null)
-            helpText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),version);
+            resourceText.setProperty(String.format("%s.%s",elementName,VERSION_TAGLET_NAME),version);
 
         // Write out an alternate element summary, if exists.
-        helpText.setProperty(String.format("%s.%s",elementName,SummaryTaglet.NAME),formatText(summary));
+        resourceText.setProperty(String.format("%s.%s",elementName,SummaryTaglet.NAME),formatText(summary));
 
         // Write out an alternate description, if present.
-        helpText.setProperty(String.format("%s.%s",elementName,DescriptionTaglet.NAME),formatText(description));
+        resourceText.setProperty(String.format("%s.%s",elementName,DescriptionTaglet.NAME),formatText(description));
     }
 
     /**

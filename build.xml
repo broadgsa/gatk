@@ -47,6 +47,11 @@
       </fileset>
     </path>
 
+    <path id="classpath">
+      <path refid="runtime.dependencies" />
+      <pathelement location="build" />
+    </path>
+
     <!-- ivy properties -->
     <property name="ivy.install.version" value="2.0.0"/>
     <property name="ivy.home" value="${user.home}/.ant"/>
@@ -110,7 +115,7 @@
 	    description="Extract help key/value pair file from the JavaDoc tags."
 	    unless="disable.help">
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
-	       docletpath="build"
+	       docletpathref="classpath"
 	       classpathref="runtime.dependencies"
 	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${build.dir}/${resource.file}">
 	<packageset refid="source.files"/>
