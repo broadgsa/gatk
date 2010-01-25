@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.genotype.*;
@@ -40,6 +41,9 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     private HashMap<String, String> nonVCFsampleName = new HashMap<String, String>();
 
     private ArrayList<VariantAnnotation> requestedAnnotations;
+
+    // should we annotate dbsnp?
+    private boolean annotateDbsnp = false;
 
     // mapping from class name to class
     private static HashMap<String, VariantAnnotation> allAnnotations = null;
@@ -115,12 +119,24 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             }
         }
 
+        // check to see whether a dbsnp rod was included
+        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            if ( rod.getType().equals(rodDbSNP.class) ) {
+                annotateDbsnp = true;
+                break;
+            }
+        }
+
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(getVCFAnnotationDescriptions(requestedAnnotations));
+        if ( annotateDbsnp )
+            hInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP membership"));
 
         vcfWriter = new VCFWriter(VCF_OUT);
         vcfHeader = new VCFHeader(hInfo, samples);
@@ -166,7 +182,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null )
-                annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations);
+                annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations, annotateDbsnp);
         }
         writeVCF(tracker, ref, context, variant, annotations);
 
@@ -208,23 +224,29 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     }
 
     // option #1: don't specify annotations to be used: standard annotations are used by default
-    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(tracker, ref, stratifiedContexts, variation, standardAnnotations.values());
+        return getAnnotations(tracker, ref, stratifiedContexts, variation, standardAnnotations.values(), annotateDbsnp);
     }
 
     // option #2: specify that all possible annotations be used
-    public static Map<String, String> getAllAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public static Map<String, String> getAllAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp) {
         if ( allAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(tracker, ref, stratifiedContexts, variation, allAnnotations.values());
+        return getAnnotations(tracker, ref, stratifiedContexts, variation, allAnnotations.values(), annotateDbsnp);
     }
 
     // option #3: specify the exact annotations to be used
-    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations, boolean annotateDbsnp) {
 
         HashMap<String, String> results = new HashMap<String, String>();
+
+        // annotate dbsnp occurrence
+        if ( annotateDbsnp ) {
+            rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+            results.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
+        }
 
         for ( VariantAnnotation annotator : annotations) {
             String annot = annotator.annotate(tracker, ref, stratifiedContexts, variation);
@@ -236,13 +258,12 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         return results;
     }
 
-
     private void writeVCF(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariationRod variant, Map<String, String> annotations) {
         VCFRecord rec = getVCFRecord(tracker, ref, context, variant);
         if ( rec != null ) {
             rec.addInfoFields(annotations);
             // also, annotate dbsnp id if available and not already there
-            if ( rec.getID() == null || rec.getID().equals(".") ) {
+            if ( annotateDbsnp && (rec.getID() == null || rec.getID().equals(".")) ) {
                 rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
                 if ( dbsnp != null )
                     rec.setID(dbsnp.getRS_ID());

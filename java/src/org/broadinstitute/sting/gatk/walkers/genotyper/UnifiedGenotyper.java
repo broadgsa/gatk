@@ -26,8 +26,11 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
 import org.broadinstitute.sting.utils.*;
@@ -66,7 +69,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     // samples in input
     private Set<String> samples = new HashSet<String>();
 
-    /** Enable deletions in the pileup **/
+    // should we annotate dbsnp?
+    private boolean annotateDbsnp = false;
+
+    // Enable deletions in the pileup
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     /**
@@ -162,6 +168,16 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
             beagleWriter.println();
         }
 
+        // check to see whether a dbsnp rod was included
+        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            if ( rod.getType().equals(rodDbSNP.class) ) {
+                annotateDbsnp = true;
+                break;
+            }
+        }
+
         // *** If we were called by another walker, then we don't ***
         // *** want to do any of the other initialization steps.  ***
         if ( writer == null )
@@ -192,6 +208,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         // annotation (INFO) fields from UnifiedGenotyper
         headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
+        if ( annotateDbsnp )
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP membership"));
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 
@@ -274,9 +292,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.variation);
+                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp);
             else
-                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.variation);
+                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp);
             ((ArbitraryFieldsBacked)call.variation).setFields(annotations);
         }
 
