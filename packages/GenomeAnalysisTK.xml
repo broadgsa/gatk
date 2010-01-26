@@ -44,4 +44,8 @@
     <file name="testdata/exampleFASTA.fasta.fai" />
     <file name="testdata/exampleFASTA.dict" />
   </resources>
+  <release>
+    <executable directory="/humgen/gsa-hpprojects/GATK/bin" symlink="current" />
+    <archive directory="/web/ftp/pub/gsa/GenomeAnalysisTK" symlink="GenomeAnalysisTK.tar.bz2" />
+  </release>
 </package>

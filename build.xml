@@ -379,9 +379,13 @@
 
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
-        <mkdir dir="${dist.dir}/packages" />
-        <xslt in="packages/${executable}.xml" out="${dist.dir}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
-        <ant antfile="${dist.dir}/packages/Build${executable}.xml" />
+      <mkdir dir="${dist.dir}/packages" />
+      <xslt in="packages/${executable}.xml" out="${dist.dir}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
+      <ant antfile="${dist.dir}/packages/Build${executable}.xml" target="package" />
+    </target>
+
+    <target name="release" depends="package" description="release a build, putting each file in a location specified by the package">
+      <ant antfile="${dist.dir}/packages/Build${executable}.xml" target="release" />      
     </target>
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->

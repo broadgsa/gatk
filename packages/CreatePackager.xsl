@@ -6,6 +6,7 @@
   <xsl:variable name="classpath" select="'${sting.dir}/staging:${additional.jars}'" />
   <xsl:variable name="dist.dir" select="'${sting.dir}/dist'" />
   <xsl:variable name="staging.dir" select="'${sting.dir}/staging'" />
+  <xsl:variable name="package.basename" select="'${package.basename}'" />
   <xsl:variable name="package.dir" select="'${package.dir}'" />
   <xsl:variable name="package.filename" select="'${package.filename}'" />
   <xsl:variable name="resources.dir" select="'${package.dir}/resources'" />
@@ -13,25 +14,22 @@
 <xsl:template match="package">
   <xsl:output method="xml" indent="yes"/>
 
-  <xsl:variable name="project.name" select="@name" />
+  <project name="{@name}" default="package">
 
-  <project name="{$project.name}" default="package">
     <property name="sting.dir" value="{$ant.basedir}" />
-
     <!-- Read version information out of the xml file -->
     <xsl:choose>
       <xsl:when test="version/@property">
-	<echo message="VERSION!!! = {version/@property}" />
 	<xsl:variable name="version.property" select="concat('${',version/@property,'}')" />
 	<property file="{$staging.dir}/{version/@file}" />
-	<property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name,'-',$version.property)}" />
-	<property name="package.filename" value="{concat(@name,'-',$version.property,'.tar.bz2')}" />
+	<property name="package.basename" value="{concat(@name,'-',$version.property)}" />
       </xsl:when>
       <xsl:otherwise>
-	<property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name)}" />
-	<property name="package.filename" value="{concat(@name,'.tar.bz2')}" />
+	<property name="package.basename" value="{@name}" />
       </xsl:otherwise>
     </xsl:choose>
+    <property name="package.dir" value="{concat($dist.dir,'/packages/',$package.basename)}" />
+    <property name="package.filename" value="{concat($package.basename,'.tar.bz2')}" />
 
     <target name="package">
       <!-- Verify that all classes specified are present -->
@@ -65,7 +63,19 @@
       <tar destfile="{$dist.dir}/packages/{$package.filename}" basedir="{$package.dir}" compression="bzip2" />
     </target>
 
-    <target name="install">
+    <target name="release">
+      <xsl:for-each select="release/executable">
+	<copy todir="{@directory}/{$package.basename}"><fileset dir="{$package.dir}" /></copy>
+	<xsl:if test="@symlink">
+	  <symlink link="{@directory}/{@symlink}" resource="{@directory}/{$package.basename}" overwrite="true" />	
+	</xsl:if>
+      </xsl:for-each>
+      <xsl:for-each select="release/archive">
+	<copy file="{$dist.dir}/packages/{$package.filename}" todir="{@directory}" />
+	<xsl:if test="@symlink">
+	  <symlink link="{@directory}/{@symlink}" resource="{@directory}/{$package.filename}" overwrite="true" />	
+	</xsl:if>
+      </xsl:for-each>
     </target>
   </project>
 </xsl:template>
