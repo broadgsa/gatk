@@ -120,7 +120,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public void initialize() {
 
-        logger.info( "Recalibrator version: " + RecalDataManager.versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
         DBSNP_VALIDATION_CHECK_FREQUENCY *= PROCESS_EVERY_NTH_LOCUS;

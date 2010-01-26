@@ -46,9 +46,9 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "use_original_quals", shortName="OQ", doc="If provided, we will use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
     public boolean USE_ORIGINAL_QUALS = false;
     @Argument(fullName="default_read_group", shortName="dRG", required=false, doc="If a read has no read group then default to the provided String.")
-    public String DEFAULT_READ_GROUP = ReadGroupCovariate.defaultReadGroup;
+    public String DEFAULT_READ_GROUP = null;
     @Argument(fullName="default_platform", shortName="dP", required=false, doc="If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
-    public String DEFAULT_PLATFORM = "Illumina";
+    public String DEFAULT_PLATFORM = null;
     @Argument(fullName="force_read_group", shortName="fRG", required=false, doc="If provided, the read group ID of EVERY read will be forced to be the provided String. This is useful to collapse all data into a single read group.")
     public String FORCE_READ_GROUP = null;
     @Argument(fullName="force_platform", shortName="fP", required=false, doc="If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")

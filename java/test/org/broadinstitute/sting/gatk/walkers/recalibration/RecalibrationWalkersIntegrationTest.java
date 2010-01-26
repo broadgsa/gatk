@@ -243,6 +243,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov QualityScoreCovariate" +
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
+                            " --default_read_group DefaultReadGroup" +
                             " --default_platform illumina" +
                             " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
@@ -272,6 +273,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -outputBam %s" +
                                 " --no_pg_tag" +
                                 " --solid_recal_mode SET_Q_ZERO" +
+                                " --default_read_group DefaultReadGroup" +
                                 " --default_platform illumina" +
                                 " -recalFile " + paramsFile,
                         1, // just one output file

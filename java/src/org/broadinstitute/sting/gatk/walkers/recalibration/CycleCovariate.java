@@ -46,15 +46,17 @@ import net.sf.samtools.SAMRecord;
 public class CycleCovariate implements StandardCovariate {
 
     private static boolean warnedUserBadPlatform = false;
-    private static String defaultPlatform;
+    private static String defaultPlatform = null;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
-        if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SLX" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) ||
-            RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ABI_SOLID" ) ) {
-            defaultPlatform = RAC.DEFAULT_PLATFORM;
-        } else {
-            throw new StingException( "The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
+        if( RAC.DEFAULT_PLATFORM != null ) {
+            if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SLX" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) ||
+                RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ABI_SOLID" ) ) {
+                defaultPlatform = RAC.DEFAULT_PLATFORM;
+            } else {
+                throw new StingException( "The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
+            }
         }
     }
 
@@ -128,19 +130,19 @@ public class CycleCovariate implements StandardCovariate {
         //-----------------------------
 
         else { // Platform is unrecognized so revert to the default platform but warn the user first
-        	if( !warnedUserBadPlatform ) {
-                if( defaultPlatform != null) { // The user set a default platform
+            if( defaultPlatform != null) { // The user set a default platform
+                if( !warnedUserBadPlatform ) {
                     Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
-                            "Reverting to platform = " + defaultPlatform + ". Users may set the default platform using the --default_platform <String> argument." );
-                } else { // The user did not set a default platform
-                    Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
-                            "Reverting to platform = Illumina. Users may set the default platform using the --default_platform <String> argument." );
-                    defaultPlatform = "Illumina";
+                            "Defaulting to platform = " + defaultPlatform + "." );
                 }
                 warnedUserBadPlatform = true;
+
+                read.getReadGroup().setPlatform( defaultPlatform );
+                return getValue( read, offset ); // A recursive call
+            } else { // The user did not set a default platform
+                throw new StingException( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
+                        "No default platform specified. Users must set the default platform using the --default_platform <String> argument." );
             }
-            read.getReadGroup().setPlatform( defaultPlatform );
-            return getValue( read, offset ); // A recursive call
         }
 
         // Differentiate between first and second of pair.

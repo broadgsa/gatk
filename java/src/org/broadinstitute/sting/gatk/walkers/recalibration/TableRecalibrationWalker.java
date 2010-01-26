@@ -14,6 +14,7 @@ import org.broadinstitute.sting.utils.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -76,9 +77,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(fullName="preserve_qscores_less_than", shortName="pQ",
         doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
     private int PRESERVE_QSCORES_LESS_THAN = 5;
-    @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points")
+    @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points, default=1")
     private int SMOOTHING = 1;
-    @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default is 40")
+    @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default=40")
     private int MAX_QUALITY_SCORE = 40;
     
     /////////////////////////////
@@ -111,7 +112,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     public void initialize() {
 
-        logger.info( "Recalibrator version: " + RecalDataManager.versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
         if( !RAC.checkSolidRecalMode() ) {
@@ -221,7 +221,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         final SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
         if( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
-            programRecord.setProgramVersion( RecalDataManager.versionString );
+            final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+            programRecord.setProgramVersion( headerInfo.getString("org.broadinstitute.sting.gatk.version") );
             String commandLineString = "Covariates=[";
             for( Covariate cov : requestedCovariates ) {
                 commandLineString += cov.getClass().getSimpleName() + ", ";

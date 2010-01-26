@@ -55,10 +55,7 @@ public class RecalDataManager {
     public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS"; // The tag that holds the color space for SOLID bams
     public final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC"; // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullReadGroup = false;
-    private static boolean warnUserNoColorSpace = false;
     private static boolean warnUserNullPlatform = false;
-
-    public static final String versionString = "v2.2.17"; // Major version, minor version, and build number
 
     RecalDataManager() {
     	data = new NestedHashMap();
@@ -219,16 +216,21 @@ public class RecalDataManager {
 
         // If there are no read groups we have to default to something, and that something could be specified by the user using command line arguments
         if( readGroup == null ) {
-            if( !warnUserNullReadGroup && RAC.FORCE_READ_GROUP == null ) {
-                Utils.warnUser("The input .bam file contains reads with no read group. " +
-                                "Defaulting to read group ID = " + RAC.DEFAULT_READ_GROUP + " and platform = " + RAC.DEFAULT_PLATFORM + ". " +
-                                "First observed at read with name = " + read.getReadName() );
-                warnUserNullReadGroup = true;
+            if( RAC.DEFAULT_READ_GROUP != null && RAC.DEFAULT_PLATFORM != null) {
+                if( !warnUserNullReadGroup && RAC.FORCE_READ_GROUP == null ) {
+                    Utils.warnUser("The input .bam file contains reads with no read group. " +
+                                    "Defaulting to read group ID = " + RAC.DEFAULT_READ_GROUP + " and platform = " + RAC.DEFAULT_PLATFORM + ". " +
+                                    "First observed at read with name = " + read.getReadName() );
+                    warnUserNullReadGroup = true;
+                }
+                // There is no readGroup so defaulting to these values
+                readGroup = new SAMReadGroupRecord( RAC.DEFAULT_READ_GROUP );
+                readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
+                ((GATKSAMRecord)read).setReadGroup( readGroup );
+            } else {
+                throw new StingException("The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() +
+                                         " Users must set both the default read group using the --default_read_group <String> argument and the default platform using the --default_platform <String> argument." );
             }
-            // There is no readGroup so defaulting to these values
-            readGroup = new SAMReadGroupRecord( RAC.DEFAULT_READ_GROUP );
-            readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
-            ((GATKSAMRecord)read).setReadGroup( readGroup );
         }
 
         if( RAC.FORCE_READ_GROUP != null && !readGroup.getReadGroupId().equals(RAC.FORCE_READ_GROUP) ) { // Collapse all the read groups into a single common String provided by the user
@@ -243,14 +245,18 @@ public class RecalDataManager {
         }
 
         if ( readGroup.getPlatform() == null ) {
-            if( !warnUserNullPlatform ) {
-                Utils.warnUser("The input .bam file contains reads with no platform information. " +
-                                    "Defaulting to platform = " + RAC.DEFAULT_PLATFORM + ". " +
-                                    "First observed at read with name = " + read.getReadName() );
-                Utils.warnUser("Users may set the default platform using the --default_platform <String> argument.");
-                warnUserNullPlatform = true;
+            if( RAC.DEFAULT_PLATFORM != null ) {
+                if( !warnUserNullPlatform ) {
+                    Utils.warnUser("The input .bam file contains reads with no platform information. " +
+                                        "Defaulting to platform = " + RAC.DEFAULT_PLATFORM + ". " +
+                                        "First observed at read with name = " + read.getReadName() );
+                    warnUserNullPlatform = true;
+                }
+                readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
+            } else {
+                throw new StingException("The input .bam file contains reads with no platform information. First observed at read with name = " + read.getReadName() +
+                                         " Users must set the default platform using the --default_platform <String> argument." );
             }
-            readGroup.setPlatform( RAC.DEFAULT_PLATFORM );            
         }
     }
 
@@ -287,10 +293,9 @@ public class RecalDataManager {
                     }
                     read.setAttribute( RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency );
 
-                } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
-                    Utils.warnUser("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName());
-                    Utils.warnUser("This calculation is critically dependent on being able to know when reference bases were inserted into SOLiD reads. Are you sure you want to proceed?");
-                    warnUserNoColorSpace = true;
+                } else {
+                    throw new StingException("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                                            " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
                 }
             }
         }
@@ -345,10 +350,9 @@ public class RecalDataManager {
                 solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead, coinFlip);
             } 
 
-        } else if ( !warnUserNoColorSpace ) { // Warn the user if we can't find the color space tag
-            Utils.warnUser("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName());
-            Utils.warnUser("This calculation is critically dependent on being able to know when reference bases were inserted into SOLiD reads. Are you sure you want to proceed?");
-            warnUserNoColorSpace = true;
+        } else {
+            throw new StingException("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                                    " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
         }
 
         return originalQualScores;
