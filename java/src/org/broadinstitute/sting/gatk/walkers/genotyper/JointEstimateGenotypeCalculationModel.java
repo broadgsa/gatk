@@ -48,17 +48,17 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // if there are no non-ref bases...
         if ( bestAlternateAllele == null ) {
-            // if we don't want all bases, then we can just return
-
-            // todo -- we still need to calculate the confidence in the reference base.
-            // todo -- we can still include this optimization, but we should calculate a confidence score
-//            if ( !ALL_BASE_MODE && !GENOTYPE_MODE )
-//                return new VariantCallContext(false);
-
+            // if we don't want all bases, then we don't need to calculate genotype likelihoods
+            if ( !ALL_BASE_MODE && !GENOTYPE_MODE ) {
+                VariantCallContext vcc = new VariantCallContext(false);
+                estimateReferenceConfidence(vcc, contexts, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY, false);
+                return vcc;
+            }
             // otherwise, choose any alternate allele (it doesn't really matter)
             bestAlternateAllele = (ref != 'A' ? 'A' : 'C');
         }
 
+        // calculate likelihoods if there are non-ref bases
         initializeAlleleFrequencies(frequencyEstimationPoints);
 
         initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
@@ -69,8 +69,14 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( verboseWriter != null )
             printAlleleFrequencyData(ref, loc, frequencyEstimationPoints);
 
-        return createCalls(tracker, ref, contexts, loc, frequencyEstimationPoints);
-   }
+        VariantCallContext vcc = createCalls(tracker, ref, contexts, loc, frequencyEstimationPoints);
+
+        // technically, at this point our confidence in a reference call isn't accurately
+        //  estimated because it didn't take into account samples with no data
+        if ( vcc.variation == null )
+            estimateReferenceConfidence(vcc, contexts, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY, true);
+        return vcc;
+    }
 
     protected int getNSamples(Map<String, StratifiedAlignmentContext> contexts) {
         return contexts.size();
@@ -149,6 +155,27 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
 
         return AFs;
+    }
+
+    private void estimateReferenceConfidence(VariantCallContext vcc, Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples) {
+
+        double P_of_ref = 1.0;
+
+        // use the AF=0 prob if it's calculated
+        if ( ignoreCoveredSamples )
+            P_of_ref = 1.0 - PofFs[BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele)];
+
+        // for each sample that we haven't examined yet
+        for ( String sample : samples ) {
+            boolean isCovered = contexts.containsKey(sample);
+            if ( ignoreCoveredSamples && isCovered )
+                continue;
+
+            int depth = isCovered ? contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().size() : 0;
+            P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
+        }
+
+        vcc.confidentlyCalled = QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= CONFIDENCE_THRESHOLD;
     }
 
     protected void calculateAlleleFrequencyPosteriors(char ref, int frequencyEstimationPoints, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {

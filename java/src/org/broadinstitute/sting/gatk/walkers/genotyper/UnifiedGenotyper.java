@@ -260,15 +260,19 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
+        ReadBackedPileup rawPileup = rawContext.getBasePileup();
+        // don't try to call if we couldn't read in all reads at this locus (since it wasn't properly downsampled)
+        if ( rawPileup.size() == getToolkit().getArguments().readMaxPileup )
+            return null;
+
         // filter the context based on min base and mapping qualities
-        ReadBackedPileup pileup = rawContext.getBasePileup().getBaseFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE);
+        ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
 
         // filter the context based on mapping quality and mismatch rate
         pileup = filterPileup(pileup, refContext, UAC);
 
-        // an optimization to speed things up when there is no coverage or when overly covered
-        if ( pileup.size() == 0 ||
-             (UAC.MAX_READS_IN_PILEUP > 0 && pileup.size() > UAC.MAX_READS_IN_PILEUP) )
+        // don't call when there is no coverage
+        if ( pileup.size() == 0 )
             return null;
 
         // are there too many deletions in the pileup?
@@ -306,8 +310,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
         for ( PileupElement p : pileup ) {
-            if  ( p.getMappingQual() >= UAC.MIN_MAPPING_QUALTY_SCORE &&
-                  (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
+            if  ( (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
                   AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
                 filteredPileup.add(p);
         }
