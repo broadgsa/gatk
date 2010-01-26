@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.refdata;
+package org.broadinstitute.sting.oneoffprojects.variantcontext;
 
 import java.util.*;
 
@@ -10,11 +10,6 @@ import java.util.*;
  *         This class emcompasses all the basic information about a genotype
  */
 public class Genotype {
-
-    public enum StandardAttributes {
-        DELETION_LENGTH, INVERSION_LENGTH
-    }
-
     private List<Allele> alleles;
 
     private double negLog10PError;
@@ -32,9 +27,9 @@ public class Genotype {
     }
 
     /**
-      * @return the alleles for this genotype
-      */
-     public List<Allele> getAlleles() { return alleles; }
+     * @return the alleles for this genotype
+     */
+    public List<Allele> getAlleles() { return alleles; }
 
     /**
      * @return the ploidy of this genotype
@@ -77,10 +72,10 @@ public class Genotype {
      * @return true if all alleles for this genotype are SNPs or reference
      */
     public boolean isPointGenotype() {
-        for ( Allele allele : alleles ) {
-            if ( allele.isVariant() && !allele.isSNP() )
-                return false;
-        }
+//        for ( Allele allele : alleles ) {
+//            if ( allele.isVariant() && !allele.isSNP() )
+//                return false;
+//        }
         return true;
     }
 
@@ -88,21 +83,21 @@ public class Genotype {
      * @return true if this is a variant genotype, false if it's reference
      */
     public boolean isVariant() {
-        for ( Allele allele : alleles ) {
-            if ( allele.isVariant() )
-                return true;
-        }
+//        for ( Allele allele : alleles ) {
+//            if ( allele.isVariant() )
+//                return true;
+//        }
         return false;
     }
 
     /**
-      * @return the -1 * log10-based error estimate
-      */
+     * @return the -1 * log10-based error estimate
+     */
     public double getNegLog10PError() { return negLog10PError; }
 
     /**
-      * @return the sample name
-      */
+     * @return the sample name
+     */
     public String getSample() { return sample; }
 
     /**

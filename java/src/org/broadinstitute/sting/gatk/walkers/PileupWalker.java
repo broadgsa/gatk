@@ -60,11 +60,11 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="alwaysShowSecondBase",doc="If true, prints dummy bases for the second bases in the BAM file where they are missing",required=false)
     public boolean alwaysShowSecondBase = false;
 
-    @Argument(fullName="qualsAsInts",doc="If true, prints out qualities in the pileup as comma-separated integers",required=false)
-    public boolean qualsAsInts = false;
+    //@Argument(fullName="qualsAsInts",doc="If true, prints out qualities in the pileup as comma-separated integers",required=false)
+    //public boolean qualsAsInts = false;
 
-    @Argument(fullName="ignore_uncovered_bases",shortName="skip_uncov",doc="Output nothing when a base is uncovered")
-    public boolean IGNORE_UNCOVERED_BASES = false;
+    //@Argument(fullName="ignore_uncovered_bases",shortName="skip_uncov",doc="Output nothing when a base is uncovered")
+    //public boolean IGNORE_UNCOVERED_BASES = false;
 
     @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
     public boolean SHOW_INDEL_PILEUPS = false;
