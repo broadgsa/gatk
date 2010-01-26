@@ -56,6 +56,17 @@ public class AlleleBalanceHistogramWalker extends RodWalker<Map<String,Double>, 
         return getAlleleBalanceBySample(record,ref,context);
     }
 
+    public void onTraversalDone(Map<String,Set<Double>> finalSets) {
+        for ( String s : finalSets.keySet() ) {
+            StringBuilder output = new StringBuilder();
+            output.append(String.format("%s",s));
+            for ( double d : finalSets.get(s) ) {
+                output.append(String.format("\t%.2f",d));
+            }
+            out.print(String.format("%s%n",output));
+        }
+    }
+
     private HashMap<String,Double> getAlleleBalanceBySample(VCFRecord vcf, ReferenceContext ref, AlignmentContext context) {
         Map<String, StratifiedAlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(),null,null);
         HashMap<String,Double> balances = new HashMap<String,Double>();
