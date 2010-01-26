@@ -36,9 +36,11 @@ import java.io.IOException;
  */
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Jan 15, 2010
+ * Takes variant calls as .vcf files and creates plots of truth metrics as a function of the various annotations found in the INFO field.
+ *
+ * @author rpoplin
+ * @since Jan 15, 2010
+ * @help.summary Takes variant calls as .vcf files and creates plots of truth metrics as a function of the various annotations found in the INFO field. 
  */
 
 public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
@@ -56,7 +58,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     private int MIN_VARIANTS_PER_BIN = 1000;
     @Argument(fullName = "max_variants_per_bin", shortName = "maxBinSize", doc = "The maximum number of variants in a bin.", required = false)
     private int MAX_VARIANTS_PER_BIN = 20000;
-    @Argument(fullName = "sampleName", shortName = "sampleName", doc = "Only process variants for this sample.", required = false)
+    @Argument(fullName = "sampleName", shortName = "sampleName", doc = "If supplied, only process variants found in this sample.", required = false)
     private String SAMPLE_NAME = null;
 
 
@@ -71,6 +73,9 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     //
     //---------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Create the output directory and setup the path variables
+     */
     public void initialize() {
 
         // create the output directory where all the data tables and plots will go

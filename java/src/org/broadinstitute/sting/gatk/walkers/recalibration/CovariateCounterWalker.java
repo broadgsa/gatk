@@ -47,7 +47,7 @@ import net.sf.samtools.SAMRecord;
 /**
  * This walker is designed to work as the first pass in a two-pass processing step.
  * It does a by-locus traversal operating only at sites that are not in dbSNP.
- * We assume that all reference mismatches we see are therefore errors and indicitive of poor base quality.
+ * We assume that all reference mismatches we see are therefore errors and indicative of poor base quality.
  * This walker generates tables based on various user-specified covariates (such as read group, reported quality score, cycle, and dinucleotide)
  * Since there is a large amount of data one can then calculate an empirical probability of error
  *   given the particular covariates seen at this site, where p(error) = num mismatches / num observations
@@ -238,7 +238,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         // Only use data from non-dbsnp sites
-        // Assume every mismatch at a non-dbsnp site is indicitive of poor quality
+        // Assume every mismatch at a non-dbsnp site is indicative of poor quality
         if( !isSNP && ( ++numUnprocessed >= PROCESS_EVERY_NTH_LOCUS ) ) {
             numUnprocessed = 0; // Reset the counter because we are processing this very locus
 
@@ -248,7 +248,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             byte[] bases;
 
             // For each read at this locus
-            for( PileupElement p : context.getPileup() ) {
+            for( PileupElement p : context.getBasePileup() ) {
                 read = p.getRead();
                 offset = p.getOffset();
 
@@ -305,7 +305,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param ref The reference base
      */
     private static void updateMismatchCounts(final Pair<Long, Long> counts, final AlignmentContext context, final char ref) {
-        for( PileupElement p : context.getPileup() ) {
+        for( PileupElement p : context.getBasePileup() ) {
             final char readChar = (char)(p.getBase());
             final int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
             final int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
