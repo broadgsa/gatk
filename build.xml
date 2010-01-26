@@ -117,7 +117,7 @@
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
 	       docletpathref="classpath"
 	       classpathref="runtime.dependencies"
-	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${build.dir}/${resource.file}">
+	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${build.dir}/${resource.file}">
 	<packageset refid="source.files"/>
       </javadoc>
     </target>
