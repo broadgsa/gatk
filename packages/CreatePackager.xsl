@@ -7,8 +7,9 @@
   <xsl:variable name="dist.dir" select="'${sting.dir}/dist'" />
   <xsl:variable name="staging.dir" select="'${sting.dir}/staging'" />
   <xsl:variable name="package.dir" select="'${package.dir}'" />
+  <xsl:variable name="package.filename" select="'${package.filename}'" />
   <xsl:variable name="resources.dir" select="'${package.dir}/resources'" />
-
+  
 <xsl:template match="package">
   <xsl:output method="xml" indent="yes"/>
 
@@ -16,7 +17,21 @@
 
   <project name="{$project.name}" default="package">
     <property name="sting.dir" value="{$ant.basedir}" />
-    <property name="package.dir" value="{$dist.dir}/packages/{$project.name}" />
+
+    <!-- Read version information out of the xml file -->
+    <xsl:choose>
+      <xsl:when test="version/@property">
+	<echo message="VERSION!!! = {version/@property}" />
+	<xsl:variable name="version.property" select="concat('${',version/@property,'}')" />
+	<property file="{$staging.dir}/{version/@file}" />
+	<property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name,'-',$version.property)}" />
+	<property name="package.filename" value="{concat(@name,'-',$version.property,'.tar.bz2')}" />
+      </xsl:when>
+      <xsl:otherwise>
+	<property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name)}" />
+	<property name="package.filename" value="{concat(@name,'.tar.bz2')}" />
+      </xsl:otherwise>
+    </xsl:choose>
 
     <target name="package">
       <!-- Verify that all classes specified are present -->
@@ -47,18 +62,10 @@
       </xsl:for-each>
 
       <!-- Bundle the package into a single zip file -->
-      <xsl:choose>
-	<xsl:when test="version">
-	  <property file="{$staging.dir}/{version/@file}" />
-	  <xsl:variable name="version.property" select="concat('${',version/@property,'}')" />
-	  <property name="package.filename" value="{@name}-{$version.property}.tar.bz2" />
-	</xsl:when>
-	<xsl:otherwise>
-	  <property name="package.filename" value="{@name}.tar.bz2" />
-	</xsl:otherwise>
-      </xsl:choose>
-      <xsl:variable name="package.filename" select="'${package.filename}'" />
       <tar destfile="{$dist.dir}/packages/{$package.filename}" basedir="{$package.dir}" compression="bzip2" />
+    </target>
+
+    <target name="install">
     </target>
   </project>
 </xsl:template>
