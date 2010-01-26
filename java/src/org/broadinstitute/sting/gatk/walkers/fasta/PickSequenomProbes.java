@@ -23,18 +23,19 @@ public class PickSequenomProbes extends RefWalker<String, String> {
     @Argument(required=false, shortName="snp_mask", doc="positions to be masked with N's")
     protected String SNP_MASK = null;
 
-	private Object[] mask_array = null;
+    private byte [] maskFlags = new byte[401];
+
+    private SeekableRODIterator<TabularROD> snpMaskIterator=null;
 
     public void initialize() {
 		if ( SNP_MASK != null ) {
             logger.info("Loading SNP mask...  ");
-            mask_array = GenomeLocParser.parseIntervals(Arrays.asList(SNP_MASK), GenomeAnalysisEngine.instance.getArguments().intervalMerging).toArray();
+            ReferenceOrderedData<TabularROD> snp_mask = new ReferenceOrderedData<TabularROD>("snp_mask",
+                    new java.io.File(SNP_MASK), TabularROD.class);
+
+            snpMaskIterator = snp_mask.iterator();
 		}
     }
-
-	private boolean in_mask(GenomeLoc loc) {
-	    return mask_array == null ? false : (Arrays.binarySearch(mask_array, loc) >= 0);
-	}
 
     public String map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
 
@@ -57,16 +58,37 @@ public class PickSequenomProbes extends RefWalker<String, String> {
         if ( variant == null )
             return "";
 
+
 		String contig = context.getLocation().getContig();
 		long   offset = context.getLocation().getStart();
+        long true_offset = offset - 200;
+
+        // we have variant; let's load all the snps falling into the current window and prepare the mask array:
+        if ( snpMaskIterator != null ) {
+            RODRecordList<TabularROD> snpList =  snpMaskIterator.seekForward(GenomeLocParser.createGenomeLoc(contig,offset-200,offset+200));
+            if ( snpList != null && snpList.size() != 0 ) {
+                Iterator<TabularROD>  snpsInWindow = snpList.iterator();
+                int i = 0;
+                while ( snpsInWindow.hasNext() ) {
+                    GenomeLoc snp = snpsInWindow.next().getLocation();
+                    int offsetInWindow = (int)(snp.getStart() - true_offset);
+                    for ( ; i < offsetInWindow; i++ ) maskFlags[i] = 0;
+                    maskFlags[i++] = 1;
+                }
+                for ( ; i < 401; i++ ) maskFlags[i] = 0;
+            } else {
+                // we got no snps, don't forget to clear the mask
+                for ( int i = 0 ; i < 401; i++ ) maskFlags[i] = 0;
+            }
+        }
 
 		char[] context_bases = ref.getBases();
-		long true_offset = offset - 200; 
-		for (long i = 0; i < 401; i++) {
+		for (int i = 0; i < 401; i++) {
 			GenomeLoc loc = GenomeLocParser.parseGenomeLoc(contig + ":" + true_offset + "-" + true_offset);
-			if ( in_mask(loc) )
-                context_bases[(int)i] = 'N';
-			true_offset += 1;
+			if ( maskFlags[i]==1 ) {
+                context_bases[i] = 'N';
+            }
+            true_offset += 1;
 		}
 		String leading_bases  = new String(Arrays.copyOfRange(context_bases, 0, 200));
 		String trailing_bases = new String(Arrays.copyOfRange(context_bases, 201, 401));
