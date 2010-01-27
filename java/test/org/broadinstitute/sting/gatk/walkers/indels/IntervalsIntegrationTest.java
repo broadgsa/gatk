@@ -10,22 +10,15 @@ public class IntervalsIntegrationTest extends WalkerTest {
     public void testIntervals() {
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
-                "-T IndelIntervals -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-11,000,000 -o %s",
+                "-T RealignerTargetCreator -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000 -o %s",
                  1,
-                 Arrays.asList("76f97b91921f427ab639b6b8228ac4dc"));
-        executeTest("testIndelIntervals", spec1);
+                 Arrays.asList("d21e83a8b0d3f63acd9ca3b0b636e515"));
+        executeTest("test standard", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
-                "-T MismatchIntervals -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-11,000,000 -o %s",
+                "-T RealignerTargetCreator -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_b36.rod -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000 -o %s",
                  1,
-                 Arrays.asList("31e8b5d4c42f2c63c08b8f6b8e10ac99"));
-        executeTest("testMismatchIntervals", spec2);
-
-        WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
-                "-T IntervalMerger -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-11,000,000 -intervals " + validationDataLocation + "indelIntervals.test -intervals " + validationDataLocation + "mismatchIntervals.test -o %s",
-                 1,
-                 Arrays.asList("bf1f23667ef0065bbcb9754f50c2d664"));
-        executeTest("testMergeIntervals", spec3);
-
+                 Arrays.asList("bfccfa50f62d10ee2fe8cfa68fb70002"));
+        executeTest("test dbsnp", spec2);
     }
 }

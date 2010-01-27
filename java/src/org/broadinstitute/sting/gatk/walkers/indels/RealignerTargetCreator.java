@@ -15,30 +15,24 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import java.util.*;
 
 /**
- * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 reads.
+ * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 and MQ0 reads.
  */
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.Event, RealignerTargetCreator.Event> {
 
-    // mismatch/entropy arguments
+    // mismatch/entropy/SNP arguments
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating entropy or SNP clusters", required=false)
     protected int windowSize = 10;
 
     @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of base qualities needing to mismatch for a position to have high entropy; to disable set to <= 0 or > 1", required=false)
     protected double mismatchThreshold = 0.15;
 
-
-    // observed indels arguments
-    @Argument(fullName="minIndelsPerInterval", shortName="minIndels", doc="min indels per interval", required=false)
-    int minIntervalIndelCount = 1;
-
+    @Argument(fullName="minReadsAtLocus", shortName="minReads", doc="minimum reads at a locus to enable using the entropy calculation", required=false)
+    protected int minReadsAtLocus = 4;
 
     // interval merging arguments
-    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="max interval size", required=false)
-    int maxIntervalSize = 500;
-
-
-    private final int minReadsAtInterval = 4;
+    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size", required=false)
+    protected int maxIntervalSize = 500;
 
     @Override
     public boolean generateExtendedEvents() { return true; }
@@ -115,7 +109,7 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
             // make sure we're supposed to look for high entropy
             if ( mismatchThreshold > 0.0 &&
                     mismatchThreshold <= 1.0 &&
-                    pileup.size() >= minReadsAtInterval &&
+                    pileup.size() >= minReadsAtLocus &&
                     (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
                 hasPointEvent = true;
         }
