@@ -8,8 +8,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.io.IOException;
-
 /*
  * Copyright (c) 2010 The Broad Institute
  *

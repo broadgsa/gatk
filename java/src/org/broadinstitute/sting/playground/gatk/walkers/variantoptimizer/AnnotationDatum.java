@@ -98,7 +98,7 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
             this.ti[iii] += that.ti[iii];
             this.tv[iii] += that.tv[iii];
         }
-        this.value = that.value; // overwrite this bin's value
+        this.value = that.value; // Overwrite this bin's value
     }
 
     final public float calcTiTv( final int INDEX ) {
