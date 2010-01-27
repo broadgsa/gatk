@@ -67,13 +67,13 @@
       <xsl:for-each select="release/executable">
 	<copy todir="{@directory}/{$package.basename}"><fileset dir="{$package.dir}" /></copy>
 	<xsl:if test="@symlink">
-	  <symlink link="{@directory}/{@symlink}" resource="{@directory}/{$package.basename}" overwrite="true" />	
+	  <symlink link="{@directory}/{@symlink}" resource="{$package.basename}" overwrite="true" />	
 	</xsl:if>
       </xsl:for-each>
       <xsl:for-each select="release/archive">
 	<copy file="{$dist.dir}/packages/{$package.filename}" todir="{@directory}" />
 	<xsl:if test="@symlink">
-	  <symlink link="{@directory}/{@symlink}" resource="{@directory}/{$package.filename}" overwrite="true" />	
+	  <symlink link="{@directory}/{@symlink}" resource="{$package.filename}" overwrite="true" />	
 	</xsl:if>
       </xsl:for-each>
     </target>
