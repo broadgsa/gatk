@@ -22,7 +22,8 @@ import java.util.*;
 public class PickSequenomProbes extends RefWalker<String, String> {
     @Argument(required=false, shortName="snp_mask", doc="positions to be masked with N's")
     protected String SNP_MASK = null;
-
+    @Argument(required=false, shortName="project_id",doc="If specified, all probenames will be prepended with 'project_id|'")
+    String project_id = null;
     private byte [] maskFlags = new byte[401];
 
     private SeekableRODIterator<TabularROD> snpMaskIterator=null;
@@ -103,8 +104,18 @@ public class PickSequenomProbes extends RefWalker<String, String> {
         else
             return "";
 
-        String assay_id = new String(context.getLocation().toString() + "_" + ref.getWindow().toString()).replace(':', '_');
-        return assay_id + "\t" + assay_sequence + "\n";
+        StringBuilder assay_id = new StringBuilder();
+        if ( project_id != null ) {
+            assay_id.append(project_id);
+            assay_id.append('|');
+        }
+        assay_id.append(context.getLocation().toString().replace(':','_'));
+        assay_id.append('_');
+        if ( variant.isInsertion() ) assay_id.append("gI_");
+        else if ( variant.isDeletion()) assay_id.append("gD_");
+
+        assay_id.append(ref.getWindow().toString().replace(':', '_'));
+        return assay_id.toString() + "\t" + assay_sequence + "\n";
     }
 
 	public String reduceInit() {
