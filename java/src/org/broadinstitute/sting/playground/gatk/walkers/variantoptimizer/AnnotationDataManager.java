@@ -73,7 +73,7 @@ public class AnnotationDataManager {
                 data.put( annotationKey, treeSet );
             }
             AnnotationDatum datum = new AnnotationDatum( value );
-            if( treeSet.contains(datum) ) { // contains uses AnnotationDatum's equals function, so it only checks if the value field is already present
+            if( treeSet.contains(datum) ) { // contains() uses AnnotationDatum's equals function, so it only checks if the value field is already present
                 datum = treeSet.tailSet(datum).first();
             } else {
                 treeSet.add(datum);
@@ -95,39 +95,42 @@ public class AnnotationDataManager {
                                       final int MIN_VARIANTS_PER_BIN, final int MAX_VARIANTS_PER_BIN ) {
 
         final AnnotationDatum thisAnnotationBin = new AnnotationDatum();
-        System.out.println( "\nExecuting RScript commands:" );
+        System.out.println( "\nFinished reading variants into memory. Executing RScript commands:" );
 
         // For each annotation we've seen
         for( String annotationKey : data.keySet() ) {
 
             PrintStream output;
             try {
-                output = new PrintStream(OUTPUT_PREFIX + annotationKey + ".dat"); // Create the data file for this annotation
+                output = new PrintStream(OUTPUT_PREFIX + annotationKey + ".dat"); // Create the intermediate data file for this annotation
             } catch ( FileNotFoundException e ) {
                 throw new StingException("Can't create intermediate output annotation data file. Does the output directory exist? " +
                                             OUTPUT_PREFIX + annotationKey + ".dat");
             }
 
             // Output a header line
-            output.println("value\ttitv\tnumVariants\tcategory");
+            output.println("value\ttitv\tdbsnp\tnumVariants\tcategory");
 
             // Bin SNPs and calculate truth metrics for each bin
             thisAnnotationBin.clearBin();
             for( AnnotationDatum datum : data.get( annotationKey ) ) {
                 thisAnnotationBin.combine( datum );
                 if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
-                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
-                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
-                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() +
+                            "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
                     thisAnnotationBin.clearBin();
                 }
                 // else, continue accumulating variants because this bin isn't full yet
             }
 
             if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) != 0 ) { // One final bin that may not have been dumped out
-                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
-                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
-                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() + 
+                        "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                thisAnnotationBin.clearBin();
 
             }
 

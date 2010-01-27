@@ -127,13 +127,23 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
         }
     }
 
+    final public float calcDBsnpRate() {
+
+        if( ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET] == 0 ) { // Don't divide by zero
+            return 0.0f;
+        }
+
+        return 100.0f * ((float) ti[DBSNP_SET] + tv[DBSNP_SET]) /
+                ((float) ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET]);
+    }
+
     final public float calcTPrate() {
 
         if( ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET] == 0 ) { // Don't divide by zero
             return 0.0f;
         }
 
-        return ((float) ti[TRUTH_SET] + tv[TRUTH_SET]) /
+        return 100.0f * ((float) ti[TRUTH_SET] + tv[TRUTH_SET]) /
                 ((float) ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET]);
     }
 
