@@ -94,9 +94,9 @@ public class VariantContext {
      *
      * Deletion/Insertion Polymorphisms (DIPs)
      *   Designated using the full sequence of the insertion as one allele, and either a fully
-     *   defined string for the variant allele or a Ò-Ó character to specify the deleted allele.
+     *   defined string for the variant allele or a '-' character to specify the deleted allele.
      *   This class will be assigned to a variation if the variation alleles are of different lengths or
-     *   if one of the alleles is deleted (Ò-Ó).
+     *   if one of the alleles is deleted ('-').
      *   T/-/CCTA/G
      *
      * No-variation
@@ -125,7 +125,7 @@ public class VariantContext {
      *
      * Named variant
      * Applies to insertion/deletion polymorphisms of longer sequence features, such as retroposon
-     * dimorphism for Alu or line elements. These variations frequently include a deletion Ò-Ó indicator
+     * dimorphism for Alu or line elements. These variations frequently include a deletion '-' indicator
      * for the absent allele.
      * (alu) / -
      *
