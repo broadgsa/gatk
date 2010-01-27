@@ -100,7 +100,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
         else if ( variant.isInsertion() )
             assay_sequence = leading_bases + refBase + "[-/" + Utils.join("",variant.getAlleleList()) + "]" + trailing_bases;
         else if ( variant.isDeletion() )
-            assay_sequence = leading_bases + refBase + "[" + Utils.join("",variant.getAlleleList()) + "/-]" + trailing_bases.substring(variant.getAlleleList().size());
+            assay_sequence = leading_bases + refBase + "[" + Utils.join("",variant.getAlleleList()) + "/-]" + trailing_bases.substring(variant.getAlleleList().get(0).length());
         else
             return "";
 
