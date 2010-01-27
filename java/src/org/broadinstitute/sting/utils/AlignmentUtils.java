@@ -4,6 +4,7 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
+import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.pileup.*;
@@ -113,11 +114,11 @@ public class AlignmentUtils {
     /** See {@link #numMismatches(SAMRecord, ReferenceSequence)}. This method implements same functionality
      * for reference sequence specified as conventional java string (of bases). By default, it is assumed that
      * the alignment starts at (1-based) position r.getAlignmentStart() on the reference <code>refSeq</code>.
-     * See {@link #numMismatches(SAMRecord, String, int)} if this is not the case.
+     * See {@link #numMismatches(SAMRecord, byte[], int)} if this is not the case.
      */
     public static int numMismatches(SAMRecord r, String refSeq ) {
         if ( r.getReadUnmappedFlag() ) return 1000000;
-        return numMismatches(r, refSeq, r.getAlignmentStart()-1);
+        return numMismatches(r, StringUtil.stringToBytes(refSeq), r.getAlignmentStart()-1);
      }
 
     /** Returns number of mismatches in the alignment <code>r</code> to the reference sequence
@@ -125,6 +126,8 @@ public class AlignmentUtils {
      * specified reference sequence; in other words, <code>refIndex</code> is used in place of alignment's own
      * getAlignmentStart() coordinate and the latter is never used. However, the structure of the alignment <code>r</code>
      * (i.e. it's cigar string with all the insertions/deletions it may specify) is fully respected.
+     *
+     * THIS CODE ASSUMES THAT ALL BYTES COME FROM UPPERCASED CHARS.
      * 
      * @param r alignment
      * @param refSeq chunk of reference sequence that subsumes the alignment completely (if alignment runs out of 
@@ -132,7 +135,7 @@ public class AlignmentUtils {
      * @param refIndex zero-based position, at which the alignment starts on the specified reference string. 
      * @return the number of mismatches
      */
-    public static int numMismatches(SAMRecord r, String refSeq, int refIndex) {
+    public static int numMismatches(SAMRecord r, byte[] refSeq, int refIndex) {
         int readIdx = 0;
         int mismatches = 0;
         byte[] readSeq = r.getReadBases();
@@ -142,15 +145,15 @@ public class AlignmentUtils {
             switch ( ce.getOperator() ) {
                 case M:
                     for (int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIdx++ ) {
-                        if ( refIndex >= refSeq.length() )
+                        if ( refIndex >= refSeq.length )
                             continue;
-                        char refChr = refSeq.charAt(refIndex);
-                        char readChr = (char)readSeq[readIdx];
+                        byte refChr = refSeq[refIndex];
+                        byte readChr = readSeq[readIdx];
                         // Note: we need to count X/N's as mismatches because that's what SAM requires
                         //if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
                         //     BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
                         //    continue; // do not count Ns/Xs/etc ?
-                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
+                        if ( readChr != refChr )
                             mismatches++;
                     }
                     break;
