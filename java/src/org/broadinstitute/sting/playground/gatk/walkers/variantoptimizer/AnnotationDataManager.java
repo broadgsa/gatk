@@ -41,22 +41,16 @@ import java.io.FileNotFoundException;
 
 public class AnnotationDataManager {
 
-    public final HashMap<String, TreeSet<AnnotationDatum>> dataFull;
-    public final HashMap<String, TreeSet<AnnotationDatum>> dataNovel;
-    public final HashMap<String, TreeSet<AnnotationDatum>> dataDBsnp;
-    public final HashMap<String, TreeSet<AnnotationDatum>> dataTruthSet;
+    public final HashMap<String, TreeSet<AnnotationDatum>> data;
 
     public AnnotationDataManager() {
-        dataFull = new HashMap<String, TreeSet<AnnotationDatum>>();
-        dataNovel = new HashMap<String, TreeSet<AnnotationDatum>>();
-        dataDBsnp = new HashMap<String, TreeSet<AnnotationDatum>>();
-        dataTruthSet = new HashMap<String, TreeSet<AnnotationDatum>>();
+        data = new HashMap<String, TreeSet<AnnotationDatum>>();
     }
 
     public void addAnnotations( RodVCF variant, String sampleName ) {
 
-        if( sampleName != null ) { // only process variants that are found in the sample with this sampleName
-            if( variant.getGenotype(sampleName).isNoCall() ) { // this variant isn't found in this sample so break out
+        if( sampleName != null ) { // Only process variants that are found in the sample with this sampleName
+            if( variant.getGenotype(sampleName).isNoCall() ) { // This variant isn't found in this sample so break out
                 return;
             }
         } // else, process all samples
@@ -69,58 +63,17 @@ public class AnnotationDataManager {
             boolean skipThisAnnotation = false;
             try {
                 value = Float.parseFloat( infoField.get( annotationKey ) );
-            } catch( Exception e ) { // BUGBUG: Make this exception more specific. NumberFormatException??
-                skipThisAnnotation = true; // skip over annotations that aren't floats, like "AC"?? and "DB"
+            } catch( NumberFormatException e ) {
+                skipThisAnnotation = true; // Skip over annotations that aren't floats, like older versions of "AC" and "DB"
             }
             if( skipThisAnnotation ) {
-                continue; // skip over annotations that aren't floats, like "AC"?? and "DB"
+                continue; // Skip over annotations that aren't floats, like older versions of "AC" and "DB"
             }
 
-            if( variant.getID().equals(".") ) { // This is a novel variant
-                TreeSet<AnnotationDatum> treeSet = dataNovel.get( annotationKey );
-                if( treeSet == null ) { // This annotation hasn't been seen before
-                    treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
-                    dataNovel.put( annotationKey, treeSet );
-                }
-                AnnotationDatum datum = new AnnotationDatum( value );
-                if( treeSet.contains(datum) ) {
-                    datum = treeSet.tailSet(datum).first();
-                } else {
-                    treeSet.add(datum);
-                }
-
-                // Decide if it was a Ti or a Tv
-                if( BaseUtils.isTransition(variant.getReferenceForSNP(), variant.getAlternativeBaseForSNP()) ) {
-                    datum.incrementTi();
-                } else {
-                    datum.incrementTv();
-                }
-            } else { // This is a DBsnp variant
-                TreeSet<AnnotationDatum> treeSet = dataDBsnp.get( annotationKey );
-                if( treeSet == null ) { // This annotation hasn't been seen before
-                    treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
-                    dataDBsnp.put( annotationKey, treeSet );
-                }
-                AnnotationDatum datum = new AnnotationDatum( value );
-                if( treeSet.contains(datum) ) {
-                    datum = treeSet.tailSet(datum).first();
-                } else {
-                    treeSet.add(datum);
-                }
-
-                // Decide if it was a Ti or a Tv
-                if( BaseUtils.isTransition(variant.getReferenceForSNP(), variant.getAlternativeBaseForSNP()) ) {
-                    datum.incrementTi();
-                } else {
-                    datum.incrementTv();
-                }
-            }
-
-            // the overall set, containing both novel and DBsnp variants
-            TreeSet<AnnotationDatum> treeSet = dataFull.get( annotationKey );
+            TreeSet<AnnotationDatum> treeSet = data.get( annotationKey );
             if( treeSet == null ) { // This annotation hasn't been seen before
                 treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
-                dataFull.put( annotationKey, treeSet );
+                data.put( annotationKey, treeSet );
             }
             AnnotationDatum datum = new AnnotationDatum( value );
             if( treeSet.contains(datum) ) {
@@ -129,11 +82,14 @@ public class AnnotationDataManager {
                 treeSet.add(datum);
             }
 
+            final boolean isNovelVariant = variant.getID().equals(".");
+            final boolean isTrueVariant = false;
+
             // Decide if it was a Ti or a Tv
             if( BaseUtils.isTransition(variant.getReferenceForSNP(), variant.getAlternativeBaseForSNP()) ) {
-                datum.incrementTi();
+                datum.incrementTi( isNovelVariant, isTrueVariant );
             } else {
-                datum.incrementTv();
+                datum.incrementTv( isNovelVariant, isTrueVariant );
             }
         }
     }
@@ -143,12 +99,13 @@ public class AnnotationDataManager {
 
         System.out.println( "\nExecuting RScript commands:" );
 
-        for( String annotationKey: dataFull.keySet() ) {
+        // For each annotation we've seen
+        for( String annotationKey : data.keySet() ) {
 
             PrintStream output;
             try {
-                output = new PrintStream(OUTPUT_PREFIX + annotationKey + ".dat");
-            } catch (FileNotFoundException e) {
+                output = new PrintStream(OUTPUT_PREFIX + annotationKey + ".dat"); // Create the data file for this annotation
+            } catch ( FileNotFoundException e ) {
                 throw new StingException("Can't create intermediate output annotation data file. Does the output directory exist? " +
                                             OUTPUT_PREFIX + annotationKey + ".dat");
             }
@@ -157,77 +114,23 @@ public class AnnotationDataManager {
             output.println("value\ttitv\tnumVariants\tcategory");
 
             // Bin SNPs and calculate truth metrics for each bin, right now this is just TiTv
-            int numTi = 0;
-            int numTv = 0;
-            AnnotationDatum lastDatum = null;
-            for( AnnotationDatum datum : dataFull.get( annotationKey ) ) {
-                numTi += datum.numTransitions;
-                numTv += datum.numTransversions;
-                lastDatum = datum;
-                if( numTi + numTv >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
-                    float titv;
-                    if( numTv == 0) { titv = 0.0f; }
-                    else { titv = ((float) numTi) / ((float) numTv); }
-                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv) + "\t0");
-                    numTi = 0;
-                    numTv = 0;
+            AnnotationDatum thisAnnotationBin = new AnnotationDatum();
+            for( AnnotationDatum datum : data.get( annotationKey ) ) {
+                thisAnnotationBin.combine( datum );
+                if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                    thisAnnotationBin.clearBin();
                 }
                 // else, continue accumulating variants because this bin isn't full yet
             }
-            if( numTi != 0 || numTv != 0 ) { // one final bin that may not have been dumped out
-                float titv;
-                if( numTv == 0) { titv = 0.0f; }
-                else { titv = ((float) numTi) / ((float) numTv); }
-                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv)+ "\t0");
-            }
 
+            if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) != 0 ) { // one final bin that may not have been dumped out
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
 
-            numTi = 0;
-            numTv = 0;
-            lastDatum = null;
-            for( AnnotationDatum datum : dataNovel.get( annotationKey ) ) {
-                numTi += datum.numTransitions;
-                numTv += datum.numTransversions;
-                lastDatum = datum;
-                if( numTi + numTv >= MAX_VARIANTS_PER_BIN/2 ) { // This annotation bin is full
-                    float titv;
-                    if( numTv == 0) { titv = 0.0f; }
-                    else { titv = ((float) numTi) / ((float) numTv); }
-                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv) + "\t1");
-                    numTi = 0;
-                    numTv = 0;
-                }
-                // else, continue accumulating variants because this bin isn't full yet
-            }
-            if( numTi != 0 || numTv != 0 ) { // one final bin that may not have been dumped out
-                float titv;
-                if( numTv == 0) { titv = 0.0f; }
-                else { titv = ((float) numTi) / ((float) numTv); }
-                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv)+ "\t1");
-            }
-
-            numTi = 0;
-            numTv = 0;
-            lastDatum = null;
-            for( AnnotationDatum datum : dataDBsnp.get( annotationKey ) ) {
-                numTi += datum.numTransitions;
-                numTv += datum.numTransversions;
-                lastDatum = datum;
-                if( numTi + numTv >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
-                    float titv;
-                    if( numTv == 0) { titv = 0.0f; }
-                    else { titv = ((float) numTi) / ((float) numTv); }
-                    output.println(datum.value + "\t" + titv + "\t" + (numTi+numTv) + "\t2");
-                    numTi = 0;
-                    numTv = 0;
-                }
-                // else, continue accumulating variants because this bin isn't full yet
-            }
-            if( numTi != 0 || numTv != 0 ) { // one final bin that may not have been dumped out
-                float titv;
-                if( numTv == 0) { titv = 0.0f; }
-                else { titv = ((float) numTi) / ((float) numTv); }
-                output.println(lastDatum.value + "\t" + titv + "\t" + (numTi+numTv)+ "\t2");
             }
 
             output.close();
@@ -239,7 +142,7 @@ public class AnnotationDataManager {
             try {
                 final Process p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTiTv.R" + " " +
                                         OUTPUT_PREFIX + annotationKey + ".dat" + " " + annotationKey + " " + MIN_VARIANTS_PER_BIN);
-            } catch (Exception e) {
+            } catch ( Exception e ) {
                 throw new StingException( "Unable to execute RScript command" );
             }
         }

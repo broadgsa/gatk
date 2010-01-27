@@ -14,9 +14,9 @@ c <- read.table(input, header=T)
 # Plot TiTv ratio as a function of the annotation
 #
 
-all = c[c$numVariants>minBinCutoff & c$category==0,]
-novel = c[c$numVariants>minBinCutoff & c$category==1,]
-dbsnp = c[c$numVariants>minBinCutoff & c$category==2,]
+all = c[c$numVariants>minBinCutoff & c$category=="all",]
+novel = c[c$numVariants>minBinCutoff & c$category=="novel",]
+dbsnp = c[c$numVariants>minBinCutoff & c$category=="dbsnp",]
 
 d = c[c$numVariants>minBinCutoff,]
 ymin = min(d$titv)

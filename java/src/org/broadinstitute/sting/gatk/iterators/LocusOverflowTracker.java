@@ -93,10 +93,10 @@ public class LocusOverflowTracker {
         // is the last warning they'll see
         if (warningsEmitted < MAX_WARNINGS) {
             warningsEmitted++;
-            Utils.warnUser("Unable to add a reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation);
+            Utils.warnUser("Unable to add reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation);
         } else if (warningsEmitted == MAX_WARNINGS) {
             warningsEmitted++;
-            Utils.warnUser("Unable to add a reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation +
+            Utils.warnUser("Unable to add reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation +
                     "; the maximum warning count has been reached, we will no longer emit warnings of this nature!!");
         }
     }
