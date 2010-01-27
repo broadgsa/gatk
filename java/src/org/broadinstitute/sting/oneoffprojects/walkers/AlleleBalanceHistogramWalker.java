@@ -5,19 +5,13 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,7 +21,7 @@ import java.util.Set;
  * To change this template use File | Settings | File Templates.
  */
 @Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type= RodVCF.class)})
-public class AlleleBalanceHistogramWalker extends RodWalker<Map<String,Double>, Map<String,Set<Double>>> {
+public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>, Map<String,Set<Double>>> {
 
 
     public Map<String,Set<Double>> reduceInit() {
@@ -38,7 +32,11 @@ public class AlleleBalanceHistogramWalker extends RodWalker<Map<String,Double>, 
         if ( alleleBalances != null ) {
             for ( String name : alleleBalances.keySet() ) {
                 if ( alleleBalances.get(name) != null ) {
-                    aggregateBalances.get(name).add(alleleBalances.get(name));
+                    if ( aggregateBalances.get(name) != null ) {
+                        aggregateBalances.get(name).add(alleleBalances.get(name));
+                    } else {
+                        aggregateBalances.put(name,new HashSet<Double>( Arrays.asList(alleleBalances.get(name) ) ) );
+                    }
                 }
             }
         }
@@ -78,9 +76,19 @@ public class AlleleBalanceHistogramWalker extends RodWalker<Map<String,Double>, 
     }
 
     private Double getAlleleBalance(ReferenceContext ref, StratifiedAlignmentContext context, VCFGenotypeRecord vcf) {
+        if ( context == null ) {
+            return null;
+        }
+
         int refBases = 0;
         int altBases = 0;
-        for ( PileupElement e : context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup() ) {
+        AlignmentContext alicon = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+
+        if ( alicon == null ) {
+            return null;
+        }
+        
+        for ( PileupElement e : alicon.getBasePileup() ) {
             if ( BaseUtils.basesAreEqual( e.getBase(), (byte) ref.getBase() ) ) {
                 refBases++;
             } else if ( BaseUtils.basesAreEqual(e.getBase(), (byte) vcf.toVariation(ref.getBase()).getAlternativeBaseForSNP() ) ) {
