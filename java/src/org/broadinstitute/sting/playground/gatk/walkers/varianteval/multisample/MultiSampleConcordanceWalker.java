@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 /**
  * Created by IntelliJ IDEA.
@@ -25,13 +26,14 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
  */
 @Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="truth",type= RodVCF.class),@RMD(name="variants",type= RodVCF.class)})
 public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInfo, MultiSampleConcordanceSet > {
-
+@Argument(fullName="noLowDepthLoci", shortName="NLD", doc="Do not use loci in analysis where the variant depth (as specified in the VCF) is less than the given number; "+
+        "DO NOT USE THIS IF YOUR VCF DOES NOT HAVE 'DP' IN THE FORMAT FIELD", required=false) private int minDepth = -1;
     public void initialize() {
 
     }
 
     public MultiSampleConcordanceSet reduceInit() {
-        return new MultiSampleConcordanceSet();
+        return new MultiSampleConcordanceSet(minDepth);
     }
 
     public LocusConcordanceInfo map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext c) {
@@ -92,8 +94,7 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
     }
 
     public void onTraversalDone(MultiSampleConcordanceSet cSet) {
-        String[] header = {"Sample_ID","Concordant_Refs","Concordant_Vars","Homs_called_het","Het_called_homs","False_Positives","False_Negatives_Due_To_Ref_Call","False_Negatives_Due_To_No_Call"};
-        out.print(String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n",header));
+        out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Sample_ID","Ignored_due_to_depth","Concordant_Refs","Concordant_Vars","Homs_called_het","Het_called_homs","False_Positives","False_Negatives_Due_To_Ref_Call","False_Negatives_Due_To_No_Call");
         for ( VCFConcordanceCalculator sample : cSet.getConcordanceSet() ) {
             out.print(String.format("%s%n",sample));
         }

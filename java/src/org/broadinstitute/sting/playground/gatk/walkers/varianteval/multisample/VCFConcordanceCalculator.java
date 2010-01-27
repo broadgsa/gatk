@@ -14,6 +14,7 @@ import java.util.Set;
  * To change this template use File | Settings | File Templates.
  */
 class VCFConcordanceCalculator {
+    private int minimumDepthForUpdate;
     private String name;
     private Set<GenomeLoc> falsePositiveLoci;
     private Set<GenomeLoc> falseNegativeLoci;
@@ -23,8 +24,9 @@ class VCFConcordanceCalculator {
     private Set<GenomeLoc> concordantCalls;
     private Set<GenomeLoc> concordantGenotypeReferenceCalls;
     private Set<GenomeLoc> chipNoCalls;
+    private Set<GenomeLoc> ignoredDueToDepth;
 
-    public VCFConcordanceCalculator(String sampleName) {
+    public VCFConcordanceCalculator(String sampleName, int minimumDepth) {
         name = sampleName;
         falseNegativeLoci = new HashSet<GenomeLoc>();
         falseNegativeLociDueToNoCall = new HashSet<GenomeLoc>();
@@ -34,6 +36,8 @@ class VCFConcordanceCalculator {
         concordantCalls = new HashSet<GenomeLoc>();
         concordantGenotypeReferenceCalls = new HashSet<GenomeLoc>();
         chipNoCalls = new HashSet<GenomeLoc>();
+        ignoredDueToDepth = new HashSet<GenomeLoc>();
+        minimumDepthForUpdate = minimumDepth;
     }
 
     public void update(LocusConcordanceInfo info) {
@@ -41,10 +45,14 @@ class VCFConcordanceCalculator {
     }
 
     public String toString() {
-        return String.format("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d",name,concordantGenotypeReferenceCalls.size(),concordantCalls.size(),homsCalledHets.size(),hetsCalledHoms.size(),falsePositiveLoci.size(),falseNegativeLoci.size(),falseNegativeLociDueToNoCall.size());
+        return String.format("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",name,ignoredDueToDepth.size(),concordantGenotypeReferenceCalls.size(),concordantCalls.size(),homsCalledHets.size(),hetsCalledHoms.size(),falsePositiveLoci.size(),falseNegativeLoci.size(),falseNegativeLociDueToNoCall.size());
     }
 
     private void compareGenotypes(VCFGenotypeRecord truth, VCFGenotypeRecord call, GenomeLoc loc, byte ref) {
+        if ( minimumDepthForUpdate > 0 && call.getReadCount() < minimumDepthForUpdate ) {
+            ignoredDueToDepth.add(loc);
+            return; // do not update; just go away
+        }
         if ( truth.isNoCall() ) {
             chipNoCalls.add(loc);
         } else if ( truth.isVariant(( char) ref) ) {

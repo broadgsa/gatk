@@ -11,6 +11,7 @@ import java.util.Set;
  * To change this template use File | Settings | File Templates.
  */
 class MultiSampleConcordanceSet {
+    private int minimumDepthForTest;
     private HashSet<VCFConcordanceCalculator> concordanceSet;
     private Set<String> cachedSampleNames;
     private long truthOnlySites;
@@ -18,12 +19,13 @@ class MultiSampleConcordanceSet {
     private long variantOnlySites;
     private long overlappingSites;
 
-    public MultiSampleConcordanceSet() {
+    public MultiSampleConcordanceSet(int minDepth) {
         concordanceSet = new HashSet<VCFConcordanceCalculator>();
         truthOnlySites = 0l;
         truthOnlyVariantSites = 0l;
         variantOnlySites = 0l;
         overlappingSites = 0l;
+        minimumDepthForTest = minDepth;
     }
 
     public boolean hasBeenInstantiated() {
@@ -33,7 +35,7 @@ class MultiSampleConcordanceSet {
     public void instantiate(Set<String> samples) {
         cachedSampleNames = samples;
         for ( String s : samples ) {
-            concordanceSet.add(new VCFConcordanceCalculator(s));
+            concordanceSet.add(new VCFConcordanceCalculator(s,minimumDepthForTest));
         }
     }
 
