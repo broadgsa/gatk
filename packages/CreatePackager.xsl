@@ -60,7 +60,9 @@
       </xsl:for-each>
 
       <!-- Bundle the package into a single zip file -->
-      <tar destfile="{$dist.dir}/packages/{$package.filename}" basedir="{$package.dir}" compression="bzip2" />
+      <tar destfile="{$dist.dir}/packages/{$package.filename}" compression="bzip2">
+        <fileset dir="{$dist.dir}/packages" includes="{$package.basename}/**"/>
+      </tar>
     </target>
 
     <target name="release">
