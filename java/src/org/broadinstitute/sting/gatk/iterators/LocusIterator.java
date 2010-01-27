@@ -29,4 +29,12 @@ public abstract class LocusIterator implements Iterable<AlignmentContext>, Close
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
     }
+
+    /**
+     * a method for getting the overflow tracker, which is used to track sites at which the read count exceeds the
+     * pile-up threshold set on the command line
+     * 
+     * @return the overflow tracker, null if no tracker exists
+     */
+    public abstract LocusOverflowTracker getLocusOverflowTracker();
 }

@@ -449,6 +449,10 @@ public class LocusIteratorByState extends LocusIterator {
         //    printState();
         //}
         GenomeLoc location = null;
+
+        // the farthest right a read extends
+        Integer rightMostEnd = -1;
+
         int curSize = readStates.size();    // simple performance improvement -- avoids unnecessary size() operation
         while (it.hasNext()) {
             SAMRecord read = it.next();
@@ -464,13 +468,17 @@ public class LocusIteratorByState extends LocusIterator {
                     curSize++;
                     if (state.hadIndel()) hasExtendedEvents = true;
                     //if (DEBUG) logger.debug(String.format("  ... added read %s", read.getReadName()));
-                } else if (location == null) {
-                    location = GenomeLocParser.createGenomeLoc(read);
+                } else {
+                    if (location == null)
+                        location = GenomeLocParser.createGenomeLoc(read);                    
+                    rightMostEnd = (read.getAlignmentEnd() > rightMostEnd) ? read.getAlignmentEnd() : rightMostEnd;
                 }
-
             }
+
         }
-        if (location != null) overflowTracker.exceeded(location, curSize);
+        if (location != null)
+            overflowTracker.exceeded(GenomeLocParser.createGenomeLoc(location.getContigIndex(),location.getStart(),rightMostEnd),
+                                     curSize);
     }
 
     // fast testing of position
@@ -523,89 +531,11 @@ public class LocusIteratorByState extends LocusIterator {
     }
 
     /**
-     * a method for getting the overflow tracker, for testing
-     * @return
+     * a method for getting the overflow tracker
+     * @return the overflow tracker, null if none exists
      */
-    protected LocusOverflowTracker getLocusOverflowTracker() {
+    public LocusOverflowTracker getLocusOverflowTracker() {
         return this.overflowTracker;
     }
 }
 
-/**
- * a helper class that organizes the output of warning messages from read pile-ups that
- * are greater than the max pile-up size.  We only want a single warning from each non-contigous
- * interval, up until the maximum warning limit.
- */
-class LocusOverflowTracker {
-    // the last location we found a warning at
-    protected GenomeLoc lastLocation = null;
-
-    // the maximum warning count, and the number of warnings emitted
-    protected static int warningsEmitted = 0;
-    public static final int MAX_WARNINGS = 100;
-
-    // our maximum pileup size
-    protected final int maxPileupSize;
-
-    // do we have a pending warning?
-    protected boolean warningInQueue = false;
-
-    /**
-     * create a LocusOverflowTracker
-     *
-     * @param maxPileup the maximum allowed pile-up size
-     */
-    public LocusOverflowTracker(int maxPileup) {
-        warningInQueue = false;
-        maxPileupSize = maxPileup;
-    }
-
-    /**
-     * have we exceeded the maximum pile-up size?
-     *
-     * @param loc        the current location
-     * @param pileupSize the pile-up size
-     *
-     * @return return true if we're greater, false if we're not
-     */
-    public boolean exceeded(GenomeLoc loc, int pileupSize) {
-        boolean exceeded = pileupSize >= maxPileupSize;
-        if (exceeded && warningsEmitted <= MAX_WARNINGS) {
-            if (lastLocation == null) lastLocation = loc;
-            else if (lastLocation.contiguousP(loc)) {
-                lastLocation = lastLocation.merge(loc);
-            }
-            else {
-                warnUser();
-                lastLocation = loc;
-            }
-            warningInQueue = true;
-        } else if (warningInQueue) {
-            warnUser();
-            lastLocation = null;
-        }
-        return exceeded;
-    }
-
-    /**
-     * clean up the warning queue, making sure we haven't stored a warning
-     * that hasn't been emitted yet.
-     */
-    public void cleanWarningQueue() {
-        if (warningInQueue) warnUser();
-    }
-
-    /** warn the user, checking to make sure we haven't exceeded the maximum warning level. */
-    protected void warnUser() {
-        if (!warningInQueue) throw new IllegalStateException("Without a warning in the queue, we shouldn't see a call to warnUser()"); 
-        warningInQueue = false;
-        if (warningsEmitted < MAX_WARNINGS) {
-            warningsEmitted++;
-            Utils.warnUser("Unable to add a reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation);
-        } else if (warningsEmitted == MAX_WARNINGS) {
-            warningsEmitted++;
-            Utils.warnUser("Unable to add a reads to the pile-up, we're over the hanger limit of " + maxPileupSize + " at location: " + lastLocation +
-                    "; the maximum warning count has been reached, we will no longer emit warnings of this nature!!");
-        }        
-    }
-}

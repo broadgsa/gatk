@@ -137,6 +137,9 @@ public abstract class LocusView extends LocusIterator implements View {
         else
             nextLocus = null;
 
+        // if the current loci isn't null, get the overflow tracker and pass it to the alignment context
+        if ((this.loci != null))
+            current.setLocusOverflowTracker(loci.getLocusOverflowTracker());
         return current;
     }
 

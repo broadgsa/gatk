@@ -260,11 +260,12 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
-        ReadBackedPileup rawPileup = rawContext.getBasePileup();
         // don't try to call if we couldn't read in all reads at this locus (since it wasn't properly downsampled)
-        if ( rawPileup.size() == getToolkit().getArguments().readMaxPileup )
+        if ( rawContext.hasExceededMaxPileup() )
             return null;
 
+        ReadBackedPileup rawPileup = rawContext.getBasePileup();
+        
         // filter the context based on min base and mapping qualities
         ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
 

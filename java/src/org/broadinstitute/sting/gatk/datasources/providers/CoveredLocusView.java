@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.apache.log4j.Logger;
 /**
@@ -36,5 +37,11 @@ public class CoveredLocusView extends LocusView {
 
     public AlignmentContext next() {
         return nextLocus();
+    }
+
+    @Override
+    public LocusOverflowTracker getLocusOverflowTracker() {
+        // we don't store a tracker
+        return null;
     }
 }
