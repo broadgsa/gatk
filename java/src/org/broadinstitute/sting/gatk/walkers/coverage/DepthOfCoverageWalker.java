@@ -46,6 +46,9 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     @Argument(fullName="suppressLocusPrinting", shortName= "noLocus", doc="Suppress printing", required=false)
     public boolean suppressLocusPrinting = false;
 
+    @Argument(fullName="suppressIntervalPrinting", shortName= "noInterval", doc="Suppress printing", required=false)
+    public boolean suppressIntervalPrinting = false;
+
     @Argument(fullName="printBaseCounts", shortName ="bases", doc="Print individual base counts (A,C,G,T only)", required=false)
     protected boolean printBaseCounts = false;
 
@@ -73,9 +76,9 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     private TreeSet<String> sampleNames = new TreeSet<String>();
 
     // keep track of the histogram data
-    private ExpandingArrayList<Integer> coverageHist = null;
-    private int maxDepth = 0;
-    private int totalLoci = 0;
+    private ExpandingArrayList<Long> coverageHist = null;
+    private long maxDepth = 0;
+    private long totalLoci = 0;
 
     // we want to see reads with deletions
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -84,7 +87,7 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
 
         // initialize histogram array
         if ( printHistogram ) {
-            coverageHist = new ExpandingArrayList<Integer>();
+            coverageHist = new ExpandingArrayList<Long>();
         }
 
         // initialize read group names from BAM header
@@ -120,7 +123,7 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         DoCInfo info = new DoCInfo();
         info.totalCoverage = pileup.size();
 
-        int nBadMAPQReads = 0, nDeletionReads = 0;
+        long nBadMAPQReads = 0, nDeletionReads = 0;
         for ( PileupElement p : pileup ) {
 
             if ( excludeMAPQBelowThis > 0 && p.getRead().getMappingQuality() < excludeMAPQBelowThis )
@@ -140,14 +143,14 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
 
             if ( byReadGroup ) {
                 String readGroupName = readGroup.getReadGroupId();
-                int oldDepth = info.depthByReadGroup.get(readGroupName);
+                long oldDepth = info.depthByReadGroup.get(readGroupName);
                 info.depthByReadGroup.put(readGroupName, oldDepth + 1);
             }
 
             if ( bySample ) {
                 String sample = readGroup.getSample();
                 if ( sample != null ) {
-                    int oldDepth = info.depthBySample.get(sample);
+                    long oldDepth = info.depthBySample.get(sample);
                     info.depthBySample.put(sample, oldDepth + 1);
                 }
             }
@@ -189,13 +192,13 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         }
         if ( byReadGroup ) {
             for ( String rg : readGroupNames ) {
-                int oldDepth = sum.depthByReadGroup.get(rg);
+                long oldDepth = sum.depthByReadGroup.get(rg);
                 sum.depthByReadGroup.put(rg, oldDepth + value.depthByReadGroup.get(rg));
             }
         }
         if ( bySample ) {
             for ( String sample : sampleNames ) {
-                int oldDepth = sum.depthBySample.get(sample);
+                long oldDepth = sum.depthBySample.get(sample);
                 sum.depthBySample.put(sample, oldDepth + value.depthBySample.get(sample));
             }
         }
@@ -207,12 +210,14 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     public void onTraversalDone(List<Pair<GenomeLoc, DoCInfo>> results) {
 
         // build and print the per-interval header
-        out.println("\n\nPER_INTERVAL_COVERAGE_SECTION");
-        printHeaderLine(true);
+        if ( ! suppressIntervalPrinting ) {
+            out.println("\n\nPER_INTERVAL_COVERAGE_SECTION");
+            printHeaderLine(true);
 
-        // print all of the individual per-interval coverage data
-        for ( Pair<GenomeLoc, DoCInfo> result : results )
-            printDoCInfo(result.first, result.second, true);
+            // print all of the individual per-interval coverage data
+            for ( Pair<GenomeLoc, DoCInfo> result : results )
+                printDoCInfo(result.first, result.second, true);
+        }
 
         // if we need to print the histogram, do so now
         if ( printHistogram )
@@ -220,7 +225,6 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     }
 
     private void printHeaderLine(boolean printAverageCoverage) {
-
         StringBuilder header = new StringBuilder("location\ttotal_coverage");
         if ( printAverageCoverage )
             header.append("\taverage_coverage");
@@ -257,16 +261,16 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         out.println(header.toString());
     }
 
-    private void incCov(int depth) {
-        int c = coverageHist.expandingGet(depth, 0);
-        coverageHist.set(depth, c + 1);
+    private void incCov(long depth) {
+        long c = coverageHist.expandingGet((int)depth, 0L);
+        coverageHist.set((int)depth, c + 1);
         if ( depth > maxDepth )
             maxDepth = depth;
         totalLoci++;
     }
 
-    private int getCov(int depth) {
-        return coverageHist.get(depth);
+    private long getCov(long depth) {
+        return coverageHist.get((int)depth);
     }
 
     private void printHisto() {
@@ -292,7 +296,7 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         long dist = (long)Math.pow(10, 9);
         while ( Math.abs(getCov(mode) - getCov(1)) < dist && mode < maxDepth )
             dist = Math.abs(getCov(mode++) - getCov(1));
-        int maxGoodDepth = Math.min(mode + 1, maxDepth);
+        long maxGoodDepth = Math.min(mode + 1, maxDepth);
 
         // calculate the mean of the good region
         long totalGoodSites = 0, totalGoodDepth = 0;
@@ -380,29 +384,29 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     }
 
     public class DoCInfo {
-        public int totalCoverage = 0;
-        public int numDeletions = 0;
-        public int numBadMQReads = 0;
-        public int minDepthCoveredLoci = 0;
+        public long totalCoverage = 0;
+        public long numDeletions = 0;
+        public long numBadMQReads = 0;
+        public long minDepthCoveredLoci = 0;
 
-        public int[] baseCounts = null;
+        public long[] baseCounts = null;
 
-        public HashMap<String, Integer> depthByReadGroup = null;
-        public HashMap<String, Integer> depthBySample = null;
+        public HashMap<String, Long> depthByReadGroup = null;
+        public HashMap<String, Long> depthBySample = null;
 
         public DoCInfo() {
             if ( printBaseCounts ) {
-                baseCounts = new int[4];
+                baseCounts = new long[4];
             }
             if ( byReadGroup ) {
-                depthByReadGroup = new HashMap<String, Integer>();
+                depthByReadGroup = new HashMap<String, Long>();
                 for ( String readGroupName : readGroupNames )
-                    depthByReadGroup.put(readGroupName, 0);
+                    depthByReadGroup.put(readGroupName, 0L);
             }
             if ( bySample ) {
-                depthBySample = new HashMap<String, Integer>();
+                depthBySample = new HashMap<String, Long>();
                 for ( String sample : sampleNames )
-                    depthBySample.put(sample, 0);
+                    depthBySample.put(sample, 0L);
             }
         }
 
