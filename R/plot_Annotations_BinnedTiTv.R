@@ -4,9 +4,8 @@ args <- commandArgs(TRUE)
 verbose = TRUE
 
 input = args[1]
-outputDir = args[2]
-annotationName = args[3]
-minBinCutoff = as.numeric(args[4])
+annotationName = args[2]
+minBinCutoff = as.numeric(args[3])
 
 
 c <- read.table(input, header=T)
@@ -25,10 +24,10 @@ ymax = max(d$titv)
 xmin = min(d$value)
 xmax = max(d$value)
 
-outfile = paste(outputDir, "binnedTiTv.", annotationName, ".pdf", sep="")
+outfile = paste(input, ".TiTv.", annotationName, ".pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
-plot(all$value,all$titv,xlab=annotationName,ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax),xaxt="n");
+plot(all$value,all$titv,xlab=annotationName,ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax),xaxt="n",ps=14);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
 m = weighted.mean(all$value,all$numVariants/sum(all$numVariants))
 ma = all[all$value > m,]
@@ -43,10 +42,10 @@ points(dbsnp$value,dbsnp$titv,col="blue",pch=20)
 legend("topleft", c("all","novel","dbsnp"),col=c("black","green","blue"),pch=c(20,20,20))
 dev.off()
 
-outfile = paste(outputDir, "binnedTiTv_log.", annotationName, ".pdf", sep="")
+outfile = paste(input, ".TiTv_log.", annotationName, ".pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
-plot(all$value,all$titv,xlab=annotationName,log="x",ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax),xaxt="n");
+plot(all$value,all$titv,xlab=annotationName,log="x",ylab="Ti/Tv ratio",pch=20,ylim=c(ymin,ymax),xaxt="n",ps=14);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
 abline(v=m,lty=2)
 abline(v=m75,lty=2)
@@ -57,9 +56,9 @@ legend("topleft", c("all","novel","dbsnp"),col=c("black","green","blue"),pch=c(2
 dev.off()
 
 
-outfile = paste(outputDir, "binnedTiTv_hist.", annotationName, ".pdf", sep="")
+outfile = paste(input, "TiTv_hist.", annotationName, ".pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
-plot(all$value,all$numVariants,xlab=annotationName,ylab="num Variants in bin",type="h",xaxt="n");
+plot(all$value,all$numVariants,xlab=annotationName,ylab="num variants in bin",type="h",xaxt="n",ps=14);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
 dev.off()

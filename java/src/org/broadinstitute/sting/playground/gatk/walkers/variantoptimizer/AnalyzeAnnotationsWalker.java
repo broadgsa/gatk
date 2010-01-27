@@ -48,8 +48,8 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName = "output_dir", shortName = "outputDir", doc = "The directory in which to output all the plots and intermediate data files", required = false)
-    private String OUTPUT_DIR = "analyzeAnnotations/";
+    @Argument(fullName = "output_prefix", shortName = "output", doc = "The output path and name to prepend to all plots and intermediate data files", required = false)
+    private String OUTPUT_PREFIX = "analyzeAnnotations/";
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
     private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
@@ -73,18 +73,8 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    /**
-     * Create the output directory and setup the path variables
-     */
     public void initialize() {
 
-        // create the output directory where all the data tables and plots will go
-        try {
-            Process p = Runtime.getRuntime().exec("mkdir " + OUTPUT_DIR);
-        } catch (IOException e) {
-            throw new RuntimeException("Couldn't create directory: " + OUTPUT_DIR);
-        }
-        if( !OUTPUT_DIR.endsWith("/") ) { OUTPUT_DIR = OUTPUT_DIR + "/"; }
         if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
     }
 
@@ -128,6 +118,6 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     public void onTraversalDone( Integer sum ) {
 
         // For each annotation, decide how to cut up the data, output intermediate cumulative p(true) tables, and call RScript to plot the tables
-        dataManager.plotCumulativeTables(PATH_TO_RSCRIPT, PATH_TO_RESOURCES, OUTPUT_DIR, MIN_VARIANTS_PER_BIN, MAX_VARIANTS_PER_BIN);
+        dataManager.plotCumulativeTables(PATH_TO_RSCRIPT, PATH_TO_RESOURCES, OUTPUT_PREFIX, MIN_VARIANTS_PER_BIN, MAX_VARIANTS_PER_BIN);
     }
 }
