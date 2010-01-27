@@ -320,9 +320,8 @@ public abstract class CommandLineProgram {
         System.out.printf("The following error has occurred:%n%n");
         System.out.printf("%s:%n%n", msg);
         System.out.printf("Please check your command line arguments for any typos or inconsistencies.%n");
-        System.out.printf("Help for dealing with common GATK error messages can be found at http://www.broadinstitute.org/gsa/wiki/index.php/GATK_Error_Messages%n");
-        System.out.printf("  Or see our general docs documentation at http://www.broadinstitute.org/gsa/wiki%n");
-        System.out.printf("Please email us at gsahelp@broad.mit.edu to report bugs or with help resolving undocumented issues%n");
+        System.out.printf("Please review our general documentation at http://www.broadinstitute.org/gsa/wiki or contact us via our%n");
+        System.out.printf("support site at http://getsatisfaction.com/gsa to report bugs or get help resolving undocumented issues%n");
     }
 
     /**
