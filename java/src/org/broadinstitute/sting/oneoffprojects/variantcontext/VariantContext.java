@@ -15,21 +15,18 @@ import org.apache.commons.jexl.*;
  *         <p/>
  *         This class represents a context that unifies one or more variants
  */
-public class VariantContext {
+public class VariantContext extends AttributedObject {
     private GenomeLoc loc;
 
     private Set<Allele> alleles = new HashSet<Allele>();
 
-    private Set<Genotype> genotypes = new HashSet<Genotype>();
-
-    private HashMap<Object, Object> attributes = new HashMap<Object, Object>();
+    private Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
 
     Type type = null;
 
-    private double negLog10PError = 0.0;    // todo - fixme
+    // todo -- add QUAL and FILTER
 
-    /** Have we checked this VariantContext already? */
-    private boolean validatedP = false;
+    //private double negLog10PError = 0.0;    // todo - fixme
 
 //    public VariantContext(VariationRod rod) {
 //
@@ -62,16 +59,47 @@ public class VariantContext {
         this(parent.getLocation(), parent.getAlleles(), genotypes, attributes);
     }
 
-    public VariantContext(GenomeLoc loc, Set<Allele> alleles, Set<Genotype> genotypes, HashMap<Object, Object> attributes) {
+    // todo -- add more convenience methods
+    public VariantContext(GenomeLoc loc, Set<Allele> alleles)   { this(loc, alleles, null); }
+    public VariantContext(GenomeLoc loc, List<Allele> alleles ) { this(loc, alleles, null); }
+
+    public VariantContext(GenomeLoc loc, List<Allele> alleles, Map<Object, Object> attributes) {
         this(loc);
 
-        // todo -- add extensive testing here
+        HashSet<Allele> alleleSet = new HashSet<Allele>();
+        for ( Allele a : alleles ) {
+            if ( alleleSet.contains(a) )
+                throw new IllegalArgumentException("List<Alleles> contains duplicate elements " + loc + " " + alleles );
+            alleleSet.add(a);
+        }
 
-        // todo -- check that exactly one allele is tagged as reference
+        setAlleles(alleleSet);
+        setAttributes(attributes);
+        validate();
+    }
 
-        this.alleles = new HashSet<Allele>(alleles);
-        this.genotypes = new HashSet<Genotype>(genotypes);
-        this.attributes = new HashMap<Object, Object>(attributes);
+    public VariantContext(GenomeLoc loc, Set<Allele> alleles, Map<Object, Object> attributes) {
+        this(loc);
+        setAlleles(alleles);
+        setAttributes(attributes);
+        validate();
+    }                     
+
+    public VariantContext(GenomeLoc loc, Set<Allele> alleles, Set<Genotype> genotypes, Map<Object, Object> attributes) {
+        this(loc);
+        setAlleles(alleles);
+        setGenotypes(genotypes);
+        setAttributes(attributes);
+        validate();
+    }
+
+
+    public VariantContext(GenomeLoc loc, Set<Allele> alleles, Map<String, Genotype> genotypes, Map<Object, Object> attributes) {
+        this(loc);
+        setAlleles(alleles);
+        setGenotypes(genotypes);
+        setAttributes(attributes);
+        validate();
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -167,7 +195,6 @@ public class VariantContext {
      */
     public boolean isVariant() { return getType() != Type.NO_VARIATION; }
 
-
     /**
      * convenience method for indels
      *
@@ -175,6 +202,9 @@ public class VariantContext {
      */
     public boolean isIndel() { return getType() == Type.INDEL; }
 
+    // todo -- implement, looking at reference allele
+    //public boolean isInsertion() { return getType() == Type.INDEL; }
+    //public boolean isDeletion() { return getType() == Type.INDEL; }
 
     /**
      * convenience method for indels
@@ -205,20 +235,31 @@ public class VariantContext {
      * @return the reference allele for this context
      */
     public Allele getReference() {
+        Allele ref = getReferenceWithoutError();
+        if ( ref == null )
+            throw new StingException("BUG: no reference allele found at " + this);
+        return ref;
+    }
+
+    private Allele getReferenceWithoutError() {
         for ( Allele allele : getAlleles() )
             if ( allele.isReference() )
                 return allele;
-
-        throw new StingException("BUG: no reference allele found at " + this);
+        return null;
     }
+
 
     /**
      * @return true if the context is strictly bi-allelic
      */
     public boolean isBiallelic() {
-        //return getAlternateAlleles().size() == 1;
-        return getAlleles().size() == 2;
+        return getNAlleles() == 2;
     }
+
+    public int getNAlleles() {
+        return alleles.size();
+    }
+
 
     /**
      * Gets the alleles.  This method should return all of the alleles present at the location,
@@ -246,6 +287,39 @@ public class VariantContext {
         return altAlleles;
     }
 
+    public Allele getAlternateAllele(int count) {
+        int n = 0;
+
+        for ( Allele allele : alleles ) {
+            if ( allele.isNonReference() && n++ == count )
+                return allele;
+        }
+
+        throw new IllegalArgumentException("Requested " + count + " alternative allele but there are only " + n + " alternative alleles " + this);
+    }
+
+
+    public void setAlleles(Set<Allele> alleles) {
+        this.alleles.clear();
+        for ( Allele a : alleles )
+            addAllele(a);
+    }
+
+    public void addAllele(Allele allele) {
+        addAllele(allele, false);
+    }
+
+    public void addAllele(Allele allele, boolean allowDuplicates) {
+        for ( Allele a : alleles ) {
+            if ( a.basesMatch(allele) && ! allowDuplicates )
+                throw new IllegalArgumentException("Duplicate allele added to VariantContext" + this);
+        }
+
+        // we are a novel allele
+        alleles.add(allele);
+    }
+
+
     // ---------------------------------------------------------------------------------------------------------
     //
     // Working with genotypes
@@ -260,24 +334,49 @@ public class VariantContext {
     /**
      * @return set of all Genotypes associated with this context
      */
-
-    // todo -- genotypes should really be stored as map, not set
-    public Set<Genotype> getGenotypes() { return genotypes; }
-
-    public Map<String, Genotype> getGenotypeMap() {
-        HashMap<String, Genotype> map = new HashMap<String, Genotype>();
-        for ( Genotype g : genotypes )
-            map.put(g.getSample(), g);
-        return map;
-    }
-
+    public Map<String, Genotype> getGenotypes() { return genotypes; }
 
     /**
      * @return the set of all sample names in this context
      */
     public Set<String> getSampleNames() {
-        return getGenotypeMap().keySet();
+        return getGenotypes().keySet();
     }
+
+    /**
+     * Returns the number of chromosomes carrying any allele in the genotypes (i.e., excluding NO_CALLS
+     *
+     * @return
+     */
+    public int getChromosomeCount() {
+        // todo -- return the number of ! no_call alleles
+        return 0;
+    }
+
+    /**
+     * Returns the number of chromosomes carrying allele A in the genotypes
+     *
+     * @param a
+     * @return
+     */
+    public int getChromosomeCount(Allele a) {
+        // todo -- walk through genotypes and count genotypes with allele
+        return 0;
+    }
+
+    /**
+     * These are genotype-specific functions
+     *
+     * @return
+     */
+    public boolean isMonomorphic() {
+        return ! isVariant() || getChromosomeCount(getReference()) == getChromosomeCount();
+    }
+
+    public boolean isPolymorphic() {
+        return ! isMonomorphic();
+    }
+
 
     /**
      * @param sample  the sample name
@@ -285,7 +384,59 @@ public class VariantContext {
      * @return the Genotype associated with the given sample in this context or null if the sample is not in this context
      */
     public Genotype getGenotype(String sample) {
-        return getGenotypeMap().get(sample);
+        return getGenotypes().get(sample);
+    }
+
+    public boolean hasGenotype(String sample) {
+        return getGenotypes().containsKey(sample);
+    }
+
+    public void setGenotypes(Genotype genotype) {
+        this.genotypes.clear();
+        addGenotype(genotype);
+    }
+
+    public void setGenotypes(Collection<Genotype> genotypes) {
+        this.genotypes.clear();
+
+        for ( Genotype g : genotypes ) {
+            addGenotype(g.getSample(), g);
+        }
+    }
+
+    public void setGenotypes(Map<String, Genotype> genotypes) {
+        this.genotypes.clear();
+
+        for ( Map.Entry<String, Genotype> elt : genotypes.entrySet() ) {
+            addGenotype(elt.getKey(), elt.getValue());
+        }
+    }
+
+    public void addGenotype(Genotype genotype) {
+        addGenotype(genotype.getSample(), genotype, false);
+    }
+
+
+    public void addGenotype(String sampleName, Genotype genotype) {
+        addGenotype(sampleName, genotype, false);
+    }
+
+    public void addGenotype(String sampleName, Genotype genotype, boolean allowOverwrites) {
+        if ( hasGenotype(sampleName) && ! allowOverwrites )
+            throw new StingException("Attempting to overwrite sample->genotype binding: " + sampleName + " this=" + this);
+
+        if ( ! sampleName.equals(genotype.getSample()) )
+            throw new StingException("Sample name doesn't equal genotype.getSample(): " + sampleName + " genotype=" + genotype);
+
+        this.genotypes.put(sampleName, genotype);
+    }
+
+    public void removeGenotype(String sampleName) {
+        this.genotypes.remove(sampleName);
+    }
+
+    public void removeGenotype(Genotype genotype) {
+        removeGenotype(genotype.getSample());
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -294,62 +445,8 @@ public class VariantContext {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    // todo -- refactor into AttributedObject and have VariantContext and Genotype inherit from them
-    
     // todo -- define common attributes as enum
 
-    /**
-     * Sets the given attribute
-     *
-     * @param key    the attribute key
-     * @param value  the attribute value
-     */
-    public void putAttribute(Object key, Object value) {
-        attributes.put(key, value);
-    }
-
-    public void putAttributes(Map<? extends Object, Object> map) {
-        attributes.putAll(map);
-    }
-
-    public boolean hasAttribute(Object key) {
-        return attributes.containsKey(key);
-    }
-
-    public int getNumAttributes() {
-        return attributes.size();
-    }
-
-    /**
-     * @param key    the attribute key
-     *
-     * @return the attribute value for the given key (or null if not set)
-     */
-    public Object getAttribute(Object key) {
-        return attributes.get(key);
-    }
-
-    public Object getAttribute(Object key, Object defaultValue) {
-        if ( hasAttribute(key) )
-            return attributes.get(key);
-        else
-            return defaultValue;
-    }
-
-    public String getAttributeAsString(Object key)      { return (String)getAttribute(key); }
-    public int getAttributeAsInt(Object key)            { return (Integer)getAttribute(key); }
-    public double getAttributeAsDouble(Object key)      { return (Double)getAttribute(key); }
-
-    public String getAttributeAsString(Object key, String defaultValue)   { return (String)getAttribute(key, defaultValue); }
-    public int getAttributeAsInt(Object key, int defaultValue)            { return (Integer)getAttribute(key, defaultValue); }
-    public double getAttributeAsDouble(Object key, double defaultValue)   { return (Double)getAttribute(key, defaultValue); }
-
-    /**
-     * @return the attribute map
-     */
-    public Map<Object, Object> getAttributes() {
-        return attributes;
-    }
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -360,26 +457,42 @@ public class VariantContext {
     /**
      * To be called by any modifying routines
      */
-    private void invalidate() { validatedP = false; }
+    //private void invalidate() { validatedP = false; }
 
     public boolean validate() {
         return validate(true);
     }
 
     public boolean validate(boolean throwException) {
-        if ( ! validatedP ) {
-            boolean valid = false;
-            // todo -- add extensive validation checking here
-            if ( valid ) {
-                validatedP = valid;
-            } else if ( throwException ) {
-                throw new StingException(this + " failed validation");
+        // todo -- add extensive testing here
+        // todo -- check that exactly one allele is tagged as reference
+        // todo -- check that there's only one null allele
+
+        try {
+            // check alleles
+            boolean alreadySeenRef = false, alreadySeenNull = false;
+            for ( Allele allele : alleles ) {
+                if ( allele.isReference() ) {
+                    if ( alreadySeenRef ) throw new IllegalArgumentException("BUG: Received two reference tagged alleles in VariantContext " + alleles + " this=" + this);
+                    alreadySeenRef = true;
+                }
+
+                if ( allele.isNullAllele() ) {
+                    if ( alreadySeenNull ) throw new IllegalArgumentException("BUG: Received two null alleles in VariantContext " + alleles + " this=" + this);
+                    alreadySeenNull = true;
+                }
             }
 
-            return valid;
-        } else {
-            return validatedP;
+            if ( ! alreadySeenRef )
+                throw new IllegalArgumentException("No reference allele found in VariantContext");
+        } catch ( IllegalArgumentException e ) {
+            if ( throwException )
+                throw e;
+            else
+                return false;
         }
+
+        return true;
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -390,11 +503,49 @@ public class VariantContext {
 
     private void determineType() {
         if ( type == null ) {
-            // todo -- figure out the variation type
+            if ( alleles.size() == 0 ) {
+                throw new StingException("Unexpected requested type of VariantContext with no alleles!" + this);
+            } else if ( alleles.size() == 1 ) {
+                type = Type.NO_VARIATION;
+                // note that this doesn't require a reference allele.  You can be monomorphic independent of having a
+                // reference allele
+            } else if ( isSNPAllele(alleles) ) {
+                type = Type.SNP;
+            } else if ( isDIPAllele(alleles) ) {
+                type = Type.INDEL;
+            } else {
+                type = Type.MIXED;
+            }
         }
     }
 
-    // todo -- toString() method
+    private static boolean isSNPAllele(Set<Allele> alleles) {
+        if ( alleles.size() < 2 )
+            return false;
+
+        for ( Allele allele : alleles ) {
+            if ( allele.length() != 1 )
+                return false;
+        }
+
+        return true;
+    }
+
+    private static boolean isDIPAllele(Set<Allele> alleles) {
+        if ( alleles.size() != 2 )
+            return false;
+
+        Iterator<Allele> it = alleles.iterator();
+        Allele a1 = it.next();
+        Allele a2 = it.next();
+        return a1.length() != a2.length();
+    }
+    
+
+    public String toString() {
+        return String.format("[VC @ %s of type=%s alleles=%s attr=%s GT=%s",
+                getLocation(), this.getType(), this.getAlleles(), this.getAttributes(), this.getGenotypes());
+    }
 
     /**
      * @return true if the context represents point alleles only (i.e. no indels or structural variants)
@@ -418,6 +569,7 @@ public class VariantContext {
 //        return subclasses;
 //    }
 
+    // todo -- move to utils
     /**
      * @param allele  the allele to be queried
      *
@@ -427,7 +579,7 @@ public class VariantContext {
         int alleleCount = 0;
         int totalCount = 0;
 
-        for ( Genotype g : genotypes ) {
+        for ( Genotype g : getGenotypes().values() ) {
             for ( Allele a : g.getAlleles() ) {
                 totalCount++;
                 if ( allele.equals(a) )

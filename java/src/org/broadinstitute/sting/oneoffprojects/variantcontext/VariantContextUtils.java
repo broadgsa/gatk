@@ -32,9 +32,9 @@ public class VariantContextUtils {
             throw new IllegalArgumentException("The locations must be identical for two contexts to be merged");
 
         Set<String> samples = left.getSampleNames();
-        Set<Genotype> Gs = new HashSet<Genotype>(left.getGenotypes());
+        Set<Genotype> Gs = new HashSet<Genotype>(left.getGenotypes().values());
 
-        for ( Genotype g : other.getGenotypes() ) {
+        for ( Genotype g : other.getGenotypes().values() ) {
             if ( samples.contains(g.getSample()) ) {
                 if ( uniquifySamples )
                     g.setSample(g.getSample() + UNIQUIFIED_SUFFIX);

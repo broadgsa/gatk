@@ -64,15 +64,22 @@ import java.util.Arrays;
  * If you know where allele is the reference, you can determine whether the variant is an insertion or deletion
  */
 public class Allele {
+    private static final byte[] NULL_ALLELE_BASES = new byte[0];
+
     private boolean isRef = false;
     private byte[] bases = null;
 
     public Allele(byte[] bases, boolean isRef) {
-        bases = new String(bases).toUpperCase().getBytes(); // todo -- slow performance
-        this.isRef = isRef;
-
         if ( bases == null )
             throw new IllegalArgumentException("Constructor: the Allele base string cannot be null; use new Allele() or new Allele(\"\") to create a Null allele");
+
+        // standardize our representation of null allele and bases
+        if ( (bases.length == 1 && bases[0] == '-') || bases.length == 0)
+            bases = NULL_ALLELE_BASES;
+        else
+            bases = new String(bases).toUpperCase().getBytes(); // todo -- slow performance
+
+        this.isRef = isRef;
 
         this.bases = bases;
         for ( byte b : bases ) {
@@ -91,6 +98,10 @@ public class Allele {
         this(bases.getBytes(), isRef);
     }
 
+    public Allele()             { this(false); }
+    public Allele(String bases) { this(bases, false); }
+    public Allele(byte[] bases) { this(bases, false); }
+
     //
     //
     // accessor routines
@@ -102,6 +113,9 @@ public class Allele {
     public boolean isReference()        { return isRef; }
     public boolean isNonReference()     { return ! isReference(); }
 
+    public String toString() {
+        return isNullAllele() ? "-" : new String(getBases()) + ( isReference() ? "*" : "");
+    }
 
     /**
      * Return the DNA bases segregating in this allele.  Note this isn't reference polarized,
@@ -117,8 +131,13 @@ public class Allele {
      * @return true if these alleles are equal
      */
     public boolean equals(Allele other) {
-        return Arrays.equals(bases, other.getBases());
+        return isRef == other.isRef && this.basesMatch(other.getBases());
     }
+
+    // todo -- notice case insensitivity
+    public boolean basesMatch(byte[] test) { return bases == test || Arrays.equals(bases, test); }
+    public boolean basesMatch(String test) { return basesMatch(test.toUpperCase().getBytes()); }
+    public boolean basesMatch(Allele test) { return basesMatch(test.getBases()); }
 
     public int length() {
         return bases.length;

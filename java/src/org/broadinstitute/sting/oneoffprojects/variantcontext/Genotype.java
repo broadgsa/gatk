@@ -9,21 +9,17 @@ import java.util.*;
  *         <p/>
  *         This class emcompasses all the basic information about a genotype
  */
-public class Genotype {
+public class Genotype extends AttributedObject {
     private List<Allele> alleles;
 
     private double negLog10PError;
 
     private String sample;
 
-    private HashMap<Object, Object> attributes;
-
-
     public Genotype(List<Allele> alleles, String sample, double negLog10PError) {
         this.alleles = new ArrayList<Allele>(alleles);
         this.sample = sample;
         this.negLog10PError = negLog10PError;
-        attributes = new HashMap<Object, Object>();
     }
 
     /**
@@ -71,22 +67,22 @@ public class Genotype {
     /**
      * @return true if all alleles for this genotype are SNPs or reference
      */
-    public boolean isPointGenotype() {
-//        for ( Allele allele : alleles ) {
-//            if ( allele.isVariant() && !allele.isSNP() )
-//                return false;
-//        }
-        return true;
-    }
+//    public boolean isPointGenotype() {
+////        for ( Allele allele : alleles ) {
+////            if ( allele.isVariant() && !allele.isSNP() )
+////                return false;
+////        }
+//        return true;
+//    }
 
     /**
      * @return true if this is a variant genotype, false if it's reference
      */
     public boolean isVariant() {
-//        for ( Allele allele : alleles ) {
-//            if ( allele.isVariant() )
-//                return true;
-//        }
+        for ( Allele allele : alleles ) {
+            if ( allele.isNonReference() )
+                return true;
+        }
         return false;
     }
 
@@ -116,31 +112,4 @@ public class Genotype {
      */
     // TODO -- implement me
     // public Variation toVariation(char ref);
-
-    /**
-     * Sets the given attribute
-     *
-     * @param key    the attribute key
-     * @param value  the attribute value
-     */
-    public void setAttribute(Object key, Object value) {
-        attributes.put(key, value);
-    }
-
-    /**
-     * @param key    the attribute key
-     *
-     * @return the attribute value for the given key (or null if not set)
-     */
-    public Object getAttribute(Object key) {
-        return attributes.get(key);
-    }
-
-    /**
-     * @return the attribute map
-     */
-    public Map<Object, Object> getAttributes() {
-        return attributes;
-    }
-
 }
