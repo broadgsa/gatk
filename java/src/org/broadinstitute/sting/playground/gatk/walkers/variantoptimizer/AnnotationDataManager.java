@@ -83,7 +83,7 @@ public class AnnotationDataManager {
             final boolean isTrueVariant = false; //BUGBUG: Check truth input file to see if this variant is in the truth set
 
             // Decide if the variant is a transition or transversion
-            if( BaseUtils.isTransition( variant.getReferenceForSNP(), variant.getAlternativeBaseForSNP()) ) {
+            if( BaseUtils.isTransition( (byte)variant.getReferenceForSNP(), (byte)variant.getAlternativeBaseForSNP()) ) {
                 datum.incrementTi( isNovelVariant, isTrueVariant );
             } else {
                 datum.incrementTv( isNovelVariant, isTrueVariant );

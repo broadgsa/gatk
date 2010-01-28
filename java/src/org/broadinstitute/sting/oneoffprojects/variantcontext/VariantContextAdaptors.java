@@ -9,7 +9,7 @@ import java.util.*;
 
 
 public class VariantContextAdaptors {
-    public static VariantContext dbsnp2VariantContext(rodDbSNP dbsnp) {
+    public static VariantContext dbsnpToVariantContext(rodDbSNP dbsnp) {
         if ( dbsnp.isSNP() || dbsnp.isIndel() || dbsnp.varType.contains("mixed") ) {
             VariantContext vc = new VariantContext(dbsnp.getLocation());
 
@@ -37,7 +37,7 @@ public class VariantContextAdaptors {
             return null; // can't handle anything else
     }
 
-    public static VariantContext vcf2VariantContext(RodVCF vcf) {
+    public static VariantContext vcfToVariantContext(RodVCF vcf) {
         if ( vcf.isSNP() || vcf.isIndel() ) {
             VariantContext vc = new VariantContext(vcf.getLocation());
 
@@ -52,7 +52,7 @@ public class VariantContextAdaptors {
             vc.setNegLog10PError(vcf.getNegLog10PError());
             vc.setAttributes(vcf.getInfoValues());
             vc.putAttribute("ID", vcf.getID());
-            vc.putAttribute("FILTER", vcf.getFilterString());
+            if ( vcf.isFiltered() ) vc.setFilters(Arrays.asList(vcf.getFilteringCodes()));
 
             // add all of the alt alleles
             for ( String alt : vcf.getAlternateAlleleList() ) {

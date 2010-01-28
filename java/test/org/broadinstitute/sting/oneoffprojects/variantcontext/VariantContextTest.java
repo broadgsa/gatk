@@ -15,6 +15,8 @@ import org.junit.BeforeClass;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.Collection;
 import java.io.FileNotFoundException;
 import java.io.File;
 
@@ -37,7 +39,7 @@ public class VariantContextTest extends BaseTest {
     Allele del, delRef, ATC, ATCref;
 
     // A [ref] / T at 10
-    GenomeLoc snpLoc = GenomeLocParser.createGenomeLoc("chr1", 10, 11);
+    GenomeLoc snpLoc = GenomeLocParser.createGenomeLoc("chr1", 10, 10);
 
     // - / ATC [ref] from 20-23
     GenomeLoc delLoc = GenomeLocParser.createGenomeLoc("chr1", 20, 22);
@@ -79,6 +81,9 @@ public class VariantContextTest extends BaseTest {
         Assert.assertFalse(vc.isMixed());
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
+
+        Assert.assertTrue(vc.isTransversion());
+        Assert.assertFalse(vc.isTransition());
 
         Assert.assertEquals(vc.getReference(), Aref);
         Assert.assertEquals(vc.getAlleles().size(), 2);
@@ -203,6 +208,19 @@ public class VariantContextTest extends BaseTest {
         new VariantContext(insLoc, Arrays.asList(Aref, A));
     }
 
+    @Test (expected = IllegalStateException.class)
+    public void testBadLoc1() {
+        logger.warn("testBadLoc1");
+        List<Allele> alleles = Arrays.asList(Aref, T, del);
+        VariantContext vc = new VariantContext(delLoc, alleles);
+    }
+
+
+    @Test (expected = IllegalStateException.class)
+    public void testBadTiTvRequest() {
+        logger.warn("testBadConstructorArgsDuplicateAlleles2");
+        new VariantContext(insLoc, Arrays.asList(Aref, ATC)).isTransition();
+    }
 
     @Test
     public void testAccessingSimpleSNPGenotypes() {
@@ -249,7 +267,7 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testAccessingCompleteGenotypes");
 
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        VariantContext vc = new VariantContext(delLoc, alleles);
+        VariantContext vc = new VariantContext(snpLoc, alleles);
         logger.warn("vc = " + vc);
 
         Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA", 10);
@@ -265,6 +283,8 @@ public class VariantContextTest extends BaseTest {
         Assert.assertFalse(vc.isMonomorphic());
         Assert.assertTrue(vc.isPolymorphic());
         Assert.assertEquals(vc.getGenotypes().size(), 6);
+
+        Assert.assertEquals(3, vc.getGenotypes(Arrays.asList("AA", "Td", "dd")).size());
 
         Assert.assertEquals(10, vc.getChromosomeCount());
         Assert.assertEquals(3, vc.getChromosomeCount(Aref));
@@ -300,6 +320,99 @@ public class VariantContextTest extends BaseTest {
             Assert.assertEquals(0, vc.getChromosomeCount(T));
             Assert.assertEquals(2, vc.getChromosomeCount(Allele.NO_CALL));
         }
+    }
+
+    @Test
+    public void testFilters() {
+        logger.warn("testFilters");
+
+        List<Allele> alleles = Arrays.asList(Aref, T, del);
+        Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA", 10);
+        Genotype g2 = new Genotype(Arrays.asList(Aref, T), "AT", 10);
+        VariantContext vc = new VariantContext(snpLoc, alleles, Arrays.asList(g1,g2));
+        logger.warn("vc = " + vc);
+
+        Assert.assertTrue(vc.isNotFiltered());
+        Assert.assertFalse(vc.isFiltered());
+        Assert.assertEquals(0, vc.getFilters().size());
+
+        vc.addFilter("BAD_SNP_BAD!");
+
+        Assert.assertFalse(vc.isNotFiltered());
+        Assert.assertTrue(vc.isFiltered());
+        Assert.assertEquals(1, vc.getFilters().size());
+
+        vc.addFilters(Arrays.asList("REALLY_BAD_SNP", "CHRIST_THIS_IS_TERRIBLE"));
+
+        Assert.assertFalse(vc.isNotFiltered());
+        Assert.assertTrue(vc.isFiltered());
+        Assert.assertEquals(3, vc.getFilters().size());
+
+        vc.clearFilters();
+
+        Assert.assertTrue(vc.isNotFiltered());
+        Assert.assertFalse(vc.isFiltered());
+        Assert.assertEquals(0, vc.getFilters().size());
+    }
+
+    @Test
+    public void testVCromGenotypes() {
+        logger.warn("testVCromGenotypes");
+
+        List<Allele> alleles = Arrays.asList(Aref, T, del);
+        Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA", 10);
+        Genotype g2 = new Genotype(Arrays.asList(Aref, T), "AT", 10);
+        Genotype g3 = new Genotype(Arrays.asList(T, T), "TT", 10);
+        Genotype g4 = new Genotype(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), "..", 10);
+        Genotype g5 = new Genotype(Arrays.asList(del, del), "--", 10);
+        VariantContext vc = new VariantContext(snpLoc, alleles, Arrays.asList(g1,g2,g3,g4,g5));
+        logger.warn("vc = " + vc);
+
+        VariantContext vc12 = vc.subContextFromGenotypes(Arrays.asList(g1,g2));
+        VariantContext vc1 = vc.subContextFromGenotypes(Arrays.asList(g1));
+        VariantContext vc23 = vc.subContextFromGenotypes(Arrays.asList(g2, g3));
+        VariantContext vc4 = vc.subContextFromGenotypes(Arrays.asList(g4));
+        VariantContext vc14 = vc.subContextFromGenotypes(Arrays.asList(g1, g4));
+        VariantContext vc5 = vc.subContextFromGenotypes(Arrays.asList(g5));
+
+        Assert.assertTrue(vc12.isPolymorphic());
+        Assert.assertTrue(vc23.isPolymorphic());
+        Assert.assertTrue(vc1.isMonomorphic());
+        Assert.assertTrue(vc4.isMonomorphic());
+        Assert.assertTrue(vc14.isMonomorphic());
+        Assert.assertTrue(vc5.isPolymorphic());
+
+        Assert.assertTrue(vc12.isSNP());
+        Assert.assertTrue(vc12.isVariant());
+        Assert.assertTrue(vc12.isBiallelic());
+
+        Assert.assertFalse(vc1.isSNP());
+        Assert.assertFalse(vc1.isVariant());
+        Assert.assertFalse(vc1.isBiallelic());
+
+        Assert.assertTrue(vc23.isSNP());
+        Assert.assertTrue(vc23.isVariant());
+        Assert.assertTrue(vc23.isBiallelic());
+
+        Assert.assertFalse(vc4.isSNP());
+        Assert.assertFalse(vc4.isVariant());
+        Assert.assertFalse(vc4.isBiallelic());
+
+        Assert.assertFalse(vc14.isSNP());
+        Assert.assertFalse(vc14.isVariant());
+        Assert.assertFalse(vc14.isBiallelic());
+
+        Assert.assertTrue(vc5.isIndel());
+        Assert.assertTrue(vc5.isDeletion());
+        Assert.assertTrue(vc5.isVariant());
+        Assert.assertTrue(vc5.isBiallelic());
+
+        Assert.assertEquals(3, vc12.getChromosomeCount(Aref));
+        Assert.assertEquals(1, vc23.getChromosomeCount(Aref));
+        Assert.assertEquals(2, vc1.getChromosomeCount(Aref));
+        Assert.assertEquals(0, vc4.getChromosomeCount(Aref));
+        Assert.assertEquals(2, vc14.getChromosomeCount(Aref));
+        Assert.assertEquals(0, vc5.getChromosomeCount(Aref));
     }
 
 

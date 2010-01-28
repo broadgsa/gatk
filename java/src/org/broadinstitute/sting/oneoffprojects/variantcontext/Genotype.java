@@ -13,6 +13,11 @@ public class Genotype extends AttributedObject {
     private List<Allele> alleles = new ArrayList<Allele>();
     private String sampleName = null;
 
+    // todo -- do genotypes need to have locations?  Or is it sufficient to have an
+    // todo -- associated VC with a location?  One nasty implication is that people will have to
+    // todo -- pass around both a Variant Context and genotypes.  Although users can always just package up
+    // the associated genotypes into the VC itself.
+
     public Genotype(VariantContext vc, List<String> alleles, String sampleName, double negLog10PError) {
         this(resolveAlleles(vc, alleles), sampleName, negLog10PError);
     }

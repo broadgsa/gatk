@@ -44,9 +44,9 @@ public class SubstitutionEvaluation implements VariantEvaluation {
             for (char abase : BaseUtils.BASES) {
                 String altAllele = String.format("%c", abase);
 
-                if (BaseUtils.isTransition(rbase, abase)) {
+                if (BaseUtils.isTransition((byte)rbase, (byte)abase)) {
                     transitions += substitutions.get(refAllele, altAllele);
-                } else if (BaseUtils.isTransversion(rbase, abase)) {
+                } else if (BaseUtils.isTransversion((byte)rbase, (byte)abase)) {
                     transversions += substitutions.get(refAllele, altAllele);
                 } else {
                     unknown += substitutions.get(refAllele, altAllele);

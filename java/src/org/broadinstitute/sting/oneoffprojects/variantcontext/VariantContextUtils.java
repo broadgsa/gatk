@@ -13,9 +13,9 @@ public class VariantContextUtils {
      * throws an exception if there is a collision such that the same sample exists in both contexts
      * @return a context representing the merge of this context and the other provided context
      */
-    public VariantContext merge(VariantContext left, VariantContext other) {
-        return merge(left, other, false);
-    }
+//    public VariantContext merge(VariantContext left, VariantContext other) {
+//        return merge(left, other, false);
+//    }
 
     /**
      * @param other            another variant context
@@ -25,30 +25,30 @@ public class VariantContextUtils {
      *
      * @return a context representing the merge of this context and the other provided context
      */
-    public VariantContext merge(VariantContext left, VariantContext other, boolean uniquifySamples) {
-        // todo -- make functional
-
-        if ( !left.getLocation().equals(other.getLocation()) )
-            throw new IllegalArgumentException("The locations must be identical for two contexts to be merged");
-
-        Set<String> samples = left.getSampleNames();
-        Set<Genotype> Gs = new HashSet<Genotype>(left.getGenotypes().values());
-
-        for ( Genotype g : other.getGenotypes().values() ) {
-            if ( samples.contains(g.getSampleName()) ) {
-                if ( uniquifySamples )
-                    g.setSampleName(g.getSampleName() + UNIQUIFIED_SUFFIX);
-                else
-                    throw new IllegalStateException("The same sample name exists in both contexts when attempting to merge");
-            }
-            Gs.add(g);
-        }
-
-        HashMap<Object, Object> attrs = new HashMap<Object, Object>(left.getAttributes());
-        attrs.putAll(other.getAttributes());
-
-        return new VariantContext(left, Gs, attrs);
-    }
+//    public VariantContext merge(VariantContext left, VariantContext other, boolean uniquifySamples) {
+//        // todo -- make functional
+//
+//        if ( !left.getLocation().equals(other.getLocation()) )
+//            throw new IllegalArgumentException("The locations must be identical for two contexts to be merged");
+//
+//        Set<String> samples = left.getSampleNames();
+//        Set<Genotype> Gs = new HashSet<Genotype>(left.getGenotypes().values());
+//
+//        for ( Genotype g : other.getGenotypes().values() ) {
+//            if ( samples.contains(g.getSampleName()) ) {
+//                if ( uniquifySamples )
+//                    g.setSampleName(g.getSampleName() + UNIQUIFIED_SUFFIX);
+//                else
+//                    throw new IllegalStateException("The same sample name exists in both contexts when attempting to merge");
+//            }
+//            Gs.add(g);
+//        }
+//
+//        HashMap<Object, Object> attrs = new HashMap<Object, Object>(left.getAttributes());
+//        attrs.putAll(other.getAttributes());
+//
+//        return new VariantContext(left, Gs, attrs);
+//    }
 
 
     /**

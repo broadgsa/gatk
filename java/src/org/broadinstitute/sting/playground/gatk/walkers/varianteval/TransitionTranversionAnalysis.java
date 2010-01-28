@@ -28,7 +28,7 @@ public class TransitionTranversionAnalysis extends BasicVariantAnalysis implemen
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         if (eval != null && eval.isSNP()) {
             char altBase = eval.getAlternativeBaseForSNP();
-            BaseUtils.BaseSubstitutionType subType = BaseUtils.SNPSubstitutionType(ref, altBase);
+            BaseUtils.BaseSubstitutionType subType = BaseUtils.SNPSubstitutionType((byte)ref, (byte)altBase);
             if (subType == BaseUtils.BaseSubstitutionType.TRANSITION)
                 nTransitions++;
             else

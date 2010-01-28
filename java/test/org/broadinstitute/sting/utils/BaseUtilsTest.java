@@ -27,27 +27,27 @@ public class BaseUtilsTest extends BaseTest {
     public void testTransitionTransversion() {
         logger.warn("Executing testTransitionTransversion");
 
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'A', 'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'A', 'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'A', 'G' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'C', 'A' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'C', 'T' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'C', 'G' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'T', 'A' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'T', 'C' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'T', 'G' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'G', 'A' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'G', 'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'G', 'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'G' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'C', (byte)'A' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'C', (byte)'T' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'C', (byte)'G' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'T', (byte)'A' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'T', (byte)'C' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'T', (byte)'G' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'G', (byte)'A' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'G', (byte)'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'G', (byte)'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
 
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'a', 'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'a', 'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'A', 'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'A', 'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'A', 't' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'A', 'c' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'a', 't' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
-        Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'a', 'c' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'a', (byte)'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'a', (byte)'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'t' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'c' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'a', (byte)'t' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
+        Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'a', (byte)'c' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
     }
 
     @Test

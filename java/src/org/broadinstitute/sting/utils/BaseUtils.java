@@ -24,20 +24,20 @@ public class BaseUtils {
      * @param base2
      * @return
      */
-    public static BaseSubstitutionType SNPSubstitutionType( char base1, char base2 ) {
+    public static BaseSubstitutionType SNPSubstitutionType( byte base1, byte base2 ) {
         BaseSubstitutionType t = isTransition(base1, base2) ? BaseSubstitutionType.TRANSITION : BaseSubstitutionType.TRANSVERSION;
         //System.out.printf("SNPSubstitutionType( char %c, char %c ) => %s%n", base1, base2, t);
         return t;
     }
 
-    public static boolean isTransition( char base1, char base2 ) {
+    public static boolean isTransition( byte  base1, byte  base2 ) {
         int b1 = simpleBaseToBaseIndex(base1);
         int b2 = simpleBaseToBaseIndex(base2);
         return b1 == 0 && b2 == 2 || b1 == 2 && b2 == 0 ||
                b1 == 1 && b2 == 3 || b1 == 3 && b2 == 1;
     }
 
-    public static boolean isTransversion( char base1, char base2 ) {
+    public static boolean isTransversion( byte  base1, byte  base2 ) {
         return ! isTransition(base1, base2);
     }
 
