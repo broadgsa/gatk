@@ -214,6 +214,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     private void clean(List<SAMRecord> reads, String reference, GenomeLoc interval) {
 
+        reference = reference.toUpperCase();
+
         long leftmostIndex = interval.getStart();
         ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                   // reads that perfectly match ref
         ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
@@ -222,18 +224,26 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();                   // list of alt consenses
         int totalMismatchSum = 0;
 
+//boolean DEBUG = false;
+//boolean FULL_DEBUG = false;
+
+//       for ( SAMRecord read : reads ) { if  ( read.getReadName().equals("HWUSI-EAS667_1:1:17:1784:105#0")) { FULL_DEBUG = true; break; } }
 
         // decide which reads potentially need to be cleaned
         for ( SAMRecord read : reads ) {
 
-            //            if ( debugOn ) {
-            //                System.out.println(read.getReadName()+" "+read.getCigarString()+" "+read.getAlignmentStart()+"-"+read.getAlignmentEnd());
-            //                System.out.println(reference.substring((int)(read.getAlignmentStart()-leftmostIndex),(int)(read.getAlignmentEnd()-leftmostIndex)));
-            //                System.out.println(read.getReadString());
-            //            } 
+//           if ( read.getReadName().equals("HWUSI-EAS667_1:1:17:1784:105#0")) DEBUG = true;
+//            else DEBUG=false;
+//            if ( DEBUG ) {
+//                           System.out.println("Staring with alignment:");
+//                           System.out.println(read.getReadName()+" "+read.getCigarString()+" "+read.getAlignmentStart()+"-"+read.getAlignmentEnd());
+//                           System.out.println(reference.substring((int)(read.getAlignmentStart()-leftmostIndex),(int)(read.getAlignmentEnd()-leftmostIndex)));
+//                           System.out.println(read.getReadString());
+//                   }
 
             // we currently can not deal with clipped reads correctly (or screwy record)
             if ( read.getCigar().numCigarElements() == 0 || readIsClipped(read) ) {
+//                if ( DEBUG ) System.out.println("MATCHES REF; skipped.");
                 refReads.add(read);
                 continue;
             }
@@ -243,7 +253,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
             if ( numBlocks == 2 ) {
+
+//                if ( FULL_DEBUG ) System.out.println("STARTING WITH "+read.getCigar()+" for "+ aRead.getRead().getReadName()+" at "+aRead.getRead().getAlignmentStart());
+
                 Cigar newCigar = indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex, 0);
+//                if ( FULL_DEBUG ) System.out.println("INDEL REALIGNED TO "+newCigar.toString()+" for "+ aRead.getRead().getReadName());
                 if ( aRead.setCigar(newCigar) ) {
                     leftMovedIndels.add(aRead);
                 }
@@ -261,17 +275,21 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 // if it has an indel, let's see if that's the best consensus
                 if ( numBlocks == 2 )  {
                     Consensus c = createAlternateConsensus(aRead.getAlignmentStart() - (int)leftmostIndex, aRead.getCigar(), reference, aRead.getRead().getReadBases());
+//                    if ( FULL_DEBUG ) System.out.println("ALT CONSENSUS CREATED FROM INDEL. "+(c==null?"<NULL>":c.cigar.toString())+" for "+ aRead.getRead().getReadName()+
+//                            " at "+aRead.getRead().getAlignmentStart());
                     if ( c==null) {} //System.out.println("ERROR: Failed to create alt consensus for read "+aRead.getRead().getReadName());
                     else altConsenses.add(c);
                 }
                 else {
                     //                    if ( debugOn ) System.out.println("Going to test...");
                     altAlignmentsToTest.add(aRead);
+//                    if ( DEBUG ) System.out.println("SCORE > 0; saved for testing.");
                 }
             }
             // otherwise, we can emit it as is
             else {
                 // if ( debugOn ) System.out.println("Emitting as is...");
+//                if ( DEBUG ) System.out.println("SCORE 0; added to REF.");
                 refReads.add(read);
             }
         }
@@ -285,6 +303,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 if ( c != null) {
                     //                    if ( debugOn ) System.out.println("NEW consensus generated by SW: "+c.str ) ; 
                     altConsenses.add(c);
+//                   if ( FULL_DEBUG == true && c.cigar.getCigarElement(0).getOperator() == CigarOperator.I ) {
+//                        System.out.println("ALT CONSENSUS FROM SW: "+c.cigar.toString()+" from read "+aRead.getRead().getReadName());
+//                        System.out.println(c.str + " at "+c.positionOnReference);
+//                    }
                 } else {
                     //   if ( debugOn ) System.out.println("FAILED to create Alt consensus from SW");
                 }
@@ -298,8 +320,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 // do a pairwise alignment against the reference
                 SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(StringUtil.stringToBytes(reference), aRead.getRead().getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
                 Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getRead().getReadBases());
-                if ( c != null)
+                if ( c != null) {
                     altConsenses.add(c);
+ //                   if ( FULL_DEBUG == true ) {
+ //                       System.out.println("ALT CONSENSUS FROM SW: "+c.cigar.toString()+" from read "+aRead.getRead().getReadName());
+ //                       System.out.println(c.str + " at "+c.positionOnReference);
+ //                   }
+                }
             }
         }
 
@@ -311,6 +338,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         while ( iter.hasNext() ) {
             Consensus consensus = iter.next();
 
+//            if ( FULL_DEBUG  ) {
+//                System.out.println("CHECKING CONSENSUS: "+consensus.cigar.toString());
+//                System.out.println(consensus.str + " at "+consensus.positionOnReference);
+//            }
             // if ( debugOn ) System.out.println("Consensus: "+consensus.str);
 
             for ( int j = 0; j < altReads.size(); j++ ) {
@@ -343,8 +374,18 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         double improvement = (bestConsensus == null ? -1 : ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0);
         if ( improvement >= LOD_THRESHOLD ) {
 
+//            if ( FULL_DEBUG ) {
+//                System.out.println("BEST CONSENSUS: "+bestConsensus.cigar.toString());
+//                System.out.println(bestConsensus.str + " at "+bestConsensus.positionOnReference);
+//            }
+
             bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, bestConsensus.positionOnReference);
 
+//            if ( FULL_DEBUG ) {
+//                System.out.println("BEST CONSENSUS REALIGNED TO: "+bestConsensus.cigar.toString());
+//                System.out.println(bestConsensus.str + " at "+bestConsensus.positionOnReference);
+//            }
+            
            // start cleaning the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                 AlignedRead aRead = altReads.get(indexPair.first);
@@ -519,8 +560,25 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         CigarElement altCE1 = altCigar.getCigarElement(0);
         CigarElement altCE2 = altCigar.getCigarElement(1);
 
+        int leadingMatchingBlockLength = 0; // length of the leading M element or 0 if the leading element is I
+
+        CigarElement indelCE = null;
+        if ( altCE1.getOperator() == CigarOperator.I  ) {
+            indelCE=altCE1;
+            if ( altCE2.getOperator() != CigarOperator.M  )
+                throw new StingException("When first element of the alt consensus is I, the second one must be M. Actual: "+altCigar.toString());
+        }
+        else {
+            if ( altCE1.getOperator() != CigarOperator.M  )
+                throw new StingException("First element of the alt consensus cigar must be M or I. Actual: "+altCigar.toString());
+            if ( altCE2.getOperator() == CigarOperator.I  || altCE2.getOperator() == CigarOperator.D ) indelCE=altCE2;
+            else
+                throw new StingException("When first element of the alt consensus is M, the second one must be I or D. Actual: "+altCigar.toString());
+            leadingMatchingBlockLength = altCE1.getLength();
+        }
+
         // the easiest thing to do is to take each case separately
-        int endOfFirstBlock = altPosOnRef + altCE1.getLength();
+        int endOfFirstBlock = altPosOnRef + leadingMatchingBlockLength; 
         boolean sawAlignmentStart = false;
 
         // for reads starting before the indel
@@ -539,30 +597,28 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         int indelOffsetOnRef = 0, indelOffsetOnRead = 0;
         // forward along the indel
-        if ( altCE2.getOperator() == CigarOperator.I ) {
+        if ( indelCE.getOperator() == CigarOperator.I ) {
             // for reads that end in an insertion
-            if ( myPosOnAlt + aRead.getReadLength() < endOfFirstBlock + altCE2.getLength() ) {
+            if ( myPosOnAlt + aRead.getReadLength() < endOfFirstBlock + indelCE.getLength() ) {
                 readCigar.add(new CigarElement(myPosOnAlt + aRead.getReadLength() - endOfFirstBlock, CigarOperator.I));
                 aRead.setCigar(readCigar);
                 return;
             }
 
             // for reads that start in an insertion
-            if ( !sawAlignmentStart && myPosOnAlt < endOfFirstBlock + altCE2.getLength() ) {
+            if ( !sawAlignmentStart && myPosOnAlt < endOfFirstBlock + indelCE.getLength() ) {
                 aRead.setAlignmentStart(leftmostIndex + endOfFirstBlock);
-                readCigar.add(new CigarElement(altCE2.getLength() - (myPosOnAlt - endOfFirstBlock), CigarOperator.I));
+                readCigar.add(new CigarElement(indelCE.getLength() - (myPosOnAlt - endOfFirstBlock), CigarOperator.I));
                 indelOffsetOnRead = myPosOnAlt - endOfFirstBlock;
                 sawAlignmentStart = true;
             } else if ( sawAlignmentStart ) {
-                readCigar.add(altCE2);
-                indelOffsetOnRead = altCE2.getLength();
+                readCigar.add(indelCE);
+                indelOffsetOnRead = indelCE.getLength();
             }
-        } else if ( altCE2.getOperator() == CigarOperator.D ) {
+        } else if ( indelCE.getOperator() == CigarOperator.D ) {
             if ( sawAlignmentStart )
-                readCigar.add(altCE2);
-            indelOffsetOnRef = altCE2.getLength();
-        } else {
-            throw new RuntimeException("Operator of middle block is not I or D: " + altCE2.getOperator());
+                readCigar.add(indelCE);
+            indelOffsetOnRef = indelCE.getLength();
         }
 
         // for reads that start after the indel
