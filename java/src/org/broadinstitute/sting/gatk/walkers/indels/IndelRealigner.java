@@ -565,8 +565,25 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         CigarElement altCE1 = altCigar.getCigarElement(0);
         CigarElement altCE2 = altCigar.getCigarElement(1);
 
+        int leadingMatchingBlockLength = 0; // length of the leading M element or 0 if the leading element is I
+
+        CigarElement indelCE;
+        if ( altCE1.getOperator() == CigarOperator.I  ) {
+            indelCE=altCE1;
+            if ( altCE2.getOperator() != CigarOperator.M  )
+                throw new StingException("When first element of the alt consensus is I, the second one must be M. Actual: "+altCigar.toString());
+        }
+        else {
+            if ( altCE1.getOperator() != CigarOperator.M  )
+                throw new StingException("First element of the alt consensus cigar must be M or I. Actual: "+altCigar.toString());
+            if ( altCE2.getOperator() == CigarOperator.I  || altCE2.getOperator() == CigarOperator.D ) indelCE=altCE2;
+            else
+                throw new StingException("When first element of the alt consensus is M, the second one must be I or D. Actual: "+altCigar.toString());
+            leadingMatchingBlockLength = altCE1.getLength();
+        }
+
         // the easiest thing to do is to take each case separately
-        int endOfFirstBlock = altPosOnRef + altCE1.getLength();
+        int endOfFirstBlock = altPosOnRef + leadingMatchingBlockLength;
         boolean sawAlignmentStart = false;
 
         // for reads starting before the indel
@@ -585,30 +602,28 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         int indelOffsetOnRef = 0, indelOffsetOnRead = 0;
         // forward along the indel
-        if ( altCE2.getOperator() == CigarOperator.I ) {
+        if ( indelCE.getOperator() == CigarOperator.I ) {
             // for reads that end in an insertion
-            if ( myPosOnAlt + aRead.getReadLength() < endOfFirstBlock + altCE2.getLength() ) {
+            if ( myPosOnAlt + aRead.getReadLength() < endOfFirstBlock + indelCE.getLength() ) {
                 readCigar.add(new CigarElement(myPosOnAlt + aRead.getReadLength() - endOfFirstBlock, CigarOperator.I));
                 aRead.setCigar(readCigar);
                 return;
             }
 
             // for reads that start in an insertion
-            if ( !sawAlignmentStart && myPosOnAlt < endOfFirstBlock + altCE2.getLength() ) {
+            if ( !sawAlignmentStart && myPosOnAlt < endOfFirstBlock + indelCE.getLength() ) {
                 aRead.setAlignmentStart(leftmostIndex + endOfFirstBlock);
-                readCigar.add(new CigarElement(altCE2.getLength() - (myPosOnAlt - endOfFirstBlock), CigarOperator.I));
+                readCigar.add(new CigarElement(indelCE.getLength() - (myPosOnAlt - endOfFirstBlock), CigarOperator.I));
                 indelOffsetOnRead = myPosOnAlt - endOfFirstBlock;
                 sawAlignmentStart = true;
             } else if ( sawAlignmentStart ) {
-                readCigar.add(altCE2);
-                indelOffsetOnRead = altCE2.getLength();
+                readCigar.add(indelCE);
+                indelOffsetOnRead = indelCE.getLength();
             }
-        } else if ( altCE2.getOperator() == CigarOperator.D ) {
+        } else if ( indelCE.getOperator() == CigarOperator.D ) {
             if ( sawAlignmentStart )
-                readCigar.add(altCE2);
-            indelOffsetOnRef = altCE2.getLength();
-        } else {
-            throw new RuntimeException("Operator of middle block is not I or D: " + altCE2.getOperator());
+                readCigar.add(indelCE);
+            indelOffsetOnRef = indelCE.getLength();
         }
 
         // for reads that start after the indel
