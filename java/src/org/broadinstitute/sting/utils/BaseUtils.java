@@ -505,18 +505,18 @@ public class BaseUtils {
      * @param seq
      * @return
      */
-    public static int sequencePeriod(String seq, int minPeriod) {
-    	int period = ( minPeriod > seq.length() ? seq.length() : minPeriod ); 
+    public static int sequencePeriod(byte[] seq, int minPeriod) {
+    	int period = ( minPeriod > seq.length ? seq.length : minPeriod );
     	// we assume that bases [0,period-1] repeat themselves and check this assumption
     	// until we find correct period
     	
-    	for ( int pos = period ; pos < seq.length() ; pos++ ) {
+    	for ( int pos = period ; pos < seq.length ; pos++ ) {
     		
     		int offset = pos % period; // we are currenlty 'offset' bases into the putative repeat of period 'period'
     		                                                // if our current hypothesis holds, base[pos] must be the same as base[offset]
     		
-    		if ( Character.toUpperCase( seq.charAt(pos) ) !=
-    				Character.toUpperCase( seq.charAt( offset ) )
+    		if ( Character.toUpperCase( seq[pos] ) !=
+    				Character.toUpperCase( seq[offset] )
     			) {
     			
     			// period we have been trying so far does not work.

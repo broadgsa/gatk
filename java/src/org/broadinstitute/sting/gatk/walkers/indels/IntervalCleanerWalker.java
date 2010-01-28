@@ -748,7 +748,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         while ( period < indel_length ) { // we will always get at least trivial period = indelStringLength
                 
-                period = BaseUtils.sequencePeriod(indelString, period+1);
+                period = BaseUtils.sequencePeriod(StringUtil.stringToBytes(indelString), period+1);
 
                 if ( indel_length % period != 0 ) continue; // if indel sequence length is not a multiple of the period, it's not gonna work
 

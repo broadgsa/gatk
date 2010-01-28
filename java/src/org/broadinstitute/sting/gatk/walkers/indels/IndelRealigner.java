@@ -19,7 +19,7 @@ import java.io.FileWriter;
  */
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
-    @Argument(fullName="intervals", shortName="intervals", doc="intervals file output from RealignerTargetCreator", required=true)
+    @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
 
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
@@ -33,8 +33,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="OutputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
     String OUT_INDELS = null;
-    @Argument(fullName="OutputCleanedReadsOnly", shortName="cleanedOnly", doc="print out cleaned reads only (otherwise, all reads within the intervals)", required=false)
-    boolean cleanedReadsOnly = false;
     @Argument(fullName="statisticsFile", shortName="stats", doc="print out statistics (what does or doesn't get cleaned)", required=false)
     String OUT_STATS = null;
     @Argument(fullName="SNPsFile", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out", required=false)
@@ -47,6 +45,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment", required=false)
     int MAX_READS = 20000;
 
+    @Argument(fullName="writerWindowSize", shortName="writerWindowSize", doc="the window over which the writer will store reads", required=false)
+    protected int SORTING_WRITER_WINDOW = 100;
 
     // the intervals input by the user
     private Iterator<GenomeLoc> intervals = null;
@@ -56,6 +56,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     // the reads that fall into the current interval
     private ReadBin readsToClean = new ReadBin();
+    private ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
 
     // the wrapper around the SAM writer
     private SortingSAMFileWriter writer = null;
@@ -63,8 +64,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     // random number generator
     private Random generator;
 
-    public static final int MAX_QUAL = 99;
-    public static final long RANDOM_SEED = 1252863495;
+    private static final int MAX_QUAL = 99;
+    private static final long RANDOM_SEED = 1252863495;
 
     // fraction of mismatches that need to no longer mismatch for a column to be considered cleaned
     private static final double MISMATCH_COLUMN_CLEANED_FRACTION = 0.75;
@@ -91,7 +92,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
         if ( baseWriter != null )
-            writer = new SortingSAMFileWriter(baseWriter, 50);
+            writer = new SortingSAMFileWriter(baseWriter, SORTING_WRITER_WINDOW);
 
         generator = new Random(RANDOM_SEED);
 
@@ -141,6 +142,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
+        // hack to get around unmapped reads having screwy locations
+        if ( readLoc.getStop() == 0 )
+            readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
 
         if ( readLoc.isBefore(currentInterval) ) {
             emit(read);
@@ -153,20 +157,29 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                  read.getMappingQuality() == 0 ||
                  read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
 		         Utils.is454Read(read) ) {
-                emit(read);
+                readsNotToClean.add(read);
+            } else {
+                readsToClean.add(read, ref);
             }
 
-            readsToClean.add(read, ref);
-            if ( readsToClean.size() >= MAX_READS ) {
-                emit(readsToClean.getReads());
+            if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
+                // merge the two sets for emission
+                readsNotToClean.addAll(readsToClean.getReads());
+                emit(readsNotToClean);
                 readsToClean.clear();
+                readsNotToClean.clear();
                 currentInterval = intervals.hasNext() ? intervals.next() : null;
             }
         }
         else {  // the read is past the current interval
             clean(readsToClean);
-            emit(readsToClean.getReads());
+
+            // merge the two sets for emission
+            readsNotToClean.addAll(readsToClean.getReads());
+            emit(readsNotToClean);
             readsToClean.clear();
+            readsNotToClean.clear();
+
             currentInterval = intervals.hasNext() ? intervals.next() : null;
 
             // call back into map now that the state has been updated
@@ -185,9 +198,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        if ( readsToClean.size() > 0 ) {
+        if ( readsToClean.size() > 0 || readsNotToClean.size() > 0 ) {
             clean(readsToClean);
-            emit(readsToClean.getReads());
+
+            // merge the two sets for emission
+            readsNotToClean.addAll(readsToClean.getReads());
+            emit(readsNotToClean);
         }
 
         writer.close();
@@ -215,7 +231,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-
     private static int mismatchQualitySumIgnoreCigar(AlignedRead aRead, byte[] refSeq, int refIndex) {
         byte[] readSeq = aRead.getRead().getReadBases();
         byte[] quals = aRead.getRead().getBaseQualities();
@@ -229,7 +244,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
                      BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
                     continue; // do not count Ns/Xs/etc ?
-                if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
+                if ( readChr != refChr )
                     sum += (int)quals[readIndex];
             }
         }
@@ -247,6 +262,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void clean(ReadBin readsToClean) {
 
         List<SAMRecord> reads = readsToClean.getReads();
+        if ( reads.size() == 0 )
+            return;
+
         byte[] reference = readsToClean.getRereference();
         long leftmostIndex = readsToClean.getLocation().getStart();
 
@@ -409,10 +427,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     int length = ce.getLength();
                     if ( ce.getOperator() == CigarOperator.D ) {
                         for ( int i = 0; i < length; i++)
-                            str.append(reference[position+i]);
+                            str.append((char)reference[position+i]);
                     } else {
                         for ( int i = 0; i < length; i++)
-                            str.append(bestConsensus.str[position+i]);
+                            str.append((char)bestConsensus.str[position+i]);
                     }
                     str.append("\t" + (((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0) + "\n");
                     try {
@@ -469,7 +487,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // create the new consensus
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < indexOnRef; i++)
-            sb.append(reference[i]);        
+            sb.append((char)reference[i]);
         //logger.debug("CIGAR = " + AlignmentUtils.cigarToString(c));
 
         int indelCount = 0;
@@ -489,7 +507,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     ok_flag = false;
                 else  {
                     for (int j = 0; j < elementLength; j++)
-                        sb.append(reference[refIdx+j]);
+                        sb.append((char)reference[refIdx+j]);
                 }
                 refIdx += elementLength;
                 altIdx += elementLength;
@@ -507,7 +525,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return null;
 
         for (int i = refIdx; i < reference.length; i++)
-            sb.append(reference[i]);
+            sb.append((char)reference[i]);
         byte[] altConsensus =  StringUtil.stringToBytes(sb.toString()); // alternative consensus sequence we just built from the cuurent read
 
         // if ( debugOn ) System.out.println("Alt consensus generated: "+altConsensus);
@@ -741,15 +759,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         int difference = 0; // we can move indel 'difference' bases left
         final int indel_length = ce2.getLength();
 
-        String indelString; // inserted or deleted sequence
         int period = 0; // period of the inserted/deleted sequence
         int indelIndexOnRef = refIndex+ce1.getLength() ; // position of the indel on the REF (first deleted base or first base after insertion)
         int indelIndexOnRead = readIndex+ce1.getLength(); // position of the indel on the READ (first insterted base, of first base after deletion)
 
+        byte[] indelString = new byte[ce2.getLength()];  // inserted or deleted sequence
         if ( ce2.getOperator() == CigarOperator.D )
-            indelString = new String(refSeq, indelIndexOnRef, ce2.getLength()).toUpperCase(); // deleted bases
+            System.arraycopy(refSeq, indelIndexOnRef, indelString, 0, ce2.getLength());
         else if ( ce2.getOperator() == CigarOperator.I )
-            indelString = new String(readSeq, indelIndexOnRead, ce2.getLength()).toUpperCase(); // get the inserted bases
+            System.arraycopy(readSeq, indelIndexOnRead, indelString, 0, ce2.getLength());
         else
             // we can get here if there is soft clipping done at the beginning of the read
             // for now, we'll just punt the issue and not try to realign these
@@ -790,8 +808,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     boolean match = true;
 
                     for ( int testRefPos = newIndex - period, indelPos = 0 ; testRefPos < newIndex; testRefPos++, indelPos++) {
-                        char indelChr = indelString.charAt(indelPos);
-                        if ( Character.toUpperCase(refSeq[testRefPos]) != indelChr || BaseUtils.simpleBaseToBaseIndex(indelChr) == -1 ) {
+                        byte indelChr = indelString[indelPos];
+                        if ( refSeq[testRefPos] != indelChr || BaseUtils.simpleBaseToBaseIndex(indelChr) == -1 ) {
                             match = false;
                             break;
                         }
@@ -1003,10 +1021,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             } else {
                 long lastPosWithRefBase = loc.getStart() + reference.length -1;
                 int neededBases = (int)(read.getAlignmentEnd() - lastPosWithRefBase);
-                char[] newReference = new char[reference.length + neededBases];
-                System.arraycopy(reference, 0, newReference, 0, reference.length);
-                System.arraycopy(ref, ref.length-neededBases, newReference, reference.length, neededBases);
-                reference = newReference;
+                if ( neededBases > 0 ) {
+                    char[] newReference = new char[reference.length + neededBases];
+                    System.arraycopy(reference, 0, newReference, 0, reference.length);
+                    System.arraycopy(ref, ref.length-neededBases, newReference, reference.length, neededBases);
+                    reference = newReference;
+                }
             }
         }
 
