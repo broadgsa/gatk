@@ -46,6 +46,6 @@
   </resources>
   <release>
     <executable directory="/humgen/gsa-hpprojects/GATK/bin" symlink="current" />
-    <archive directory="/web/ftp/pub/gsa/GenomeAnalysisTK" symlink="GenomeAnalysisTK.tar.bz2" />
+    <archive directory="/web/ftp/pub/gsa/GenomeAnalysisTK" symlink="GenomeAnalysisTK-latest.tar.bz2" />
   </release>
 </package>
