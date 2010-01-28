@@ -325,7 +325,16 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public boolean isNovel() {
-        return ( mID != null || mInfoFields.get(HAPMAP2_KEY) != null || mInfoFields.get(HAPMAP3_KEY) != null || mInfoFields.get(DBSNP_KEY) != null);
+        return mID == null && ! isInHapmap();
+    }
+
+    public boolean isInHapmap() {
+        boolean inHapmap;
+        if ( mInfoFields.get(HAPMAP2_KEY) != null && mInfoFields.get(HAPMAP2_KEY).equals("1") ) {
+            return true;
+        } else {
+            return ( mInfoFields.get(HAPMAP3_KEY) != null && mInfoFields.get(HAPMAP3_KEY).equals("1") );
+        }
     }
 
     public char getAlternativeBaseForSNP() {
