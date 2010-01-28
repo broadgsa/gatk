@@ -41,17 +41,18 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
     private final int[] ti;
     private final int[] tv;
 
-    public static final int FULL_SET = -1;
-    public static final int NOVEL_SET = 0;
-    public static final int DBSNP_SET = 1;
-    public static final int TRUTH_SET = 2;
+    public static final int FULL_SET = 0;
+    public static final int NOVEL_SET = 1;
+    public static final int DBSNP_SET = 2;
+    public static final int TRUTH_SET = 3;
+    private static final int NUM_SETS = 4;
 
     public AnnotationDatum() {
 
         value = 0.0f;
-        ti = new int[3];
-        tv = new int[3];
-        for( int iii = 0; iii < 3; iii++ ) {
+        ti = new int[NUM_SETS];
+        tv = new int[NUM_SETS];
+        for( int iii = 0; iii < NUM_SETS; iii++ ) {
             ti[iii] = 0;
             tv[iii] = 0;
         }
@@ -60,9 +61,9 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
     public AnnotationDatum( float _value ) {
 
         value = _value;
-        ti = new int[3];
-        tv = new int[3];
-        for( int iii = 0; iii < 3; iii++ ) {
+        ti = new int[NUM_SETS];
+        tv = new int[NUM_SETS];
+        for( int iii = 0; iii < NUM_SETS; iii++ ) {
             ti[iii] = 0;
             tv[iii] = 0;
         }
@@ -70,6 +71,7 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
 
     final public void incrementTi( final boolean isNovelVariant, final boolean isTrueVariant ) {
 
+        ti[FULL_SET]++;
         if( isNovelVariant ) {
             ti[NOVEL_SET]++;
         } else { // Is known, in DBsnp
@@ -82,6 +84,7 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
 
     final public void incrementTv( final boolean isNovelVariant, final boolean isTrueVariant ) {
 
+        tv[FULL_SET]++;
         if( isNovelVariant ) {
             tv[NOVEL_SET]++;
         } else { // Is known, in DBsnp
@@ -94,7 +97,7 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
 
     final public void combine( final AnnotationDatum that ) {
 
-        for( int iii = 0; iii < 3; iii++ ) {
+        for( int iii = 0; iii < NUM_SETS; iii++ ) {
             this.ti[iii] += that.ti[iii];
             this.tv[iii] += that.tv[iii];
         }
@@ -103,61 +106,44 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
 
     final public float calcTiTv( final int INDEX ) {
 
-        if( INDEX == FULL_SET ) {
-            if( (ti[NOVEL_SET] + ti[DBSNP_SET]) < 0 || (tv[NOVEL_SET] + tv[DBSNP_SET]) < 0 ) {
-                throw new StingException( "Integer overflow detected! There are too many variants piled up in one annotation bin." );
-            }
-
-            if( (tv[NOVEL_SET] + tv[DBSNP_SET]) == 0 ) { // Don't divide by zero
-                return 0.0f;
-            }
-
-            return ((float) (ti[NOVEL_SET] + ti[DBSNP_SET])) /
-                    ((float) (tv[NOVEL_SET] + tv[DBSNP_SET]));
-        } else {
-            if( ti[INDEX] < 0 || tv[INDEX] < 0 ) {
-                throw new StingException( "Integer overflow detected! There are too many variants piled up in one annotation bin." );
-            }
-
-            if( tv[INDEX] == 0 ) { // Don't divide by zero
-                return 0.0f;
-            }
-
-            return ((float) ti[INDEX]) / ((float) tv[INDEX]);
+        if( ti[INDEX] < 0 || tv[INDEX] < 0 ) {
+            throw new StingException( "Integer overflow detected! There are too many variants piled up in one annotation bin." );
         }
+
+        if( tv[INDEX] == 0 ) { // Don't divide by zero
+            return 0.0f;
+        }
+
+        return ((float) ti[INDEX]) / ((float) tv[INDEX]);
     }
 
     final public float calcDBsnpRate() {
 
-        if( ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET] == 0 ) { // Don't divide by zero
+        if( ti[FULL_SET] + tv[FULL_SET] == 0 ) { // Don't divide by zero
             return 0.0f;
         }
 
         return 100.0f * ((float) ti[DBSNP_SET] + tv[DBSNP_SET]) /
-                ((float) ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET]);
+                ((float) ti[FULL_SET] + tv[FULL_SET]);
     }
 
     final public float calcTPrate() {
 
-        if( ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET] == 0 ) { // Don't divide by zero
+        if( ti[FULL_SET] + tv[FULL_SET] == 0 ) { // Don't divide by zero
             return 0.0f;
         }
 
         return 100.0f * ((float) ti[TRUTH_SET] + tv[TRUTH_SET]) /
-                ((float) ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET]);
+                ((float) ti[FULL_SET] + tv[FULL_SET]);
     }
 
     final public int numVariants( final int INDEX ) {
-        if( INDEX == FULL_SET ) {
-            return ti[NOVEL_SET] + tv[NOVEL_SET] + ti[DBSNP_SET] + tv[DBSNP_SET];
-        } else {
-            return ti[INDEX] + tv[INDEX];
-        }
+        return ti[INDEX] + tv[INDEX];
     }
 
     final public void clearBin() {
         value = 0.0f;
-        for( int iii = 0; iii < 3; iii++ ) {
+        for( int iii = 0; iii < NUM_SETS; iii++ ) {
             ti[iii] = 0;
             tv[iii] = 0;
         }

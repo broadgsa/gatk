@@ -84,13 +84,23 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
 
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
-        // Add each VCF record to each annotation's data structure
         if( tracker != null ) {
+
+            // First find out if this variant is in the truth set
+            boolean isTrueVariant = false;
             for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
-                if( rod != null && rod instanceof RodVCF ) {
-                    RodVCF variant = (RodVCF) rod;
+                if( rod != null && rod.getName().toUpperCase().startsWith("TRUTH") ) {
+                    isTrueVariant = true;
+                    break; // at least one of the truth files has this variant, so break out
+                }
+            }
+            
+            // Add each annotation in this VCF Record to the dataManager
+            for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
+                if( rod != null && rod instanceof RodVCF && !rod.getName().toUpperCase().startsWith("TRUTH") ) {
+                    final RodVCF variant = (RodVCF) rod;
                     if( variant.isSNP() ) {
-                        dataManager.addAnnotations( variant, SAMPLE_NAME );
+                        dataManager.addAnnotations( variant, SAMPLE_NAME, isTrueVariant );
                     }
                 }
             }

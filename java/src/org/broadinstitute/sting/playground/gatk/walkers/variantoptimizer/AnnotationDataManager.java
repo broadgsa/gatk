@@ -48,7 +48,7 @@ public class AnnotationDataManager {
         data = new HashMap<String, TreeSet<AnnotationDatum>>();
     }
 
-    public void addAnnotations( final RodVCF variant, final String sampleName ) {
+    public void addAnnotations( final RodVCF variant, final String sampleName, final boolean isTrueVariant ) {
 
         if( sampleName != null ) { // Only process variants that are found in the sample with this sampleName
             if( variant.getGenotype(sampleName).isNoCall() ) { // This variant isn't found in this sample so break out
@@ -80,7 +80,6 @@ public class AnnotationDataManager {
             }
 
             final boolean isNovelVariant = variant.getID().equals(".");
-            final boolean isTrueVariant = false; //BUGBUG: Check truth input file to see if this variant is in the truth set
 
             // Decide if the variant is a transition or transversion
             if( BaseUtils.isTransition( (byte)variant.getReferenceForSNP(), (byte)variant.getAlternativeBaseForSNP()) ) {
@@ -109,36 +108,37 @@ public class AnnotationDataManager {
             }
 
             // Output a header line
-            output.println("value\ttitv\tdbsnp\tnumVariants\tcategory");
+            output.println("value\ttitv\tdbsnp\ttruePositive\tnumVariants\tcategory");
 
             // Bin SNPs and calculate truth metrics for each bin
             thisAnnotationBin.clearBin();
             for( AnnotationDatum datum : data.get( annotationKey ) ) {
                 thisAnnotationBin.combine( datum );
                 if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
-                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() +
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() + "\t" + thisAnnotationBin.calcTPrate() +
                             "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
-                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
-                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t-1\t-1\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t-1\t-1\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                    output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.TRUTH_SET ) + "\t-1\t-1\t" + thisAnnotationBin.numVariants( AnnotationDatum.TRUTH_SET ) + "\ttruth");
                     thisAnnotationBin.clearBin();
                 }
                 // else, continue accumulating variants because this bin isn't full yet
             }
 
             if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) != 0 ) { // One final bin that may not have been dumped out
-                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() + 
-                        "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
-                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
-                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t0.0\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() + "\t" + thisAnnotationBin.calcTPrate() +
+                            "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t-1\t-1\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.DBSNP_SET ) + "\t-1\t-1\t" + thisAnnotationBin.numVariants( AnnotationDatum.DBSNP_SET ) + "\tdbsnp");
+                output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.TRUTH_SET ) + "\t-1\t-1\t" + thisAnnotationBin.numVariants( AnnotationDatum.TRUTH_SET ) + "\ttruth");
                 thisAnnotationBin.clearBin();
-
             }
 
             // Close the PrintStream
             output.close();
 
             // Print out the command line to make it clear to the user what is being executed and how one might modify it
-            final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTiTv.R" + " " +
+            final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTruthMetrics.R" + " " +
                                    OUTPUT_PREFIX + annotationKey + ".dat" + " " + annotationKey + " " + MIN_VARIANTS_PER_BIN;
             System.out.println( rScriptCommandLine );
 

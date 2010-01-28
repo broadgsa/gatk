@@ -99,7 +99,7 @@ public abstract class TraversalEngine {
                 (TraversalStatistics.nSkippedReads * 100.0) / TraversalStatistics.nReads));
         logger.info(String.format("  -> %d unmapped reads", TraversalStatistics.nUnmappedReads));
         logger.info(String.format("  -> %d duplicate reads", TraversalStatistics.nDuplicates));
-        logger.info(String.format("  -> %d non-primary reads", TraversalStatistics.nNotPrimary));
+        logger.info(String.format("  -> %d reads with non-primary alignments", TraversalStatistics.nNotPrimary));
         logger.info(String.format("  -> %d reads with bad alignments", TraversalStatistics.nBadAlignments));
         logger.info(String.format("  -> %d reads with indels", TraversalStatistics.nSkippedIndels));
     }
