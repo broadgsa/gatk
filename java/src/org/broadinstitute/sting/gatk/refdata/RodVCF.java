@@ -127,6 +127,16 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     /**
+     * are we a novel site? Is there a DBSNP identifier
+     * or a hapmap entry for the site?
+     */
+
+    public boolean isNovel() {
+        assertNotNull();
+        return mCurrentRecord.isNovel();
+    }
+
+    /**
      * are we an insertion?
      *
      * @return true if we are, false otherwise

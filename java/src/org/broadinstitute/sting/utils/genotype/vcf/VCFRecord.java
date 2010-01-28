@@ -20,6 +20,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     public static final String DBSNP_KEY = "DB";
     public static final String DEPTH_KEY = "DP";
     public static final String HAPMAP2_KEY = "H2";
+    public static final String HAPMAP3_KEY = "H3";
     public static final String RMS_MAPPING_QUALITY_KEY = "MQ";
     public static final String SAMPLE_NUMBER_KEY = "NS";
     public static final String STRAND_BIAS_KEY = "SB";
@@ -321,6 +322,10 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
 
     public boolean isSNP() {
         return getType() == VARIANT_TYPE.SNP;
+    }
+
+    public boolean isNovel() {
+        return ( mID != null || mInfoFields.get(HAPMAP2_KEY) != null || mInfoFields.get(HAPMAP3_KEY) != null || mInfoFields.get(DBSNP_KEY) != null);
     }
 
     public char getAlternativeBaseForSNP() {

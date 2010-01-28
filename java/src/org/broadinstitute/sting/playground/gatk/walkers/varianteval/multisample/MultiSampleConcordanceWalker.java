@@ -26,8 +26,11 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
  */
 @Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="truth",type= RodVCF.class),@RMD(name="variants",type= RodVCF.class)})
 public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInfo, MultiSampleConcordanceSet > {
-@Argument(fullName="noLowDepthLoci", shortName="NLD", doc="Do not use loci in analysis where the variant depth (as specified in the VCF) is less than the given number; "+
-        "DO NOT USE THIS IF YOUR VCF DOES NOT HAVE 'DP' IN THE FORMAT FIELD", required=false) private int minDepth = -1;
+    @Argument(fullName="noLowDepthLoci", shortName="NLD", doc="Do not use loci in analysis where the variant depth (as specified in the VCF) is less than the given number; "+
+            "DO NOT USE THIS IF YOUR VCF DOES NOT HAVE 'DP' IN THE FORMAT FIELD", required=false) private int minDepth = -1;
+    @Argument(fullName = "ignoreKnownSites", shortName = "novel", doc="Only run concordance over novel sites (sites marked in the VCF as being in dbSNP or Hapmap 2 or 3)", required=false )
+    boolean ignoreKnownSites = false;
+
     public void initialize() {
 
     }
@@ -37,7 +40,7 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
     }
 
     public LocusConcordanceInfo map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext c) {
-        if ( tracker == null ) {
+        if ( tracker == null || ( ignoreKnownSites && ! ( (RodVCF) tracker.lookup("variants",null)).isNovel() ) ) {
             return null;
         }
         ReferenceOrderedDatum truthData = tracker.lookup("truth", null);
@@ -94,7 +97,7 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
     }
 
     public void onTraversalDone(MultiSampleConcordanceSet cSet) {
-        out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Sample_ID","Ignored_due_to_depth","Concordant_Refs","Concordant_Vars","Homs_called_het","Het_called_homs","False_Positives","False_Negatives_Due_To_Ref_Call","False_Negatives_Due_To_No_Call");
+        out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Sample_ID","Ignored_due_to_depth","Concordant_Refs","Concordant_Homs","Concordant_Hets","Homs_called_het","Het_called_homs","False_Positives","False_Negatives_Due_To_Ref_Call","False_Negatives_Due_To_No_Call");
         for ( VCFConcordanceCalculator sample : cSet.getConcordanceSet() ) {
             out.print(String.format("%s%n",sample));
         }

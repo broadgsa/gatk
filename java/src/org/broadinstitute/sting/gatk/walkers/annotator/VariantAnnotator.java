@@ -21,6 +21,7 @@ import java.io.*;
 //@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-20,stop=20))
+@By(DataSource.REFERENCE)
 public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
@@ -44,6 +45,10 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
 
     // should we annotate dbsnp?
     private boolean annotateDbsnp = false;
+    // how about hapmap2?
+    private boolean annotateHapmap2 = false;
+    // how about hapmap3?
+    private boolean annotateHapmap3 = false;
 
     // mapping from class name to class
     private static HashMap<String, VariantAnnotation> allAnnotations = null;
@@ -125,7 +130,12 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             ReferenceOrderedData rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(rodDbSNP.class) ) {
                 annotateDbsnp = true;
-                break;
+            }
+            if ( rod.getName().equals("hapmap2") ) {
+                annotateHapmap2 = true;
+            }
+            if ( rod.getName().equals("hapmap3") ) {
+                annotateHapmap3 = true;
             }
         }
 
@@ -137,6 +147,10 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         hInfo.addAll(getVCFAnnotationDescriptions(requestedAnnotations));
         if ( annotateDbsnp )
             hInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP membership"));
+        if ( annotateHapmap2 )
+            hInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 2 membership"));
+        if ( annotateHapmap3 )
+            hInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY,1,VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 3 membership"));
 
         vcfWriter = new VCFWriter(VCF_OUT);
         vcfHeader = new VCFHeader(hInfo, samples);
@@ -182,7 +196,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null )
-                annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations, annotateDbsnp);
+                annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations, annotateDbsnp, annotateHapmap2, annotateHapmap3);
         }
         writeVCF(tracker, ref, context, variant, annotations);
 
@@ -224,21 +238,21 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     }
 
     // option #1: don't specify annotations to be used: standard annotations are used by default
-    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(tracker, ref, stratifiedContexts, variation, standardAnnotations.values(), annotateDbsnp);
+        return getAnnotations(tracker, ref, stratifiedContexts, variation, standardAnnotations.values(), annotateDbsnp, annotateHapmap2, annotateHapmap3);
     }
 
     // option #2: specify that all possible annotations be used
-    public static Map<String, String> getAllAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp) {
+    public static Map<String, String> getAllAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
         if ( allAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(tracker, ref, stratifiedContexts, variation, allAnnotations.values(), annotateDbsnp);
+        return getAnnotations(tracker, ref, stratifiedContexts, variation, allAnnotations.values(), annotateDbsnp, annotateHapmap2, annotateHapmap3);
     }
 
     // option #3: specify the exact annotations to be used
-    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations, boolean annotateDbsnp) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
 
         HashMap<String, String> results = new HashMap<String, String>();
 
@@ -246,6 +260,16 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         if ( annotateDbsnp ) {
             rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
             results.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
+        }
+
+        if ( annotateHapmap2 ) {
+            RODRecordList hapmap2 = tracker.getTrackData("hapmap2",null);
+            results.put(VCFRecord.HAPMAP2_KEY, hapmap2 == null? "0" : "1");
+        }
+
+        if ( annotateHapmap3 ) {
+            RODRecordList hapmap3 = tracker.getTrackData("hapmap3",null);
+            results.put( VCFRecord.HAPMAP3_KEY, hapmap3 == null ? "0" : "1");
         }
 
         for ( VariantAnnotation annotator : annotations) {

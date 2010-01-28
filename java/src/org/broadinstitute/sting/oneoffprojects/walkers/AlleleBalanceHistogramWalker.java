@@ -68,15 +68,27 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
     private HashMap<String,Double> getAlleleBalanceBySample(VCFRecord vcf, ReferenceContext ref, AlignmentContext context) {
         Map<String, StratifiedAlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(),null,null);
         HashMap<String,Double> balances = new HashMap<String,Double>();
+        System.out.println("----- "+ref.getLocus()+" -----");
+        int returnedBalances = 0;
         for ( String sample : vcf.getSampleNames() ) {
-            balances.put(sample, getAlleleBalance(ref,sampleContext.get(sample),vcf.getGenotype(sample)));
+            Double balance = getAlleleBalance(ref,sampleContext.get(sample),vcf.getAlternativeBaseForSNP());
+            balances.put(sample, balance);
+            if ( balance != null ) {
+                returnedBalances++;
+                System.out.println(sample+"\t"+getCoverage(sampleContext.get(sample)));
+            }
         }
 
         return balances;
     }
 
-    private Double getAlleleBalance(ReferenceContext ref, StratifiedAlignmentContext context, VCFGenotypeRecord vcf) {
+    private long getCoverage(StratifiedAlignmentContext context) {
+        return context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
+    }
+
+    private Double getAlleleBalance(ReferenceContext ref, StratifiedAlignmentContext context, char snpBase) {
         if ( context == null ) {
+            //System.out.println("Stratified context was null");
             return null;
         }
 
@@ -85,13 +97,14 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
         AlignmentContext alicon = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
 
         if ( alicon == null ) {
+            System.out.println("Alignment context from stratified was null");
             return null;
         }
         
         for ( PileupElement e : alicon.getBasePileup() ) {
             if ( BaseUtils.basesAreEqual( e.getBase(), (byte) ref.getBase() ) ) {
                 refBases++;
-            } else if ( BaseUtils.basesAreEqual(e.getBase(), (byte) vcf.toVariation(ref.getBase()).getAlternativeBaseForSNP() ) ) {
+            } else if ( BaseUtils.basesAreEqual(e.getBase(), (byte) snpBase ) ) {
                 altBases++;
             }
         }
@@ -99,6 +112,7 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
         if ( refBases > 0 || altBases > 0) {
             return ( ( double ) altBases ) / ( ( double ) altBases + ( double ) refBases );
         } else {
+            System.out.println("No ref or alt bases in pileup");
             return null;
         }
     }

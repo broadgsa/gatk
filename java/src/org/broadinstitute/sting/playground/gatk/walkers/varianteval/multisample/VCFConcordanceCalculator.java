@@ -21,7 +21,8 @@ class VCFConcordanceCalculator {
     private Set<GenomeLoc> falseNegativeLociDueToNoCall;
     private Set<GenomeLoc> hetsCalledHoms;
     private Set<GenomeLoc> homsCalledHets;
-    private Set<GenomeLoc> concordantCalls;
+    private Set<GenomeLoc> concordantHomCalls;
+    private Set<GenomeLoc> concordantHetCalls;
     private Set<GenomeLoc> concordantGenotypeReferenceCalls;
     private Set<GenomeLoc> chipNoCalls;
     private Set<GenomeLoc> ignoredDueToDepth;
@@ -33,7 +34,8 @@ class VCFConcordanceCalculator {
         falsePositiveLoci = new HashSet<GenomeLoc>();
         hetsCalledHoms = new HashSet<GenomeLoc>();
         homsCalledHets = new HashSet<GenomeLoc>();
-        concordantCalls = new HashSet<GenomeLoc>();
+        concordantHomCalls = new HashSet<GenomeLoc>();
+        concordantHetCalls = new HashSet<GenomeLoc>();
         concordantGenotypeReferenceCalls = new HashSet<GenomeLoc>();
         chipNoCalls = new HashSet<GenomeLoc>();
         ignoredDueToDepth = new HashSet<GenomeLoc>();
@@ -45,7 +47,7 @@ class VCFConcordanceCalculator {
     }
 
     public String toString() {
-        return String.format("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",name,ignoredDueToDepth.size(),concordantGenotypeReferenceCalls.size(),concordantCalls.size(),homsCalledHets.size(),hetsCalledHoms.size(),falsePositiveLoci.size(),falseNegativeLoci.size(),falseNegativeLociDueToNoCall.size());
+        return String.format("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",name,ignoredDueToDepth.size(),concordantGenotypeReferenceCalls.size(),concordantHomCalls.size(),concordantHetCalls.size(),homsCalledHets.size(),hetsCalledHoms.size(),falsePositiveLoci.size(),falseNegativeLoci.size(),falseNegativeLociDueToNoCall.size());
     }
 
     private void compareGenotypes(VCFGenotypeRecord truth, VCFGenotypeRecord call, GenomeLoc loc, byte ref) {
@@ -80,8 +82,11 @@ class VCFConcordanceCalculator {
             hetsCalledHoms.add(loc);
         } else if ( truth.isHom() && call.isHet() ) {
             homsCalledHets.add(loc);
-        } else if (  ( truth.isHet() && call.isHet() ) || ( truth.isHom() && call.isHom() ) ) { // be extra careful
-            concordantCalls.add(loc);
+        } else if (  ( truth.isHet() && call.isHet()  ) ) {
+            concordantHetCalls.add(loc);
+        } else if ( truth.isHom() && call.isHom() ) { // be extra careful
+            concordantHomCalls.add(loc);
         }
+
     }
 }

@@ -72,6 +72,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
     // should we annotate dbsnp?
     private boolean annotateDbsnp = false;
+    // how about hapmap2?
+    private boolean annotateHapmap2 = false;
+    // how about hapmap3?
+    private boolean annotateHapmap3 = false;
 
     // Enable deletions in the pileup
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -175,7 +179,12 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
             ReferenceOrderedData rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(rodDbSNP.class) ) {
                 annotateDbsnp = true;
-                break;
+            }
+            if ( rod.getName().equals("hapmap2") ) {
+                annotateHapmap2 = true;
+            }
+            if ( rod.getName().equals("hapmap3") ) {
+                annotateHapmap3 = true;
             }
         }
 
@@ -298,9 +307,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp);
+                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp, annotateHapmap2, annotateHapmap3);
             else
-                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp);
+                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp, annotateHapmap2, annotateHapmap3);
             ((ArbitraryFieldsBacked)call.variation).setFields(annotations);
         }
 
