@@ -35,9 +35,9 @@ public class VariantContextUtils {
         Set<Genotype> Gs = new HashSet<Genotype>(left.getGenotypes().values());
 
         for ( Genotype g : other.getGenotypes().values() ) {
-            if ( samples.contains(g.getSample()) ) {
+            if ( samples.contains(g.getSampleName()) ) {
                 if ( uniquifySamples )
-                    g.setSample(g.getSample() + UNIQUIFIED_SUFFIX);
+                    g.setSampleName(g.getSampleName() + UNIQUIFIED_SUFFIX);
                 else
                     throw new IllegalStateException("The same sample name exists in both contexts when attempting to merge");
             }

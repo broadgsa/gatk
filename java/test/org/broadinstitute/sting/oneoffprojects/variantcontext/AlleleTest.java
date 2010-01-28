@@ -27,7 +27,7 @@ import org.junit.Test;
  * Basic unit test for RecalData
  */
 public class AlleleTest extends BaseTest {
-    Allele ARef, del, delRef, A, T, ATIns, ATCIns;
+    Allele ARef, del, delRef, A, T, ATIns, ATCIns, NoCall;
     
     @Before
     public void before() {
@@ -40,6 +40,8 @@ public class AlleleTest extends BaseTest {
 
         ATIns = new Allele("AT");
         ATCIns = new Allele("ATC");
+
+        NoCall = new Allele(".");
     }
 
     @Test
@@ -50,8 +52,8 @@ public class AlleleTest extends BaseTest {
         Assert.assertFalse(A.isReference());
         Assert.assertTrue(A.basesMatch("A"));
         Assert.assertEquals(A.length(), 1);
-        Assert.assertTrue(A.isNonNullAllele());
-        Assert.assertFalse(A.isNullAllele());
+        Assert.assertTrue(A.isNonNull());
+        Assert.assertFalse(A.isNull());
 
         Assert.assertTrue(ARef.isReference());
         Assert.assertFalse(ARef.isNonReference());
@@ -63,6 +65,19 @@ public class AlleleTest extends BaseTest {
         Assert.assertTrue(T.basesMatch("T"));
         Assert.assertFalse(T.basesMatch("A"));
     }
+
+    @Test
+    public void testCreatingNoCallAlleles() {
+        logger.warn("testCreatingNoCallAlleles");
+
+        Assert.assertTrue(NoCall.isNonReference());
+        Assert.assertFalse(NoCall.isReference());
+        Assert.assertFalse(NoCall.basesMatch("."));
+        Assert.assertEquals(NoCall.length(), 0);
+        Assert.assertTrue(NoCall.isNonNull());
+        Assert.assertFalse(NoCall.isNull());
+    }
+
 
     @Test
     public void testCreatingIndelAlleles() {
@@ -80,8 +95,8 @@ public class AlleleTest extends BaseTest {
         Assert.assertFalse(del.basesMatch("-"));
         Assert.assertTrue(del.basesMatch(""));
         Assert.assertEquals(del.length(), 0);
-        Assert.assertFalse(del.isNonNullAllele());
-        Assert.assertTrue(del.isNullAllele());
+        Assert.assertFalse(del.isNonNull());
+        Assert.assertTrue(del.isNull());
     }
 
 

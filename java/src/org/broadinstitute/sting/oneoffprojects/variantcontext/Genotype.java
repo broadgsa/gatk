@@ -10,106 +10,153 @@ import java.util.*;
  *         This class emcompasses all the basic information about a genotype
  */
 public class Genotype extends AttributedObject {
-    private List<Allele> alleles;
+    private List<Allele> alleles = new ArrayList<Allele>();
+    private String sampleName = null;
 
-    private double negLog10PError;
+    public Genotype(VariantContext vc, List<String> alleles, String sampleName, double negLog10PError) {
+        this(resolveAlleles(vc, alleles), sampleName, negLog10PError);
+    }
 
-    private String sample;
-
-    public Genotype(List<Allele> alleles, String sample, double negLog10PError) {
-        this.alleles = new ArrayList<Allele>(alleles);
-        this.sample = sample;
-        this.negLog10PError = negLog10PError;
+    public Genotype(List<Allele> alleles, String sampleName, double negLog10PError) {
+        setAlleles(alleles);
+        setSampleName(sampleName);
+        setNegLog10PError(negLog10PError);
     }
 
     /**
      * @return the alleles for this genotype
      */
-    public List<Allele> getAlleles() { return alleles; }
+    public List<Allele> getAlleles() {
+        return alleles;
+    }
+
+    public List<Allele> getAlleles(Allele allele) {
+        List<Allele> al = new ArrayList<Allele>();
+        for ( Allele a : alleles )
+            if ( a.equals(allele) )
+                al.add(a);
+
+        return al;
+    }
+
 
     /**
      * @return the ploidy of this genotype
      */
     public int getPloidy() { return alleles.size(); }
 
+    public enum Type {
+        NO_CALL,
+        HOM_REF,
+        HET,
+        HOM_VAR
+    }
+
+    public Type getType() {
+        Allele firstAllele = alleles.get(0);
+
+        if ( firstAllele.isNoCall() ) {
+            return Type.NO_CALL;
+        }
+
+        for (Allele a : alleles) {
+            if ( ! firstAllele.equals(a) )
+                return Type.HET;
+        }
+        return firstAllele.isReference() ? Type.HOM_REF : Type.HOM_VAR;
+    }
+
     /**
      * @return true if all observed alleles are the same (regardless of whether they are ref or alt)
      */
-    public boolean isHom() {
-
-        // do not assume ploidy == 2
-
-        if ( alleles.size() == 0 )
-            return true;
-
-        Allele first = alleles.get(0);
-        for ( int i = 1; i < alleles.size(); i++ ) {
-            if ( !first.equals(alleles.get(i)) )
-                return false;
-        }
-
-        return true;
-    }
+    public boolean isHom() { return getType() == Type.HOM_REF || getType() == Type.HOM_VAR; }
 
     /**
      * @return true if we're het (observed alleles differ)
      */
-    public boolean isHet() { return !isHom(); }
+    public boolean isHet() { return getType() == Type.HET; }
 
     /**
      * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF)
      */
-    public boolean isNoCall() {
-        // TODO -- implement me
-        return false;
-    }
+    public boolean isNoCall() { return getType() == Type.NO_CALL; }
 
-    /**
-     * @return true if all alleles for this genotype are SNPs or reference
-     */
-//    public boolean isPointGenotype() {
-////        for ( Allele allele : alleles ) {
-////            if ( allele.isVariant() && !allele.isSNP() )
-////                return false;
-////        }
-//        return true;
+//    /**
+//     * @return true if this is a variant genotype, false if it's reference
+//     */
+//    public boolean isVariant() {
+//        for ( Allele allele : alleles ) {
+//            if ( allele.isNonReference() )
+//                return true;
+//        }
+//        return false;
 //    }
-
-    /**
-     * @return true if this is a variant genotype, false if it's reference
-     */
-    public boolean isVariant() {
-        for ( Allele allele : alleles ) {
-            if ( allele.isNonReference() )
-                return true;
-        }
-        return false;
-    }
-
-    /**
-     * @return the -1 * log10-based error estimate
-     */
-    public double getNegLog10PError() { return negLog10PError; }
 
     /**
      * @return the sample name
      */
-    public String getSample() { return sample; }
+    public String getSampleName() {
+        return sampleName;
+    }
 
     /**
      * Sets the sample name
      *
-     * @param sample    the sample name
+     * @param sampleName    the sample name
      */
-    public void setSample(String sample) {
-        this.sample = sample;
+    public void setSampleName(String sampleName) {
+        if ( sampleName == null ) throw new IllegalArgumentException("Sample name cannot be null " + this);
+        this.sampleName = sampleName;
     }
 
     /**
-     * @param ref the reference base
      *
-     * @return this genotype as a variation
+     * @param alleles
      */
-    // TODO -- implement me
-    // public Variation toVariation(char ref);
+    public void setAlleles(List<Allele> alleles) {
+        this.alleles.clear();
+
+        // todo -- add validation checking here
+
+        if ( alleles == null ) throw new IllegalArgumentException("BUG: alleles cannot be null in setAlleles");
+        if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0 in setAlleles");
+
+        int nNoCalls = 0;
+        for ( Allele allele : alleles ) { nNoCalls += allele.isNoCall() ? 1 : 0; }
+        if ( nNoCalls > 0 && nNoCalls != alleles.size() )
+            throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
+
+        for ( Allele allele : alleles ) {
+            addAllele(allele);
+        }
+    }
+
+    public void addAllele(Allele allele) {
+        if ( allele == null ) throw new IllegalArgumentException("BUG: Cannot add a null allele to a genotype");
+        this.alleles.add(allele);
+    }
+
+
+    private static List<Allele> resolveAlleles(VariantContext vc, List<String> alleleStrings) {
+        List<Allele> alleles = new ArrayList<Allele>();
+        for ( String alleleString : alleleStrings ) {
+            Allele allele = vc.getAllele(alleleString);
+
+            if ( allele == null ) {
+                if ( Allele.wouldBeNoCallAllele(alleleString.getBytes()) ) {
+                    allele = new Allele(alleleString);
+                } else {
+                    throw new IllegalArgumentException("Allele " + alleleString + " not present in the list of alleles in VariantContext " + vc);
+                }
+            }
+
+            alleles.add(allele);
+        }
+
+        return alleles;
+    }
+
+    public String toString() {
+        return String.format("[GT: %s %s %s Q%.2f %s]", getSampleName(), getAlleles(), getType(), getNegLog10PError(), getAttributes());
+    }
 }

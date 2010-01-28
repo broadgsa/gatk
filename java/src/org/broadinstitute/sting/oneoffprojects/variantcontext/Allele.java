@@ -64,29 +64,66 @@ import java.util.Arrays;
  * If you know where allele is the reference, you can determine whether the variant is an insertion or deletion
  */
 public class Allele {
-    private static final byte[] NULL_ALLELE_BASES = new byte[0];
+    private static final byte[] EMPTY_ALLELE_BASES = new byte[0];
+//    private static final byte[] NULL_ALLELE_BASES = new byte[0];
+//    private static final byte[] NO_CALL_ALLELE_BASES = ".".getBytes();
 
     private boolean isRef = false;
+    private boolean isNull = false;
+    private boolean isNoCall = false;
+
     private byte[] bases = null;
+
+    public final static Allele NO_CALL = new Allele(".");
 
     public Allele(byte[] bases, boolean isRef) {
         if ( bases == null )
             throw new IllegalArgumentException("Constructor: the Allele base string cannot be null; use new Allele() or new Allele(\"\") to create a Null allele");
 
         // standardize our representation of null allele and bases
-        if ( (bases.length == 1 && bases[0] == '-') || bases.length == 0)
-            bases = NULL_ALLELE_BASES;
+        if ( wouldBeNullAllele(bases) ) {
+            bases = EMPTY_ALLELE_BASES;
+            isNull = true;
+        }
+        if ( wouldBeNoCallAllele(bases) ) {
+            bases = EMPTY_ALLELE_BASES;
+            isNoCall = true;
+            if ( isRef ) throw new IllegalArgumentException("Cannot tag a NoCall allele as the reference allele");
+        }
         else
             bases = new String(bases).toUpperCase().getBytes(); // todo -- slow performance
 
         this.isRef = isRef;
-
         this.bases = bases;
+
+        if ( ! acceptableAlleleBases(bases) )
+            throw new IllegalArgumentException("Unexpected base in allele bases " + new String(bases));
+    }
+
+    public final static boolean wouldBeNullAllele(byte[] bases) {
+        return (bases.length == 1 && bases[0] == '-') || bases.length == 0;
+    }
+
+    public final static boolean wouldBeNoCallAllele(byte[] bases) {
+        return bases.length == 1 && bases[0] == '.';
+    }
+
+
+    public final static boolean acceptableAlleleBases(String bases) {
+        return acceptableAlleleBases(bases.getBytes());
+    }
+    
+    public final static boolean acceptableAlleleBases(byte[] bases) {
+        if ( (bases.length == 1 && bases[0] == '-') || bases.length == 0)
+            return true;
+
         for ( byte b : bases ) {
             if ( ! BaseUtils.isRegularBase(b) ) {
-                throw new IllegalArgumentException("Unexpected base in allele bases " + new String(bases));
+                return false;
             }
         }
+
+        return true;
     }
 
     /** null allele creation method */
@@ -107,14 +144,17 @@ public class Allele {
     // accessor routines
     //
     //
-    public boolean isNullAllele()       { return length() == 0; }
-    public boolean isNonNullAllele()    { return ! isNullAllele(); }
+    public boolean isNull()             { return isNull; }
+    public boolean isNonNull()          { return ! isNull(); }
+
+    public boolean isNoCall()           { return isNoCall; }
+    public boolean isCalled()           { return ! isNoCall(); }
 
     public boolean isReference()        { return isRef; }
     public boolean isNonReference()     { return ! isReference(); }
 
     public String toString() {
-        return isNullAllele() ? "-" : new String(getBases()) + ( isReference() ? "*" : "");
+        return (isNull() ? "-" : ( isNoCall() ? "." : new String(getBases()))) + (isReference() ? "*" : "");
     }
 
     /**
@@ -131,7 +171,7 @@ public class Allele {
      * @return true if these alleles are equal
      */
     public boolean equals(Allele other) {
-        return isRef == other.isRef && this.basesMatch(other.getBases());
+        return isRef == other.isRef && isNull == other.isNull && isNoCall == other.isNoCall && this.basesMatch(other.getBases());
     }
 
     // todo -- notice case insensitivity

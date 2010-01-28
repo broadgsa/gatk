@@ -7,21 +7,56 @@ import java.util.*;
 
 
 /**
- * @author ebanks
+ * @author depristo
  *         <p/>
- *         Class VariantContext
+ *         Class AttributedObject
  *         <p/>
- *         This class represents a context that unifies one or more variants
+ *         Common functions in VariantContext
  */
 public class AttributedObject {
+    public static final double NO_NEG_LOG_10PERROR = 0.0;
+    private double negLog10PError = NO_NEG_LOG_10PERROR;
+
     private Map<Object, Object> attributes = new HashMap<Object, Object>();
 
-    public AttributedObject() {
-        ;
+    public AttributedObject() { }
+
+    public AttributedObject(double negLog10PError) {
+        setNegLog10PError(negLog10PError);
     }
 
-    public AttributedObject(Map<Object, Object> attributes) {
+    public AttributedObject(Map<? extends Object, ? extends Object> attributes) {
         setAttributes(attributes);
+    }
+
+    public AttributedObject(Map<? extends Object, ? extends Object> attributes, double negLog10PError) {
+        this(attributes);
+
+        setNegLog10PError(negLog10PError);
+    }
+
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Working with log error rates
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    public boolean hasNegLog10PError() {
+        return getNegLog10PError() == NO_NEG_LOG_10PERROR;
+    }
+
+    /**
+     * @return the -1 * log10-based error estimate
+     */
+    public double getNegLog10PError() { return negLog10PError; }
+
+    public void setNegLog10PError(double negLog10PError) {
+        if ( negLog10PError < 0 && negLog10PError != NO_NEG_LOG_10PERROR ) throw new IllegalArgumentException("BUG: negLog10PError cannot be < than 0 : " + negLog10PError);
+        if ( Double.isInfinite(negLog10PError) ) throw new IllegalArgumentException("BUG: negLog10PError should not be Infinity");
+        if ( Double.isNaN(negLog10PError) ) throw new IllegalArgumentException("BUG: negLog10PError should not be NaN");
+
+        this.negLog10PError = negLog10PError;
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -42,9 +77,9 @@ public class AttributedObject {
 
     // todo -- define common attributes as enum
 
-    public void setAttributes(Map<? extends Object, Object> map) {
+    public void setAttributes(Map<? extends Object, ? extends Object> map) {
         this.attributes.clear();
-        putAttributes(attributes);
+        putAttributes(map);
     }
 
     public void putAttribute(Object key, Object value) {
@@ -62,9 +97,11 @@ public class AttributedObject {
         this.attributes.remove(key);
     }
 
-    public void putAttributes(Map<? extends Object, Object> map) {
-        for ( Map.Entry<Object, Object> elt : attributes.entrySet() ) {
-            putAttribute(elt.getKey(), elt.getValue());
+    public void putAttributes(Map<? extends Object, ? extends Object> map) {
+        if ( map != null ) {
+            for ( Map.Entry<? extends Object, ? extends Object> elt : map.entrySet() ) {
+                putAttribute(elt.getKey(), elt.getValue());
+            }
         }
     }
 
