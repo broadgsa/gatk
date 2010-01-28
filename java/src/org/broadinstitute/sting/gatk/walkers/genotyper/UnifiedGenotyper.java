@@ -50,6 +50,7 @@ import java.io.PrintStream;
  * multi-sample, and pooled data.  The user can choose from several different incorporated calculation models.
  */
 @Reference(window=@Window(start=-20,stop=20))
+@By(DataSource.REFERENCE)
 public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
