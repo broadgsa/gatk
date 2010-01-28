@@ -69,10 +69,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	private WindowContext tumor_context;
 	private WindowContext normal_context; 
 	private int currentContigIndex = -1;
+    private int contigLength = -1; // we see to much messy data with reads hanging out of contig ends...
 	private int currentPosition = -1; // position of the last read we've seen on the current contig
 	private String refName = null;
 	private java.io.Writer output = null;
 	private GenomeLoc location = null;
+
+    boolean outOfContigUserWarned = false;
 
     private SeekableRODIterator<rodRefSeq> refseqIterator=null;
 
@@ -172,6 +175,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 refName = new String(read.getReferenceName());
 
                 location = GenomeLocParser.setContig(location,refName);
+                contigLength = GenomeLocParser.getContigInfo(refName).getSequenceLength();
+                outOfContigUserWarned = false;
 
                 normal_context.clear(); // reset coverage window; this will also set reference position to 0
                 if ( call_somatic) tumor_context.clear();
@@ -191,6 +196,14 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 					+lastRead.getAlignmentEnd()+" cigar="+lastRead.getCigarString());
 
             currentPosition = read.getAlignmentStart();
+
+            if ( read.getAlignmentEnd() > contigLength  ) {
+                if ( ! outOfContigUserWarned ) {
+                    System.out.println("WARNING: Reads aligned past contig length on "+ location.getContig()+"; all such reads will be skipped");
+                    outOfContigUserWarned = true;
+                }
+                return 0;
+            }
 
             if ( read.getAlignmentStart() < normal_context.getStart() ) {
                 // should never happen
@@ -264,10 +277,94 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
          *                                                                                                
          * @param position
          */
-        private void emit(long position, boolean force) {
+   private void emit(long position, boolean force) {
 
-         }
+            position = adjustPosition(position);
+            long move_to = position;
 
+            for ( long pos = normal_context.getStart() ; pos < Math.min(position,normal_context.getStop()+1) ; pos++ ) {
+
+                if ( normal_context.indelsAt(pos).size() == 0 ) continue; // no indels
+
+                IndelPrecall normalCall = new IndelPrecall(normal_context,pos,NQS_WIDTH);
+
+                if ( normalCall.getCoverage() < minCoverage ) {
+                    if ( DEBUG ) {
+                        System.out.println("DEBUG>> Indel at "+pos+"; coverare in normal="+normalCall.getCoverage()+" (SKIPPED)");
+                    }
+                    continue; // low coverage
+                }
+
+                if ( DEBUG ) System.out.println("DEBUG>> Indel at "+pos);
+
+                long left = Math.max( pos-NQS_WIDTH, normal_context.getStart() );
+                long right = pos+normalCall.getVariant().lengthOnRef()+NQS_WIDTH-1;
+
+                if ( right >= position && ! force) {
+                    // we are not asked to force-shift, and there is more coverage around the current indel that we still need to collect
+
+                    // we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
+                    // instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
+                    move_to = adjustPosition(left);
+                    if ( DEBUG ) System.out.println("DEBUG>> waiting for coverage; actual shift performed to "+ move_to);
+                    break;
+                }
+
+                // if indel is too close to the end of the window but we need to emit anyway (force-shift), adjust right:
+                if ( right > normal_context.getStop() ) right = normal_context.getStop();
+
+                location = GenomeLocParser.setStart(location,pos);
+                location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
+                RODRecordList<rodRefSeq> annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+
+                if ( normalCall.failsNQSMismatch() ) {
+                    String fullRecord = makeFullRecord(normalCall);
+                    String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+                    out.println(fullRecord+
+                    "SAMPLE_TOO_DIRTY\t"+annotationString);
+                    normal_context.indelsAt(pos).clear();
+                        // we dealt with this indel; don't want to see it again
+                        // (we might otherwise in the case when 1) there is another indel that follows
+                        // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
+                    continue; // too dirty
+                }
+
+                if ( normalCall.isCall() ) {
+                    String message = normalCall.makeBedLine(output);
+                    String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+
+                    StringBuilder fullRecord = new StringBuilder();
+                    fullRecord.append(makeFullRecord(normalCall));
+
+                    if ( verbose ) {
+                        if ( refseqIterator == null ) out.println(fullRecord + "\t");
+                        else out.println(fullRecord + "\t"+ annotationString);
+                    }
+                }
+
+                normal_context.indelsAt(pos).clear();
+                    // we dealt with this indel; don't want to see it again
+                    // (we might otherwise in the case when 1) there is another indel that follows
+                    // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
+
+//			for ( IndelVariant var : variants ) {
+//				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
+//			}
+            }
+
+            if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to + " ("+position+")");
+            normal_context.shift((int)(move_to - normal_context.getStart() ) );
+    }
+
+    /** A shortcut. Returns true if we got indels within the specified interval in single and only window context
+     * (for single-sample calls) or in either of the two window contexts (for two-sample/somatic calls)
+     *
+     */
+    private boolean indelsPresentInInterval(long start, long stop) {
+        if ( tumor_context == null ) return  normal_context.hasIndelsInInterval(start,stop);
+        return tumor_context.hasIndelsInInterval(start,stop) ||
+              normal_context.hasIndelsInInterval(start,stop);
+    }
         /** Takes the position, to which window shift is requested, and tries to adjust it in such a way that no NQS window is broken.
          * Namely, this method checks, iteratively, if there is an indel within NQS_WIDTH bases ahead of initially requested or adjusted 
          * shift position. If there is such an indel,
@@ -282,8 +379,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         long initial_request = request;
         int attempts = 0;
         boolean failure = false;
-        while ( tumor_context.hasIndelsInInterval(request,request+NQS_WIDTH) ||
-              normal_context.hasIndelsInInterval(request,request+NQS_WIDTH) ) {
+        while ( indelsPresentInInterval(request,request+NQS_WIDTH)  ) {
             request -= NQS_WIDTH;
             if ( DEBUG ) System.out.println("DEBUG>> indel observations present within "+NQS_WIDTH+" bases ahead. Resetting shift to "+request);
             attempts++;
@@ -300,8 +396,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             // first position after the shift (this is bad for other reasons); if it breaks a nqs window, so be it
             request = initial_request;
             attempts = 0;
-            while ( tumor_context.hasIndelsInInterval(request,request+1) ||
-                  normal_context.hasIndelsInInterval(request,request+1) ) {
+            while ( indelsPresentInInterval(request,request+1) ) {
                 request--;
                 if ( DEBUG ) System.out.println("DEBUG>> indel observations present within "+NQS_WIDTH+" bases ahead. Resetting shift to "+request);
                 attempts++;
@@ -430,6 +525,15 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         fullRecord.append(normalCall.makeStatsString("N_"));
         fullRecord.append('\t');
         fullRecord.append(tumorCall.makeStatsString("T_"));
+        fullRecord.append('\t');
+        return fullRecord.toString();
+    }
+
+    private String makeFullRecord(IndelPrecall normalCall) {
+        StringBuilder fullRecord = new StringBuilder();
+        fullRecord.append(normalCall.makeEventString());
+        fullRecord.append('\t');
+        fullRecord.append(normalCall.makeStatsString(""));
         fullRecord.append('\t');
         return fullRecord.toString();
     }
