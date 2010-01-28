@@ -19,11 +19,14 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.CigarElement;
 
 /**
- * Created by IntelliJ IDEA.
- * User: asivache
- * Date: Oct 15, 2009
- * Time: 2:03:03 PM
- * To change this template use File | Settings | File Templates.
+ * This is a simple, counts-and-cutoffs based tool for calling indels from aligned (preferrably MSA cleaned) sequencing
+ * data. Two output formats supported are: BED format (minimal output, required), and extended output that includes read
+ * and mismtach statistics around the calls (tuned on with --verbose). The calls can be performed from a single/pooled sample,
+ * or from a matched pair of samples (with --somatic option). In the latter case, two input bam files must be specified,
+ * the order is important: indels are called from the second sample ("Tumor") and additionally annotated as germline
+ * if even a weak evidence for the same indel, not necessarily a confident call, exists in the first sample ("Normal"), or as somatic
+ * if first bam has coverage at the site but no indication for an indel. In the --somatic mode, BED output contains
+ * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
  */
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, PlatformUnitFilter.class})
 public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
@@ -32,23 +35,23 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
     @Argument(fullName="1kg_format", shortName="1kg", doc="output in 1000 genomes format", required=false)
     boolean FORMAT_1KG = false;
 	@Argument(fullName="somatic", shortName="somatic",
-			doc="Perform somatic calls; two input alignment files must be specified", required=false)
+			doc="Perform somatic calls; two input alignment files (-I option) must be specified. Calls are performed from the second file (\"tumor\") against the first one (\"normal\").", required=false)
 	boolean call_somatic = false;
 	@Argument(fullName="verbose", shortName="verbose",
-			doc="Tell us what you are calling now (printed to stdout)", required=false)
+			doc="Prints all calls (both germline and somatic if --somatic is used) with additional read/mismatch statistics into GATK output stream (redirect with -o).", required=false)
 	boolean verbose = false;
 	@Argument(fullName="minCoverage", shortName="minCoverage",
-			doc="must have minCoverage or more reads to call indel; with --somatic this value is applied to tumor sample", required=false)
+			doc="indel calls will be made only at sites with coverage of minCoverage or more reads; with --somatic this value is applied to tumor sample", required=false)
 	int minCoverage = 6;
 	@Argument(fullName="minNormalCoverage", shortName="minNormalCoverage",
-			doc="used only with --somatic;  normal sample must have at least minNormalCoverage or more reads to call germline/somatic indel", required=false)
+			doc="used only with --somatic;  normal sample must have at least minNormalCoverage or more reads at the site to call germline/somatic indel, otherwise the indel (in tumor) is ignored", required=false)
 	int minNormalCoverage = 4;
 	@Argument(fullName="minFraction", shortName="minFraction",
-			doc="Minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, required for a consensus call"+
+			doc="Minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, required for making a call"+
 			" (fraction of non-consensus indels at the site is not considered here, see minConsensusFraction)", required=false)
 	double minFraction = 0.3;
 	@Argument(fullName="minConsensusFraction", shortName="minConsensusFraction",
-			doc="Minimum fraction of CONSENSUS indel observations at a site wrt all indel observations at the site required to make the call", required=false)
+			doc="Indel call is made only if fraction of CONSENSUS indel observations at a site wrt all indel observations at the site exceeds this threshold", required=false)
 	double minConsensusFraction = 0.7;
 	@Argument(fullName="minIndelCount", shortName="minCnt",
 			doc="Minimum count of reads supporting consensus indel required for making the call. "+
@@ -56,13 +59,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 			"(minIndelCount not met) will not pass.", required=false)
 	int minIndelCount = 0;
 	@Argument(fullName="refseq", shortName="refseq",
-			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated as GENOMIC/UTR/INTRON/CODING", required=false)
+			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated with GENOMIC/UTR/INTRON/CODING and with the gene name", required=false)
 	String RefseqFileName = null;
     @Argument(fullName="blacklistedLanes", shortName="BL",
             doc="Name of lanes (platform units) that should be ignored. Reads coming from these lanes will never be seen "+
                     "by this application, so they will not contribute indels to consider and will not be counted.", required=false)
     PlatformUnitFilterHelper dummy;
-     @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging",required=false) Boolean DEBUG = false;
+     @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging, do not turn this on",required=false) Boolean DEBUG = false;
     @Argument(fullName="window_size", shortName="ws", doc="Size (bp) of the sliding window used for accumulating the coverage. "+
             "May need to be increased to accomodate longer reads or longer deletions.",required=false) int WINDOW_SIZE = 200;
 
