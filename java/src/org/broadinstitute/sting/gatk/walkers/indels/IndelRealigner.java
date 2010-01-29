@@ -206,7 +206,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             emit(readsNotToClean);
         }
 
-        writer.close();
+        if ( writer != null )
+            writer.close();
 
         if ( OUT_INDELS != null ) {
             try {

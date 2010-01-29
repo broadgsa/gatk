@@ -23,7 +23,7 @@ public class SortingSAMFileWriter implements SAMFileWriter {
     private int window;
 
     // the reads we are accumulating
-    private TreeSet<SAMRecord> cachedReads = new TreeSet<SAMRecord>(new SAMRecordCoordinateComparator());
+    private TreeSet<SAMRecord> cachedReads = new TreeSet<SAMRecord>(new SAMRecordCoordinateComparatorWithUnmappedReads());
 
 
     /**
