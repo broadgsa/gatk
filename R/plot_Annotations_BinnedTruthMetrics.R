@@ -73,20 +73,26 @@ dev.off()
 # Plot dbsnp and true positive rate as a function of the annotation
 #
 
+ymin = min(all$dbsnp)
+ymax = max(all$dbsnp)
 outfile = paste(input, ".truthRate.", annotationName, ".pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
 yLabel = "DBsnp Rate"
 if( sum(all$truePositive==0) != length(all$truePositive) ) {
-yLabel = "DBsnp/Truth Rate"
+t = all[all$truePositive>0,]
+yLabel = "DBsnp/True Positive Rate"
+ymin = min(min(all$dbsnp),min(t$truePositive))
+ymax = max(max(all$dbsnp),max(t$truePositive))
+
 }
-plot(all$value,all$dbsnp,xlab=annotationName,ylab=yLabel,pch=20,xaxt="n",ps=14);
+plot(all$value,all$dbsnp,xlab=annotationName,ylab=yLabel,pch=20,ylim=c(ymin,ymax),xaxt="n",ps=14);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
 abline(v=m,lty=2)
 abline(v=m75,lty=2)
 abline(v=m25,lty=2)
 if( sum(all$truePositive==0) != length(all$truePositive) ) {
-points(all$value,all$truePositive,col="magenta",pch=20);
+points(t$value,t$truePositive,col="magenta",pch=20);
 legend("topleft", c("dbsnp","truth"),col=c("black","magenta"),pch=c(20,20))
 }
 dev.off()
@@ -102,13 +108,13 @@ yLabel = "DBsnp Rate"
 if( sum(all$truePositive==0) != length(all$truePositive) ) {
 yLabel = "DBsnp/Truth Rate"
 }
-plot(all$value,all$dbsnp,xlab=annotationName,log="x",ylab=yLabel,pch=20,xaxt="n",ps=14);
+plot(all$value,all$dbsnp,xlab=annotationName,log="x",ylab=yLabel,ylim=c(ymin,ymax),pch=20,xaxt="n",ps=14);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
 abline(v=m,lty=2)
 abline(v=m75,lty=2)
 abline(v=m25,lty=2)
 if( sum(all$truePositive==0) != length(all$truePositive) ) {
-points(all$value,all$truePositive,col="magenta",pch=20);
+points(t$value,t$truePositive,col="magenta",pch=20);
 legend("topleft", c("dbsnp","truth"),col=c("black","magenta"),pch=c(20,20))
 }
 dev.off()

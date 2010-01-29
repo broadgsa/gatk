@@ -45,7 +45,8 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
     public static final int NOVEL_SET = 1;
     public static final int DBSNP_SET = 2;
     public static final int TRUTH_SET = 3;
-    private static final int NUM_SETS = 4;
+    public static final int TRUE_POSITIVE = 4;
+    private static final int NUM_SETS = 5;
 
     public AnnotationDatum() {
 
@@ -69,7 +70,7 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
         }
     }
 
-    final public void incrementTi( final boolean isNovelVariant, final boolean isTrueVariant ) {
+    final public void incrementTi( final boolean isNovelVariant, final boolean isInTruthSet, final boolean isTrueVariant ) {
 
         ti[FULL_SET]++;
         if( isNovelVariant ) {
@@ -77,12 +78,15 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
         } else { // Is known, in DBsnp
             ti[DBSNP_SET]++;
         }
-        if( isTrueVariant ) {
+        if( isInTruthSet ) {
             ti[TRUTH_SET]++;
+            if( isTrueVariant ) {
+                ti[TRUE_POSITIVE]++;
+            }
         }
     }
 
-    final public void incrementTv( final boolean isNovelVariant, final boolean isTrueVariant ) {
+    final public void incrementTv( final boolean isNovelVariant, final boolean isInTruthSet, final boolean isTrueVariant ) {
 
         tv[FULL_SET]++;
         if( isNovelVariant ) {
@@ -90,8 +94,11 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
         } else { // Is known, in DBsnp
             tv[DBSNP_SET]++;
         }
-        if( isTrueVariant ) {
+        if( isInTruthSet ) {
             tv[TRUTH_SET]++;
+            if( isTrueVariant ) {
+                tv[TRUE_POSITIVE]++;
+            }
         }
     }
 
@@ -129,12 +136,12 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
 
     final public float calcTPrate() {
 
-        if( ti[FULL_SET] + tv[FULL_SET] == 0 ) { // Don't divide by zero
+        if( ti[TRUTH_SET] + tv[TRUTH_SET] == 0 ) { // Don't divide by zero
             return 0.0f;
         }
 
-        return 100.0f * ((float) ti[TRUTH_SET] + tv[TRUTH_SET]) /
-                ((float) ti[FULL_SET] + tv[FULL_SET]);
+        return 100.0f * ((float) ti[TRUE_POSITIVE] + tv[TRUE_POSITIVE]) /
+                ((float) ti[TRUTH_SET] + tv[TRUTH_SET]);
     }
 
     final public int numVariants( final int INDEX ) {

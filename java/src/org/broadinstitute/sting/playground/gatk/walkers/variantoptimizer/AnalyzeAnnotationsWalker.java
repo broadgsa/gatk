@@ -1,12 +1,15 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broadinstitute.sting.gatk.refdata.RodGLF;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -87,11 +90,27 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
         if( tracker != null ) {
 
             // First find out if this variant is in the truth set
+            boolean isInTruthSet = false;
             boolean isTrueVariant = false;
             for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
                 if( rod != null && rod.getName().toUpperCase().startsWith("TRUTH") ) {
-                    isTrueVariant = true;
-                    break; // at least one of the truth files has this variant, so break out
+                    isInTruthSet = true;
+
+                    if( rod instanceof RodVCF ) {
+                        if( ((RodVCF) rod).isSNP() ) {
+                            isTrueVariant = true;
+                        }
+                    } else if( rod instanceof RodGLF ) {
+                        if( ((RodGLF) rod).isSNP() ) {
+                            isTrueVariant = true;
+                        }
+                    } else if( rod instanceof VariantBackedByGenotype ) {
+                        if( ((VariantBackedByGenotype) rod).getCalledGenotype().isVariant(ref.getBase()) ) {
+                            isTrueVariant = true;
+                        }
+                    } else {
+                        throw new StingException( "Truth ROD is of unknown ROD type: " + rod.getName() );
+                    }
                 }
             }
             
@@ -100,7 +119,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
                 if( rod != null && rod instanceof RodVCF && !rod.getName().toUpperCase().startsWith("TRUTH") ) {
                     final RodVCF variant = (RodVCF) rod;
                     if( variant.isSNP() ) {
-                        dataManager.addAnnotations( variant, SAMPLE_NAME, isTrueVariant );
+                        dataManager.addAnnotations( variant, SAMPLE_NAME, isInTruthSet, isTrueVariant );
                     }
                 }
             }

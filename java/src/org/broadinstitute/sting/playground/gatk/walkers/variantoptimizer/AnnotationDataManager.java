@@ -48,7 +48,7 @@ public class AnnotationDataManager {
         data = new HashMap<String, TreeSet<AnnotationDatum>>();
     }
 
-    public void addAnnotations( final RodVCF variant, final String sampleName, final boolean isTrueVariant ) {
+    public void addAnnotations( final RodVCF variant, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
 
         if( sampleName != null ) { // Only process variants that are found in the sample with this sampleName
             if( variant.getGenotype(sampleName).isNoCall() ) { // This variant isn't found in this sample so break out
@@ -83,9 +83,9 @@ public class AnnotationDataManager {
 
             // Decide if the variant is a transition or transversion
             if( BaseUtils.isTransition( (byte)variant.getReferenceForSNP(), (byte)variant.getAlternativeBaseForSNP()) ) {
-                datum.incrementTi( isNovelVariant, isTrueVariant );
+                datum.incrementTi( isNovelVariant, isInTruthSet, isTrueVariant );
             } else {
-                datum.incrementTv( isNovelVariant, isTrueVariant );
+                datum.incrementTv( isNovelVariant, isInTruthSet, isTrueVariant );
             }
         }
     }
