@@ -56,8 +56,9 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     public Object initialize(final File source) throws FileNotFoundException {
-        if ( mReader == null )
+        if ( mReader == null ) {
             mReader = new VCFReader(source);
+        }
         return mReader.getHeader();
     }
 

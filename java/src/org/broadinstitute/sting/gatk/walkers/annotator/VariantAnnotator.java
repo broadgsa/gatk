@@ -95,14 +95,15 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
 
         // add the non-VCF sample from the command-line, if applicable
-        if ( sampleName != null ) {
+        if ( sampleName != null  ) {
             nonVCFsampleName.put(sampleName.toUpperCase(), "variant");
             samples.add(sampleName.toUpperCase());
         }
 
         // if there are no valid samples, warn the user
-        if ( samples.size() == 0 )
+        if ( samples.size() == 0 ) {
             logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
+        }
 
         determineAllAnnotations();
 

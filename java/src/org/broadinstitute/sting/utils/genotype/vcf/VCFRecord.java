@@ -325,7 +325,11 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public boolean isNovel() {
-        return mID == null && ! isInHapmap();
+        return ( ! isInDBSNP() ) && ( ! isInHapmap() );
+    }
+
+    public boolean isInDBSNP() {
+        return ( mID != null || ( mInfoFields.get(DBSNP_KEY) != null && mInfoFields.get(DBSNP_KEY).equals("1") ) );
     }
 
     public boolean isInHapmap() {

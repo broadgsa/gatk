@@ -173,7 +173,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
              catch ( Exception e ) {
                      throw new StingException("Failed to parse ROD data ("+type.getName()+") from file "+ file + " at line #"+linenum+
                                              "\nOffending line: "+line+
-                                             "\nReason ("+e.getClass().getName()+"): "+e.getMessage());
+                                             "\nReason ("+e.getClass().getName()+"): "+e.getMessage(),e);
              }
         }
 
