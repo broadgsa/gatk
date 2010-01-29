@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -77,7 +78,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("GLF", RodGLF.class);
         addModule("VCF", RodVCF.class);
         addModule("PicardDbSNP", rodPicardDbSNP.class);
-        addModule("HapmapVCF",HapmapVCFROD.class);
+        addModule("HapmapVCF", HapmapVCFROD.class);
 
     }
 

@@ -1,5 +1,8 @@
-package org.broadinstitute.sting.gatk.refdata;
+package org.broadinstitute.sting.oneoffprojects.refdata;
 
+import org.broadinstitute.sting.gatk.refdata.BasicReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -12,16 +15,13 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-/**
+/*
  * Created by IntelliJ IDEA.
  * User: chartl
  * Date: Jan 29, 2010
- * Time: 8:57:54 AM
- * To change this template use File | Settings | File Templates.
  */
 public class HapmapVCFROD extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, Iterator<HapmapVCFROD> {
 // This is a (hopefully temporary) wrapper class for certain VCF files that we want to protect from

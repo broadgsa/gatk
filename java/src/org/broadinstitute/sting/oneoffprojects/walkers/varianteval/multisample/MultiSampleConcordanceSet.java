@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.varianteval.multisample;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval.multisample;
 
 import java.util.HashSet;
 import java.util.Set;

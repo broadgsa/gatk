@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.varianteval.multisample;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval.multisample;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
