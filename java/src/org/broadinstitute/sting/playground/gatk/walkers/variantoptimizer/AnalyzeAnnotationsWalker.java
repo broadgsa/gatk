@@ -11,6 +11,8 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
+import java.util.HashMap;
+
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -61,12 +63,14 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     private int MAX_VARIANTS_PER_BIN = 20000;
     @Argument(fullName = "sampleName", shortName = "sampleName", doc = "If supplied, only process variants found in this sample.", required = false)
     private String SAMPLE_NAME = null;
+    @Argument(fullName = "name", shortName = "name", doc = "Labels for the annotations to make plots look nicer. Each name is a separate -name argument. For example, -name DP,Depth -name AB,AlleleBalance", required = false)
+    private String[] ANNOTATION_NAMES = null;
 
 
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    private final AnnotationDataManager dataManager = new AnnotationDataManager();
+    private AnnotationDataManager dataManager;
     
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -75,6 +79,17 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+
+        // Create a HashMap associating the names of the annotations to full Strings that can be used as labels on plots
+        HashMap<String,String> nameMap = null;
+        if( ANNOTATION_NAMES != null ) {
+            nameMap = new HashMap<String,String>();
+            for( String nameLine : ANNOTATION_NAMES ) {
+                String[] vals = nameLine.split(",");
+                nameMap.put(vals[0],vals[1]);
+            }
+        }
+        dataManager = new AnnotationDataManager( nameMap );
 
         if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
     }
@@ -89,13 +104,14 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
 
         if( tracker != null ) {
 
-            // First find out if this variant is in the truth set
+            // First find out if this variant is in the truth sets
             boolean isInTruthSet = false;
             boolean isTrueVariant = false;
             for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
                 if( rod != null && rod.getName().toUpperCase().startsWith("TRUTH") ) {
                     isInTruthSet = true;
 
+                    // Next see if the truth sets say this site is variant or reference
                     if( rod instanceof RodVCF ) {
                         if( ((RodVCF) rod).isSNP() ) {
                             isTrueVariant = true;

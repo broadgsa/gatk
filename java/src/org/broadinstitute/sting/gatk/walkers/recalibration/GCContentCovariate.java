@@ -32,7 +32,7 @@ import net.sf.samtools.SAMRecord;
  * User: rpoplin
  * Date: Jan 29, 2010
  *
- * The number of previous N bases (along the direction of the read) that contain G's and C's.
+ * The number of previous N bases (along the direction of the read) that contain G's and C's. The goal is to correct for dye slippage.
  * Only valid for Illumina reads. Otherwise return -1. 
  */
 

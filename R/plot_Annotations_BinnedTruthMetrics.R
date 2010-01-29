@@ -24,7 +24,7 @@ xmax = max(d$value)
 # Plot TiTv ratio as a function of the annotation
 #
 
-outfile = paste(input, ".TiTv.", annotationName, ".pdf", sep="")
+outfile = paste(input, ".TiTv.pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
 plot(all$value,all$titv,xlab=annotationName,ylab="Ti/Tv Ratio",pch=20,ylim=c(ymin,ymax),xaxt="n",ps=14);
@@ -51,7 +51,7 @@ dev.off()
 # Plot TiTv ratio as a function of the annotation, log scale on the x-axis
 #
 
-outfile = paste(input, ".TiTv_log.", annotationName, ".pdf", sep="")
+outfile = paste(input, ".TiTv_log.pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
 plot(all$value,all$titv,xlab=annotationName,log="x",ylab="Ti/Tv Ratio",pch=20,ylim=c(ymin,ymax),xaxt="n",ps=14);
@@ -75,7 +75,7 @@ dev.off()
 
 ymin = min(all$dbsnp)
 ymax = max(all$dbsnp)
-outfile = paste(input, ".truthRate.", annotationName, ".pdf", sep="")
+outfile = paste(input, ".truthRate.pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
 yLabel = "DBsnp Rate"
@@ -101,7 +101,7 @@ dev.off()
 # Plot dbsnp and true positive rate as a function of the annotation, log scale on the x-axis
 #
 
-outfile = paste(input, ".truthRate_log.", annotationName, ".pdf", sep="")
+outfile = paste(input, ".truthRate_log.pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
 yLabel = "DBsnp Rate"
@@ -123,7 +123,7 @@ dev.off()
 # Plot histogram of the annotation's value
 #
 
-outfile = paste(input, "annotationHistogram.", annotationName, ".pdf", sep="")
+outfile = paste(input, ".Histogram.pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
 plot(all$value,all$numVariants,xlab=annotationName,ylab="Num variants in bin",type="h",xaxt="n",ps=14);

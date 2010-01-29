@@ -43,9 +43,11 @@ import java.io.FileNotFoundException;
 public class AnnotationDataManager {
 
     public final HashMap<String, TreeSet<AnnotationDatum>> data;
+    public final HashMap<String,String> nameMap;
 
-    public AnnotationDataManager() {
+    public AnnotationDataManager( HashMap<String,String> _nameMap ) {
         data = new HashMap<String, TreeSet<AnnotationDatum>>();
+        nameMap = _nameMap;
     }
 
     public void addAnnotations( final RodVCF variant, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
@@ -136,10 +138,15 @@ public class AnnotationDataManager {
 
             // Close the PrintStream
             output.close();
+            
+            String annotationName = nameMap.get(annotationKey);
+            if( annotationName == null ) { // name is not in the map so use the key
+                annotationName = annotationKey;
+            }
 
             // Print out the command line to make it clear to the user what is being executed and how one might modify it
             final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTruthMetrics.R" + " " +
-                                   OUTPUT_PREFIX + annotationKey + ".dat" + " " + annotationKey + " " + MIN_VARIANTS_PER_BIN;
+                                   OUTPUT_PREFIX + annotationKey + ".dat" + " " + annotationName + " " + MIN_VARIANTS_PER_BIN;
             System.out.println( rScriptCommandLine );
 
             // Execute the RScript command to plot the table of TiTv values
