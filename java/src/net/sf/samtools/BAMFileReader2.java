@@ -565,7 +565,10 @@ class BAMFileReader2
          * Closes down the existing iterator.
          */
         public void close() {
-            wrappedIterator.close();
+            if (this != mCurrentIterator) {
+                throw new IllegalStateException("Attempt to close non-current iterator");
+            }
+            mCurrentIterator = null;
         }
 
         /**
