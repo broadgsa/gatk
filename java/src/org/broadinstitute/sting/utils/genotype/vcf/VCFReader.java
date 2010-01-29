@@ -191,41 +191,44 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      *
      * @param line    the line from the file
      * @param mHeader the VCF header
-     *
      * @return the VCFRecord
      */
     public static VCFRecord createRecord(String line, VCFHeader mHeader) {
-        // things we need to make a VCF record
-        Map<VCFHeader.HEADER_FIELDS, String> values = new HashMap<VCFHeader.HEADER_FIELDS, String>();
-        String tokens[] = line.split("\\s+");
+        try {
+            // things we need to make a VCF record
+            Map<VCFHeader.HEADER_FIELDS, String> values = new HashMap<VCFHeader.HEADER_FIELDS, String>();
+            String tokens[] = line.split("\\s+");
 
-        // check to ensure that the column count of tokens is right
-        if (tokens.length != mHeader.getColumnCount()) {
-            throw new RuntimeException("The input file line doesn't contain enough fields, it should have " + mHeader.getColumnCount() + " fields, it has " + tokens.length + ". Line = " + line);
-        }
-
-        int index = 0;
-        for (VCFHeader.HEADER_FIELDS field : mHeader.getHeaderFields())
-            values.put(field, tokens[index++]);
-        // if we have genotyping data, we try and extract the genotype fields
-        if (mHeader.hasGenotypingData()) {
-            String mFormatString = tokens[index];
-            String keyStrings[] = mFormatString.split(":");
-            List<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
-            index++;
-			String[] alt_alleles = values.get(VCFHeader.HEADER_FIELDS.ALT).split(",");
-            for (String str : mHeader.getGenotypeSamples()) {
-                genotypeRecords.add(getVCFGenotype(str, keyStrings, tokens[index], alt_alleles, values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
-                index++;
+            // check to ensure that the column count of tokens is right
+            if (tokens.length != mHeader.getColumnCount()) {
+                throw new RuntimeException("The input file line doesn't contain enough fields, it should have " + mHeader.getColumnCount() + " fields, it has " + tokens.length + ". Line = " + line);
             }
-            VCFRecord vrec = new VCFRecord(values, mFormatString, genotypeRecords);
-            // associate the genotypes with this new record
-            for ( VCFGenotypeRecord gr : genotypeRecords )
-                gr.setVCFRecord(vrec);
-            return vrec;
 
+            int index = 0;
+            for (VCFHeader.HEADER_FIELDS field : mHeader.getHeaderFields())
+                values.put(field, tokens[index++]);
+            // if we have genotyping data, we try and extract the genotype fields
+            if (mHeader.hasGenotypingData()) {
+                String mFormatString = tokens[index];
+                String keyStrings[] = mFormatString.split(":");
+                List<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
+                index++;
+                String[] alt_alleles = values.get(VCFHeader.HEADER_FIELDS.ALT).split(",");
+                for (String str : mHeader.getGenotypeSamples()) {
+                    genotypeRecords.add(getVCFGenotype(str, keyStrings, tokens[index], alt_alleles, values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
+                    index++;
+                }
+                VCFRecord vrec = new VCFRecord(values, mFormatString, genotypeRecords);
+                // associate the genotypes with this new record
+                for (VCFGenotypeRecord gr : genotypeRecords)
+                    gr.setVCFRecord(vrec);
+                return vrec;
+
+            }
+            return new VCFRecord(values);
+        } catch (Exception e) {
+            throw new VCFParseException("VCF Reader failed to parsing, on line = " + line, e);
         }
-        return new VCFRecord(values);
     }
 
     /**
