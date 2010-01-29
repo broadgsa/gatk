@@ -6,6 +6,7 @@ verbose = TRUE
 input = args[1]
 annotationName = args[2]
 minBinCutoff = as.numeric(args[3])
+medianNumVariants = args[4]
 
 c <- read.table(input, header=T)
 
@@ -14,11 +15,26 @@ novel = c[c$numVariants>minBinCutoff & c$category=="novel",]
 dbsnp = c[c$numVariants>minBinCutoff & c$category=="dbsnp",]
 truth = c[c$numVariants>minBinCutoff & c$category=="truth",]
 
+#
+# Calculate min, max, medians
+#
+
 d = c[c$numVariants>minBinCutoff,]
 ymin = min(d$titv)
 ymax = max(d$titv)
 xmin = min(d$value)
 xmax = max(d$value)
+m = weighted.mean(all$value,all$numVariants/sum(all$numVariants))
+ma = all[all$value > m,]
+mb = all[all$value < m,]
+m75 = weighted.mean(ma$value,ma$numVariants/sum(ma$numVariants))
+m25 = weighted.mean(mb$value,mb$numVariants/sum(mb$numVariants))
+if(medianNumVariants == "true") {
+vc = cumsum( all$numVariants/sum(all$numVariants) )
+m25 = all$value[ max(which(vc<=0.25)) ]
+m = all$value[ max(which(vc<=0.5)) ]
+m75 = all$value[ min(which(vc>=0.75)) ]
+}
 
 #
 # Plot TiTv ratio as a function of the annotation
@@ -29,11 +45,6 @@ pdf(outfile, height=7, width=7)
 par(cex=1.1)
 plot(all$value,all$titv,xlab=annotationName,ylab="Ti/Tv Ratio",pch=20,ylim=c(ymin,ymax),xaxt="n",ps=14);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
-m = weighted.mean(all$value,all$numVariants/sum(all$numVariants))
-ma = all[all$value > m,]
-mb = all[all$value < m,]
-m75 = weighted.mean(ma$value,ma$numVariants/sum(ma$numVariants))
-m25 = weighted.mean(mb$value,mb$numVariants/sum(mb$numVariants))
 abline(v=m,lty=2)
 abline(v=m75,lty=2)
 abline(v=m25,lty=2)
@@ -84,7 +95,6 @@ t = all[all$truePositive>0,]
 yLabel = "DBsnp/True Positive Rate"
 ymin = min(min(all$dbsnp),min(t$truePositive))
 ymax = max(max(all$dbsnp),max(t$truePositive))
-
 }
 plot(all$value,all$dbsnp,xlab=annotationName,ylab=yLabel,pch=20,ylim=c(ymin,ymax),xaxt="n",ps=14);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
@@ -126,6 +136,17 @@ dev.off()
 outfile = paste(input, ".Histogram.pdf", sep="")
 pdf(outfile, height=7, width=7)
 par(cex=1.1)
-plot(all$value,all$numVariants,xlab=annotationName,ylab="Num variants in bin",type="h",xaxt="n",ps=14);
+plot(all$value,all$numVariants,xlab=annotationName,ylab="Num variants in bin",type="h",xaxt="n",ps=14,lwd=4);
+axis(1,axTicks(1), format(axTicks(1), scientific=F))
+dev.off()
+
+#
+# Plot histogram of the annotation's value, log scale on x-axis
+#
+
+outfile = paste(input, ".Histogram_log.pdf", sep="")
+pdf(outfile, height=7, width=7)
+par(cex=1.1)
+plot(all$value,all$numVariants,xlab=annotationName,log="x",ylab="Num variants in bin",type="h",xaxt="n",ps=14,lwd=4);
 axis(1,axTicks(1), format(axTicks(1), scientific=F))
 dev.off()

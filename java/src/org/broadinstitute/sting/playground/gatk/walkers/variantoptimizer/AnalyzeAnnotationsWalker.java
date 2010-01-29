@@ -65,6 +65,9 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     private String SAMPLE_NAME = null;
     @Argument(fullName = "name", shortName = "name", doc = "Labels for the annotations to make plots look nicer. Each name is a separate -name argument. For example, -name DP,Depth -name AB,AlleleBalance", required = false)
     private String[] ANNOTATION_NAMES = null;
+    @Argument(fullName = "indicate_mean_num_vars", shortName = "meanNumVars", doc = "If supplied, plots will indicate the distribution of number of variants instead of distribution of value of annotation", required = false)
+    private boolean INDICATE_MEAN_NUM_VARS = false;
+        
 
 
     /////////////////////////////
@@ -89,7 +92,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
                 nameMap.put(vals[0],vals[1]);
             }
         }
-        dataManager = new AnnotationDataManager( nameMap );
+        dataManager = new AnnotationDataManager( nameMap, INDICATE_MEAN_NUM_VARS );
 
         if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
     }

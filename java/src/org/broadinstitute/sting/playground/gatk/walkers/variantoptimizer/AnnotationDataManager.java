@@ -42,12 +42,14 @@ import java.io.FileNotFoundException;
 
 public class AnnotationDataManager {
 
-    public final HashMap<String, TreeSet<AnnotationDatum>> data;
-    public final HashMap<String,String> nameMap;
+    private final HashMap<String, TreeSet<AnnotationDatum>> data;
+    private final HashMap<String,String> nameMap;
+    private final boolean INDICATE_MEAN_NUM_VARS;
 
-    public AnnotationDataManager( HashMap<String,String> _nameMap ) {
+    public AnnotationDataManager( HashMap<String,String> _nameMap, boolean _INDICATE_MEAN_NUM_VARS ) {
         data = new HashMap<String, TreeSet<AnnotationDatum>>();
         nameMap = _nameMap;
+        INDICATE_MEAN_NUM_VARS = _INDICATE_MEAN_NUM_VARS;
     }
 
     public void addAnnotations( final RodVCF variant, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
@@ -62,7 +64,7 @@ public class AnnotationDataManager {
         final Map<String,String> infoField = variant.getInfoValues();
         for( String annotationKey : infoField.keySet() ) {
 
-            float value = 0.0f;
+            float value;
             try {
                 value = Float.parseFloat( infoField.get( annotationKey ) );
             } catch( NumberFormatException e ) {
@@ -140,13 +142,13 @@ public class AnnotationDataManager {
             output.close();
             
             String annotationName = nameMap.get(annotationKey);
-            if( annotationName == null ) { // name is not in the map so use the key
+            if( annotationName == null ) { // This annotation is not in the name map so use the key instead
                 annotationName = annotationKey;
             }
 
             // Print out the command line to make it clear to the user what is being executed and how one might modify it
             final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Annotations_BinnedTruthMetrics.R" + " " +
-                                   OUTPUT_PREFIX + annotationKey + ".dat" + " " + annotationName + " " + MIN_VARIANTS_PER_BIN;
+                                   OUTPUT_PREFIX + annotationKey + ".dat" + " " + annotationName + " " + MIN_VARIANTS_PER_BIN + " " + INDICATE_MEAN_NUM_VARS;
             System.out.println( rScriptCommandLine );
 
             // Execute the RScript command to plot the table of TiTv values
