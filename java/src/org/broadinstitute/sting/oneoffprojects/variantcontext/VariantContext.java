@@ -8,23 +8,19 @@ import java.util.*;
 
 
 /**
- * @author ebanks
+ * @author depristo
  *         <p/>
  *         Class VariantContext
  *         <p/>
- *         This class represents a context that unifies one or more variants
+ *
+ * 
  */
 public class VariantContext extends AttributedObject {
     private GenomeLoc loc;
-
-    private Set<Allele> alleles = new HashSet<Allele>();
-
-    private Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
-
     Type type = Type.UNDETERMINED;
-
+    private Set<Allele> alleles = new HashSet<Allele>();
+    private Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
     Set<Object> filters = new HashSet<Object>();
-
 
     // ---------------------------------------------------------------------------------------------------------
     //
