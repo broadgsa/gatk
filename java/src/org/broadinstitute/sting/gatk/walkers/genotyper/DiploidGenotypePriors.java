@@ -17,9 +17,11 @@ public class DiploidGenotypePriors {
     public static final double YRI_HETEROZYGOSITY = 1.0 / 850;
 
     /**
-     * Default value of the prob of seeing a true B/C het when the reference is A
+     * Default value of the prob of seeing a reference error.  Used to calculation the
+     * chance of seeing a true B/C het when the reference is A, which we assume is the product
+     * of the ref error rate and the het. Default value is Q60
      */
-    public static final double PROB_OF_TRISTATE_GENOTYPE = 1e-5;
+    public static final double PROB_OF_REFERENCE_ERROR = 1e-6;  // the reference is
 
     private final static double[] flatPriors = new double[DiploidGenotype.values().length];
 
@@ -52,7 +54,7 @@ public class DiploidGenotypePriors {
             double[] vals = heterozygosity2DiploidProbabilities(heterozygosity);
             priors = getReferenceIndependentPriors(ref, vals[0], vals[1], vals[2]);
         } else {
-            priors = getReferencePolarizedPriors(ref, heterozygosity, PROB_OF_TRISTATE_GENOTYPE);
+            priors = getReferencePolarizedPriors(ref, heterozygosity, PROB_OF_REFERENCE_ERROR);
         }
     }
 
@@ -198,16 +200,17 @@ public class DiploidGenotypePriors {
      *
      * @param ref
      * @param heterozyosity
-     * @param pTriStateGenotype
+     * @param pRefError
      */
-    public static double[] getReferencePolarizedPriors(char ref, double heterozyosity, double pTriStateGenotype ) {
-        if ( ! MathUtils.isBounded(pTriStateGenotype, 0.0, 1.0) ) {
-            throw new RuntimeException(String.format("p Tristate genotype is out of bounds %f", pTriStateGenotype));
+    public static double[] getReferencePolarizedPriors(char ref, double heterozyosity, double pRefError ) {
+        if ( ! MathUtils.isBounded(pRefError, 0.0, 0.01) ) {
+            throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
         }
 
-        if ( pTriStateGenotype >= heterozyosity ) {
-            throw new RuntimeException(String.format("p Tristate genotype %f is greater than the heterozygosity %f", pTriStateGenotype, heterozyosity));
-        }
+        double pTriStateGenotype = heterozyosity * PROB_OF_REFERENCE_ERROR;
+//        if ( pTriStateGenotype >= heterozyosity ) {
+//            throw new RuntimeException(String.format("p Tristate genotype %f is greater than the heterozygosity %f", pTriStateGenotype, heterozyosity));
+//        }
 
         double pHomRef = heterozygosity2HomRefProbability(heterozyosity);
         double pHet    = heterozygosity2HetProbability(heterozyosity);

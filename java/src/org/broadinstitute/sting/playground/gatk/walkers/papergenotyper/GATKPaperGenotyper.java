@@ -45,7 +45,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
         ReadBackedPileup pileup = context.getPileup();
         double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
                                                                                  DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
-                                                                                 DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
+                                                                                 0.01);
         // get the bases and qualities from the pileup
         byte bases[] = pileup.getBases();
         byte quals[] = pileup.getQuals();

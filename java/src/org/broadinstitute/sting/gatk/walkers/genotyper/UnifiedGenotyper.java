@@ -297,7 +297,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( stratifiedContexts == null )
             return null;
 
-        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
+        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
         VariantCallContext call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
         // annotate the call, if possible
