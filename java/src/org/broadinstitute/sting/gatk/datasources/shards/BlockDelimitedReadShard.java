@@ -10,7 +10,7 @@ import java.util.List;
  * @author mhanna
  * @version 0.1
  */
-public class BlockDelimitedReadShard extends ReadShard {
+public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAwareShard {
     /**
      * The list of chunks to retrieve when loading this shard.
      */

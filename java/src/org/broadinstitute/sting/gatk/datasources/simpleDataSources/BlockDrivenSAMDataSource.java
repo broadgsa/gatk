@@ -49,27 +49,19 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     }
 
     public StingSAMIterator seek(Shard shard) {
-        if(!(shard instanceof BlockDelimitedReadShard) && !(shard instanceof IndexDelimitedLocusShard))
-            throw new StingException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard);
+        if(!(shard instanceof BAMFormatAwareShard))
+            throw new StingException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard.getClass());
 
-        if(shard instanceof ReadShard) {
-            CloseableIterator<SAMRecord> iterator = reader.iterator(((BlockDelimitedReadShard)shard).getChunks());
-            return applyDecoratingIterators(true,
-                    StingSAMIteratorAdapter.adapt(reads, iterator),
-                    reads.getDownsamplingFraction(),
-                    reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
-                    reads.getSupplementalFilters());
-        }
-        else if(shard instanceof IndexDelimitedLocusShard) {
-            CloseableIterator<SAMRecord> iterator = reader.iterator(((IndexDelimitedLocusShard)shard).getChunks());
-            return applyDecoratingIterators(false,
-                    StingSAMIteratorAdapter.adapt(reads, iterator),
-                    reads.getDownsamplingFraction(),
-                    reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
-                    reads.getSupplementalFilters());
-        }
+        // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards.  I don't
+        // know why this is.  Please add a comment here if you do.
+        boolean enableVerification = shard instanceof ReadShard;
 
-        throw new UnsupportedOperationException("Unable to infer type of this shard.");
+        CloseableIterator<SAMRecord> iterator = reader.iterator(((BAMFormatAwareShard)shard).getChunks());
+        return applyDecoratingIterators(enableVerification,
+                StingSAMIteratorAdapter.adapt(reads,iterator),
+                reads.getDownsamplingFraction(),
+                reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
+                reads.getSupplementalFilters());
     }
 
     /**

@@ -78,7 +78,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
         List<Chunk> filePointers = locations.get(loc);
         locations.remove(loc);
         
-        return new IndexDelimitedLocusShard(GenomeLocSortedSet.createSetFromList(Arrays.asList(loc)),filePointers); 
+        return new IndexDelimitedLocusShard(Collections.singletonList(loc),filePointers,Shard.ShardType.LOCUS_INTERVAL); 
     }
 
     /** we don't support the remove command */

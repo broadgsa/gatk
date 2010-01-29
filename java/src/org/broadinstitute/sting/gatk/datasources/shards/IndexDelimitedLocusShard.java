@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.Chunk;
 
 import java.util.List;
@@ -35,29 +36,30 @@ import java.util.List;
 /**
  * A shard that's delimited based on the index rather than
  */
-public class IndexDelimitedLocusShard implements Shard {
-
-    /**
-     * a collection of genomic locations to interate over
-     */
-    private final GenomeLocSortedSet intervals;
-
+public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwareShard {
     /**
      * A list of the chunks associated with this shard.
      */
     private final List<Chunk> chunks;
 
-    IndexDelimitedLocusShard(GenomeLocSortedSet intervals, List<Chunk> chunks) {
-        this.intervals = intervals;
-        this.chunks = chunks;
-    }
+    /**
+     * An IndexDelimitedLocusShard can be used either for LOCUS or LOCUS_INTERVAL shard types.
+     * Track which type is being used.
+     */
+    private final ShardType shardType;
 
     /**
-     * The locations represented by this shard.
-     * @return the genome location represented by this shard
+     * Create a new locus shard, divided by index.
+     * @param intervals List of intervals to process.
+     * @param chunks Chunks associated with that interval.
+     * @param shardType Type of the shard; must be either LOCUS or LOCUS_INTERVAL.
      */
-    public List<GenomeLoc> getGenomeLocs() {
-        return intervals.toList();
+    IndexDelimitedLocusShard(List<GenomeLoc> intervals, List<Chunk> chunks, ShardType shardType) {
+        super(intervals);
+        this.chunks = chunks;
+        if(shardType != ShardType.LOCUS && shardType != ShardType.LOCUS_INTERVAL)
+            throw new StingException("Attempted to create an IndexDelimitedLocusShard with invalid shard type: " + shardType);
+        this.shardType = shardType;
     }
 
     /**
@@ -69,19 +71,10 @@ public class IndexDelimitedLocusShard implements Shard {
     }
 
     /**
-     * returns the type of shard, LOCUS_INTERVAL.
-     * @return LOCUS_INTERVAL, indicating the shard type
-     */
-    public ShardType getShardType() {
-        return ShardType.LOCUS_INTERVAL;
-    }
-
-    /**
-     * String representation of this shard.
-     * @return A string representation of the boundaries of this shard.
+     * returns the type of shard.
      */
     @Override
-    public String toString() {
-        return intervals.toString();
+    public ShardType getShardType() {
+        return shardType;
     }
 }

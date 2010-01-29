@@ -63,14 +63,6 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
     private File samFile = null;
 
     /**
-     * Internal interface for SAM/BAM file reader implementations.
-     * Implemented as an abstract class to enforce better access control.
-     */
-    static abstract class ReaderImplementation2 extends SAMFileReader.ReaderImplementation {
-        abstract CloseableIterator<SAMRecord> getIterator(List<Chunk> chunks);
-    }
-
-    /**
      * Prepare to read a SAM or BAM file.  Indexed lookup not allowed because reading from InputStream.
      */
     public SAMFileReader2(final InputStream stream) {
@@ -200,14 +192,14 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
     public CloseableIterator<SAMRecord> iterator(List<Chunk> chunks) {
         // TODO: Add sanity checks so that we're not doing this against a BAM file.
         if(!(mReader instanceof BAMFileReader2))
-            throw new PicardException("This call requires a ReaderImplementation2-compliant interface");
+            throw new PicardException("This call cannot be performed without a backing BAMFileReader2");
         return ((BAMFileReader2)mReader).getIterator(chunks);
     }
 
     public List<Chunk> getOverlappingFilePointers(final String sequence, final int start, final int end) {
         // TODO: Add sanity checks so that we're not doing this against a BAM file.
         if(!(mReader instanceof BAMFileReader2))
-            throw new PicardException("This call requires a ReaderImplementation2-compliant interface");
+            throw new PicardException("This call cannot be performed without a backing BAMFileReader2");
         return ((BAMFileReader2)mReader).getOverlappingFilePointers(sequence,start,end);
     }
 

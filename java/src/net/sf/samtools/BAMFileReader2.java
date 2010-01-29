@@ -41,7 +41,7 @@ import java.net.URL;
  * Internal class for reading and querying BAM files.
  */
 class BAMFileReader2
-    extends SAMFileReader2.ReaderImplementation2 {
+    extends SAMFileReader.ReaderImplementation {
     // True if reading from a File rather than an InputStream
     private boolean mIsSeekable = false;
     // For converting bytes into other primitive types

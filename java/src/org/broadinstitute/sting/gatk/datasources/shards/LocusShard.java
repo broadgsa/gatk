@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,17 +35,16 @@ import java.util.List;
  * in place so it's easier to change guts later.
  */
 public class LocusShard implements Shard {
-
     // currently our location
-    final GenomeLoc mLoc;
+    final List<GenomeLoc> loci;
 
-    public LocusShard(GenomeLoc loc) {
-        this.mLoc = loc;
+    public LocusShard(List<GenomeLoc> loci) {
+        this.loci = loci;
     }
 
     /** @return the genome location represented by this shard */
     public List<GenomeLoc> getGenomeLocs() {
-        return Collections.singletonList(mLoc);
+        return loci;
     }
 
     /**
@@ -57,20 +57,11 @@ public class LocusShard implements Shard {
     }
 
     /**
-     * return a shard representing the passed in GenomeLoc
-     *
-     * @return
-     */
-    public static LocusShard toShard(GenomeLoc loc) {
-        return new LocusShard(loc);
-    }
-
-    /**
      * String representation of this shard.
      * @return A string representation of the boundaries of this shard.
      */
     @Override
     public String toString() {
-        return mLoc.toString();
+        return Utils.join(";",loci);
     }
 }

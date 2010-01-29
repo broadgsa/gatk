@@ -52,7 +52,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
      */
     @Test
     public void testNoBindings() {
-        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
+        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
@@ -69,7 +69,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
         ReferenceOrderedData rod = new ReferenceOrderedData("tableTest", file, TabularROD.class);
         ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(rod);
 
-        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
+        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Collections.singletonList(dataSource));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
@@ -95,7 +95,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
         ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(rod2);
 
 
-        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
+        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Arrays.asList(dataSource1,dataSource2));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );

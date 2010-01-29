@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Iterator;
+import java.util.Collections;
 /**
  *
  * User: aaron
@@ -195,7 +196,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
         if (nextStart + proposedSize - 1 < length) {
             lastGenomeLocSize = proposedSize;
             mLoc = GenomeLocParser.createGenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + proposedSize - 1);
-            return LocusShard.toShard(mLoc);
+            return new LocusShard(Collections.singletonList(mLoc));
         }
         // else we can't make it in the current location, we have to stitch one together
         else {
@@ -208,7 +209,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
 
             // move to the next contig
             // the next sequence should start at the begining of the next contig
-            Shard ret = LocusShard.toShard(GenomeLocParser.createGenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + lastGenomeLocSize - 1));
+            Shard ret = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + lastGenomeLocSize - 1)));
 
             // now  jump ahead to the next contig
             jumpContig();
