@@ -18,9 +18,9 @@ import org.apache.commons.jexl.*;
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= RodVCF.class))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="filterExpression", shortName="filter", doc="Expression used with INFO fields to filter (see wiki docs for more info)", required=false)
-    protected String FILTER_STRING = null;
+    protected String[] FILTER_STRINGS = new String[]{null};
     @Argument(fullName="filterName", shortName="filterName", doc="The text to put in the FILTER field if a filter expression is provided and a variant call matches", required=false)
-    protected String FILTER_NAME = "GATK_filter";
+    protected String[] FILTER_NAMES = new String[]{"GATK_filter"};
 
     @Argument(fullName="clusterSize", shortName="cluster", doc="The number of SNPs which make up a cluster (see also --clusterWindowSize)", required=false)
     protected Integer clusterSize = 3;
@@ -32,12 +32,23 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
 
-
     private VCFWriter writer = null;
 
     private ClusteredSnps clusteredSNPs = null;
 
-    private Expression filterExpression = null;
+    class FilterExp {
+        String name;
+        String expStr;
+        Expression exp;
+
+        public FilterExp(String name, String str, Expression exp) {
+            this.name = name;
+            this.expStr = str;
+            this.exp = exp;
+        }
+    }
+
+    private List<FilterExp> filterExpressions = new ArrayList<FilterExp>();
 
     // the structures necessary to initialize and maintain a windowed context
     private VariantContextWindow variantContextWindow;
@@ -54,8 +65,11 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
-        if ( filterExpression != null )
-            hInfo.add(new VCFFilterHeaderLine(FILTER_NAME, FILTER_STRING));
+
+        for ( FilterExp exp : filterExpressions ) {
+            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.expStr));
+        }
+
         List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             if ( source.getReferenceOrderedData().getName().equals("mask") ) {
@@ -72,11 +86,18 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( clusterWindow > 0 )
             clusteredSNPs = new ClusteredSnps(clusterSize, clusterWindow);
 
-        try {
-            if ( FILTER_STRING != null )
-                filterExpression = ExpressionFactory.createExpression(FILTER_STRING);
-        } catch (Exception e) {
-            throw new StingException("Invalid expression used (" + FILTER_STRING + "). Please see the JEXL docs for correct syntax.");
+        if ( FILTER_NAMES.length != FILTER_STRINGS.length )
+            throw new StingException("Inconsistent number of provided filter names and expressions.");
+
+        for ( int i = 0; i < FILTER_NAMES.length; i++ ) {
+            if ( FILTER_STRINGS[i] != null )  {
+                try {
+                    Expression filterExpression = ExpressionFactory.createExpression(FILTER_STRINGS[i]);
+                    filterExpressions.add(new FilterExp(FILTER_NAMES[i], FILTER_STRINGS[i], filterExpression));
+                } catch (Exception e) {
+                    throw new StingException("Invalid expression used (" + FILTER_STRINGS[i] + "). Please see the JEXL docs for correct syntax.");
+                }
+            }
         }
     }
 
@@ -134,7 +155,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( clusteredSNPs != null && clusteredSNPs.filter(variantContextWindow) )
             addFilter(filterString, CLUSTERED_SNP_FILTER_NAME);
 
-        if ( filterExpression != null ) {
+        for ( FilterExp exp : filterExpressions ) {
             Map<String, String> infoMap = new HashMap<String, String>(context.second.mCurrentRecord.getInfoValues());
             infoMap.put("QUAL", String.valueOf(context.second.mCurrentRecord.getQual()));
 
@@ -142,8 +163,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             jContext.setVars(infoMap);
 
             try {
-                if ( (Boolean)filterExpression.evaluate(jContext) )
-                    addFilter(filterString, FILTER_NAME);
+                if ( (Boolean)exp.exp.evaluate(jContext) )
+                    addFilter(filterString, exp.name);
             } catch (Exception e) {
                 throw new StingException(e.getMessage());
             }
