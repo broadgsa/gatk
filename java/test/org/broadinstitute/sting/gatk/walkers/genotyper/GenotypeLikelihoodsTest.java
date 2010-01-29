@@ -84,26 +84,26 @@ public class GenotypeLikelihoodsTest extends BaseTest {
     public void testGenotypePriorsReferencePolarized() {
         logger.warn("Executing testGenotypePriorsReferencePolarized");
         // AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
-        double[] array1 = {0.9985, 0.00033, 0.00033, 0.00033, 0.000166666666666667, 3.33333333333333e-06, 3.33333333333333e-06, 0.000166666666666667, 3.33333333333333e-06, 0.000166666666666667};
+        double[] array1 = {0.9985, 0.00033333, 0.00033333, 0.00033333, 0.000166666666666667, 3.333333e-09, 3.333333e-09, 0.000166666666666667, 3.33333333333333e-09, 0.000166666666666667};
         logger.warn("  Array 1");
         testPolarizedGenotypePriors('A', 1e-3, 1e-5, array1);
-        double[] array2 = {0.9985, 0.000333, 0.000333, 0.000333, 0.000166666666666667, 3.33333333333333e-07, 3.33333333333333e-07, 0.000166666666666667, 3.33333333333333e-07, 0.000166666666666667};
+        double[] array2 = {0.9985, 0.00033333, 0.00033333, 0.00033333, 0.000166666666666667, 3.333333e-10, 3.333333e-10, 0.000166666666666667, 3.33333333333333e-10, 0.000166666666666667};
         logger.warn("  Array 2");
         testPolarizedGenotypePriors('A', 1e-3, 1e-6, array2);
-        double[] array3 = {0.985, 0.00333, 0.00333, 0.00333, 0.00166666666666667, 3.33333333333333e-06, 3.33333333333333e-06, 0.00166666666666667, 3.33333333333333e-06, 0.00166666666666667};
+        double[] array3 = {0.985, 0.0033333, 0.0033333, 0.0033333, 0.00166666666666667, 3.333333e-08, 3.333333e-08, 0.00166666666666667, 3.33333333333333e-08, 0.00166666666666667};
         logger.warn("  Array 3");
         testPolarizedGenotypePriors('A', 1e-2, 1e-5, array3);
-        double[] array4 = {0.99985, 3.3e-05, 3.3e-05, 3.3e-05, 1.66666666666667e-05, 3.33333333333333e-07, 3.33333333333333e-07, 1.66666666666667e-05, 3.33333333333333e-07, 1.66666666666667e-05};
+        double[] array4 = {0.99985, 3.33333e-05, 3.33333e-05, 3.33333e-05, 1.66666666666667e-05, 3.33333333333333e-12, 3.33333333333333e-12, 1.66666666666667e-05, 3.33333333333333e-12, 1.66666666666667e-05};
         logger.warn("  Array 4");
         testPolarizedGenotypePriors('A', 1e-4, 1e-6, array4);
     }
 
-    private void testPolarizedGenotypePriors(char ref, double h, double pTri, double[] array) {
-        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, h, pTri);
+    private void testPolarizedGenotypePriors(char ref, double h, double pRefError, double[] array) {
+        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, h, pRefError);
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double val = Math.pow(10, priors.getPrior(g));
             double e = array[g.ordinal()];
-            Assert.assertEquals(String.format("%s should have p=%f but has p=%f", g, val, e), val, e, DELTA);
+            Assert.assertEquals(String.format("%s should have p=%f but has p=%f", g, val, e), e, val, DELTA);
         }
     }
 }

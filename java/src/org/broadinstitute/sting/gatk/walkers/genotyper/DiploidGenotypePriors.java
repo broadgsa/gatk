@@ -207,7 +207,7 @@ public class DiploidGenotypePriors {
             throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
         }
 
-        double pTriStateGenotype = heterozyosity * PROB_OF_REFERENCE_ERROR;
+        double pTriStateGenotype = heterozyosity * pRefError;
 //        if ( pTriStateGenotype >= heterozyosity ) {
 //            throw new RuntimeException(String.format("p Tristate genotype %f is greater than the heterozygosity %f", pTriStateGenotype, heterozyosity));
 //        }
