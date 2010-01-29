@@ -67,20 +67,6 @@ public class ShardStrategyFactoryTest extends BaseTest {
         assertTrue(st instanceof LinearLocusShardStrategy);
     }
 
-     @Test
-    public void testExpNonInterval() {
-        ShardStrategy st = ShardStrategyFactory.shatter(null,ShardStrategyFactory.SHATTER_STRATEGY.EXPONENTIAL,header.getSequenceDictionary(),100);
-        assertTrue(st instanceof ExpGrowthLocusShardStrategy);
-    }
-
-    @Test
-    public void testExpInterval() {
-        GenomeLoc l = GenomeLocParser.createGenomeLoc(0,1,100);
-        set.add(l);
-        ShardStrategy st = ShardStrategyFactory.shatter(null,ShardStrategyFactory.SHATTER_STRATEGY.EXPONENTIAL,header.getSequenceDictionary(),100,set);
-        assertTrue(st instanceof ExpGrowthLocusShardStrategy);
-    }
-
     @Test
     public void testLinearInterval() {
         GenomeLoc l = GenomeLocParser.createGenomeLoc(0,1,100);

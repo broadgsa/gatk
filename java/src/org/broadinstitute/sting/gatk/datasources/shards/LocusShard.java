@@ -2,6 +2,9 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  *
  * User: aaron
@@ -40,8 +43,8 @@ public class LocusShard implements Shard {
     }
 
     /** @return the genome location represented by this shard */
-    public GenomeLoc getGenomeLoc() {
-        return mLoc;
+    public List<GenomeLoc> getGenomeLocs() {
+        return Collections.singletonList(mLoc);
     }
 
     /**

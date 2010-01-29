@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import net.sf.samtools.SAMFileHeader;
 
@@ -60,14 +61,16 @@ public class IntervalShardTest extends BaseTest {
     public void simpleReturn() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 100);
         intervalShard = new IntervalShard(loc,Shard.ShardType.LOCUS_INTERVAL);
-        assertTrue(intervalShard.getGenomeLoc().equals(loc));
+        assertEquals("Input parameters imply a single-locus shard",1,intervalShard.getGenomeLocs().size());
+        assertTrue(intervalShard.getGenomeLocs().get(0).equals(loc));
     }
 
     @Test
     public void ensureNotReference() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 100);
         intervalShard = new IntervalShard(loc,Shard.ShardType.LOCUS_INTERVAL);
-        assertTrue(intervalShard.getGenomeLoc() != loc && intervalShard.getGenomeLoc().equals(loc));
+        assertEquals("Input parameters imply a single-locus shard",1,intervalShard.getGenomeLocs().size());
+        assertTrue(intervalShard.getGenomeLocs().get(0) != loc && intervalShard.getGenomeLocs().get(0).equals(loc));
     }
 
 }

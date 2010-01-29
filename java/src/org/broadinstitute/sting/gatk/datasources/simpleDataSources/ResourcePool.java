@@ -170,8 +170,10 @@ class EntireStream implements DataStreamSegment {
  */
 class MappedStreamSegment implements DataStreamSegment {
     public final GenomeLoc locus;
-    public MappedStreamSegment( GenomeLoc locus ) {
-        this.locus = locus;
+    public MappedStreamSegment( List<GenomeLoc> loci ) {
+        if(loci.size() > 1)
+            throw new StingException("MappedStreamSegments cannot apply to a range of loci");
+        this.locus = !loci.isEmpty() ? loci.get(0) : null;
     }
 }
 

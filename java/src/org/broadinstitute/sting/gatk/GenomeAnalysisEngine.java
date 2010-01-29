@@ -609,9 +609,8 @@ public class GenomeAnalysisEngine {
                 shardType = (walker.isReduceByInterval()) ?
                         ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
                         ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
-
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        shardType,
+                        argCollection.experimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);

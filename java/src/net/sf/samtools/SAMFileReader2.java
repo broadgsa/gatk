@@ -199,9 +199,16 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
      */
     public CloseableIterator<SAMRecord> iterator(List<Chunk> chunks) {
         // TODO: Add sanity checks so that we're not doing this against a BAM file.
-        if(!(mReader instanceof ReaderImplementation2))
+        if(!(mReader instanceof BAMFileReader2))
             throw new PicardException("This call requires a ReaderImplementation2-compliant interface");
-        return ((ReaderImplementation2)mReader).getIterator(chunks);
+        return ((BAMFileReader2)mReader).getIterator(chunks);
+    }
+
+    public List<Chunk> getOverlappingFilePointers(final String sequence, final int start, final int end) {
+        // TODO: Add sanity checks so that we're not doing this against a BAM file.
+        if(!(mReader instanceof BAMFileReader2))
+            throw new PicardException("This call requires a ReaderImplementation2-compliant interface");
+        return ((BAMFileReader2)mReader).getOverlappingFilePointers(sequence,start,end);
     }
 
     /**

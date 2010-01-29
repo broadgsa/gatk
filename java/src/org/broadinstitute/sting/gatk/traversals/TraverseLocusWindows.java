@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +37,9 @@ public class TraverseLocusWindows extends TraversalEngine {
 
         LocusWindowWalker<M, T> locusWindowWalker = (LocusWindowWalker<M, T>)walker;
 
-        GenomeLoc interval = shard.getGenomeLoc();
+        if(shard.getGenomeLocs().size() > 1)
+            throw new StingException("This traversal does not support multiple intervals within a single shard");
+        GenomeLoc interval = shard.getGenomeLocs().get(0);
 
         ReadView readView = new ReadView( dataProvider );
         LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );

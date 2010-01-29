@@ -9,6 +9,8 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
+
+import java.util.List;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -69,7 +71,7 @@ public class LocusReferenceView extends ReferenceView {
      */
     public LocusReferenceView( ShardDataProvider provider ) {
         super(provider);
-        bounds = provider.getShard().getGenomeLoc();
+        initializeBounds(provider);
         windowStart = windowStop = 0;
         initializeReferenceSequence(bounds);
     }
@@ -80,7 +82,7 @@ public class LocusReferenceView extends ReferenceView {
      */
     public LocusReferenceView( Walker walker, ShardDataProvider provider ) {
         super( provider );
-        bounds = provider.getShard().getGenomeLoc();
+        initializeBounds(provider);
 
         // Retrieve information about the window being accessed.
         if( walker.getClass().isAnnotationPresent(Reference.class) ) {
@@ -129,6 +131,22 @@ public class LocusReferenceView extends ReferenceView {
         long expandedStart = getWindowStart( bounds );
         long expandedStop  = getWindowStop( bounds );
         initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+    }
+
+    private void initializeBounds(ShardDataProvider provider) {
+        List<GenomeLoc> loci = provider.getShard().getGenomeLocs();
+
+        if(loci.isEmpty()) {
+            bounds = null;
+            return;
+        }
+
+        GenomeLoc firstLocus = loci.get(0);
+        GenomeLoc lastLocus = loci.get(loci.size()-1);
+        if(firstLocus.getContigIndex() != lastLocus.getContigIndex())
+            throw new StingException("LocusReferenceView currently only supports multiple intervals on the same contig.");
+
+        bounds = GenomeLocParser.createGenomeLoc(firstLocus.getContig(),firstLocus.getStart(),lastLocus.getStop());
     }
 
     /**

@@ -2,6 +2,8 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.List;
+
 /**
  *
  * User: aaron
@@ -24,7 +26,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  */
 public abstract class ReadShard implements Shard {
     /** @return the genome location represented by this shard */
-    public GenomeLoc getGenomeLoc() {
+    public List<GenomeLoc> getGenomeLocs() {
         throw new UnsupportedOperationException("ReadShard isn't genome loc aware");
     }
 

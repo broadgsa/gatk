@@ -134,7 +134,10 @@ public abstract class Accumulator {
          * Create a holder for interval results if none exists.  Add the result to the holder.
          */
         public void accumulate( Shard shard, Object result ) {
-            intervalAccumulator.add( new Pair<GenomeLoc,Object>( shard.getGenomeLoc(), result ) );
+            // TODO: The following code is actually wrong we'll be doubly assigning results to locations.
+            //       Fix before the new sharding system comes online.
+            for(GenomeLoc genomeLoc: shard.getGenomeLocs())
+                intervalAccumulator.add( new Pair<GenomeLoc,Object>( genomeLoc, result ) );
         }
 
         /**

@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.refdata.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Collections;
 /**
  * User: hanna
  * Date: May 21, 2009
@@ -54,7 +55,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testCreateSingleIterator() {
         ResourcePool iteratorPool = new ReferenceOrderedDataPool(rod);
-        SeekableRODIterator iterator = (SeekableRODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
+        SeekableRODIterator iterator = (SeekableRODIterator)iteratorPool.iterator( new MappedStreamSegment(Collections.singletonList(testSite1)) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -75,10 +76,10 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testCreateMultipleIterators() {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        SeekableRODIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
+        SeekableRODIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(Collections.singletonList(testSite1)) );
 
         // Create a new iterator at position 2.
-        SeekableRODIterator iterator2 = iteratorPool.iterator( new MappedStreamSegment(testSite2) );
+        SeekableRODIterator iterator2 = iteratorPool.iterator( new MappedStreamSegment(Collections.singletonList(testSite2)) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -125,7 +126,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testIteratorConservation() {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        SeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
+        SeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(Collections.singletonList(testSite1)) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -139,7 +140,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
         iteratorPool.release(iterator);
 
         // Create another iterator after the current iterator.
-        iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
+        iterator = iteratorPool.iterator( new MappedStreamSegment(Collections.singletonList(testSite3)) );
 
         // Make sure that the previously acquired iterator was reused.
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
@@ -160,7 +161,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testIteratorCreation() {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        SeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
+        SeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(Collections.singletonList(testSite3)) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -174,7 +175,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
         iteratorPool.release(iterator);
 
         // Create another iterator after the current iterator.
-        iterator = iteratorPool.iterator(new MappedStreamSegment(testSite1) );
+        iterator = iteratorPool.iterator(new MappedStreamSegment(Collections.singletonList(testSite1)) );
 
         // Make sure that the previously acquired iterator was reused.
         Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());

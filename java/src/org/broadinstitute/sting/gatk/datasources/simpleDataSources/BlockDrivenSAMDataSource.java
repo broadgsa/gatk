@@ -1,19 +1,17 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.shards.BlockDelimitedReadShard;
+import org.broadinstitute.sting.gatk.datasources.shards.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.StingException;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader2;
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 
 import java.util.Collection;
+import java.util.List;
 import java.io.File;
 
 /**
@@ -32,26 +30,46 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     public BlockDrivenSAMDataSource(Reads reads) {
         super(reads);
 
+        logger.warn("Experimental sharding is enabled.  Many use cases are not supported.  Please use with care.");
+
         if(reads.getReadsFiles().size() > 1)
             throw new StingException("Experimental sharding strategy cannot handle multiple BAM files at this point.");
 
         File readsFile = reads.getReadsFiles().get(0);
         reader = new SAMFileReader2(readsFile);
+        reader.setValidationStringency(reads.getValidationStringency());
     }
 
     public boolean hasIndex() {
         return reader.hasIndex();
     }
 
+    public List<Chunk> getOverlappingFilePointers(GenomeLoc location) {
+        return reader.getOverlappingFilePointers(location.getContig(),(int)location.getStart(),(int)location.getStop());
+    }
+
     public StingSAMIterator seek(Shard shard) {
-        if(!(shard instanceof BlockDelimitedReadShard))
-            throw new StingException("Currently unable to operate on types other than block delimited read shards.");
-        CloseableIterator<SAMRecord> iterator = reader.iterator(((BlockDelimitedReadShard)shard).getChunks());
-        return applyDecoratingIterators(true,
-                                        StingSAMIteratorAdapter.adapt(reads, iterator),
-                                        reads.getDownsamplingFraction(),
-                                        reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
-                                        reads.getSupplementalFilters());
+        if(!(shard instanceof BlockDelimitedReadShard) && !(shard instanceof IndexDelimitedLocusShard))
+            throw new StingException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard);
+
+        if(shard instanceof ReadShard) {
+            CloseableIterator<SAMRecord> iterator = reader.iterator(((BlockDelimitedReadShard)shard).getChunks());
+            return applyDecoratingIterators(true,
+                    StingSAMIteratorAdapter.adapt(reads, iterator),
+                    reads.getDownsamplingFraction(),
+                    reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
+                    reads.getSupplementalFilters());
+        }
+        else if(shard instanceof IndexDelimitedLocusShard) {
+            CloseableIterator<SAMRecord> iterator = reader.iterator(((IndexDelimitedLocusShard)shard).getChunks());
+            return applyDecoratingIterators(false,
+                    StingSAMIteratorAdapter.adapt(reads, iterator),
+                    reads.getDownsamplingFraction(),
+                    reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
+                    reads.getSupplementalFilters());
+        }
+
+        throw new UnsupportedOperationException("Unable to infer type of this shard.");
     }
 
     /**

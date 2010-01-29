@@ -36,12 +36,17 @@ public class CoveredLocusViewTest extends LocusViewTemplate {
     /**
      * Test the reads according to an independently derived context.
      * @param view
-     * @param bounds
+     * @param range
      * @param reads
      */
     @Override
-    protected void testReadsInContext( LocusView view, GenomeLoc bounds, List<SAMRecord> reads ) {
+    protected void testReadsInContext( LocusView view, List<GenomeLoc> range, List<SAMRecord> reads ) {
         CoveredLocusView coveredLocusView = (CoveredLocusView)view;
+
+        // TODO: Should skip over loci not in the given range.
+        GenomeLoc firstLoc = range.get(0);
+        GenomeLoc lastLoc = range.get(range.size()-1);
+        GenomeLoc bounds = GenomeLocParser.createGenomeLoc(firstLoc.getContigIndex(),firstLoc.getStart(),lastLoc.getStop());
 
         for( long i = bounds.getStart(); i <= bounds.getStop(); i++ ) {
             GenomeLoc site = GenomeLocParser.createGenomeLoc("chr1",i);

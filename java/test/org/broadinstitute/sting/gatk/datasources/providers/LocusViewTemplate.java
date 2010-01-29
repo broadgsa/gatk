@@ -50,7 +50,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLoc(), Collections.<SAMRecord>emptyList());
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.<SAMRecord>emptyList());
     }
 
     @Test
@@ -64,7 +64,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLoc(), Collections.singletonList(read));
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
     }
 
     @Test
@@ -76,7 +76,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLoc(), Collections.singletonList(read));
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
     }
 
     @Test
@@ -88,7 +88,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLoc(), Collections.singletonList(read));
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
     }
 
     @Test
@@ -100,7 +100,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLoc(), Collections.singletonList(read));
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
     }
 
     @Test
@@ -112,7 +112,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLoc(), Collections.singletonList(read));
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
     }
 
     @Test
@@ -124,7 +124,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
         LocusView view = createView(dataProvider);
 
-        testReadsInContext(view, shard.getGenomeLoc(), Collections.singletonList(read));
+        testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
     }
 
     @Test
@@ -139,7 +139,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads, read1, read2);
-        testReadsInContext(view, shard.getGenomeLoc(), expectedReads);
+        testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
@@ -156,7 +156,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads, read1, read2, read3, read4);
-        testReadsInContext(view, shard.getGenomeLoc(), expectedReads);
+        testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
@@ -173,7 +173,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads, read1, read2, read3, read4);
-        testReadsInContext(view, shard.getGenomeLoc(), expectedReads);
+        testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
@@ -192,7 +192,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads, read1, read2, read3, read4, read5, read6);
-        testReadsInContext(view, shard.getGenomeLoc(), expectedReads);
+        testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     @Test
@@ -219,7 +219,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads, read01, read02, read03, read04, read05, read06,
                            read07, read08, read09, read10, read11, read12);
-        testReadsInContext(view, shard.getGenomeLoc(), expectedReads);
+        testReadsInContext(view, shard.getGenomeLocs(), expectedReads);
     }
 
     /**
@@ -236,7 +236,7 @@ public abstract class LocusViewTemplate extends BaseTest {
      * @param bounds
      * @param reads
      */
-    protected abstract void testReadsInContext(LocusView view, GenomeLoc bounds, List<SAMRecord> reads);
+    protected abstract void testReadsInContext(LocusView view, List<GenomeLoc> bounds, List<SAMRecord> reads);
 
     /**
      * Fake a reference sequence file.  Essentially, seek a header with a bunch of dummy data.
@@ -256,7 +256,7 @@ public abstract class LocusViewTemplate extends BaseTest {
             }
 
             public void reset() {
-                return; // TODO MATT FIX ME
+                return;
             }
         };
     }

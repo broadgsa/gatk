@@ -184,6 +184,19 @@ class BAMFileReader2
         return mCurrentIterator;
     }
 
+    public List<Chunk> getOverlappingFilePointers(final String sequence, final int start, final int end) {
+        long[] filePointers = null;
+        
+        final SAMFileHeader fileHeader = getFileHeader();
+        int referenceIndex = fileHeader.getSequenceIndex(sequence);
+        if (referenceIndex != -1) {
+            final BAMFileIndex fileIndex = getFileIndex();
+            filePointers = fileIndex.getSearchBins(referenceIndex, start, end);
+        }
+
+        return Chunk.toChunkList(filePointers);
+    }
+
     /**
      * Prepare to iterate through the SAMRecords that match the given interval.
      * Only a single iterator on a BAMFile can be extant at a time.  The previous one must be closed

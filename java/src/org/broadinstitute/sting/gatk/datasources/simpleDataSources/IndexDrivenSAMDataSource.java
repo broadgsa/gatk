@@ -4,12 +4,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.filter.FilteringIterator;
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.picard.sam.SamFileHeaderMerger;
 
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShard;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadDelimitedReadShard;
@@ -21,8 +16,8 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
-import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -178,9 +173,12 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
                     reads.getSupplementalFilters());
 
             // add the new overlapping detection iterator, if we have a last interval and we're a read based shard
+            if(shard.getGenomeLocs().size() > 1)
+                throw new StingException("This SAMDataSource does not support multiple intervals within a single shard");
+            GenomeLoc shardGenomeLoc = shard.getGenomeLocs().get(0);
             if (mLastInterval != null && shard.getShardType() == Shard.ShardType.READ_INTERVAL )
-                iterator = new PlusOneFixIterator(shard.getGenomeLoc(),new IntervalOverlapIterator(iterator,mLastInterval,false));
-            mLastInterval = shard.getGenomeLoc();
+                iterator = new PlusOneFixIterator(shardGenomeLoc,new IntervalOverlapIterator(iterator,mLastInterval,false));
+            mLastInterval = shardGenomeLoc;
         } else {
 
             throw new StingException("seek: Unknown shard type");
@@ -205,7 +203,12 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
 
         if( getHeader().getSequenceDictionary().getSequences().size() == 0 )
             throw new StingException("Unable to seek to the given locus; reads data source has no alignment information.");
-        return createIterator( new MappedStreamSegment(shard.getGenomeLoc()) );
+
+        if(shard.getGenomeLocs().size() > 1)
+            throw new StingException("This SAMDataSource does not support multiple intervals within a single shard");
+        GenomeLoc shardGenomeLoc = shard.getGenomeLocs().get(0);
+
+        return createIterator( new MappedStreamSegment(Collections.singletonList(shardGenomeLoc)) );
     }
 
     /**
@@ -231,11 +234,11 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
         if (!intoUnmappedReads) {
             if (lastReadPos == null) {
                 lastReadPos = GenomeLocParser.createGenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
-                iter = createIterator(new MappedStreamSegment(lastReadPos));
+                iter = createIterator(new MappedStreamSegment(Collections.singletonList(lastReadPos)));
                 return InitialReadIterator(readShard.getSize(), iter);
             } else {
                 lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
-                iter = fastMappedReadSeek(readShard.getSize(), StingSAMIteratorAdapter.adapt(reads, createIterator(new MappedStreamSegment(lastReadPos))));
+                iter = fastMappedReadSeek(readShard.getSize(), StingSAMIteratorAdapter.adapt(reads, createIterator(new MappedStreamSegment(Collections.singletonList(lastReadPos)))));
             }
 
             if (intoUnmappedReads && !includeUnmappedReads)
@@ -335,7 +338,7 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
                     readsTaken = readCount;
                     readsSeenAtLastPos = 0;
                     lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
-                    CloseableIterator<SAMRecord> ret = createIterator(new MappedStreamSegment(lastReadPos));
+                    CloseableIterator<SAMRecord> ret = createIterator(new MappedStreamSegment(Collections.singletonList(lastReadPos)));
                     return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, ret), readCount);
                 }
             }

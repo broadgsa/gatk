@@ -23,8 +23,6 @@ import java.util.ArrayList;
  */
 public class TraverseLoci extends TraversalEngine {
     final private static String LOCI_STRING = "sites";
-    //final private static boolean ENABLE_ROD_TRAVERSAL = false;
-
 
     /**
      * our log, which we want to capture anything from this class
@@ -52,14 +50,11 @@ public class TraverseLoci extends TraversalEngine {
 
         LocusView locusView = getLocusView( walker, dataProvider );
 
-        //if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA )
-        //    throw new RuntimeException("Engine currently doesn't support RodWalkers");
-
         if ( locusView.hasNext() ) { // trivial optimization to avoid unnecessary processing when there's nothing here at all
 
             //ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
             ReferenceOrderedView referenceOrderedDataView = null;
-            if (  /* ! GenomeAnalysisEngine.instance.getArguments().enableRodWalkers || */ WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
+            if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
                 referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
             else
                 referenceOrderedDataView = (RodLocusView)locusView;
@@ -110,7 +105,7 @@ public class TraverseLoci extends TraversalEngine {
 
             // We have a final map call to execute here to clean up the skipped based from the
             // last position in the ROD to that in the interval
-        if ( /* GenomeAnalysisEngine.instance.getArguments().enableRodWalkers && */ WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
+        if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
             RodLocusView rodLocusView = (RodLocusView)locusView;
             long nSkipped = rodLocusView.getLastSkippedBases();
             if ( nSkipped > 0 ) {

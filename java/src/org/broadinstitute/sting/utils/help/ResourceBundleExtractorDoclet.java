@@ -75,8 +75,12 @@ public class ResourceBundleExtractorDoclet {
 
         resourceText.store(out,"Strings displayed by the Sting help system");
 
+        // ASCII codes for making text blink
+        final String blink = "\u001B\u005B\u0035\u006D";
+        final String reset = "\u001B\u005B\u006D";
+
         if(undocumentedWalkers.size() > 0)
-            Utils.warnUser("The following walkers are currently undocumented: " + Utils.join(" ",undocumentedWalkers));
+            Utils.warnUser(String.format("The following walkers are currently undocumented: %s%s%s", blink, Utils.join(" ",undocumentedWalkers), reset));
 
         return true;
     }

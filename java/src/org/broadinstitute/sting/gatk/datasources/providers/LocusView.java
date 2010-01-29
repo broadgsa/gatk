@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -111,7 +112,8 @@ public abstract class LocusView extends LocusIterator implements View {
      * @return True if another locus context is bounded by this shard.
      */
     protected boolean hasNextLocus() {
-        return nextLocus != null && (shard.getGenomeLoc() == null || !nextLocus.getLocation().isPast(shard.getGenomeLoc()));
+        GenomeLoc lastLocus = !shard.getGenomeLocs().isEmpty() ? shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1) : null;
+        return nextLocus != null && (lastLocus == null || !nextLocus.getLocation().isPast(lastLocus));
     }
 
     /**
@@ -120,7 +122,9 @@ public abstract class LocusView extends LocusIterator implements View {
      * @throw NoSuchElementException if the next element is missing.
      */
     protected AlignmentContext nextLocus() {
-        if( nextLocus == null || (shard.getGenomeLoc() != null && nextLocus.getLocation().isPast(shard.getGenomeLoc())) )
+        GenomeLoc lastLocus = !shard.getGenomeLocs().isEmpty() ? shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1) : null;
+
+        if( nextLocus == null || (lastLocus != null && nextLocus.getLocation().isPast(lastLocus)) )
             throw new NoSuchElementException("No more elements remain in locus context queue.");
 
         // Cache the current and apply filtering.
@@ -131,7 +135,7 @@ public abstract class LocusView extends LocusIterator implements View {
             nextLocus = loci.next();
             if( sourceInfo.getDownsampleToCoverage() != null )
                 current.downsampleToCoverage( sourceInfo.getDownsampleToCoverage() );                                 
-            if( shard.getGenomeLoc() != null && nextLocus.getLocation().isPast(shard.getGenomeLoc()) )
+            if( lastLocus != null && nextLocus.getLocation().isPast(lastLocus) )
                 nextLocus = null;
         }
         else
@@ -152,13 +156,13 @@ public abstract class LocusView extends LocusIterator implements View {
             nextLocus = loci.next();
 
         // If the location of this shard is available, trim the data stream to match the shard.
-        if(shard.getGenomeLoc() != null) {
+        if(!shard.getGenomeLocs().isEmpty()) {
             // Iterate past cruft at the beginning to the first locus in the shard.
-            while( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) && loci.hasNext() )
+            while( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLocs().get(0)) && loci.hasNext() )
                 nextLocus = loci.next();
 
             // If nothing in the shard was found, indicate that by setting nextAlignmentContext to null.
-            if( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) )
+            if( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLocs().get(0)) )
                 nextLocus = null;
         }
     }

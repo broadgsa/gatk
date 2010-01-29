@@ -3,6 +3,9 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * A single, monolithic shard bridging all available data.
  * @author mhanna
@@ -28,8 +31,8 @@ public class MonolithicShard implements Shard {
      * Returns null, indicating that (in this case) the entire genome is covered.
      * @return null.
      */
-    public GenomeLoc getGenomeLoc() {
-        return null;
+    public List<GenomeLoc> getGenomeLocs() {
+        return Collections.emptyList();
     }
 
     /**

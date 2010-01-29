@@ -1,18 +1,14 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;

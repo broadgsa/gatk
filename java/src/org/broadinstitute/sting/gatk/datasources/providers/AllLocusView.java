@@ -46,7 +46,7 @@ public class AllLocusView extends LocusView {
     public AllLocusView(ShardDataProvider provider) {                
         super( provider );
         // Seed the state tracking members with the first possible seek position and the first possible locus context.
-        locusIterator = new GenomeLocusIterator( provider.getShard().getGenomeLoc() );
+        locusIterator = new GenomeLocusIterator( provider.getShard().getGenomeLocs() );
         if( locusIterator.hasNext() ) {
             nextPosition = locusIterator.next();
             nextLocus = hasNextLocus() ? nextLocus() : createEmptyLocus(nextPosition);

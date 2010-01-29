@@ -11,7 +11,6 @@ import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
 
 import java.util.*;
 
-import net.sf.samtools.SAMRecord;
 /**
  * User: hanna
  * Date: May 21, 2009
@@ -38,9 +37,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     GenomeLoc lastLoc = null;
     RODRecordList<ReferenceOrderedDatum> interval = null;
 
-    // broken support for multi-locus rods
-    //List<ReferenceOrderedDatum> multiLocusRODs = new LinkedList<ReferenceOrderedDatum>();
-
     /**
      * The data sources along with their current states.
      */
@@ -61,18 +57,17 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     public RodLocusView( ShardDataProvider provider ) {
         super(provider);
 
-        GenomeLoc loc = provider.getShard().getGenomeLoc();
+        GenomeLoc firstLoc = provider.getShard().getGenomeLocs().get(0);
 
         List< Iterator<RODRecordList<ReferenceOrderedDatum>> > iterators = new LinkedList< Iterator<RODRecordList<ReferenceOrderedDatum>> >();
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() ) {
-            if ( DEBUG ) System.out.printf("Shard is %s%n", loc);
+            if ( DEBUG ) System.out.printf("Shard is %s%n", provider.getShard().getGenomeLocs());
 
             // grab the ROD iterator from the data source, and compute the first location in this shard, forwarding
             // the iterator to immediately before it, so that it can be added to the merging iterator primed for
             // next() to return the first real ROD in this shard
             SeekableRODIterator it = (SeekableRODIterator)dataSource.seek(provider.getShard());
-            GenomeLoc shardLoc = provider.getShard().getGenomeLoc();
-            it.seekForward(GenomeLocParser.createGenomeLoc(shardLoc.getContigIndex(), shardLoc.getStart()-1, shardLoc.getStart()-1));
+            it.seekForward(GenomeLocParser.createGenomeLoc(firstLoc.getContigIndex(), firstLoc.getStart()-1));
 
             states.add(new ReferenceOrderedDataState(dataSource,it));            
 
@@ -99,7 +94,8 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         if ( ! rodQueue.hasNext() )
             return false;
         else {
-            return ! rodQueue.peekLocation().isPast(shard.getGenomeLoc());
+            GenomeLoc lastLocus = shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1);
+            return ! rodQueue.peekLocation().isPast(lastLocus);
         }
     }
 
@@ -148,11 +144,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         return t;
     }
 
-    private Collection<RODRecordList<ReferenceOrderedDatum>> getSpanningTracks(ReferenceOrderedDatum marker) {
-        RODRecordList<ReferenceOrderedDatum> wrapper = new RODRecordList<ReferenceOrderedDatum>(marker.getName(),Collections.singletonList(marker),marker.getLocation());
-        return rodQueue.allElementsLTE(wrapper);
-    }
-
     private Collection<RODRecordList<ReferenceOrderedDatum>> getSpanningTracks(RODRecordList<ReferenceOrderedDatum> marker) {
         return rodQueue.allElementsLTE(marker);
     }
@@ -173,7 +164,8 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         if ( lastLoc == null ) {
             // special case -- we're at the start
             //System.out.printf("Cur=%s, shard=%s%n", currentPos, shard.getGenomeLoc());
-            skippedBases = currentPos.getStart() - shard.getGenomeLoc().getStart();
+            GenomeLoc firstLoc = shard.getGenomeLocs().get(0);
+            skippedBases = currentPos.getStart() - firstLoc.getStart();
         } else {
             //System.out.printf("Cur=%s, last=%s%n", currentPos, lastLoc);
             skippedBases = currentPos.minus(lastLoc) - 1;
@@ -181,7 +173,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
 
         if ( skippedBases < -1 ) { // minus 1 value is ok
             throw new RuntimeException(String.format("BUG: skipped bases=%d is < 0: cur=%s vs. last=%s, shard=%s",
-                    skippedBases, currentPos, lastLoc, shard.getGenomeLoc()));
+                    skippedBases, currentPos, lastLoc, shard.getGenomeLocs()));
         }
         return Math.max(skippedBases, 0);
     }
@@ -191,9 +183,8 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      * @return
      */
     public GenomeLoc getLocOneBeyondShard() {
-        return GenomeLocParser.createGenomeLoc( shard.getGenomeLoc().getContigIndex(),
-                shard.getGenomeLoc().getStop()+1,
-                shard.getGenomeLoc().getStop()+1);
+        GenomeLoc lastLocus = !shard.getGenomeLocs().isEmpty() ? shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1) : null;
+        return GenomeLocParser.createGenomeLoc(lastLocus.getContigIndex(),lastLocus.getStop()+1);
     }
 
     /**

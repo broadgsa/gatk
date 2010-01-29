@@ -87,7 +87,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
      */
     protected void validateLocation( GenomeLoc loc ) {
         Shard shard = new LocusShard(loc);
-        GenomeLocusIterator shardIterator = new GenomeLocusIterator(shard.getGenomeLoc());
+        GenomeLocusIterator shardIterator = new GenomeLocusIterator(shard.getGenomeLocs());
 
         ShardDataProvider dataProvider = new ShardDataProvider(shard, null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
@@ -99,7 +99,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
             char expected = StringUtil.bytesToString(expectedAsSeq.getBases()).charAt(0);
             char actual = view.getReferenceContext(locus).getBase();
 
-            Assert.assertEquals(String.format("Value of base at position %s in shard %s does not match expected", locus.toString(), shard.getGenomeLoc()),
+            Assert.assertEquals(String.format("Value of base at position %s in shard %s does not match expected", locus.toString(), shard.getGenomeLocs()),
                     expected,
                     actual);
         }

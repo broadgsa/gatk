@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.NoSuchElementException;
 import java.util.Iterator;
+import java.util.List;
 /**
  * User: hanna
  * Date: May 12, 2009
@@ -23,24 +24,28 @@ import java.util.Iterator;
  */
 public class GenomeLocusIterator implements Iterator<GenomeLoc> {
     /**
-     * The entire region over which we're iterating.
+     * An iterator to the entire data structure over which we're iterating.
      */
-    private GenomeLoc completeLocus;
+    private final Iterator<GenomeLoc> locusIterator;
 
     /**
-     * The current position in the traversal.
+     * The multi-base pair long locus referring to the current locus.
      */
-    private GenomeLoc currentLocus;
+    private GenomeLoc currentLocus = null;
+
+    /**
+     * The 1 base pair long location.
+     */
+    private GenomeLoc currentLocation = null;
 
     /**
      * Creates an iterator that can traverse over the entire
      * reference specified in the given ShardDataProvider.
-     * @param completeLocus Data provider to use as a backing source.
-     *                 Provider must have a reference (hasReference() == true).
+     * @param loci the list of loci over which to iterate.
      */
-    public GenomeLocusIterator( GenomeLoc completeLocus ) {
-        this.completeLocus = completeLocus;
-        this.currentLocus = GenomeLocParser.createGenomeLoc(completeLocus.getContig(),completeLocus.getStart());
+    public GenomeLocusIterator( List<GenomeLoc> loci ) {
+        this.locusIterator = loci.iterator();
+        seedNextLocus();
     }
 
     /**
@@ -48,7 +53,7 @@ public class GenomeLocusIterator implements Iterator<GenomeLoc> {
      * @return True if the iterator has more elements.  False otherwise. 
      */
     public boolean hasNext() {
-        return !currentLocus.isPast(completeLocus);    
+        return currentLocation != null;
     }
 
     /**
@@ -58,12 +63,29 @@ public class GenomeLocusIterator implements Iterator<GenomeLoc> {
     public GenomeLoc next() {
         if( !hasNext() )
             throw new NoSuchElementException("No elements remaining in bounded reference region.");
-        GenomeLoc toReturn = (GenomeLoc)currentLocus.clone();
-        currentLocus = GenomeLocParser.incPos(currentLocus);
+        GenomeLoc toReturn = currentLocation.clone();
+        seedNextLocus();
         return toReturn;
     }
 
     public void remove() {
         throw new UnsupportedOperationException( "ReferenceLocusIterator is read-only" );
+    }
+
+    /**
+     * Position currentLocation at the next locus, if possible.
+     */
+    private void seedNextLocus() {
+        if(currentLocus != null && currentLocation != null)
+            currentLocation = GenomeLocParser.incPos(currentLocation);
+
+        // If initializing or the location was pushed off the current locus, reinitialize using the next locus.
+        if(currentLocus == null || currentLocation == null || currentLocation.isPast(currentLocus)) {
+            currentLocus = currentLocation = null;
+            if(locusIterator.hasNext()){
+                currentLocus = locusIterator.next();
+                currentLocation = GenomeLocParser.createGenomeLoc(currentLocus.getContig(),currentLocus.getStart());
+            }
+        }
     }
 }

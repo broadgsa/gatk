@@ -38,16 +38,12 @@ import java.io.File;
 public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
         LINEAR,
-        EXPONENTIAL,
         READS,
-        READS_EXPERIMENTAL,
         INTERVAL,
-        MONOLITHIC   // Put all of the available data into one shard.
+        MONOLITHIC,   // Put all of the available data into one shard.
+        LOCUS_EXPERIMENTAL,
+        READS_EXPERIMENTAL
     }
-
-    /** our log, which we want to capture anything from this class */
-    private static Logger logger = Logger.getLogger(ShardStrategyFactory.class);
-
 
     /**
      * get a new shatter strategy
@@ -75,14 +71,14 @@ public class ShardStrategyFactory {
         switch (strat) {
             case LINEAR:
                 return new LinearLocusShardStrategy(dic, startingSize, limitByCount);
-            case EXPONENTIAL:
-                return new ExpGrowthLocusShardStrategy(dic, startingSize, limitByCount);
             case READS:
                 return new ReadDelimitedReadShardStrategy(startingSize, limitByCount);
-            case READS_EXPERIMENTAL:
-                return new BlockDelimitedReadShardStrategy(dataSource);
             case INTERVAL:
                 throw new StingException("Requested trategy: " + strat + " doesn't work with the limiting count (-M) command line option");
+            case LOCUS_EXPERIMENTAL:
+                throw new UnsupportedOperationException("Cannot do experimental locus sharding without intervals");
+            case READS_EXPERIMENTAL:
+                return new BlockDelimitedReadShardStrategy(dataSource);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
@@ -115,12 +111,12 @@ public class ShardStrategyFactory {
         switch (strat) {
             case LINEAR:
                 return new LinearLocusShardStrategy(dic, startingSize, lst, limitDataCount);
-            case EXPONENTIAL:
-                return new ExpGrowthLocusShardStrategy(dic, startingSize, lst, limitDataCount);
             case INTERVAL:
                 return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.LOCUS_INTERVAL);
             case READS:
                 return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.READ_INTERVAL);
+            case LOCUS_EXPERIMENTAL:
+                return new IndexDelimitedLocusShardStrategy(dataSource,lst);
             case READS_EXPERIMENTAL:
                 throw new UnsupportedOperationException("Cannot do experimental read sharding with intervals");
             default:

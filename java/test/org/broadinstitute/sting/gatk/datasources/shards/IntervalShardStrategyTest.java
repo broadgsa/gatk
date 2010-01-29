@@ -112,8 +112,9 @@ public class IntervalShardStrategyTest extends BaseTest {
         int counter = 0;
         while (strat.hasNext()) {
             Shard d = strat.next();
-                assertEquals(1, d.getGenomeLoc().getStart());
-                assertEquals(1000, d.getGenomeLoc().getStop());
+            assertEquals(1,d.getGenomeLocs().size());
+            assertEquals(1, d.getGenomeLocs().get(0).getStart());
+            assertEquals(1000, d.getGenomeLocs().get(0).getStop());
             counter++;
         }
         assertEquals(5, counter);
@@ -130,7 +131,8 @@ public class IntervalShardStrategyTest extends BaseTest {
         int counter = 0;
         while (strat.hasNext()) {
             Shard d = strat.next();
-            assertEquals(1000, d.getGenomeLoc().getStop());
+            assertEquals(1,d.getGenomeLocs().size());
+            assertEquals(1000, d.getGenomeLocs().get(0).getStop());
             counter++;
         }
         assertEquals(5, counter);

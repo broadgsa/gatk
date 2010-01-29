@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.Serializable;
+import java.util.List;
 /**
  *
  * User: aaron
@@ -34,7 +35,7 @@ public interface Shard extends Serializable {
     }
 
     /** @return the genome location represented by this shard */
-    public GenomeLoc getGenomeLoc();
+    public List<GenomeLoc> getGenomeLocs();
 
     /**
      * what kind of shard do we return

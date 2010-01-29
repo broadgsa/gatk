@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import net.sf.samtools.Chunk;
 
-import java.util.Collections;
 import java.util.List;
 
 
@@ -32,38 +33,47 @@ import java.util.List;
  */
 
 /**
- * @author aaron
- * <p/>
- * Class IntervalShard
- * <p/>
- * the base interval shard.  All interval shards are generally the same,
- * but must return their ShardType individually.  
+ * A shard that's delimited based on the index rather than
  */
-public class IntervalShard implements Shard {
+public class IndexDelimitedLocusShard implements Shard {
 
-    /** a collection of genomic locations to interate over */
-    private GenomeLoc mSet;
-    private Shard.ShardType mType = Shard.ShardType.LOCUS_INTERVAL;
+    /**
+     * a collection of genomic locations to interate over
+     */
+    private final GenomeLocSortedSet intervals;
 
-    IntervalShard(GenomeLoc myLocation, Shard.ShardType intervalType) {
-        if (intervalType != Shard.ShardType.LOCUS_INTERVAL && intervalType != Shard.ShardType.READ_INTERVAL)
-            throw new IllegalArgumentException("The specified interval type must be either LOCUS_INTERVAL or READ_INTERVAL");
-        mType = intervalType;
-        mSet = myLocation.clone();
-    }
+    /**
+     * A list of the chunks associated with this shard.
+     */
+    private final List<Chunk> chunks;
 
-    /** @return the genome location represented by this shard */
-    public List<GenomeLoc> getGenomeLocs() {
-        return Collections.singletonList(mSet);
+    IndexDelimitedLocusShard(GenomeLocSortedSet intervals, List<Chunk> chunks) {
+        this.intervals = intervals;
+        this.chunks = chunks;
     }
 
     /**
-     * returns the type of shard, READ
-     *
-     * @return READ, indicating the shard type
+     * The locations represented by this shard.
+     * @return the genome location represented by this shard
      */
-    public Shard.ShardType getShardType() {
-        return mType;
+    public List<GenomeLoc> getGenomeLocs() {
+        return intervals.toList();
+    }
+
+    /**
+     * Gets the chunks associated with this locus shard.
+     * @return A list of the chunks to use when retrieving locus data.
+     */
+    public List<Chunk> getChunks() {
+        return chunks;
+    }
+
+    /**
+     * returns the type of shard, LOCUS_INTERVAL.
+     * @return LOCUS_INTERVAL, indicating the shard type
+     */
+    public ShardType getShardType() {
+        return ShardType.LOCUS_INTERVAL;
     }
 
     /**
@@ -72,6 +82,6 @@ public class IntervalShard implements Shard {
      */
     @Override
     public String toString() {
-        return mSet.toString();
-    }    
+        return intervals.toString();
+    }
 }

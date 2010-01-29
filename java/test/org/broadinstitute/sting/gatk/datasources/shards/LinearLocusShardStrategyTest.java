@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import net.sf.samtools.SAMFileHeader;
 
@@ -62,7 +63,8 @@ public class LinearLocusShardStrategyTest extends BaseTest {
         while(strat.hasNext()) {
             Shard d = strat.next();
             assertTrue(d instanceof LocusShard);
-            assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 499);
+            assertEquals("Sharding strategy must emit single locus shards",1,d.getGenomeLocs().size());
+            assertTrue(d.getGenomeLocs().get(0).getStop() - d.getGenomeLocs().get(0).getStart() == 499);
             ++counter;
         }
         assertTrue(counter == 10);
@@ -76,7 +78,8 @@ public class LinearLocusShardStrategyTest extends BaseTest {
         while(strat.hasNext()) {
             Shard d = strat.next();
             assertTrue(d instanceof LocusShard);
-            assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 999);
+            assertEquals("Sharding strategy must emit single locus shards",1,d.getGenomeLocs().size());
+            assertTrue(d.getGenomeLocs().get(0).getStop() - d.getGenomeLocs().get(0).getStart() == 999);
             ++counter;
         }
         assertTrue(counter == 5);
@@ -90,10 +93,11 @@ public class LinearLocusShardStrategyTest extends BaseTest {
         while(strat.hasNext()) {
             Shard d = strat.next();
             assertTrue(d instanceof LocusShard);
+            assertEquals("Sharding strategy must emit single locus shards",1,d.getGenomeLocs().size());
             if (counter % 2 == 0) {
-                assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 599);
+                assertTrue(d.getGenomeLocs().get(0).getStop() - d.getGenomeLocs().get(0).getStart() == 599);
             } else {
-                assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 399);
+                assertTrue(d.getGenomeLocs().get(0).getStop() - d.getGenomeLocs().get(0).getStart() == 399);
             }
             ++counter;
         }
@@ -108,7 +112,8 @@ public class LinearLocusShardStrategyTest extends BaseTest {
         while(strat.hasNext()) {
             Shard d = strat.next();
             assertTrue(d instanceof LocusShard);
-            assertTrue((d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart()) == 199);
+            assertEquals("Sharding strategy must emit single locus shards",1,d.getGenomeLocs().size());
+            assertTrue((d.getGenomeLocs().get(0).getStop() - d.getGenomeLocs().get(0).getStart()) == 199);
             ++counter;
         }
         assertTrue(counter == 1);

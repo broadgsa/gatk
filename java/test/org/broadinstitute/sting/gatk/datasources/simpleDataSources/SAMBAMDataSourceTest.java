@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.After;
 import org.junit.Before;
@@ -96,7 +97,8 @@ public class SAMBAMDataSourceTest extends BaseTest {
                 int readCount = 0;
                 count++;
 
-                logger.debug("Start : " + sh.getGenomeLoc().getStart() + " stop : " + sh.getGenomeLoc().getStop() + " contig " + sh.getGenomeLoc().getContig());
+                GenomeLoc firstLocus = sh.getGenomeLocs().get(0), lastLocus = sh.getGenomeLocs().get(sh.getGenomeLocs().size()-1);
+                logger.debug("Start : " + firstLocus.getStart() + " stop : " + lastLocus.getStop() + " contig " + firstLocus.getContig());
                 logger.debug("count = " + count);
                 StingSAMIterator datum = data.seek(sh);
 
