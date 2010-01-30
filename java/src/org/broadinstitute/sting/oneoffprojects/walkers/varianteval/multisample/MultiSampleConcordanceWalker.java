@@ -28,15 +28,20 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInfo, MultiSampleConcordanceSet > {
     @Argument(fullName="noLowDepthLoci", shortName="NLD", doc="Do not use loci in analysis where the variant depth (as specified in the VCF) is less than the given number; "+
             "DO NOT USE THIS IF YOUR VCF DOES NOT HAVE 'DP' IN THE FORMAT FIELD", required=false) private int minDepth = -1;
+    @Argument(fullName="genotypeConfidence", shortName="GC", doc="The quality score for genotypes below which to count genotyping as a no-call", required=false)
+    int genotypeQuality = 0;
     @Argument(fullName = "ignoreKnownSites", shortName = "novel", doc="Only run concordance over novel sites (sites marked in the VCF as being in dbSNP or Hapmap 2 or 3)", required=false )
     boolean ignoreKnownSites = false;
+    @Argument(fullName="missingLocusAsConfidentRef", shortName="assumeRef", doc="Assume a missing locus in the variant VCF is a confident ref call with sufficient depth"+
+    "across all samples. Default: Missing locus = no call", required=false)
+    boolean assumeRef = false;
 
     public void initialize() {
 
     }
 
     public MultiSampleConcordanceSet reduceInit() {
-        return new MultiSampleConcordanceSet(minDepth);
+        return new MultiSampleConcordanceSet(minDepth,assumeRef,genotypeQuality);
     }
 
     public LocusConcordanceInfo map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext c) {
@@ -97,7 +102,7 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
     }
 
     public void onTraversalDone(MultiSampleConcordanceSet cSet) {
-        out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Sample_ID","Ignored_due_to_depth","Concordant_Refs","Concordant_Homs","Concordant_Hets","Homs_called_het","Het_called_homs","False_Positives","False_Negatives_Due_To_Ref_Call","False_Negatives_Due_To_No_Call");
+        out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Sample_ID","Ignored_due_to_depth","Concordant_Refs","Concordant_Homs","Concordant_Hets","Correct_But_Low_Genotype_Qual","Homs_called_het","Het_called_homs","False_Positives","False_Negatives_Due_To_Ref_Call","False_Negatives_Due_To_No_Call");
         for ( VCFConcordanceCalculator sample : cSet.getConcordanceSet() ) {
             out.print(String.format("%s%n",sample));
         }

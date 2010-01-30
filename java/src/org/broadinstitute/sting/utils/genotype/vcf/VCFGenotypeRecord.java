@@ -193,6 +193,10 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         return true;
     }
 
+    public boolean isFiltered() {
+        return ( mFields.get(FILTER_KEY) != null && ! mFields.get(FILTER_KEY).equals("0"));
+    }
+
     public int getPloidy() {
         return 2;
     }

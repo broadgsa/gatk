@@ -11,6 +11,7 @@ import java.util.Set;
  * To change this template use File | Settings | File Templates.
  */
 class MultiSampleConcordanceSet {
+    private boolean treatTruthOnlyAsFalseNegative;
     private int minimumDepthForTest;
     private HashSet<VCFConcordanceCalculator> concordanceSet;
     private Set<String> cachedSampleNames;
@@ -18,14 +19,17 @@ class MultiSampleConcordanceSet {
     private long truthOnlyVariantSites;
     private long variantOnlySites;
     private long overlappingSites;
+    private int genotypeQuality;
 
-    public MultiSampleConcordanceSet(int minDepth) {
+    public MultiSampleConcordanceSet(int minDepth, boolean assumeRef, int genotypeQuality) {
         concordanceSet = new HashSet<VCFConcordanceCalculator>();
         truthOnlySites = 0l;
         truthOnlyVariantSites = 0l;
         variantOnlySites = 0l;
         overlappingSites = 0l;
         minimumDepthForTest = minDepth;
+        treatTruthOnlyAsFalseNegative = assumeRef;
+        this.genotypeQuality = genotypeQuality;
     }
 
     public boolean hasBeenInstantiated() {
@@ -35,7 +39,7 @@ class MultiSampleConcordanceSet {
     public void instantiate(Set<String> samples) {
         cachedSampleNames = samples;
         for ( String s : samples ) {
-            concordanceSet.add(new VCFConcordanceCalculator(s,minimumDepthForTest));
+            concordanceSet.add(new VCFConcordanceCalculator(s,minimumDepthForTest,genotypeQuality));
         }
     }
 
@@ -49,6 +53,11 @@ class MultiSampleConcordanceSet {
             truthOnlySites++;
             if ( info.isVariantSite() ) {
                 truthOnlyVariantSites++;
+                if ( treatTruthOnlyAsFalseNegative ) {
+                    for ( VCFConcordanceCalculator concordance : concordanceSet ) {
+                        concordance.updateTruthOnly(info);
+                    }
+                }
             }
         } else {
             variantOnlySites++;
