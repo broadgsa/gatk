@@ -8,23 +8,10 @@ import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.playground.gatk.walkers.varianteval.VariantAnalysis;
-import org.broadinstitute.sting.playground.gatk.walkers.diagnostics.newvarianteval.VariantEvaluation;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContext;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContextAdaptors;
-import org.apache.commons.jexl.ExpressionFactory;
-import org.apache.commons.jexl.Expression;
-import org.apache.commons.jexl.JexlHelper;
-import org.apache.commons.jexl.JexlContext;
 
 import java.util.*;
 
@@ -60,7 +47,7 @@ public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDe
         if (vcfList != null) {
             for (ReferenceOrderedDatum d : vcfList) {
                 RodVCF vcfRecord = (RodVCF)d;
-                vc = VariantContextAdaptors.vcfToVariantContext(vcfRecord);
+                vc = VariantContextAdaptors.convertToVariantContext(vcfRecord);
                 break;
             }
         }

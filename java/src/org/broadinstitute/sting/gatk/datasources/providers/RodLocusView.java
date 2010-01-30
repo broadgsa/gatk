@@ -159,17 +159,9 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      * @return
      */
     private long getSkippedBases( GenomeLoc currentPos ) {
-        long skippedBases = 0;
-
-        if ( lastLoc == null ) {
-            // special case -- we're at the start
-            //System.out.printf("Cur=%s, shard=%s%n", currentPos, shard.getGenomeLoc());
-            GenomeLoc firstLoc = shard.getGenomeLocs().get(0);
-            skippedBases = currentPos.getStart() - firstLoc.getStart();
-        } else {
-            //System.out.printf("Cur=%s, last=%s%n", currentPos, lastLoc);
-            skippedBases = currentPos.minus(lastLoc) - 1;
-        }
+        // the minus - is because if lastLoc == null, you haven't yet seen anything in this interval, so it should also be counted as skipped
+        Long compStop = lastLoc == null ? shard.getGenomeLocs().get(0).getStart() - 1 : lastLoc.getStop();
+        long skippedBases = currentPos.getStart() - compStop  - 1;
 
         if ( skippedBases < -1 ) { // minus 1 value is ok
             throw new RuntimeException(String.format("BUG: skipped bases=%d is < 0: cur=%s vs. last=%s, shard=%s",

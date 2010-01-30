@@ -109,7 +109,6 @@ public class TraverseLoci extends TraversalEngine {
             RodLocusView rodLocusView = (RodLocusView)locusView;
             long nSkipped = rodLocusView.getLastSkippedBases();
             if ( nSkipped > 0 ) {
-                // no sense in making the call if you don't have anything interesting to say
                 GenomeLoc site = rodLocusView.getLocOneBeyondShard();
                 AlignmentContext ac = new AlignmentContext(site, new ReadBackedPileup(site), nSkipped);
                 M x = locusWalker.map(null, null, ac);

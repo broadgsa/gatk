@@ -2,20 +2,39 @@ package org.broadinstitute.sting.oneoffprojects.variantcontext;
 
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.util.*;
 
 
 public class VariantContextAdaptors {
-    public static VariantContext dbsnpToVariantContext(rodDbSNP dbsnp) {
+    public static boolean canBeConvertedToVariantContext(Object variantContainingObject) {
+        return convertToVariantContext(variantContainingObject) != null;
+    }
+
+    public static VariantContext convertToVariantContext(Object variantContainingObject) {
+        if ( variantContainingObject instanceof rodDbSNP )
+            return dbsnpToVariantContext((rodDbSNP)variantContainingObject);
+        else if ( variantContainingObject instanceof RodVCF )
+            return vcfToVariantContext(((RodVCF)variantContainingObject).getRecord());
+        else if ( variantContainingObject instanceof VCFRecord )
+            return vcfToVariantContext((VCFRecord)variantContainingObject);
+        else
+            return null;
+            //throw new IllegalArgumentException("Cannot convert object " + variantContainingObject + " of class " + variantContainingObject.getClass() + " to a variant context");
+
+    }
+
+    private static VariantContext dbsnpToVariantContext(rodDbSNP dbsnp) {
         if ( dbsnp.isSNP() || dbsnp.isIndel() || dbsnp.varType.contains("mixed") ) {
             VariantContext vc = new VariantContext(dbsnp.getLocation());
 
             // add the reference allele
             if ( ! Allele.acceptableAlleleBases(dbsnp.getReference()) ) {
-                System.out.printf("Excluding dbsnp record %s%n", dbsnp);
+                //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                 return null;
             }
 
@@ -25,7 +44,7 @@ public class VariantContextAdaptors {
             // add all of the alt alleles
             for ( String alt : dbsnp.getAlternateAlleleList() ) {
                 if ( ! Allele.acceptableAlleleBases(alt) ) {
-                    System.out.printf("Excluding dbsnp record %s%n", dbsnp);
+                    //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                     return null;
                 }
                 vc.addAllele(new Allele(alt, false));
@@ -37,7 +56,7 @@ public class VariantContextAdaptors {
             return null; // can't handle anything else
     }
 
-    public static VariantContext vcfToVariantContext(RodVCF vcf) {
+    private static VariantContext vcfToVariantContext(VCFRecord vcf) {
         if ( vcf.isSNP() || vcf.isIndel() ) {
             VariantContext vc = new VariantContext(vcf.getLocation());
 

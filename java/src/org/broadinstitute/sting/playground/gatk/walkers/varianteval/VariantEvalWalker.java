@@ -257,6 +257,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        //System.out.printf("Tracker at %s is %s, ref is %s, skip is %d mapped is %d%n", context.getLocation(), tracker, ref, context.getSkippedBases(), nMappedSites);
         nMappedSites += context.getSkippedBases();
 
         //System.out.printf("Tracker at %s is %s, ref is %s%n", context.getLocation(), tracker, ref);

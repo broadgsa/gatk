@@ -2,9 +2,43 @@ package org.broadinstitute.sting.oneoffprojects.variantcontext;
 
 import java.util.*;
 import org.apache.commons.jexl.*;
+import org.broadinstitute.sting.oneoffprojects.variantcontext.varianteval2.VariantEvaluator;
+import org.broadinstitute.sting.utils.StingException;
 
 
 public class VariantContextUtils {
+    /** */
+    public static class MatchExp {
+        String name;
+        String expStr;
+        Expression exp;
+
+        public MatchExp(String name, String str, Expression exp) {
+            this.name = name;
+            this.expStr = str;
+            this.exp = exp;
+        }
+    }
+
+    public static List<MatchExp> initializeMatchExps(Map<String, String> names_and_exps) {
+        List<MatchExp> exps = new ArrayList<MatchExp>();
+
+        for ( Map.Entry<String, String> elt : names_and_exps.entrySet() ) {
+            String name = elt.getKey();
+            String expStr = elt.getValue();
+
+            if ( name == null || expStr == null ) throw new IllegalArgumentException("Cannot create null expressions : " + name +  " " + expStr);
+            try {
+                Expression filterExpression = ExpressionFactory.createExpression(expStr);
+                exps.add(new MatchExp(name, expStr, filterExpression));
+            } catch (Exception e) {
+                throw new StingException("Invalid expression used (" + expStr + "). Please see the JEXL docs for correct syntax.");
+            }
+        }
+
+        return exps;
+    }
+
     private static final String UNIQUIFIED_SUFFIX = ".unique";
 
     /**

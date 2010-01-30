@@ -17,10 +17,10 @@ import java.util.*;
  */
 public class VariantContext extends AttributedObject {
     private GenomeLoc loc;
-    Type type = Type.UNDETERMINED;
+    private Type type = Type.UNDETERMINED;
     private Set<Allele> alleles = new HashSet<Allele>();
     private Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
-    Set<Object> filters = new HashSet<Object>();
+    private Set<Object> filters = new HashSet<Object>();
 
     // ---------------------------------------------------------------------------------------------------------
     //
