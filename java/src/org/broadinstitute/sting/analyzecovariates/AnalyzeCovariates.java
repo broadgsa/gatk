@@ -65,6 +65,8 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
     private int NUM_READ_GROUPS_TO_PROCESS = -1; // -1 means process all read groups
     @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default is 40")
     private int MAX_QUALITY_SCORE = 40;
+    @Argument(fullName="max_histogram_value", shortName="maxHist", required = false, doc="If supplied, this value will be the max value of the histogram plots")
+    private int MAX_HISTOGRAM_VALUE = 0;
 
 
     /////////////////////////////
@@ -274,7 +276,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                             // Analyze reported quality
                             p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                        IGNORE_QSCORES_LESS_THAN + " " + MAX_QUALITY_SCORE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
+                                        IGNORE_QSCORES_LESS_THAN + " " + MAX_QUALITY_SCORE + " " + MAX_HISTOGRAM_VALUE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
                             if(numReadGroups % 3 == 0) { // Don't want to spawn all the RScript jobs too quickly. So wait for this one to finish
                                 p.waitFor();
                             }
