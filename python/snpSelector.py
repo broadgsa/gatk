@@ -91,7 +91,7 @@ class RecalibratedCall:
     def __str__(self):
         return '[%s: %s => Q%d]' % (str(self.call), self.featureStringList(), phredScale(self.jointFPErrorRate()))
 
-def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1, filter = None, minQScore = -1, mustBeVariant = False, skip = None ):
+def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1, filter = None, minQScore = -1, maxQScore = 10000000, mustBeVariant = False, skip = None ):
     if filter == None:
         filter = not OPTIONS.unfiltered
         
@@ -108,14 +108,15 @@ def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction 
         if filter and not VCF.passesFilters() or ( False and mustBeVariant == True and not VCF.isVariant() ): # currently ignore mustBeVariant
             #print 'filtering', VCF
             return None
-        elif VCF.getQual() <= minQScore:
-            #print 'filtering', VCF
+        elif VCF.getQual() <= minQScore or VCF.getQual() > maxQScore:
+            #print 'filtering', VCF.getQual()
             #nLowQual += 1
             return None
         elif skip <> None and counter % skip <> 0:
             #print 'skipping'
             return None
         elif random.random() <= downsampleFraction:
+            #print 'keeping', VCF
             return VCF
         else:
             return None
@@ -160,7 +161,7 @@ def titvFPRateEstimate(variants, target):
         else:
             FPRate = (titvRatio - target) / (0.5 - target)
         FPRate = min(max(FPRate, 0), 1)
-        TPRate = max(min(1 - FPRate, 1 - dephredScale(OPTIONS.maxQScore)), dephredScale(OPTIONS.maxQScore))
+        TPRate = max(min(1 - FPRate, 1 - dephredScale(OPTIONS.maxQScoreForCovariate)), dephredScale(OPTIONS.maxQScoreForCovariate))
         if DEBUG: print 'FPRate', FPRate, titvRatio, target
         assert FPRate >= 0 and FPRate <= 1
         return TPRate
@@ -174,8 +175,8 @@ def titvFPRateEstimate(variants, target):
         TPRate = gaussian(titvRatio, target, sigma) / gaussian(target, target, sigma)
         if LEFT_HANDED and titvRatio >= target:
             TPRate = 1
-        TPRate -= dephredScale(OPTIONS.maxQScore)
-        if DEBUG: print 'TPRate', TPRate, constant, exponent, dephredScale(OPTIONS.maxQScore)
+        TPRate -= dephredScale(OPTIONS.maxQScoreForCovariate)
+        if DEBUG: print 'TPRate', TPRate, constant, exponent, dephredScale(OPTIONS.maxQScoreForCovariate)
         return TPRate
     
     FPRate = 1 - theoreticalCalc()
@@ -556,13 +557,16 @@ def setup():
     parser.add_option("-M", "--maxRecords", dest="maxRecords",
                        type='int', default=None,
                         help="Maximum number of input VCF records to process, if provided.  Default is all records")
-    parser.add_option("-Q", "--qMin", dest="minQScore",
+    parser.add_option("-q", "--qMin", dest="minQScore",
                         type='int', default=-1,
                         help="The minimum Q score of the initial SNP list to consider for selection [default: %default]")
+    parser.add_option("-Q", "--qMax", dest="maxQScore",
+                        type='int', default=1000000,
+                        help="The maximum Q score allowed for both a single covariate and the overall QUAL score [default: %default]")
     parser.add_option("", "--QBreaks", dest="QBreaks",
                         type='string', default=None,
                         help="Breaks in QUAL for generating covarites [default: %default]")
-    parser.add_option("-q", "--qMax", dest="maxQScore",
+    parser.add_option("", "--maxQScoreForCovariate", dest="maxQScoreForCovariate",
                         type='int', default=60,
                         help="The maximum Q score allowed for both a single covariate and the overall QUAL score [default: %default]")
     parser.add_option("-o", "--outputVCF", dest="outputVCF",
@@ -602,7 +606,7 @@ def assessCalls(file):
             numberOfRecords = OPTIONS.maxRecords
         downsampleFraction = min(float(OPTIONS.maxRecordsForCovariates) / numberOfRecords, 1)
     #print 'Reading variants', OPTIONS.skip, downsampleFraction
-    header, allCalls = readVariants(file, OPTIONS.maxRecords, downsampleFraction=downsampleFraction, minQScore = OPTIONS.minQScore, skip = OPTIONS.skip)
+    header, allCalls = readVariants(file, OPTIONS.maxRecords, downsampleFraction=downsampleFraction, minQScore = OPTIONS.minQScore, maxQScore = OPTIONS.maxQScore, skip = OPTIONS.skip)
     allCalls = list(allCalls)
     print 'Number of VCF records', numberOfRecords, ', max number of records for covariates is', OPTIONS.maxRecordsForCovariates, 'so keeping', downsampleFraction * 100, '% of records'
     print 'Number of selected VCF records', len(allCalls)
@@ -698,7 +702,7 @@ def main():
     if not OPTIONS.dontRecalibrate: 
         covariates = determineCovariates(allCalls, titvTarget, fields)
         print OPTIONS
-        header, callsToRecalibate = readVariants(args[0], OPTIONS.maxRecords, minQScore = OPTIONS.minQScore, skip = OPTIONS.skip)
+        header, callsToRecalibate = readVariants(args[0], OPTIONS.maxRecords, minQScore = OPTIONS.minQScore, maxQScore = OPTIONS.maxQScore, skip = OPTIONS.skip)
         RecalibratedCalls = recalibrateCalls(callsToRecalibate, fields, covariates)
         writeRecalibratedCalls(OPTIONS.outputVCF, header, RecalibratedCalls)
     else:
