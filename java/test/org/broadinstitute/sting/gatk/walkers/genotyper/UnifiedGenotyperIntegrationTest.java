@@ -200,7 +200,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -gm JOINT_ESTIMATE" +
 		        " -vf GELI",
                 1,
-                Arrays.asList("f09ac61858c2633e5d1326fcf098b36d"));
+                Arrays.asList("3c6d76d55d608482940cd725b87ef07d"));
 
         executeTest(String.format("testMultiTechnologies"), spec);
     }
@@ -212,7 +212,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------------------------------------
     @Test
     public void testOtherOutput() {
-        String[] md5s = {"a5dce541f00d3fe364d110f1cae53538", "0147670a1b62bb3d218d5ed3f9fc4656"};
+        String[] md5s = {"78482125d51f9eb2ee850a6b25921e84", "cf39a4a90e9f01b6f1183e6b1fd7520e"};
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper" +
                         " -R " + oneKGLocation + "reference/human_b36_both.fasta" +

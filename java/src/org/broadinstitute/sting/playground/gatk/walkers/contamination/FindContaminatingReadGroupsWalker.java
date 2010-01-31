@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.contamination;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel;
-import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
+import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -37,18 +34,14 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
     @Argument(fullName="limit", shortName="lim", doc="The pValue limit for which a read group will be deemed to be a contaminant", required=false)
     private Double LIMIT = 1e-9;
 
-    private UnifiedArgumentCollection uac;
-    private UnifiedGenotyper ug;
+    private UGCalculationArguments ug;
     private NamedTable altTable;
 
     public void initialize() {
-        uac = new UnifiedArgumentCollection();
+        UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
         uac.CONFIDENCE_THRESHOLD = 50;
-
-        ug = new UnifiedGenotyper();
-        ug.initialize();
-        ug.setUnifiedArgumentCollection(uac);
+        ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);
 
         altTable = new NamedTable();
     }
@@ -81,7 +74,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         double altBalance = ((double) altCount)/((double) totalCount);
 
         if (altBalance > 0.70) {
-            VariantCallContext ugResult = ug.map(tracker, ref, context);
+            VariantCallContext ugResult = UnifiedGenotyper.runGenotyper(tracker, ref, context, ug);
 
             if (ugResult != null && ugResult.genotypes != null && ugResult.genotypes.size() > 0) {
                 return ugResult.genotypes.get(0).isHet();

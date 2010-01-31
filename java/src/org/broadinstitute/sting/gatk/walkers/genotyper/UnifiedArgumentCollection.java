@@ -67,7 +67,7 @@ public class UnifiedArgumentCollection {
 
     // control the various parameters to be used
     @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered", required = false)
-    public double CONFIDENCE_THRESHOLD = 0.0;
+    public double CONFIDENCE_THRESHOLD = 50.0;
 
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALTY_SCORE = 10;

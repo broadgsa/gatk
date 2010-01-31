@@ -49,7 +49,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     @Argument(fullName="forcePreviousReadBasesToMatchRef", doc="Forces previous read bases to match the reference", required = false)
     boolean readBasesMustMatchRef = false;
 
-    private UnifiedGenotyper ug;
+    private UGCalculationArguments ug;
     // private ReferenceContextWindow refWindow;
     // private Set<BaseTransitionTable> conditionalTables;
     private List<Boolean> usePreviousBases;
@@ -59,12 +59,10 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         if ( nPreviousBases > 3 || ( nPreviousReadBases > 3 && readBasesMustMatchRef ) ) {
             throw new StingException("You have opted to use a number of previous bases in excess of 3. In order to do this you must change the reference window size in the walker itself.");
         }
-        ug = new UnifiedGenotyper();
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
-        ug.initialize();
         uac.baseModel = BaseMismatchModel.THREE_STATE;
         uac.ALL_BASES = true;
-        ug.setUnifiedArgumentCollection(uac);
+        ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);
         // refWindow = new ReferenceContextWindow(nPreviousBases);
         usePreviousBases = new ArrayList<Boolean>();
         previousBaseLoci = new ArrayList<GenomeLoc>();
@@ -361,7 +359,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     public boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if ( !BaseUtils.isRegularBase(ref.getBase()) )
             return false;
-        VariantCallContext calls = ug.map(tracker,ref,context);
+        VariantCallContext calls = UnifiedGenotyper.runGenotyper(tracker,ref,context,ug);
         if ( calls == null || calls.genotypes == null)
             return false;
         return  ( calls.genotypes.size() > 0 && !calls.genotypes.get(0).isVariant(ref.getBase()) && calls.genotypes.get(0).getNegLog10PError() > confidentRefThreshold );

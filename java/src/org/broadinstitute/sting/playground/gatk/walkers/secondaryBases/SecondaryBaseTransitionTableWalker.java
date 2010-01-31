@@ -4,20 +4,13 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
-import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
+import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.playground.utils.NamedTable;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.genotype.VariationCall;
-import org.broadinstitute.sting.utils.pileup.ExtendedPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * Created By User: Michael Melgar
@@ -33,19 +26,15 @@ import java.util.List;
 public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Integer> {
 
     HashMap<String,Long> counts = new HashMap<String,Long>();
-    private UnifiedArgumentCollection uac;
-    private UnifiedGenotyper ug;
+    private UGCalculationArguments ug;
     private NamedTable altTable;
 
     public void initialize() {
-        uac = new UnifiedArgumentCollection();
+        UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
         uac.CONFIDENCE_THRESHOLD = 50;
         uac.ALL_BASES = true;
-
-        ug = new UnifiedGenotyper();
-        ug.initialize();
-        ug.setUnifiedArgumentCollection(uac);
+        ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);
 
         altTable = new NamedTable();
     }
@@ -58,7 +47,7 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
         char nextBase = Character.toUpperCase(contextBases[contextBases.length - 1]);
 
         if (contextBases.length == 3 && refBase != 'N' && pileup.getBases() != null && pileup.getSecondaryBases() != null) {
-            VariantCallContext ugResult = ug.map(tracker,ref,context);
+            VariantCallContext ugResult = UnifiedGenotyper.runGenotyper(tracker,ref,context,ug);
             if (ugResult != null && ugResult.variation != null) {
                 Genotype res = ugResult.genotypes.get(0);
                 String call = res.getBases();
