@@ -30,7 +30,7 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
     @Argument(fullName="combination_type", shortName="type", doc="combination type; currently UNION and MERGE are supported", required=true)
     protected COMBINATION_TYPE COMBO_TYPE;
 
-    @Argument(fullName="rod_priority_list", shortName="priority", doc="For the UNION combination type: a comma-separated string describing the priority ordering for the rods as far as which record gets emitted; if not specified, then the first rod seen will be used", required=false)
+    @Argument(fullName="rod_priority_list", shortName="priority", doc="For the UNION combination type: a comma-separated string describing the priority ordering for the rods as far as which record gets emitted; a complete priority list MUST be provided", required=false)
     protected String PRIORITY_STRING = null;
 
     @Argument(fullName="annotateUnion", shortName="A", doc="For the UNION combination type: if provided, the output union VCF will contain venn information about where each call came from", required=false)

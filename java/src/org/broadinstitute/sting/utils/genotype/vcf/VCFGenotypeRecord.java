@@ -307,4 +307,11 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         //result.add(new VCFFormatHeaderLine(HAPLOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Haplotype Quality"));
         return result;
     }
+
+    public void replaceFields(HashMap<String,String> newFields) {
+        mFields.clear();
+        for ( String s : newFields.keySet() ) {
+            mFields.put(s,newFields.get(s));    
+        }
+    }
 }

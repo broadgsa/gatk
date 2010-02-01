@@ -19,7 +19,13 @@ class MultiSampleConcordanceSet {
     private long truthOnlyVariantSites;
     private long variantOnlySites;
     private long overlappingSites;
+    private long truthSitesFilteredOut;
     private int genotypeQuality;
+
+    private int truePositiveLoci;
+    private int trueNegativeLoci;
+    private int falsePositiveLoci;
+    private int falseNegativeLoci;
 
     public MultiSampleConcordanceSet(int minDepth, boolean assumeRef, int genotypeQuality) {
         concordanceSet = new HashSet<VCFConcordanceCalculator>();
@@ -27,6 +33,7 @@ class MultiSampleConcordanceSet {
         truthOnlyVariantSites = 0l;
         variantOnlySites = 0l;
         overlappingSites = 0l;
+        truthSitesFilteredOut = 0l;
         minimumDepthForTest = minDepth;
         treatTruthOnlyAsFalseNegative = assumeRef;
         this.genotypeQuality = genotypeQuality;
@@ -59,7 +66,12 @@ class MultiSampleConcordanceSet {
                     }
                 }
             }
-        } else {
+        } else if ( info.isVariantFiltered() ) {
+            for ( VCFConcordanceCalculator concordance : concordanceSet ) {
+                concordance.updateFilteredLocus(info);
+                truthSitesFilteredOut++;
+            }
+        } else{
             variantOnlySites++;
         }
     }
@@ -82,5 +94,9 @@ class MultiSampleConcordanceSet {
 
     public long numberOfOverlappingSites() {
         return overlappingSites;
+    }
+
+    public long numberOfFilteredTrueSites() {
+        return truthSitesFilteredOut;
     }
 }

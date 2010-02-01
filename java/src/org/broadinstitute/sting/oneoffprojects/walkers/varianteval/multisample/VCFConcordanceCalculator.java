@@ -23,6 +23,7 @@ class VCFConcordanceCalculator {
     private Set<GenomeLoc> falsePositiveLoci;
     private Set<GenomeLoc> falseNegativeLoci;
     private Set<GenomeLoc> falseNegativeLociDueToNoCall;
+    private Set<GenomeLoc> falseNegativeLociDueToFilters;
     private Set<GenomeLoc> hetsCalledHoms;
     private Set<GenomeLoc> homsCalledHets;
     private Set<GenomeLoc> nonConfidentGenotypeCalls;
@@ -37,6 +38,7 @@ class VCFConcordanceCalculator {
         falseNegativeLoci = new HashSet<GenomeLoc>();
         falseNegativeLociDueToNoCall = new HashSet<GenomeLoc>();
         falsePositiveLoci = new HashSet<GenomeLoc>();
+        falseNegativeLociDueToFilters = new HashSet<GenomeLoc>();
         hetsCalledHoms = new HashSet<GenomeLoc>();
         homsCalledHets = new HashSet<GenomeLoc>();
         nonConfidentGenotypeCalls = new HashSet<GenomeLoc>();
@@ -61,19 +63,25 @@ class VCFConcordanceCalculator {
         }
     }
 
+    public void updateFilteredLocus(LocusConcordanceInfo info) {
+
+        if ( info.getTruthGenotype(name).isVariant( (char) info.getReferenceBase()) ) {
+            falseNegativeLociDueToFilters.add(info.getLoc());
+        }
+    }
+
+
     public String toString() {
-        return String.format("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",name,ignoredDueToDepth.size(),
+        return String.format("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",name,ignoredDueToDepth.size(),
                 concordantGenotypeReferenceCalls.size(),concordantHomCalls.size(),concordantHetCalls.size(),nonConfidentGenotypeCalls.size(),
                 homsCalledHets.size(),hetsCalledHoms.size(),falsePositiveLoci.size(),falseNegativeLoci.size(),
-                falseNegativeLociDueToNoCall.size());
+                falseNegativeLociDueToNoCall.size(),falseNegativeLociDueToFilters.size());
     }
 
     private void compareGenotypes(VCFGenotypeRecord truth, VCFGenotypeRecord call, GenomeLoc loc, byte ref) {
         if ( minimumDepthForUpdate > 0 && call.getReadCount() < minimumDepthForUpdate ) {
             ignoredDueToDepth.add(loc);
-            return; // do not update; just go away
-        }
-        if ( truth.isNoCall() ) {
+        } else if ( truth.isNoCall() ) {
             chipNoCalls.add(loc);
         } else if ( truth.isVariant(( char) ref) ) {
             if ( call.isNoCall() ) {

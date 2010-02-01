@@ -19,7 +19,7 @@ import java.util.Set;
 class LocusConcordanceInfo {
 
     public enum ConcordanceType {
-        TRUTH_SET,VARIANT_SET,BOTH_SETS
+        TRUTH_SET,TRUTH_SET_VARIANT_FILTERED,VARIANT_SET,BOTH_SETS
     }
 
     private ConcordanceType concordanceType;
@@ -70,8 +70,12 @@ class LocusConcordanceInfo {
         return false;
     }
 
+    public boolean isVariantFiltered() {
+        return this.concordanceType == ConcordanceType.TRUTH_SET_VARIANT_FILTERED;
+    }
+
     public GenomeLoc getLoc() {
-        if ( concordanceType == ConcordanceType.TRUTH_SET || concordanceType == ConcordanceType.BOTH_SETS) {
+        if ( concordanceType == ConcordanceType.TRUTH_SET || concordanceType == ConcordanceType.BOTH_SETS || concordanceType == ConcordanceType.TRUTH_SET_VARIANT_FILTERED) {
             return truthVCFRecord.getLocation();
         } else {
             return variantVCFRecord.getLocation();
