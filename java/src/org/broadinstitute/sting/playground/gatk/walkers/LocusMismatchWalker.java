@@ -12,7 +12,6 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.*;
 
-import java.util.*;
 
 /**
  * Walker to calculate the number of mismatches, their base counts, and their quality sums at confidence ref sites" 
@@ -39,13 +38,13 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     @Argument(fullName="skip", doc = "Only display every skip eligable sites.  Defaults to all sites", required = false)
     int skip = 1;
 
-    private UGCalculationArguments ug;
+    private UnifiedGenotyperEngine ug;
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.baseModel = BaseMismatchModel.THREE_STATE;
         uac.ALL_BASES = true;
-        ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);
+        ug = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // print the header
         out.printf("loc ref genotype genotypeQ depth nMM qSumMM A C G T%n");
@@ -54,7 +53,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     public String map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         String result = null;
 
-        ReadBackedPileup pileup = context.getPileup();
+        ReadBackedPileup pileup = context.getBasePileup();
         if ( locusIsUsable(tracker, ref, pileup, context) ) {
             Genotype g = getGenotype(tracker, ref, context);
             if ( g != null && g.isPointGenotype() )
@@ -163,7 +162,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     }
 
     private Genotype getGenotype( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        VariantCallContext calls = UnifiedGenotyper.runGenotyper(tracker,ref,context, ug);
+        VariantCallContext calls = ug.runGenotyper(tracker,ref,context);
         if ( calls == null || calls.variation == null || calls.genotypes == null )
             return null;
         else {

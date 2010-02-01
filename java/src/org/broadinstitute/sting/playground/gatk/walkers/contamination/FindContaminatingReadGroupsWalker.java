@@ -5,18 +5,12 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariationCall;
-import org.broadinstitute.sting.utils.genotype.GenotypeCall;
-import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.playground.utils.NamedTable;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
-
-import java.util.List;
 
 import cern.jet.stat.Probability;
 
@@ -34,13 +28,13 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
     @Argument(fullName="limit", shortName="lim", doc="The pValue limit for which a read group will be deemed to be a contaminant", required=false)
     private Double LIMIT = 1e-9;
 
-    private UGCalculationArguments ug;
+    private UnifiedGenotyperEngine ug;
     private NamedTable altTable;
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.CONFIDENCE_THRESHOLD = 50;
-        ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);
+        ug = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         altTable = new NamedTable();
     }
@@ -58,7 +52,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         int altCount = 0;
         int totalCount = 0;
 
-        ReadBackedPileup pileup = context.getPileup();
+        ReadBackedPileup pileup = context.getBasePileup();
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref.getBase());
 
         for (byte base : pileup.getBases() ) {
@@ -73,7 +67,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         double altBalance = ((double) altCount)/((double) totalCount);
 
         if (altBalance > 0.70) {
-            VariantCallContext ugResult = UnifiedGenotyper.runGenotyper(tracker, ref, context, ug);
+            VariantCallContext ugResult = ug.runGenotyper(tracker, ref, context);
 
             if (ugResult != null && ugResult.genotypes != null && ugResult.genotypes.size() > 0) {
                 return ugResult.genotypes.get(0).isHet();

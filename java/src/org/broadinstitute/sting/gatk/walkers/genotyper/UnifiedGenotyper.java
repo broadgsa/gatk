@@ -26,19 +26,13 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
@@ -65,7 +59,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public PrintStream beagleWriter = null;
 
     // the calculation arguments
-    private UGCalculationArguments UG_args = null;
+    private UnifiedGenotyperEngine UG_engine = null;
 
     // Enable deletions in the pileup
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -88,172 +82,13 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / nBasesCallable; }
     }
 
-
-    /**
-     * Creates the argument calculation object for the UnifiedGenotyper.
-     *
-     * @param toolkit the GATK Engine
-     * @param UAC     the UnifiedArgumentCollection
-     * @return UG calculation arguments object
-     **/
-    public static UGCalculationArguments getUnifiedCalculationArguments(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        return getUnifiedCalculationArguments(toolkit, UAC, null);
-    }
-
-    /**
-     * Creates the argument calculation object for the UnifiedGenotyper.
-     *
-     * @param toolkit      the GATK Engine
-     * @param UAC          the UnifiedArgumentCollection
-     * @param writer       the genotype writer
-     * @return UG calculation arguments object
-     *
-     **/
-    private static UGCalculationArguments getUnifiedCalculationArguments(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, GenotypeWriter writer) {
-        UGCalculationArguments UG_args = new UGCalculationArguments();
-        UG_args.UAC = UAC;
-
-        // deal with input errors
-        if ( UAC.POOLSIZE > 0 && UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
-            throw new IllegalArgumentException("Attempting to use a model other than POOLED with pooled data. Please set the model to POOLED.");
-        }
-        if ( UAC.POOLSIZE < 1 && UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ) {
-            throw new IllegalArgumentException("Attempting to use the POOLED model with a pool size less than 1. Please set the pool size to an appropriate value.");
-        }
-        if ( toolkit.getArguments().numberOfThreads > 1 && UAC.ASSUME_SINGLE_SAMPLE != null ) {
-            // the ASSUME_SINGLE_SAMPLE argument can't be handled (at least for now) while we are multi-threaded because the IO system doesn't know how to get the sample name
-            throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
-        }
-
-        // get all of the unique sample names - unless we're in POOLED mode, in which case we ignore the sample names
-        if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
-            // if we're supposed to assume a single sample, do so
-            if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-                UG_args.samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-            else
-                UG_args.samples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader());
-        }
-
-        // in pooled mode we need to check that the format is acceptable
-        if ( UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED && writer != null ) {
-            // only multi-sample calls use Variations
-            if ( !writer.supportsMultiSample() )
-                throw new IllegalArgumentException("The POOLED model is not compatible with the specified format; try using VCF instead");
-
-            // when using VCF with multiple threads, we need to turn down the validation stringency so that writing temporary files will work
-            if ( toolkit.getArguments().numberOfThreads > 1 && writer instanceof VCFGenotypeWriter )
-                ((VCFGenotypeWriter)writer).setValidationStringency(VCFGenotypeWriterAdapter.VALIDATION_STRINGENCY.SILENT);
-        }
-
-        // check to see whether a dbsnp rod was included
-        List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
-        for ( ReferenceOrderedDataSource source : dataSources ) {
-            ReferenceOrderedData rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(rodDbSNP.class) ) {
-                UG_args.annotateDbsnp = true;
-            }
-            if ( rod.getName().equals("hapmap2") ) {
-                UG_args.annotateHapmap2 = true;
-            }
-            if ( rod.getName().equals("hapmap3") ) {
-                UG_args.annotateHapmap3 = true;
-            }
-        }
-
-        return UG_args;
-    }
-
-    /**
-     * Compute at a given locus.
-     *
-     * @param tracker    the meta data tracker
-     * @param refContext the reference base
-     * @param rawContext contextual information around the locus
-     * @param UG_args    the calculation argument collection
-     * @return the VariantCallContext object
-     */
-    public static VariantCallContext runGenotyper(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, UGCalculationArguments UG_args) {
-
-        char ref = Character.toUpperCase(refContext.getBase());
-        if ( !BaseUtils.isRegularBase(ref) )
-            return null;
-
-        // don't try to call if we couldn't read in all reads at this locus (since it wasn't properly downsampled)
-        if ( rawContext.hasExceededMaxPileup() )
-            return null;
-
-        ReadBackedPileup rawPileup = rawContext.getBasePileup();
-        
-        // filter the context based on min base and mapping qualities
-        ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UG_args.UAC.MIN_BASE_QUALTY_SCORE, UG_args.UAC.MIN_MAPPING_QUALTY_SCORE);
-
-        // filter the context based on mapping quality and mismatch rate
-        pileup = filterPileup(pileup, refContext, UG_args.UAC);
-
-        // don't call when there is no coverage
-        if ( pileup.size() == 0 )
-            return null;
-
-        // are there too many deletions in the pileup?
-        if ( isValidDeletionFraction(UG_args.UAC.MAX_DELETION_FRACTION) &&
-             (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UG_args.UAC.MAX_DELETION_FRACTION )
-            return null;
-
-        // stratify the AlignmentContext and cut by sample
-        // Note that for testing purposes, we may want to throw multi-samples at pooled mode
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UG_args.UAC.ASSUME_SINGLE_SAMPLE, (UG_args.UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
-        if ( stratifiedContexts == null )
-            return null;
-
-        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UG_args.UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
-        VariantCallContext call = UG_args.gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
-
-        // annotate the call, if possible
-        if ( call != null && call.variation != null && call.variation instanceof ArbitraryFieldsBacked ) {
-            // first off, we want to use the *unfiltered* context for the annotations
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
-
-            Map<String, String> annotations;
-            if ( UG_args.UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.variation, UG_args.annotateDbsnp, UG_args.annotateHapmap2, UG_args.annotateHapmap3);
-            else
-                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.variation, UG_args.annotateDbsnp, UG_args.annotateHapmap2, UG_args.annotateHapmap3);
-            ((ArbitraryFieldsBacked)call.variation).setFields(annotations);
-        }
-
-        return call;
-    }
-
-    // filter based on maximum mismatches and bad mates
-    private static ReadBackedPileup filterPileup(ReadBackedPileup pileup, ReferenceContext refContext, UnifiedArgumentCollection UAC) {
-
-        ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
-        for ( PileupElement p : pileup ) {
-            if  ( (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
-                  AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
-                filteredPileup.add(p);
-        }
-        return new ReadBackedPileup(pileup.getLocation(), filteredPileup);
-    }
-
-    private static boolean isValidDeletionFraction(double d) {
-        return ( d >= 0.0 && d <= 1.0 );
-    }
-
-    // ------------------------------------------------------------------------------------------------
-    //
-    // The following methods are walker-specific; don't use them unless you are a traversal.
-    //   If you are a walker, stick to the static methods defined above.
-    //
-    // ------------------------------------------------------------------------------------------------
-
     /**
      * Initialize the samples, output, and genotype calculation model
      *
      **/
     public void initialize() {
 
-        UG_args = getUnifiedCalculationArguments(getToolkit(), UAC, writer);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, beagleWriter);
 
         // initialize the writers
         if ( verboseWriter != null ) {
@@ -267,16 +102,16 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
         if ( beagleWriter != null ) {
             beagleWriter.print("marker alleleA alleleB");
-            for ( String sample : UG_args.samples )
+            for ( String sample : UG_engine.samples )
                 beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
             beagleWriter.println();
         }
 
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), UG_args.samples, getHeaderInfo(UG_args));
+        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), UG_engine.samples, getHeaderInfo());
     }
 
-    private Set<VCFHeaderLine> getHeaderInfo(UGCalculationArguments UG_args) {
+    private Set<VCFHeaderLine> getHeaderInfo() {
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // this is only applicable to VCF
@@ -295,11 +130,11 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         // annotation (INFO) fields from UnifiedGenotyper
         headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
-        if ( UG_args.annotateDbsnp )
+        if ( UG_engine.annotateDbsnp )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP Membership"));
-        if ( UG_args.annotateHapmap2 )
+        if ( UG_engine.annotateHapmap2 )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "HapMap2 Membership"));
-        if ( UG_args.annotateHapmap3 )
+        if ( UG_engine.annotateHapmap3 )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "HapMap3 Membership"));
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
@@ -331,24 +166,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      * @return the VariantCallContext object
      */
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-
-        // initialize the GenotypeCalculationModel for this thread if that hasn't been done yet
-        if ( UG_args.gcm.get() == null ) {
-            GenotypeWriterFactory.GENOTYPE_FORMAT format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-            if ( writer != null ) {
-                if ( writer instanceof VCFGenotypeWriter )
-                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-                else if ( writer instanceof GLFGenotypeWriter )
-                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
-                else if ( writer instanceof GeliGenotypeWriter )
-                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
-                else
-                    throw new StingException("Unsupported genotype format: " + writer.getClass().getName());
-            }
-            UG_args.gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(UG_args.samples, logger, UAC, format, verboseWriter, beagleWriter));
-        }
-
-        return runGenotyper(tracker, refContext, rawContext, UG_args);
+        return UG_engine.runGenotyper(tracker, refContext, rawContext);
     }
 
     public UGStatistics reduceInit() { return new UGStatistics(); }
@@ -381,7 +199,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
 
         // if we have a single-sample call (single sample from PointEstimate model returns no VariationCall data)
-        if ( value.variation == null || (!writer.supportsMultiSample() && UG_args.samples.size() <= 1) ) {
+        if ( value.variation == null || (!writer.supportsMultiSample() && UG_engine.samples.size() <= 1) ) {
             writer.addGenotypeCall(value.genotypes.get(0));
         }
 

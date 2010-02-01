@@ -26,14 +26,14 @@ import java.util.HashMap;
 public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Integer> {
 
     HashMap<String,Long> counts = new HashMap<String,Long>();
-    private UGCalculationArguments ug;
+    private UnifiedGenotyperEngine ug;
     private NamedTable altTable;
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.CONFIDENCE_THRESHOLD = 50;
         uac.ALL_BASES = true;
-        ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);
+        ug = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         altTable = new NamedTable();
     }
@@ -46,7 +46,7 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
         char nextBase = Character.toUpperCase(contextBases[contextBases.length - 1]);
 
         if (contextBases.length == 3 && refBase != 'N' && pileup.getBases() != null && pileup.getSecondaryBases() != null) {
-            VariantCallContext ugResult = UnifiedGenotyper.runGenotyper(tracker,ref,context,ug);
+            VariantCallContext ugResult = ug.runGenotyper(tracker,ref,context);
             if (ugResult != null && ugResult.variation != null) {
                 Genotype res = ugResult.genotypes.get(0);
                 String call = res.getBases();
