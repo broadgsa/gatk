@@ -33,7 +33,11 @@ public class SimpleIndelROD extends TabularROD implements VariationRod {
             return Arrays.asList(this.get("4"));
 
         String str = this.get("3");
-        return Arrays.asList(str.substring(1, str.indexOf(":")));    
+        int pos = str.indexOf(":");
+        if ( pos == -1 ) {
+            return Arrays.asList(str.substring(1));
+        }
+        return Arrays.asList(str.substring(1, pos));
     }
 
     public String getFWDRefBases() { return ""; }
