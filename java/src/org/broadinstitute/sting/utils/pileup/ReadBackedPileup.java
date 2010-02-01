@@ -195,6 +195,12 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         }
     }
 
+    /** Returns subset of this pileup that contains only bases with quality >= minBaseQ, coming from
+     * reads with mapping qualities >= minMapQ. This method allocates and returns a new instance of ReadBackedPileup.
+     * @param minBaseQ
+     * @param minMapQ
+     * @return
+     */
     public ReadBackedPileup getBaseAndMappingFilteredPileup( int minBaseQ, int minMapQ ) {
         ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
 
@@ -207,10 +213,24 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         return new ReadBackedPileup(loc, filteredPileup);
     }
 
+    /** Returns subset of this pileup that contains only bases with quality >= minBaseQ.
+     * This method allocates and returns a new instance of ReadBackedPileup.
+     * @param minBaseQ
+     * @return
+     */
     public ReadBackedPileup getBaseFilteredPileup( int minBaseQ ) {
         return getBaseAndMappingFilteredPileup(minBaseQ, -1);
     }
         
+    /** Returns subset of this pileup that contains only bases coming from reads with mapping quality >= minMapQ.
+     * This method allocates and returns a new instance of ReadBackedPileup.
+     * @param minMapQ
+     * @return
+     */
+    public ReadBackedPileup getMappingFilteredPileup( int minMapQ ) {
+        return getBaseAndMappingFilteredPileup(-1, minMapQ);
+    }
+
     /**
      * Returns a pileup randomly downsampled to the desiredCoverage.
      *
