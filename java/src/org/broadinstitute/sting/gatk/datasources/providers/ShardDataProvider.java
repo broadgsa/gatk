@@ -84,7 +84,7 @@ public class ShardDataProvider {
      * Gets an iterator over all the reads bound by this shard.
      * @return An iterator over all reads in this shard.
      */
-    StingSAMIterator getReadIterator() {
+    public StingSAMIterator getReadIterator() {
         return reads;
     }
 
@@ -166,6 +166,11 @@ public class ShardDataProvider {
     public void close() {
         for( View view: registeredViews )
             view.close();
+
+        // Explicitly purge registered views to ensure that we don't end up with circular references
+        // to views, which can in turn hold state.
+        registeredViews.clear();
+
         reads.close();
     }
 }
