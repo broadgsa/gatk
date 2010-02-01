@@ -39,7 +39,6 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
-        uac.genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
         uac.CONFIDENCE_THRESHOLD = 50;
         ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);
 

@@ -18,7 +18,6 @@ import java.util.*;
 public abstract class GenotypeCalculationModel implements Cloneable {
 
     public enum Model {
-        EM_POINT_ESTIMATE,
         JOINT_ESTIMATE,
         POOLED
     }

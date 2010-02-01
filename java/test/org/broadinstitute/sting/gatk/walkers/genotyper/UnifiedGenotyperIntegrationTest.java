@@ -15,27 +15,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing point estimate model
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void testMultiSamplePilot1PointEM() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,400-10,024,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("5ad3f97c886a3381821366caa9162c12"));
-        executeTest("testMultiSamplePilot1 - Point Estimate EM", spec);
-    }
-
-    @Test
-    public void testMultiSamplePilot2PointEM() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,010,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("73c80566c8353958b2ac61932f0b3812"));
-        executeTest("testMultiSamplePilot2 - Point Estimate EM", spec);
-    }
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
     // testing pooled model
     //
     // --------------------------------------------------------------------------------------------------------------

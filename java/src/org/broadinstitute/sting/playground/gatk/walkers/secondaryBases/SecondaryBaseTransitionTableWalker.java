@@ -31,7 +31,6 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
-        uac.genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
         uac.CONFIDENCE_THRESHOLD = 50;
         uac.ALL_BASES = true;
         ug = UnifiedGenotyper.getUnifiedCalculationArguments(getToolkit(), uac);

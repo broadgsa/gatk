@@ -97,7 +97,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      * @return UG calculation arguments object
      **/
     public static UGCalculationArguments getUnifiedCalculationArguments(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        return getUnifiedCalculationArguments(toolkit, UAC, null, null);
+        return getUnifiedCalculationArguments(toolkit, UAC, null);
     }
 
     /**
@@ -106,11 +106,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      * @param toolkit      the GATK Engine
      * @param UAC          the UnifiedArgumentCollection
      * @param writer       the genotype writer
-     * @param beagleWriter the beagle writer
      * @return UG calculation arguments object
      *
      **/
-    private static UGCalculationArguments getUnifiedCalculationArguments(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, GenotypeWriter writer, PrintStream beagleWriter) {
+    private static UGCalculationArguments getUnifiedCalculationArguments(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, GenotypeWriter writer) {
         UGCalculationArguments UG_args = new UGCalculationArguments();
         UG_args.UAC = UAC;
 
@@ -120,9 +119,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
         if ( UAC.POOLSIZE < 1 && UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ) {
             throw new IllegalArgumentException("Attempting to use the POOLED model with a pool size less than 1. Please set the pool size to an appropriate value.");
-        }
-        if ( beagleWriter != null && UAC.genotypeModel == GenotypeCalculationModel.Model.EM_POINT_ESTIMATE ) {
-            throw new IllegalArgumentException("BEAGLE output is not currently supported in the EM_POINT_ESTIMATE calculation model.");
         }
         if ( toolkit.getArguments().numberOfThreads > 1 && UAC.ASSUME_SINGLE_SAMPLE != null ) {
             // the ASSUME_SINGLE_SAMPLE argument can't be handled (at least for now) while we are multi-threaded because the IO system doesn't know how to get the sample name
@@ -257,19 +253,17 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      **/
     public void initialize() {
 
-        UG_args = getUnifiedCalculationArguments(getToolkit(), UAC, writer, beagleWriter);
+        UG_args = getUnifiedCalculationArguments(getToolkit(), UAC, writer);
 
         // initialize the writers
         if ( verboseWriter != null ) {
-            if ( UAC.genotypeModel != GenotypeCalculationModel.Model.EM_POINT_ESTIMATE ) {
-                StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
-                for ( char altAllele : BaseUtils.BASES ) {
-                    char base = Character.toUpperCase(altAllele);
-                    header.append("POfDGivenAFFor" + base + "\t");
-                    header.append("PosteriorAFFor" + base + "\t");
-                }
-                verboseWriter.println(header);
+            StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
+            for ( char altAllele : BaseUtils.BASES ) {
+                char base = Character.toUpperCase(altAllele);
+                header.append("POfDGivenAFFor" + base + "\t");
+                header.append("PosteriorAFFor" + base + "\t");
             }
+            verboseWriter.println(header);
         }
         if ( beagleWriter != null ) {
             beagleWriter.print("marker alleleA alleleB");

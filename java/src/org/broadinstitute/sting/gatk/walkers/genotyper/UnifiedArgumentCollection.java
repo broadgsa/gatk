@@ -31,7 +31,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- JOINT_ESTIMATE is currently the default, while POOLED and EM_POINT_ESTIMATE are available.", required = false)
+    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- JOINT_ESTIMATE is currently the default, while POOLED is also available.", required = false)
     public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.JOINT_ESTIMATE;
 
     @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)

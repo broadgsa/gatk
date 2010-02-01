@@ -64,9 +64,6 @@ public class GenotypeCalculationModelFactory {
                                                                    PrintStream beagleWriter) {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
-            case EM_POINT_ESTIMATE:
-                gcm = new PointEstimateGenotypeCalculationModel();
-                break;
             case JOINT_ESTIMATE:
                 gcm = new DiploidGenotypeCalculationModel();
                 break;
