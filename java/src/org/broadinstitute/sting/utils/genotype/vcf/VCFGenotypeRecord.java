@@ -19,7 +19,7 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
     public static final String GENOTYPE_QUALITY_KEY = "GQ";
     public static final String DEPTH_KEY = "DP";
     public static final String HAPLOTYPE_QUALITY_KEY = "HQ";
-    public static final String FILTER_KEY = "FT";
+    public static final String GENOTYPE_FILTER_KEY = "FT";
     public static final String OLD_DEPTH_KEY = "RD";
 
     // the values for empty fields
@@ -194,7 +194,7 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
     }
 
     public boolean isFiltered() {
-        return ( mFields.get(FILTER_KEY) != null && ! mFields.get(FILTER_KEY).equals("0"));
+        return ( mFields.get(GENOTYPE_FILTER_KEY) != null && ! mFields.get(GENOTYPE_FILTER_KEY).equals("0"));
     }
 
     public int getPloidy() {
@@ -291,7 +291,7 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
             result = String.valueOf(MISSING_GENOTYPE_QUALITY);
         else if ( field.equals(DEPTH_KEY) )
             result = String.valueOf(MISSING_DEPTH);
-        else if ( field.equals(FILTER_KEY) )
+        else if ( field.equals(GENOTYPE_FILTER_KEY) )
             result = UNFILTERED;
         // TODO -- support haplotype quality
         //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )

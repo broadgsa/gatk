@@ -89,10 +89,14 @@ public class VariantContextAdaptors {
 
                 double pError = vcfG.getNegLog10PError() == VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY ? AttributedObject.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
                 Genotype g = new Genotype(vc, alleleStrings, vcfG.getSampleName(), pError);
+
                 for ( Map.Entry<String, String> e : vcfG.getFields().entrySet() ) {
-                    if ( ! e.getKey().equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) ) 
+                    if ( ! e.getKey().equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) && ! e.getKey().equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) )
                         g.putAttribute(e.getKey(), e.getValue());
                 }
+
+                if ( vcfG.isFiltered() ) // setup the FL genotype filter fields
+                    g.setFilters(Arrays.asList(vcfG.getFields().get(VCFGenotypeRecord.GENOTYPE_FILTER_KEY.split(";"))));
 
                 vc.addGenotype(g);
             }

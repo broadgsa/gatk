@@ -16,6 +16,7 @@ import java.util.*;
 public class AttributedObject {
     public static final double NO_NEG_LOG_10PERROR = 0.0;
     private double negLog10PError = NO_NEG_LOG_10PERROR;
+    private Set<Object> filters = new HashSet<Object>();
 
     private Map<Object, Object> attributes = new HashMap<Object, Object>();
 
@@ -35,6 +36,45 @@ public class AttributedObject {
         setNegLog10PError(negLog10PError);
     }
 
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Filter
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    public Set<Object> getFilters() {
+        return filters;
+    }
+
+    public boolean isFiltered() {
+        return filters.size() > 0;
+    }
+
+    public boolean isNotFiltered() {
+        return ! isFiltered();
+    }
+
+    public void addFilter(Object filter) {
+        if ( filter == null ) throw new IllegalArgumentException("BUG: Attempting to add null filter " + this);
+        if ( getFilters().contains(filter) ) throw new IllegalArgumentException("BUG: Attempting to add duplicate filter " + filter + " at " + this);
+        filters.add(filter);
+    }
+
+    public void addFilters(Collection<? extends Object> filters) {
+        if ( filters == null ) throw new IllegalArgumentException("BUG: Attempting to add null filters at" + this);
+        for ( Object f : filters )
+            addFilter(f);
+    }
+
+    public void clearFilters() {
+        filters.clear();
+    }
+
+    public void setFilters(Collection<? extends Object> filters) {
+        clearFilters();
+        addFilters(filters);
+    }
 
     // ---------------------------------------------------------------------------------------------------------
     //

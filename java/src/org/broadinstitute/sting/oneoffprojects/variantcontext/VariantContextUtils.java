@@ -39,6 +39,10 @@ public class VariantContextUtils {
         return exps;
     }
 
+    // todo -- add generalize matching routine here
+    // todo -- should file in all fields (loc, filter, etc) for selection
+    // todo -- genotypes should be sampleNAME.field -> value bindings
+
     private static final String UNIQUIFIED_SUFFIX = ".unique";
 
     /**
