@@ -2,23 +2,22 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import java.io.IOException;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.playground.utils.PoolUtils;
-import org.broadinstitute.sting.playground.gatk.walkers.poolseq.ReadOffsetQuad;
-import sun.misc.Cache;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import net.sf.samtools.SAMRecord;
 
 import java.util.HashMap;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 
 /**
@@ -35,15 +34,24 @@ import java.io.PrintWriter;
  *
  * @Author: Chris Hartl
  */
+@ReadFilters({PlatformUnitFilter.class})
 public class QualityScoreByStrandWalker extends LocusWalker<StrandedCounts,StrandedCounts> {
     @Argument(fullName="readLength", shortName="rl", doc="Maximum length of the reads in the bam file", required=true)
     int maxReadLength = -1;
     @Argument(fullName="locusCountsOutput", shortName="lcf", doc="File to print locus count information to", required=true)
     String locusOutput = null;
-    @Argument(fullName="pairCountsOutput", shortName="pcf", doc="File to print pair count information to", required=true)
+    @Argument(fullName="pairCountsOutput", shortName="pcf", doc="File to print pair count information to; when not specified pair count statistics is not collected", required=false)
     String pairOutput = null;
     @Argument(fullName="useCycle", shortName="c", doc="Use cycle directly rather than strand", required=false)
     boolean useCycle = false;
+    @Argument(fullName="silent", shortName="s", doc="Don't echo results into stdout, just print them into the specified files.", required=false)
+    boolean silent= false;
+    @Argument(fullName="minMapQ",shortName="q",doc="Use only reads with mapping quality at or above this value.",required=false)
+    int MIN_MAPQ = -1;
+    @Argument(fullName="blacklistedLanes", shortName="BL",
+            doc="Name of lanes (platform units) that should be ignored. Reads coming from these lanes will never be seen "+
+                    "by this application.", required=false)
+    PlatformUnitFilterHelper dummy;
 
     public HashMap pairCache = new HashMap();
 
@@ -63,10 +71,10 @@ public class QualityScoreByStrandWalker extends LocusWalker<StrandedCounts,Stran
     }
 
     public void updateCounts( StrandedCounts counts, AlignmentContext context, ReferenceContext ref ) {
-        ReadBackedPileup p = context.getPileup();
+        ReadBackedPileup p = context.getBasePileup().getMappingFilteredPileup(MIN_MAPQ);
         for ( PileupElement e : p ) {
             updateLocus(counts,e,ref);
-            updateReads(counts,e,ref);
+            if ( pairOutput != null ) updateReads(counts,e,ref);
         }
     }
 
@@ -117,18 +125,26 @@ public class QualityScoreByStrandWalker extends LocusWalker<StrandedCounts,Stran
 
     public void onTraversalDone(StrandedCounts finalCounts) {
 	try {
-	    PrintWriter locusOut = new PrintWriter(locusOutput);
-	    System.out.println("#$"); //delimeter
-	    System.out.print(finalCounts.locusCountsAsString());
-	    System.out.println("#$");
-	    System.out.println("Unmatched reads="+pairCache.size());
-	    System.out.println("#$");
-	    locusOut.printf(finalCounts.locusCountsAsString());
-	    PrintWriter pairOut = new PrintWriter(pairOutput);
-	    pairOut.printf(finalCounts.pairCountsAsString());
-	    System.out.println("#$");
-	    System.out.print(finalCounts.pairCountsAsString());
-	    System.out.print("#$");
+        if ( ! silent ) {
+	        System.out.println("#$"); //delimeter
+	        System.out.print(finalCounts.locusCountsAsString());
+	        System.out.println("#$");
+        }
+        PrintWriter locusOut = new PrintWriter(locusOutput);
+	    locusOut.print(finalCounts.locusCountsAsString());
+        locusOut.close();
+        if ( pairOutput != null ) {
+            if ( ! silent ) {
+                System.out.println("Unmatched reads="+pairCache.size());
+                System.out.println("#$");
+                System.out.println("#$");
+                System.out.print(finalCounts.pairCountsAsString());
+                System.out.print("#$");
+            }
+	        PrintWriter pairOut = new PrintWriter(pairOutput);
+	        pairOut.print(finalCounts.pairCountsAsString());
+            pairOut.close();
+        }
 	} catch ( IOException e ) {
 	    throw new StingException("Outputfile could not be opened");
 	}
