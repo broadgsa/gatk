@@ -8,6 +8,7 @@
       <module file="QualityScoresRecalibration.xml" />
       <module file="LocalRealignmentAroundIndels.xml" />
       <module file="UnifiedGenotyper.xml" />
+      <module file="VariantEval.xml" />
       <module file="VariantFiltration.xml" />
       <module file="VariantAnnotator.xml" />
       <module file="VCFValidator.xml" />

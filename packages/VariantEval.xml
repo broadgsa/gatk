@@ -4,7 +4,7 @@
     <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
     <resource-bundle file="StingText.properties" />
     <dependencies>
-      <class name="org.broadinstitute.sting.playground.gatk.walkers.varianteval.VariantEvalWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker" />
     </dependencies>
   </executable>
 </package>
