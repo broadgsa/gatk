@@ -13,7 +13,7 @@ import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.playground.gatk.walkers.poolseq.PowerBelowFrequencyWalker;
-import org.broadinstitute.sting.playground.gatk.walkers.varianteval.ConcordanceTruthTable;
+import org.broadinstitute.sting.gatk.walkers.varianteval.ConcordanceTruthTable;
 
 import java.io.*;
 import java.util.LinkedList;

@@ -1,7 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
-
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 /**
  * The Broad Institute

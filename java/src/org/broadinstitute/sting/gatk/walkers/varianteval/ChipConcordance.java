@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.Genotype;

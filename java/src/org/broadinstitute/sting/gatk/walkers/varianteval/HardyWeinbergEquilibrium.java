@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import cern.jet.math.Arithmetic;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;

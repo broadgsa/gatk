@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.playground.gatk.walkers.varianteval.ConcordanceTruthTable;
+import org.broadinstitute.sting.gatk.walkers.varianteval.ConcordanceTruthTable;
 import org.broadinstitute.sting.BaseTest;
 
 import java.util.List;

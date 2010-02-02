@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.IntervalRod;
@@ -7,7 +7,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 /**
