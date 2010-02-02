@@ -129,7 +129,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
         logger.warn("Executing testMergingTwoBAMFiles");
 
         // setup the test files
-        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam"));
+        fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
         Reads reads = new Reads(fl);                   
 
         // the sharding strat.
@@ -170,8 +170,8 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         // setup the data and the counter before our second run
         fl.clear();
-        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-01A-01W.aligned.duplicates_marked.bam"));
-        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-10B-01W.aligned.duplicates_marked.bam"));
+        fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
+        fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
         reads = new Reads(fl);
 
         count = 0;

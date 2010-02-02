@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import static junit.framework.Assert.fail;
+
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
@@ -15,12 +17,16 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -84,62 +90,51 @@ public class BoundedReadIteratorTest extends BaseTest {
     @Test
     public void testBounding() {
         logger.warn("Executing testBounding");
+        // total reads expected
+        final int expected = 20;
+        // bound by ten reads
+        BoundedReadIterator iter = new BoundedReadIterator(new testIterator(), expected);
 
-        // setup the test files
-        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam"));
-        Reads reads = new Reads(fl);
-
-        SAMDataSource data = new IndexDrivenSAMDataSource(reads);
-        // the sharding strat.
-        ShardStrategy strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
         int count = 0;
-
-        // our target read
-        final long boundedReadCount = 100;
-        long shardReadCount = 0;
-
-        try {
-            // make sure we have a shard
-            if (!strat.hasNext()) {
-                fail("Our shatter didn't give us a single piece, this is bad");
-            }
-            Shard sd = strat.next();
-
-
-            StingSAMIterator datum = data.seek(sd);
-            StingSAMIterator datum2 = data.seek(sd);
-
-            // check the reads in the shard
-            for (SAMRecord r : datum) {
-                shardReadCount++;
-
-            }
-
-            // create the bounded iterator
-            BoundedReadIterator iter = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,datum2), boundedReadCount);
-
-            // now see how many reads are in the bounded iterator
-            int readCount = 0;
-            for (SAMRecord r : iter) {
-                readCount++;
-
-            }
-
-            // close the iterators
-            datum.close();
-            datum2.close();
-
-            // check to see that the sizes are the same
-            assertEquals(boundedReadCount,readCount);
-            assertTrue(readCount < shardReadCount);
-
-
-        }
-        catch (SimpleDataSourceLoadException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            fail("testLinearBreakIterateAll: We Should get a SimpleDataSourceLoadException");
+        for (SAMRecord rec: iter) {
+            count++;
         }
 
+        Assert.assertEquals(expected,count);
+    }
+}
 
+class testIterator implements StingSAMIterator {
+    SAMFileHeader header;
+    testIterator() {
+        header = ArtificialSAMUtils.createArtificialSamHeader(1,1,2000);
+    }
+    /**
+     * Gets source information for the reads.  Contains information about the original reads
+     * files, plus information about downsampling, etc.
+     *
+     * @return
+     */
+    public Reads getSourceInfo() {
+        return null;
+    }
+
+    public void close() {
+
+    }
+
+    public boolean hasNext() {
+        return true;
+    }
+
+    public SAMRecord next() {
+        return ArtificialSAMUtils.createArtificialRead(header,"blah",0,1,100);
+    }
+
+    public void remove() {
+    }
+
+    public Iterator<SAMRecord> iterator() {
+        return this;
     }
 }
