@@ -69,13 +69,15 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 for ( VariantContextUtils.MatchExp e : selectExps ) {
                     addNewContext(d.getName(), d.getName() + "." + e.name, e);
                 }
-                addNewContext(d.getName(), d.getName(), null);
+                addNewContext(d.getName(), d.getName() + ".all", null);
             } else if ( d.getName().startsWith("dbsnp") || d.getName().startsWith("hapmap") || d.getName().startsWith("comp") ) {
                 compNames.add(d.getName());
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());
             }
         }
+
+        determineContextNamePartSizes();
     }
 
     private void determineAllEvalations() {
@@ -144,7 +146,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                     // now call the single or paired update function
                     switch ( evaluation.getComparisonOrder() ) {
                         case 1:
-                            if ( vc != null ) evaluation.update1(vc, tracker, ref, context);
+                            if ( evalWantsVC && vc != null ) evaluation.update1(vc, tracker, ref, context);
                             break;
                         case 2:
                             for ( VariantContext comp : comps.values() ) {
@@ -249,16 +251,59 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         return null;
     }
 
-    public <T extends Comparable<T>> List<T> sorted(Collection<T> c ) {
+    private <T extends Comparable<T>> List<T> sorted(Collection<T> c ) {
         List<T> l = new ArrayList<T>(c);
         Collections.sort(l);
         return l;
     }
 
+    private final static String CONTEXT_HEADER = "track.subset.novelty.filter";
+    private final static int N_CONTEXT_NAME_PARTS = CONTEXT_HEADER.split("\\.").length;
+    private static int[] nameSizes = new int[N_CONTEXT_NAME_PARTS];
+    static {
+        int i = 0;
+        for ( String elt : CONTEXT_HEADER.split("\\.") )
+            nameSizes[i++] = elt.length();
+    }
+
+    private void determineContextNamePartSizes() {
+        for ( String contextName : sorted(contexts.keySet()) ) {
+            EvaluationContext group = contexts.get(contextName);
+            for ( String evalSubgroupName : sorted(group.keySet()) ) {
+                String keyWord = contextName + "." + evalSubgroupName;
+                String[] parts = keyWord.split("\\.");
+                if ( parts.length != N_CONTEXT_NAME_PARTS ) {
+                    throw new StingException("Unexpected number of eval name parts " + keyWord + " length = " + parts.length + ", expected " + N_CONTEXT_NAME_PARTS);
+                } else {
+                    for ( int i = 0; i < parts.length; i++ )
+                        nameSizes[i] = Math.max(nameSizes[i], parts[i].length());
+                }
+            }
+        }
+    }
+    
+    private String formatKeyword(String keyWord) {
+        //System.out.printf("keyword %s%n", keyWord);
+
+        StringBuilder s = new StringBuilder();
+        int i = 0;
+        for ( String part : keyWord.split("\\.") ) {
+            //System.out.printf("part %s %d%n", part, nameSizes[i]);
+            s.append(String.format("%"+nameSizes[i]+"s ", part));
+            i++;
+        }
+
+        return s.toString();
+    }
+
     public void onTraversalDone(Integer result) {
+        // todo -- this really needs to be pretty printed; use some kind of table organization
+        // todo -- so that we can load up all of the data in one place, analyze the widths of the columns
+        // todo -- and pretty print it
         for ( String evalName : variantEvaluationNames ) {
             boolean first = true;
             out.printf("%n%n");
+            // todo -- show that comp is dbsnp, etc. is columns
             for ( String contextName : sorted(contexts.keySet()) ) {
                 EvaluationContext group = contexts.get(contextName);
 
@@ -267,13 +312,14 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                     Set<VariantEvaluator> evalSet = group.get(evalSubgroupName);
                     VariantEvaluator eval = getEvalByName(evalName, evalSet);
                     String keyWord = contextName + "." + evalSubgroupName;
+
                     if ( first ) {
-                        out.printf("%20s\t%40s\t%s%n", evalName, "context", Utils.join("\t\t", eval.getTableHeader()));
+                        out.printf("%20s %s %s%n", evalName, formatKeyword(CONTEXT_HEADER), Utils.join("\t\t", eval.getTableHeader()));
                         first = false;
                     }
 
                     for ( List<String> row : eval.getTableRows() )
-                        out.printf("%20s\t%40s\t%s%n", evalName, keyWord, Utils.join("\t\t", row));
+                        out.printf("%20s %s %s%n", evalName, formatKeyword(keyWord), Utils.join("\t\t", row));
                 }
             }
         }
