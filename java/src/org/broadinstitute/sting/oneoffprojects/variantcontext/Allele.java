@@ -207,7 +207,19 @@ public class Allele {
      * @return true if these alleles are equal
      */
     public boolean equals(Allele other) {
-        return isRef == other.isRef && isNull == other.isNull && isNoCall == other.isNoCall && this.basesMatch(other.getBases());
+        return equals(other, false);
+    }
+
+    /**
+     * Returns true if this and other are equal.  If ignoreRefState is true, then doesn't require both alleles has the
+     * same ref tag
+     *
+     * @param other
+     * @param ignoreRefState
+     * @return
+     */
+    public boolean equals(Allele other, boolean ignoreRefState) {
+        return (isRef == other.isRef || ignoreRefState) && isNull == other.isNull && isNoCall == other.isNoCall && this.basesMatch(other.getBases());
     }
 
     /**

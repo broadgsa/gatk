@@ -11,20 +11,20 @@ import java.util.List;
 import java.util.Arrays;
 
 public class CountVariants extends VariantEvaluator {
-    int nProcessedLoci = 0;
-    int nCalledLoci = 0;
-    int nVariantLoci = 0;
-    int nRefLoci = 0;
+    long nProcessedLoci = 0;
+    long nCalledLoci = 0;
+    long nVariantLoci = 0;
+    long nRefLoci = 0;
 
-    int nSNPs = 0;
-    int nInsertions = 0;
-    int nDeletions = 0;
-    int nComplex = 0;
+    long nSNPs = 0;
+    long nInsertions = 0;
+    long nDeletions = 0;
+    long nComplex = 0;
 
-    int nNoCalls = 0;
-    int nHets = 0;
-    int nHomRef = 0;
-    int nHomVar = 0;
+    long nNoCalls = 0;
+    long nHets = 0;
+    long nHomRef = 0;
+    long nHomVar = 0;
 
     private double rate(long n) {
         return n / (1.0 * Math.max(nProcessedLoci, 1));
@@ -39,7 +39,7 @@ public class CountVariants extends VariantEvaluator {
     }
 
     public String getName() {
-        return "Counter";
+        return "counter";
     }
 
     public int getComparisonOrder() {
@@ -76,7 +76,7 @@ public class CountVariants extends VariantEvaluator {
     }
 
     public String toString() {
-        return "Counter: " + summaryLine();
+        return getName() + ": " + summaryLine();
     }
 
     private String summaryLine() {

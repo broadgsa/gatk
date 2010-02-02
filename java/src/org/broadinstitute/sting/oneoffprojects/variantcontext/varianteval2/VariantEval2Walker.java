@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContext;
@@ -18,76 +19,136 @@ import java.util.*;
 public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     // todo -- add doc string
     @Argument(shortName="select", doc="", required=false)
-    protected String[] SELECT_STRINGS = {};
+    protected String[] SELECT_EXPS = {"QUAL > 500.0", "HARD_TO_VALIDATE==1", "GATK_STANDARD==1"};
+
     // todo -- add doc string
     @Argument(shortName="selectName", doc="", required=false)
-    protected String[] SELECT_NAMES = {};
+    protected String[] SELECT_NAMES = {"q500plus", "low_mapq", "gatk_std_filters"};
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {"dbsnp"};
 
-
-    private class EvaluationGroup extends HashMap<String, Set<VariantEvaluator>> {
+    /** private class holding all of the information about a single evaluation group (e.g., for eval ROD) */
+    private class EvaluationContext extends HashMap<String, Set<VariantEvaluator>> {
         // useful for typing
+        public String trackName, contextName;
+        VariantContextUtils.MatchExp selectExp;
+
+        public EvaluationContext(String trackName, String contextName, VariantContextUtils.MatchExp selectExp) {
+            this.trackName = trackName;
+            this.contextName = contextName;
+            this.selectExp = selectExp;
+        }
     }
 
-    // todo -- generalize to multiple contexts, one for each eval
-    private HashMap<String, EvaluationGroup> contexts = new HashMap<String, EvaluationGroup>();
-    private List<VariantContextUtils.MatchExp> selectExps = null;
+    private HashMap<String, EvaluationContext> contexts = new HashMap<String, EvaluationContext>();
+    private Set<String> compNames = new HashSet<String>();
 
+    private static String RAW_SET_NAME      = "raw";
+    private static String RETAINED_SET_NAME = "called";
+    private static String FILTERED_SET_NAME = "filtered";
+    private static String ALL_SET_NAME      = "all";
+    private static String KNOWN_SET_NAME    = "known";
+    private static String NOVEL_SET_NAME    = "novel";
+
+    // Dynamically determined variantEvaluation classes
+    private List<String> variantEvaluationNames = new ArrayList<String>();
+    private List<Class<? extends VariantEvaluator>> evaluationClasses = null;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // initialize
+    //
+    // --------------------------------------------------------------------------------------------------------------
     public void initialize() {
-        if ( SELECT_NAMES.length != SELECT_STRINGS.length )
-            throw new StingException("Inconsistent number of provided filter names and expressions.");
-        Map<String, String> map = new HashMap<String, String>();
-        for ( int i = 0; i < SELECT_NAMES.length; i++ ) { map.put(SELECT_NAMES[i], SELECT_STRINGS[i]); }
+        determineAllEvalations();
+        List<VariantContextUtils.MatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
 
-        selectExps = VariantContextUtils.initializeMatchExps(map);
-
-        // setup contexts
-        // todo -- add selects
-        contexts.put("eval", createEvaluationGroup());
-        contexts.put("eval.filtered", createEvaluationGroup());
+        for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
+            if ( d.getName().startsWith("eval") ) {
+                for ( VariantContextUtils.MatchExp e : selectExps ) {
+                    addNewContext(d.getName(), d.getName() + "." + e.name, e);
+                }
+                addNewContext(d.getName(), d.getName(), null);
+            } else if ( d.getName().startsWith("dbsnp") || d.getName().startsWith("hapmap") || d.getName().startsWith("comp") ) {
+                compNames.add(d.getName());
+            } else {
+                logger.info("Not evaluating ROD binding " + d.getName());
+            }
+        }
     }
 
-    private EvaluationGroup createEvaluationGroup() {
-        EvaluationGroup group = new EvaluationGroup();
-
-        for ( String name : Arrays.asList("all", "known", "novel") ) {
-            group.put(name, new HashSet<VariantEvaluator>(Arrays.asList(new CountVariants())));
+    private void determineAllEvalations() {
+        evaluationClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
+        for ( VariantEvaluator e : instantiateEvalationsSet() ) {
+            // for collecting purposes
+            variantEvaluationNames.add(e.getName());
+            logger.debug("Including VariantEvaluator " + e.getName() + " of class " + e.getClass());
         }
 
-        return group;
+        Collections.sort(variantEvaluationNames);
     }
+
+    private Set<VariantEvaluator> instantiateEvalationsSet() {
+        Set<VariantEvaluator> evals = new HashSet<VariantEvaluator>();
+        for ( Class c : evaluationClasses ) {
+            try {
+                evals.add((VariantEvaluator) c.newInstance());
+            } catch (InstantiationException e) {
+                throw new StingException(String.format("Cannot instantiate annotation class '%s': must be concrete class", c.getSimpleName()));
+            } catch (IllegalAccessException e) {
+                throw new StingException(String.format("Cannot instantiate annotation class '%s': must have no-arg constructor", c.getSimpleName()));
+            }
+        }
+
+        return evals;
+    }
+
+    private void addNewContext(String trackName, String contextName, VariantContextUtils.MatchExp selectExp) {
+        EvaluationContext group = new EvaluationContext(trackName, contextName, selectExp);
+
+        for ( String filteredName : Arrays.asList(RAW_SET_NAME, RETAINED_SET_NAME, FILTERED_SET_NAME) ) {
+            for ( String subname : Arrays.asList(ALL_SET_NAME, KNOWN_SET_NAME, NOVEL_SET_NAME) ) {
+                group.put(subname + "." + filteredName, instantiateEvalationsSet());
+            }
+        }
+
+        contexts.put(contextName, group);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // map
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         //System.out.printf("map at %s with %d skipped%n", context.getLocation(), context.getSkippedBases());
 
-        Map<String, VariantContext> allNamedVCs = getVariantContexts(context, tracker);
-        Map<String, VariantContext> evalNamedVCs = getEvalVCs(allNamedVCs);
-        Map<String, VariantContext> comps = getComparisonVCs(allNamedVCs);
+        Map<String, VariantContext> comps = getCompVariantContexts(tracker, context);
 
-        for ( VariantEvaluator eval : getAllEvaluations() ) {
-            eval.update0(tracker, ref, context);
-        }
+        // to enable walking over pairs where eval or comps have no elements
+        for ( EvaluationContext group : contexts.values() ) {
+            VariantContext vc = getVariantContext(group.trackName, tracker, context);
 
-        if ( evalNamedVCs.size() > 1 ) throw new StingException("VariantEval doesn't yet support for multiple independent eval tracks");
-        for ( Map.Entry<String, VariantContext> evalNameVC: evalNamedVCs.entrySet() ) {
-            String name = evalNameVC.getKey();
-            VariantContext vc = evalNameVC.getValue();
-            boolean isKnown = vcIsKnown(vc, allNamedVCs);
+            //logger.debug(String.format("Updating %s of %s with variant", group.name, vc));
+            for ( Map.Entry<String, Set<VariantEvaluator>> namedEvaluations : group.entrySet() ) {
+                String evaluationName = namedEvaluations.getKey();
+                Set<VariantEvaluator> evaluations = namedEvaluations.getValue();
+                boolean evalWantsVC = applyVCtoEvaluation(evaluationName, vc, comps, group);
 
-            if ( vc.isFiltered() ) name = name + ".filtered";
-            EvaluationGroup group = contexts.get(name);
-
-            for ( Set<VariantEvaluator> evaluations : Arrays.asList(group.get("all"), group.get(isKnown ? "known" : "novel")) ) {
                 for ( VariantEvaluator evaluation : evaluations ) {
+                    // we always call update0 in case the evaluation tracks things like number of bases covered
+                    evaluation.update0(tracker, ref, context);
+
+                    // now call the single or paired update function
                     switch ( evaluation.getComparisonOrder() ) {
                         case 1:
-                            evaluation.update1(vc, tracker, ref, context);
+                            if ( vc != null ) evaluation.update1(vc, tracker, ref, context);
                             break;
                         case 2:
                             for ( VariantContext comp : comps.values() ) {
-                                evaluation.update2(vc, comp, tracker, ref, context);
+                                evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context);
                             }
                             break;
                         default:
@@ -100,93 +161,79 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         return 0;
     }
 
-    private boolean vcIsKnown(VariantContext vc, Map<String, VariantContext> vcs) {
-        for ( VariantContext known : getKnownVCs(vcs).values() ) {
-            if ( known.isNotFiltered() && known.getType() == vc.getType() )
+    private boolean applyVCtoEvaluation(String evaluationName, VariantContext vc, Map<String, VariantContext> comps, EvaluationContext group) {
+        if ( vc == null )
+            return true;
+        
+        if ( evaluationName.contains(FILTERED_SET_NAME) && vc.isNotFiltered() )
+            return false;
+
+        if ( evaluationName.contains(RETAINED_SET_NAME) && vc.isFiltered() )
+            return false;
+
+        boolean vcKnown = vcIsKnown(vc, comps, KNOWN_NAMES);
+        if ( evaluationName.contains(KNOWN_SET_NAME) && ! vcKnown )
+            return false;
+        else if ( evaluationName.contains(NOVEL_SET_NAME) && vcKnown )
+            return false;
+
+        if ( group.selectExp != null && ! VariantContextUtils.match(vc, group.selectExp) )
+            return false;
+
+        // nothing invalidated our membership in this set
+        return true;
+    }
+
+    private Map<String, VariantContext> getCompVariantContexts(RefMetaDataTracker tracker, AlignmentContext context) {
+        Map<String, VariantContext> comps = new HashMap<String, VariantContext>();
+
+        for ( String compName : compNames ) {
+            comps.put(compName, getVariantContext(compName, tracker, context));
+        }
+
+        return comps;
+    }
+
+    private boolean vcIsKnown(VariantContext vc, Map<String, VariantContext> comps, String[] knownNames ) {
+        for ( String knownName : knownNames ) {
+            VariantContext known = comps.get(knownName);
+            if ( known != null && known.isNotFiltered() && known.getType() == vc.getType() )
                 return true;
         }
 
         return false;
     }
 
+// can't handle this situation
+// todo -- warning, this leads to some missing SNPs at complex loci, such as:
+// todo -- 591     1       841619  841620  rs4970464       0       -       A       A       -/C/T   genomic mixed   unknown 0       0       near-gene-3     exact   1
+// todo -- 591     1       841619  841620  rs62677860      0       +       A       A       C/T     genomic single  unknown 0       0       near-gene-3     exact   1
+//
+//logger.info(String.format("Ignore second+ events at locus %s in rod %s => rec is %s", context.getLocation(), rodList.getName(), rec));
 
-    private Map<String, VariantContext> getEvalVCs(Map<String, VariantContext> vcs) {
-        return getVCsStartingWith(vcs, false);
-    }
-
-    private Map<String, VariantContext> getComparisonVCs(Map<String, VariantContext> vcs) {
-        return getVCsStartingWith(vcs, true);
-    }
-
-    private Map<String, VariantContext> getVCsStartingWith(Map<String, VariantContext> vcs, boolean notStartsWith) {
-        Map<String, VariantContext> map = new HashMap<String, VariantContext>();
-
-        for ( Map.Entry<String, VariantContext> elt : vcs.entrySet() ) {
-            boolean startP = elt.getKey().startsWith("eval");
-
-            if ( (startP && ! notStartsWith) || (!startP && notStartsWith) ) {
-                map.put(elt.getKey(), elt.getValue());
-            }
-        }
-
-        return map;
-    }
-
-    private Map<String, VariantContext> getKnownVCs(Map<String, VariantContext> vcs) {
-        Map<String, VariantContext> map = new HashMap<String, VariantContext>();
-
-        for ( Map.Entry<String, VariantContext> elt : vcs.entrySet() ) {
-            for ( String known1 : KNOWN_NAMES )  {
-                if ( elt.getKey().equals(known1) ) {
-                    map.put(elt.getKey(), elt.getValue());
-                }
-            }
-        }
-
-        return map;
-    }
-
-    private List<String> getAllEvaluationNames() {
-        List<String> names = new ArrayList<String>();
-        if ( contexts.size() == 0 ) throw new IllegalStateException("Contexts shouldn't be sized 0 when calling getAllEvaluationNames()");
-
-        for ( VariantEvaluator eval : contexts.values().iterator().next().get("all") ) {
-            names.add(eval.getName());
-        }
-
-        return names;
-    }
-
-
-    private Map<String, VariantContext> getVariantContexts(AlignmentContext context, RefMetaDataTracker tracker) {
-        Map<String, VariantContext> map = new HashMap<String, VariantContext>();
-
+    private VariantContext getVariantContext(String name, RefMetaDataTracker tracker, AlignmentContext context) {
         if ( tracker != null ) {
-            for ( RODRecordList<ReferenceOrderedDatum> rodList : tracker.getBoundRodTracks() ) {
-                boolean alreadyGrabbedOne = false;
-
+            RODRecordList<ReferenceOrderedDatum> rodList = tracker.getTrackData(name, null);
+            if ( rodList != null ) {
                 for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
                     if ( rec.getLocation().getStart() == context.getLocation().getStart() ) {
-                        // ignore things that span this location but started earlier
-                        if ( alreadyGrabbedOne ) {
-                            // can't handle this situation
-                            ;
-                            //logger.info(String.format("Ignore second+ events at locus %s in rod %s => rec is %s", context.getLocation(), rodList.getName(), rec));
-                        } else {
-                            VariantContext vc = VariantContextAdaptors.convertToVariantContext(rec);
-                            if ( vc != null ) {
-                                alreadyGrabbedOne = true;
-                                map.put(rec.getName(), vc);
-                            }
+                        VariantContext vc = VariantContextAdaptors.convertToVariantContext(rec);
+                        if ( vc != null ) {
+                            return vc;
                         }
                     }
                 }
             }
         }
 
-        return map;
+        return null;
     }
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // reduce
+    //
+    // --------------------------------------------------------------------------------------------------------------
     public Integer reduceInit() {
         return 0;
     }
@@ -202,38 +249,31 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         return null;
     }
 
-
-    public List<VariantEvaluator> getAllEvaluations() {
-        List<VariantEvaluator> l = new ArrayList<VariantEvaluator>();
-
-        for ( EvaluationGroup group : contexts.values() ) {
-            for ( Set<VariantEvaluator> evals : group.values() ) {
-                l.addAll(evals);
-            }
-        }
-
+    public <T extends Comparable<T>> List<T> sorted(Collection<T> c ) {
+        List<T> l = new ArrayList<T>(c);
+        Collections.sort(l);
         return l;
     }
 
-
     public void onTraversalDone(Integer result) {
-        for ( String evalName : getAllEvaluationNames() ) {
+        for ( String evalName : variantEvaluationNames ) {
             boolean first = true;
-            for ( Map.Entry<String, EvaluationGroup> elt : contexts.entrySet() ) {
-                String contextName = elt.getKey();
-                EvaluationGroup group = elt.getValue();
+            out.printf("%n%n");
+            for ( String contextName : sorted(contexts.keySet()) ) {
+                EvaluationContext group = contexts.get(contextName);
 
-                for ( Map.Entry<String, Set<VariantEvaluator>> namedEvalGroup : group.entrySet() ) {
-                    String evalSubgroupName = namedEvalGroup.getKey();
-                    VariantEvaluator eval = getEvalByName(evalName, namedEvalGroup.getValue());
+                out.printf("%s%n", Utils.dupString('-', 80));
+                for ( String evalSubgroupName : sorted(group.keySet()) ) {
+                    Set<VariantEvaluator> evalSet = group.get(evalSubgroupName);
+                    VariantEvaluator eval = getEvalByName(evalName, evalSet);
                     String keyWord = contextName + "." + evalSubgroupName;
                     if ( first ) {
-                        out.printf("%s\t%s\t%s%n", evalName, "context", Utils.join("\t", eval.getTableHeader()));
+                        out.printf("%20s\t%40s\t%s%n", evalName, "context", Utils.join("\t\t", eval.getTableHeader()));
                         first = false;
                     }
 
                     for ( List<String> row : eval.getTableRows() )
-                        out.printf("%s\t%s\t%s%n", evalName, keyWord, Utils.join("\t", row));
+                        out.printf("%20s\t%40s\t%s%n", evalName, keyWord, Utils.join("\t\t", row));
                 }
             }
         }

@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.variantcontext;
 
+import org.broadinstitute.sting.utils.Utils;
+
 import java.util.*;
 
 /**
@@ -40,6 +42,19 @@ public class Genotype extends AttributedObject {
         for ( Allele a : alleles )
             if ( a.equals(allele) )
                 al.add(a);
+
+        return al;
+    }
+
+    private final static String ALLELE_SEPARATOR = "/";
+    public String getGenotypeString() {
+        return Utils.join(ALLELE_SEPARATOR, getAllelesString());
+    }
+
+    private List<String> getAllelesString() {
+        List<String> al = new ArrayList<String>();
+        for ( Allele a : alleles )
+            al.add(new String(a.getBases()));
 
         return al;
     }

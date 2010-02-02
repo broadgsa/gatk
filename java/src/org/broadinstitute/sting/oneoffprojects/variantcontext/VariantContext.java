@@ -500,13 +500,18 @@ public class VariantContext extends AttributedObject {
      * @return True if this context contains Allele allele, or false otherwise
      */
     public boolean hasAllele(Allele allele) {
+        return hasAllele(allele, false);
+    }
+
+    public boolean hasAllele(Allele allele, boolean ignoreRefState) {
         for ( Allele a : getAlleles() ) {
-            if ( a.equals(allele) )
+            if ( a.equals(allele, ignoreRefState) )
                 return true;
         }
 
         return false;
     }
+
 
     /**
      * Gets the alleles.  This method should return all of the alleles present at the location,
