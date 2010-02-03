@@ -22,7 +22,7 @@ public class Chunk implements Comparable<Chunk> {
         mChunkEnd = end;
     }
 
-    long getChunkStart() {
+    public long getChunkStart() {
         return mChunkStart;
     }
 
@@ -30,7 +30,7 @@ public class Chunk implements Comparable<Chunk> {
         mChunkStart = value;
     }
 
-    long getChunkEnd() {
+    public long getChunkEnd() {
         return mChunkEnd;
     }
 
