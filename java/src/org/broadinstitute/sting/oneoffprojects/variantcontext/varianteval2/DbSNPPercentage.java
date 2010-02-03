@@ -29,6 +29,10 @@ public class DbSNPPercentage extends VariantEvaluator {
     private long nSNPsAtdbSNPs = 0;
     private long nConcordant   = 0;
 
+    public DbSNPPercentage(VariantEval2Walker parent) {
+        // don't do anything
+    }
+
     public String getName() {
         return "dbsnp_percentage";
     }
@@ -86,28 +90,8 @@ public class DbSNPPercentage extends VariantEvaluator {
      *
      * @return
      */
-    public double dbSNPRate() {
-        return nSNPsAtdbSNPs() / (1.0 * Math.max(nEvalSNPs(), 1));
-    }
-
-    public double concordanceRate() {
-        return nConcordant() / (1.0 * Math.max(nSNPsAtdbSNPs(), 1));
-    }
-
-//    public static Variation getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
-//        if (dbsnpList == null)
-//            return null;
-//
-//        Variation dbsnp = null;
-//        for (ReferenceOrderedDatum d : dbsnpList) {
-//            if (((Variation) d).isSNP() && (! (d instanceof RodVCF) || ! ((RodVCF)d).isFiltered())) {
-//                dbsnp = (Variation)d;
-//                break;
-//            }
-//        }
-//
-//        return dbsnp;
-//    }
+    public double dbSNPRate()           { return rate(nSNPsAtdbSNPs(), nEvalSNPs()); }
+    public double concordanceRate()     { return rate(nConcordant(), nSNPsAtdbSNPs()); }
 
     public void update2(VariantContext eval, VariantContext dbsnp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         boolean dbSNPIsGood = dbsnp != null && dbsnp.isSNP() && dbsnp.isNotFiltered();

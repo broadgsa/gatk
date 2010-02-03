@@ -10,13 +10,46 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContext;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContextAdaptors;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContextUtils;
+import org.apache.log4j.Logger;
 
 import java.util.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
+
+//
+// todo -- write a simple column table system and have the evaluators return this instead of the list<list<string>> objects
+// todo -- site frequency spectrum eval (freq. of variants in eval as a function of their AC and AN numbers)
+// todo -- multiple sample concordance tool (genotypes in eval vs. genotypes in truth)
+// todo -- allele freqeuncy discovery tool (FREQ in true vs. discovery counts in eval).  Needs to process subset of samples in true (pools)
+// todo -- clustered SNP counter
+// todo -- HWEs
+// todo -- Validation data analysis from VE1?  What is it and should we transition it over?
+// todo -- indel metrics [count of sizes in/del should be in CountVariants]
+// todo -- create JEXL context implementing object that simply looks up values for JEXL evaluations.  Throws error for unknown fields
+//
+
+//
+// Todo -- should really include argument parsing @annotations from subclass in this walker.  Very
+// todo -- useful general capability.  Right now you need to add arguments to VariantEval2 to handle new
+// todo -- evaluation arguments (which is better than passing a string!)
+//
+
+//
+// todo -- the whole organization only supports a single eval x comp evaluation.  We need to instantiate
+// todo -- new contexts for each comparison object too!
+//
 
 /**
  * Test routine for new VariantContext object
  */
 public class VariantEval2Walker extends RodWalker<Integer, Integer> {
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // walker arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
     // todo -- add doc string
     @Argument(shortName="select", doc="", required=false)
     protected String[] SELECT_EXPS = {"QUAL > 500.0", "HARD_TO_VALIDATE==1", "GATK_STANDARD==1"};
@@ -27,6 +60,27 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {"dbsnp"};
+
+    //
+    // Arguments for Mendelian Violation calculations
+    //
+    @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations: this argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    protected String FAMILY_STRUCTURE;
+
+    @Argument(shortName="MVQ", fullName="MendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
+    protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
+
+    @Argument(shortName="PI", fullName="PrintInterestingSites", doc="If provided, interesting sites in the unselected, called set will be printed", required=false)
+    protected boolean PRINT_INTERESTING_SITES = false;
+
+//    @Argument(shortName="PIA", fullName="PrintAllInterestingSites", doc="If provided, interesting sites will be printed for all sets.  Verbose", required=false)
+//    protected boolean PRINT_ALL_INTERESTING_SITES = false;
+    
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // private walker data
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     /** private class holding all of the information about a single evaluation group (e.g., for eval ROD) */
     private class EvaluationContext extends HashMap<String, Set<VariantEvaluator>> {
@@ -60,6 +114,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     // initialize
     //
     // --------------------------------------------------------------------------------------------------------------
+
     public void initialize() {
         determineAllEvalations();
         List<VariantContextUtils.MatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
@@ -82,7 +137,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 
     private void determineAllEvalations() {
         evaluationClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
-        for ( VariantEvaluator e : instantiateEvalationsSet() ) {
+        for ( VariantEvaluator e : instantiateEvalationsSet(false, null) ) {
             // for collecting purposes
             variantEvaluationNames.add(e.getName());
             logger.debug("Including VariantEvaluator " + e.getName() + " of class " + e.getClass());
@@ -91,15 +146,25 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         Collections.sort(variantEvaluationNames);
     }
 
-    private Set<VariantEvaluator> instantiateEvalationsSet() {
+    private Set<VariantEvaluator> instantiateEvalationsSet(boolean baseline, String name) {
         Set<VariantEvaluator> evals = new HashSet<VariantEvaluator>();
+        Object[] args = new Object[]{this};
+        Class[] argTypes = new Class[]{this.getClass()};
+
         for ( Class c : evaluationClasses ) {
             try {
-                evals.add((VariantEvaluator) c.newInstance());
+                Constructor constructor = c.getConstructor(argTypes);
+                VariantEvaluator eval = (VariantEvaluator)constructor.newInstance(args);
+                if ( baseline ) eval.printInterestingSites(name);
+                evals.add(eval);
             } catch (InstantiationException e) {
-                throw new StingException(String.format("Cannot instantiate annotation class '%s': must be concrete class", c.getSimpleName()));
+                throw new StingException(String.format("Cannot instantiate class '%s': must be concrete class", c.getSimpleName()));
+            } catch (NoSuchMethodException e) {
+                throw new StingException(String.format("Cannot find expected constructor for class '%s': must have constructor accepting a single VariantEval2Walker object", c.getSimpleName()));
             } catch (IllegalAccessException e) {
-                throw new StingException(String.format("Cannot instantiate annotation class '%s': must have no-arg constructor", c.getSimpleName()));
+                throw new StingException(String.format("Cannot instantiate class '%s':", c.getSimpleName()));
+            } catch (InvocationTargetException e) {
+                throw new StingException(String.format("Cannot instantiate class '%s':", c.getSimpleName()));
             }
         }
 
@@ -111,7 +176,8 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 
         for ( String filteredName : Arrays.asList(RAW_SET_NAME, RETAINED_SET_NAME, FILTERED_SET_NAME) ) {
             for ( String subname : Arrays.asList(ALL_SET_NAME, KNOWN_SET_NAME, NOVEL_SET_NAME) ) {
-                group.put(subname + "." + filteredName, instantiateEvalationsSet());
+                String name = subname + "." + filteredName;
+                group.put(name, instantiateEvalationsSet(subname == ALL_SET_NAME && filteredName == RETAINED_SET_NAME, trackName + "." + (selectExp == null ? "all" : selectExp.name) + "." + name));
             }
         }
 
@@ -146,7 +212,8 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                     // now call the single or paired update function
                     switch ( evaluation.getComparisonOrder() ) {
                         case 1:
-                            if ( evalWantsVC && vc != null ) evaluation.update1(vc, tracker, ref, context);
+                            if ( evalWantsVC && vc != null )
+                                evaluation.update1(vc, tracker, ref, context);
                             break;
                         case 2:
                             for ( VariantContext comp : comps.values() ) {
@@ -193,6 +260,8 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
             comps.put(compName, getVariantContext(compName, tracker, context));
         }
 
+        // todo -- remove me when the loop works correctly for comparisons of eval x comp for each comp
+        if ( comps.size() > 1 ) throw new StingException("VariantEval2 currently only supports comparisons of N eval tracks vs. a single comparison track.  Yes, I know...");
         return comps;
     }
 
@@ -314,14 +383,16 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                     String keyWord = contextName + "." + evalSubgroupName;
 
                     if ( first ) {
-                        out.printf("%20s %s %s%n", evalName, formatKeyword(CONTEXT_HEADER), Utils.join("\t\t", eval.getTableHeader()));
+                        out.printf("%20s %s %s%n", evalName, formatKeyword(CONTEXT_HEADER), Utils.join("\t", eval.getTableHeader()));
                         first = false;
                     }
 
                     for ( List<String> row : eval.getTableRows() )
-                        out.printf("%20s %s %s%n", evalName, formatKeyword(keyWord), Utils.join("\t\t", row));
+                        out.printf("%20s %s %s%n", evalName, formatKeyword(keyWord), Utils.join("\t", row));
                 }
             }
         }
     }
+
+    protected Logger getLogger() { return logger; }
 }

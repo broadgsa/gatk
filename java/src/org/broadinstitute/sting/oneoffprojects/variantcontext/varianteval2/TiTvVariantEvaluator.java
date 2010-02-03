@@ -14,8 +14,8 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
     long nTi = 0, nTv = 0;
     long nTiInStd = 0, nTvInStd = 0;
 
-    private double ratio(long num, long denom) {
-        return ((double)num) / (Math.max(denom, 1));
+    public TiTvVariantEvaluator(VariantEval2Walker parent) {
+        // don't do anything
     }
 
     public String getName() {

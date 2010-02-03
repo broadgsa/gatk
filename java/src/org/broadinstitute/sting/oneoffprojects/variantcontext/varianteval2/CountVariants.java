@@ -26,17 +26,12 @@ public class CountVariants extends VariantEvaluator {
     long nHomRef = 0;
     long nHomVar = 0;
 
-    private double rate(long n) {
-        return n / (1.0 * Math.max(nProcessedLoci, 1));
+    public CountVariants(VariantEval2Walker parent) {
+        // don't do anything
     }
 
-    private long inverseRate(long n) {
-        return n == 0 ? 0 : nProcessedLoci / Math.max(n, 1);
-    }
-
-    private double ratio(long num, long denom) {
-        return ((double)num) / (Math.max(denom, 1));
-    }
+    private double perLocusRate(long n)      { return rate(n, nProcessedLoci); }
+    private long perLocusRInverseRate(long n) { return inverseRate(n, nProcessedLoci); }
 
     public String getName() {
         return "counter";
@@ -87,11 +82,11 @@ public class CountVariants extends VariantEvaluator {
                 "%.2e %d %.2f " +
                 "%.2f %d %.2f",
                 nProcessedLoci, nCalledLoci, nRefLoci, nVariantLoci,
-                rate(nVariantLoci), inverseRate(nVariantLoci),
+                perLocusRate(nVariantLoci), perLocusRInverseRate(nVariantLoci),
                 nSNPs, nDeletions, nInsertions, nComplex,
                 nHomRef, nHets, nHomVar,
-                rate(nHets), inverseRate(nHets), ratio(nHets, nHomVar),
-                rate(nDeletions + nInsertions), inverseRate(nDeletions + nInsertions), ratio(nDeletions, nInsertions));
+                perLocusRate(nHets), perLocusRInverseRate(nHets), ratio(nHets, nHomVar),
+                perLocusRate(nDeletions + nInsertions), perLocusRInverseRate(nDeletions + nInsertions), ratio(nDeletions, nInsertions));
     }
 
     private static List<String> HEADER =

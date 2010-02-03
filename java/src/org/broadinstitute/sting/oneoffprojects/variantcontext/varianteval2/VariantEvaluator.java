@@ -16,7 +16,8 @@ import java.util.ArrayList;
  * To change this template use File | Settings | File Templates.
  */
 public abstract class VariantEvaluator {
-    protected boolean accumulateInterestingSites = false;
+    protected boolean accumulateInterestingSites = false, printInterestingSites = false;
+    protected String interestingSitePrefix = null;
     protected boolean processedASite = false;
     protected List<VariantContext> interestingSites = new ArrayList<VariantContext>();
 
@@ -24,9 +25,15 @@ public abstract class VariantEvaluator {
 
     // do we want to keep track of things that are interesting
     public void accumulateInterestingSites(boolean enable)              { accumulateInterestingSites = enable; }
+    public void printInterestingSites(String prefix)                    { printInterestingSites = true; interestingSitePrefix = prefix; }
     public boolean isAccumulatingInterestingSites()                     { return accumulateInterestingSites; }
     public List<VariantContext> getInterestingSites()                   { return interestingSites; }
-    protected void addInterestingSite(String why, VariantContext vc)    { interestingSites.add(vc); }
+    protected void addInterestingSite(String why, VariantContext vc) {
+        if ( accumulateInterestingSites )
+            interestingSites.add(vc);
+        if ( printInterestingSites )
+            System.out.printf("%40s %s%n", interestingSitePrefix, why);
+    }
 
     public boolean processedAnySites()                                  { return processedASite; }
     protected void markSiteAsProcessed()                                { processedASite = true; }
@@ -46,4 +53,20 @@ public abstract class VariantEvaluator {
     // making it a table
     public abstract List<String> getTableHeader();
     public abstract List<List<String>> getTableRows();
+
+    //
+    // useful common utility routines
+    //
+    protected double rate(long n, long d) {
+        return n / (1.0 * Math.max(d, 1));
+    }
+
+    protected long inverseRate(long n, long d) {
+        return n == 0 ? 0 : d / Math.max(n, 1);
+    }
+
+    protected double ratio(long num, long denom) {
+        return ((double)num) / (Math.max(denom, 1));
+    }
+
 }
