@@ -62,6 +62,7 @@ public class AnnotationDataManager {
 
         // Loop over each annotation in the vcf record
         final Map<String,String> infoField = variant.getInfoValues();
+        infoField.put("QUAL", ((Double)variant.getQual()).toString() ); // add QUAL field to annotations
         for( String annotationKey : infoField.keySet() ) {
 
             float value;
@@ -151,7 +152,7 @@ public class AnnotationDataManager {
                                    OUTPUT_PREFIX + annotationKey + ".dat" + " " + annotationName + " " + MIN_VARIANTS_PER_BIN + " " + INDICATE_MEAN_NUM_VARS;
             System.out.println( rScriptCommandLine );
 
-            // Execute the RScript command to plot the table of TiTv values
+            // Execute the RScript command to plot the table of truth values
             try {
                 Runtime.getRuntime().exec( rScriptCommandLine );
             } catch ( IOException e ) {
