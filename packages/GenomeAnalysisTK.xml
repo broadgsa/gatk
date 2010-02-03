@@ -12,6 +12,7 @@
       <module file="VariantFiltration.xml" />
       <module file="VariantAnnotator.xml" />
       <module file="VCFValidator.xml" />
+      <module file="IndelGenotyper.xml" />
     </modules>
     <dependencies>
       <!-- Filters -->
