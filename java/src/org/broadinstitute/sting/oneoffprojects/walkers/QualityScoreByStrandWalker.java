@@ -82,7 +82,11 @@ public class QualityScoreByStrandWalker extends LocusWalker<StrandedCounts,Stran
         if ( ! useCycle ) {
             counts.updateLocus( (int) e.getQual(), ! e.getRead().getReadNegativeStrandFlag() );
         } else {
-            counts.updateLocus( (int) e.getQual(), ! e.getRead().getFirstOfPairFlag() );
+            if ( e.getRead().getReadPairedFlag() ) {
+                counts.updateLocus( (int) e.getQual(), e.getRead().getFirstOfPairFlag() );
+            } else {
+                counts.updateLocus( (int) e.getQual(), true );
+            }
         }
     }
 
