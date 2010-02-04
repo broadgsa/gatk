@@ -282,10 +282,16 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
          */
    private void emit(long position, boolean force) {
 
-            position = adjustPosition(position);
-            long move_to = position;
+            long adjustedPosition = adjustPosition(position);
 
-            for ( long pos = normal_context.getStart() ; pos < Math.min(position,normal_context.getStop()+1) ; pos++ ) {
+            if ( adjustedPosition == -1 ) {
+                // failed to find appropriate shift position, the data are probably to messy anyway so we drop them altogether
+                normal_context.shift((int)(position-normal_context.getStart()));
+                return;
+            }
+            long move_to = adjustedPosition;
+
+            for ( long pos = normal_context.getStart() ; pos < Math.min(adjustedPosition,normal_context.getStop()+1) ; pos++ ) {
 
                 if ( normal_context.indelsAt(pos).size() == 0 ) continue; // no indels
 
@@ -303,12 +309,17 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 long left = Math.max( pos-NQS_WIDTH, normal_context.getStart() );
                 long right = pos+normalCall.getVariant().lengthOnRef()+NQS_WIDTH-1;
 
-                if ( right >= position && ! force) {
+                if ( right >= adjustedPosition && ! force) {
                     // we are not asked to force-shift, and there is more coverage around the current indel that we still need to collect
 
                     // we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
                     // instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
                     move_to = adjustPosition(left);
+                    if ( move_to == -1 ) {
+                        // failed to find appropriate shift position, the data are probably to messy anyway so we drop them altogether
+                        normal_context.shift((int)(adjustedPosition-normal_context.getStart()));
+                        return;
+                    }
                     if ( DEBUG ) System.out.println("DEBUG>> waiting for coverage; actual shift performed to "+ move_to);
                     break;
                 }
@@ -355,7 +366,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 //			}
             }
 
-            if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to + " ("+position+")");
+            if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to + " ("+adjustedPosition+")");
             normal_context.shift((int)(move_to - normal_context.getStart() ) );
     }
 
@@ -403,7 +414,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 request--;
                 if ( DEBUG ) System.out.println("DEBUG>> indel observations present within "+NQS_WIDTH+" bases ahead. Resetting shift to "+request);
                 attempts++;
-                if ( attempts == 50 ) throw new StingException("Indel at every position in the interval ["+request+", "+initial_request+"]. Can not find a break to shift context window to");
+                if ( attempts == 50 ) {
+                    System.out.println("WARNING: Indel at every position in the interval "+refName+":"+request+"-"+initial_request+
+                            ". Can not find a break to shift context window to; no calls will be attempted in the current window.");
+                    return -1;
+                }
             }
         }
         if ( DEBUG ) System.out.println("DEBUG>> Found acceptable target position "+request);
@@ -418,10 +433,16 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
      */
     private void emit_somatic(long position, boolean force) {
 
-        position = adjustPosition(position);
-        long move_to = position;
+        long adjustedPosition = adjustPosition(position);
+        if ( adjustedPosition == -1 ) {
+            // failed to find appropriate shift position, the data are probably to messy anyway so we drop them altogether
+            normal_context.shift((int)(position-normal_context.getStart()));
+            tumor_context.shift((int)(position-tumor_context.getStart()));
+            return;
+        }
+        long move_to = adjustedPosition;
 
-        for ( long pos = tumor_context.getStart() ; pos < Math.min(position,tumor_context.getStop()+1) ; pos++ ) {
+        for ( long pos = tumor_context.getStart() ; pos < Math.min(adjustedPosition,tumor_context.getStop()+1) ; pos++ ) {
 
             if ( tumor_context.indelsAt(pos).size() == 0 ) continue; // no indels in tumor
 
@@ -446,12 +467,18 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             long left = Math.max( pos-NQS_WIDTH, tumor_context.getStart() );
             long right = pos+tumorCall.getVariant().lengthOnRef()+NQS_WIDTH-1;
 
-            if ( right >= position && ! force) {
+            if ( right >= adjustedPosition && ! force) {
                 // we are not asked to force-shift, and there is more coverage around the current indel that we still need to collect
 
                 // we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
                 // instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
                 move_to = adjustPosition(left);
+                if ( move_to == -1 ) {
+                    // failed to find appropriate shift position, the data are probably to messy anyway so we drop them altogether
+                    normal_context.shift((int)(adjustedPosition-normal_context.getStart()));
+                    tumor_context.shift((int)(adjustedPosition-tumor_context.getStart()));
+                    return;
+                }
                 if ( DEBUG ) System.out.println("DEBUG>> waiting for coverage; actual shift performed to "+ move_to);
                 break;
             }
@@ -516,7 +543,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 //			}
         }
 
-        if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to + " ("+position+")");
+        if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to + " ("+adjustedPosition+")");
         tumor_context.shift((int)(move_to - tumor_context.getStart() ) );
         normal_context.shift((int)(move_to - normal_context.getStart() ) );
     }
