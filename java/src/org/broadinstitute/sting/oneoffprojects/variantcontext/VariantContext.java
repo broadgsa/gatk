@@ -182,7 +182,7 @@ public class VariantContext extends AttributedObject {
 
         if ( loc == null ) { throw new StingException("GenomeLoc cannot be null"); }
         this.loc = loc;
-    }                                              A
+    }
 
     // todo Add Allele... alleles syntax
 
