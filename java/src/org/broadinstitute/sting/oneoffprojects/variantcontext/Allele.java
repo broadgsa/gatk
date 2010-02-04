@@ -3,9 +3,13 @@ package org.broadinstitute.sting.oneoffprojects.variantcontext;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
- * @author ebanks, depristo
+ * Immutable representation of an allele
+ *
  * Types of alleles:
  *
  * Ref: a t C g a // C is the reference base
@@ -68,6 +72,8 @@ import java.util.Arrays;
  *
  * Note that Alleles store all bases as bytes, in **UPPER CASE**.  So 'atc' == 'ATC' from the perspective of an
  * Allele.
+
+ * @author ebanks, depristo
  */
 public class Allele {
     private static final byte[] EMPTY_ALLELE_BASES = new byte[0];
@@ -200,6 +206,7 @@ public class Allele {
      * @return the segregating bases
      */
     public byte[] getBases() { return bases; }
+    // todo -- can we make this immutable?
 
     /**
      * @param other  the other allele
@@ -255,5 +262,45 @@ public class Allele {
      */
     public int length() {
         return bases.length;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // useful static functions
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    public static Allele getMatchingAllele(Collection<Allele> allAlleles, String alleleBases) {
+        return getMatchingAllele(allAlleles, alleleBases.getBytes());
+    }
+
+    public static Allele getMatchingAllele(Collection<Allele> allAlleles, byte[] alleleBases) {
+        for ( Allele a : allAlleles ) {
+            if ( a.basesMatch(alleleBases) ) {
+                return a;
+            }
+        }
+
+        return null;    // couldn't find anything
+    }
+
+    public static List<Allele> resolveAlleles(List<Allele> possibleAlleles, List<String> alleleStrings) {
+        List<Allele> myAlleles = new ArrayList<Allele>(alleleStrings.size());
+
+        for ( String alleleString : alleleStrings ) {
+            Allele allele = getMatchingAllele(possibleAlleles, alleleString);
+
+            if ( allele == null ) {
+                if ( Allele.wouldBeNoCallAllele(alleleString.getBytes()) ) {
+                    allele = new Allele(alleleString);
+                } else {
+                    throw new IllegalArgumentException("Allele " + alleleString + " not present in the list of alleles " + possibleAlleles);
+                }
+            }
+
+            myAlleles.add(allele);
+        }
+
+        return myAlleles;
     }
 }

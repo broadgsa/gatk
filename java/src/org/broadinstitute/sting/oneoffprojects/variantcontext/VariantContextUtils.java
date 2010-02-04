@@ -57,8 +57,8 @@ public class VariantContextUtils {
     }
 
     public static Map<MatchExp, Boolean> match(VariantContext vc, Collection<MatchExp> exps) {
-        // todo actually, we should implement a JEXL context interface to VariantContext,
-        // which just looks up the values assigned statically here.  Much better approach
+        // todo -- actually, we should implement a JEXL context interface to VariantContext,
+        // todo -- which just looks up the values assigned statically here.  Much better approach
 
         Map<String, String> infoMap = new HashMap<String, String>();
 
@@ -104,8 +104,8 @@ public class VariantContextUtils {
 
     }
 
-    private static void addAttributesToMap(Map<String, String> infoMap, Map<Object, Object> attributes, String prefix ) {
-        for (Map.Entry<Object, Object> e : attributes.entrySet()) {
+    private static void addAttributesToMap(Map<String, String> infoMap, Map<String, ?> attributes, String prefix ) {
+        for (Map.Entry<String, ?> e : attributes.entrySet()) {
             infoMap.put(prefix + String.valueOf(e.getKey()), String.valueOf(e.getValue()));
         }
     }

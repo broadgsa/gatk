@@ -7,10 +7,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import java.util.*;
 
 /**
- * @author depristo
- *         <p/>
- *         Class VariantContext
- *         <p/>
+ * Class VariantContext
  *
  * == High-level overview ==
  *
@@ -157,98 +154,62 @@ import java.util.*;
  * VariantContext vc12 = vc.subContextFromGenotypes(Arrays.asList(g1,g2));
  * VariantContext vc1 = vc.subContextFromGenotypes(Arrays.asList(g1));
  * </pre>
+ *
+ * @author depristo
  */
-public class VariantContext extends AttributedObject {
+public class VariantContext {
+    protected InferredGeneticContext commonInfo = null;
+
     /** The location of this VariantContext */
     private GenomeLoc loc;
 
     /** The type (cached for performance reasons) of this context */
-    private Type type = Type.UNDETERMINED;
+    protected Type type = null;
 
     /** A set of the alleles segregating in this context */
-    private Set<Allele> alleles = new HashSet<Allele>();
+    protected Set<Allele> alleles = null;
 
     /** A mapping from sampleName -> genotype objects for all genotypes associated with this context */
-    private Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+    protected Map<String, Genotype> genotypes = null;
 
+    protected final static Map<String, Genotype> NO_GENOTYPES = Collections.unmodifiableMap(new HashMap<String, Genotype>());
 
     // ---------------------------------------------------------------------------------------------------------
     //
     // constructors
     //
     // ---------------------------------------------------------------------------------------------------------
-    public VariantContext(GenomeLoc loc) {
-        super();
-
-        if ( loc == null ) { throw new StingException("GenomeLoc cannot be null"); }
-        this.loc = loc;
-    }
-
-    // todo Add Allele... alleles syntax
-
-    // todo Make root of VariantContext and Genotype immutatable, but extend the system to have MutableVariantContext
-    // and MutableGenotype, providing mutation operations.  Then provide .freeze() method on mutable objects to
-    // make them immutable
-
-    // todo -- - I'm personally not a huge fan of blanket types like Type.UNDETERMINED, especially when the types are
-    // todo public and you have to add 'DON'T USE THIS' to the Javadoc.  Couldn't you use null to represent this type instead?
-
-    // todo wrap collections that are returned directly so that users can't modify them.  return Collections.unmodifiableSet()
-
-    // todo -- rename I'm uncomfortable with the entire AttributedObject system.  The name Object is too general for the application.  The name AttributedObject suggests that it can be used to add attributes to any object, much like Lisp property lists.  However, it contains a negLog10PError member, making the class only applicable to variants.
 
     // todo move all of attribute object attributes into Map<> and make special filter value for printing out values when
     // emitting VC -> VCF or whatever
+    
+    /**
+     * the complete constructor.  Makes a complete VariantContext from its arguments
+     */
+    public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+        if ( loc == null ) { throw new StingException("GenomeLoc cannot be null"); }
+        this.loc = loc;
+        this.commonInfo = new InferredGeneticContext(name, negLog10PError, filters, attributes);
 
-    // todo -- Map<String,Object> in attributed object instead of Map<Object,Object>
-    public VariantContext(GenomeLoc loc, Collection<Allele> alleles) {
-        this(loc, alleles, (Map<Object, Object>)null);
-    }
+        if ( alleles == null ) { throw new StingException("Alleles cannot be null"); }
+        this.alleles = Collections.unmodifiableSet(alleleCollectionToSet(new HashSet<Allele>(), alleles));
 
-    public VariantContext(GenomeLoc loc, Collection<Allele> alleles, Map<Object, Object> attributes) {
-        this(loc);
+        if ( genotypes == null ) { genotypes = NO_GENOTYPES; }
+        this.genotypes = Collections.unmodifiableMap(genotypes);
 
-        HashSet<Allele> alleleSet = new HashSet<Allele>();
-        for ( Allele a : alleles ) {
-            if ( alleleSet.contains(a) )
-                throw new IllegalArgumentException("List<Alleles> contains duplicate elements " + loc + " " + alleles );
-            alleleSet.add(a);
-        }
-
-        setAlleles(alleleSet);
-        setAttributes(attributes);
         validate();
     }
 
-    public VariantContext(GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
-        this(loc);
-        setAlleles(alleles);
-        addGenotypes(genotypes);
-        validate();
+    public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+        this(name, loc, alleles, genotypeCollectionToMap(new HashMap<String, Genotype>(), genotypes), negLog10PError, filters, attributes);
     }
 
-    public VariantContext(GenomeLoc loc, Collection<Allele> alleles,
-                          Collection<Genotype> genotypes, Map<Object, Object> attributes,
-                          double negLog10PError, Collection<Object> filters) {
-        this(loc);
-        setAlleles(alleles);
-        addGenotypes(genotypes);
-        setAttributes(attributes);
-        setNegLog10PError(negLog10PError);
-        setFilters(filters);
-        validate();
+    public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles) {
+        this(name, loc, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
-    public VariantContext(GenomeLoc loc, Collection<Allele> alleles,
-                          Map<String, Genotype> genotypes, Map<Object, Object> attributes,
-                          double negLog10PError, Collection<Object> filters) {
-        this(loc);
-        setAlleles(alleles);
-        addGenotypes(genotypes);
-        setAttributes(attributes);
-        setNegLog10PError(negLog10PError);
-        setFilters(filters);
-        validate();
+    public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
+        this(name, loc, alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
     // todo -- add clone method
@@ -281,8 +242,7 @@ public class VariantContext extends AttributedObject {
      * @return
      */
     public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes) {
-        // todo -- we should check for uniqueness of genotypes
-        return new VariantContext(getLocation(), allelesOfGenotypes(genotypes), genotypes, getAttributes(), getNegLog10PError(), getFilters());
+        return new VariantContext(getName(), getLocation(), allelesOfGenotypes(genotypes), genotypes, getNegLog10PError(), getFilters(), getAttributes());
     }
 
     /**
@@ -372,9 +332,6 @@ public class VariantContext extends AttributedObject {
         SNP,
         INDEL,
         MIXED,
-
-        // special types
-        UNDETERMINED // do not use this value, it is reserved for the VariantContext itself
     }
 
     /**
@@ -383,7 +340,7 @@ public class VariantContext extends AttributedObject {
      * @return the type of this VariantContext
      **/
     public Type getType() {
-        if ( type == Type.UNDETERMINED )
+        if ( type == null )
             determineType();
 
         return type;
@@ -457,6 +414,34 @@ public class VariantContext extends AttributedObject {
 
     // ---------------------------------------------------------------------------------------------------------
     //
+    // get routines to access context info fields
+    //
+    // ---------------------------------------------------------------------------------------------------------
+    public String getName()                     { return commonInfo.getName(); }
+    public Set<String> getFilters()             { return commonInfo.getFilters(); }
+    public boolean isFiltered()                 { return commonInfo.isFiltered(); }
+    public boolean isNotFiltered()              { return commonInfo.isNotFiltered(); }
+    public boolean hasNegLog10PError()          { return commonInfo.hasNegLog10PError(); }
+    public double getNegLog10PError()           { return commonInfo.getNegLog10PError(); }
+
+    public Map<String, Object> getAttributes()  { return commonInfo.getAttributes(); }
+    public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }
+    public Object getAttribute(String key)      { return commonInfo.getAttribute(key); }
+
+    public Object getAttribute(String key, Object defaultValue) {
+        return commonInfo.getAttribute(key, defaultValue);
+    }
+
+    public String getAttributeAsString(String key)                        { return commonInfo.getAttributeAsString(key); }
+    public String getAttributeAsString(String key, String defaultValue)   { return commonInfo.getAttributeAsString(key, defaultValue); }
+    public int getAttributeAsInt(String key)                              { return commonInfo.getAttributeAsInt(key); }
+    public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
+    public double getAttributeAsDouble(String key)                        { return commonInfo.getAttributeAsDouble(key); }
+    public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
+
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
     // Working with alleles
     //
     // ---------------------------------------------------------------------------------------------------------
@@ -504,13 +489,7 @@ public class VariantContext extends AttributedObject {
      * @return The allele sharing the same bases as this byte[], or null if no such allele is present.
      */
     public Allele getAllele(byte[] allele) {
-        for ( Allele a : getAlleles() ) {
-            if ( a.basesMatch(allele) ) {
-                return a;
-            }
-        }
-
-        return null;    // couldn't find anything
+        return Allele.getMatchingAllele(getAlleles(), allele);
     }
 
     /**
@@ -553,7 +532,7 @@ public class VariantContext extends AttributedObject {
                 altAlleles.add(allele);
         }
 
-        return altAlleles;
+        return Collections.unmodifiableSet(altAlleles);
     }
 
     /**
@@ -571,40 +550,6 @@ public class VariantContext extends AttributedObject {
 
         throw new IllegalArgumentException("Requested " + i + " alternative allele but there are only " + n + " alternative alleles " + this);
     }
-
-    /**
-     * Sets the alleles segregating in this context to the collect of alleles.  Each of which must be unique according
-     * to equals() in Allele.  Validate() should be called when you are done modifying the context.
-     *
-     * @param alleles
-     */
-    public void setAlleles(Collection<Allele> alleles) {
-        this.alleles.clear();
-        for ( Allele a : alleles )
-            addAllele(a);
-    }
-
-    /**
-     * Adds allele to the segregating allele list in this context to the collection of alleles.  The new
-     * allele must be be unique according to equals() in Allele.
-     * Validate() should be called when you are done modifying the context.
-     *
-     * @param allele
-     */
-    public void addAllele(Allele allele) {
-        final boolean allowDuplicates = false;  // used to be a parameter
-
-        type = Type.UNDETERMINED;
-
-        for ( Allele a : alleles ) {
-            if ( a.basesMatch(allele) && ! allowDuplicates )
-                throw new IllegalArgumentException("Duplicate allele added to VariantContext" + this);
-        }
-
-        // we are a novel allele
-        alleles.add(allele);
-    }
-
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -725,124 +670,6 @@ public class VariantContext extends AttributedObject {
         return ! isMonomorphic();
     }
 
-    public void clearGenotypes() {
-        this.genotypes.clear();
-    }
-
-    /**
-     * Adds this single genotype to the context, not allowing duplicate genotypes to be added
-     * @param genotype
-     */
-    public void addGenotypes(Genotype genotype) {
-        putGenotype(genotype.getSampleName(), genotype, false);
-    }
-
-    /**
-     * Adds these genotypes to the context, not allowing duplicate genotypes to be added
-     * @param genotypes
-     */
-    public void addGenotypes(Collection<Genotype> genotypes) {
-        for ( Genotype g : genotypes ) {
-            addGenotype(g);
-        }
-    }
-
-    /**
-     * Adds these genotype to the context, not allowing duplicate genotypes to be added.
-     * @param genotypes
-     */
-    public void addGenotypes(Map<String, Genotype> genotypes) {
-
-        for ( Map.Entry<String, Genotype> elt : genotypes.entrySet() ) {
-            addGenotype(elt.getValue());
-        }
-    }
-
-    /**
-     * Adds these genotypes to the context.
-     *
-     * @param genotypes
-     */
-    public void putGenotypes(Map<String, Genotype> genotypes) {
-        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() )
-            putGenotype(g.getKey(), g.getValue());
-    }
-
-    /**
-     * Adds these genotypes to the context.
-     *
-     * @param genotypes
-     */
-    public void putGenotypes(Collection<Genotype> genotypes) {
-        for ( Genotype g : genotypes )
-            putGenotype(g);
-    }
-
-    /**
-     * Adds this genotype to the context, throwing an error if it's already bound.
-     *
-     * @param genotype
-     */
-    public void addGenotype(Genotype genotype) {
-        addGenotype(genotype.getSampleName(), genotype);
-    }
-
-    /**
-     * Adds this genotype to the context, throwing an error if it's already bound.
-     *
-     * @param genotype
-     */
-    public void addGenotype(String sampleName, Genotype genotype) {
-        putGenotype(sampleName, genotype, false);
-    }
-
-    /**
-     * Adds this genotype to the context.
-     *
-     * @param genotype
-     */
-    public void putGenotype(Genotype genotype) {
-        putGenotype(genotype.getSampleName(), genotype);
-    }
-
-    /**
-     * Adds this genotype to the context.
-     *
-     * @param genotype
-     */
-    public void putGenotype(String sampleName, Genotype genotype) {
-        putGenotype(sampleName, genotype, true);
-    }
-
-    private void putGenotype(String sampleName, Genotype genotype, boolean allowOverwrites) {
-        if ( hasGenotype(sampleName) && ! allowOverwrites )
-            throw new StingException("Attempting to overwrite sample->genotype binding: " + sampleName + " this=" + this);
-
-        if ( ! sampleName.equals(genotype.getSampleName()) )
-            throw new StingException("Sample name doesn't equal genotype.getSample(): " + sampleName + " genotype=" + genotype);
-
-        this.genotypes.put(sampleName, genotype);
-    }
-
-    /**
-     * Removes the binding from sampleName to genotype.  If this doesn't exist, throws an IllegalArgumentException
-     * @param sampleName
-     */
-    public void removeGenotype(String sampleName) {
-        if ( ! this.genotypes.containsKey(sampleName) )
-            throw new IllegalArgumentException("Sample name isn't contained in genotypes " + sampleName + " genotypes =" + genotypes);
-
-        this.genotypes.remove(sampleName);
-    }
-
-    /**
-     * Removes genotype from the context.  If this doesn't exist, throws an IllegalArgumentException
-     * @param genotype
-     */
-    public void removeGenotype(Genotype genotype) {
-        removeGenotype(genotype.getSampleName());
-    }
-
     // ---------------------------------------------------------------------------------------------------------
     //
     // validation
@@ -930,7 +757,7 @@ public class VariantContext extends AttributedObject {
     // ---------------------------------------------------------------------------------------------------------
 
     private void determineType() {
-        if ( type == Type.UNDETERMINED ) {
+        if ( type == null ) {
             if ( alleles.size() == 0 ) {
                 throw new StingException("Unexpected requested type of VariantContext with no alleles!" + this);
             } else if ( alleles.size() == 1 ) {
@@ -973,4 +800,29 @@ public class VariantContext extends AttributedObject {
         return String.format("[VC @ %s of type=%s alleles=%s attr=%s GT=%s",
                 getLocation(), this.getType(), this.getAlleles(), this.getAttributes(), this.getGenotypes().values());
     }
+
+    // protected basic manipulation routines
+    private static Set<Allele> alleleCollectionToSet(Set<Allele> dest, Collection<Allele> alleles) {
+        for ( Allele a : alleles ) {
+            for ( Allele b : dest ) {
+                if ( a.basesMatch(b) )
+                    throw new IllegalArgumentException("Duplicate allele added to VariantContext" + a);
+            }
+            
+            dest.add(a);
+        }
+
+        return dest;
+    }
+
+    private static Map<String, Genotype> genotypeCollectionToMap(Map<String, Genotype> dest, Collection<Genotype> genotypes) {
+        for ( Genotype a : genotypes ) {
+            if ( dest.containsKey(a.getSampleName() ) )
+                throw new IllegalArgumentException("Duplicate genotype added to VariantContext " + a);
+            dest.put(a.getSampleName(), a);
+        }
+
+        return dest;
+    }
+
 }

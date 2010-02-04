@@ -153,7 +153,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         int i = 0;
         for ( Allele momAllele : momVC.getAlleles() ) {
             for ( Allele dadAllele : dadVC.getAlleles() ) {
-                Genotype possibleChild = new Genotype(Arrays.asList(momAllele, dadAllele), "possibleGenotype" + i);
+                Genotype possibleChild = new Genotype("possibleGenotype" + i, Arrays.asList(momAllele, dadAllele));
                 if ( childG.sameGenotype(possibleChild, false) ) {
                     return false;
                 }

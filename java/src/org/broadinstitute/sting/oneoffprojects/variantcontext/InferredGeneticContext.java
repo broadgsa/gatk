@@ -7,31 +7,51 @@ import java.util.*;
 
 
 /**
- * Common superclass of VariantContext and Genotype
+ * Common utility routines for VariantContext and Genotype
  *
  * @author depristo
  */
-public abstract class AttributedObject {
-    public static final double NO_NEG_LOG_10PERROR = 0.0;
+final class InferredGeneticContext {
+    public static final double NO_NEG_LOG_10PERROR = Double.MAX_VALUE; // todo -- is this really safe?
+
     private double negLog10PError = NO_NEG_LOG_10PERROR;
-    private Set<Object> filters = new HashSet<Object>();
+    private String name = null;
+    private Set<String> filters = new HashSet<String>();
+    private Map<String, Object> attributes = new HashMap<String, Object>();
 
-    private Map<Object, Object> attributes = new HashMap<Object, Object>();
+//    public InferredGeneticContext(String name) {
+//        this.name = name;
+//    }
+//
+//    public InferredGeneticContext(String name, double negLog10PError) {
+//        this(name);
+//        setNegLog10PError(negLog10PError);
+//    }
 
-    public AttributedObject() { }
-
-    public AttributedObject(double negLog10PError) {
+    public InferredGeneticContext(String name, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+        this.name = name;
         setNegLog10PError(negLog10PError);
+        if ( filters != null )
+            setFilters(filters);
+        if ( attributes != null )
+            setAttributes(attributes);
     }
 
-    public AttributedObject(Map<? extends Object, ? extends Object> attributes) {
-        setAttributes(attributes);
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return name;
     }
 
-    public AttributedObject(Map<? extends Object, ? extends Object> attributes, double negLog10PError) {
-        this(attributes);
-
-        setNegLog10PError(negLog10PError);
+    /**
+     * Sets the name
+     *
+     * @param name    the name associated with this information
+     */
+    public void setName(String name) {
+        if ( name == null ) throw new IllegalArgumentException("Name cannot be null " + this);
+        this.name = name;
     }
 
 
@@ -41,8 +61,8 @@ public abstract class AttributedObject {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public Set<Object> getFilters() {
-        return filters;
+    public Set<String> getFilters() {
+        return Collections.unmodifiableSet(filters);
     }
 
     public boolean isFiltered() {
@@ -53,15 +73,15 @@ public abstract class AttributedObject {
         return ! isFiltered();
     }
 
-    public void addFilter(Object filter) {
+    public void addFilter(String filter) {
         if ( filter == null ) throw new IllegalArgumentException("BUG: Attempting to add null filter " + this);
         if ( getFilters().contains(filter) ) throw new IllegalArgumentException("BUG: Attempting to add duplicate filter " + filter + " at " + this);
         filters.add(filter);
     }
 
-    public void addFilters(Collection<?> filters) {
+    public void addFilters(Collection<String> filters) {
         if ( filters == null ) throw new IllegalArgumentException("BUG: Attempting to add null filters at" + this);
-        for ( Object f : filters )
+        for ( String f : filters )
             addFilter(f);
     }
 
@@ -69,7 +89,7 @@ public abstract class AttributedObject {
         filters.clear();
     }
 
-    public void setFilters(Collection<?> filters) {
+    public void setFilters(Collection<String> filters) {
         clearFilters();
         addFilters(filters);
     }
@@ -109,41 +129,41 @@ public abstract class AttributedObject {
     /**
      * @return the attribute map
      */
-    public Map<Object, Object> getAttributes() {
-        return attributes;
+    public Map<String, Object> getAttributes() {
+        return Collections.unmodifiableMap(attributes);
     }
 
     // todo -- define common attributes as enum
 
-    public void setAttributes(Map<? extends Object, ? extends Object> map) {
+    public void setAttributes(Map<String, ?> map) {
         this.attributes.clear();
         putAttributes(map);
     }
 
-    public void putAttribute(Object key, Object value) {
+    public void putAttribute(String key, Object value) {
         putAttribute(key, value, false);
     }
 
-    public void putAttribute(Object key, Object value, boolean allowOverwrites) {
+    public void putAttribute(String key, Object value, boolean allowOverwrites) {
         if ( hasAttribute(key) && ! allowOverwrites )
             throw new StingException("Attempting to overwrite key->value binding: key = " + key + " this = " + this);
 
         this.attributes.put(key, value);
     }
 
-    public void removeAttribute(Object key) {
+    public void removeAttribute(String key) {
         this.attributes.remove(key);
     }
 
-    public void putAttributes(Map<? extends Object, ? extends Object> map) {
+    public void putAttributes(Map<String, ?> map) {
         if ( map != null ) {
-            for ( Map.Entry<? extends Object, ? extends Object> elt : map.entrySet() ) {
+            for ( Map.Entry<String, ?> elt : map.entrySet() ) {
                 putAttribute(elt.getKey(), elt.getValue());
             }
         }
     }
 
-    public boolean hasAttribute(Object key) {
+    public boolean hasAttribute(String key) {
         return attributes.containsKey(key);
     }
 
@@ -156,11 +176,11 @@ public abstract class AttributedObject {
      *
      * @return the attribute value for the given key (or null if not set)
      */
-    public Object getAttribute(Object key) {
+    public Object getAttribute(String key) {
         return attributes.get(key);
     }
 
-    public Object getAttribute(Object key, Object defaultValue) {
+    public Object getAttribute(String key, Object defaultValue) {
         if ( hasAttribute(key) )
             return attributes.get(key);
         else
@@ -176,12 +196,11 @@ public abstract class AttributedObject {
 //        return selected;
 //    }
 
+    public String getAttributeAsString(String key)      { return (String)getAttribute(key); }
+    public int getAttributeAsInt(String key)            { return (Integer)getAttribute(key); }
+    public double getAttributeAsDouble(String key)      { return (Double)getAttribute(key); }
 
-    public String getAttributeAsString(Object key)      { return (String)getAttribute(key); }
-    public int getAttributeAsInt(Object key)            { return (Integer)getAttribute(key); }
-    public double getAttributeAsDouble(Object key)      { return (Double)getAttribute(key); }
-
-    public String getAttributeAsString(Object key, String defaultValue)   { return (String)getAttribute(key, defaultValue); }
-    public int getAttributeAsInt(Object key, int defaultValue)            { return (Integer)getAttribute(key, defaultValue); }
-    public double getAttributeAsDouble(Object key, double defaultValue)   { return (Double)getAttribute(key, defaultValue); }
+    public String getAttributeAsString(String key, String defaultValue)   { return (String)getAttribute(key, defaultValue); }
+    public int getAttributeAsInt(String key, int defaultValue)            { return (Integer)getAttribute(key, defaultValue); }
+    public double getAttributeAsDouble(String key, double defaultValue)   { return (Double)getAttribute(key, defaultValue); }
 }

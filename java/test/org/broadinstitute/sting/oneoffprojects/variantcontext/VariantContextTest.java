@@ -67,7 +67,7 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testCreatingSNPVariantContext");
 
         List<Allele> alleles = Arrays.asList(Aref, T);
-        VariantContext vc = new VariantContext(snpLoc, alleles);
+        VariantContext vc = new VariantContext("test", snpLoc, alleles);
         logger.warn("vc = " + vc);
 
         Assert.assertEquals(vc.getLocation(), snpLoc);
@@ -98,7 +98,7 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testCreatingRefVariantContext");
 
         List<Allele> alleles = Arrays.asList(Aref);
-        VariantContext vc = new VariantContext(snpLoc, alleles);
+        VariantContext vc = new VariantContext("test", snpLoc, alleles);
         logger.warn("vc = " + vc);
 
         Assert.assertEquals(vc.getLocation(), snpLoc);
@@ -125,7 +125,7 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testCreatingDeletionVariantContext");
 
         List<Allele> alleles = Arrays.asList(ATCref, del);
-        VariantContext vc = new VariantContext(delLoc, alleles);
+        VariantContext vc = new VariantContext("test", delLoc, alleles);
         logger.warn("vc = " + vc);
 
         Assert.assertEquals(vc.getLocation(), delLoc);
@@ -153,7 +153,7 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testCreatingInsertionVariantContext");
 
         List<Allele> alleles = Arrays.asList(delRef, ATC);
-        VariantContext vc = new VariantContext(insLoc, alleles);
+        VariantContext vc = new VariantContext("test", insLoc, alleles);
         logger.warn("vc = " + vc);
 
         Assert.assertEquals(vc.getLocation(), insLoc);
@@ -179,45 +179,45 @@ public class VariantContextTest extends BaseTest {
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs1() {
         logger.warn("testBadConstructorArgs1");
-        new VariantContext(insLoc, Arrays.asList(delRef, ATCref));
+        new VariantContext("test", insLoc, Arrays.asList(delRef, ATCref));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs2() {
         logger.warn("testBadConstructorArgs2");
-        new VariantContext(insLoc, Arrays.asList(delRef, del));
+        new VariantContext("test", insLoc, Arrays.asList(delRef, del));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs3() {
         logger.warn("testBadConstructorArgs3");
-        new VariantContext(insLoc, Arrays.asList(del));
+        new VariantContext("test", insLoc, Arrays.asList(del));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgsDuplicateAlleles1() {
         logger.warn("testBadConstructorArgsDuplicateAlleles1");
-        new VariantContext(insLoc, Arrays.asList(Aref, T, T));
+        new VariantContext("test", insLoc, Arrays.asList(Aref, T, T));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgsDuplicateAlleles2() {
         logger.warn("testBadConstructorArgsDuplicateAlleles2");
-        new VariantContext(insLoc, Arrays.asList(Aref, A));
+        new VariantContext("test", insLoc, Arrays.asList(Aref, A));
     }
 
     @Test (expected = IllegalStateException.class)
     public void testBadLoc1() {
         logger.warn("testBadLoc1");
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        VariantContext vc = new VariantContext(delLoc, alleles);
+        VariantContext vc = new VariantContext("test", delLoc, alleles);
     }
 
 
     @Test (expected = IllegalStateException.class)
     public void testBadTiTvRequest() {
         logger.warn("testBadConstructorArgsDuplicateAlleles2");
-        new VariantContext(insLoc, Arrays.asList(Aref, ATC)).isTransition();
+        new VariantContext("test", insLoc, Arrays.asList(Aref, ATC)).isTransition();
     }
 
     @Test
@@ -225,14 +225,13 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testAccessingSimpleSNPGenotypes");
 
         List<Allele> alleles = Arrays.asList(Aref, T);
-        VariantContext vc = new VariantContext(snpLoc, alleles);
+
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
+
+        VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1, g2, g3));
         logger.warn("vc = " + vc);
-
-        Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA", 10);
-        Genotype g2 = new Genotype(Arrays.asList(Aref, T), "AT", 10);
-        Genotype g3 = new Genotype(Arrays.asList(T, T), "TT", 10);
-
-        vc.addGenotypes(Arrays.asList(g1, g2, g3));
 
         Assert.assertTrue(vc.hasGenotypes());
         Assert.assertFalse(vc.isMonomorphic());
@@ -265,17 +264,16 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testAccessingCompleteGenotypes");
 
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        VariantContext vc = new VariantContext(snpLoc, alleles);
+
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
+        Genotype g4 = new Genotype("Td", Arrays.asList(T, del), 10);
+        Genotype g5 = new Genotype("dd", Arrays.asList(del, del), 10);
+        Genotype g6 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
+
+        VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1, g2, g3, g4, g5, g6));
         logger.warn("vc = " + vc);
-
-        Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA", 10);
-        Genotype g2 = new Genotype(Arrays.asList(Aref, T), "AT", 10);
-        Genotype g3 = new Genotype(Arrays.asList(T, T), "TT", 10);
-        Genotype g4 = new Genotype(Arrays.asList(T, del), "Td", 10);
-        Genotype g5 = new Genotype(Arrays.asList(del, del), "dd", 10);
-        Genotype g6 = new Genotype(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), "..", 10);
-
-        vc.addGenotypes(Arrays.asList(g1, g2, g3, g4, g5, g6));
 
         Assert.assertTrue(vc.hasGenotypes());
         Assert.assertFalse(vc.isMonomorphic());
@@ -299,14 +297,12 @@ public class VariantContextTest extends BaseTest {
         List<Allele> alleles2 = Arrays.asList(Aref);
         List<Allele> alleles3 = Arrays.asList(Aref, T, del);
         for ( List<Allele> alleles : Arrays.asList(alleles1, alleles2, alleles3)) {
-            VariantContext vc = new VariantContext(snpLoc, alleles);
+
+            Genotype g1 = new Genotype("AA1", Arrays.asList(Aref, Aref), 10);
+            Genotype g2 = new Genotype("AA2", Arrays.asList(Aref, Aref), 10);
+            Genotype g3 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
+            VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1, g2, g3));
             logger.warn("vc = " + vc);
-
-            Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA1", 10);
-            Genotype g2 = new Genotype(Arrays.asList(Aref, Aref), "AA2", 10);
-            Genotype g3 = new Genotype(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), "..", 10);
-
-            vc.addGenotypes(Arrays.asList(g1, g2, g3));
 
             Assert.assertTrue(vc.hasGenotypes());
             Assert.assertTrue(vc.isMonomorphic());
@@ -325,9 +321,9 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testFilters");
 
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA", 10);
-        Genotype g2 = new Genotype(Arrays.asList(Aref, T), "AT", 10);
-        VariantContext vc = new VariantContext(snpLoc, alleles, Arrays.asList(g1,g2));
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
+        MutableVariantContext vc = new MutableVariantContext("test", snpLoc, alleles, Arrays.asList(g1,g2));
         logger.warn("vc = " + vc);
 
         Assert.assertTrue(vc.isNotFiltered());
@@ -358,12 +354,12 @@ public class VariantContextTest extends BaseTest {
         logger.warn("testVCromGenotypes");
 
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "AA", 10);
-        Genotype g2 = new Genotype(Arrays.asList(Aref, T), "AT", 10);
-        Genotype g3 = new Genotype(Arrays.asList(T, T), "TT", 10);
-        Genotype g4 = new Genotype(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), "..", 10);
-        Genotype g5 = new Genotype(Arrays.asList(del, del), "--", 10);
-        VariantContext vc = new VariantContext(snpLoc, alleles, Arrays.asList(g1,g2,g3,g4,g5));
+        Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
+        Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
+        Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
+        Genotype g4 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
+        Genotype g5 = new Genotype("--", Arrays.asList(del, del), 10);
+        VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1,g2,g3,g4,g5));
         logger.warn("vc = " + vc);
 
         VariantContext vc12 = vc.subContextFromGenotypes(Arrays.asList(g1,g2));

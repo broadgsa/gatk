@@ -1,49 +1,31 @@
 package org.broadinstitute.sting.oneoffprojects.variantcontext;
 
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 
 /**
- * @author ebanks
- *         <p/>
- *         Class Genotype
- *         <p/>
- *         This class emcompasses all the basic information about a genotype
+ * This class emcompasses all the basic information about a genotype.  It is immutable.
+ *
+ * @author Mark DePristo
  */
-public class Genotype extends AttributedObject {
-    private List<Allele> alleles = new ArrayList<Allele>();
-    private String sampleName = null;
+public class Genotype {
+    protected InferredGeneticContext commonInfo;
+    protected List<Allele> alleles = new ArrayList<Allele>();
 
-    // todo -- do genotypes need to have locations?  Or is it sufficient to have an
-    // todo -- associated VC with a location?  One nasty implication is that people will have to
-    // todo -- pass around both a Variant Context and genotypes.  Although users can always just package up
-    // the associated genotypes into the VC itself.
-
-    // todo -- this should really be something like subcontext -- fixme, maybe move into converter code
-
-    // todo -- add flat variant manager class that is available via refmetadatatracker and provides simple
-    // access to VariantContexts that can be obtained from rod tracks.  Add simple functions to get
-    // first record, all records, only those starting at current locus, etc. to deal with dbSNP monstrosity
-
-    // todo -- add name to variant context
-    public Genotype(VariantContext vc, List<String> alleles, String sampleName, double negLog10PError) {
-        this(resolveAlleles(vc, alleles), sampleName, negLog10PError);
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+        this.alleles = Collections.unmodifiableList(alleles);
+        commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        validate();
     }
 
-    public Genotype(VariantContext vc, List<String> alleles, String sampleName) {
-        this(resolveAlleles(vc, alleles), sampleName);
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError) {
+        this(sampleName, alleles, negLog10PError, null, null);
     }
 
-    public Genotype(List<Allele> alleles, String sampleName, double negLog10PError) {
-        setAlleles(alleles);
-        setSampleName(sampleName);
-        setNegLog10PError(negLog10PError);
-    }
-
-    public Genotype(List<Allele> alleles, String sampleName) {
-        setAlleles(alleles);
-        setSampleName(sampleName);
+    public Genotype(String sampleName, List<Allele> alleles) {
+        this(sampleName, alleles, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
 
@@ -60,7 +42,7 @@ public class Genotype extends AttributedObject {
             if ( a.equals(allele) )
                 al.add(a);
 
-        return al;
+        return Collections.unmodifiableList(al);
     }
 
     public Allele getAllele(int i) {
@@ -68,6 +50,7 @@ public class Genotype extends AttributedObject {
     }
 
     private final static String ALLELE_SEPARATOR = "/";
+
     public String getGenotypeString() {
         return Utils.join(ALLELE_SEPARATOR, getAllelesString());
     }
@@ -110,7 +93,7 @@ public class Genotype extends AttributedObject {
     /**
      * @return true if all observed alleles are the same (regardless of whether they are ref or alt)
      */
-    public boolean isHom() { return isHomRef() || isHomVar(); }
+    public boolean isHom()    { return isHomRef() || isHomVar(); }
     public boolean isHomRef() { return getType() == Type.HOM_REF; }
     public boolean isHomVar() { return getType() == Type.HOM_VAR; }
     
@@ -124,41 +107,7 @@ public class Genotype extends AttributedObject {
      */
     public boolean isNoCall() { return getType() == Type.NO_CALL; }
 
-//    /**
-//     * @return true if this is a variant genotype, false if it's reference
-//     */
-//    public boolean isVariant() {
-//        for ( Allele allele : alleles ) {
-//            if ( allele.isNonReference() )
-//                return true;
-//        }
-//        return false;
-//    }
-
-    /**
-     * @return the sample name
-     */
-    public String getSampleName() {
-        return sampleName;
-    }
-
-    /**
-     * Sets the sample name
-     *
-     * @param sampleName    the sample name
-     */
-    public void setSampleName(String sampleName) {
-        if ( sampleName == null ) throw new IllegalArgumentException("Sample name cannot be null " + this);
-        this.sampleName = sampleName;
-    }
-
-    /**
-     *
-     * @param alleles
-     */
-    public void setAlleles(List<Allele> alleles) {
-        this.alleles.clear();
-
+    public void validate() {
         // todo -- add validation checking here
 
         if ( alleles == null ) throw new IllegalArgumentException("BUG: alleles cannot be null in setAlleles");
@@ -168,35 +117,6 @@ public class Genotype extends AttributedObject {
         for ( Allele allele : alleles ) { nNoCalls += allele.isNoCall() ? 1 : 0; }
         if ( nNoCalls > 0 && nNoCalls != alleles.size() )
             throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
-
-        for ( Allele allele : alleles ) {
-            addAllele(allele);
-        }
-    }
-
-    public void addAllele(Allele allele) {
-        if ( allele == null ) throw new IllegalArgumentException("BUG: Cannot add a null allele to a genotype");
-        this.alleles.add(allele);
-    }
-
-
-    private static List<Allele> resolveAlleles(VariantContext vc, List<String> alleleStrings) {
-        List<Allele> alleles = new ArrayList<Allele>();
-        for ( String alleleString : alleleStrings ) {
-            Allele allele = vc.getAllele(alleleString);
-
-            if ( allele == null ) {
-                if ( Allele.wouldBeNoCallAllele(alleleString.getBytes()) ) {
-                    allele = new Allele(alleleString);
-                } else {
-                    throw new IllegalArgumentException("Allele " + alleleString + " not present in the list of alleles in VariantContext " + vc);
-                }
-            }
-
-            alleles.add(allele);
-        }
-
-        return alleles;
     }
 
     public String toString() {
@@ -243,4 +163,31 @@ public class Genotype extends AttributedObject {
 
         return true;
     }
+    
+    // ---------------------------------------------------------------------------------------------------------
+    // 
+    // get routines to access context info fields
+    //
+    // ---------------------------------------------------------------------------------------------------------
+    public String getSampleName()       { return commonInfo.getName(); }
+    public Set<String> getFilters()     { return commonInfo.getFilters(); }
+    public boolean isFiltered()         { return commonInfo.isFiltered(); }
+    public boolean isNotFiltered()      { return commonInfo.isNotFiltered(); }
+    public boolean hasNegLog10PError()  { return commonInfo.hasNegLog10PError(); }
+    public double getNegLog10PError()   { return commonInfo.getNegLog10PError(); }
+
+    public Map<String, Object> getAttributes()  { return commonInfo.getAttributes(); }
+    public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }
+    public Object getAttribute(String key)      { return commonInfo.getAttribute(key); }
+    
+    public Object getAttribute(String key, Object defaultValue) {
+        return commonInfo.getAttribute(key, defaultValue); 
+    }
+
+    public String getAttributeAsString(String key)                        { return commonInfo.getAttributeAsString(key); }
+    public String getAttributeAsString(String key, String defaultValue)   { return commonInfo.getAttributeAsString(key, defaultValue); }
+    public int getAttributeAsInt(String key)                              { return commonInfo.getAttributeAsInt(key); }
+    public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
+    public double getAttributeAsDouble(String key)                        { return commonInfo.getAttributeAsDouble(key); }
+    public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
 }

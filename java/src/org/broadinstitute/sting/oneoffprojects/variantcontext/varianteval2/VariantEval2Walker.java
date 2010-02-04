@@ -288,7 +288,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
             if ( rodList != null ) {
                 for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
                     if ( rec.getLocation().getStart() == context.getLocation().getStart() ) {
-                        VariantContext vc = VariantContextAdaptors.convertToVariantContext(rec);
+                        VariantContext vc = VariantContextAdaptors.convertToVariantContext(name, rec);
                         if ( vc != null ) {
                             return vc;
                         }

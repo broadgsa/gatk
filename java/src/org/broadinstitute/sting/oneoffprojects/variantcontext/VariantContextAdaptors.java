@@ -11,35 +11,34 @@ import java.util.*;
 
 
 public class VariantContextAdaptors {
-    public static boolean canBeConvertedToVariantContext(Object variantContainingObject) {
-        return convertToVariantContext(variantContainingObject) != null;
+    public static boolean canBeConvertedToVariantContext(String name, Object variantContainingObject) {
+        return convertToVariantContext(name, variantContainingObject) != null;
     }
 
-    public static VariantContext convertToVariantContext(Object variantContainingObject) {
+    public static VariantContext convertToVariantContext(String name, Object variantContainingObject) {
         if ( variantContainingObject instanceof rodDbSNP )
-            return dbsnpToVariantContext((rodDbSNP)variantContainingObject);
+            return dbsnpToVariantContext(name, (rodDbSNP)variantContainingObject);
         else if ( variantContainingObject instanceof RodVCF )
-            return vcfToVariantContext(((RodVCF)variantContainingObject).getRecord());
+            return vcfToVariantContext(name, ((RodVCF)variantContainingObject).getRecord());
         else if ( variantContainingObject instanceof VCFRecord )
-            return vcfToVariantContext((VCFRecord)variantContainingObject);
+            return vcfToVariantContext(name, (VCFRecord)variantContainingObject);
         else
             return null;
             //throw new IllegalArgumentException("Cannot convert object " + variantContainingObject + " of class " + variantContainingObject.getClass() + " to a variant context");
 
     }
 
-    private static VariantContext dbsnpToVariantContext(rodDbSNP dbsnp) {
+    private static VariantContext dbsnpToVariantContext(String name, rodDbSNP dbsnp) {
         if ( dbsnp.isSNP() || dbsnp.isIndel() || dbsnp.varType.contains("mixed") ) {
-            VariantContext vc = new VariantContext(dbsnp.getLocation());
-
             // add the reference allele
             if ( ! Allele.acceptableAlleleBases(dbsnp.getReference()) ) {
                 //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                 return null;
             }
 
+            List<Allele> alleles = new ArrayList<Allele>();
             Allele refAllele = new Allele(dbsnp.getReference(), true);
-            vc.addAllele(refAllele);
+            alleles.add(refAllele);
 
             // add all of the alt alleles
             for ( String alt : dbsnp.getAlternateAlleleList() ) {
@@ -47,60 +46,64 @@ public class VariantContextAdaptors {
                     //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                     return null;
                 }
-                vc.addAllele(new Allele(alt, false));
+                alleles.add(new Allele(alt, false));
             }
 
+            VariantContext vc = new VariantContext(name, dbsnp.getLocation(), alleles);
             vc.validate();
             return vc;
         } else
             return null; // can't handle anything else
     }
 
-    private static VariantContext vcfToVariantContext(VCFRecord vcf) {
+    private static VariantContext vcfToVariantContext(String name, VCFRecord vcf) {
         if ( vcf.isSNP() || vcf.isIndel() ) {
-            VariantContext vc = new VariantContext(vcf.getLocation());
-
             // add the reference allele
             if ( ! Allele.acceptableAlleleBases(vcf.getReference()) ) {
                 System.out.printf("Excluding vcf record %s%n", vcf);
                 return null;
             }
 
-            Allele refAllele = new Allele(vcf.getReference(), true);
-            vc.addAllele(refAllele);
-            vc.setNegLog10PError(vcf.getNegLog10PError());
-            vc.setAttributes(vcf.getInfoValues());
-            vc.putAttribute("ID", vcf.getID());
-            if ( vcf.isFiltered() ) vc.setFilters(Arrays.asList(vcf.getFilteringCodes()));
+            Set<String> filters = vcf.isFiltered() ? new HashSet<String>(Arrays.asList(vcf.getFilteringCodes())) : null;
+            Map<String, String> attributes = vcf.getInfoValues();
+            attributes.put("ID", vcf.getID());
 
             // add all of the alt alleles
+            List<Allele> alleles = new ArrayList<Allele>();
+            Allele refAllele = new Allele(vcf.getReference(), true);
+            alleles.add(refAllele);
             for ( String alt : vcf.getAlternateAlleleList() ) {
                 if ( ! Allele.acceptableAlleleBases(alt) ) {
                     System.out.printf("Excluding vcf record %s%n", vcf);
                     return null;
                 }
-                vc.addAllele(new Allele(alt, false));
+                alleles.add(new Allele(alt, false));
             }
 
+            Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
             for ( VCFGenotypeRecord vcfG : vcf.getVCFGenotypeRecords() ) {
-                List<String> alleleStrings = new ArrayList<String>();
+                List<Allele> genotypeAlleles = new ArrayList<Allele>();
                 for ( VCFGenotypeEncoding s : vcfG.getAlleles() )
-                    alleleStrings.add(s.getBases());
+                    genotypeAlleles.add(Allele.getMatchingAllele(alleles, s.getBases()));
 
-                double pError = vcfG.getNegLog10PError() == VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY ? AttributedObject.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
-                Genotype g = new Genotype(vc, alleleStrings, vcfG.getSampleName(), pError);
+                double pError = vcfG.getNegLog10PError() == VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY ? InferredGeneticContext.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
 
+                Map<String, String> fields = new HashMap<String, String>();
                 for ( Map.Entry<String, String> e : vcfG.getFields().entrySet() ) {
+                    // todo -- fixme if we put GQ and GF into key itself
                     if ( ! e.getKey().equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) && ! e.getKey().equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) )
-                        g.putAttribute(e.getKey(), e.getValue());
+                        fields.put(e.getKey(), e.getValue());
                 }
 
+                Set<String> genotypeFilters = new HashSet<String>();
                 if ( vcfG.isFiltered() ) // setup the FL genotype filter fields
-                    g.setFilters(Arrays.asList(vcfG.getFields().get(VCFGenotypeRecord.GENOTYPE_FILTER_KEY.split(";"))));
+                    genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFGenotypeRecord.GENOTYPE_FILTER_KEY).split(";")));
 
-                vc.addGenotype(g);
+                Genotype g = new Genotype(vcfG.getSampleName(), genotypeAlleles, pError, genotypeFilters, fields);
+                genotypes.put(g.getSampleName(), g);
             }
 
+            VariantContext vc = new VariantContext(name, vcf.getLocation(), alleles, genotypes, vcf.getNegLog10PError(), filters, attributes);
             vc.validate();
             return vc;
         } else
