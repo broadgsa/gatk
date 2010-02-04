@@ -20,6 +20,13 @@ public class Genotype extends AttributedObject {
     // todo -- pass around both a Variant Context and genotypes.  Although users can always just package up
     // the associated genotypes into the VC itself.
 
+    // todo -- this should really be something like subcontext -- fixme, maybe move into converter code
+
+    // todo -- add flat variant manager class that is available via refmetadatatracker and provides simple
+    // access to VariantContexts that can be obtained from rod tracks.  Add simple functions to get
+    // first record, all records, only those starting at current locus, etc. to deal with dbSNP monstrosity
+
+    // todo -- add name to variant context
     public Genotype(VariantContext vc, List<String> alleles, String sampleName, double negLog10PError) {
         this(resolveAlleles(vc, alleles), sampleName, negLog10PError);
     }

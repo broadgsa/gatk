@@ -7,13 +7,11 @@ import java.util.*;
 
 
 /**
+ * Common superclass of VariantContext and Genotype
+ *
  * @author depristo
- *         <p/>
- *         Class AttributedObject
- *         <p/>
- *         Common functions in VariantContext
  */
-public class AttributedObject {
+public abstract class AttributedObject {
     public static final double NO_NEG_LOG_10PERROR = 0.0;
     private double negLog10PError = NO_NEG_LOG_10PERROR;
     private Set<Object> filters = new HashSet<Object>();
@@ -61,7 +59,7 @@ public class AttributedObject {
         filters.add(filter);
     }
 
-    public void addFilters(Collection<? extends Object> filters) {
+    public void addFilters(Collection<?> filters) {
         if ( filters == null ) throw new IllegalArgumentException("BUG: Attempting to add null filters at" + this);
         for ( Object f : filters )
             addFilter(f);
@@ -71,7 +69,7 @@ public class AttributedObject {
         filters.clear();
     }
 
-    public void setFilters(Collection<? extends Object> filters) {
+    public void setFilters(Collection<?> filters) {
         clearFilters();
         addFilters(filters);
     }
@@ -169,14 +167,14 @@ public class AttributedObject {
             return defaultValue;
     }
 
-    public AttributedObject getAttributes(Collection<Object> keys) {
-        AttributedObject selected = new AttributedObject();
-
-        for ( Object key : keys )
-            selected.putAttribute(key, this.getAttribute(key));
-
-        return selected;
-    }
+//    public AttributedObject getAttributes(Collection<Object> keys) {
+//        AttributedObject selected = new AttributedObject();
+//
+//        for ( Object key : keys )
+//            selected.putAttribute(key, this.getAttribute(key));
+//
+//        return selected;
+//    }
 
 
     public String getAttributeAsString(Object key)      { return (String)getAttribute(key); }

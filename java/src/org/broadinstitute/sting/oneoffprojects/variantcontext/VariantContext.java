@@ -182,8 +182,25 @@ public class VariantContext extends AttributedObject {
 
         if ( loc == null ) { throw new StingException("GenomeLoc cannot be null"); }
         this.loc = loc;
-    }
+    }                                              A
 
+    // todo Add Allele... alleles syntax
+
+    // todo Make root of VariantContext and Genotype immutatable, but extend the system to have MutableVariantContext
+    // and MutableGenotype, providing mutation operations.  Then provide .freeze() method on mutable objects to
+    // make them immutable
+
+    // todo -- - I'm personally not a huge fan of blanket types like Type.UNDETERMINED, especially when the types are
+    // todo public and you have to add 'DON'T USE THIS' to the Javadoc.  Couldn't you use null to represent this type instead?
+
+    // todo wrap collections that are returned directly so that users can't modify them.  return Collections.unmodifiableSet()
+
+    // todo -- rename I'm uncomfortable with the entire AttributedObject system.  The name Object is too general for the application.  The name AttributedObject suggests that it can be used to add attributes to any object, much like Lisp property lists.  However, it contains a negLog10PError member, making the class only applicable to variants.
+
+    // todo move all of attribute object attributes into Map<> and make special filter value for printing out values when
+    // emitting VC -> VCF or whatever
+
+    // todo -- Map<String,Object> in attributed object instead of Map<Object,Object>
     public VariantContext(GenomeLoc loc, Collection<Allele> alleles) {
         this(loc, alleles, (Map<Object, Object>)null);
     }
