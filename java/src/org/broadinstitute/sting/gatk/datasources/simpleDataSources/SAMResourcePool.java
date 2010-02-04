@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
 
 import net.sf.picard.sam.SamFileHeaderMerger;
@@ -35,6 +34,9 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.io.File;
 
 /**
  * Maintain a pool of resources of accessors to SAM read data.  SAMFileReaders and
@@ -50,6 +52,7 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
     /** Source information about the reads. */
     protected Reads reads;
     protected SamFileHeaderMerger headerMerger;
+    protected Map<File, Set<String>> fileToReadGroupIdMap;
 
     /**
      * Do all the constituent BAM files have indices?  We support some very limited
@@ -71,7 +74,8 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
         this.header = streamResource.getHeader();
         this.headerMerger = streamResource.getHeaderMerger();
         this.hasIndex = streamResource.hasIndex();
-        
+        this.fileToReadGroupIdMap = streamResource.getFileToReadGroupIdMapping();
+
         // Add this resource to the pool.
         this.addNewResource(streamResource);
     }
@@ -88,13 +92,22 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
      */
     public Reads getReadsInfo() { return reads; }
     
-    /** 
+    /**
+     * Returns a mapping from original input files to their (merged) read group ids
+     *
+     * @return the mapping
+     */
+    public Map<File, Set<String>> getFileToReadGroupIdMapping() {
+        return fileToReadGroupIdMap;
+    }
+
+    /**
      * Returns header merger: a class that keeps the mapping between original read groups and read groups
      * of the merged stream; merger also provides access to the individual file readers (and hence headers
      * too) maintained by the system. 
      * @return
      */
-   public SamFileHeaderMerger getHeaderMerger() { return headerMerger; }
+    public SamFileHeaderMerger getHeaderMerger() { return headerMerger; }
 
     protected ReadStreamResource selectBestExistingResource( DataStreamSegment segment, List<ReadStreamResource> resources ) {
         for (ReadStreamResource resource : resources) {

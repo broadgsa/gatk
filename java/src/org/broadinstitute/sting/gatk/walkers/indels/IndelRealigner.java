@@ -24,29 +24,45 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     protected double LOD_THRESHOLD = 5.0;
-    @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
+
+    @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
 
-    @Argument(fullName="OutputBam", shortName="O", required=false, doc="Output bam")
-    protected SAMFileWriter baseWriter = null;
+    @Argument(fullName="output", shortName="O", required=false, doc="Output bam (or directory if using --NwayOutput)")
+    protected String baseWriterFilename = null;
 
+    @Argument(fullName="NWayOutput", shortName="nway", required=false, doc="Should the reads be emitted in a separate bam file for each one of the input bams? [default:yes]")
+    protected boolean NWAY_OUTPUT = true;
 
-    @Argument(fullName="OutputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
-    String OUT_INDELS = null;
+    @Argument(fullName="outputSuffix", shortName="suffix", required=false, doc="Suffix to append to output bams (when using --NwayOutput) [default:'.cleaned']")
+    protected String outputSuffix = ".cleaned";
+
+    @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
+    protected Integer compressionLevel = 5;
+
+    // ADVANCED OPTIONS FOLLOW
+
+    @Argument(fullName="outputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
+    protected String OUT_INDELS = null;
+
     @Argument(fullName="statisticsFile", shortName="stats", doc="print out statistics (what does or doesn't get cleaned)", required=false)
-    String OUT_STATS = null;
+    protected String OUT_STATS = null;
+
     @Argument(fullName="SNPsFile", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out", required=false)
-    String OUT_SNPS = null;
+    protected String OUT_SNPS = null;
+
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
-    int MAX_CONSENSUSES = 30;
+    protected int MAX_CONSENSUSES = 30;
+
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
-    int MAX_READS_FOR_CONSENSUSES = 120;
+    protected int MAX_READS_FOR_CONSENSUSES = 120;
 
     @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment", required=false)
-    int MAX_READS = 20000;
+    protected int MAX_READS = 20000;
 
     @Argument(fullName="writerWindowSize", shortName="writerWindowSize", doc="the window over which the writer will store reads", required=false)
     protected int SORTING_WRITER_WINDOW = 100;
+
 
     // the intervals input by the user
     private Iterator<GenomeLoc> intervals = null;
@@ -59,7 +75,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
 
     // the wrapper around the SAM writer
-    private SortingSAMFileWriter writer = null;
+    private Map<String, SortingSAMFileWriter> writers = null;
 
     // random number generator
     private Random generator;
@@ -87,13 +103,36 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
+        // read in the intervals for cleaning
         List<GenomeLoc> locs = GenomeAnalysisEngine.parseIntervalRegion(Arrays.asList(intervalsFile));
         intervals = GenomeLocSortedSet.createSetFromList(locs).iterator();
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
-        if ( baseWriter != null )
-            writer = new SortingSAMFileWriter(baseWriter, SORTING_WRITER_WINDOW);
+        // set up the output writer(s)
+        if ( baseWriterFilename != null ) {
+            writers = new HashMap<String, SortingSAMFileWriter>();
+            Map<File, Set<String>> readGroupMap = getToolkit().getFileToReadGroupIdMapping();
+            SAMFileWriterFactory factory = new SAMFileWriterFactory();
 
+            if ( NWAY_OUTPUT ) {
+                for ( File file : readGroupMap.keySet() ) {
+                    String newFileName = file.getName().substring(0, file.getName().length()-3) + outputSuffix + ".bam";
+                    SAMFileWriter baseWriter = factory.makeBAMWriter(getToolkit().getSAMFileHeader(), true, new File(baseWriterFilename, newFileName), compressionLevel);
+                    SortingSAMFileWriter writer = new SortingSAMFileWriter(baseWriter, SORTING_WRITER_WINDOW);
+                    for ( String rg : readGroupMap.get(file) )
+                        writers.put(rg, writer);
+                }
+            } else {
+                SAMFileWriter baseWriter = factory.makeBAMWriter(getToolkit().getSAMFileHeader(), true, new File(baseWriterFilename), compressionLevel);
+                SortingSAMFileWriter writer = new SortingSAMFileWriter(baseWriter, SORTING_WRITER_WINDOW);
+                for ( Set<String> set : readGroupMap.values() ) {
+                    for ( String rg : set )
+                        writers.put(rg, writer);                                     
+                }
+            }
+        }
+
+        // set up the random generator
         generator = new Random(RANDOM_SEED);
 
         if ( OUT_INDELS != null ) {
@@ -126,13 +165,40 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void emit(SAMRecord read) {
-        if ( writer != null )
-            writer.addAlignment(read);
+        if ( writers != null ) {
+            SAMReadGroupRecord readGroup = read.getReadGroup();
+            if ( readGroup == null || readGroup.getReadGroupId() == null ) {
+                if ( writers.size() > 1 )
+                    throw new StingException("There are multiple output writers but read " + read.toString() + " has no read group");
+                writers.values().iterator().next().addAlignment(read);
+            } else {
+                writers.get(readGroup.getReadGroupId()).addAlignment(read);
+            }
+        }
     }
 
     private void emit(List<SAMRecord> reads) {
-        if ( writer != null )
-            writer.addAlignments(reads);
+        if ( writers == null )
+            return;
+
+        // break out the reads into sets for their respective writers
+        Map<SortingSAMFileWriter, Set<SAMRecord>> bins = new HashMap<SortingSAMFileWriter, Set<SAMRecord>>();
+        for ( SortingSAMFileWriter writer : writers.values() )
+            bins.put(writer, new HashSet<SAMRecord>());
+
+        for ( SAMRecord read : reads ) {
+            SAMReadGroupRecord readGroup = read.getReadGroup();
+            if ( readGroup == null || readGroup.getReadGroupId() == null ) {
+                if ( writers.size() > 1 )
+                    throw new StingException("There are multiple output writers but read " + read.toString() + " has no read group");
+                bins.get(writers.values().iterator().next()).add(read);
+            } else {
+                bins.get(writers.get(readGroup.getReadGroupId())).add(read);
+            }
+        }
+
+        for ( Map.Entry<SortingSAMFileWriter, Set<SAMRecord>> entry : bins.entrySet() )
+            entry.getKey().addAlignments(entry.getValue());
     }
 
     public Integer map(char[] ref, SAMRecord read) {
@@ -146,7 +212,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( readLoc.getStop() == 0 )
             readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
 
-        if ( readLoc.isBefore(currentInterval) ) {
+        if ( readLoc.isBefore(currentInterval) || Utils.is454Read(read) ) {
             emit(read);
             return 0;
         }
@@ -155,8 +221,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                  read.getDuplicateReadFlag() ||
                  read.getNotPrimaryAlignmentFlag() ||
                  read.getMappingQuality() == 0 ||
-                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
-		         Utils.is454Read(read) ) {
+                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
                 readsNotToClean.add(read);
             } else {
                 readsToClean.add(read, ref);
@@ -206,8 +271,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             emit(readsNotToClean);
         }
 
-        if ( writer != null )
-            writer.close();
+        if ( writers != null ) {
+            for ( SortingSAMFileWriter writer : writers.values() ) {
+                writer.close();
+
+                // TODO -- fix me
+                try {
+                    writer.getBaseWriter().close();
+                } catch (net.sf.samtools.util.RuntimeIOException e) {}
+            }
+        }
 
         if ( OUT_INDELS != null ) {
             try {
@@ -905,7 +978,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         private Cigar newCigar = null;
         private int newStart = -1;
         private int mismatchScoreToReference;
-        private boolean updated = false;
 
         public AlignedRead(SAMRecord read) {
             this.read = read;
@@ -978,12 +1050,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 read.setCigar(newCigar);
                 read.setAlignmentStart(newStart);
             }
-            updated = true;
             return true;
-        }
-
-        public boolean wasUpdated() {
-            return updated;
         }
 
         public void setMismatchScoreToReference(int score) {

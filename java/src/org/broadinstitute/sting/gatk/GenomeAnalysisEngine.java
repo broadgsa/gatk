@@ -378,12 +378,23 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Returns a mapping from original input files to their (merged) read group ids
+     *
+     * @return the mapping
+     */
+    public Map<File, Set<String>> getFileToReadGroupIdMapping() {
+        return getDataSource().getFileToReadGroupIdMapping();
+    }
+
+    /**
+     * **** UNLESS YOU HAVE GOOD REASON TO, DO NOT USE THIS METHOD; USE getFileToReadGroupIdMapping() INSTEAD **** 
+     *
      * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
      * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
      * returned by this method will contain 3 elements (one for each reader), with each element being a set of remapped read groups
      * (i.e. as seen by read.getReadGroup().getReadGroupId() in the merged stream) that come from the corresponding bam file.
      *
-     * @return
+     * @return sets of (merged) read group ids in order of input bams
      */
     public List<Set<String>> getMergedReadGroupsByReaders() {
 

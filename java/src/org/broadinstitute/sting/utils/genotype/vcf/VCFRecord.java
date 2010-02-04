@@ -484,8 +484,8 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public void setQual(double qual) {
-        if (qual < 0)
-            throw new IllegalArgumentException("Qual values must be greater than 0");
+        if ( qual < 0 && MathUtils.compareDoubles(qual, -1.0) != 0 )
+            throw new IllegalArgumentException("Qual values cannot be negative unless they are -1 ('unknown')");
         mQual = qual;
     }
 

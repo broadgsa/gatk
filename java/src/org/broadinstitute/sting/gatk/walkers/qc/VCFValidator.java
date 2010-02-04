@@ -15,7 +15,7 @@ import org.broadinstitute.sting.utils.StingException;
 /**
  * A light-weight validator for a VCF file.
  */
-@Requires(value={},referenceMetaData=@RMD(name="vcf",type= RodVCF.class))
+@Requires(value={},referenceMetaData=@RMD(name="vcf", type=RodVCF.class))
 public class VCFValidator extends RodWalker<Integer, Integer> {
 
     /**
@@ -28,7 +28,7 @@ public class VCFValidator extends RodWalker<Integer, Integer> {
             RODRecordList<ReferenceOrderedDatum> rodlist = tracker.getTrackData("vcf", null);
             if ( rodlist != null ) {
                 RodVCF rod = (RodVCF)rodlist.getRecords().get(0);
-                if ( (rod.isSNP() || rod.isReference()) &&  rod.getReference().charAt(0) != ref.getBase() )
+                if ( (rod.isSNP() || rod.isReference()) &&  Character.toUpperCase(rod.getReference().charAt(0)) != Character.toUpperCase(ref.getBase()) )
                     throw new StingException("The reference base (" + ref.getBase() + ") does not match the base from the VCF record (" + rod.getReference() + ")");
             }
         }

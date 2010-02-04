@@ -4,7 +4,7 @@ import net.sf.samtools.*;
 
 import java.util.TreeSet;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * @author ebanks
@@ -66,14 +66,14 @@ public class SortingSAMFileWriter implements SAMFileWriter {
     /**
      * Add a list of reads to the writer for emission; the reads do NOT need to be sorted
      *
-     * @param reads   the reads to emit
+     * @param reads  the reads to emit
      */
-    public void addAlignments(List<SAMRecord> reads) {
+    public void addAlignments(Collection<SAMRecord> reads) {
         if ( reads.size() == 0 )
             return;
 
         // at a new contig, clear the cache
-        if ( cachedReads.size() > 0 && cachedReads.first().getReferenceIndex() < reads.get(0).getReferenceIndex() )
+        if ( cachedReads.size() > 0 && cachedReads.first().getReferenceIndex() < reads.iterator().next().getReferenceIndex() )
             clearCache();
 
         cachedReads.addAll(reads);
@@ -96,17 +96,24 @@ public class SortingSAMFileWriter implements SAMFileWriter {
     }
 
     /**
-     * get the SAM file header
+     * @return  the SAM file header
      */
     public SAMFileHeader getFileHeader() {
         return baseWriter.getFileHeader();
     }
 
     /**
-     * close this writer by clearing the cache
+     * close this writer by clearing the cache (but DO NOT close the underlying SAMFileWriter)
      */
     public void close() {
         clearCache();
+    }
+
+    /**
+     * @return  the underlying SAMFileWriter
+     */
+    public SAMFileWriter getBaseWriter() {
+        return baseWriter;
     }
 
     private void clearCache() {

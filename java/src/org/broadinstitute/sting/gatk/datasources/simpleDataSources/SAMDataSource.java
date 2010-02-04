@@ -13,6 +13,8 @@ import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Set;
+import java.util.Map;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -110,6 +112,13 @@ public abstract class SAMDataSource implements SimpleDataSource {
      * @return
      */
     public Reads getReadsInfo() { return reads; }
+
+    /**
+     * Returns a mapping from original input files to their (merged) read group ids
+     *
+     * @return the mapping
+     */
+    public Map<File, Set<String>> getFileToReadGroupIdMapping() { return null; }
 
     /**
      * Returns readers used by this data source.

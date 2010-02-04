@@ -33,8 +33,7 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.picard.sam.SamFileHeaderMerger;
 
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
 import java.io.File;
 
 /**
@@ -75,6 +74,11 @@ class ReadStreamResource {
      */
     private ReadStreamPointer readStreamPointer = null;
 
+    /**
+     * A mapping from original input file to merged read group record ids
+     */
+    private Map<File, Set<String>> fileToReadGroupIdMap = null;
+
     public ReadStreamResource( Reads sourceInfo ) {
         SamFileHeaderMerger headerMerger = createHeaderMerger(sourceInfo, SAMFileHeader.SortOrder.coordinate);
 
@@ -104,7 +108,7 @@ class ReadStreamResource {
     /**
      * Returns Reads data structure containing information about the reads data sources as well as
      * information about how they are downsampled, sorted, and filtered
-     * @return
+     * @return the Reads object
      */
     public Reads getReadsInfo() { return readStreamPointer.getReadsInfo(); }
     
@@ -112,7 +116,7 @@ class ReadStreamResource {
      * Returns header merger: a class that keeps the mapping between original read groups and read groups
      * of the merged stream; merger also provides access to the individual file readers (and hence headers
      * too) maintained by the system. 
-     * @return
+     * @return the header merger
      */
    public SamFileHeaderMerger getHeaderMerger() { return readStreamPointer.getHeaderMerger(); }
 
@@ -134,9 +138,12 @@ class ReadStreamResource {
         return readStreamPointer.getReadsContainedBy(segment);
     }
 
-
     public StingSAMIterator getReadsOverlapping( DataStreamSegment segment ) {
         return readStreamPointer.getReadsOverlapping(segment);
+    }
+
+    public Map<File, Set<String>> getFileToReadGroupIdMapping() {
+        return fileToReadGroupIdMap;
     }
 
     /**
@@ -149,10 +156,13 @@ class ReadStreamResource {
      */
     private SamFileHeaderMerger createHeaderMerger( Reads reads, SAMFileHeader.SortOrder SORT_ORDER )
             throws SimpleDataSourceLoadException {
+
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
         List<SAMFileReader> lst = new ArrayList<SAMFileReader>();
+        Map<File, SAMFileReader> fileToReaderMap = new HashMap<File, SAMFileReader>();
         for (File f : reads.getReadsFiles()) {
             SAMFileReader reader = new SAMFileReader(f, eagerDecode);
+            fileToReaderMap.put(f, reader);
             reader.setValidationStringency(reads.getValidationStringency());
 
             final SAMFileHeader header = reader.getFileHeader();
@@ -169,6 +179,31 @@ class ReadStreamResource {
 
             lst.add(reader);
         }
-        return new SamFileHeaderMerger(lst,SORT_ORDER,true);
+
+        // create the header merger
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(lst,SORT_ORDER,true);
+
+        // populate the file -> read group mapping
+        fileToReadGroupIdMap = new HashMap<File, Set<String>>();
+        for (Map.Entry<File, SAMFileReader> entry : fileToReaderMap.entrySet()) {
+
+            Set<String> readGroups = new HashSet<String>(5);
+
+            for (SAMReadGroupRecord g : entry.getValue().getFileHeader().getReadGroups()) {
+                if (headerMerger.hasReadGroupCollisions()) {
+                    // Check if there were read group clashes.
+                    // If there were, use the SamFileHeaderMerger to translate from the
+                    // original read group id to the read group id in the merged stream
+                    readGroups.add(headerMerger.getReadGroupId(entry.getValue(), g.getReadGroupId()));
+                } else {
+                    // otherwise, pass through the unmapped read groups since this is what Picard does as well
+                    readGroups.add(g.getReadGroupId());
+                }
+            }
+
+            fileToReadGroupIdMap.put(entry.getKey(), readGroups);
+        }
+
+        return headerMerger;
     }
 }

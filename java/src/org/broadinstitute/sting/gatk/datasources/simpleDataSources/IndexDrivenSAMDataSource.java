@@ -4,6 +4,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.CloseableIterator;
+import net.sf.picard.sam.SamFileHeaderMerger;
 
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShard;
@@ -16,8 +17,8 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
+import java.io.File;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -111,6 +112,14 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
         return resourcePool.getHeader();
     }
 
+    /**
+     * Returns a mapping from original input files to their (merged) read group ids
+     *
+     * @return the mapping
+     */
+    public Map<File, Set<String>> getFileToReadGroupIdMapping() {
+        return resourcePool.getFileToReadGroupIdMapping();
+    }
 
     /**
      * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
