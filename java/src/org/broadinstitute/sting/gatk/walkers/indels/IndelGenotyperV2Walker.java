@@ -1142,8 +1142,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 if ( indels.get(0) != null && indels.get(0).size() != 0 ) {
                     IndelVariant indel =  indels.get(0).get(0);
 
-                    throw new StingException("Indel found at the first position ("+start+") after a shift was performed: currently not supported: "+
-                    (indel.getType()==IndelVariant.Type.I?"+":"-")+indel.getBases()+"; reads: "+indel.getReadSet().iterator().next().getSAMRecord().getReadName());
+                    System.out.println("WARNING: Indel(s) at first position in the window ("+refName+":"+start+"): currently not supported: "+
+                    (indel.getType()==IndelVariant.Type.I?"+":"-")+indel.getBases()+"; read: "+indel.getReadSet().iterator().next().getSAMRecord().getReadName()+"; site ignored");
+                    indels.get(0).clear();
+//                    throw new StingException("Indel found at the first position ("+start+") after a shift was performed: currently not supported: "+
+//                    (indel.getType()==IndelVariant.Type.I?"+":"-")+indel.getBases()+"; reads: "+indel.getReadSet().iterator().next().getSAMRecord().getReadName());
                 }
                 
                 Iterator<ExpandedSAMRecord> read_iter = reads.iterator();
