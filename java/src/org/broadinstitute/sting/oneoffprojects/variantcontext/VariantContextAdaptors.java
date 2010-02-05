@@ -2,59 +2,115 @@ package org.broadinstitute.sting.oneoffprojects.variantcontext;
 
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.util.*;
 
-
+/**
+ * A terrible but temporary approach to converting objects to VariantContexts.  If you want to add a converter,
+ * you need to create a adaptor object here and register a converter from your class to this object.  When tribble arrives,
+ * we'll use a better approach.
+ *
+ * @author depristo@broadinstitute.org
+ */
 public class VariantContextAdaptors {
-    public static boolean canBeConvertedToVariantContext(String name, Object variantContainingObject) {
-        return convertToVariantContext(name, variantContainingObject) != null;
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Generic support routines.  Do not modify
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    private static Map<Class, VCAdaptor> adaptors = new HashMap<Class, VCAdaptor>();
+
+    static {
+        adaptors.put(rodDbSNP.class, new RodDBSnpAdaptor());
+        adaptors.put(RodVCF.class, new RodVCFAdaptor());
+        adaptors.put(VCFRecord.class, new VCFRecordAdaptor());
     }
 
-    public static VariantContext convertToVariantContext(String name, Object variantContainingObject) {
-        if ( variantContainingObject instanceof rodDbSNP )
-            return dbsnpToVariantContext(name, (rodDbSNP)variantContainingObject);
-        else if ( variantContainingObject instanceof RodVCF )
-            return vcfToVariantContext(name, ((RodVCF)variantContainingObject).getRecord());
-        else if ( variantContainingObject instanceof VCFRecord )
-            return vcfToVariantContext(name, (VCFRecord)variantContainingObject);
-        else
+    public static boolean canBeConvertedToVariantContext(Object variantContainingObject) {
+        return adaptors.containsKey(variantContainingObject.getClass());
+//        return convertToVariantContext(name, variantContainingObject) != null;
+    }
+
+    /** generic superclass */
+    private static abstract class VCAdaptor {
+        abstract VariantContext convert(String name, Object input);
+    }
+
+    public static VariantContext toVariantContext(String name, Object variantContainingObject) {
+        if ( ! adaptors.containsKey(variantContainingObject.getClass()) )
             return null;
-            //throw new IllegalArgumentException("Cannot convert object " + variantContainingObject + " of class " + variantContainingObject.getClass() + " to a variant context");
-
+        else {
+            return adaptors.get(variantContainingObject.getClass()).convert(name, variantContainingObject);
+        }
     }
 
-    private static VariantContext dbsnpToVariantContext(String name, rodDbSNP dbsnp) {
-        if ( dbsnp.isSNP() || dbsnp.isIndel() || dbsnp.varType.contains("mixed") ) {
-            // add the reference allele
-            if ( ! Allele.acceptableAlleleBases(dbsnp.getReference()) ) {
-                //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
-                return null;
-            }
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // From here below you can add adaptor classes for new rods (or other types) to convert to VCF
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
-            List<Allele> alleles = new ArrayList<Allele>();
-            Allele refAllele = new Allele(dbsnp.getReference(), true);
-            alleles.add(refAllele);
 
-            // add all of the alt alleles
-            for ( String alt : dbsnp.getAlternateAlleleList() ) {
-                if ( ! Allele.acceptableAlleleBases(alt) ) {
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // dbSNP to VariantContext
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    private static class RodDBSnpAdaptor extends VCAdaptor {
+        VariantContext convert(String name, Object input) {
+            rodDbSNP dbsnp = (rodDbSNP)input;
+            if ( dbsnp.isSNP() || dbsnp.isIndel() || dbsnp.varType.contains("mixed") ) {
+                // add the reference allele
+                if ( ! Allele.acceptableAlleleBases(dbsnp.getReference()) ) {
                     //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                     return null;
                 }
-                alleles.add(new Allele(alt, false));
-            }
 
-            VariantContext vc = new VariantContext(name, dbsnp.getLocation(), alleles);
-            vc.validate();
-            return vc;
-        } else
-            return null; // can't handle anything else
+                List<Allele> alleles = new ArrayList<Allele>();
+                Allele refAllele = new Allele(dbsnp.getReference(), true);
+                alleles.add(refAllele);
+
+                // add all of the alt alleles
+                for ( String alt : dbsnp.getAlternateAlleleList() ) {
+                    if ( ! Allele.acceptableAlleleBases(alt) ) {
+                        //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
+                        return null;
+                    }
+                    alleles.add(new Allele(alt, false));
+                }
+
+                VariantContext vc = new VariantContext(name, dbsnp.getLocation(), alleles);
+                vc.validate();
+                return vc;
+            } else
+                return null; // can't handle anything else
+        }
     }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // VCF to VariantContext
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    private static class RodVCFAdaptor extends VCAdaptor {
+        VariantContext convert(String name, Object input) {
+            return vcfToVariantContext(name, ((RodVCF)input).getRecord());
+        }
+    }
+
+    private static class VCFRecordAdaptor extends VCAdaptor {
+        VariantContext convert(String name, Object input) {
+            return vcfToVariantContext(name, (VCFRecord)input);
+        }
+    }
+
 
     private static VariantContext vcfToVariantContext(String name, VCFRecord vcf) {
         if ( vcf.isSNP() || vcf.isIndel() ) {
@@ -74,6 +130,7 @@ public class VariantContextAdaptors {
             alleles.add(refAllele);
             for ( String alt : vcf.getAlternateAlleleList() ) {
                 if ( ! Allele.acceptableAlleleBases(alt) ) {
+                    // todo -- cleanup
                     System.out.printf("Excluding vcf record %s%n", vcf);
                     return null;
                 }

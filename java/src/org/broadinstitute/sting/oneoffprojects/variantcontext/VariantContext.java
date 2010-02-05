@@ -34,6 +34,9 @@ import java.util.*;
  * It's also easy to create subcontexts based on selected genotypes.
  *
  * == Working with Variant Contexts ==
+ * By default, VariantContexts are immutable.  In order to access (in the rare circumstances where you need them)
+ * setter routines, you need to create MutableVariantContexts and MutableGenotypes.
+ *
  * === Some example data ===
  *
  * Allele A, Aref, T, Tref;
@@ -71,19 +74,19 @@ import java.util.*;
  * Here's an example of a A/T polymorphism with the A being reference:
  *
  * <pre>
- * VariantContext vc = new VariantContext(snpLoc, Arrays.asList(Aref, T));
+ * VariantContext vc = new VariantContext(name, snpLoc, Arrays.asList(Aref, T));
  * </pre>
  *
  * If you want to create a non-variant site, just put in a single reference allele
  *
  * <pre>
- * VariantContext vc = new VariantContext(snpLoc, Arrays.asList(Aref));
+ * VariantContext vc = new VariantContext(name, snpLoc, Arrays.asList(Aref));
  * </pre>
  *
  * A deletion is just as easy:
  *
  * <pre>
- * VariantContext vc = new VariantContext(delLoc, Arrays.asList(ATCref, del));
+ * VariantContext vc = new VariantContext(name, delLoc, Arrays.asList(ATCref, del));
  * </pre>
  *
  * The only 2 things that distinguishes between a insertion and deletion are the reference allele
@@ -92,7 +95,7 @@ import java.util.*;
  * a 1-bp GenomeLoc (at say 20).
  *
  * <pre>
- * VariantContext vc = new VariantContext(insLoc, Arrays.asList(delRef, ATC));
+ * VariantContext vc = new VariantContext("name", insLoc, Arrays.asList(delRef, ATC));
  * </pre>
  *
  * ==== Converting rods and other data structures to VCs ====
@@ -100,7 +103,7 @@ import java.util.*;
  * You can convert many common types into VariantContexts using the general function:
  *
  * <pre>
- * VariantContextAdaptors.convertToVariantContext(myObject)
+ * VariantContextAdaptors.convertToVariantContext(name, myObject)
  * </pre>
  *
  * dbSNP and VCFs, for example, can be passed in as myObject and a VariantContext corresponding to that
@@ -112,12 +115,10 @@ import java.util.*;
  *
  * <pre>
  * List<Allele> alleles = Arrays.asList(Aref, T);
- * VariantContext vc = new VariantContext(snpLoc, alleles);
- *
  * Genotype g1 = new Genotype(Arrays.asList(Aref, Aref), "g1", 10);
  * Genotype g2 = new Genotype(Arrays.asList(Aref, T), "g2", 10);
  * Genotype g3 = new Genotype(Arrays.asList(T, T), "g3", 10);
- * vc.addGenotypes(Arrays.asList(g1, g2, g3));
+ * VariantContext vc = new VariantContext(snpLoc, alleles, Arrays.asList(g1, g2, g3));
  * </pre>
  *
  * At this point we have 3 genotypes in our context, g1-g3.
@@ -200,19 +201,50 @@ public class VariantContext {
         validate();
     }
 
+    /**
+     * Create a new VariantContext
+     *
+     * @param name
+     * @param loc
+     * @param alleles
+     * @param genotypes
+     * @param negLog10PError
+     * @param filters
+     * @param attributes
+     */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
         this(name, loc, alleles, genotypeCollectionToMap(new HashMap<String, Genotype>(), genotypes), negLog10PError, filters, attributes);
     }
 
+    /**
+     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
+     * @param name
+     * @param loc
+     * @param alleles
+     */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles) {
         this(name, loc, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
+    /**
+     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
+     * @param name
+     * @param loc
+     * @param alleles
+     */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
         this(name, loc, alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
-    // todo -- add clone method
+    /**
+     * Copy constructor
+     *
+     * @param other the VariantContext to copy
+     */
+    public VariantContext(VariantContext other) {
+        this(other.getName(), other.getLocation(), other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.getFilters(), other.getAttributes());
+    }
+
 
     // ---------------------------------------------------------------------------------------------------------
     //

@@ -18,7 +18,6 @@ public class MutableVariantContext extends VariantContext {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    // todo -- add remaining context constructors
     public MutableVariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
         super(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
     }

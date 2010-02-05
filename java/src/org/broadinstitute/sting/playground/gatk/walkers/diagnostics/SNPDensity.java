@@ -47,7 +47,7 @@ public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDe
         if (vcfList != null) {
             for (ReferenceOrderedDatum d : vcfList) {
                 RodVCF vcfRecord = (RodVCF)d;
-                vc = VariantContextAdaptors.convertToVariantContext("eval", vcfRecord);
+                vc = VariantContextAdaptors.toVariantContext("eval", vcfRecord);
                 break;
             }
         }

@@ -206,7 +206,6 @@ public class Allele {
      * @return the segregating bases
      */
     public byte[] getBases() { return bases; }
-    // todo -- can we make this immutable?
 
     /**
      * @param other  the other allele

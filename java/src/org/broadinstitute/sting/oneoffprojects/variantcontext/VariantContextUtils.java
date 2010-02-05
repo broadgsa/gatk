@@ -2,25 +2,40 @@ package org.broadinstitute.sting.oneoffprojects.variantcontext;
 
 import java.util.*;
 import org.apache.commons.jexl.*;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.varianteval2.VariantEvaluator;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
 
 public class VariantContextUtils {
-    /** */
-    public static class MatchExp {
+    /** 
+     * A simple but common wrapper for matching VariantContext objects using JEXL expressions
+     */
+    public static class JexlVCMatchExp {
         public String name;
-        public String expStr;
         public Expression exp;
 
-        public MatchExp(String name, String str, Expression exp) {
+        /**
+         * Create a new matcher expression with name and JEXL expression exp
+         * @param name
+         * @param exp
+         */
+        public JexlVCMatchExp(String name, Expression exp) {
             this.name = name;
             this.exp = exp;
         }
     }
 
-    public static List<MatchExp> initializeMatchExps(String[] names, String[] exps) {
+    /**
+     * Method for creating JexlVCMatchExp from input walker arguments names and exps.  These two arrays contain
+     * the name associated with each JEXL expression. initializeMatchExps will parse each expression and return
+     * a list of JexlVCMatchExp, in order, that correspond to the names and exps.  These are suitable input to
+     * match() below.
+     *
+     * @param names
+     * @param exps
+     * @return
+     */
+    public static List<JexlVCMatchExp> initializeMatchExps(String[] names, String[] exps) {
         if ( names == null || exps == null )
             throw new StingException("BUG: neither names nor exps can be null: names " + names + " exps=" + exps );
 
@@ -33,8 +48,17 @@ public class VariantContextUtils {
         return VariantContextUtils.initializeMatchExps(map);
     }
 
-    public static List<MatchExp> initializeMatchExps(Map<String, String> names_and_exps) {
-        List<MatchExp> exps = new ArrayList<MatchExp>();
+    /**
+     * Method for creating JexlVCMatchExp from input walker arguments mapping from names to exps.  These two arrays contain
+     * the name associated with each JEXL expression. initializeMatchExps will parse each expression and return
+     * a list of JexlVCMatchExp, in order, that correspond to the names and exps.  These are suitable input to
+     * match() below.
+     *
+     * @param names_and_exps
+     * @return
+     */
+    public static List<JexlVCMatchExp> initializeMatchExps(Map<String, String> names_and_exps) {
+        List<JexlVCMatchExp> exps = new ArrayList<JexlVCMatchExp>();
 
         for ( Map.Entry<String, String> elt : names_and_exps.entrySet() ) {
             String name = elt.getKey();
@@ -42,8 +66,8 @@ public class VariantContextUtils {
 
             if ( name == null || expStr == null ) throw new IllegalArgumentException("Cannot create null expressions : " + name +  " " + expStr);
             try {
-                Expression filterExpression = ExpressionFactory.createExpression(expStr);
-                exps.add(new MatchExp(name, expStr, filterExpression));
+                Expression exp = ExpressionFactory.createExpression(expStr);
+                exps.add(new JexlVCMatchExp(name, exp));
             } catch (Exception e) {
                 throw new StingException("Invalid expression used (" + expStr + "). Please see the JEXL docs for correct syntax.");
             }
@@ -52,11 +76,27 @@ public class VariantContextUtils {
         return exps;
     }
 
-    public static boolean match(VariantContext vc, MatchExp exp) {
+    /**
+     * Returns true if exp match VC.  See collection<> version for full docs.
+     * @param vc
+     * @param exp
+     * @return
+     */
+    public static boolean match(VariantContext vc, JexlVCMatchExp exp) {
         return match(vc,Arrays.asList(exp)).get(exp);
     }
 
-    public static Map<MatchExp, Boolean> match(VariantContext vc, Collection<MatchExp> exps) {
+    /**
+     * Matches each JexlVCMatchExp exp against the data contained in vc, and returns a map from these
+     * expressions to true (if they matched) or false (if they didn't).  This the best way to apply JEXL
+     * expressions to VariantContext records.  Use initializeMatchExps() to create the list of JexlVCMatchExp
+     * expressions.
+     *
+     * @param vc
+     * @param exps
+     * @return
+     */
+    public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Collection<JexlVCMatchExp> exps) {
         // todo -- actually, we should implement a JEXL context interface to VariantContext,
         // todo -- which just looks up the values assigned statically here.  Much better approach
 
@@ -93,8 +133,8 @@ public class VariantContextUtils {
         jContext.setVars(infoMap);
 
         try {
-            Map<MatchExp, Boolean> resultMap = new HashMap<MatchExp, Boolean>();
-            for ( MatchExp e : exps ) {
+            Map<JexlVCMatchExp, Boolean> resultMap = new HashMap<JexlVCMatchExp, Boolean>();
+            for ( JexlVCMatchExp e : exps ) {
                 resultMap.put(e, (Boolean)e.exp.evaluate(jContext));
             }
             return resultMap;
@@ -110,9 +150,7 @@ public class VariantContextUtils {
         }
     }
 
-
-
-    private static final String UNIQUIFIED_SUFFIX = ".unique";
+//    private static final String UNIQUIFIED_SUFFIX = ".unique";
 
     /**
      * @param other  another variant context
