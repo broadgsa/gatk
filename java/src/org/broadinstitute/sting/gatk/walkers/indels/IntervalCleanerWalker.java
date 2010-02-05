@@ -346,6 +346,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
             for ( int j = 0; j < altReads.size(); j++ ) {
                 AlignedRead toTest = altReads.get(j);
+                // returned pair={alignment_offset on consensus, alignment score (mismtach sum)}:
                 Pair<Integer, Integer> altAlignment = findBestOffset(consensus.str, toTest);
 
                 // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
@@ -364,8 +365,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
             //logger.debug(consensus.str +  " " + consensus.mismatchSum);
             if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
+                if ( bestConsensus != null ) bestConsensus.readIndexes.clear(); // forget the old best consensus data, do not waste memory
                 bestConsensus = consensus;
                 //logger.debug(consensus.str +  " " + consensus.mismatchSum);
+            } else {
+                consensus.readIndexes.clear(); // we do not need this alt consensus, release memory right away!!
             }
         }
 
