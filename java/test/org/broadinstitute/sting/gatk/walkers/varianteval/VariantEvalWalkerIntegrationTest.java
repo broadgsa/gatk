@@ -18,8 +18,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantROD() {
         HashMap<String, String> md5 = new HashMap<String, String>();
-        md5.put("", "9cfda40f521d75a3e8bafc44a663c14a");
-        md5.put("-A", "8fea7cc25f551ce170636fc35c5ae0fe");
+        md5.put("", "fc7ac42cc7d8ca69ef74cb1b5b22c936");
+        md5.put("-A", "3b40fc03f37959930a6a5ff071c930d0");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -52,7 +52,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantRODConfSix() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("11d636d105f902680c46b9f2e330d922");
+        md5.add("384bc435181169db3bcd10d6167c26ce");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -84,7 +84,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
      @Test
     public void testEvalVariantRODOutputViolations() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("12ecd457d62329e9d4e593de904a457d");
+        md5.add("e5387aa7e0f2ef384c80c6c06f00bc2f");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -116,7 +116,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalGenotypeROD() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("cbe45debc69e83d2b90988ee72042074");
+        md5.add("47818d5fd4f70c2cd230efca9e904cca");
         /**
          * the above MD5 was calculated after running the following command:
          *
@@ -150,7 +150,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalMarksGenotypingExample() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("2694cf3eb73a9fecdda8cf5b76d0135d");
+        md5.add("21f5e7cde49bbe89b1cb3b77a26248c2");
         /**
          * Run with the following commands:
          * 
@@ -174,10 +174,11 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
         List<File> result = executeTest("testEvalMarksGenotypingExample", spec).getFirst();
     }
 
+    /*
     @Test
 	public void testEvalRuntimeWithLotsOfIntervals() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("6a90341517fc3c5026529301d9970c7b");
+        md5.add("80035193b8808364d3943b5324b88cdd");
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T VariantEval -R " + oneKGLocation + "reference/human_b36_both.fasta " +
                 "-B eval,Variants," + validationDataLocation + "NA12878.pilot_3.all.geli.calls " +
@@ -189,15 +190,16 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
                 md5);
         List<File> result = executeTest("testEvalRuntimeWithLotsOfIntervals", spec).getFirst();
     }
+    */
 
     @Test
     public void testVCFVariantEvals() {
         HashMap<String, String> md5 = new HashMap<String, String>();
-        md5.put("", "a1c5c8e9b185108969528e8c9fbef15e");
-        md5.put("-A", "2ae1456de2375502689c4af8f40b8693");
-        md5.put("-A --includeFilteredRecords", "9b2f446f0f42ab10d9d27f5221748f5e");
-        md5.put("-A --sampleName NA12878", "38deda8ab3816f083f0aeb97ccf8c347");
-        md5.put("-A -vcfInfoSelector AF=0.50", "715ea2da250f58aa35004386a890f5ba");
+        md5.put("", "f9886ce74db761bf56ca64751bef1c96");
+        md5.put("-A", "ff19b75bd3ff1abf1d39b453a239f2a4");
+        md5.put("-A --includeFilteredRecords", "b45a50277d883092b01ea4659a4e37a5");
+        md5.put("-A --sampleName NA12878", "f099222b13cd45105df477a734bd02f0");
+        md5.put("-A -vcfInfoSelector AF=0.50", "29af280d8d0905c2393a82acb638e59b");
 
         for ( Map.Entry<String, String> e : md5.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
