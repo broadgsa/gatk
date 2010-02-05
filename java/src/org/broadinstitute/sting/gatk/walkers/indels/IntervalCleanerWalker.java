@@ -365,6 +365,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
             //logger.debug(consensus.str +  " " + consensus.mismatchSum);
             if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
+                if ( bestConsensus != null ) bestConsensus.readIndexes.clear();
                 bestConsensus = consensus;
                 //logger.debug(consensus.str +  " " + consensus.mismatchSum);
             } else {
