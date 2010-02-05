@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext.varianteval2;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 
 import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
  * Time: 3:38:02 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class VariantEvaluator {
+abstract class VariantEvaluator {
     protected boolean accumulateInterestingSites = false, printInterestingSites = false;
     protected String interestingSitePrefix = null;
     protected boolean processedASite = false;

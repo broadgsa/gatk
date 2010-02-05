@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext.varianteval2;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;

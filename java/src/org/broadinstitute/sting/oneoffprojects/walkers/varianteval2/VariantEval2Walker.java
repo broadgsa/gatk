@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext.varianteval2;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -86,9 +86,9 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     private class EvaluationContext extends HashMap<String, Set<VariantEvaluator>> {
         // useful for typing
         public String trackName, contextName;
-        VariantContextUtils.MatchExp selectExp;
+        VariantContextUtils.JexlVCMatchExp selectExp;
 
-        public EvaluationContext(String trackName, String contextName, VariantContextUtils.MatchExp selectExp) {
+        public EvaluationContext(String trackName, String contextName, VariantContextUtils.JexlVCMatchExp selectExp) {
             this.trackName = trackName;
             this.contextName = contextName;
             this.selectExp = selectExp;
@@ -117,11 +117,11 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
         determineAllEvalations();
-        List<VariantContextUtils.MatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
+        List<VariantContextUtils.JexlVCMatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
 
         for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if ( d.getName().startsWith("eval") ) {
-                for ( VariantContextUtils.MatchExp e : selectExps ) {
+                for ( VariantContextUtils.JexlVCMatchExp e : selectExps ) {
                     addNewContext(d.getName(), d.getName() + "." + e.name, e);
                 }
                 addNewContext(d.getName(), d.getName() + ".all", null);
@@ -171,7 +171,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         return evals;
     }
 
-    private void addNewContext(String trackName, String contextName, VariantContextUtils.MatchExp selectExp) {
+    private void addNewContext(String trackName, String contextName, VariantContextUtils.JexlVCMatchExp selectExp) {
         EvaluationContext group = new EvaluationContext(trackName, contextName, selectExp);
 
         for ( String filteredName : Arrays.asList(RAW_SET_NAME, RETAINED_SET_NAME, FILTERED_SET_NAME) ) {
@@ -288,7 +288,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
             if ( rodList != null ) {
                 for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
                     if ( rec.getLocation().getStart() == context.getLocation().getStart() ) {
-                        VariantContext vc = VariantContextAdaptors.convertToVariantContext(name, rec);
+                        VariantContext vc = VariantContextAdaptors.toVariantContext(name, rec);
                         if ( vc != null ) {
                             return vc;
                         }
