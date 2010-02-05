@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSA
 import java.util.*;
 
 import net.sf.samtools.Chunk;
+import net.sf.samtools.Bin;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -40,9 +41,18 @@ import net.sf.samtools.Chunk;
  * A sharding strategy for loci based on reading of the index.
  */
 public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
+    /**
+     * The data source to use when performing this sharding.
+     */
+    private final BlockDrivenSAMDataSource blockDrivenDataSource;
 
     /** our storage of the genomic locations they'd like to shard over */
-    private final SortedMap<GenomeLoc,List<Chunk>> locations = new TreeMap<GenomeLoc,List<Chunk>>();
+    private final List<FilePointer> filePointers = new ArrayList<FilePointer>();
+
+    /**
+     * An iterator through the available file pointers.
+     */
+    private final Iterator<FilePointer> filePointerIterator;
 
     /**
      * construct the shard strategy from a seq dictionary, a shard size, and and genomeLocs
@@ -50,8 +60,39 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      * @param locations List of locations for which to load data.
      */
     IndexDelimitedLocusShardStrategy(SAMDataSource dataSource, GenomeLocSortedSet locations) {
-        for(GenomeLoc location: locations)
-            this.locations.put(location,((BlockDrivenSAMDataSource)dataSource).getOverlappingFilePointers(location));
+        if(!(dataSource instanceof BlockDrivenSAMDataSource))
+            throw new StingException("Cannot power an IndexDelimitedLocusShardStrategy with this data source.");
+
+        blockDrivenDataSource = (BlockDrivenSAMDataSource)dataSource;
+        final int deepestBinLevel = blockDrivenDataSource.getNumIndexLevels()-1;
+
+        // Create a list of contig name -> genome loc, sorted in INSERTION ORDER.
+        LinkedHashMap<String,List<GenomeLoc>> locationToReference = new LinkedHashMap<String,List<GenomeLoc>>();
+        for(GenomeLoc location: locations) {
+            if(!locationToReference.containsKey(location.getContig()))
+                locationToReference.put(location.getContig(),new ArrayList<GenomeLoc>());
+            locationToReference.get(location.getContig()).add(location);
+        }
+
+        // Group the loci by bin, sorted in the order in which bins appear in the file.  Only use the smallest bins in the set.
+        // TODO -- does this work with large interval lists?
+        for(String contig: locationToReference.keySet()) {
+            SortedMap<Bin,List<GenomeLoc>> bins = new TreeMap<Bin,List<GenomeLoc>>();
+            for(GenomeLoc location: locationToReference.get(contig)) {
+                List<Bin> binsForLocation = blockDrivenDataSource.getOverlappingBins(location);
+                for(Bin bin: binsForLocation) {
+                    if(blockDrivenDataSource.getLevelForBin(bin) == deepestBinLevel) {
+                        if(!bins.containsKey(bin))
+                            bins.put(bin,new ArrayList<GenomeLoc>());
+                        bins.get(bin).add(location);
+                    }
+                }
+            }
+            for(SortedMap.Entry<Bin,List<GenomeLoc>> entry: bins.entrySet())
+                filePointers.add(new FilePointer(entry.getKey(),entry.getValue()));
+        }
+
+        filePointerIterator = filePointers.iterator();
     }
 
     /**
@@ -60,7 +101,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      * @return false if we're done processing shards
      */
     public boolean hasNext() {
-        return ( !locations.isEmpty() );
+        return filePointerIterator.hasNext();
     }
 
     /**
@@ -69,16 +110,9 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      * @return the next shard
      */
     public IndexDelimitedLocusShard next() {
-        if (( this.locations == null ) || ( locations.isEmpty() )) {
-            throw new StingException("IntervalShardStrategy: genomic regions list is empty in next() function.");
-        }
-
-        // get the first region in the list
-        GenomeLoc loc = locations.firstKey();
-        List<Chunk> filePointers = locations.get(loc);
-        locations.remove(loc);
-        
-        return new IndexDelimitedLocusShard(Collections.singletonList(loc),filePointers,Shard.ShardType.LOCUS_INTERVAL); 
+        FilePointer nextFilePointer = filePointerIterator.next();
+        List<Chunk> chunksBounding = blockDrivenDataSource.getFilePointersBounding(nextFilePointer.bin);
+        return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 
     /** we don't support the remove command */
@@ -94,4 +128,19 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
     public Iterator<Shard> iterator() {
         return this;
     }
+
+    /**
+     * Represents a small section of a BAM file, and every associated interval.
+     */
+    private class FilePointer {
+        private final Bin bin;
+        private final List<GenomeLoc> locations;
+
+        public FilePointer(Bin bin, List<GenomeLoc> locations) {
+            this.bin = bin;
+            this.locations = locations;
+        }
+        
+    }
+
 }

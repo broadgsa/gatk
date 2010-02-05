@@ -25,7 +25,7 @@ public class BAMFileStat extends CommandLineProgram {
     private CommandType command;
 
     @Argument(doc="The BAM file to inspect.",required=true)
-    private File bamFile;
+    private String bamFileName;
 
     @Argument(doc="The range of blocks to inspect.",required=false)
     private String range;
@@ -46,10 +46,10 @@ public class BAMFileStat extends CommandLineProgram {
 
         switch(command) {
             case ShowBlocks:
-                showBlocks(bamFile,startPosition,stopPosition);
+                showBlocks(new File(bamFileName),startPosition,stopPosition);
                 break;
             case ShowIndex:
-                showIndexBins(bamFile);
+                showIndexBins(new File(bamFileName+".bai"));
                 break;
         }
         return 0;

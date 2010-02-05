@@ -58,7 +58,7 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
     }
 
     private boolean mIsBinary = false;
-    private BAMFileIndex mFileIndex = null;
+    private BAMFileIndex2 mFileIndex = null;
     private ReaderImplementation mReader = null;
     private File samFile = null;
 
@@ -138,9 +138,6 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
         if (mReader != null) {
             mReader.close();
         }
-        if (mFileIndex != null) {
-            mFileIndex.close();
-        }
         mReader = null;
         mFileIndex = null;
     }
@@ -157,6 +154,27 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
      */
     public boolean hasIndex() {
         return (mFileIndex != null);
+    }
+
+    /**
+     * Get the number of levels employed by this index.
+     * @return Number of levels in this index.
+     */
+    public int getNumIndexLevels() {
+        if(mFileIndex == null)
+            throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
+        return mFileIndex.getNumIndexLevels();
+    }
+
+    /**
+     * Gets the level associated with the given bin number.
+     * @param bin The bin for which to determine the level.
+     * @return the level associated with the given bin number.
+     */
+    public int getLevelForBin(final Bin bin) {
+        if(mFileIndex == null)
+            throw new SAMException("Unable to determine level of bin number; BAM file index is not present.");
+        return mFileIndex.getLevelForBinNumber(bin.binNumber);
     }
 
     public SAMFileHeader getFileHeader() {
@@ -190,18 +208,25 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
      * @return An iterator over the given chunks.
      */
     public CloseableIterator<SAMRecord> iterator(List<Chunk> chunks) {
-        // TODO: Add sanity checks so that we're not doing this against a BAM file.
+        // TODO: Add sanity checks so that we're not doing this against an unsupported BAM file.
         if(!(mReader instanceof BAMFileReader2))
             throw new PicardException("This call cannot be performed without a backing BAMFileReader2");
         return ((BAMFileReader2)mReader).getIterator(chunks);
     }
 
-    public List<Chunk> getOverlappingFilePointers(final String sequence, final int start, final int end) {
-        // TODO: Add sanity checks so that we're not doing this against a BAM file.
+    public List<Bin> getOverlappingBins(final String sequence, final int start, final int end) {
+        // TODO: Add sanity checks so that we're not doing this against an unsupported BAM file.
         if(!(mReader instanceof BAMFileReader2))
             throw new PicardException("This call cannot be performed without a backing BAMFileReader2");
-        return ((BAMFileReader2)mReader).getOverlappingFilePointers(sequence,start,end);
+        return ((BAMFileReader2)mReader).getOverlappingBins(sequence,start,end);
     }
+
+    public List<Chunk> getFilePointersBounding(final Bin bin) {
+        if(!(mReader instanceof BAMFileReader2))
+            throw new PicardException("This call cannot be performed without a backing BAMFileReader2");
+        return ((BAMFileReader2)mReader).getFilePointersBounding(bin);
+    }
+
 
     /**
      * Iterate over records that match the given interval.  Only valid to call this if hasIndex() == true.
@@ -382,7 +407,7 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
                 final BAMFileReader2 reader = new BAMFileReader2(url, eagerDecode, validationStringency);
                 mReader = reader;
                 if (indexFile != null) {
-                    mFileIndex = new BAMFileIndex(indexFile);
+                    mFileIndex = new BAMFileIndex2(indexFile);
                     reader.setFileIndex(mFileIndex);
                 }
             } else {
@@ -411,7 +436,7 @@ public class SAMFileReader2 implements Iterable<SAMRecord> {
                     indexFile = findIndexFile(file);
                 }
                 if (indexFile != null) {
-                    mFileIndex = new BAMFileIndex(indexFile);
+                    mFileIndex = new BAMFileIndex2(indexFile);
                     reader.setFileIndex(mFileIndex);
                     if (indexFile.lastModified() < file.lastModified()) {
                         System.err.println("WARNING: BAM index file " + indexFile.getAbsolutePath() +

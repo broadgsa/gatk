@@ -50,7 +50,7 @@ class BAMFileReader2
     private final BlockCompressedInputStream mCompressedInputStream;
     private SAMFileHeader mFileHeader = null;
     // Populated if the file is seekable and an index exists
-    private BAMFileIndex mFileIndex = null;
+    private BAMFileIndex2 mFileIndex = null;
     private long mFirstRecordPointer = 0;
     private CloseableIterator<SAMRecord> mCurrentIterator = null;
     // If true, all SAMRecords are fully decoded as they are read.
@@ -115,11 +115,11 @@ class BAMFileReader2
     /**
      * @return the file index, if one exists, else null.
      */
-    BAMFileIndex getFileIndex() {
+    BAMFileIndex2 getFileIndex() {
         return mFileIndex;
     }
 
-    void setFileIndex(final BAMFileIndex fileIndex) {
+    void setFileIndex(final BAMFileIndex2 fileIndex) {
         mFileIndex = fileIndex;
     }
 
@@ -184,17 +184,21 @@ class BAMFileReader2
         return mCurrentIterator;
     }
 
-    public List<Chunk> getOverlappingFilePointers(final String sequence, final int start, final int end) {
-        long[] filePointers = null;
-        
+    public List<Bin> getOverlappingBins(final String sequence, final int start, final int end) {
+        List<Bin> bins = null;
+
         final SAMFileHeader fileHeader = getFileHeader();
         int referenceIndex = fileHeader.getSequenceIndex(sequence);
         if (referenceIndex != -1) {
-            final BAMFileIndex fileIndex = getFileIndex();
-            filePointers = fileIndex.getSearchBins(referenceIndex, start, end);
+            final BAMFileIndex2 fileIndex = getFileIndex();
+            bins = fileIndex.getBinsContaining(referenceIndex, start, end);
         }
 
-        return Chunk.toChunkList(filePointers);
+        return bins;
+    }
+
+    public List<Chunk> getFilePointersBounding(Bin bin) {
+        return Chunk.toChunkList(getFileIndex().getFilePointersBounding(bin));
     }
 
     /**
@@ -463,8 +467,8 @@ class BAMFileReader2
         final SAMFileHeader fileHeader = getFileHeader();
         int referenceIndex = fileHeader.getSequenceIndex(sequence);
         if (referenceIndex != -1) {
-            final BAMFileIndex fileIndex = getFileIndex();
-            filePointers = fileIndex.getSearchBins(referenceIndex, start, end);
+            final BAMFileIndex2 fileIndex = getFileIndex();
+            filePointers = fileIndex.getFilePointersContaining(referenceIndex, start, end);
         }
 
         // Create an iterator over the above chunk boundaries.

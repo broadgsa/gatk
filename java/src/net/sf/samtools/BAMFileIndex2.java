@@ -40,14 +40,45 @@ public class BAMFileIndex2
     private static final int BAM_LIDX_SHIFT = 14;
 
     /**
+     * What is the starting bin for each level?
+     */
+    private static final int[] LEVEL_STARTS = {0,1,9,73,585,4681};
+
+    /**
      * A mapping of reference sequence index to list of bins.
      */
     protected final SortedMap<Integer,Bin[]> referenceToBins = new TreeMap<Integer,Bin[]>();
 
+    /**
+     * A mapping of reference sequence index to linear indices.
+     */
     protected final SortedMap<Integer,LinearIndex> referenceToLinearIndices = new TreeMap<Integer,LinearIndex>();
 
     protected BAMFileIndex2(final File file) {
         loadIndex(file);
+    }
+
+    /**
+     * Get the number of levels employed by this index.
+     * @return Number of levels in this index.
+     */
+    protected int getNumIndexLevels() {
+        return LEVEL_STARTS.length;
+    }
+
+    /**
+     * Gets the level associated with the given bin number.
+     * @param binNumber The bin number for which to determine the level.
+     * @return the level associated with the given bin number.
+     */
+    protected int getLevelForBinNumber(final int binNumber) {
+        if(binNumber >= MAX_BINS)
+            throw new SAMException("Tried to get level for invalid bin.");
+        for(int i = getNumIndexLevels()-1; i >= 0; i--) {
+            if(binNumber >= LEVEL_STARTS[i])
+                return i;
+        }
+        throw new SAMException("Unable to find correct bin for bin number "+binNumber);
     }
 
     /**
@@ -121,30 +152,16 @@ public class BAMFileIndex2
      * positions. The last position in each pair is a virtual file pointer to the first SAMRecord beyond
      * the range that may contain the indicated SAMRecords.
      */
-    long[] getSearchBins(final int referenceIndex, final int startPos, final int endPos) {
-
-        // System.out.println("# Sequence count: " + sequenceCount);
-        if (referenceIndex >= referenceToBins.size()) {
-            return null;
-        }
-
-        final BitSet regionBins = regionToBins(startPos, endPos);
-        if (regionBins == null) {
-            return null;
-        }
-
-        Bin[] bins = referenceToBins.get(referenceIndex);
-
+    long[] getFilePointersContaining(final int referenceIndex, final int startPos, final int endPos) {
+        List<Bin> bins = getBinsContaining(referenceIndex,startPos,endPos);
         // System.out.println("# Sequence target TID: " + referenceIndex);
-        if (bins.length == 0) {
+        if (bins.size() == 0) {
             return null;
         }
 
         List<Chunk> chunkList = new ArrayList<Chunk>();
-        for(Bin bin: bins) {
-            if (regionBins.get(bin.binNumber))
-                chunkList.addAll(bin.chunks);
-        }
+        for(Bin bin: bins)
+            chunkList.addAll(bin.chunks);
 
         if (chunkList.isEmpty()) {
             return null;
@@ -159,6 +176,39 @@ public class BAMFileIndex2
             minimumOffset = index.indexEntries[regionLinearBin];
         chunkList = optimizeChunkList(chunkList, minimumOffset);
         return convertToArray(chunkList);
+    }
+
+    long[] getFilePointersBounding(final Bin bin) {
+        return convertToArray(bin.chunks);
+    }
+
+    /**
+     * Get a list of bins in the BAM file that may contain SAMRecords for the given range.
+     * @param referenceIndex sequence of desired SAMRecords
+     * @param startPos 1-based start of the desired interval, inclusive
+     * @param endPos 1-based end of the desired interval, inclusive
+     * @return a list of bins that contain relevant data.
+     */
+    List<Bin> getBinsContaining(final int referenceIndex, final int startPos, final int endPos) {
+        List<Bin> filteredBins = new ArrayList<Bin>();
+
+        if (referenceIndex >= referenceToBins.size()) {
+            return null;
+        }
+
+        final BitSet regionBins = regionToBins(startPos, endPos);
+        if (regionBins == null) {
+            return null;
+        }
+
+        Bin[] bins = referenceToBins.get(referenceIndex);
+
+        for(Bin bin: bins) {
+            if (regionBins.get(bin.binNumber))
+                filteredBins.add(bin);
+        }
+
+        return filteredBins;
     }
 
     /**
@@ -230,11 +280,11 @@ public class BAMFileIndex2
         int k;
         final BitSet bitSet = new BitSet(MAX_BINS);
         bitSet.set(0);
-        for (k =    1 + (start>>26); k <=    1 + (end>>26); ++k) bitSet.set(k);
-        for (k =    9 + (start>>23); k <=    9 + (end>>23); ++k) bitSet.set(k);
-        for (k =   73 + (start>>20); k <=   73 + (end>>20); ++k) bitSet.set(k);
-        for (k =  585 + (start>>17); k <=  585 + (end>>17); ++k) bitSet.set(k);
-        for (k = 4681 + (start>>14); k <= 4681 + (end>>14); ++k) bitSet.set(k);
+        for (k = LEVEL_STARTS[1] + (start>>26); k <= LEVEL_STARTS[1] + (end>>26); ++k) bitSet.set(k);
+        for (k = LEVEL_STARTS[2] + (start>>23); k <= LEVEL_STARTS[2] + (end>>23); ++k) bitSet.set(k);
+        for (k = LEVEL_STARTS[3] + (start>>20); k <= LEVEL_STARTS[3] + (end>>20); ++k) bitSet.set(k);
+        for (k = LEVEL_STARTS[4] + (start>>17); k <= LEVEL_STARTS[4] + (end>>17); ++k) bitSet.set(k);
+        for (k = LEVEL_STARTS[5] + (start>>14); k <= LEVEL_STARTS[5] + (end>>14); ++k) bitSet.set(k);
         return bitSet;
     }
 

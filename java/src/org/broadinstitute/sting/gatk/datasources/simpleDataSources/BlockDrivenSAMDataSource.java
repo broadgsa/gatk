@@ -44,8 +44,33 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         return reader.hasIndex();
     }
 
-    public List<Chunk> getOverlappingFilePointers(GenomeLoc location) {
-        return reader.getOverlappingFilePointers(location.getContig(),(int)location.getStart(),(int)location.getStop());
+    public List<Bin> getOverlappingBins(GenomeLoc location) {
+        return reader.getOverlappingBins(location.getContig(),(int)location.getStart(),(int)location.getStop());
+    }
+
+    public List<Chunk> getFilePointersBounding(final Bin bin) {
+        return reader.getFilePointersBounding(bin);
+    }    
+
+    /**
+     * Get the number of levels employed by this index.
+     * @return Number of levels in this index.
+     */
+    public int getNumIndexLevels() {
+        if(!hasIndex())
+            throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
+        return reader.getNumIndexLevels();
+    }
+
+    /**
+     * Gets the level associated with the given bin number.
+     * @param bin The bin for which to determine the level.
+     * @return the level associated with the given bin number.
+     */
+    public int getLevelForBin(final Bin bin) {
+        if(!hasIndex())
+            throw new SAMException("Unable to determine level of bin number; BAM file index is not present.");
+        return reader.getLevelForBin(bin);
     }
 
     public StingSAMIterator seek(Shard shard) {
