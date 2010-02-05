@@ -120,7 +120,7 @@ public class Genotype {
     }
 
     public String toString() {
-        return String.format("[GT: %s %s %s Q%.2f %s]", getSampleName(), getAlleles(), getType(), 10 * getNegLog10PError(), getAttributes());
+        return String.format("[GT: %s %s %s Q%.2f %s]", getSampleName(), getAlleles(), getType(), 10 * getNegLog10PError(), Utils.sortedString(getAttributes()));
     }
 
     public String toBriefString() {

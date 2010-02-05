@@ -75,7 +75,7 @@ import java.util.Collection;
 
  * @author ebanks, depristo
  */
-public class Allele {
+public class Allele implements Comparable<Allele> {
     private static final byte[] EMPTY_ALLELE_BASES = new byte[0];
 
     private boolean isRef = false;
@@ -301,5 +301,14 @@ public class Allele {
         }
 
         return myAlleles;
+    }
+
+    public int compareTo(Allele other) {
+        if ( isReference() && other.isNonReference() )
+            return -1;
+        else if ( isNonReference() && other.isReference() ) 
+            return 1;
+        else
+            return new String(getBases()).compareTo(new String(other.getBases())); // todo -- potential performance issue
     }
 }

@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.*;
 
@@ -193,6 +195,41 @@ public class RefMetaDataTracker {
 
         return bound;
     }
+
+
+    public Collection<VariantContext> getAllVariantContexts(GenomeLoc curLocation) {
+        return getAllVariantContexts(curLocation, null, false, false);
+    }
+
+    public Collection<VariantContext> getAllVariantContexts(GenomeLoc curLocation, EnumSet<VariantContext.Type> allowedTypes, boolean requireStartHere, boolean takeFirstOnly ) {
+        List<VariantContext> contexts = new ArrayList<VariantContext>();
+
+        for ( RODRecordList<ReferenceOrderedDatum> rodList : getBoundRodTracks() ) {
+            for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
+                if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec) ) {
+                    // ok, we might actually be able to turn this record in a variant context
+                    VariantContext vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec);
+
+                    // now, let's decide if we want to keep it
+                    boolean goodType = allowedTypes == null || allowedTypes.contains(vc.getType());
+                    boolean goodPos = ! requireStartHere || rec.getLocation().getStart() == curLocation.getStart();
+
+                    if ( goodType && goodPos ) {  // ok, we are going to keep this thing
+                        contexts.add(vc);
+
+                        if ( takeFirstOnly )
+                            // we only want the first passing instance, so break the loop over records in rodList
+                            break;
+                    }
+                }
+            }
+        }
+
+        return contexts;
+    }
+
+
+
     /**
      * Binds the list of reference ordered data records (RODs) to track name at this site.  Should be used only by the traversal
      * system to provide access to RODs in a structured way to the walkers.

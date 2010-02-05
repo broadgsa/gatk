@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.util.*;
 
@@ -830,8 +831,9 @@ public class VariantContext {
     }
 
     public String toString() {
-        return String.format("[VC @ %s of type=%s alleles=%s attr=%s GT=%s",
-                getLocation(), this.getType(), this.getAlleles(), this.getAttributes(), this.getGenotypes().values());
+        return String.format("[VC %s @ %s of type=%s alleles=%s attr=%s GT=%s",
+                getName(), getLocation(), this.getType(),
+                Utils.sorted(this.getAlleles()), Utils.sortedString(this.getAttributes()), Utils.sorted(this.getGenotypes()));
     }
 
     // protected basic manipulation routines

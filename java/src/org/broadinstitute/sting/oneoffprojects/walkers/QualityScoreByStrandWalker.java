@@ -21,13 +21,6 @@ import java.util.HashMap;
 import java.io.PrintWriter;
 
 /**
- * Created by IntelliJ IDEA.
- * User: Ghost
- * Date: Dec 15, 2009
- * Time: 11:56:22 AM
- * To change this template use File | Settings | File Templates.
- */
-/*
  * This walker prints out quality score counts for forward and reverse stranded reads aggregated over all loci
  * in the interval. Furthermore, it prints out quality score counts at a particular offset of forward and reverse
  * reads, aggregated across all paired-end reads in the interval.

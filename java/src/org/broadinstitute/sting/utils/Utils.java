@@ -567,7 +567,35 @@ public class Utils {
         return str.charAt(0);
     }
 
+    public static <T extends Comparable<T>> List<T> sorted(Collection<T> c) {
+        List<T> l = new ArrayList<T>(c);
+        Collections.sort(l);
+        return l;
+    }
 
+    public static <T extends Comparable<T>, V> List<V> sorted(Map<T,V> c) {
+        List<T> t = new ArrayList<T>(c.keySet());
+        Collections.sort(t);
+
+        List<V> l = new ArrayList<V>();
+        for ( T k : t ) {
+            l.add(c.get(k));
+        }
+        return l;
+    }
+
+    public static <T extends Comparable<T>, V> String sortedString(Map<T,V> c) {
+        List<T> t = new ArrayList<T>(c.keySet());
+        Collections.sort(t);
+
+        List<V> l = new ArrayList<V>();
+        List<String> pairs = new ArrayList<String>();
+        for ( T k : t ) {
+            pairs.add(k + "=" + c.get(k));
+        }
+
+        return "{" + join(", ", pairs) + "}";
+    }
 }
 
 

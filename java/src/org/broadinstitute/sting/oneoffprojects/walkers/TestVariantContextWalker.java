@@ -2,56 +2,48 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+
+import java.util.EnumSet;
 
 /**
  * Test routine for new VariantContext object
  */
 public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
+    @Argument(fullName="takeFirstOnly", doc="Only take the first second at a locus, as opposed to all", required=false)
+    boolean takeFirstOnly = false;
+
+    @Argument(fullName="onlyContextsOfType", doc="Only take variant contexts of this type", required=false)
+    VariantContext.Type onlyOfThisType = null;
+
+    @Argument(fullName="onlyContextsStartinAtCurrentPosition", doc="Only take variant contexts at actually start at the current position, excluding those at span to the current location but start earlier", required=false)
+    boolean onlyContextsStartinAtCurrentPosition = false;
+
+    @Argument(fullName="printPerLocus", doc="If true, we'll print the variant contexts, in addition to counts", required=false)
+    boolean printContexts = false;
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( ref == null )
             return 0;
         else {
-            // todo -- this should just invoke the new RefMetaDataConverter, and print out all of the info
-//            RODRecordList<ReferenceOrderedDatum> dbsnpList = tracker.getTrackData("dbsnp", null);
-//
-//            if (dbsnpList != null) {
-//                // do dbSNP conversion
-//                int n = 0;
-//                for (ReferenceOrderedDatum d : dbsnpList) {
-//                    rodDbSNP dbsnpRecord = (rodDbSNP)d;
-//                    if ( dbsnpRecord.getLocation().getStart() == context.getLocation().getStart() ) {
-//                        VariantContext vc = VariantContextAdaptors.convertToVariantContext("dbsnp", dbsnpRecord);
-//                        if ( vc != null ) {
-//                            n++;
-//                            System.out.printf("%s%n", vc);
-//                        }
-//                    }
-//                }
-//
-//                return n;
-//            }
-//
-//            RODRecordList<ReferenceOrderedDatum> vcfList = tracker.getTrackData("vcf", null);
-//            if (vcfList != null) {
-//                // do vcf conversion
-//                int n = 0;
-//                for (ReferenceOrderedDatum d : vcfList) {
-//                    RodVCF vcfRecord = (RodVCF)d;
-//                    VariantContext vc = VariantContextAdaptors.convertToVariantContext("vcf", vcfRecord);
-//                    if ( vc != null ) {
-//                        n++;
-//                        System.out.printf("%s%n", vc);
-//                    }
-//                }
-//
-//                return n;
-//            }
+            EnumSet<VariantContext.Type> allowedTypes = onlyOfThisType == null ? null : EnumSet.of(onlyOfThisType);
 
-            return 0;
+            int n = 0;
+            for (VariantContext vc : tracker.getAllVariantContexts(context.getLocation(), allowedTypes, onlyContextsStartinAtCurrentPosition, takeFirstOnly) ) {
+                n++;
+                if ( printContexts ) out.printf("       %s%n", vc);
+            }
+
+            if ( n > 0 && printContexts ) {
+                out.printf("%s => had %d variant context objects%n", context.getLocation(), n);
+                out.printf("---------------------------------------------%n");
+            }
+            
+            return n;
         }
     }
 

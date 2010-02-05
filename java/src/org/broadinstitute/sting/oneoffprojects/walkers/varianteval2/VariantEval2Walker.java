@@ -319,12 +319,6 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         return null;
     }
 
-    private <T extends Comparable<T>> List<T> sorted(Collection<T> c ) {
-        List<T> l = new ArrayList<T>(c);
-        Collections.sort(l);
-        return l;
-    }
-
     private final static String CONTEXT_HEADER = "track.subset.novelty.filter";
     private final static int N_CONTEXT_NAME_PARTS = CONTEXT_HEADER.split("\\.").length;
     private static int[] nameSizes = new int[N_CONTEXT_NAME_PARTS];
@@ -335,9 +329,9 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     }
 
     private void determineContextNamePartSizes() {
-        for ( String contextName : sorted(contexts.keySet()) ) {
+        for ( String contextName : Utils.sorted(contexts.keySet()) ) {
             EvaluationContext group = contexts.get(contextName);
-            for ( String evalSubgroupName : sorted(group.keySet()) ) {
+            for ( String evalSubgroupName : Utils.sorted(group.keySet()) ) {
                 String keyWord = contextName + "." + evalSubgroupName;
                 String[] parts = keyWord.split("\\.");
                 if ( parts.length != N_CONTEXT_NAME_PARTS ) {
@@ -372,11 +366,11 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
             boolean first = true;
             out.printf("%n%n");
             // todo -- show that comp is dbsnp, etc. is columns
-            for ( String contextName : sorted(contexts.keySet()) ) {
+            for ( String contextName : Utils.sorted(contexts.keySet()) ) {
                 EvaluationContext group = contexts.get(contextName);
 
                 out.printf("%s%n", Utils.dupString('-', 80));
-                for ( String evalSubgroupName : sorted(group.keySet()) ) {
+                for ( String evalSubgroupName : Utils.sorted(group.keySet()) ) {
                     Set<VariantEvaluator> evalSet = group.get(evalSubgroupName);
                     VariantEvaluator eval = getEvalByName(evalName, evalSet);
                     String keyWord = contextName + "." + evalSubgroupName;
