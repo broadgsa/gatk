@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileReader;
 
@@ -145,9 +146,10 @@ class MappedReadStreamPointer extends ReadStreamPointer {
 
         // The getStop() + 1 is a hack to work around an old bug in the way Picard created SAM files where queries
         // over a given interval would occasionally not pick up the last read in that interval.
-        mergingIterator.queryOverlapping( mappedSegment.locus.getContig(),
-                                          (int)mappedSegment.locus.getStart(),
-                                          (int)mappedSegment.locus.getStop()+ PlusOneFixIterator.PLUS_ONE_FIX_CONSTANT);
+        GenomeLoc bounds = mappedSegment.getBounds();
+        mergingIterator.queryOverlapping( bounds.getContig(),
+                                          (int)bounds.getStart(),
+                                          (int)bounds.getStop()+ PlusOneFixIterator.PLUS_ONE_FIX_CONSTANT);
 
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
@@ -163,9 +165,10 @@ class MappedReadStreamPointer extends ReadStreamPointer {
         MergingSamRecordIterator2 mergingIterator = new MergingSamRecordIterator2( headerMerger, sourceInfo );
         // NOTE: explicitly not using the queryOverlapping hack above since, according to the above criteria,
         //       we'd only miss reads that are one base long when performing a contained query.
-        mergingIterator.queryContained( mappedSegment.locus.getContig(),
-                (int)mappedSegment.locus.getStart(),
-                (int)mappedSegment.locus.getStop()+1);
+        GenomeLoc bounds = mappedSegment.getBounds();
+        mergingIterator.queryContained( bounds.getContig(),
+                (int)bounds.getStart(),
+                (int)bounds.getStop()+1);
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
 

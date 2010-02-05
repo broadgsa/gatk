@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -169,11 +170,39 @@ class EntireStream implements DataStreamSegment {
  * Models a mapped position within a stream of GATK input data.
  */
 class MappedStreamSegment implements DataStreamSegment {
-    public final GenomeLoc locus;
+    public final List<GenomeLoc> loci;
+
+    /**
+     * Retrieves the first location covered by a mapped stream segment.
+     * @return Location of the first base in this segment.
+     */
+    public GenomeLoc getFirstLocation() {
+        GenomeLoc firstLocus = loci.get(0);
+        return GenomeLocParser.createGenomeLoc(firstLocus.getContigIndex(),firstLocus.getStart());
+    }
+
+    /**
+     * Get the total range of the given mapped stream segment. 
+     * @return A GenomeLoc consisting of the first base of the first locus to the last base of the last locus, inclusive.
+     */
+    public GenomeLoc getBounds() {
+        GenomeLoc firstLocus = loci.get(0);
+        GenomeLoc lastLocus = loci.get(loci.size()-1);
+        return GenomeLocParser.createGenomeLoc(getFirstLocation().getContigIndex(),firstLocus.getStart(),lastLocus.getStop());
+    }
+
     public MappedStreamSegment( List<GenomeLoc> loci ) {
-        if(loci.size() > 1)
-            throw new StingException("MappedStreamSegments cannot apply to a range of loci");
-        this.locus = !loci.isEmpty() ? loci.get(0) : null;
+        // Validate that the list of loci is non-empty.
+        if(loci.size() == 0)
+            throw new StingException("Cannot map to a locus of length 0.");
+
+        // Validate that all loci in the given list are from the same contig.
+        int contigIndex = loci.get(0).getContigIndex();
+        for(GenomeLoc locus: loci) {
+            if(contigIndex != locus.getContigIndex())
+                throw new StingException("All loci in a MappedStreamSegment must be on the same contig.");
+        }
+        this.loci = loci;
     }
 }
 

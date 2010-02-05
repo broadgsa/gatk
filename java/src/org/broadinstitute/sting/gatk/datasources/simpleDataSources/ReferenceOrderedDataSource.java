@@ -67,7 +67,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Iterator through the data.
      */
     public Iterator seek( Shard shard ) {
-        SeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(shard.getGenomeLocs()) );
+        DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs()) : new EntireStream();
+        SeekableRODIterator iterator = iteratorPool.iterator(dataStreamSegment);
         return iterator;
     }
 
@@ -108,20 +109,27 @@ class ReferenceOrderedDataPool extends ResourcePool<SeekableRODIterator,Seekable
      * @return @{inheritedDoc}
      */
     public SeekableRODIterator selectBestExistingResource( DataStreamSegment segment, List<SeekableRODIterator> resources ) {
-        if( !(segment instanceof MappedStreamSegment) )
-            throw new StingException("Reference-ordered data cannot utilitize unmapped segments.");
-
-        GenomeLoc position = ((MappedStreamSegment)segment).locus;
-        //#########################################
+        if(segment instanceof MappedStreamSegment) {
+            GenomeLoc position = ((MappedStreamSegment)segment).getFirstLocation();
+            //#########################################
 //## System.out.printf("Searching for iterator at locus %s; %d resources available%n", position, resources.size());
-        for( SeekableRODIterator iterator: resources ) {
+            for( SeekableRODIterator iterator: resources ) {
 //##System.out.printf("Examining iterator at position %s [last query location: %s]%n", iterator.position(),iterator.lastQueryLocation());
-            if( (iterator.position() == null && iterator.hasNext()) ||
-                (iterator.position() != null && iterator.position().isBefore(position)) )
-                return iterator;
-        }
+                if( (iterator.position() == null && iterator.hasNext()) ||
+                    (iterator.position() != null && iterator.position().isBefore(position)) )
+                    return iterator;
+            }
 //##System.out.printf("Failed to find iterator at locus %s%n", position);
-        return null;
+            return null;
+        }
+        else if(segment instanceof EntireStream) {
+            // Asking for a segment over the entire stream, so by definition, there is no best existing resource.
+            // Force the system to create a new one.
+            return null;
+        }
+        else {
+            throw new StingException("Unable to find a ROD iterator for segments of type " + segment.getClass());
+        }
     }
 
     /**

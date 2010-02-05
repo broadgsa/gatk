@@ -5,6 +5,7 @@ import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMIterator;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMQueryIterator;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
@@ -68,10 +69,11 @@ public class ArtificialResourcePool extends SAMResourcePool {
         if (segment instanceof MappedStreamSegment && iterator instanceof ArtificialSAMQueryIterator) {
             ArtificialSAMQueryIterator queryIterator = (ArtificialSAMQueryIterator)iterator;
             MappedStreamSegment mappedSegment = (MappedStreamSegment)segment;
+            GenomeLoc bounds = mappedSegment.getBounds();
             if (!this.queryOverlapping) {
-                queryIterator.queryContained(mappedSegment.locus.getContig(), (int)mappedSegment.locus.getStart(), (int)mappedSegment.locus.getStop());
+                queryIterator.queryContained(bounds.getContig(), (int)bounds.getStart(), (int)bounds.getStop());
             } else {
-                queryIterator.queryOverlapping(mappedSegment.locus.getContig(), (int)mappedSegment.locus.getStart(), (int)mappedSegment.locus.getStop());
+                queryIterator.queryOverlapping(bounds.getContig(), (int)bounds.getStart(), (int)bounds.getStop());
             }
             return queryIterator;
         }

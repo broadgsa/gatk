@@ -36,12 +36,12 @@ public class HelloWalker extends LocusWalker<Integer,Long> {
      * which they fall, and the base from the reference that overlaps.
      * @param tracker The accessor for reference metadata.
      * @param ref The reference base that lines up with this locus.
-     * @param locus Information about reads overlapping this locus.
+     * @param context Information about reads aligning to this locus.
      * @return In this case, returns a count of how many loci were seen at this site (1).
      */
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        out.printf("Hello locus %s; your ref base is %c and you have %d reads%n", context.getLocation(), ref.getBase(), context.getReads().size() );
+        out.printf("Hello locus %s; your ref base is %c and you have %d reads%n", context.getLocation(), ref.getBase(), context.getBasePileup().size() );
         return 1;
     }
 
