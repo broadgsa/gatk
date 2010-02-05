@@ -1,5 +1,5 @@
 // our package
-package org.broadinstitute.sting.oneoffprojects.variantcontext;
+package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 
 // the imports for unit testing.
