@@ -462,6 +462,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
                 bestConsensus = consensus;
                 //logger.debug(consensus.str +  " " + consensus.mismatchSum);
+            } else {
+                consensus.readIndexes.clear(); // we do not need this alt consensus, release memory right away!!
             }
         }
 
