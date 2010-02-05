@@ -7,8 +7,7 @@ if (scalar(@ARGV) != 1) {
 
 my ($maf) = @ARGV;
 
-my $cmd = "use matlab && " .
-		      "matlab <<STOP\n" .
+my $cmd = "matlab <<STOP\n" .
           "addpath /home/radon00/lawrence/CancerGenomeAnalysis/trunk/matlab/mike" . "\n" .
           "addpath /home/radon00/lawrence/CancerGenomeAnalysis/trunk/matlab/seq" . "\n" .
           "addpath /home/radon00/lawrence/CancerGenomeAnalysis/trunk/matlab" . "\n" .
