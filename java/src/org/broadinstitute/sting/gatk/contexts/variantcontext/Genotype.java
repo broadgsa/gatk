@@ -1,7 +1,6 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext;
+package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 
@@ -12,6 +11,7 @@ import java.util.*;
  */
 public class Genotype {
     protected InferredGeneticContext commonInfo;
+    public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
     protected List<Allele> alleles = new ArrayList<Allele>();
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
@@ -25,7 +25,7 @@ public class Genotype {
     }
 
     public Genotype(String sampleName, List<Allele> alleles) {
-        this(sampleName, alleles, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+        this(sampleName, alleles, NO_NEG_LOG_10PERROR, null, null);
     }
 
 

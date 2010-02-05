@@ -1,10 +1,9 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext;
+package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import java.util.*;
 import org.apache.commons.jexl.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-
 
 public class VariantContextUtils {
     /** 

@@ -1,10 +1,11 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext;
+package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 
 import java.util.*;
 
@@ -143,7 +144,7 @@ public class VariantContextAdaptors {
                 for ( VCFGenotypeEncoding s : vcfG.getAlleles() )
                     genotypeAlleles.add(Allele.getMatchingAllele(alleles, s.getBases()));
 
-                double pError = vcfG.getNegLog10PError() == VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY ? InferredGeneticContext.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
+                double pError = vcfG.getNegLog10PError() == VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY ? Genotype.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
 
                 Map<String, String> fields = new HashMap<String, String>();
                 for ( Map.Entry<String, String> e : vcfG.getFields().entrySet() ) {

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext;
+package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import org.broadinstitute.sting.utils.BaseUtils;
 

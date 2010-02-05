@@ -1,19 +1,13 @@
 package org.broadinstitute.sting.playground.gatk.walkers.diagnostics;
 
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContext;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContextAdaptors;
-
-import java.util.*;
 
 /**
  * Computes the density of SNPs passing and failing filters in intervals on the genome and emits a table for display

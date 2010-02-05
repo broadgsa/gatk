@@ -2,14 +2,13 @@ package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContext;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContextAdaptors;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContextUtils;
 import org.apache.log4j.Logger;
 
 import java.util.*;

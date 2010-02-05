@@ -3,8 +3,8 @@ package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.VariantContext;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.List;

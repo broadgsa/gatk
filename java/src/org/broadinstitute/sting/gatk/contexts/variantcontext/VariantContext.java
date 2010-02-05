@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext;
+package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -160,6 +160,7 @@ import java.util.*;
  */
 public class VariantContext {
     protected InferredGeneticContext commonInfo = null;
+    public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
 
     /** The location of this VariantContext */
     private GenomeLoc loc;

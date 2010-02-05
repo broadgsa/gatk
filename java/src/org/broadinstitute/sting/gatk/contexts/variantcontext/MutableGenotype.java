@@ -1,6 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.variantcontext;
-
-import org.broadinstitute.sting.utils.Utils;
+package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import java.util.*;
 
