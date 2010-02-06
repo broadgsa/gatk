@@ -64,7 +64,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         }
     }
 
-    private boolean enabled() {
+    public boolean enabled() {
         return parent.FAMILY_STRUCTURE != null;
     }
 

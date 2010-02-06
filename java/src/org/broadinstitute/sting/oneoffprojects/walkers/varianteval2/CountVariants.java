@@ -37,6 +37,8 @@ public class CountVariants extends VariantEvaluator {
         return "counter";
     }
 
+    public boolean enabled() { return true; }
+
     public int getComparisonOrder() {
         return 1;   // we only need to see each eval track
     }

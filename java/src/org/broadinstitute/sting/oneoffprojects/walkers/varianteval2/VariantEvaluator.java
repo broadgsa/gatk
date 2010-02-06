@@ -35,8 +35,9 @@ abstract class VariantEvaluator {
             System.out.printf("%40s %s%n", interestingSitePrefix, why);
     }
 
-    public boolean processedAnySites()                                  { return processedASite; }
-    protected void markSiteAsProcessed()                                { processedASite = true; }
+    public abstract boolean enabled();
+    //public boolean processedAnySites()                                  { return processedASite; }
+    //protected void markSiteAsProcessed()                                { processedASite = true; }
 
     /** Should return the number of VariantContexts expected as inputs to update.  Can be 1 or 2 */
     public abstract int getComparisonOrder();

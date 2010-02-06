@@ -60,6 +60,8 @@ public class DbSNPPercentage extends VariantEvaluator {
         return HEADER;
     }
 
+    public boolean enabled() { return true; }
+    
     public List<List<String>> getTableRows() {
         return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
     }

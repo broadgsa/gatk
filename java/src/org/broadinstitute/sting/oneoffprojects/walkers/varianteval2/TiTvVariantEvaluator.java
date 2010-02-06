@@ -16,6 +16,8 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
         // don't do anything
     }
 
+    public boolean enabled() { return true; }
+    
     public String getName() {
         return "titv";
     }

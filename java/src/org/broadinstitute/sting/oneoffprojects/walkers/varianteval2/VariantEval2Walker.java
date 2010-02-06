@@ -39,6 +39,10 @@ import java.lang.reflect.InvocationTargetException;
 // todo -- new contexts for each comparison object too!
 //
 
+//
+// todo -- write or find a simple way to organize the table like output of variant eval 2.  A generic table of strings?
+//
+
 /**
  * Test routine for new VariantContext object
  */
@@ -205,22 +209,24 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 boolean evalWantsVC = applyVCtoEvaluation(evaluationName, vc, comps, group);
 
                 for ( VariantEvaluator evaluation : evaluations ) {
-                    // we always call update0 in case the evaluation tracks things like number of bases covered
-                    evaluation.update0(tracker, ref, context);
+                    if ( evaluation.enabled() ) {
+                        // we always call update0 in case the evaluation tracks things like number of bases covered
+                        evaluation.update0(tracker, ref, context);
 
-                    // now call the single or paired update function
-                    switch ( evaluation.getComparisonOrder() ) {
-                        case 1:
-                            if ( evalWantsVC && vc != null )
-                                evaluation.update1(vc, tracker, ref, context);
-                            break;
-                        case 2:
-                            for ( VariantContext comp : comps.values() ) {
-                                evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context);
-                            }
-                            break;
-                        default:
-                            throw new StingException("BUG: Unexpected evaluation order " + evaluation);
+                        // now call the single or paired update function
+                        switch ( evaluation.getComparisonOrder() ) {
+                            case 1:
+                                if ( evalWantsVC && vc != null )
+                                    evaluation.update1(vc, tracker, ref, context);
+                                break;
+                            case 2:
+                                for ( VariantContext comp : comps.values() ) {
+                                    evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context);
+                                }
+                                break;
+                            default:
+                                throw new StingException("BUG: Unexpected evaluation order " + evaluation);
+                        }
                     }
                 }
             }
@@ -252,18 +258,6 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         return true;
     }
 
-    private Map<String, VariantContext> getCompVariantContexts(RefMetaDataTracker tracker, AlignmentContext context) {
-        Map<String, VariantContext> comps = new HashMap<String, VariantContext>();
-
-        for ( String compName : compNames ) {
-            comps.put(compName, getVariantContext(compName, tracker, context));
-        }
-
-        // todo -- remove me when the loop works correctly for comparisons of eval x comp for each comp
-        if ( comps.size() > 1 ) throw new StingException("VariantEval2 currently only supports comparisons of N eval tracks vs. a single comparison track.  Yes, I know...");
-        return comps;
-    }
-
     private boolean vcIsKnown(VariantContext vc, Map<String, VariantContext> comps, String[] knownNames ) {
         for ( String knownName : knownNames ) {
             VariantContext known = comps.get(knownName);
@@ -281,22 +275,20 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 //
 //logger.info(String.format("Ignore second+ events at locus %s in rod %s => rec is %s", context.getLocation(), rodList.getName(), rec));
 
-    private VariantContext getVariantContext(String name, RefMetaDataTracker tracker, AlignmentContext context) {
-        if ( tracker != null ) {
-            RODRecordList<ReferenceOrderedDatum> rodList = tracker.getTrackData(name, null);
-            if ( rodList != null ) {
-                for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
-                    if ( rec.getLocation().getStart() == context.getLocation().getStart() ) {
-                        VariantContext vc = VariantContextAdaptors.toVariantContext(name, rec);
-                        if ( vc != null ) {
-                            return vc;
-                        }
-                    }
-                }
-            }
+    private Map<String, VariantContext> getCompVariantContexts(RefMetaDataTracker tracker, AlignmentContext context) {
+        Map<String, VariantContext> comps = new HashMap<String, VariantContext>();
+
+        for ( String compName : compNames ) {
+            comps.put(compName, getVariantContext(compName, tracker, context));
         }
 
-        return null;
+        // todo -- remove me when the loop works correctly for comparisons of eval x comp for each comp
+        if ( comps.size() > 1 ) throw new StingException("VariantEval2 currently only supports comparisons of N eval tracks vs. a single comparison track.  Yes, I know...");
+        return comps;
+    }
+
+    private VariantContext getVariantContext(String name, RefMetaDataTracker tracker, AlignmentContext context) {
+        return tracker.getVariantContext(name, null, context.getLocation(), true);
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -374,14 +366,16 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                     Set<VariantEvaluator> evalSet = group.get(evalSubgroupName);
                     VariantEvaluator eval = getEvalByName(evalName, evalSet);
                     String keyWord = contextName + "." + evalSubgroupName;
+                    if ( eval.enabled() ) {
 
-                    if ( first ) {
-                        out.printf("%20s %s %s%n", evalName, formatKeyword(CONTEXT_HEADER), Utils.join("\t", eval.getTableHeader()));
-                        first = false;
+                        if ( first ) {
+                            out.printf("%20s %s %s%n", evalName, formatKeyword(CONTEXT_HEADER), Utils.join("\t", eval.getTableHeader()));
+                            first = false;
+                        }
+
+                        for ( List<String> row : eval.getTableRows() )
+                            out.printf("%20s %s %s%n", evalName, formatKeyword(keyWord), Utils.join("\t", row));
                     }
-
-                    for ( List<String> row : eval.getTableRows() )
-                        out.printf("%20s %s %s%n", evalName, formatKeyword(keyWord), Utils.join("\t", row));
                 }
             }
         }
