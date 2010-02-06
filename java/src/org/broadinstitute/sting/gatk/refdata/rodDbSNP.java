@@ -243,8 +243,8 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
             RS_ID = parts[4];
             strand = parts[6];
             refBases = parts[7];
-            if (strand == "-")
-                refBases = BaseUtils.simpleReverseComplement(refBases);
+            //if (strand.equals("-")) // this is just wrong lol
+            //    refBases = BaseUtils.simpleReverseComplement(refBases);
             observed = parts[9];
             molType = parts[10];
             varType = parts[11];
