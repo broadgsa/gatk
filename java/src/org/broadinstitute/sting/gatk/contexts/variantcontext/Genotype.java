@@ -114,7 +114,11 @@ public class Genotype {
         if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0 in setAlleles");
 
         int nNoCalls = 0;
-        for ( Allele allele : alleles ) { nNoCalls += allele.isNoCall() ? 1 : 0; }
+        for ( Allele allele : alleles ) {
+            if ( allele == null )
+                throw new IllegalArgumentException("BUG: allele cannot be null in Genotype");
+            nNoCalls += allele.isNoCall() ? 1 : 0;
+        }
         if ( nNoCalls > 0 && nNoCalls != alleles.size() )
             throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
     }

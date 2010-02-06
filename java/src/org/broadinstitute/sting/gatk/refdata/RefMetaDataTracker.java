@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 
@@ -13,7 +14,7 @@ import java.util.*;
  * The standard interaction model is:
  *
  * Traversal system arrives at a site, which has a bunch of rods covering it
- * Traversal calls tracker.bind(name, rod) for each rod in rods
+Genotype * Traversal calls tracker.bind(name, rod) for each rod in rods
  * Traversal passes tracker to the walker
  * walker calls lookup(name, default) to obtain the rod values at this site, or default if none was
  *   bound at this site.
@@ -197,37 +198,106 @@ public class RefMetaDataTracker {
     }
 
 
-    public Collection<VariantContext> getAllVariantContexts(GenomeLoc curLocation) {
-        return getAllVariantContexts(curLocation, null, false, false);
+    /**
+     * Converts all possible ROD tracks to VariantContexts objects, of all types, allowing any start and any number
+     * of entries per ROD.
+     */
+    public Collection<VariantContext> getAllVariantContexts() {
+        return getAllVariantContexts(null, null, false, false);
     }
 
-    public Collection<VariantContext> getAllVariantContexts(GenomeLoc curLocation, EnumSet<VariantContext.Type> allowedTypes, boolean requireStartHere, boolean takeFirstOnly ) {
+
+    /**
+     * Converts all possible ROD tracks to VariantContexts objects.  If allowedTypes != null, then only
+     * VariantContexts in the allow set of types will be returned.  If requireStartsHere is true, then curLocation
+     * must not be null, and only records whose start position is == to curLocation.getStart() will be returned.
+     * If takeFirstOnly is true, then only a single VariantContext will be converted from any individual ROD.  Of course,
+     * this single object must pass the allowed types and start here options if provided.  Note that the result
+     * may return multiple VariantContexts with the same name if that particular track contained multiple RODs spanning
+     * the current location.
+     *
+     * The name of each VariantContext corresponds to the ROD name.
+     *
+     * @param curLocation
+     * @param allowedTypes
+     * @param requireStartHere
+     * @param takeFirstOnly
+     * @return
+     */
+    public Collection<VariantContext> getAllVariantContexts(EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         List<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( RODRecordList<ReferenceOrderedDatum> rodList : getBoundRodTracks() ) {
-            for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
-                if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec) ) {
-                    // ok, we might actually be able to turn this record in a variant context
-                    VariantContext vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec);
-
-                    // now, let's decide if we want to keep it
-                    boolean goodType = allowedTypes == null || allowedTypes.contains(vc.getType());
-                    boolean goodPos = ! requireStartHere || rec.getLocation().getStart() == curLocation.getStart();
-
-                    if ( goodType && goodPos ) {  // ok, we are going to keep this thing
-                        contexts.add(vc);
-
-                        if ( takeFirstOnly )
-                            // we only want the first passing instance, so break the loop over records in rodList
-                            break;
-                    }
-                }
-            }
+            addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly);
         }
 
         return contexts;
     }
 
+    /**
+     * Gets the variant contexts associated with track name name
+     *
+     * see getVariantContexts for more information.
+     *
+     * @param name
+     * @param curLocation
+     * @param allowedTypes
+     * @param requireStartHere
+     * @param takeFirstOnly
+     * @return
+     */
+    public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+        RODRecordList<ReferenceOrderedDatum> rodList = getTrackData(name, null);
+        Collection<VariantContext> contexts = new ArrayList<VariantContext>();
+
+        if ( rodList != null )
+            addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
+
+        return contexts;
+    }
+
+    /**
+     * Gets the variant context associated with name, and assumes the system only has a single bound track at this location.  Throws an exception if not.
+     * see getVariantContexts for more information.
+     *
+     * @param name
+     * @param curLocation
+     * @param allowedTypes
+     * @param requireStartHere
+     * @return
+     */
+    public VariantContext getVariantContext(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere ) {
+        Collection<VariantContext> contexts = getVariantContexts(name, allowedTypes, curLocation, requireStartHere, false );
+
+        if ( contexts.size() > 1 )
+            throw new StingException("Requested a single VariantContext object for track " + name + " but multiple variants were present at position " + curLocation);
+
+        return contexts.iterator().next();
+    }
+
+    private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList<ReferenceOrderedDatum> rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+        for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
+            if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec) ) {
+                // ok, we might actually be able to turn this record in a variant context
+                VariantContext vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec);
+
+                if ( vc == null ) // sometimes the track has odd stuff in it that can't be converted 
+                    continue;
+
+                // now, let's decide if we want to keep it
+                boolean goodType = allowedTypes == null || allowedTypes.contains(vc.getType());
+                boolean goodPos = ! requireStartHere || rec.getLocation().getStart() == curLocation.getStart();
+
+                if ( goodType && goodPos ) {  // ok, we are going to keep this thing
+                    contexts.add(vc);
+
+                    if ( takeFirstOnly )
+                        // we only want the first passing instance, so break the loop over records in rodList
+                        break;
+                }
+            }
+        }
+    }
 
 
     /**
@@ -241,10 +311,4 @@ public class RefMetaDataTracker {
         //logger.debug(String.format("Binding %s to %s", name, rod));
         map.put(canonicalName(name), rod);
     }
-/*
-    public void bind(final String name, ReferenceOrderedDatum rod) {
-        //logger.debug(String.format("Binding %s to %s", name, rod));
-        map.put(canonicalName(name), rod);
-    }
-    */
 }

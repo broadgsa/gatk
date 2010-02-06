@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
@@ -13,6 +14,13 @@ import java.util.*;
  * A terrible but temporary approach to converting objects to VariantContexts.  If you want to add a converter,
  * you need to create a adaptor object here and register a converter from your class to this object.  When tribble arrives,
  * we'll use a better approach.
+ *
+ * To add a new converter:
+ *
+ *   create a subclass of VCAdaptor, overloading the convert operator
+ *   add it to the static map from input type -> converter where the input type is the object.class you want to convert
+ *
+ * That's it 
  *
  * @author depristo@broadinstitute.org
  */
@@ -141,8 +149,13 @@ public class VariantContextAdaptors {
             Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
             for ( VCFGenotypeRecord vcfG : vcf.getVCFGenotypeRecords() ) {
                 List<Allele> genotypeAlleles = new ArrayList<Allele>();
-                for ( VCFGenotypeEncoding s : vcfG.getAlleles() )
-                    genotypeAlleles.add(Allele.getMatchingAllele(alleles, s.getBases()));
+                for ( VCFGenotypeEncoding s : vcfG.getAlleles() ) {
+                    Allele a = Allele.getMatchingAllele(alleles, s.getBases());
+                    if ( a == null )
+                        throw new StingException("Invalid VCF genotype allele " + s + " in VCF " + vcf);
+
+                    genotypeAlleles.add(a);
+                }
 
                 double pError = vcfG.getNegLog10PError() == VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY ? Genotype.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
 

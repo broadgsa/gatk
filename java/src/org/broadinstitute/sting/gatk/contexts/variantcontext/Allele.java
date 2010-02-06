@@ -280,7 +280,10 @@ public class Allele implements Comparable<Allele> {
             }
         }
 
-        return null;    // couldn't find anything
+        if ( wouldBeNoCallAllele(alleleBases) )
+            return NO_CALL;
+        else
+            return null;    // couldn't find anything
     }
 
     public static List<Allele> resolveAlleles(List<Allele> possibleAlleles, List<String> alleleStrings) {

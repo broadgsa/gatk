@@ -33,7 +33,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
             EnumSet<VariantContext.Type> allowedTypes = onlyOfThisType == null ? null : EnumSet.of(onlyOfThisType);
 
             int n = 0;
-            for (VariantContext vc : tracker.getAllVariantContexts(context.getLocation(), allowedTypes, onlyContextsStartinAtCurrentPosition, takeFirstOnly) ) {
+            for (VariantContext vc : tracker.getAllVariantContexts(allowedTypes, context.getLocation(), onlyContextsStartinAtCurrentPosition, takeFirstOnly) ) {
                 n++;
                 if ( printContexts ) out.printf("       %s%n", vc);
             }
