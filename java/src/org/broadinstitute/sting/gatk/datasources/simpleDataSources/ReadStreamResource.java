@@ -77,7 +77,7 @@ class ReadStreamResource {
     /**
      * A mapping from original input file to merged read group record ids
      */
-    private Map<File, Set<String>> fileToReadGroupIdMap = null;
+    private Map<File, SAMFileReader> fileToReaderMap = null;
 
     public ReadStreamResource( Reads sourceInfo ) {
         SamFileHeaderMerger headerMerger = createHeaderMerger(sourceInfo, SAMFileHeader.SortOrder.coordinate);
@@ -142,8 +142,8 @@ class ReadStreamResource {
         return readStreamPointer.getReadsOverlapping(segment);
     }
 
-    public Map<File, Set<String>> getFileToReadGroupIdMapping() {
-        return fileToReadGroupIdMap;
+    public Map<File, SAMFileReader> getFileToReaderMapping() {
+        return fileToReaderMap;
     }
 
     /**
@@ -159,7 +159,7 @@ class ReadStreamResource {
 
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
         List<SAMFileReader> lst = new ArrayList<SAMFileReader>();
-        Map<File, SAMFileReader> fileToReaderMap = new HashMap<File, SAMFileReader>();
+        fileToReaderMap = new HashMap<File, SAMFileReader>();
         for (File f : reads.getReadsFiles()) {
             SAMFileReader reader = new SAMFileReader(f, eagerDecode);
             fileToReaderMap.put(f, reader);
@@ -180,30 +180,6 @@ class ReadStreamResource {
             lst.add(reader);
         }
 
-        // create the header merger
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(lst,SORT_ORDER,true);
-
-        // populate the file -> read group mapping
-        fileToReadGroupIdMap = new HashMap<File, Set<String>>();
-        for (Map.Entry<File, SAMFileReader> entry : fileToReaderMap.entrySet()) {
-
-            Set<String> readGroups = new HashSet<String>(5);
-
-            for (SAMReadGroupRecord g : entry.getValue().getFileHeader().getReadGroups()) {
-                if (headerMerger.hasReadGroupCollisions()) {
-                    // Check if there were read group clashes.
-                    // If there were, use the SamFileHeaderMerger to translate from the
-                    // original read group id to the read group id in the merged stream
-                    readGroups.add(headerMerger.getReadGroupId(entry.getValue(), g.getReadGroupId()));
-                } else {
-                    // otherwise, pass through the unmapped read groups since this is what Picard does as well
-                    readGroups.add(g.getReadGroupId());
-                }
-            }
-
-            fileToReadGroupIdMap.put(entry.getKey(), readGroups);
-        }
-
-        return headerMerger;
+        return new SamFileHeaderMerger(lst,SORT_ORDER,true);
     }
 }

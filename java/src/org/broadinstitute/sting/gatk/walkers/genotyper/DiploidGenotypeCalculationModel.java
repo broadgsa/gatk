@@ -138,11 +138,11 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                 }
                 double[] likelihoods = gl.getLikelihoods();
                 beagleWriter.print(' ');
-                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[GenotypeType.REF.ordinal()])));
+                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[refGenotype.ordinal()])));
                 beagleWriter.print(' ');
-                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[GenotypeType.HET.ordinal()])));
+                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[hetGenotype.ordinal()])));
                 beagleWriter.print(' ');
-                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[GenotypeType.HOM.ordinal()])));
+                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[homGenotype.ordinal()])));
             }
         }
 

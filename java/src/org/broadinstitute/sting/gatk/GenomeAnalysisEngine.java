@@ -378,12 +378,44 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Returns a mapping from original input files to the SAMFileReaders
+     *
+     * @return the mapping
+     */
+    public Map<File, SAMFileReader> getFileToReaderMapping() {
+        return getDataSource().getFileToReaderMapping();
+    }
+
+    /**
      * Returns a mapping from original input files to their (merged) read group ids
      *
      * @return the mapping
      */
     public Map<File, Set<String>> getFileToReadGroupIdMapping() {
-        return getDataSource().getFileToReadGroupIdMapping();
+        Map<File, SAMFileReader> fileToReaderMap = getFileToReaderMapping();
+
+        // populate the file -> read group mapping
+        Map<File, Set<String>> fileToReadGroupIdMap = new HashMap<File, Set<String>>();
+        for (Map.Entry<File, SAMFileReader> entry : fileToReaderMap.entrySet()) {
+
+            Set<String> readGroups = new HashSet<String>(5);
+
+            for (SAMReadGroupRecord g : entry.getValue().getFileHeader().getReadGroups()) {
+                if (getDataSource().hasReadGroupCollisions()) {
+                    // Check if there were read group clashes.
+                    // If there were, use the SamFileHeaderMerger to translate from the
+                    // original read group id to the read group id in the merged stream
+                    readGroups.add(getDataSource().getReadGroupId(entry.getValue(), g.getReadGroupId()));
+                } else {
+                    // otherwise, pass through the unmapped read groups since this is what Picard does as well
+                    readGroups.add(g.getReadGroupId());
+                }
+            }
+
+            fileToReadGroupIdMap.put(entry.getKey(), readGroups);
+        }
+
+        return fileToReadGroupIdMap;
     }
 
     /**

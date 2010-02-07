@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import net.sf.samtools.*;
@@ -35,10 +36,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected boolean NWAY_OUTPUT = true;
 
     @Argument(fullName="outputSuffix", shortName="suffix", required=false, doc="Suffix to append to output bams (when using --NwayOutput) [default:'.cleaned']")
-    protected String outputSuffix = ".cleaned";
+    protected String outputSuffix = "cleaned";
 
     @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
     protected Integer compressionLevel = 5;
+
+    @Argument(fullName="sortOnDisk", shortName="sortOnDisk", required=false, doc="Should we sort on disk instead of on the fly?  This option is much slower but should be used when on-the-fly sorting fails because reads are too long [default:no]")
+    protected boolean SORT_ON_DISK = false;
+
+    @Argument(fullName="knownIndels", shortName="knownIndels", required=false, doc="One or more rod triplets <binding,type,path> of known indels to try for alternate consenses; types must implement VariationRod")
+    protected ArrayList<String> knownIndels = new ArrayList<String>();
 
     // ADVANCED OPTIONS FOLLOW
 
@@ -73,9 +80,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     // the reads that fall into the current interval
     private ReadBin readsToClean = new ReadBin();
     private ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
+    private TreeSet<VariationRod> knownIndelsToTry = new TreeSet<VariationRod>(new Comparator<VariationRod>(){
+        public int compare(VariationRod rod1, VariationRod rod2) {
+            return (int)(rod1.getLocation().getStart() - rod2.getLocation().getStart());
+        }
+    });
 
     // the wrapper around the SAM writer
-    private Map<String, SortingSAMFileWriter> writers = null;
+    private Map<String, SAMFileWriter> writers = null;
 
     // random number generator
     private Random generator;
@@ -110,21 +122,24 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // set up the output writer(s)
         if ( baseWriterFilename != null ) {
-            writers = new HashMap<String, SortingSAMFileWriter>();
+            writers = new HashMap<String, SAMFileWriter>();
             Map<File, Set<String>> readGroupMap = getToolkit().getFileToReadGroupIdMapping();
             SAMFileWriterFactory factory = new SAMFileWriterFactory();
 
             if ( NWAY_OUTPUT ) {
-                for ( File file : readGroupMap.keySet() ) {
+                Map<File, SAMFileReader> readerMap = getToolkit().getFileToReaderMapping();
+                for ( File file : readerMap.keySet() ) {
                     String newFileName = file.getName().substring(0, file.getName().length()-3) + outputSuffix + ".bam";
-                    SAMFileWriter baseWriter = factory.makeBAMWriter(getToolkit().getSAMFileHeader(), true, new File(baseWriterFilename, newFileName), compressionLevel);
-                    SortingSAMFileWriter writer = new SortingSAMFileWriter(baseWriter, SORTING_WRITER_WINDOW);
+                    SAMFileWriter writer = factory.makeBAMWriter(readerMap.get(file).getFileHeader(), !SORT_ON_DISK, new File(baseWriterFilename, newFileName), compressionLevel);
+                    if ( !SORT_ON_DISK )
+                        writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
                     for ( String rg : readGroupMap.get(file) )
                         writers.put(rg, writer);
                 }
             } else {
-                SAMFileWriter baseWriter = factory.makeBAMWriter(getToolkit().getSAMFileHeader(), true, new File(baseWriterFilename), compressionLevel);
-                SortingSAMFileWriter writer = new SortingSAMFileWriter(baseWriter, SORTING_WRITER_WINDOW);
+                SAMFileWriter writer = factory.makeBAMWriter(getToolkit().getSAMFileHeader(), !SORT_ON_DISK, new File(baseWriterFilename), compressionLevel);
+                if ( !SORT_ON_DISK )
+                    writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
                 for ( Set<String> set : readGroupMap.values() ) {
                     for ( String rg : set )
                         writers.put(rg, writer);                                     
@@ -134,6 +149,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // set up the random generator
         generator = new Random(RANDOM_SEED);
+
+        // set up the rods (since this is a ReadWalker we don't get rods from the traversal)
+        List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
+        ReferenceOrderedData.parseBindings(knownIndels, rods);
+        for ( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods ) {
+            if ( !(rod instanceof VariationRod) )
+                continue;
+            SeekableRODIterator<? extends ReferenceOrderedDatum> iter = rod.iterator();
+            while ( iter.hasNext() ) {
+                RODRecordList<? extends ReferenceOrderedDatum> records = iter.next();
+                for ( ReferenceOrderedDatum record : records ) {
+                    if (((VariationRod)record).isIndel())
+                        knownIndelsToTry.add((VariationRod)record);
+                }
+            }
+        }
 
         if ( OUT_INDELS != null ) {
             try {
@@ -182,8 +213,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return;
 
         // break out the reads into sets for their respective writers
-        Map<SortingSAMFileWriter, Set<SAMRecord>> bins = new HashMap<SortingSAMFileWriter, Set<SAMRecord>>();
-        for ( SortingSAMFileWriter writer : writers.values() )
+        Map<SAMFileWriter, Set<SAMRecord>> bins = new HashMap<SAMFileWriter, Set<SAMRecord>>();
+        for ( SAMFileWriter writer : writers.values() )
             bins.put(writer, new HashSet<SAMRecord>());
 
         for ( SAMRecord read : reads ) {
@@ -197,8 +228,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
         }
 
-        for ( Map.Entry<SortingSAMFileWriter, Set<SAMRecord>> entry : bins.entrySet() )
-            entry.getKey().addAlignments(entry.getValue());
+        for ( Map.Entry<SAMFileWriter, Set<SAMRecord>> entry : bins.entrySet() ) {
+            if ( !SORT_ON_DISK ) {
+                // we can be efficient in this case by batching the reads all together
+                ((SortingSAMFileWriter)entry.getKey()).addAlignments(entry.getValue());
+            } else {
+                for ( SAMRecord read : entry.getValue() )
+                    entry.getKey().addAlignment(read);
+            }
+        }
     }
 
     public Integer map(char[] ref, SAMRecord read) {
@@ -237,6 +275,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
         }
         else {  // the read is past the current interval
+
+            // TODO - NOW WE NEED TO GET THE APPROPRIATE KNOWN INDELS FOR THIS REGION
+
             clean(readsToClean);
 
             // merge the two sets for emission
@@ -272,13 +313,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         if ( writers != null ) {
-            for ( SortingSAMFileWriter writer : writers.values() ) {
-                writer.close();
-
-                // TODO -- fix me
+            for ( SAMFileWriter writer : writers.values() ) {
+                // TODO -- figure out why we're getting an exception thrown here
+                // TODO -- because we need to call close() to flush out the remaining reads from the writer
                 try {
-                    writer.getBaseWriter().close();
-                } catch (net.sf.samtools.util.RuntimeIOException e) {}
+                    writer.close();
+                    if ( !SORT_ON_DISK )
+                        ((SortingSAMFileWriter)writer).getBaseWriter().close();
+                } catch (RuntimeException e) {}
             }
         }
 

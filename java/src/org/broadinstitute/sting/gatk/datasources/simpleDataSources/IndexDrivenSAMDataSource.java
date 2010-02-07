@@ -113,12 +113,12 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
     }
 
     /**
-     * Returns a mapping from original input files to their (merged) read group ids
+     * Returns a mapping from original input files to the SAMFileReaders
      *
      * @return the mapping
      */
-    public Map<File, Set<String>> getFileToReadGroupIdMapping() {
-        return resourcePool.getFileToReadGroupIdMapping();
+    public Map<File, SAMFileReader> getFileToReaderMapping() {
+        return resourcePool.getFileToReaderMapping();
     }
 
     /**

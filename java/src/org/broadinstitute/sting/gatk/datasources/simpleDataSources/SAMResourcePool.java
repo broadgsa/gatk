@@ -32,9 +32,9 @@ import org.apache.log4j.Logger;
 import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileReader;
 
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
 import java.io.File;
 
@@ -52,7 +52,7 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
     /** Source information about the reads. */
     protected Reads reads;
     protected SamFileHeaderMerger headerMerger;
-    protected Map<File, Set<String>> fileToReadGroupIdMap;
+    protected Map<File, SAMFileReader> fileToReaderMap;
 
     /**
      * Do all the constituent BAM files have indices?  We support some very limited
@@ -74,7 +74,7 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
         this.header = streamResource.getHeader();
         this.headerMerger = streamResource.getHeaderMerger();
         this.hasIndex = streamResource.hasIndex();
-        this.fileToReadGroupIdMap = streamResource.getFileToReadGroupIdMapping();
+        this.fileToReaderMap = streamResource.getFileToReaderMapping();
 
         // Add this resource to the pool.
         this.addNewResource(streamResource);
@@ -93,12 +93,12 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
     public Reads getReadsInfo() { return reads; }
     
     /**
-     * Returns a mapping from original input files to their (merged) read group ids
+     * Returns a mapping from original input files to the SAMFileReaders
      *
      * @return the mapping
      */
-    public Map<File, Set<String>> getFileToReadGroupIdMapping() {
-        return fileToReadGroupIdMap;
+    public Map<File, SAMFileReader> getFileToReaderMapping() {
+        return fileToReaderMap;
     }
 
     /**

@@ -13,7 +13,6 @@ import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.Set;
 import java.util.Map;
 
 /*
@@ -118,7 +117,7 @@ public abstract class SAMDataSource implements SimpleDataSource {
      *
      * @return the mapping
      */
-    public Map<File, Set<String>> getFileToReadGroupIdMapping() { return null; }
+    public Map<File, SAMFileReader> getFileToReaderMapping() { return null; }
 
     /**
      * Returns readers used by this data source.
