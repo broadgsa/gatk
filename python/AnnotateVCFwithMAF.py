@@ -39,15 +39,21 @@ if vcf_format_line != "##fileformat=VCFv3.3\n":
     print ("VCF not v 3.3")
     sys.exit()
 
-for i in range(33):
-    vcf_out_file.write(vcf_file.readline())
+header = vcf_file.readline()
+while header != "" and header.startswith("#"):
+    if header.startswith("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"):
+        break
+    vcf_out_file.write(header)
+    header = vcf_file.readline()
 
-header_fields = vcf_file.readline()
-vcf_out_file.write(header_fields)
+header_fields = header
 if not header_fields.startswith("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"):
     print ("VCF header fields not in expected order")
     print header_fields
     sys.exit()
+
+vcf_out_file.write("##source=AnnotateVCFwithMAF\n")
+vcf_out_file.write(header_fields)
 
 for vcf_line, locus_and_info in zip(vcf_file.readlines(), loci_and_info):
     vcf_line_fields = vcf_line.split("\t")
@@ -61,14 +67,3 @@ for vcf_line, locus_and_info in zip(vcf_file.readlines(), loci_and_info):
     vcf_line_fields[7] = vcf_line_fields[7]+","+maf_info
     new_vcf_line = "\t".join(vcf_line_fields)
     vcf_out_file.write(new_vcf_line)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
