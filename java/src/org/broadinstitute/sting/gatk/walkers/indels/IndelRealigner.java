@@ -498,15 +498,23 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 //logger.debug(consensus.str +  " vs. " + toTest.getRead().getReadString() + " => " + myScore + " - " + altAlignment.first);
                 if ( !toTest.getRead().getDuplicateReadFlag() )
                     consensus.mismatchSum += myScore;
+
+                // optimization: once the mismatch sum is higher than the best consensus, quit since this one can't win
+                //  THIS MUST BE DISABLED IF WE DECIDE TO ALLOW MORE THAN ONE ALTERNATE CONSENSUS!
+                if ( bestConsensus != null && consensus.mismatchSum > bestConsensus.mismatchSum )
+                    break;
             }
 
             //logger.debug(consensus.str +  " " + consensus.mismatchSum);
             if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
-                if ( bestConsensus != null ) bestConsensus.readIndexes.clear();
+                // we do not need this alt consensus, release memory right away!!
+                if ( bestConsensus != null )
+                    bestConsensus.readIndexes.clear();
                 bestConsensus = consensus;
                 //logger.debug(consensus.str +  " " + consensus.mismatchSum);
             } else {
-                consensus.readIndexes.clear(); // we do not need this alt consensus, release memory right away!!
+                // we do not need this alt consensus, release memory right away!!
+                consensus.readIndexes.clear();
             }
         }
 

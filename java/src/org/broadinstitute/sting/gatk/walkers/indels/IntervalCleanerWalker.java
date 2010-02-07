@@ -361,6 +361,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 //logger.debug(consensus.str +  " vs. " + toTest.getRead().getReadString() + " => " + myScore + " - " + altAlignment.first);
                 if ( !toTest.getRead().getDuplicateReadFlag() )
                     consensus.mismatchSum += myScore;
+
+                // optimization: once the mismatch sum is higher than the best consensus, quit since this one can't win
+                //  THIS MUST BE DISABLED IF WE DECIDE TO ALLOW MORE THAN ONE ALTERNATE CONSENSUS!
+                if ( bestConsensus != null && consensus.mismatchSum > bestConsensus.mismatchSum )
+                    break;
             }
 
             //logger.debug(consensus.str +  " " + consensus.mismatchSum);
