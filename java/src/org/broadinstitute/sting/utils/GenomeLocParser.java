@@ -54,7 +54,7 @@ import java.util.regex.Pattern;
 public class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
-    private static final Pattern mPattern = Pattern.compile("([\\w&&[^:]]+):*([\\d,]+)?([\\+-])?([\\d,]+)?$");  // matches case 3
+    private static final Pattern mPattern = Pattern.compile("([\\p{Print}&&[^:]]+):*([\\d,]+)?([\\+-])?([\\d,]+)?$");  // matches case 3
 
 
     // --------------------------------------------------------------------------------------------------------------
