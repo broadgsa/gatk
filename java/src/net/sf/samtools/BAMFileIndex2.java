@@ -34,7 +34,7 @@ import java.util.*;
 /**
  * Class for reading BAM file indexes.
  */
-public class BAMFileIndex2
+public class BAMFileIndex2 extends BAMFileIndex
 {
     private static final int MAX_BINS = 37450; // =(8^6-1)/7+1
     private static final int BAM_LIDX_SHIFT = 14;
@@ -55,6 +55,7 @@ public class BAMFileIndex2
     protected final SortedMap<Integer,LinearIndex> referenceToLinearIndices = new TreeMap<Integer,LinearIndex>();
 
     protected BAMFileIndex2(final File file) {
+        super(file);
         loadIndex(file);
     }
 
