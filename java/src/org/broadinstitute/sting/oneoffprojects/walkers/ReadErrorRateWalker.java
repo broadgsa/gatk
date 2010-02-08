@@ -6,6 +6,8 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -17,7 +19,7 @@ import java.util.Random;
  *
  * @author Kiran Garimella
  */
-public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
+public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateCollection> {
     @Argument(fullName="printVisualHits",   shortName="v",  doc="print visual hits",    required=false) public boolean printVisualHits = false;
     @Argument(fullName="useNextBestBase",   shortName="nb", doc="use next best base",   required=false) public boolean useNextBestBase = false;
     @Argument(fullName="useNonNextBestBase",shortName="nnb",doc="use nonnext best base",required=false) public boolean useNonNextBestBase = false;
@@ -134,38 +136,80 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
      *
      * @return null
      */
-    public int[] reduceInit() {
-        return null;
+    public ReadErrorRateCollection reduceInit() {
+        return new ReadErrorRateCollection();
     }
 
     /**
      * Summarize the error rate data.
      *
      * @param value  the read mismatch array
-     * @param sum    the summed mismatch array
+     * @param collection    the summed mismatch array
      * @return the summed mismatch array with the new read mismatch array added
      */
-    public int[] reduce(boolean[] value, int[] sum) {
-        if (sum == null) {
-            sum = new int[value.length];
-        }
+    public ReadErrorRateCollection reduce(boolean[] value, ReadErrorRateCollection collection) {
 
-        for (int cycle = 0; cycle < value.length; cycle++) {
-            sum[cycle] += (value[cycle] ? 1 : 0);
-        }
+        collection.update(value);
 
-        return sum;
+        return collection;
     }
 
     /**
      * We've processed all the reads.  Emit the final, normalized error rate data.
      *
-     * @param sum  the summed mismatch array
+     * @param collection  the summed mismatch arrays
      */
-    public void onTraversalDone(int[] sum) {
-        for (int cycle = 0; cycle < sum.length - 1; cycle++) {
-            double errorrate = ((double) sum[cycle])/((double) sum[sum.length - 1]);
-            out.println("[ERROR_RATE] " + cycle + " " + errorrate);
+    public void onTraversalDone(ReadErrorRateCollection collection) {
+
+        out.print(collection.toString());
+    }
+}
+
+class ReadErrorRateCollection {
+    private HashMap<Integer,int[]> readsByReadLength;
+
+    public ReadErrorRateCollection() {
+        readsByReadLength = new HashMap<Integer, int[]>();
+    }
+
+    public void update(boolean[] mismatchArray) {
+        if ( ! readsByReadLength.containsKey(mismatchArray.length) ) {
+            readsByReadLength.put(mismatchArray.length, zeroArray(mismatchArray.length));
         }
+
+        updateErrorCounts(readsByReadLength.get(mismatchArray.length), mismatchArray);
+    }
+
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        for ( int length : readsByReadLength.keySet() ) {
+            for ( int cycle = 0; cycle < length-1; cycle++) {
+                int[] counts = readsByReadLength.get(length);
+                builder.append(length);
+                builder.append("\t");
+                builder.append(cycle);
+                builder.append("\t");
+                builder.append( ( ( double ) counts[cycle] / ( (double) counts[length-1])));
+                builder.append("\n");
+            }
+        }
+        return builder.toString();
+    }
+
+    private static int[] zeroArray( int length ) {
+        int[] array = new int[length];
+        for ( int ii = 0; ii < length; ii ++ ) {
+            array[ii] = 0;
+        }
+
+        return array;
+    }
+
+    public static void updateErrorCounts(int[] sum, boolean[] value) {
+
+        for (int cycle = 0; cycle < value.length; cycle++) {
+            sum[cycle] += (value[cycle] ? 1 : 0);
+        }
+
     }
 }

@@ -58,35 +58,58 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
         ReferenceOrderedDatum truthData = tracker.lookup("truth", null);
         ReferenceOrderedDatum variantData = tracker.lookup("variants",null);
         LocusConcordanceInfo concordance;
+
         if ( truthData == null && variantData == null) {
+
             concordance = null;
+
         } else if ( truthData == null ) {
+
             // not in the truth set
             if ( ( (RodVCF) variantData ).isFiltered() ) {
+
                 concordance = null;
+
             } else {
+
                 concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.VARIANT_SET,null, ( (RodVCF) variantData ).getRecord(),ref);
             }
+
         } else if ( variantData == null ) {
+
             // not in the variant set
             if ( ( (RodVCF) truthData).isFiltered() ) {
+
                 concordance = null;
+
             } else {
+
                 concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.TRUTH_SET,( (RodVCF) truthData).getRecord(),null,ref);
             }
+
         } else {
+
             // in both
             // check for filtering
             boolean truth_filter = ((RodVCF) truthData).isFiltered();
             boolean call_filter = ((RodVCF) variantData).isFiltered();
+
             if ( truth_filter && call_filter ) {
+
                 concordance = null;
+
             } else if ( truth_filter ) {
+
                 concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.VARIANT_SET,null, ( (RodVCF) variantData ).getRecord(),ref);
+
             } else if ( call_filter ) {
+
                 concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.TRUTH_SET_VARIANT_FILTERED,( (RodVCF) truthData).getRecord(), null ,ref);
+
             } else {
+
                 concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.BOTH_SETS,( (RodVCF) truthData).getRecord(),( (RodVCF) variantData).getRecord(),ref);
+                
             }
         }
 

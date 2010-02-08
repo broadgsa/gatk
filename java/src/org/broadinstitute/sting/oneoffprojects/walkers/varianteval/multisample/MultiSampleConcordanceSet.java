@@ -22,11 +22,6 @@ class MultiSampleConcordanceSet {
     private long truthSitesFilteredOut;
     private int genotypeQuality;
 
-    private int truePositiveLoci;
-    private int trueNegativeLoci;
-    private int falsePositiveLoci;
-    private int falseNegativeLoci;
-
     public MultiSampleConcordanceSet(int minDepth, boolean assumeRef, int genotypeQuality) {
         concordanceSet = new HashSet<VCFConcordanceCalculator>();
         truthOnlySites = 0l;
