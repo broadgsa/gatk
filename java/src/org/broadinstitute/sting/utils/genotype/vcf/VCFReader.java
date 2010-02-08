@@ -1,13 +1,26 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.utils.Utils;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+
+import org.broadinstitute.sting.utils.Utils;
 
 /** The VCFReader class, which given a valid vcf file, parses out the header and VCF records */
 public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
@@ -151,7 +164,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         // iterate over all the passed in strings
         for ( String str : headerStrings ) {
             if ( !str.startsWith("##") ) {
-                String[] strings = str.substring(1).split("\\s+");
+                String[] strings = str.substring(1).split("\t");
                 // the columns should be in order according to Richard Durbin
                 int arrayIndex = 0;
                 for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
@@ -197,7 +210,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         try {
             // things we need to make a VCF record
             Map<VCFHeader.HEADER_FIELDS, String> values = new HashMap<VCFHeader.HEADER_FIELDS, String>();
-            String tokens[] = line.split("\\s+");
+            String tokens[] = line.split("\t");
 
             // check to ensure that the column count of tokens is right
             if (tokens.length != mHeader.getColumnCount()) {

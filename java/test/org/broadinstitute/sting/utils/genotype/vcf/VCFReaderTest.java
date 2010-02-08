@@ -1,16 +1,24 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.BeforeClass;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import java.io.*;
-import java.util.*;
+import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /** test the VCFReader class test */
 public class VCFReaderTest extends BaseTest {
@@ -20,6 +28,7 @@ public class VCFReaderTest extends BaseTest {
     private static final String VCF_MIXUP_FILE = validationDataLocation + "mixedup.v2.vcf";
     private static final File complexFile = new File(validationDataLocation + "complexExample.vcf");
     private static final File headerNoRecordsFile = new File(validationDataLocation + "headerNoRecords.vcf");
+    private static final File headerSampleSpaceFile = new File(validationDataLocation + "headerSampleSpaceFile.vcf");
     
 
     @BeforeClass
@@ -164,7 +173,7 @@ public class VCFReaderTest extends BaseTest {
             BufferedReader breader = new BufferedReader(reader);
             String line;
             while ((line = breader.readLine()) != null) {
-                String[] pieces = line.split("\\s+");
+                String[] pieces = line.split("\t");
 
                 if (line.contains("##")) {
                     continue;
@@ -340,10 +349,18 @@ public class VCFReaderTest extends BaseTest {
         if (reader.hasNext()) Assert.fail("The reader should NOT have a record");
     }
 
+    @Test
     public void testHeaderNoRecords() {
         VCFReader reader = new VCFReader(headerNoRecordsFile);
         Assert.assertTrue(reader.getHeader().getMetaData() != null);
         Assert.assertTrue(!reader.iterator().hasNext());
+    }
 
+    @Test
+    public void testHeaderSampleSpaceFile() {
+        VCFReader reader = new VCFReader(headerSampleSpaceFile);
+        Assert.assertTrue(reader.getHeader().hasGenotypingData());
+        Assert.assertTrue(reader.getHeader().getGenotypeSamples().size() == 1);
+        Assert.assertTrue(reader.getHeader().getGenotypeSamples().contains("SAMPLE NAME"));
     }
 }
