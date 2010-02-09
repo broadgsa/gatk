@@ -568,14 +568,24 @@ public class Utils {
     }
 
     public static <T extends Comparable<T>> List<T> sorted(Collection<T> c) {
+        return sorted(c, false);
+    }
+
+    public static <T extends Comparable<T>> List<T> sorted(Collection<T> c, boolean reverse) {
         List<T> l = new ArrayList<T>(c);
         Collections.sort(l);
+        if ( reverse ) Collections.reverse(l);
         return l;
     }
 
     public static <T extends Comparable<T>, V> List<V> sorted(Map<T,V> c) {
+        return sorted(c, false);
+    }
+
+    public static <T extends Comparable<T>, V> List<V> sorted(Map<T,V> c, boolean reverse) {
         List<T> t = new ArrayList<T>(c.keySet());
         Collections.sort(t);
+        if ( reverse ) Collections.reverse(t);
 
         List<V> l = new ArrayList<V>();
         for ( T k : t ) {

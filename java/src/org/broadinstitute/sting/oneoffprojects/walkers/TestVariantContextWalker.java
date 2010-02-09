@@ -5,10 +5,16 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.EnumSet;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
+import java.io.File;
 
 /**
  * Test routine for new VariantContext object
@@ -26,6 +32,17 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="printPerLocus", doc="If true, we'll print the variant contexts, in addition to counts", required=false)
     boolean printContexts = false;
 
+    @Argument(fullName="outputVCF", doc="If provided, we'll convert the first input context into a VCF", required=false)
+    String outputVCF = null;
+
+    private VCFWriter writer = null;
+    private boolean wroteHeader = false;
+
+    public void initialize() {
+        if ( outputVCF != null )
+            writer = new VCFWriter(new File(outputVCF));
+    }
+
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( ref == null )
             return 0;
@@ -34,6 +51,15 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
 
             int n = 0;
             for (VariantContext vc : tracker.getAllVariantContexts(allowedTypes, context.getLocation(), onlyContextsStartinAtCurrentPosition, takeFirstOnly) ) {
+                if ( writer != null && n == 0 ) {
+                    if ( ! wroteHeader ) {
+                        writer.writeHeader(VariantContextAdaptors.createVCFHeader(null, vc));
+                        wroteHeader = true;
+                    }
+
+                    writer.addRecord(VariantContextAdaptors.toVCF(vc));
+                }
+
                 n++;
                 if ( printContexts ) out.printf("       %s%n", vc);
             }

@@ -98,7 +98,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
             Genotype dadG   = vc.getGenotype(trio.dad);
             Genotype childG = vc.getGenotype(trio.child);
 
-            if ( momG.getNegLog10PError() > getQThreshold() && dadG.getNegLog10PError() > getQThreshold() && childG.getNegLog10PError() > getQThreshold() ) {
+            if ( includeGenotype(momG) && includeGenotype(dadG) && includeGenotype(childG) ) {
                 // all genotypes are good, so let's see if child is a violation
 
                 if ( isViolation(vc, momG, dadG, childG) ) {
@@ -150,6 +150,10 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
             default:
                 throw new StingException("BUG: unexpected child genotype class " + childG);
         }
+    }
+
+    private boolean includeGenotype(Genotype g) {
+        return g.getNegLog10PError() > getQThreshold() && g.isCalled();
     }
 
     private enum ViolationType {

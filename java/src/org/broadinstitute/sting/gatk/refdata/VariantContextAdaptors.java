@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -182,12 +180,26 @@ public class VariantContextAdaptors {
             return null; // can't handle anything else
     }
 
+
+    public static VCFHeader createVCFHeader(Set<VCFHeaderLine> hInfo, VariantContext vc) {
+        HashSet<String> names = new LinkedHashSet<String>();
+        for ( Genotype g : vc.getGenotypesSortedByName() ) {
+            names.add(g.getSampleName());
+        }
+
+        return new VCFHeader(hInfo == null ? new HashSet<VCFHeaderLine>() : hInfo, names);
+    }
+
     public static VCFRecord toVCF(VariantContext vc) {
         // deal with the reference
         char referenceBase = 'N'; // by default we'll use N
         if ( vc.getReference().length() == 1 ) {
             referenceBase = (char)vc.getReference().getBases()[0];
         }
+
+        if ( ! vc.isSNP() )
+            // todo -- update the code so it works correctly with indels
+            throw new StingException("VariantContext -> VCF converter currently doesn't support indels; complain to the GATK team");
 
         String contig = vc.getLocation().getContig();
         long position = vc.getLocation().getStart();

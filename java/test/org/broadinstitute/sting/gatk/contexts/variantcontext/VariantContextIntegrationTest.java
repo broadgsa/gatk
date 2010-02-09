@@ -10,10 +10,12 @@ import java.util.List;
 import java.io.File;
 
 public class VariantContextIntegrationTest extends WalkerTest {
-    private static String root = "-T TestVariantContext" +
-            " -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
-            " -B vcf,VCF,/humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
+    private static String cmdRoot = "-T TestVariantContext" +
             " -R " + oneKGLocation + "reference/human_b36_both.fasta";
+
+    private static String root = cmdRoot +
+            " -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+            " -B vcf,VCF,/humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
 
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
@@ -40,6 +42,16 @@ public class VariantContextIntegrationTest extends WalkerTest {
                     Arrays.asList(md5));
             executeTest("testDbSNPAndVCFConversions", spec);
         }
+    }
+
+    @Test
+    public void testToVCF() {
+        // this really just tests that we are seeing the same number of objects over all of chr1
+
+        WalkerTestSpec spec = new WalkerTestSpec( cmdRoot + " -B vcf,VCF," + validationDataLocation + "/yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.vcf -L 1:1-1000000 -o %s --outputVCF %s",
+                2, // just one output file
+                Arrays.asList("e3c35d0c4b5d4935c84a270f9df0951f", "461960b26ee1f8998ccc47da9bd3913c"));
+         executeTest("testToVCF", spec);
     }
 
     @Test

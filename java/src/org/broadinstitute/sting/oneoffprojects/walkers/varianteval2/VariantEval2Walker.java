@@ -196,6 +196,9 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         //System.out.printf("map at %s with %d skipped%n", context.getLocation(), context.getSkippedBases());
 
+        if ( ref == null )
+            return 0;
+
         Map<String, VariantContext> comps = getCompVariantContexts(tracker, context);
 
         // to enable walking over pairs where eval or comps have no elements

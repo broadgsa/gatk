@@ -108,6 +108,7 @@ public class Genotype {
      * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF)
      */
     public boolean isNoCall() { return getType() == Type.NO_CALL; }
+    public boolean isCalled() { return getType() != Type.NO_CALL; }
 
     public void validate() {
         // todo -- add validation checking here
