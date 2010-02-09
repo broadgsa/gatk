@@ -1,9 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
-import net.sf.samtools.Chunk;
-import net.sf.samtools.BAMFileHeaderLoader;
-import net.sf.samtools.BAMChunkIterator;
-import net.sf.samtools.BAMBlockIterator;
+import net.sf.samtools.*;
 
 import java.util.*;
 import java.io.File;
@@ -26,6 +23,11 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     protected int blockCount = 100;
 
     /**
+     * The data source used to shard.
+     */
+    protected final SAMDataSource dataSource;
+
+    /**
      * The actual chunks streaming into the file.
      */
     private final BAMChunkIterator chunkIterator;
@@ -40,6 +42,8 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      * @param dataSource Data source from which to load shards.
      */
     public BlockDelimitedReadShardStrategy(SAMDataSource dataSource) {
+        this.dataSource = dataSource;
+
         if(dataSource.getReadsInfo().getReadsFiles().size() > 1)
             throw new UnsupportedOperationException("Experimental sharding only works with a single BAM at the moment.");
         File bamFile = dataSource.getReadsInfo().getReadsFiles().get(0);
@@ -71,7 +75,11 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     public Shard next() {
         if(!hasNext())
             throw new NoSuchElementException("No such element available: SAM reader has arrived at last shard.");
-        Shard shard = new BlockDelimitedReadShard(Collections.unmodifiableList(new ArrayList<Chunk>(nextChunks)));
+
+        if(dataSource.getReaders().size() == 0)
+            throw new StingException("Unable to shard with no readers present.");
+
+        Shard shard = new BlockDelimitedReadShard((SAMFileReader2)dataSource.getReaders().iterator().next(),Collections.unmodifiableList(new ArrayList<Chunk>(nextChunks)));
         advance();
         return shard;
     }

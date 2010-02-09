@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.nio.channels.FileChannel;
+import java.util.List;
 
 import net.sf.samtools.*;
 
@@ -106,8 +107,9 @@ public class BAMFileStat extends CommandLineProgram {
                 outputStream.printf("Reference sequence: %d%n",referenceSequence);
                 outputStream.printf("number of bins: %d%n",bins.length);
                 for(Bin bin: bins) {
-                    outputStream.printf("\tBin: %d, number of chunks: %d%n", bin.binNumber, bin.chunks.size());
-                    for(Chunk chunk: bin.chunks)
+                    List<Chunk> chunks = binToChunks.get(bin);
+                    outputStream.printf("\tBin: %d, number of chunks: %d%n", bin.binNumber, chunks.size());
+                    for(Chunk chunk: chunks)
                         outputStream.printf("\t\tChunk: %s%n", chunk);
                 }
                 LinearIndex linearIndex = referenceToLinearIndices.get(referenceSequence);

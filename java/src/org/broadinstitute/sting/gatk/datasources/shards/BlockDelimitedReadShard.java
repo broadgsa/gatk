@@ -1,8 +1,11 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.Chunk;
+import net.sf.samtools.SAMFileReader2;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Collections;
 
 /**
  * Expresses a shard of read data in block format.
@@ -12,11 +15,17 @@ import java.util.List;
  */
 public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAwareShard {
     /**
+     * The reader associated with this shard.
+     */
+    private final SAMFileReader2 reader;
+    
+    /**
      * The list of chunks to retrieve when loading this shard.
      */
     private final List<Chunk> chunks;
 
-    public BlockDelimitedReadShard(List<Chunk> chunks) {
+    public BlockDelimitedReadShard(SAMFileReader2 reader, List<Chunk> chunks) {
+        this.reader = reader;
         this.chunks = chunks;
     }
 
@@ -24,8 +33,8 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * Get the list of chunks delimiting this shard.
      * @return a list of chunks that contain data for this shard.
      */
-    public List<Chunk> getChunks() {
-        return chunks;
+    public Map<SAMFileReader2,List<Chunk>> getChunks() {
+        return Collections.singletonMap(reader,chunks);
     }
 
     /**

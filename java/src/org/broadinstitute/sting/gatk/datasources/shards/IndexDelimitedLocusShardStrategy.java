@@ -10,6 +10,7 @@ import java.util.*;
 
 import net.sf.samtools.Chunk;
 import net.sf.samtools.Bin;
+import net.sf.samtools.SAMFileReader2;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -75,7 +76,6 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
         }
 
         // Group the loci by bin, sorted in the order in which bins appear in the file.  Only use the smallest bins in the set.
-        // TODO -- does this work with large interval lists?
         for(String contig: locationToReference.keySet()) {
             SortedMap<Bin,List<GenomeLoc>> bins = new TreeMap<Bin,List<GenomeLoc>>();
             for(GenomeLoc location: locationToReference.get(contig)) {
@@ -111,7 +111,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        List<Chunk> chunksBounding = blockDrivenDataSource.getFilePointersBounding(nextFilePointer.bin);
+        Map<SAMFileReader2,List<Chunk>> chunksBounding = blockDrivenDataSource.getFilePointersBounding(nextFilePointer.bin);
         return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 

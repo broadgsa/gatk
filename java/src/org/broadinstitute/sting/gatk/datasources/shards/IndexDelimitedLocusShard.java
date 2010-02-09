@@ -1,11 +1,12 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.Chunk;
+import net.sf.samtools.SAMFileReader2;
 
 import java.util.List;
+import java.util.Map;
 
 
 /*
@@ -40,7 +41,7 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
     /**
      * A list of the chunks associated with this shard.
      */
-    private final List<Chunk> chunks;
+    private final Map<SAMFileReader2,List<Chunk>> chunks;
 
     /**
      * An IndexDelimitedLocusShard can be used either for LOCUS or LOCUS_INTERVAL shard types.
@@ -54,7 +55,7 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      * @param chunks Chunks associated with that interval.
      * @param shardType Type of the shard; must be either LOCUS or LOCUS_INTERVAL.
      */
-    IndexDelimitedLocusShard(List<GenomeLoc> intervals, List<Chunk> chunks, ShardType shardType) {
+    IndexDelimitedLocusShard(List<GenomeLoc> intervals, Map<SAMFileReader2,List<Chunk>> chunks, ShardType shardType) {
         super(intervals);
         this.chunks = chunks;
         if(shardType != ShardType.LOCUS && shardType != ShardType.LOCUS_INTERVAL)
@@ -66,7 +67,7 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      * Gets the chunks associated with this locus shard.
      * @return A list of the chunks to use when retrieving locus data.
      */
-    public List<Chunk> getChunks() {
+    public Map<SAMFileReader2,List<Chunk>> getChunks() {
         return chunks;
     }
 

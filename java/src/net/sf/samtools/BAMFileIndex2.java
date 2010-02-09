@@ -54,6 +54,11 @@ public class BAMFileIndex2 extends BAMFileIndex
      */
     protected final SortedMap<Integer,LinearIndex> referenceToLinearIndices = new TreeMap<Integer,LinearIndex>();
 
+    /**
+     * A mapping from bin to the chunks contained in that bin.
+     */
+    protected final SortedMap<Bin,List<Chunk>> binToChunks = new TreeMap<Bin,List<Chunk>>();
+
     protected BAMFileIndex2(final File file) {
         super(file);
         loadIndex(file);
@@ -121,7 +126,8 @@ public class BAMFileIndex2 extends BAMFileIndex
                         final long chunkEnd = readLong(fileBuffer);
                         chunkList.add(new Chunk(chunkBegin, chunkEnd));
                     }
-                    bins[bin] = new Bin(sequence,indexBin,chunkList);
+                    bins[bin] = new Bin(sequence,indexBin);
+                    binToChunks.put(bins[bin],chunkList);
                 }
                 referenceToBins.put(sequence,bins);
 
@@ -162,7 +168,7 @@ public class BAMFileIndex2 extends BAMFileIndex
 
         List<Chunk> chunkList = new ArrayList<Chunk>();
         for(Bin bin: bins)
-            chunkList.addAll(bin.chunks);
+            chunkList.addAll(binToChunks.get(bin));
 
         if (chunkList.isEmpty()) {
             return null;
@@ -180,7 +186,7 @@ public class BAMFileIndex2 extends BAMFileIndex
     }
 
     long[] getFilePointersBounding(final Bin bin) {
-        return convertToArray(bin.chunks);
+        return convertToArray(binToChunks.get(bin));
     }
 
     /**

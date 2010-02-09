@@ -3,7 +3,7 @@ package net.sf.samtools;
 import java.util.List;
 
 /**
- * An individual bin in a BAM file, divided into chunks plus a linear index. 
+ * An individual bin in a BAM file.
  *
  * @author mhanna
  * @version 0.1
@@ -19,15 +19,9 @@ public class Bin implements Comparable {
      */
     public final int binNumber;
 
-    /**
-     * The chunks contained within this bin.
-     */
-    public final List<Chunk> chunks;
-
-    public Bin(int referenceSequence, int binNumber, List<Chunk> chunks) {
+    public Bin(int referenceSequence, int binNumber) {
         this.referenceSequence = referenceSequence;
         this.binNumber = binNumber;
-        this.chunks = chunks;
     }
 
     /**
@@ -36,6 +30,7 @@ public class Bin implements Comparable {
      * @param other The other Bin to which to compare this.
      * @return True if the two bins are equal.  False otherwise.
      */
+    @Override
     public boolean equals(Object other) {
         if(other == null) return false;
         if(!(other instanceof Bin)) return false;
@@ -45,10 +40,20 @@ public class Bin implements Comparable {
     }
 
     /**
+     * Compute a unique hash code for the given reference sequence and bin number.
+     * @return A unique hash code.
+     */
+    @Override
+    public int hashCode() {
+        return ((Integer)referenceSequence).hashCode() ^ ((Integer)binNumber).hashCode();
+    }
+
+    /**
      * Compare two bins to see what ordering they should appear in.
      * @param other Other bin to which this bin should be compared.
      * @return -1 if this < other, 0 if this == other, 1 if this > other.
      */
+    @Override
     public int compareTo(Object other) {
         if(other == null)
             throw new ClassCastException("Cannot compare to a null object");

@@ -29,6 +29,7 @@ import java.util.*;
 import java.lang.reflect.Constructor;
 
 import net.sf.samtools.*;
+import net.sf.samtools.util.CloseableIterator;
 
 /**
  * Provides an iterator interface for merging multiple underlying iterators into a single
@@ -61,7 +62,7 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
      * @param readerToIteratorMap A mapping of reader to iterator.
      * @param forcePresorted True to ensure that the iterator checks the headers of the readers for appropriate sort order.
      */
-    public MergingSamRecordIterator(final SamFileHeaderMerger headerMerger, final Map<SAMFileReader,Iterator<SAMRecord>> readerToIteratorMap, final boolean forcePresorted) {
+    public MergingSamRecordIterator(final SamFileHeaderMerger headerMerger, final Map<SAMFileReader, CloseableIterator<SAMRecord>> readerToIteratorMap, final boolean forcePresorted) {
         this.samHeaderMerger = headerMerger;
         this.sortOrder = headerMerger.getMergedHeader().getSortOrder();
         final SAMRecordComparator comparator = getComparator();
@@ -77,7 +78,7 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
 
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(readerToIteratorMap.get(reader),comparator);
             addIfNotEmpty(iterator);
-            iteratorToSourceMap.put(iterator,reader);
+            iteratorToSourceMap.put(iterator.getWrappedIterator(),reader);
         }
     }
 
@@ -86,8 +87,8 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
      * @param readers The readers from which to derive iterators.
      * @return A map of reader to its associated iterator.
      */
-    private static Map<SAMFileReader,Iterator<SAMRecord>> createWholeFileIterators(Collection<SAMFileReader> readers) {
-        Map<SAMFileReader,Iterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,Iterator<SAMRecord>>();
+    private static Map<SAMFileReader,CloseableIterator<SAMRecord>> createWholeFileIterators(Collection<SAMFileReader> readers) {
+        Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(final SAMFileReader reader: readers)
             readerToIteratorMap.put(reader,reader.iterator());
         return readerToIteratorMap;
@@ -109,7 +110,7 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
         if (this.samHeaderMerger.hasReadGroupCollisions()) {
             final String oldGroupId = (String) record.getAttribute(ReservedTagConstants.READ_GROUP_ID);
             if (oldGroupId != null ) {
-                final String newGroupId = this.samHeaderMerger.getReadGroupId(iteratorToSourceMap.get(iterator), oldGroupId);
+                final String newGroupId = this.samHeaderMerger.getReadGroupId(iteratorToSourceMap.get(iterator.getWrappedIterator()), oldGroupId);
                 record.setAttribute(ReservedTagConstants.READ_GROUP_ID, newGroupId); 
                 }
         }
@@ -118,7 +119,7 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
         if (this.samHeaderMerger.hasProgramGroupCollisions()) { 
             final String oldGroupId = (String) record.getAttribute(ReservedTagConstants.PROGRAM_GROUP_ID);
             if (oldGroupId != null ) {
-                final String newGroupId = this.samHeaderMerger.getProgramGroupId(iteratorToSourceMap.get(iterator), oldGroupId);
+                final String newGroupId = this.samHeaderMerger.getProgramGroupId(iteratorToSourceMap.get(iterator.getWrappedIterator()), oldGroupId);
                 record.setAttribute(ReservedTagConstants.PROGRAM_GROUP_ID, newGroupId); 
                 }
         }
@@ -126,11 +127,11 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
         // Fix up the sequence indexes if needs be
         if (this.samHeaderMerger.hasMergedSequenceDictionary()) {
             if (record.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-                record.setReferenceIndex(this.samHeaderMerger.getMergedSequenceIndex(iteratorToSourceMap.get(iterator),record.getReferenceIndex()));
+                record.setReferenceIndex(this.samHeaderMerger.getMergedSequenceIndex(iteratorToSourceMap.get(iterator.getWrappedIterator()),record.getReferenceIndex()));
             }
 
             if (record.getReadPairedFlag() && record.getMateReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-                record.setMateReferenceIndex(this.samHeaderMerger.getMergedSequenceIndex(iteratorToSourceMap.get(iterator), record.getMateReferenceIndex()));
+                record.setMateReferenceIndex(this.samHeaderMerger.getMergedSequenceIndex(iteratorToSourceMap.get(iterator.getWrappedIterator()), record.getMateReferenceIndex()));
             }
         }
 
