@@ -41,26 +41,36 @@ import java.util.regex.Matcher;
  */
 public class MendelianViolationEvaluator extends VariantEvaluator {
     long nVariants, nViolations, nOverCalls, nUnderCalls;
-    String mom, dad, child;
+    TrioStructure trio;
     VariantEval2Walker parent;
 
     private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
+
+    public static class TrioStructure {
+        public String mom, dad, child;
+    }
+
+    public static TrioStructure parseTrioDescription(String family) {
+        Matcher m = FAMILY_PATTERN.matcher(family);
+        if ( m.matches() ) {
+            TrioStructure trio = new TrioStructure();
+            //System.out.printf("Found a family pattern: %s%n", parent.FAMILY_STRUCTURE);
+            trio.mom = m.group(1);
+            trio.dad = m.group(2);
+            trio.child = m.group(3);
+            return trio;
+        } else {
+            throw new IllegalArgumentException("Malformatted family structure string: " + family + " required format is mom+dad=child");
+        }
+    }
 
     public MendelianViolationEvaluator(VariantEval2Walker parent) {
         this.parent = parent;
 
         if ( enabled() ) {
-            Matcher m = FAMILY_PATTERN.matcher(parent.FAMILY_STRUCTURE);
-            if ( m.matches() ) {
-                //System.out.printf("Found a family pattern: %s%n", parent.FAMILY_STRUCTURE);
-                mom = m.group(1);
-                dad = m.group(2);
-                child = m.group(3);
-                parent.getLogger().debug(String.format("Found a family pattern: %s mom=%s dad=%s child=%s", parent.FAMILY_STRUCTURE, mom, dad, child));
-
-            } else {
-                throw new IllegalArgumentException("Malformatted family structure string: " + parent.FAMILY_STRUCTURE + " required format is mom+dad=child");
-            }
+            trio = parseTrioDescription(parent.FAMILY_STRUCTURE);
+            parent.getLogger().debug(String.format("Found a family pattern: %s mom=%s dad=%s child=%s",
+                    parent.FAMILY_STRUCTURE, trio.mom, trio.dad, trio.child));
         }
     }
 
@@ -84,9 +94,9 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         if ( vc.isBiallelic() && vc.hasGenotypes() ) { // todo -- currently limited to biallelic loci
             nVariants++;
 
-            Genotype momG   = vc.getGenotype(mom);
-            Genotype dadG   = vc.getGenotype(dad);
-            Genotype childG = vc.getGenotype(child);
+            Genotype momG   = vc.getGenotype(trio.mom);
+            Genotype dadG   = vc.getGenotype(trio.dad);
+            Genotype childG = vc.getGenotype(trio.child);
 
             if ( momG.getNegLog10PError() > getQThreshold() && dadG.getNegLog10PError() > getQThreshold() && childG.getNegLog10PError() > getQThreshold() ) {
                 // all genotypes are good, so let's see if child is a violation
@@ -146,15 +156,17 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         UNDER_CALL, OVER_CALL
     }
 
-    public boolean isViolation(VariantContext vc, Genotype momG, Genotype dadG, Genotype childG ) {
-        VariantContext momVC = vc.subContextFromGenotypes(momG);
-        VariantContext dadVC = vc.subContextFromGenotypes(dadG);
+    public static boolean isViolation(VariantContext vc, Genotype momG, Genotype dadG, Genotype childG ) {
+        //VariantContext momVC = vc.subContextFromGenotypes(momG);
+        //VariantContext dadVC = vc.subContextFromGenotypes(dadG);
         int i = 0;
-        for ( Allele momAllele : momVC.getAlleles() ) {
-            for ( Allele dadAllele : dadVC.getAlleles() ) {
-                Genotype possibleChild = new Genotype("possibleGenotype" + i, Arrays.asList(momAllele, dadAllele));
-                if ( childG.sameGenotype(possibleChild, false) ) {
-                    return false;
+        for ( Allele momAllele : momG.getAlleles() ) {
+            for ( Allele dadAllele : dadG.getAlleles() ) {
+                if ( momAllele.isCalled() && dadAllele.isCalled() ) {
+                    Genotype possibleChild = new Genotype("possibleGenotype" + i, Arrays.asList(momAllele, dadAllele));
+                    if ( childG.sameGenotype(possibleChild, false) ) {
+                        return false;
+                    }
                 }
             }
         }

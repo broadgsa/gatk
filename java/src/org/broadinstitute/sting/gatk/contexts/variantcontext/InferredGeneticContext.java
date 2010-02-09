@@ -107,6 +107,7 @@ final class InferredGeneticContext {
      * @return the -1 * log10-based error estimate
      */
     public double getNegLog10PError() { return negLog10PError; }
+    public double getPhredScaledQual() { return getNegLog10PError() * 10; }
 
     public void setNegLog10PError(double negLog10PError) {
         if ( negLog10PError < 0 && negLog10PError != NO_NEG_LOG_10PERROR ) throw new IllegalArgumentException("BUG: negLog10PError cannot be < than 0 : " + negLog10PError);

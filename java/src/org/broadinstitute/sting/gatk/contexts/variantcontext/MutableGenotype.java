@@ -9,7 +9,7 @@ import java.util.*;
  */
 public class MutableGenotype extends Genotype {
     public MutableGenotype(Genotype parent) {
-        super(parent.getSampleName(), parent.getAlleles(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes());
+        super(parent.getSampleName(), parent.getAlleles(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes(), parent.genotypesArePhased());
     }
 
     // todo -- add rest of genotype constructors here
@@ -18,7 +18,7 @@ public class MutableGenotype extends Genotype {
     }
 
     public Genotype unmodifiableGenotype() {
-        return new Genotype(getSampleName(), getAlleles(), getNegLog10PError(), getFilters(), getAttributes());
+        return new Genotype(getSampleName(), getAlleles(), getNegLog10PError(), getFilters(), getAttributes(), genotypesArePhased());
     }
 
 

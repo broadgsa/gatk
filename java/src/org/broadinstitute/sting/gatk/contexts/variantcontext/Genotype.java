@@ -13,21 +13,22 @@ public class Genotype {
     protected InferredGeneticContext commonInfo;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
     protected List<Allele> alleles = new ArrayList<Allele>();
+    private boolean genotypesArePhased = false;
 
-    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean genotypesArePhased) {
         this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        this.genotypesArePhased = genotypesArePhased;
         validate();
     }
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError) {
-        this(sampleName, alleles, negLog10PError, null, null);
+        this(sampleName, alleles, negLog10PError, null, null, false);
     }
 
     public Genotype(String sampleName, List<Allele> alleles) {
-        this(sampleName, alleles, NO_NEG_LOG_10PERROR, null, null);
+        this(sampleName, alleles, NO_NEG_LOG_10PERROR, null, null, false);
     }
-
 
     /**
      * @return the alleles for this genotype
@@ -63,6 +64,7 @@ public class Genotype {
         return al;
     }
 
+    public boolean genotypesArePhased() { return genotypesArePhased; }
 
     /**
      * @return the ploidy of this genotype
@@ -123,12 +125,19 @@ public class Genotype {
             throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
     }
 
+    private String haplotypesString() {
+        if ( genotypesArePhased() )
+            return Utils.join("|", getAlleles());
+        else
+            return Utils.join("/", Utils.sorted(getAlleles()));
+    }
+
     public String toString() {
-        return String.format("[GT: %s %s %s Q%.2f %s]", getSampleName(), getAlleles(), getType(), 10 * getNegLog10PError(), Utils.sortedString(getAttributes()));
+        return String.format("[GT: %s %s %s Q%.2f %s]", getSampleName(), haplotypesString(), getType(), getPhredScaledQual(), Utils.sortedString(getAttributes()));
     }
 
     public String toBriefString() {
-        return String.format("%s:Q%.2f", getAlleles(), 10 * getNegLog10PError());
+        return String.format("%s:Q%.2f", haplotypesString(), getPhredScaledQual());
     }
 
     public boolean sameGenotype(Genotype other) {
@@ -148,7 +157,7 @@ public class Genotype {
                     return false;
             }
         } else {
-            List<Allele> otherAlleles = other.getAlleles();
+            List<Allele> otherAlleles = new ArrayList<Allele>(other.getAlleles());
             for ( Allele myAllele : getAlleles() ) {
                 Allele alleleToRemove = null;
                 for ( Allele otherAllele : otherAlleles ) {
@@ -179,6 +188,7 @@ public class Genotype {
     public boolean isNotFiltered()      { return commonInfo.isNotFiltered(); }
     public boolean hasNegLog10PError()  { return commonInfo.hasNegLog10PError(); }
     public double getNegLog10PError()   { return commonInfo.getNegLog10PError(); }
+    public double getPhredScaledQual()  { return commonInfo.getPhredScaledQual(); }
 
     public Map<String, Object> getAttributes()  { return commonInfo.getAttributes(); }
     public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }

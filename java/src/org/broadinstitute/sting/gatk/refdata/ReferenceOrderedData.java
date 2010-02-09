@@ -79,7 +79,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("VCF", RodVCF.class);
         addModule("PicardDbSNP", rodPicardDbSNP.class);
         addModule("HapmapVCF", HapmapVCFROD.class);
-
+        addModule("Beagle", BeagleROD.class);
     }
 
 

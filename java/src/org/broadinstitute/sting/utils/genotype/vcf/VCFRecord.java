@@ -112,7 +112,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     public VCFRecord(char referenceBase,
                      String contig,
-                     int position,
+                     long position,
                      String ID,
                      List<VCFGenotypeEncoding> altBases,
                      double qual,
@@ -139,7 +139,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     private void extractFields(Map<VCFHeader.HEADER_FIELDS, String> columnValues) {
         String chrom = null;
-        int position = -1;
+        long position = -1;
 
         for (VCFHeader.HEADER_FIELDS val : columnValues.keySet()) {
             switch (val) {
@@ -467,7 +467,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         mReferenceBase = referenceBase;
     }
 
-    public void setLocation(String chrom, int position) {
+    public void setLocation(String chrom, long position) {
         if ( chrom == null )
             throw new IllegalArgumentException("Chromosomes cannot be missing");
         if ( position < 0 )
@@ -598,12 +598,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         builder.append(createInfoString());
 
         if ( mGenotypeFormatString != null && mGenotypeFormatString.length() > 0 ) {
-            try {
-                addGenotypeData(builder, header);
-            } catch (Exception e) {
-                if ( validationStringency == VCFGenotypeWriter.VALIDATION_STRINGENCY.STRICT )
-                    throw new RuntimeException(e.getMessage());
-            }
+//            try {
+            addGenotypeData(builder, header);
+//            } catch (Exception e) {
+//                if ( validationStringency == VCFGenotypeWriter.VALIDATION_STRINGENCY.STRICT )
+//                    throw new RuntimeException(e);
+//            }
         }
 
         return builder.toString();

@@ -457,6 +457,7 @@ public class VariantContext {
     public boolean isNotFiltered()              { return commonInfo.isNotFiltered(); }
     public boolean hasNegLog10PError()          { return commonInfo.hasNegLog10PError(); }
     public double getNegLog10PError()           { return commonInfo.getNegLog10PError(); }
+    public double getPhredScaledQual()          { return commonInfo.getPhredScaledQual(); }
 
     public Map<String, Object> getAttributes()  { return commonInfo.getAttributes(); }
     public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }
@@ -601,6 +602,8 @@ public class VariantContext {
      */
     public Map<String, Genotype> getGenotypes() { return genotypes; }
 
+    public List<Genotype> getGenotypesSortedByName() { return Utils.sorted(genotypes); }
+
     /**
      * Returns a map from sampleName -> Genotype for the genotype associated with sampleName.  Returns a map
      * for consistency with the multi-get function.
@@ -650,6 +653,10 @@ public class VariantContext {
 
     public boolean hasGenotype(String sample) {
         return getGenotypes().containsKey(sample);
+    }
+
+    public Genotype getGenotype(int ith) {
+        return getGenotypesSortedByName().get(ith);
     }
 
 
@@ -833,7 +840,7 @@ public class VariantContext {
     public String toString() {
         return String.format("[VC %s @ %s of type=%s alleles=%s attr=%s GT=%s",
                 getName(), getLocation(), this.getType(),
-                Utils.sorted(this.getAlleles()), Utils.sortedString(this.getAttributes()), Utils.sorted(this.getGenotypes()));
+                Utils.sorted(this.getAlleles()), Utils.sortedString(this.getAttributes()), this.getGenotypesSortedByName());
     }
 
     // protected basic manipulation routines
