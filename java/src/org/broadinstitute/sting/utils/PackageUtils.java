@@ -5,6 +5,7 @@ import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.AbstractConfiguration;
 import org.reflections.util.ClasspathHelper;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;

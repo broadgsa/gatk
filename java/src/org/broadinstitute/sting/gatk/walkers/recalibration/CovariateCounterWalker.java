@@ -165,14 +165,25 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
         // Next add the standard covariates if -standard was specified by the user
         if( USE_STANDARD_COVARIATES ) {
+            // We want the standard covariates to appear in a consistent order but the packageUtils method gives a random order
+            // A list of Classes can't be sorted, but a list of Class names can be
+            final List<String> standardClassNames = new ArrayList<String>();
             for( Class<?> covClass : standardClasses ) {
-                try {
-                    final Covariate covariate = (Covariate)covClass.newInstance();
-                    requestedCovariates.add( covariate );
-                } catch ( InstantiationException e ) {
-                    throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
-                } catch ( IllegalAccessException e ) {
-                    throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                standardClassNames.add( covClass.getName() );
+            }
+            Collections.sort(standardClassNames); // Sort the list of class names
+            for( String className : standardClassNames ) {
+                for( Class<?> covClass : standardClasses ) { // Find the class that matches this class name
+                    if( covClass.getName().equals( className ) ) {
+                        try {
+                            final Covariate covariate = (Covariate)covClass.newInstance();
+                            requestedCovariates.add( covariate );
+                        } catch ( InstantiationException e ) {
+                            throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
+                        } catch ( IllegalAccessException e ) {
+                            throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                        }
+                    }
                 }
             }
         }

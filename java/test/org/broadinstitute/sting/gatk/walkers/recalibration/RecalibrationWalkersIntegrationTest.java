@@ -123,10 +123,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
-                            " -cov ReadGroupCovariate" +
-                            " -cov QualityScoreCovariate" +
-                            " -cov CycleCovariate" +
-                            " -cov DinucCovariate" +
+                            " -standard" +
                             " -U" +
                             " -L 1:10,000,000-20,000,000" +
                             " --solid_recal_mode REMOVE_REF_BIAS" +
@@ -184,10 +181,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -L 1:10,000,000-10,200,000" +
-                            " -cov ReadGroupCovariate" +
-                            " -cov QualityScoreCovariate" +
-                            " -cov CycleCovariate" +
-                            " -cov DinucCovariate" +
+                            " -standard" +
                             " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file

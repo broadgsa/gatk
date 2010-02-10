@@ -38,7 +38,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="printVariants", doc="If true, prints the variants in all of the variant tracks that are examined", required=false)
     public boolean printVariants = false;
 
-    @Argument(shortName="badHWEThreshold", doc="Only sites with deviations froim Hardy-Weinberg equilibrium with P-values < than this threshold are flagged", required=false)
+    @Argument(shortName="badHWEThreshold", doc="Only sites with deviations from Hardy-Weinberg equilibrium with P-values < than this threshold are flagged", required=false)
     public double badHWEThreshold = 1e-3;
 
     @Argument(fullName="evalContainsGenotypes", shortName = "G", doc="If true, the input list of variants will be treated as a genotyping file, containing assertions of actual genotype values for a particular person.  Analyses that only make sense on at the population level will be disabled, while those operating on genotypes will be enabled", required=false)
