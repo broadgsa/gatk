@@ -151,20 +151,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         generator = new Random(RANDOM_SEED);
 
         // set up the rods (since this is a ReadWalker we don't get rods from the traversal)
+        logger.info("Reading and parsing known indel rod files...");
         List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
         ReferenceOrderedData.parseBindings(knownIndels, rods);
         for ( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods ) {
-            if ( !(rod instanceof VariationRod) )
+            if ( !VariationRod.class.isAssignableFrom(rod.getType()) )
                 continue;
             SeekableRODIterator<? extends ReferenceOrderedDatum> iter = rod.iterator();
             while ( iter.hasNext() ) {
                 RODRecordList<? extends ReferenceOrderedDatum> records = iter.next();
                 for ( ReferenceOrderedDatum record : records ) {
-                    if (((VariationRod)record).isIndel())
+                    if ( ((VariationRod)record).isIndel() )
                         knownIndelsToTry.add((VariationRod)record);
                 }
             }
         }
+        logger.info("Finished reading and parsing known indel rod files");
 
         if ( OUT_INDELS != null ) {
             try {
@@ -251,6 +253,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
 
         if ( readLoc.isBefore(currentInterval) || Utils.is454Read(read) ) {
+            // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
             emit(read);
             return 0;
         }
@@ -388,9 +391,24 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
         LinkedList<AlignedRead> altAlignmentsToTest = new LinkedList<AlignedRead>();  // should we try to make an alt consensus from the read?
         ArrayList<AlignedRead> leftMovedIndels = new ArrayList<AlignedRead>();
-        Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();                   // list of alt consenses
+        Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();                 // list of alt consenses
         int totalMismatchSum = 0;
 
+        // if there are any known indels for this region, get them
+        while ( knownIndelsToTry.size() > 0 ) {
+            VariationRod knownIndel = knownIndelsToTry.first();
+            if ( knownIndel.getLocation().isBefore(readsToClean.getLocation()) ) {
+                knownIndelsToTry.remove(knownIndel);
+            } else if ( knownIndel.getLocation().overlapsP(readsToClean.getLocation()) ) {
+                knownIndelsToTry.remove(knownIndel);
+                String indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAlleleList().get(0) : Utils.dupString('-', knownIndel.getAlleleList().get(0).length());
+                Consensus c = createAlternateConsensus((int)(knownIndel.getLocation().getStart() - leftmostIndex), reference, indelStr, knownIndel.isDeletion());
+                if ( c != null )
+                    altConsenses.add(c);
+            } else {
+                break;
+            }
+        }
 
         // decide which reads potentially need to be cleaned
         for ( SAMRecord read : reads ) {
@@ -430,7 +448,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 // if it has an indel, let's see if that's the best consensus
                 if ( numBlocks == 2 )  {
                     Consensus c = createAlternateConsensus(aRead.getAlignmentStart() - (int)leftmostIndex, aRead.getCigar(), reference, aRead.getRead().getReadBases());
-                    if ( c==null) {} //System.out.println("ERROR: Failed to create alt consensus for read "+aRead.getRead().getReadName());
+                    if ( c == null ) {} //System.out.println("ERROR: Failed to create alt consensus for read "+aRead.getRead().getReadName());
                     else altConsenses.add(c);
                 }
                 else {
@@ -451,7 +469,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 // do a pairwise alignment against the reference
                 SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getRead().getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
                 Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getRead().getReadBases());
-                if ( c != null) {
+                if ( c != null ) {
                     //                    if ( debugOn ) System.out.println("NEW consensus generated by SW: "+c.str ) ;
                     altConsenses.add(c);
                 } else {
@@ -467,7 +485,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 // do a pairwise alignment against the reference
                 SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getRead().getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
                 Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getRead().getReadBases());
-                if ( c != null)
+                if ( c != null )
                     altConsenses.add(c);
             }
         }
@@ -653,11 +671,41 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         for (int i = refIdx; i < reference.length; i++)
             sb.append((char)reference[i]);
-        byte[] altConsensus =  StringUtil.stringToBytes(sb.toString()); // alternative consensus sequence we just built from the cuurent read
-
-        // if ( debugOn ) System.out.println("Alt consensus generated: "+altConsensus);
+        byte[] altConsensus =  StringUtil.stringToBytes(sb.toString()); // alternative consensus sequence we just built from the current read
 
         return new Consensus(altConsensus, c, indexOnRef);
+    }
+
+    private Consensus createAlternateConsensus(int indexOnRef, byte[] reference, String indelStr, boolean isDeletion) {
+        if ( indexOnRef < 0 )
+            return null;
+
+        // create the new consensus
+        StringBuilder sb = new StringBuilder();
+        Cigar cigar = new Cigar();
+        int refIdx;
+
+        for (refIdx = 0; refIdx < indexOnRef; refIdx++)
+            sb.append((char)reference[refIdx]);
+        if ( indexOnRef > 0 )
+            cigar.add(new CigarElement(indexOnRef, CigarOperator.M));
+
+        if ( isDeletion ) {
+            refIdx += indelStr.length();
+            cigar.add(new CigarElement(indelStr.length(), CigarOperator.D));
+        }
+        else {
+            sb.append(indelStr);
+            cigar.add(new CigarElement(indelStr.length(), CigarOperator.I));
+        }
+
+        if ( reference.length - refIdx > 0 )
+            cigar.add(new CigarElement(reference.length - refIdx, CigarOperator.M));        
+        for (; refIdx < reference.length; refIdx++)
+            sb.append((char)reference[refIdx]);
+        byte[] altConsensus =  StringUtil.stringToBytes(sb.toString()); // alternative consensus sequence we just built from the current read
+
+        return new Consensus(altConsensus, cigar, indexOnRef);
     }
 
     private Pair<Integer, Integer> findBestOffset(byte[] ref, AlignedRead read) {
@@ -1162,6 +1210,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     System.arraycopy(reference, 0, newReference, 0, reference.length);
                     System.arraycopy(ref, ref.length-neededBases, newReference, reference.length, neededBases);
                     reference = newReference;
+                    loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStop()+neededBases);
                 }
             }
         }
