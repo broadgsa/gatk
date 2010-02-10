@@ -247,11 +247,18 @@ public class RefMetaDataTracker {
      * @return
      */
     public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        RODRecordList<ReferenceOrderedDatum> rodList = getTrackData(name, null);
+        return getVariantContexts(Arrays.asList(name), allowedTypes, curLocation, requireStartHere, takeFirstOnly);
+    }
+
+    public Collection<VariantContext> getVariantContexts(Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         Collection<VariantContext> contexts = new ArrayList<VariantContext>();
 
-        if ( rodList != null )
-            addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
+        for ( String name : names ) {
+            RODRecordList<ReferenceOrderedDatum> rodList = getTrackData(name, null);
+
+            if ( rodList != null )
+                addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
+        }
 
         return contexts;
     }
@@ -271,8 +278,10 @@ public class RefMetaDataTracker {
 
         if ( contexts.size() > 1 )
             throw new StingException("Requested a single VariantContext object for track " + name + " but multiple variants were present at position " + curLocation);
-
-        return contexts.iterator().next();
+        else if ( contexts.size() == 0 )
+            return null;
+        else
+            return contexts.iterator().next();
     }
 
     private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList<ReferenceOrderedDatum> rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {

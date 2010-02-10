@@ -16,24 +16,25 @@ import java.util.ArrayList;
  * To change this template use File | Settings | File Templates.
  */
 abstract class VariantEvaluator {
-    protected boolean accumulateInterestingSites = false, printInterestingSites = false;
-    protected String interestingSitePrefix = null;
+//    protected boolean accumulateInterestingSites = false, printInterestingSites = false;
+//    protected String interestingSitePrefix = null;
     protected boolean processedASite = false;
-    protected List<VariantContext> interestingSites = new ArrayList<VariantContext>();
+//    protected List<VariantContext> interestingSites = new ArrayList<VariantContext>();
 
     public abstract String getName();
 
     // do we want to keep track of things that are interesting
-    public void accumulateInterestingSites(boolean enable)              { accumulateInterestingSites = enable; }
-    public void printInterestingSites(String prefix)                    { printInterestingSites = true; interestingSitePrefix = prefix; }
-    public boolean isAccumulatingInterestingSites()                     { return accumulateInterestingSites; }
-    public List<VariantContext> getInterestingSites()                   { return interestingSites; }
-    protected void addInterestingSite(String why, VariantContext vc) {
-        if ( accumulateInterestingSites )
-            interestingSites.add(vc);
-        if ( printInterestingSites )
-            System.out.printf("%40s %s%n", interestingSitePrefix, why);
-    }
+//    public void accumulateInterestingSites(boolean enable)              { accumulateInterestingSites = enable; }
+//    public void printInterestingSites(String prefix)                    { printInterestingSites = true; interestingSitePrefix = prefix; }
+//    public boolean isAccumulatingInterestingSites()                     { return accumulateInterestingSites; }
+//    public List<VariantContext> getInterestingSites()                   { return interestingSites; }
+
+//    protected void addInterestingSite(String why, VariantContext vc) {
+//        if ( accumulateInterestingSites )
+//            interestingSites.add(vc);
+//        if ( printInterestingSites )
+//            System.out.printf("%40s %s%n", interestingSitePrefix, why);
+//    }
 
     public abstract boolean enabled();
     //public boolean processedAnySites()                                  { return processedASite; }
@@ -43,9 +44,17 @@ abstract class VariantEvaluator {
     public abstract int getComparisonOrder();
 
     /** called at all sites, regardless of eval context itself; useful for counting processed bases */
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) { }
-    public void update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) { }
-    public void update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) { }
+    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+
+    }
+
+    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        return null;
+    }
+
+    public String update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        return null;
+    }
 
     public void finalize() {}
 

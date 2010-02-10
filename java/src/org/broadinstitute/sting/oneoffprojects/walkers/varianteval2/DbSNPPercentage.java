@@ -91,7 +91,7 @@ public class DbSNPPercentage extends VariantEvaluator {
     public double dbSNPRate()           { return rate(nSNPsAtdbSNPs(), nEvalSNPs()); }
     public double concordanceRate()     { return rate(nConcordant(), nSNPsAtdbSNPs()); }
 
-    public void update2(VariantContext eval, VariantContext dbsnp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public String update2(VariantContext eval, VariantContext dbsnp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         boolean dbSNPIsGood = dbsnp != null && dbsnp.isSNP() && dbsnp.isNotFiltered();
         boolean evalIsGood = eval != null && eval.isSNP();
 
@@ -104,5 +104,7 @@ public class DbSNPPercentage extends VariantEvaluator {
             if ( ! discordantP(eval, dbsnp) )     // count whether we're concordant or not with the dbSNP value
                 nConcordant++;
         }
+
+        return null; // we don't capture any interesting sites
     }
 }

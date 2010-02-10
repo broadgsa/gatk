@@ -40,9 +40,11 @@ import java.util.regex.Matcher;
  * Check that the child is one of these.
  */
 public class MendelianViolationEvaluator extends VariantEvaluator {
-    long nVariants, nViolations, nOverCalls, nUnderCalls;
+    long nVariants, nViolations;
     TrioStructure trio;
     VariantEval2Walker parent;
+
+    long KidHomRef_ParentHomVar, KidHet_ParentsHomRef, KidHet_ParentsHomVar, KidHomVar_ParentHomRef;
 
     private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
 
@@ -90,7 +92,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         return 1;   // we only need to see each eval track
     }
 
-    public void update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( vc.isBiallelic() && vc.hasGenotypes() ) { // todo -- currently limited to biallelic loci
             nVariants++;
 
@@ -105,59 +107,32 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
                     nViolations++;
 
                     String label = null;
-                    switch ( getViolationType( vc, momG, dadG, childG ) ) {
-                        case UNDER_CALL:
-                            nUnderCalls++;
-                            label = "under_called";
-                            break;
-                        case OVER_CALL:
-                            nOverCalls++;
-                            label = "over_called";
-                            break;
-                        default:
-                            throw new StingException("BUG: unexpected violation type at " + vc);
-
+                    if ( childG.isHomRef() && (momG.isHomVar() || dadG.isHomVar() )) {
+                        label = "KidHomRef_ParentHomVar";
+                        KidHomRef_ParentHomVar++;
+                    } else if (childG.isHet() && (momG.isHomRef() && dadG.isHomRef()) ) {
+                        label = "KidHet_ParentsHomRef";
+                        KidHet_ParentsHomRef++;
+                    } else if (childG.isHet() && (momG.isHomVar() && dadG.isHomVar()) ) {
+                        label = "KidHet_ParentsHomVar";
+                        KidHet_ParentsHomVar++;
+                    } else if (childG.isHomVar() && (momG.isHomRef() || dadG.isHomRef())) {
+                        label = "KidHomVar_ParentHomRef";
+                        KidHomVar_ParentHomRef++;
+                    } else {
+                        throw new StingException("BUG: unexpected child genotype class " + childG);
                     }
 
-                    String why = String.format("Mendelian violation %s: at %s m=%s d=%s c=%s", label, vc.getLocation(), momG.toBriefString(), dadG.toBriefString(), childG.toBriefString());
-                    addInterestingSite(why , vc);
+                    return label;
                 }
             }
         }
-    }
 
-    /**
-     * Are we under or over calling?
-     *
-     * Assuming this is a bialleic locus, we then have 2 alleles A and B.  There are really two types of violations:
-     *
-     * Undercall: where the child is A/A but parent genotypes imply that child must carry at least one B allele
-     * Overall:   where the child carries a B allele but this B allele couldn't have been inherited from either parent
-     *
-     * The way to determine this is to look at mom and dad separately. If the child doesn't carry at least one
-     * allele from each parent, it's an under calls.  Otherwise it's an overcall.
-     */
-    public ViolationType getViolationType(VariantContext vc, Genotype momG, Genotype dadG, Genotype childG ) {
-        switch ( childG.getType() ) {
-            case HOM_REF:
-                return ViolationType.UNDER_CALL;  // if you have to undercalled as a hom ref child
-            case HET:
-                // the only two violations of a het is where both parents are hom.  If they are hom ref, you overcalled,
-                // otherwise you undercalled
-                return momG.isHomRef() ? ViolationType.OVER_CALL : ViolationType.UNDER_CALL;
-            case HOM_VAR:
-                return ViolationType.OVER_CALL;  // if you have to overcalled as a hom var child
-            default:
-                throw new StingException("BUG: unexpected child genotype class " + childG);
-        }
+        return null; // we don't capture any intersting sites
     }
 
     private boolean includeGenotype(Genotype g) {
         return g.getNegLog10PError() > getQThreshold() && g.isCalled();
-    }
-
-    private enum ViolationType {
-        UNDER_CALL, OVER_CALL
     }
 
     public static boolean isViolation(VariantContext vc, Genotype momG, Genotype dadG, Genotype childG ) {
@@ -183,17 +158,11 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     }
 
     private String summaryLine() {
-        return String.format("%d %d %.2e %d %.2e %.2f %d %.2e %.2f",
-                nVariants, nViolations, rate(nViolations, nVariants),
-                nOverCalls, rate(nOverCalls, nVariants), ratio(nOverCalls, nViolations),
-                nUnderCalls, rate(nUnderCalls, nVariants), ratio(nUnderCalls, nViolations));
+        return String.format("%d %d %d %d %d %d", nVariants, nViolations, KidHomRef_ParentHomVar, KidHet_ParentsHomRef, KidHet_ParentsHomVar, KidHomVar_ParentHomRef);
     }
 
     private static List<String> HEADER =
-            Arrays.asList("nVariants",
-                    "nViolations", "violationRate",
-                    "nOverCalls", "overCallRate", "overCallFraction",
-                    "nUnderCalls", "underCallRate", "underCallFraction");
+            Arrays.asList("nVariants", "nViolations", "KidHomRef_ParentHomVar", "KidHet_ParentsHomRef", "KidHet_ParentsHomVar", "KidHomVar_ParentHomRef");
 
     // making it a table
     public List<String> getTableHeader() {

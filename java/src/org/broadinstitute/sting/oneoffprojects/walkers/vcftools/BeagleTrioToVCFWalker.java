@@ -35,6 +35,8 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
     @Argument(shortName="eth", fullName="excludeTripleHets", doc="If provide, sites that are triple hets calls will not be phased, regardless of Beagle's value", required=false)
     protected boolean dontPhaseTripleHets = false;
 
+    int nTripletHets = 0;
+
     private MendelianViolationEvaluator.TrioStructure trio = null;
 
     private VCFWriter writer;
@@ -81,8 +83,10 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
             Genotype unphasedDad = unphased.getGenotype(trio.dad);
             Genotype unphasedKid = unphased.getGenotype(trio.child);
 
-            if ( dontPhaseTripleHets && unphasedMom.isHet() && unphasedDad.isHet() && unphasedKid.isHet() )
+            if ( dontPhaseTripleHets && unphasedMom.isHet() && unphasedDad.isHet() && unphasedKid.isHet() ) {
+		nTripletHets++;
                 return unphased;
+	    }
             else {
                 Allele momTrans = unphased.getAllele(momBgl.get(0));
                 Allele momUntrans = unphased.getAllele(momBgl.get(1));
@@ -111,8 +115,8 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
         return sum;
     }
 
-    public void onTraversalDone(Integer result) {
-        //logger.info(String.format("Saw %d raw SNPs", result.nVariants));
+    public void onTraversalDone(Long result) {
+        logger.info(String.format("Ignored phasing of %d het/het/het genotypes", nTripletHets));
         //logger.info(String.format("Converted %d (%.2f%%) of these sites", result.nConverted, (100.0 * result.nConverted) / result.nVariants));
     }
 

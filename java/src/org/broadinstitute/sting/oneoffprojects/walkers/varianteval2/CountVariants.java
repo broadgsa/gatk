@@ -43,11 +43,11 @@ public class CountVariants extends VariantEvaluator {
         return 1;   // we only need to see each eval track
     }
 
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) { 
+    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nProcessedLoci += context.getSkippedBases() + 1;
     }
 
-    public void update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         //nProcessedLoci++;
         nCalledLoci++;
 
@@ -70,6 +70,8 @@ public class CountVariants extends VariantEvaluator {
                 default: throw new StingException("BUG: Unexpected genotype type: " + g);
             }
         }
+
+        return null; // we don't capture any intersting sites
     }
 
     public String toString() {
