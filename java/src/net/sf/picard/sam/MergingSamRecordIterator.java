@@ -36,7 +36,7 @@ import net.sf.samtools.util.CloseableIterator;
  * iterable stream. The underlying iterators/files must all have the same sort order unless
  * the requested output format is unsorted, in which case any combination is valid.
  */
-public class MergingSamRecordIterator implements Iterator<SAMRecord> {
+public class MergingSamRecordIterator implements CloseableIterator<SAMRecord> {
     private final PriorityQueue<ComparableSamRecordIterator> pq;
     private final SamFileHeaderMerger samHeaderMerger;
     private final SAMFileHeader.SortOrder sortOrder;
@@ -44,7 +44,7 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
     /**
      * Maps iterators back to the readers from which they are derived.
      */
-    private final Map<Iterator<SAMRecord>,SAMFileReader> iteratorToSourceMap = new HashMap<Iterator<SAMRecord>,SAMFileReader>();
+    private final Map<CloseableIterator<SAMRecord>,SAMFileReader> iteratorToSourceMap = new HashMap<CloseableIterator<SAMRecord>,SAMFileReader>();
 
     /**
      * Constructs a new merging iterator with the same set of readers and sort order as
@@ -92,6 +92,15 @@ public class MergingSamRecordIterator implements Iterator<SAMRecord> {
         for(final SAMFileReader reader: readers)
             readerToIteratorMap.put(reader,reader.iterator());
         return readerToIteratorMap;
+    }
+
+    /**
+     * Close down all open iterators.
+     */
+    public void close() {
+        // Iterators not in the priority queue have already been closed; only close down the iterators that are still in the priority queue.
+        for(CloseableIterator<SAMRecord> iterator: pq)
+            iterator.close();
     }
 
     /** Returns true if any of the underlying iterators has more records, otherwise false. */

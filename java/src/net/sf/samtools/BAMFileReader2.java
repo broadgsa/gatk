@@ -31,10 +31,7 @@ import net.sf.samtools.util.StringLineReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.net.URL;
 
 /**
@@ -185,7 +182,7 @@ class BAMFileReader2
     }
 
     public List<Bin> getOverlappingBins(final String sequence, final int start, final int end) {
-        List<Bin> bins = null;
+        List<Bin> bins = Collections.emptyList();
 
         final SAMFileHeader fileHeader = getFileHeader();
         int referenceIndex = fileHeader.getSequenceIndex(sequence);
@@ -402,6 +399,8 @@ class BAMFileReader2
 
         public SAMRecord next() {
             final SAMRecord result = mNextRecord;
+            if(result.getAlignmentStart() <= 11632602 && result.getAlignmentEnd() >= 11632602)
+                System.out.printf("11632602: %s%n", result.getReadName());            
             advance();
             return result;
         }

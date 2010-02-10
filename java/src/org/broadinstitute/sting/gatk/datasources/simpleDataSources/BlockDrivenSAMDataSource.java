@@ -11,6 +11,7 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.picard.sam.MergingSamRecordIterator;
+import net.sf.picard.filter.FilteringIterator;
 
 import java.util.*;
 import java.io.File;
@@ -127,9 +128,12 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             readerToIteratorMap.put(reader,reader.iterator(chunks));
         }
 
-        MergingSamRecordIterator iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
+        // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
+        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
+        FilteringIterator filteringIterator = new FilteringIterator(mergingIterator,new IntervalOverlappingFilter(shard.getGenomeLocs()));
+
         return applyDecoratingIterators(enableVerification,
-                StingSAMIteratorAdapter.adapt(reads,iterator),
+                StingSAMIteratorAdapter.adapt(reads,filteringIterator),
                 reads.getDownsamplingFraction(),
                 reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 reads.getSupplementalFilters());

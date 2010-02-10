@@ -112,8 +112,7 @@ public abstract class LocusView extends LocusIterator implements View {
      * @return True if another locus context is bounded by this shard.
      */
     protected boolean hasNextLocus() {
-        GenomeLoc lastLocus = !shard.getGenomeLocs().isEmpty() ? shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1) : null;
-        return nextLocus != null && (lastLocus == null || !nextLocus.getLocation().isPast(lastLocus));
+        return nextLocus != null;
     }
 
     /**
@@ -122,25 +121,17 @@ public abstract class LocusView extends LocusIterator implements View {
      * @throw NoSuchElementException if the next element is missing.
      */
     protected AlignmentContext nextLocus() {
-        GenomeLoc lastLocus = !shard.getGenomeLocs().isEmpty() ? shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1) : null;
-
-        if( nextLocus == null || (lastLocus != null && nextLocus.getLocation().isPast(lastLocus)) )
+        if(nextLocus == null)
             throw new NoSuchElementException("No more elements remain in locus context queue.");
 
         // Cache the current and apply filtering.
         AlignmentContext current = nextLocus;
 
         // Find the next.
-        if( loci.hasNext() ) {
-            nextLocus = loci.next();
-            if( sourceInfo.getDownsampleToCoverage() != null )
-                current.downsampleToCoverage( sourceInfo.getDownsampleToCoverage() );                                 
-            if( lastLocus != null && nextLocus.getLocation().isPast(lastLocus) )
-                nextLocus = null;
-        }
-        else
-            nextLocus = null;
-
+        seedNextLocus();
+        if( sourceInfo.getDownsampleToCoverage() != null )
+            current.downsampleToCoverage( sourceInfo.getDownsampleToCoverage() );
+        
         // if the current loci isn't null, get the overflow tracker and pass it to the alignment context
         if ((this.loci != null))
             current.setLocusOverflowTracker(loci.getLocusOverflowTracker());
@@ -152,19 +143,54 @@ public abstract class LocusView extends LocusIterator implements View {
      */
     private void seedNextLocus() {
         //System.out.printf("loci is %s%n", loci);
-        if( loci.hasNext() )
-            nextLocus = loci.next();
+        if( !loci.hasNext() ) {
+            nextLocus = null;
+            return;
+        }
+
+        nextLocus = loci.next();
 
         // If the location of this shard is available, trim the data stream to match the shard.
         if(!shard.getGenomeLocs().isEmpty()) {
-            // Iterate past cruft at the beginning to the first locus in the shard.
-            while( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLocs().get(0)) && loci.hasNext() )
+            // Iterate through any elements not contained within this shard.
+            while( nextLocus != null && !isContainedInShard(nextLocus.getLocation()) && loci.hasNext() )
                 nextLocus = loci.next();
 
             // If nothing in the shard was found, indicate that by setting nextAlignmentContext to null.
-            if( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLocs().get(0)) )
+            if( nextLocus != null && (isBeforeShard(nextLocus.getLocation()) || isAfterShard(nextLocus.getLocation())) )
                 nextLocus = null;
         }
+    }
+
+    /**
+     * Is this location before the given shard.
+     * @param location Location to check.
+     * @return True if the given location is before the start of the shard.  False otherwise.
+     */
+    private boolean isBeforeShard(GenomeLoc location) {
+        return location.isBefore(shard.getGenomeLocs().get(0));
+    }
+
+    /**
+     * Is this location after the given shard.
+     * @param location Location to check.
+     * @return True if the given location is after the end of the shard.  False otherwise.
+     */
+    private boolean isAfterShard(GenomeLoc location) {
+        return location.isPast(shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1));
+    }
+
+    /**
+     * Is this location contained in the given shard.
+     * @param location Location to check.
+     * @return True if the given location is contained within the shard.  False otherwise.
+     */
+    private boolean isContainedInShard(GenomeLoc location) {
+        for(GenomeLoc shardLocation: shard.getGenomeLocs()) {
+            if(shardLocation.containsP(location))
+                return true;
+        }
+        return false;
     }
 
     /**
