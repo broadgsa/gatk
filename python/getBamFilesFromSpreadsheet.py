@@ -36,7 +36,7 @@ else:
     fpref = "human_b36"
 
 outputFile = projectName+"_bam_files.txt"
-OUTPUT_HEADER = ["sample_id","recalbrated_bam_file","individual_id","fingerprint_file","reference_file","dbsnp_file","interval_list","max_reads_at_locus","min_confidence","min_mapping_quality","min_base_quality"]
+OUTPUT_HEADER = ["sample_id","recalibrated_bam_file","individual_id","fingerprint_file","reference_file","dbsnp_file","interval_list","max_reads_at_locus","min_confidence","min_mapping_quality","min_base_quality"]
 
 if ( spreadsheetPath.find("/") > -1 ):
     newSpreadsheet = spreadsheetPath.rsplit("/",1)[1].rsplit(".",1)[0]+"_proper_format.tsv"
@@ -72,5 +72,9 @@ for line in project_info.readlines():
         versioningDirectory = bamfile_base+spline[project_index]+"/"+spline[sample_index]+"/"
         version = getNewestVersion(versioningDirectory)
         bamfile = versioningDirectory+version+"/"+spline[sample_index]+".bam"
-        fingerprint_file = fingerprint_base+spline[project_index]+"/"+fpref+"/"+spline[sample_index]+".fingerprint.geli"
+        fingerprint_path = fingerprint_base+spline[project_index]+"/"+fpref+"/"
+        if ( spline[sample_index]+".fingerprint.geli" in os.listdir(fingerprint_path) ):
+            fingerprint_file = fingerprint_path+spline[sample_index]+".fingerprint.geli"
+        else:
+            fingerprint_file = ""
         outputFile.write(projectName+"_"+spline[sample_index]+"\t"+bamfile+"\t"+groupName+"\t"+fingerprint_file+"\t"+reference+"\t"+dbsnp+"\t"+intervals+"\t"+max_reads+"\t"+min_conf+"\t"+min_map_q+"\t"+min_base_q+"\n")
