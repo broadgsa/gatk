@@ -44,9 +44,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="sortOnDisk", shortName="sortOnDisk", required=false, doc="Should we sort on disk instead of on the fly?  This option is much slower but should be used when on-the-fly sorting fails because reads are too long [default:no]")
     protected boolean SORT_ON_DISK = false;
 
-    @Argument(fullName="knownIndels", shortName="knownIndels", required=false, doc="One or more rod triplets <binding,type,path> of known indels to try for alternate consenses; types must implement VariationRod")
-    protected ArrayList<String> knownIndels = new ArrayList<String>();
-
     // ADVANCED OPTIONS FOLLOW
 
     @Argument(fullName="outputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
@@ -77,14 +74,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     // the current interval in the list
     private GenomeLoc currentInterval = null;
 
-    // the reads that fall into the current interval
+    // the reads and known indels that fall into the current interval
     private ReadBin readsToClean = new ReadBin();
     private ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
-    private TreeSet<VariationRod> knownIndelsToTry = new TreeSet<VariationRod>(new Comparator<VariationRod>(){
-        public int compare(VariationRod rod1, VariationRod rod2) {
-            return (int)(rod1.getLocation().getStart() - rod2.getLocation().getStart());
-        }
-    });
+    private ArrayList<VariationRod> knownIndelsToTry = new ArrayList<VariationRod>();
 
     // the wrapper around the SAM writer
     private Map<String, SAMFileWriter> writers = null;
@@ -149,24 +142,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // set up the random generator
         generator = new Random(RANDOM_SEED);
-
-        // set up the rods (since this is a ReadWalker we don't get rods from the traversal)
-        logger.info("Reading and parsing known indel rod files...");
-        List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
-        ReferenceOrderedData.parseBindings(knownIndels, rods);
-        for ( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods ) {
-            if ( !VariationRod.class.isAssignableFrom(rod.getType()) )
-                continue;
-            SeekableRODIterator<? extends ReferenceOrderedDatum> iter = rod.iterator();
-            while ( iter.hasNext() ) {
-                RODRecordList<? extends ReferenceOrderedDatum> records = iter.next();
-                for ( ReferenceOrderedDatum record : records ) {
-                    if ( ((VariationRod)record).isIndel() )
-                        knownIndelsToTry.add((VariationRod)record);
-                }
-            }
-        }
-        logger.info("Finished reading and parsing known indel rod files");
 
         if ( OUT_INDELS != null ) {
             try {
@@ -280,6 +255,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         else {  // the read is past the current interval
 
             clean(readsToClean);
+            knownIndelsToTry.clear();
 
             // merge the two sets for emission
             readsNotToClean.addAll(readsToClean.getReads());
@@ -307,6 +283,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     public void onTraversalDone(Integer result) {
         if ( readsToClean.size() > 0 || readsNotToClean.size() > 0 ) {
             clean(readsToClean);
+            knownIndelsToTry.clear();
 
             // merge the two sets for emission
             readsNotToClean.addAll(readsToClean.getReads());
@@ -393,19 +370,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         int totalMismatchSum = 0;
 
         // if there are any known indels for this region, get them
-        while ( knownIndelsToTry.size() > 0 ) {
-            VariationRod knownIndel = knownIndelsToTry.first();
-            if ( knownIndel.getLocation().isBefore(readsToClean.getLocation()) ) {
-                knownIndelsToTry.remove(knownIndel);
-            } else if ( knownIndel.getLocation().overlapsP(readsToClean.getLocation()) ) {
-                knownIndelsToTry.remove(knownIndel);
-                String indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAlleleList().get(0) : Utils.dupString('-', knownIndel.getAlleleList().get(0).length());
-                Consensus c = createAlternateConsensus((int)(knownIndel.getLocation().getStart() - leftmostIndex), reference, indelStr, knownIndel.isDeletion());
-                if ( c != null )
-                    altConsenses.add(c);
-            } else {
-                break;
-            }
+        for ( VariationRod knownIndel : knownIndelsToTry ) {
+            String indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAlleleList().get(0) : Utils.dupString('-', knownIndel.getAlleleList().get(0).length());
+            Consensus c = createAlternateConsensus((int)(knownIndel.getLocation().getStart() - leftmostIndex), reference, indelStr, knownIndel.isDeletion());
+            if ( c != null )
+                altConsenses.add(c);
         }
 
         // decide which reads potentially need to be cleaned
