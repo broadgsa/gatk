@@ -399,8 +399,6 @@ class BAMFileReader2
 
         public SAMRecord next() {
             final SAMRecord result = mNextRecord;
-            if(result.getAlignmentStart() <= 11632602 && result.getAlignmentEnd() >= 11632602)
-                System.out.printf("11632602: %s%n", result.getReadName());            
             advance();
             return result;
         }
@@ -495,7 +493,7 @@ class BAMFileReader2
             throws IOException {
             while (true) {
                 // Advance to next file block if necessary
-                while (mCompressedInputStream.getFilePointer() >= mFilePointerLimit) {
+                while (mCompressedInputStream.getFilePointer() > mFilePointerLimit) {
                     if (mFilePointers == null ||
                         mFilePointerIndex >= mFilePointers.length) {
                         return null;
