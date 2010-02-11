@@ -32,8 +32,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="output", shortName="O", required=false, doc="Output bam (or directory if using --NwayOutput)")
     protected String baseWriterFilename = null;
 
-    @Argument(fullName="NWayOutput", shortName="nway", required=false, doc="Should the reads be emitted in a separate bam file for each one of the input bams? [default:yes]")
-    protected boolean NWAY_OUTPUT = true;
+    @Argument(fullName="NWayOutput", shortName="nway", required=false, doc="Should the reads be emitted in a separate bam file for each one of the input bams? [default:no]")
+    protected boolean NWAY_OUTPUT = false;
 
     @Argument(fullName="outputSuffix", shortName="suffix", required=false, doc="Suffix to append to output bams (when using --NwayOutput) [default:'.cleaned']")
     protected String outputSuffix = "cleaned";
@@ -278,8 +278,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
         }
         else {  // the read is past the current interval
-
-            // TODO - NOW WE NEED TO GET THE APPROPRIATE KNOWN INDELS FOR THIS REGION
 
             clean(readsToClean);
 
@@ -1205,6 +1203,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             } else {
                 long lastPosWithRefBase = loc.getStart() + reference.length -1;
                 int neededBases = (int)(read.getAlignmentEnd() - lastPosWithRefBase);
+                if ( neededBases > ref.length )
+                    throw new StingException("Read " + read.getReadName() + " does not overlap the previous read in this interval; please ensure that you are using the same input bam that was used in the RealignerTargetCreator step");
                 if ( neededBases > 0 ) {
                     char[] newReference = new char[reference.length + neededBases];
                     System.arraycopy(reference, 0, newReference, 0, reference.length);
