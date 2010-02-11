@@ -141,8 +141,11 @@ public class AnnotationDataManager {
 
             // Close the PrintStream
             output.close();
-            
-            String annotationName = nameMap.get(annotationKey);
+
+            String annotationName = null;
+            if( nameMap != null ) {
+                annotationName = nameMap.get(annotationKey);
+            }
             if( annotationName == null ) { // This annotation is not in the name map so use the key instead
                 annotationName = annotationKey;
             }

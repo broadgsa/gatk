@@ -68,8 +68,6 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "indicate_mean_num_vars", shortName = "meanNumVars", doc = "If supplied, plots will indicate the distribution of number of variants instead of distribution of value of annotation", required = false)
     private boolean INDICATE_MEAN_NUM_VARS = false;
         
-
-
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
