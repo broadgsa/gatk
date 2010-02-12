@@ -154,8 +154,8 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(Map.Entry<SAMFileReader2,List<Chunk>> chunksByReader: bamAwareShard.getChunks().entrySet()) {
             SAMFileReader2 reader = chunksByReader.getKey();
-            List<Chunk> chunks = chunksByReader.getValue();
-            readerToIteratorMap.put(reader,reader.iterator(chunks));
+            GenomeLoc bounds = bamAwareShard.getBounds();
+            readerToIteratorMap.put(reader,reader.queryOverlapping(bounds.getContig(),(int)bounds.getStart(),(int)bounds.getStop()));
         }
 
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.

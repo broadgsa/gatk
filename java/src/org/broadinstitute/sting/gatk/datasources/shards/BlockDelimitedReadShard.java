@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Collections;
 
+import org.broadinstitute.sting.utils.GenomeLoc;
+
 /**
  * Expresses a shard of read data in block format.
  *
@@ -35,6 +37,16 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      */
     public Map<SAMFileReader2,List<Chunk>> getChunks() {
         return Collections.singletonMap(reader,chunks);
+    }
+
+    /**
+     * Get the bounds of the current shard.  Current bounds
+     * will be the unfiltered extents of the current shard, from
+     * the start of the first interval to the end of the last interval.
+     * @return The bounds of the shard.
+     */
+    public GenomeLoc getBounds() {
+        return null;
     }
 
     /**

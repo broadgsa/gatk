@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
 
@@ -69,6 +70,27 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      */
     public Map<SAMFileReader2,List<Chunk>> getChunks() {
         return chunks;
+    }
+
+    /**
+     * Get the bounds of the current shard.  Current bounds
+     * will be the unfiltered extents of the current shard, from
+     * the start of the first interval to the end of the last interval.
+     * @return The bounds of the shard.
+     */    
+    public GenomeLoc getBounds() {
+        if(loci == null)
+            return null;
+
+        String contig = null;
+        long start = Long.MAX_VALUE, stop = 0;
+        for(GenomeLoc locus: loci) {
+            if(contig == null) contig = locus.getContig();
+            start = Math.min(locus.getStart(),start);
+            stop = Math.max(locus.getStop(),stop);
+        }
+
+        return GenomeLocParser.createGenomeLoc(contig,start,stop);
     }
 
     /**

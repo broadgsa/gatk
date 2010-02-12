@@ -547,7 +547,7 @@ class BAMFileReader2
                 mRegionEnd = (end <= 0) ? Integer.MAX_VALUE : end;
             }
             mQueryType = queryType;
-            advance();
+            nextRead = advance();
         }
 
         /**
@@ -565,7 +565,7 @@ class BAMFileReader2
             if(!hasNext())
                 throw new NoSuchElementException("BAMQueryFilteringIterator: no next element available");
             final SAMRecord currentRead = nextRead;
-            advance();
+            nextRead = advance();
             return currentRead;
         }
 
