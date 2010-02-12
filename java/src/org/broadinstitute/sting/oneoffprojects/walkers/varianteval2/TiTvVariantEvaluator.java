@@ -40,6 +40,10 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
         if ( vc1 != null ) updateTiTv(vc1, false);
         if ( vc2 != null ) updateTiTv(vc2, true);
 
+        //if ( vc1 == null && vc2 != null && vc2.isSNP() && vc2.isBiallelic() )
+        //    System.out.printf("VC2 = %s%n", vc2);
+        //if ( vc2 != null && vc2.getName().equals("dbsnp") )
+
         return null; // we don't capture any intersting sites
     }
 

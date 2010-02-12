@@ -30,7 +30,7 @@ public class DbSNPPercentage extends VariantEvaluator {
     }
 
     public String getName() {
-        return "dbsnp_percentage";
+        return "dbOverlap";
     }
 
     public int getComparisonOrder() {
@@ -43,6 +43,15 @@ public class DbSNPPercentage extends VariantEvaluator {
     public long nConcordant()    { return nConcordant; }
     public long nNovelSites()    { return Math.abs(nEvalSNPs() - nSNPsAtdbSNPs()); }
 
+
+    /**
+     * What fraction of the evaluated site variants were also found in the db?
+     *
+     * @return
+     */
+    public double dbSNPRate()           { return rate(nSNPsAtdbSNPs(), nEvalSNPs()); }
+    public double concordanceRate()     { return rate(nConcordant(), nSNPsAtdbSNPs()); }
+    
     public String toString() {
         return getName() + ": " + summaryLine();
     }
@@ -53,7 +62,8 @@ public class DbSNPPercentage extends VariantEvaluator {
     }
 
     private static List<String> HEADER =
-            Arrays.asList("n_dbsnps", "n_eval_snps", "n_overlapping_snps", "n_concordant", "n_novel_snps", "dbsnp_rate", "concordance_rate");
+            Arrays.asList("n_dbsnps", "n_eval_snps", "n_overlapping_snps", "n_concordant",
+                    "n_novel_snps", "percent_eval_in_comp", "concordance_rate");
 
     // making it a table
     public List<String> getTableHeader() {
@@ -81,15 +91,6 @@ public class DbSNPPercentage extends VariantEvaluator {
 
         return false;
     }
-
-
-    /**
-     * What fraction of the evaluated site variants were also found in the db?
-     *
-     * @return
-     */
-    public double dbSNPRate()           { return rate(nSNPsAtdbSNPs(), nEvalSNPs()); }
-    public double concordanceRate()     { return rate(nConcordant(), nSNPsAtdbSNPs()); }
 
     public String update2(VariantContext eval, VariantContext dbsnp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         boolean dbSNPIsGood = dbsnp != null && dbsnp.isSNP() && dbsnp.isNotFiltered();
