@@ -291,14 +291,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         if ( writers != null ) {
-            for ( SAMFileWriter writer : writers.values() ) {
-                // TODO -- figure out why we're getting an exception thrown here
-                // TODO -- because we need to call close() to flush out the remaining reads from the writer
-                try {
-                    writer.close();
-                    if ( !SORT_ON_DISK )
-                        ((SortingSAMFileWriter)writer).getBaseWriter().close();
-                } catch (RuntimeException e) {}
+            HashSet<SAMFileWriter> uniqueWriters = new HashSet<SAMFileWriter>(writers.values());
+            for ( SAMFileWriter writer : uniqueWriters ) {
+                writer.close();
+                if ( !SORT_ON_DISK )
+                    ((SortingSAMFileWriter)writer).getBaseWriter().close();
             }
         }
 
