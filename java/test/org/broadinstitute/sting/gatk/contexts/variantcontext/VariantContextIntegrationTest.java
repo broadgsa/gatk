@@ -19,20 +19,19 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
-        expectations.put("-L 1:1-10000 --printPerLocus", "eb5802e7e615fa79b788a9447b7e824c");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "f4580866bcff10e0e742f422c45695d3");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "85c949c985d8aa340030362ea1fc13d2");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "a45430cfed2f574fb69e79d74ed41017");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "105547f432744e0776bd58e753cfa859");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "d758adbab9011e42c77d502fe4d62c27");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "933ec8327192c5ed58a1952c73fb4f73");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "7d5d0283d92220ee78db7465d675b37f");
+        expectations.put("-L 1:1-10000 --printPerLocus", "63fd69e4ab430b79fb213dd27b58ae1c");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "276ed96efaaffc2fc1c3b3deb4e04d1d");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "a37f7bc34c1824688d3e475945c19d5a");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "1715a6e0daf873f2e2cd10cb56085174");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "bf33ab1ed65da7f56c02ca7956d9c31e");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "629ffd6b3b9ea1bce29cb715576f5c8a");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "d4b812b2fec231f8f5b61d6f26cf86a5");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "546e8e546f2cdfba31f91ed083137c42");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
     }
 
     @Test
     public void testConversionSelection() {
-
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
             String md5 = entry.getValue();
