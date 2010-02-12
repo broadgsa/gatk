@@ -55,9 +55,9 @@ sub new {
         'hostindex'          => 0,
     );
 
-    $self{'makefile'}  = new File::Temp(TEMPLATE => "/broad/hptmp/DistributedMake_XXXXXX", SUFFIX => ".makefile", UNLINK => $self{'unlink'}),
+    $self{'makefile'}  = new File::Temp(TEMPLATE => "/tmp/DistributedMake_XXXXXX", SUFFIX => ".makefile", UNLINK => $self{'unlink'}),
     $self{'hostarray'} = &parseHostsString($self{'hosts'});
-    $self{'jobName'}   = basename($self{'makefile'});
+    $self{'projectName'}   = basename($self{'makefile'});
 
 	bless \%self, $class;
 
@@ -84,7 +84,7 @@ sub addRule {
         my %bja = (
             'queue' => $self->{'queue'},
             'memLimit' => $self->{'memLimit'},
-            'jobName' => $self->{'jobName'},
+            'projectName' => $self->{'projectName'},
             'outputFile' => $self->{'outputFile'},
             'mailTo' => $self->{'mailTo'},
             'wait' => $self->{'wait'},
@@ -99,17 +99,29 @@ sub addRule {
         my $wait = $bja{'wait'} ? "-K" : "";
 
         my $logdir = dirname($bja{'outputFile'});
-        my $mklogdircmd = "\@test \"! -d $logdir\" && mkdir -p $logdir";
-        push(@prepcmds, $mklogdircmd);
+        if (!-e $logdir) {
+            my $mklogdircmd = "\@test \"! -d $logdir\" && mkdir -p $logdir";
+            push(@prepcmds, $mklogdircmd);
+        }
 
-        $cmdprefix = "bsub -q $bja{'queue'} -M $bja{'memLimit'} -J $bja{'jobName'} -o $bja{'outputFile'} -u $bja{'mailTo'} $wait $rerunnable $migrationThreshold $bja{'extra'}    ";
+        # A quick check to make sure that java commands being dispatched to the farm are instructed to run under a default memory limit
+        for (my $i = 0; $i <= $#cmds; $i++) {
+            if ($cmds[$i] =~ /^java / && $cmds[$i] =~ / -jar / && $cmds[$i] !~ / -Xmx/) {
+                $cmds[$i] =~ s/^java /java -Xmx2048m /;
+            }
+        }
+
+        $cmdprefix = "bsub -q $bja{'queue'} -M $bja{'memLimit'} -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} $wait $rerunnable $migrationThreshold $bja{'extra'}    ";
     }
 
     my $rootdir = dirname($targets[0]);
-    my $mkdircmd = "\@test \"! -d $rootdir\" && mkdir -p $rootdir";
-    push(@prepcmds, $mkdircmd);
+    if (!-e $rootdir) {
+        my $mkdircmd = "\@test \"! -d $rootdir\" && mkdir -p $rootdir";
+        push(@prepcmds, $mkdircmd);
+    }
 
-    print { $self->{'makefile'} } "$targets[0]: " . join(" ", @dependencies) . "\n\t" . join("\n\t", @prepcmds) . "\n\t$cmdprefix" . join("\n\t$cmdprefix", @cmds) . "\n";
+    # We have to touch the final file just in case the time between different nodes on the farm are not synchronized.
+    print { $self->{'makefile'} } "$targets[0]: " . join(" ", @dependencies) . "\n\t" . join("\n\t", @prepcmds) . "\n\t$cmdprefix" . join("\n\t$cmdprefix", @cmds) . "\n\ttouch -c $targets[0]\n\n\n";
 
     push(@{$self->{'targets'}}, $targets[0]);
 }
@@ -117,7 +129,8 @@ sub addRule {
 sub execute {
     my ($self, %overrides) = @_;
 
-    print { $self->{'makefile'} } "all: " . join(" ", @{$self->{'targets'}}) . "\n";
+    print { $self->{'makefile'} } "all: " . join(" ", @{$self->{'targets'}}) . "\n\n";
+    print { $self->{'makefile'} } ".DELETE_ON_ERROR:\n";
 
 	my %makeargs = (
         'dryRun'         => $self->{'dryRun'},
