@@ -42,7 +42,8 @@ public abstract class BaseTest {
 
     protected static String seqLocation = "/seq/";
     protected static String oneKGLocation = "/broad/1KG/";
-    protected static String validationDataLocation = "/humgen/gsa-scr1/GATK_Data/Validation_Data/";
+    protected static String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
+    protected static String validationDataLocation = GATKDataLocation + "Validation_Data/";
 
     protected static String testDir = "testdata/";
     protected static boolean alreadySetup = false;
