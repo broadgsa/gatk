@@ -17,6 +17,7 @@ import java.util.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.io.File;
+import java.io.FileNotFoundException;
 
 // todo -- evalations should support comment lines
 // todo -- add Mendelian variable explanations (nDeNovo and nMissingTransmissions)
@@ -120,6 +121,14 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     /** Right now we will only be looking at SNPS */
     EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP);
 
+    @Argument(shortName="rsID", fullName="rsID", doc="If provided, list of rsID and build number for capping known snps by their build date", required=false)
+    protected String rsIDFile = null;
+
+    @Argument(shortName="maxRsIDBuild", fullName="maxRsIDBuild", doc="If provided, only variants with rsIDs <= maxRsIDBuild will be included in the set of knwon snps", required=false)
+    protected int maxRsIDBuild = Integer.MAX_VALUE;
+
+    Set<String> rsIDsToExclude = null;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // private walker data
@@ -218,8 +227,50 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 
         if ( outputVCF != null )
             writer = new VCFWriter(new File(outputVCF));
+
+        if ( rsIDFile != null ) {
+            if ( maxRsIDBuild == Integer.MAX_VALUE )
+                throw new IllegalArgumentException("rsIDFile " + rsIDFile + " was given but associated max RSID build parameter wasn't available");
+            rsIDsToExclude = getrsIDsToExclude(new File(rsIDFile), maxRsIDBuild);
+        }
     }
 
+    private static Set<String> getrsIDsToExclude(File rsIDFile, int maxRsIDBuild) {
+        List<String> toExclude = new LinkedList<String>();
+
+        int n = 1;
+        try {
+            for ( String line : new xReadLines(rsIDFile) ) {
+                String parts[] = line.split(" ");
+                if ( parts.length != 2 )
+                    throw new StingException("Invalid rsID / build pair at " + n + " line = " + line );
+                //System.out.printf("line %s %s %s%n", line, parts[0], parts[1]);
+                if ( Integer.valueOf(parts[1]) > maxRsIDBuild ) {
+                    //System.out.printf("Excluding %s%n", line);
+                    toExclude.add("rs"+parts[0]);
+                }
+                n++;
+
+                if ( n % 1000000 == 0 )
+                    logger.info(String.format("Read %d rsIDs from rsID -> build file", n));
+            }
+        } catch (FileNotFoundException e) {
+            throw new StingException(e.getMessage());
+        }
+
+        logger.info(String.format("Excluding %d of %d (%.2f%%) rsIDs found from builds > %d",
+                toExclude.size(), n, ((100.0 * toExclude.size())/n), maxRsIDBuild));
+
+        return new HashSet<String>(toExclude);
+    }
+
+    private final static String ID = "ID";
+    private boolean excludeComp(VariantContext vc) {
+        String id = vc != null && vc.hasAttribute(ID) ? vc.getAttributeAsString(ID) : null;
+        boolean ex = rsIDsToExclude != null && id != null && rsIDsToExclude.contains(id);
+        //System.out.printf("Testing id %s ex=%b against %s%n", id, ex, vc);
+        return ex;
+    }
 
     private void determineAllEvalations() {
         evaluationClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
@@ -426,18 +477,20 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         // todo -- we need to deal with dbSNP where there can be multiple records at the same start site.  A potential solution is to
         // todo -- allow the variant evaluation to specify the type of variants it wants to see and only take the first such record at a site
         Map<String, VariantContext> bindings = new HashMap<String, VariantContext>();
-        bindVariantContexts(bindings, evalNames, tracker, context);
-        bindVariantContexts(bindings, compNames, tracker, context);
+        bindVariantContexts(bindings, evalNames, tracker, context, false);
+        bindVariantContexts(bindings, compNames, tracker, context, true);
         return bindings;
     }
 
     private void bindVariantContexts(Map<String, VariantContext> map, Collection<String> names,
-                                     RefMetaDataTracker tracker, AlignmentContext context ) {
+                                     RefMetaDataTracker tracker, AlignmentContext context, boolean allowExcludes ) {
         for ( String name : names ) {
             Collection<VariantContext> contexts = tracker.getVariantContexts(name, ALLOW_VARIANT_CONTEXT_TYPES, context.getLocation(), true, true);
             if ( context.size() > 1 )
                 throw new StingException("Found multiple variant contexts at " + context.getLocation());
-            map.put(name, contexts.size() == 1 ? contexts.iterator().next() : null);
+
+            VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
+            map.put(name, allowExcludes && excludeComp(vc) ? null : vc);
         }
     }
 

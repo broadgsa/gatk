@@ -215,7 +215,7 @@ public class VariantContext {
      * @param attributes
      */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
-        this(name, loc, alleles, genotypeCollectionToMap(new HashMap<String, Genotype>(), genotypes), negLog10PError, filters, attributes);
+        this(name, loc, alleles, genotypes != null ? genotypeCollectionToMap(new HashMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes);
     }
 
     /**

@@ -93,7 +93,10 @@ public class VariantContextAdaptors {
                     alleles.add(new Allele(alt, false));
                 }
 
-                VariantContext vc = new VariantContext(name, dbsnp.getLocation(), alleles);
+                Map<String, String> attributes = new HashMap<String, String>();
+                attributes.put("ID", dbsnp.getRS_ID());
+                Collection<Genotype> genotypes = null;
+                VariantContext vc = new VariantContext(name, dbsnp.getLocation(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
                 vc.validate();
                 return vc;
             } else
