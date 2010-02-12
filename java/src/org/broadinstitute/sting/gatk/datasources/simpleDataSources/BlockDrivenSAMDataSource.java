@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.JVMUtils;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.sam.SamFileHeaderMerger;
@@ -69,14 +70,14 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
 
     /**
      * Gets the file pointers bounded by this bin, grouped by the reader of origination.
-     * @param bin The bin for which to load data.
+     * @param locus The loci for which to load data.
      * @return A map of the file pointers bounding the bin.
      */
-    public Map<SAMFileReader2,List<Chunk>> getFilePointersBounding(final Bin bin) {
+    public Map<SAMFileReader2,List<Chunk>> getFilePointersBounding(GenomeLoc locus) {
         Map<SAMFileReader2,List<Chunk>> filePointers = new HashMap<SAMFileReader2,List<Chunk>>();
         for(SAMFileReader reader: headerMerger.getReaders()) {
             SAMFileReader2 reader2 = (SAMFileReader2)reader;
-            filePointers.put(reader2,reader2.getFilePointersBounding(bin));
+            filePointers.put(reader2,reader2.getFilePointersBounding(locus.getContig(),(int)locus.getStart(),(int)locus.getStop()));
         }
         return filePointers;
     }
@@ -108,6 +109,35 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         SAMFileReader2 firstReader = (SAMFileReader2)headerMerger.getReaders().iterator().next();
         return firstReader.getLevelForBin(bin);
     }
+
+    /**
+     * Gets the first locus that this bin can index into.
+     * @param bin The bin to test.
+     * @return The last position that the given bin can represent.
+     */
+    public int getFirstLocusInBin(final Bin bin) {
+        if(headerMerger.getReaders().size() == 0)
+            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
+        if(!hasIndex())
+            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
+        SAMFileReader2 firstReader = (SAMFileReader2)headerMerger.getReaders().iterator().next();
+        return firstReader.getFirstLocusInBin(bin);
+    }
+
+    /**
+     * Gets the last locus that this bin can index into.
+     * @param bin The bin to test.
+     * @return The last position that the given bin can represent.
+     */
+    public int getLastLocusInBin(final Bin bin) {
+        if(headerMerger.getReaders().size() == 0)
+            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
+        if(!hasIndex())
+            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
+        SAMFileReader2 firstReader = (SAMFileReader2)headerMerger.getReaders().iterator().next();
+        return firstReader.getLastLocusInBin(bin);
+    }
+
 
     public StingSAMIterator seek(Shard shard) {
         if(!(shard instanceof BAMFormatAwareShard))

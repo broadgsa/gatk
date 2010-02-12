@@ -88,7 +88,7 @@ public class SAMFileReader2 extends SAMFileReader {
      * @return Number of levels in this index.
      */
     public int getNumIndexLevels() {
-        BAMFileIndex2 fileIndex = (BAMFileIndex2)JVMUtils.getFieldValue(getField("mFileIndex"),this);
+        final BAMFileIndex2 fileIndex = (BAMFileIndex2)JVMUtils.getFieldValue(getField("mFileIndex"),this);
         if(fileIndex == null)
             throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
         return fileIndex.getNumIndexLevels();
@@ -100,10 +100,34 @@ public class SAMFileReader2 extends SAMFileReader {
      * @return the level associated with the given bin number.
      */
     public int getLevelForBin(final Bin bin) {
-        BAMFileIndex2 fileIndex = (BAMFileIndex2)JVMUtils.getFieldValue(getField("mFileIndex"),this);
+        final BAMFileIndex2 fileIndex = (BAMFileIndex2)JVMUtils.getFieldValue(getField("mFileIndex"),this);
         if(fileIndex == null)
             throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
         return fileIndex.getLevelForBinNumber(bin.binNumber);
+    }
+
+    /**
+     * Gets the first locus that this bin can index into.
+     * @param bin The bin to test.
+     * @return The last position that the given bin can represent.
+     */
+    public int getFirstLocusInBin(final Bin bin) {
+        final BAMFileIndex2 fileIndex = (BAMFileIndex2)JVMUtils.getFieldValue(getField("mFileIndex"),this);
+        if(fileIndex == null)
+            throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
+        return fileIndex.getFirstLocusInBin(bin);
+    }
+
+    /**
+     * Gets the last locus that this bin can index into.
+     * @param bin The bin to test.
+     * @return The last position that the given bin can represent.
+     */
+    public int getLastLocusInBin(final Bin bin) {
+        final BAMFileIndex2 fileIndex = (BAMFileIndex2)JVMUtils.getFieldValue(getField("mFileIndex"),this);
+        if(fileIndex == null)
+            throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
+        return fileIndex.getLastLocusInBin(bin);
     }
 
     /**
@@ -123,10 +147,10 @@ public class SAMFileReader2 extends SAMFileReader {
         return reader.getOverlappingBins(sequence,start,end);
     }
 
-    public List<Chunk> getFilePointersBounding(final Bin bin) {
+    public List<Chunk> getFilePointersBounding(final String sequence, final int start, final int end) {
         // TODO: Add sanity checks so that we're not doing this against an unsupported BAM file.
         BAMFileReader2 reader = (BAMFileReader2)JVMUtils.getFieldValue(getField("mReader"),this);
-        return reader.getFilePointersBounding(bin);
+        return reader.getFilePointersBounding(sequence,start,end);
     }
 
     private Field getField(String fieldName) {

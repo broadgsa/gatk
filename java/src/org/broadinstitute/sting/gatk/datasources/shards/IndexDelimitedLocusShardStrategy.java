@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 
@@ -75,21 +76,29 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
             locationToReference.get(location.getContig()).add(location);
         }
 
-        // Group the loci by bin, sorted in the order in which bins appear in the file.  Only use the smallest bins in the set.
         for(String contig: locationToReference.keySet()) {
+            // Gather bins for the given loci, splitting loci as necessary so that each falls into exactly one lowest-level bin.
             SortedMap<Bin,List<GenomeLoc>> bins = new TreeMap<Bin,List<GenomeLoc>>();
             for(GenomeLoc location: locationToReference.get(contig)) {
                 List<Bin> binsForLocation = blockDrivenDataSource.getOverlappingBins(location);
                 for(Bin bin: binsForLocation) {
                     if(blockDrivenDataSource.getLevelForBin(bin) == deepestBinLevel) {
+                        final int firstLoc = blockDrivenDataSource.getFirstLocusInBin(bin);
+                        final int lastLoc = blockDrivenDataSource.getLastLocusInBin(bin);
                         if(!bins.containsKey(bin))
                             bins.put(bin,new ArrayList<GenomeLoc>());
-                        bins.get(bin).add(location);
+                        bins.get(bin).add(GenomeLocParser.createGenomeLoc(location.getContig(),
+                                                                          Math.max(location.getStart(),firstLoc),
+                                                                          Math.min(location.getStop(),lastLoc)));
                     }
                 }
             }
-            for(SortedMap.Entry<Bin,List<GenomeLoc>> entry: bins.entrySet())
+
+            // Add a record of the new bin structure.
+            for(SortedMap.Entry<Bin,List<GenomeLoc>> entry: bins.entrySet()) {
+                Collections.sort(entry.getValue());                
                 filePointers.add(new FilePointer(entry.getKey(),entry.getValue()));
+            }
         }
 
         filePointerIterator = filePointers.iterator();
@@ -111,7 +120,14 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        Map<SAMFileReader2,List<Chunk>> chunksBounding = blockDrivenDataSource.getFilePointersBounding(nextFilePointer.bin);
+        String contig = null;
+        long start = Long.MAX_VALUE, stop = 0;
+        for(GenomeLoc loc: nextFilePointer.locations) {
+            contig = loc.getContig();
+            start = Math.min(loc.getStart(),start);
+            stop = Math.max(loc.getStop(),stop);
+        }
+        Map<SAMFileReader2,List<Chunk>> chunksBounding = blockDrivenDataSource.getFilePointersBounding(GenomeLocParser.createGenomeLoc(contig,start,stop));
         return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 

@@ -36,7 +36,17 @@ import java.util.*;
  */
 public class BAMFileIndex2 extends BAMFileIndex
 {
+    /**
+     * Reports the total amount of genomic data that any bin can index.
+     */
+    private static final int BIN_SPAN = 512*1024*1024;
+
+    /**
+     * Reports the maximum number of bins in a BAM file index, based on the the pseudocode
+     * in section 1.2 of the BAM spec.
+     */
     private static final int MAX_BINS = 37450; // =(8^6-1)/7+1
+
     private static final int BAM_LIDX_SHIFT = 14;
 
     /**
@@ -85,6 +95,30 @@ public class BAMFileIndex2 extends BAMFileIndex
                 return i;
         }
         throw new SAMException("Unable to find correct bin for bin number "+binNumber);
+    }
+
+    /**
+     * Gets the first locus that this bin can index into.
+     * @param bin The bin to test.
+     * @return The last position that the given bin can represent.
+     */
+    protected int getFirstLocusInBin(final Bin bin) {
+        final int level = getLevelForBinNumber(bin.binNumber);
+        final int levelStart = LEVEL_STARTS[level];
+        final int levelSize = ((level==getNumIndexLevels()-1) ? MAX_BINS-1 : LEVEL_STARTS[level+1]) - levelStart;
+        return (bin.binNumber - levelStart)*(BIN_SPAN/levelSize); 
+    }
+
+    /**
+     * Gets the last locus that this bin can index into.
+     * @param bin The bin to test.
+     * @return The last position that the given bin can represent.
+     */
+    protected int getLastLocusInBin(final Bin bin) {
+        final int level = getLevelForBinNumber(bin.binNumber);
+        final int levelStart = LEVEL_STARTS[level];
+        final int levelSize = ((level==getNumIndexLevels()-1) ? MAX_BINS-1 : LEVEL_STARTS[level+1]) - levelStart;
+        return (bin.binNumber - levelStart + 1)*(BIN_SPAN/levelSize) - 1;         
     }
 
     /**
@@ -162,7 +196,7 @@ public class BAMFileIndex2 extends BAMFileIndex
     long[] getFilePointersContaining(final int referenceIndex, final int startPos, final int endPos) {
         List<Bin> bins = getBinsContaining(referenceIndex,startPos,endPos);
         // System.out.println("# Sequence target TID: " + referenceIndex);
-        if (bins.size() == 0) {
+        if (bins == null) {
             return null;
         }
 
@@ -183,10 +217,6 @@ public class BAMFileIndex2 extends BAMFileIndex
             minimumOffset = index.indexEntries[regionLinearBin];
         chunkList = optimizeChunkList(chunkList, minimumOffset);
         return convertToArray(chunkList);
-    }
-
-    long[] getFilePointersBounding(final Bin bin) {
-        return convertToArray(binToChunks.get(bin));
     }
 
     /**

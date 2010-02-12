@@ -194,8 +194,15 @@ class BAMFileReader2
         return bins;
     }
 
-    public List<Chunk> getFilePointersBounding(Bin bin) {
-        return Chunk.toChunkList(getFileIndex().getFilePointersBounding(bin));
+    public List<Chunk> getFilePointersBounding(final String sequence, final int start, final int end) {
+        final SAMFileHeader fileHeader = getFileHeader();
+        long[] filePointers = null;
+        int referenceIndex = fileHeader.getSequenceIndex(sequence);
+        if (referenceIndex != -1) {
+            final BAMFileIndex2 fileIndex = getFileIndex();
+            filePointers = fileIndex.getFilePointersContaining(referenceIndex,start,end);
+        }
+        return (filePointers != null) ? Chunk.toChunkList(filePointers) : Collections.<Chunk>emptyList();
     }
 
     /**
@@ -493,7 +500,7 @@ class BAMFileReader2
             throws IOException {
             while (true) {
                 // Advance to next file block if necessary
-                while (mCompressedInputStream.getFilePointer() > mFilePointerLimit) {
+                while (mCompressedInputStream.getFilePointer() >= mFilePointerLimit) {
                     if (mFilePointers == null ||
                         mFilePointerIndex >= mFilePointers.length) {
                         return null;
