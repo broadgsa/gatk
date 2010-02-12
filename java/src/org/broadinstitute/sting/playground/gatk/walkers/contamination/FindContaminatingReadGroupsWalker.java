@@ -14,6 +14,10 @@ import net.sf.samtools.SAMReadGroupRecord;
 
 import cern.jet.stat.Probability;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 /**
  * FindContaminatingReadGroupsWalker lists read groups in a single-sample BAM file that appear
  * to be contaminants (meaning a read group that's not actually associated with the sample) by searching
@@ -28,8 +32,14 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
     @Argument(fullName="limit", shortName="lim", doc="The pValue limit for which a read group will be deemed to be a contaminant", required=false)
     private Double LIMIT = 1e-9;
 
+    @Argument(fullName="scaleForSample", shortName="scale", doc="the scale by which the pvalue limit should reduce for testing samples directly. "+
+              "E.g. if a sample has three 1e-3 read groups, pvalue is 1e-9 -- significant; so the scale should reduce by some multiplicative factor"+
+              "For each read group associated with the sample. Defaults to 1e-4 [1e-9 for 1 RG, 1e-13 for 2 RG, 1e-17 for 3, etc]", required=false)
+    private Double SCALE = 1e-4;
+
     private UnifiedGenotyperEngine ug;
     private NamedTable altTable;
+    private final double EPSILON = 1e-20;
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
@@ -140,6 +150,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         //out.println("readgroup\tpvalue\tstatus\tbalances");
         out.printf("%-10s\t%-13s\t%-10s\t%-10s%n", "readgroup", "pvalue", "status", "balances");
 
+        HashMap<String,Double> pvalByReadGroup = new HashMap<String,Double>();
         for (String rg : altTable.getRowNames()) {
             String balances = "";
 
@@ -179,6 +190,8 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
 
             // Compute pValue
             double pValue = Probability.studentT(dof, t);
+            pValue = pValue < EPSILON ? EPSILON : pValue;
+            pvalByReadGroup.put(rg,pValue);
 
             //out.printf("%s\t%e\t%s\t[%s]\n", rg, pValue, (pValue < LIMIT ? "aberrant" : "nominal"), balances);
             out.printf("%-10s\t%-13s\t%-10s\t[%-10s]\n",
@@ -186,6 +199,37 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
                        String.format("%e", pValue),
                        (pValue < LIMIT ? "aberrant" : "nominal"),
                        balances);
+
+            logger.debug(rg);
+        }
+
+        out.printf("%n%n%s%n","SECTION ON BADLY CONTAMINATED SAMPLES");
+        out.printf("%s\t%s\t%s\t%s%n","sample","p-value","status","info");
+
+        HashMap<String,List<String>> samplesToReadGroups = new HashMap<String,List<String>>();
+        for ( SAMReadGroupRecord rec : getToolkit().getSAMFileHeader().getReadGroups() ) {
+            if ( samplesToReadGroups.containsKey(rec.getSample()) ) {
+                samplesToReadGroups.get(rec.getSample()).add(rec.getReadGroupId());
+            } else {
+                ArrayList<String> newList = new ArrayList<String>();
+                newList.add(rec.getReadGroupId());
+                samplesToReadGroups.put(rec.getSample(),newList);
+            }
+        }
+
+        for ( String sample : samplesToReadGroups.keySet() ) {
+            double p_value = 1;
+            double limit = LIMIT;
+            boolean containsAberrantReads = false;
+            for ( String rg : samplesToReadGroups.get(sample) ) {
+                double rg_pval = ( pvalByReadGroup.get(rg) == null ? 1 : pvalByReadGroup.get(rg) );
+                p_value = p_value*rg_pval;
+                containsAberrantReads = containsAberrantReads || rg_pval < LIMIT;
+                limit = limit*SCALE;
+                logger.debug(rg);
+            }
+
+            out.printf("%s\t%-13s\t%s\t%s%n", sample, String.format("%e",p_value), ( p_value < limit ? "aberrant" : "nominal"), ( containsAberrantReads ? "contains_aberrant_RG" : "no_aberrant_RG"));
         }
     }
 }
