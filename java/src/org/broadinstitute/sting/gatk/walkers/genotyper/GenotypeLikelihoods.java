@@ -53,9 +53,9 @@ public class GenotypeLikelihoods implements Cloneable {
     protected double[] log10Likelihoods = null;
     protected double[] log10Posteriors = null;
 
-    private DiploidGenotypePriors priors = null;
+    protected DiploidGenotypePriors priors = null;
 
-    private FourBaseProbabilities fourBaseLikelihoods = null;
+    protected FourBaseProbabilities fourBaseLikelihoods = null;
 
     /**
      * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
@@ -115,12 +115,12 @@ public class GenotypeLikelihoods implements Cloneable {
         return c;
     }
 
-    private void initialize(BaseMismatchModel m, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
+    protected void initialize(BaseMismatchModel m, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
         fourBaseLikelihoods = FourBaseProbabilitiesFactory.makeFourBaseLikelihoods(m, pl);
         setToZero();
     }
 
-    private void setToZero() {
+    protected void setToZero() {
         log10Likelihoods = zeros.clone();                 // likelihoods are all zeros
         log10Posteriors = priors.getPriors().clone();     // posteriors are all the priors
     }
@@ -330,11 +330,11 @@ public class GenotypeLikelihoods implements Cloneable {
 
     static GenotypeLikelihoods[][][][][][] CACHE = new GenotypeLikelihoods[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY][2];
 
-    private boolean inCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
+    protected boolean inCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         return getCache(CACHE, observedBase, qualityScore, ploidy, read) != null;
     }
 
-    private GenotypeLikelihoods getCachedGenotypeLikelihoods( char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
+    protected GenotypeLikelihoods getCachedGenotypeLikelihoods( char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         GenotypeLikelihoods gl = getCache(CACHE, observedBase, qualityScore, ploidy, read);
         if ( gl == null )
             throw new RuntimeException(String.format("BUG: trying to fetch an unset cached genotype likelihood at base=%c, qual=%d, ploidy=%d, read=%s",
@@ -342,7 +342,7 @@ public class GenotypeLikelihoods implements Cloneable {
         return gl;
     }
 
-    private GenotypeLikelihoods calculateCachedGenotypeLikelihoods(char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset) {
+    protected GenotypeLikelihoods calculateCachedGenotypeLikelihoods(char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset) {
         GenotypeLikelihoods gl = calculateGenotypeLikelihoods(observedBase, qualityScore, read, offset);
         setCache(CACHE, observedBase, qualityScore, ploidy, read, gl);
         return gl;
@@ -372,7 +372,7 @@ public class GenotypeLikelihoods implements Cloneable {
         return cache[m][a][i][j][k][x];
     }
 
-    private GenotypeLikelihoods calculateGenotypeLikelihoods(char observedBase, byte qualityScore, SAMRecord read, int offset) {
+    protected GenotypeLikelihoods calculateGenotypeLikelihoods(char observedBase, byte qualityScore, SAMRecord read, int offset) {
         FourBaseProbabilities fbl = fourBaseLikelihoods.computeLog10Likelihoods(observedBase, qualityScore, read, offset);
         if ( fbl == null )
             return null;
@@ -434,7 +434,7 @@ public class GenotypeLikelihoods implements Cloneable {
      * @param observedBase observed base
      * @return true if the base is a bad base
      */
-    private boolean badBase(char observedBase) {
+    protected boolean badBase(char observedBase) {
         return BaseUtils.simpleBaseToBaseIndex(observedBase) == -1;
     }
 
@@ -497,7 +497,7 @@ public class GenotypeLikelihoods implements Cloneable {
     //
     // Constant static data
     //
-    private final static double[] zeros = new double[DiploidGenotype.values().length];
+    protected final static double[] zeros = new double[DiploidGenotype.values().length];
 
     static {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
