@@ -166,7 +166,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                 if ( (Boolean)exp.exp.evaluate(jContext) )
                     addFilter(filterString, exp.name);
             } catch (Exception e) {
-                throw new StingException(e.getMessage());
+                throw new StingException("Error evaluating filter expression for given input. Most often this is caused by a malformatted expression string, such as using an integral comparison for floating-point values. Observed value was: "+e.getMessage());
             }
         }
 
