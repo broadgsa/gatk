@@ -25,7 +25,7 @@ import net.sf.samtools.SAMSequenceRecord;
 //import org.apache.commons.math.optimization.direct.*;
 //import org.apache.commons.math.analysis.MultivariateRealFunction;
 
-// First draft of a program for working with VCF files in various ways.
+// Program for frequency-specific  VCF-files.
 
 
 /**
@@ -39,9 +39,12 @@ class VCFOptimize extends CommandLineProgram
 		@Argument(fullName = "auto_correct", shortName = "auto_correct", doc = "auto-correct the VCF file if it's off-spec", required = false) public Boolean autocorrect = false;
 		@Argument(fullName = "target_TsTv", shortName = "target_TsTv", doc = "Minimum acceptable TsTv", required=false) public double target_TsTv = 2.07;
 		@Argument(fullName = "output", shortName = "output", doc = "file to write cuts to", required = true) public String output_filename;
+		@Argument(fullName = "min_calls", shortName = "min_calls", doc = "Minimum signifigant number of calls", required=false) public int min_calls = 100;
+		@Argument(fullName = "num_breaks", shortName = "num_breaks", doc = "Number of breaks to search over", required=false) public int num_breaks = 100;
 
-		// Debugging argument:
+		// Debugging arguments:
 		@Argument(fullName = "n_records", shortName = "n_records", doc = "Number of records to load (debugging)", required=false) public int n_records_to_process = Integer.MAX_VALUE;
+		@Argument(fullName = "verbose", shortName = "verbose", doc = "print detailed debugging info.", required=false) public boolean verbose = false;
 
 		class OptimizationRecord
 		{
@@ -187,11 +190,6 @@ class VCFOptimize extends CommandLineProgram
 		// Just a simple grid search.
 		private Cut optimize(OptimizationRecord[] records, double min_TsTv, int freq)
 		{
-			double best_lod       = Double.NaN;
-			double best_slod      = Double.NaN;			
-			double best_tstv      = Double.NEGATIVE_INFINITY;
-			double best_num_calls = Double.NEGATIVE_INFINITY;
-			boolean flag = false;
 
 
 			double[] lods  = new double[records.length];
@@ -205,7 +203,6 @@ class VCFOptimize extends CommandLineProgram
 			Arrays.sort(lods);
 			Arrays.sort(slods);
 
-			int num_breaks = 100;
 			double[] lod_breaks  = new double[num_breaks];
 			double[] slod_breaks = new double[num_breaks];
 			int bin_size = 1 + (records.length / num_breaks);
@@ -221,6 +218,19 @@ class VCFOptimize extends CommandLineProgram
 			}
 			//System.out.printf("\n");
 
+			double best_lod       = lod_breaks[0];
+			double best_slod      = slod_breaks[0];
+
+			int best_lod_idx       = 0;
+			int best_slod_idx      = 0;
+
+			double[] point = new double[2];
+			point[0] = best_lod;
+			point[1] = best_slod;
+
+			double best_tstv      = tstv(point, records);
+			double best_num_calls = num_calls(point, records);
+			boolean flag = false;
 
 			//for (double lod = 0; lod < 8000; lod += 10)
 			for (int lod_idx = 0; lod_idx < num_breaks; lod_idx += 1)
@@ -231,17 +241,22 @@ class VCFOptimize extends CommandLineProgram
 				{
 					double slod = slod_breaks[slod_idx];
 
-					double[] point = new double[2];
+					point = new double[2];
 					point[0] = lod;
 					point[1] = slod;
 					double tstv      = tstv(point, records);
 					double num_calls = num_calls(point, records);
+					
+					if (num_calls < min_calls) { continue; }
+
 					if ((tstv >= min_TsTv) && (num_calls > best_num_calls)) 
 					{ 
 						best_lod=lod; 
 						best_slod=slod; 
 						best_tstv=tstv; 
 						best_num_calls=num_calls; 
+						best_lod_idx = lod_idx;
+						best_slod_idx = slod_idx;
 						flag=true;
 					}
 					else if ((tstv >= best_tstv) && (!flag)) 
@@ -250,12 +265,24 @@ class VCFOptimize extends CommandLineProgram
 						best_slod=slod; 
 						best_tstv=tstv; 
 						best_num_calls=num_calls;
+						best_lod_idx = lod_idx;
+						best_slod_idx = slod_idx;
+					}
+
+
+					if (verbose)
+					{
+						System.out.printf("DEBUG: %d | %d %d | %f %f %f %f | %f %f %f %f\n", 
+									freq, 
+									lod_idx, slod_idx,
+									lod, slod, num_calls, tstv,
+									best_lod, best_slod, best_num_calls, best_tstv);
 					}
 				}
 			}
 			
 			//System.out.printf("Found optimum: lod=%f slod=%f num_calls=%f tstv=%f\n", best_lod, best_slod, best_num_calls, best_tstv);
-			System.out.printf("%d %f %f %f %f\n", freq, best_lod, best_slod, best_num_calls, best_tstv);
+			System.out.printf("%d %d %d %f %f %f %f\n", freq, best_lod_idx, best_slod_idx, best_lod, best_slod, best_num_calls, best_tstv);
 
 			return new Cut(best_lod, best_slod);
 		}

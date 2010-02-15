@@ -109,6 +109,9 @@ class VCFHomogenizer extends InputStream
 
 		//System.out.println("input : " + input);
 
+		// Make it tab-delimited
+		input = input.replaceAll(" +", "\t");
+		
 		/////////
 		// Header corrections
 		if (input.startsWith("##format=VCFv3.2")) { return "##format=VCRv3.2\n"; }
@@ -131,6 +134,7 @@ class VCFHomogenizer extends InputStream
 
 		// if alt is "N", make it "."
 		if (tokens[4].equals("N")) { tokens[4] = "."; }
+		if (tokens[5].equals(".")) { tokens[5] = "-1"; }
 
 		String ref = tokens[3];
 		String alt = tokens[4];
@@ -165,10 +169,15 @@ class VCFHomogenizer extends InputStream
 		String[] info_tokens = info.split(";");				
 		for (int i = 0; i < info_tokens.length; i++)
 		{
-
-			// Fix the case where AC includes the ref count first.
-			if (info_tokens[i].startsWith("AC="))
+			if (info_tokens[i].startsWith("R2="))
 			{
+				// Fix NaN's in RNaN's in R2.
+				String new_token = info_tokens[i].replace("NaN", "0.0");
+				info_tokens[i] = new_token;
+			}
+			else if (info_tokens[i].startsWith("AC="))
+			{
+				// Fix the case where AC includes the ref count first.
 				String[] ACs  = info_tokens[i].replaceAll("^AC=", "").split(",");
 				if (ACs.length == alts.length+1)
 				{
@@ -179,6 +188,7 @@ class VCFHomogenizer extends InputStream
 						if (j != (ACs.length-1)) { new_ACs += ","; }
 					}	
 					info_tokens[i] = "AC=" + new_ACs;
+					continue;
 				}
 			}
 

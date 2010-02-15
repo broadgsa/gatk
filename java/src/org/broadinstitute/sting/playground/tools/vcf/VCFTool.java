@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.*;
 import java.util.*;
+import java.util.zip.*;
 
 import net.sf.picard.PicardException;
 import net.sf.picard.io.IoUtil;
@@ -33,8 +34,9 @@ class VCFValidate extends CommandLineProgram
 {
 		@Argument(fullName = "vcf", shortName = "vcf", doc = "file to open", required = true) public String filename;
 		@Argument(fullName = "auto_correct", shortName = "auto_correct", doc = "auto-correct the VCF file if it's off-spec", required = false) public Boolean autocorrect = false;
-		@Argument(fullName = "print", shortName = "print", doc = "print the vcf records to stdout", required = false) public Boolean print = false;
+		@Argument(fullName = "print", shortName = "print", doc = "print the vcf records to output", required = false) public Boolean print = false;
 		@Argument(fullName = "profile", shortName = "profile", doc = "print performance information", required = false) public Boolean profile = false;
+		@Argument(fullName = "out", shortName = "out", doc = "if --print, write to this file (default is /dev/stdout)", required = false) public String out = "/dev/stdout";
 
 		@Override
 		protected int execute() 
@@ -48,12 +50,19 @@ class VCFValidate extends CommandLineProgram
 
 			VCFHeader header = reader.getHeader();
 
+			VCFWriter writer = null;
+			if (print) 
+			{ 
+				writer = new VCFWriter(new File(out)); 
+				writer.writeHeader(header);
+			}
+
 			Date start_time = new Date();
 			int n_records_processed = 0;
 			while(reader.hasNext())
 			{
 				VCFRecord record = reader.next();
-				if (print) { System.out.println(record.toStringEncoding(header)); }
+				if (print) { writer.addRecord(record); }
 
 				if ((profile) && (n_records_processed % 10000 == 0))
 				{
@@ -66,6 +75,8 @@ class VCFValidate extends CommandLineProgram
 				}
 				n_records_processed += 1;
 			}
+
+			if (print) { writer.close(); }
 
 			if (autocorrect) { System.out.println(filename + " is VALID (after auto-correction)."); }
 			else { System.out.println(filename + " is VALID."); }
@@ -193,12 +204,15 @@ class VCFStats extends CommandLineProgram
 			System.out.printf("1%% Depth bounds : %d %d\n", DP_1percent_low, DP_1percent_high);
 			System.out.printf("5%% Depth bounds : %d %d\n", DP_5percent_low, DP_5percent_high);
 			System.out.printf("\n");
+
 			System.out.printf("table\tAAF\tCount\tTs/Tv\n");
 			for (int AC = 1; AC <= highest_AC; AC++)
 			{	
 				System.out.printf("AAF\t%d\t%d\t%f\n", AC, AC_histogram[AC], (double)AC_transitions[AC]/(double)(AC_histogram[AC]-AC_transitions[AC]));
 			}
 			System.out.printf("\n");
+
+
 			System.out.printf("DEPTH\ttable\tDepth\tCount\tTs/Tv\n");
 			for (int DP = 1; DP <= highest_DP; DP++)
 			{	
@@ -387,7 +401,11 @@ class VCFGrep extends CommandLineProgram
 			HashSet<String> loci = new HashSet<String>();
 			try
 			{
-				Scanner loci_reader = new Scanner(new File(loci_filename));
+				Scanner loci_reader;
+
+				if (loci_filename.endsWith(".gz")) { loci_reader = new Scanner(new GZIPInputStream(new FileInputStream(loci_filename))); }
+				else { loci_reader = new Scanner(new File(loci_filename)); }
+
 				while(loci_reader.hasNextLine())
 				{
 					String line = loci_reader.nextLine();
@@ -404,7 +422,9 @@ class VCFGrep extends CommandLineProgram
 			{
 				PrintStream output = new PrintStream(new File(out_filename));
 
-				Scanner reader = new Scanner(new File(in_filename));
+				Scanner reader;
+				if (in_filename.endsWith(".gz")) { reader = new Scanner(new GZIPInputStream(new FileInputStream(in_filename))); }
+				else { reader = new Scanner(new File(in_filename)); }
 				while(reader.hasNextLine())
 				{
 					String line = reader.nextLine();
@@ -709,6 +729,7 @@ class VCFConcordance extends CommandLineProgram
 		@Argument(fullName = "list_genotypes", shortName = "list_genotypes", doc = "print each person's genotype for debugging", required = false) public Boolean list_genotypes = false;
 		@Argument(fullName = "qual_threshold", shortName = "qual_threshold", doc = "minimum genotype quality to consider", required = false) public long qual_threshold = 1;
 		@Argument(fullName = "samples", shortName = "samples", doc = "optional list of individuals to score", required = false) public String samples_filename = null;
+		@Argument(fullName = "r2_bin_size", shortName = "r2_bin_size", doc = "size of an r2 bin for calculating error rates", required = false) public double r2_bin_size = 0.01;
 
 
 		@Override
@@ -722,6 +743,22 @@ class VCFConcordance extends CommandLineProgram
 			HashMap<String,GenotypeConcordance> individual = new HashMap<String,GenotypeConcordance>();
 			HashMap<Long,GenotypeConcordance>   AAF        = new HashMap<Long,GenotypeConcordance>();
 			HashMap<Long,GenotypeConcordance>   Qual       = new HashMap<Long,GenotypeConcordance>();
+			HashMap<Long,GenotypeConcordance>   R2         = new HashMap<Long,GenotypeConcordance>();
+
+			int shared_ts    = 0;
+			int shared_tv    = 0;
+			int shared_dbsnp = 0;
+			int shared_total = 0;
+
+			int unique1_ts    = 0;
+			int unique1_tv    = 0;
+			int unique1_dbsnp = 0;
+			int unique1_total = 0;
+
+			int unique2_ts    = 0;
+			int unique2_tv    = 0;
+			int unique2_dbsnp = 0;
+			int unique2_total = 0;
 
 			// 
 			/////////////////////////////////
@@ -777,6 +814,10 @@ class VCFConcordance extends CommandLineProgram
 			VCFRecord record1 = reader1.next();
 			VCFRecord record2 = reader2.next();
 
+			int number_sites_unique_to_file1 = 0;
+			int number_sites_unique_to_file2 = 0;
+			int number_sites_shared          = 0;
+
 			while(true)
 			{
 				if (record1 == null) { break; }
@@ -786,9 +827,10 @@ class VCFConcordance extends CommandLineProgram
 				Interval interval1 = VCFTool.getIntervalFromRecord(record1);
 				Interval interval2 = VCFTool.getIntervalFromRecord(record2);
 
-				int comparison = interval1.compareTo(interval2);
+				//int comparison = interval1.compareTo(interval2);
+				int comparison = VCFTool.compareIntervals(interval1, interval2);
 
-				//System.out.println("DBG: " + interval1 + " " + interval2);
+				//System.out.println("DBG: " + interval1 + " " + interval2 + " " + comparison);
 				
 				if (comparison == 0)
 				{
@@ -799,12 +841,30 @@ class VCFConcordance extends CommandLineProgram
 					{
 						record1 = reader1.next();
 						record2 = reader2.next();
+						continue;
 					}
+
 					
 					char ref = record1.getReferenceBase();
 					
 					String[] sample_names1 = record1.getSampleNames();
 					String[] sample_names2 = record2.getSampleNames();
+
+
+					Map<String,String> info1 = record1.getInfoValues();
+					Map<String,String> info2 = record2.getInfoValues();
+					double r2_1 = 0;
+					double r2_2 = 0;
+					if (info1.containsKey("R2")) { r2_1 = Double.parseDouble(info1.get("R2")); }
+					if (info2.containsKey("R2")) { r2_2 = Double.parseDouble(info2.get("R2")); }
+
+
+					number_sites_shared += 1;
+					if (VCFTool.isTransition(record1)) { shared_ts += 1; }
+					else { shared_tv += 1; }
+					if ((info1.get("DB") != null) && (Integer.parseInt(info1.get("DB")) == 1)) { shared_dbsnp += 1; }
+					shared_total += 1;
+
 
 					List<VCFGenotypeRecord> genotypes1 = record1.getVCFGenotypeRecords();
 					List<VCFGenotypeRecord> genotypes2 = record2.getVCFGenotypeRecords();
@@ -908,31 +968,59 @@ class VCFConcordance extends CommandLineProgram
 
 					if (verbose) 
 					{ 
-						output.printf("SNP " + SNP.toString()); 
+						//output.printf("SNP " + SNP.toString()); 
+						output.printf("SNP " + SNP.toLine()); 
 					}
 
 					if (! AAF.containsKey(n_alt)) { AAF.put(n_alt, new GenotypeConcordance(Long.toString(n_alt))); }
 					AAF.get(n_alt).add(SNP);
+
+					long r2_index = (long)(r2_1 / r2_bin_size);
+					if (! R2.containsKey(r2_index)) { R2.put(r2_index, new GenotypeConcordance(Double.toString(r2_1))); }
+					R2.get(r2_index).add(SNP);
+
+					//System.out.printf("DBG: %f %f\n", r2_1, r2_2);
+					//System.out.printf("DBG: %f %d %s\n", r2_1, r2_index, SNP.toString());
 
 					record1 = reader1.next();
 					record2 = reader2.next();
 				}
 				else if (comparison > 0)
 				{
+					if (record2.isFiltered()) { record2 = reader2.next(); continue; }
+
 					// interval1 is later than interval2.
+					Map<String,String> info2 = record2.getInfoValues();
+					number_sites_unique_to_file2 += 1;
+					if (VCFTool.isTransition(record2)) { unique2_ts += 1; }
+					else { unique2_tv += 1; }
+					if ((info2.get("DB") != null) && (Integer.parseInt(info2.get("DB")) == 1)) { unique2_dbsnp += 1; }
+					unique2_total += 1;
+
+					//if (verbose) { output.printf("DBG: skipping %s\n", record2.toStringEncoding(header2)); }
+
 					record2 = reader2.next();
 				}
 				else if (comparison < 0)
 				{
+					if (record1.isFiltered()) { record1 = reader1.next(); continue; }
+
 					// interval2 is later than interval1.
+					Map<String,String> info1 = record1.getInfoValues();
+					number_sites_unique_to_file1 += 1;
+					if (VCFTool.isTransition(record1)) { unique1_ts += 1; }
+					else { unique1_tv += 1; }
+					if ((info1.get("DB") != null) && (Integer.parseInt(info1.get("DB")) == 1)) { unique1_dbsnp += 1; }
+					unique1_total += 1;
+
+					//if (verbose) { output.printf("DBG: skipping %s\n", record1.toStringEncoding(header1)); }
+
 					record1 = reader1.next();
 				}
-
 			}
 
 
 			// Now output the statistics.
-			{
 				if (verbose)
 				{
 					output.printf("\n");
@@ -959,7 +1047,27 @@ class VCFConcordance extends CommandLineProgram
 						output.print("QUAL " + Qual.get(qual).toString());
 					}
 					output.printf("\n");
+
+					output.printf("\n");
+					Object[] R2s = R2.keySet().toArray();
+					for (int i = 0; i < AAFs.length; i++)
+					{
+						Long r2 = (Long)R2s[i];
+						output.print("R2 " + R2.get(r2).toString());
+					}
 				}
+
+				output.printf("Number of sites shared          : %d %f %f\n", number_sites_shared, 
+																				(double)shared_ts/(double)shared_tv, 
+																				(double)shared_dbsnp/(double)(shared_ts+shared_tv));
+
+				output.printf("Number of sites unique to %s: %d %f %f\n", filename1, number_sites_unique_to_file1, 
+																				(double)unique1_ts/(double)unique1_tv, 
+																				(double)unique1_dbsnp/(double)(unique1_ts+unique1_tv));
+
+				output.printf("Number of sites unique to %s: %d %f %f\n", filename2, number_sites_unique_to_file2, 
+																				(double)unique2_ts/(double)unique2_tv, 
+																				(double)unique2_dbsnp/(double)(unique2_ts+unique2_tv));
 
 				output.printf("\n");
 				Object[] individuals = individual.keySet().toArray();
@@ -974,7 +1082,7 @@ class VCFConcordance extends CommandLineProgram
 				for (int i = 0; i < AAFs.length; i++)
 				{
 					Long aaf = (Long)AAFs[i];
-					output.printf("AAF %d %f %d %d\n", aaf, AAF.get(aaf).errorRate(), AAF.get(aaf).total(), AAF.get(aaf).totalNonHomRef());
+					output.printf("AAF %d %f %d %d %f\n", aaf, AAF.get(aaf).errorRate(), AAF.get(aaf).total(), AAF.get(aaf).totalNonHomRef(), AAF.get(aaf).hetErrorRate());
 				}
 
 				output.printf("\n");
@@ -985,7 +1093,13 @@ class VCFConcordance extends CommandLineProgram
 					output.printf("QUAL %d %f %d %d\n", qual, Qual.get(qual).errorRate(), Qual.get(qual).total(), Qual.get(qual).totalNonHomRef());
 				}
 
-			}
+				output.printf("\n");
+				Object[] R2s = R2.keySet().toArray();
+				for (int i = 0; i < R2s.length; i++)
+				{
+					Long r2 = (Long)R2s[i];
+					output.printf("R2 %f %f %d %d\n", (double)r2 * r2_bin_size, R2.get(r2).errorRate(), R2.get(r2).total(), R2.get(r2).totalNonHomRef());
+				}
 
 			output.flush();
 			output.close();
@@ -995,11 +1109,14 @@ class VCFConcordance extends CommandLineProgram
 		}
 }
 
-
 public class VCFTool 
 {
 		public static void main(String args[]) 
 		{
+			// silence log4j messages.
+			//appender = new FileAppender(layout, clp.toFile, false);
+			//logger.addAppender(appender);
+
 			SetupSequenceDictionary();
 
 			String mode = args[0];
@@ -1092,6 +1209,13 @@ public class VCFTool
 			if (mode.equals("apply_cuts"))
 			{
 				VCFApplyCuts cm = new VCFApplyCuts();
+				CommandLineProgram.start(cm,realArgs);
+				System.exit(0);
+			}
+
+			if (mode.equals("merge"))
+			{
+				VCFMerge cm = new VCFMerge();
 				CommandLineProgram.start(cm,realArgs);
 				System.exit(0);
 			}
@@ -1384,6 +1508,36 @@ public class VCFTool
 			double b = Math.pow(chi, 0.5-1.0) * Math.exp((-1.0 * chi)/2.0);
 			double ans = (1.0/a) * b;
 			return ans;
+		}
+
+		public static int compareIntervals(Interval a, Interval b)
+		{
+			int chr_a;
+			int chr_b;
+
+			if (a.getSequence().equals("X")) { chr_a = 23; }
+			else if (a.getSequence().equals("Y")) { chr_a = 24; }
+			else if (a.getSequence().equals("M")) { chr_a = 25; }
+			else { chr_a = Integer.parseInt(a.getSequence()); }
+
+			if (b.getSequence().equals("X")) { chr_b = 23; }
+			else if (b.getSequence().equals("Y")) { chr_b = 24; }
+			else if (b.getSequence().equals("M")) { chr_b = 25; }
+			else { chr_b = Integer.parseInt(b.getSequence()); }
+
+			int start_a = a.getStart();
+			int start_b = b.getStart();
+
+			int end_a = a.getEnd();
+			int end_b = b.getEnd();
+
+			if (chr_a < chr_b) { return -1; }
+			else if (chr_a > chr_b) { return 1; }
+			else if (start_a < start_b) { return -1; }
+			else if (start_a > start_b) { return 1; }
+			else if (end_a < end_b) { return -1; }
+			else if (end_a > end_b) { return 1; }
+			else { return 0; }
 		}
 
 }

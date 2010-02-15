@@ -56,6 +56,30 @@ class GenotypeConcordance
 				}
 			}
 
+			public String toLine()
+			{
+				int on_diag            = 0;
+				int on_diag_not_homref = 0;
+				int off_diag           = 0;
+				int total              = 0;
+				int total_not_homref   = 0;
+
+				for (int i = 0; i < 3; i++)
+				{
+					for (int j = 0; j < 3; j++)
+					{
+						if (i == j) { on_diag += counts[i][j]; }
+						if (i == j && i != 0) { on_diag_not_homref += counts[i][j]; }
+						if (i != j) { off_diag += counts[i][j]; }
+						if (i != 0 || j != 0) { total_not_homref += counts[i][j]; }
+						total += counts[i][j];
+					}
+				}
+
+				String s = String.format("SNP %s %d %d %f %f\n", this.name, total, total_not_homref, this.errorRate(), this.hetErrorRate());
+				return s;
+			}
+
 			public String toString()
 			{
 				String s = this.name + "\n";
@@ -107,6 +131,23 @@ class GenotypeConcordance
 				double error_rate = (double)off_diag / (double)total_not_homref;
 				return error_rate;
 			}
+
+			public double hetErrorRate()
+			{
+				int true_hets          = 0;
+				int correct_hets       = 0;
+				for (int i = 0; i < 3; i++)
+				{
+					for (int j = 0; j < 3; j++)
+					{
+						if (j == 1) { true_hets += counts[i][j]; }
+					}
+				}
+				correct_hets = counts[1][1];
+				double het_error_rate = 1.0 - ((double)correct_hets / (double)true_hets);
+				return het_error_rate;
+			}
+
 
 			public int total()
 			{
