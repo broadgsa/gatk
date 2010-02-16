@@ -214,7 +214,7 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
         }
 
         public boolean isReportableEvent() {
-            return eventStartPos >= 0 && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
+            return GenomeLocParser.validGenomeLoc(loc.getContig(), eventStartPos, eventStopPos) && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
         }
 
         public String toString() {
