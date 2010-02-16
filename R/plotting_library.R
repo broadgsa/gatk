@@ -71,7 +71,7 @@ if ( functionToRun == "PlotHeatmap" ) {
 # Note that the rows and columns don't line up. R understands this
 # and deals with it.
 # Also expects an argument string:
-#   row_label;column_label;data_rescale_factor;plot_title;base_name_for_pdf
+#   row_label;column_label;plot_title;base_name_for_pdf
 # - end of info -
 ### PLOT HEATMAP FUNCTION ###
 PlotHeatmap <- function(inFile,args) {
@@ -81,7 +81,7 @@ PlotHeatmap <- function(inFile,args) {
 	data_rescale_factor <- as.numeric(arglist[3])
 	plot_title = arglist[4]
 	base_name_for_pdf = arglist[5]
-	image_matrix <- data_rescale_factor*as.matrix(read.table(inFile))
+	image_matrix <- as.matrix(read.table(inFile))
 	## change default colors to include "cool" colors for lower end of spectrum
 	## e.g. red ~ near 1, yellow ~ near .75, green ~ near .5, teal ~ near .25
 	##      blue ~ near 0
