@@ -22,16 +22,20 @@ while (defined($line = <STDIN>)) {
         $allele1 = $ref;
     } elsif ($geno1 eq "1") {
         $allele1 = $alt;
+    } elsif ($geno1 eq ".") {
+        # do nothing - just leave the N in place
     } else {
-        die("only handled single alt currently:\n$line \n");
+        die("allele1: only handled single alt currently:\n$line \n");
     }
 
     if ( $geno2 eq "0") { 
         $allele2 = $ref;
     } elsif ($geno2 eq "1") {
         $allele2 = $alt;
+    } elsif ($geno2 eq ".") {
+        # do nothing - just leave the N in place
     } else {
-        die("only handled single alt currently:\n$line\n");
+        die("allele2: only handled single alt currently:\n$line\n");
     }
 
     my $ncbiBuild = "36";
