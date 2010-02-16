@@ -52,6 +52,7 @@ header = project_info.readline().strip().split("\t")
 
 project_index = header.index("Project")
 sample_index = header.index("Sample")
+status_index = header.index("Sample Status")
 
 def versionCompare(version1,version2):
     return -int(version1.split("v")[1])+int(version2.split("v")[1])
@@ -77,4 +78,5 @@ for line in project_info.readlines():
             fingerprint_file = fingerprint_path+spline[sample_index]+".fingerprint.geli"
         else:
             fingerprint_file = ""
-        outputFile.write(projectName+"_"+spline[sample_index]+"\t"+bamfile+"\t"+groupName+"\t"+fingerprint_file+"\t"+reference+"\t"+dbsnp+"\t"+intervals+"\t"+max_reads+"\t"+min_conf+"\t"+min_map_q+"\t"+min_base_q+"\n")
+        if ( spline[status_index] == "Complete" ):
+            outputFile.write(projectName+"_"+spline[sample_index]+"\t"+bamfile+"\t"+groupName+"\t"+fingerprint_file+"\t"+reference+"\t"+dbsnp+"\t"+intervals+"\t"+max_reads+"\t"+min_conf+"\t"+min_map_q+"\t"+min_base_q+"\n")
