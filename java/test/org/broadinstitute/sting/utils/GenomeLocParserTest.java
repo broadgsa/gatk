@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils;
 
-import static junit.framework.Assert.assertTrue;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
@@ -8,6 +7,7 @@ import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -47,13 +47,13 @@ public class GenomeLocParserTest extends BaseTest {
 
     @Test(expected = RuntimeException.class)
     public void testGetContigIndex() {
-        assertEquals(-1, GenomeLocParser.getContigIndex("blah")); // should be in the reference
+        assertEquals(-1, GenomeLocParser.getContigIndex("blah",true)); // should not be in the reference
     }
 
     @Test
     public void testGetContigIndexValid() {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
-        assertEquals(0, GenomeLocParser.getContigIndex("chr1")); // should be in the reference
+        assertEquals(0, GenomeLocParser.getContigIndex("chr1",true)); // should be in the reference
     }
 
     @Test
@@ -218,5 +218,24 @@ public class GenomeLocParserTest extends BaseTest {
         assertEquals(0, loc.getContigIndex());
         assertEquals(10, loc.getStop()); // the size
         assertEquals(1, loc.getStart());
+    }
+
+    // test out the validating methods
+    @Test
+    public void testValidationOfGenomeLocs() {
+        assertTrue(GenomeLocParser.validGenomeLoc("chr1",1,1));
+        assertTrue(!GenomeLocParser.validGenomeLoc("chr2",1,1)); // shouldn't have an entry
+        assertTrue(!GenomeLocParser.validGenomeLoc("chr1",1,11)); // past the end of the contig
+        assertTrue(!GenomeLocParser.validGenomeLoc("chr1",-1,10)); // bad start
+        assertTrue(!GenomeLocParser.validGenomeLoc("chr1",1,-2)); // bad stop
+        assertTrue(!GenomeLocParser.validGenomeLoc("chr1",10,11)); // bad start, past end
+
+        assertTrue(GenomeLocParser.validGenomeLoc(0,1,1));
+        assertTrue(!GenomeLocParser.validGenomeLoc(1,1,1)); // shouldn't have an entry
+        assertTrue(!GenomeLocParser.validGenomeLoc(0,1,11)); // past the end of the contig
+        assertTrue(!GenomeLocParser.validGenomeLoc(-1,0,10)); // bad start
+        assertTrue(!GenomeLocParser.validGenomeLoc(0,1,-2)); // bad stop
+        assertTrue(!GenomeLocParser.validGenomeLoc(0,10,11)); // bad start, past end
+
     }
 }
