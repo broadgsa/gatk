@@ -22,7 +22,7 @@ for record in maf_gen:
     for index,header in enumerate(headers):
         if record.has_key(header):
             if index > 0:
-                info_string += ","
+                info_string += ";"
             info_string += "%s=%s" % (header, record[header])
 
     locus = record["chr"]+":"+record["start"]
