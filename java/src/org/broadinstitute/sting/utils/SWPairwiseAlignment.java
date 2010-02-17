@@ -19,10 +19,10 @@ public class SWPairwiseAlignment {
     private int alignment_offset; // offset of s2 w/respect to s1
     private Cigar alignmentCigar;
 
-    private double w_match;
-    private double w_mismatch;
-    private double w_open;
-    private double w_extend;
+    private final double w_match;
+    private final double w_mismatch;
+    private final double w_open;
+    private final double w_extend;
 
     private static final int MSTATE = 0;
     private static final int ISTATE = 1;
@@ -49,8 +49,8 @@ public class SWPairwiseAlignment {
     public int getAlignmentStart2wrt1() { return alignment_offset; }
 
     public void align(final byte[] a, final byte[] b) {
-            int n = a.length;
-            int m = b.length;
+            final int n = a.length;
+            final int m = b.length;
             double [][] sw = new double[n+1][m+1];
 
             int [][] btrack = new int[n+1][m+1];
@@ -59,13 +59,14 @@ public class SWPairwiseAlignment {
             for ( int i = 1 ; i < n+1 ; i++ ) {
                 byte a_base = a[i-1]; // letter in a at the current pos
                 for ( int j = 1 ; j < m+1 ; j++ ) {
-                    byte b_base = b[j-1]; // letter in b at the current pos
+                    final byte b_base = b[j-1]; // letter in b at the current pos
                     double step_diag = sw[i-1][j-1] + wd(a_base,b_base);
                     double step_down = 0.0 ;
                     int kd = 0;
                     for ( int k = 1 ; k < i ; k++ ) {
-                        if ( step_down < sw[i-k][j]+wk(k) ) {
-                            step_down=sw[i-k][j]+wk(k);
+                        final double gap_penalty = wk(k);
+                        if ( step_down < sw[i-k][j]+gap_penalty ) {
+                            step_down=sw[i-k][j]+gap_penalty;
                             kd = k;
                         }
                     }
@@ -73,8 +74,9 @@ public class SWPairwiseAlignment {
                     double step_right = 0;
                     int ki = 0;
                     for ( int k = 1 ; k < j ; k++ ) {
-                        if ( step_right < sw[i][j-k]+wk(k) ) {
-                            step_right=sw[i][j-k]+wk(k);
+                        final double gap_penalty = wk(k);
+                        if ( step_right < sw[i][j-k]+gap_penalty ) {
+                            step_right=sw[i][j-k]+gap_penalty;
                             ki = k;
                         }
                     }
@@ -188,8 +190,7 @@ public class SWPairwiseAlignment {
     }
 
     private double wd(byte x, byte y) {
-        if ( x== y ) return w_match;
-        else return w_mismatch;
+        return (x == y ? w_match : w_mismatch);
     }
 
     private double wk(int k) {

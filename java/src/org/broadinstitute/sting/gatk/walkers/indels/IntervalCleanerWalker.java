@@ -715,7 +715,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             if ( originalMismatchBases[i] > totalOriginalBases[i] * MISMATCH_THRESHOLD )  {
                 didMismatch = true;
                 originalMismatchColumns++;
-                if ( (cleanedMismatchBases[i] / totalCleanedBases[i]) > (originalMismatchBases[i] / totalOriginalBases[i]) * (1.0 - MISMATCH_COLUMN_CLEANED_FRACTION) ) {
+                if ( ((double)cleanedMismatchBases[i] / (double)totalCleanedBases[i]) > ((double)originalMismatchBases[i] / (double)totalOriginalBases[i]) * (1.0 - MISMATCH_COLUMN_CLEANED_FRACTION) ) {
                     stillMismatches = true;
                     cleanedMismatchColumns++;
                 }
