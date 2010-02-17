@@ -13,5 +13,6 @@
     <module organisation="net.sf" module="functionalj" resolver="projects" />
     <module organisation="net.sf" module="samtools" resolver="projects" />
     <module organisation="org.reflections" module="reflections" resolver="projects" />
+    <module organisation="org.broad" module="tribble" resolver="projects" />
   </modules>
 </ivysettings>

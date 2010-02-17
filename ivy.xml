@@ -15,7 +15,7 @@
     <dependency org="jboss" name="javassist" rev="3.7.ga" conf="default"/>
     <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4" conf="default"/>
     <dependency org="org.apache.bcel" name="bcel" rev="5.2" conf="default"/>
-   
+    <dependency org="org.broad" name="tribble" rev="latest.integration" conf="default"/>
     <!-- Dependencies for reflections mvn repository -->
     <dependency org="org.reflections" name="reflections" rev="0.9.2" conf="default"/>
     <dependency org="com.google.collections" name="google-collections" rev="0.9" conf="default"/>
