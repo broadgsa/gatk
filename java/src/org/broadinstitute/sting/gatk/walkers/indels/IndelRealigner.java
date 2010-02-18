@@ -478,18 +478,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         while ( iter.hasNext() ) {
             Consensus consensus = iter.next();
-            int indelSize = 0;
-            for ( CigarElement ce : consensus.cigar.getCigarElements() )
-                if ( ce.getOperator() == CigarOperator.I || ce.getOperator() == CigarOperator.D ) {
-                    indelSize = ce.getLength();
-                    break;
-                }
 
             // if ( debugOn ) System.out.println("Consensus: "+consensus.str);
 
             for ( int j = 0; j < altReads.size(); j++ ) {
                 AlignedRead toTest = altReads.get(j);
-                Pair<Integer, Integer> altAlignment = findBestOffset(consensus.str, toTest, (int)leftmostIndex, indelSize);
+                Pair<Integer, Integer> altAlignment = findBestOffset(consensus.str, toTest, (int)leftmostIndex);
 
                 // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
                 int myScore = altAlignment.second;
@@ -695,7 +689,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return new Consensus(altConsensus, cigar, indexOnRef);
     }
 
-    private Pair<Integer, Integer> findBestOffset(final byte[] ref, final AlignedRead read, final int leftmostIndex, int indelSize) {
+    private Pair<Integer, Integer> findBestOffset(final byte[] ref, final AlignedRead read, final int leftmostIndex) {
 
         // optimization: try the most likely alignment first (to get a low score to beat)
         int originalAlignment = read.getOriginalAlignmentStart() - leftmostIndex;
