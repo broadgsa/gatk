@@ -1,23 +1,27 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.xReadLines;
 
-import java.util.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
 // todo -- evalations should support comment lines
 // todo -- add Mendelian variable explanations (nDeNovo and nMissingTransmissions)
@@ -71,9 +75,9 @@ import java.io.FileNotFoundException;
 // todo Assume that the incoming VCF has the annotations (you don't need to do this) but VE2 should split up results by
 // todo these catogies automatically (using the default selects)
 //
-// todo -- We agreed to report two standard values for variant evaluation from Êhere out. ÊOne, we will continue to report
+// todo -- We agreed to report two standard values for variant evaluation from here out. One, we will continue to report
 // todo -- the dbSNP 129 rate. Additionally, we will start to report the % of variants found that have already been seen in
-// todo -- 1000 Genomes. ÊThis should be implemented as another standard comp_1kg binding, pointing to only variants
+// todo -- 1000 Genomes. This should be implemented as another standard comp_1kg binding, pointing to only variants
 // todo -- discovered and released by 1KG.  Might need to make this data set ourselves and keep it in GATK/data like
 // todo -- dbsnp rod
 //

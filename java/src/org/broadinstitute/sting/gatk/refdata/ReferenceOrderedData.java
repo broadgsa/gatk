@@ -1,6 +1,9 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
+import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
 import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -17,7 +20,7 @@ import java.util.*;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<RODRecordList<ROD>> {
+public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<RODRecordList<ROD>> { // }, RMDTrackBuilder {
     private String name;
     private File file = null;
 //    private String fieldDelimiter;
@@ -29,6 +32,31 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(ReferenceOrderedData.class);
+
+    /** @return a map of all available tracks we currently have access to create */
+    //@Override
+    public Map<String, Class> getAvailableTrackNamesAndTypes() {
+        Map<String, Class> ret = new HashMap<String, Class>();
+        for (RODBinding binding: Types.values())
+            ret.put(binding.name, binding.type);
+        return ret;
+    }
+
+    /**
+     * create a RMDTrack of the specified type
+     *
+     * @param targetClass the target class of track
+     * @param name        what to call the track
+     * @param inputFile   the input file
+     *
+     * @return an instance of the track
+     * @throws org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException
+     *          if we don't know of the target class or we couldn't create it
+     */
+    //@Override
+    public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
+        return new RODRMDTrack(targetClass, name, inputFile, parse1Binding(name,targetClass.getName(),inputFile.getAbsolutePath()));
+    }
 
 
     // ----------------------------------------------------------------------
