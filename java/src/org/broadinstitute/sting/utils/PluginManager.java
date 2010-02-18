@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.utils;
 
-import java.util.Map;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Manage plugins and plugin configuration.
@@ -50,7 +50,7 @@ public abstract class PluginManager<PluginType> {
 
 
     /**
-     * Gets a plugin with the given name, or null if no plugin exists.
+     * Gets a plugin with the given name
      *
      * @param pluginName Name of the plugin to retrieve.
      * @return The plugin object if found; null otherwise.
@@ -70,7 +70,23 @@ public abstract class PluginManager<PluginType> {
         }
     }
 
-
+    /**
+     * create a plugin with the given type
+     *
+     * @param pluginType type of the plugin to create.
+     * @return The plugin object if created; null otherwise.
+     */
+    public PluginType createByType(Class pluginType) {
+        try {
+            return ((Class<? extends PluginType>) pluginType).newInstance();
+        }
+        catch( InstantiationException ex ) {
+            throw new StingException(String.format("Unable to instantiate %s",pluginCategory), ex);
+        }
+        catch( IllegalAccessException ex ) {
+            throw new StingException(String.format("Unable to access %s",pluginCategory), ex);
+        }
+    }
 
     /**
      * Create the list of available plugins and add them to the database.
