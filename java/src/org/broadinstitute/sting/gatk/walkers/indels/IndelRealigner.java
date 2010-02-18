@@ -41,8 +41,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
     protected Integer compressionLevel = 5;
 
-    @Argument(fullName="sortInMemory", shortName="sortInMemory", required=false, doc="Should we sort in memory instead of on disk?  This option is much faster but should be used with care - with too much coverage or with long reads it might generate failures [default:no]")
-    protected boolean SORT_IN_MEMORY = false;
+    public enum RealignerSortingStrategy {
+        NO_SORT,
+        ON_DISK,
+        IN_MEMORY
+    }
+
+    @Argument(fullName="sortStrategy", shortName="sort", required=false, doc="What type of sorting strategy should we use?  Options include NO_SORT, ON_DISK, and IN_MEMORY.  Sorting in memory is much faster than on disk but should be used with care - with too much coverage or with long reads it might generate failures [default:ON_DISK]")
+    protected RealignerSortingStrategy SORTING_STRATEGY = RealignerSortingStrategy.ON_DISK;
 
     // ADVANCED OPTIONS FOLLOW
 
@@ -122,16 +128,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( NWAY_OUTPUT ) {
                 Map<File, SAMFileReader> readerMap = getToolkit().getFileToReaderMapping();
                 for ( File file : readerMap.keySet() ) {
+                    SAMFileHeader header = readerMap.get(file).getFileHeader();
+                    if ( SORTING_STRATEGY == RealignerSortingStrategy.NO_SORT )
+                        header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
                     String newFileName = file.getName().substring(0, file.getName().length()-3) + outputSuffix + ".bam";
-                    SAMFileWriter writer = factory.makeBAMWriter(readerMap.get(file).getFileHeader(), SORT_IN_MEMORY, new File(baseWriterFilename, newFileName), compressionLevel);
-                    if ( SORT_IN_MEMORY )
+                    SAMFileWriter writer = factory.makeBAMWriter(header, SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY, new File(baseWriterFilename, newFileName), compressionLevel);
+                    if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
                         writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
                     for ( String rg : readGroupMap.get(file) )
                         writers.put(rg, writer);
                 }
             } else {
-                SAMFileWriter writer = factory.makeBAMWriter(getToolkit().getSAMFileHeader(), SORT_IN_MEMORY, new File(baseWriterFilename), compressionLevel);
-                if ( SORT_IN_MEMORY )
+                SAMFileHeader header = getToolkit().getSAMFileHeader();
+                if ( SORTING_STRATEGY == RealignerSortingStrategy.NO_SORT )
+                    header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+                SAMFileWriter writer = factory.makeBAMWriter(header, SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY, new File(baseWriterFilename), compressionLevel);
+                if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
                     writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
                 for ( Set<String> set : readGroupMap.values() ) {
                     for ( String rg : set )
@@ -203,7 +215,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         for ( Map.Entry<SAMFileWriter, Set<SAMRecord>> entry : bins.entrySet() ) {
-            if ( SORT_IN_MEMORY ) {
+            if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY ) {
                 // we can be efficient in this case by batching the reads all together
                 ((SortingSAMFileWriter)entry.getKey()).addAlignments(entry.getValue());
             } else {
@@ -260,7 +272,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             readsToClean.clear();
             readsNotToClean.clear();
 
-            currentInterval = intervals.hasNext() ? intervals.next() : null;
+            do {
+                currentInterval = intervals.hasNext() ? intervals.next() : null;
+            } while ( currentInterval != null && currentInterval.isBefore(readLoc) );
 
             // call back into map now that the state has been updated
             map(ref, read);
@@ -291,7 +305,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             HashSet<SAMFileWriter> uniqueWriters = new HashSet<SAMFileWriter>(writers.values());
             for ( SAMFileWriter writer : uniqueWriters ) {
                 writer.close();
-                if ( SORT_IN_MEMORY )
+                if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
                     ((SortingSAMFileWriter)writer).getBaseWriter().close();
             }
         }
@@ -319,20 +333,27 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private static int mismatchQualitySumIgnoreCigar(final AlignedRead aRead, final byte[] refSeq, int refIndex) {
+    private static int mismatchQualitySumIgnoreCigar(final AlignedRead aRead, final byte[] refSeq, int refIndex, int quitAboveThisValue) {
         final byte[] readSeq = aRead.getRead().getReadBases();
         final byte[] quals = aRead.getRead().getBaseQualities();
         int sum = 0;
         for (int readIndex = 0 ; readIndex < readSeq.length ; refIndex++, readIndex++ ) {
-            if ( refIndex >= refSeq.length )
+            if ( refIndex >= refSeq.length ) {
                 sum += MAX_QUAL;
-            else {
+                // optimization: once we pass the threshold, stop calculating
+                if ( sum > quitAboveThisValue )
+                    return sum;
+            } else {
                 byte refChr = refSeq[refIndex];
                 byte readChr = readSeq[readIndex];
                 if ( !BaseUtils.isRegularBase((char)readChr) || !BaseUtils.isRegularBase((char)refChr) )
                     continue; // do not count Ns/Xs/etc ?
-                if ( readChr != refChr )
+                if ( readChr != refChr ) {
                     sum += (int)quals[readIndex];
+                    // optimization: once we pass the threshold, stop calculating
+                    if ( sum > quitAboveThisValue )
+                        return sum;
+                }
             }
         }
         return sum;
@@ -396,7 +417,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 }
             }
 
-            final int mismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
+            final int mismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex, Integer.MAX_VALUE);
             //            if ( debugOn ) System.out.println("mismatchScore="+mismatchScore);
 
             // if this doesn't match perfectly to the reference, let's try to clean it
@@ -457,12 +478,18 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         while ( iter.hasNext() ) {
             Consensus consensus = iter.next();
+            int indelSize = 0;
+            for ( CigarElement ce : consensus.cigar.getCigarElements() )
+                if ( ce.getOperator() == CigarOperator.I || ce.getOperator() == CigarOperator.D ) {
+                    indelSize = ce.getLength();
+                    break;
+                }
 
             // if ( debugOn ) System.out.println("Consensus: "+consensus.str);
 
             for ( int j = 0; j < altReads.size(); j++ ) {
                 AlignedRead toTest = altReads.get(j);
-                Pair<Integer, Integer> altAlignment = findBestOffset(consensus.str, toTest);
+                Pair<Integer, Integer> altAlignment = findBestOffset(consensus.str, toTest, (int)leftmostIndex, indelSize);
 
                 // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
                 int myScore = altAlignment.second;
@@ -668,20 +695,41 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return new Consensus(altConsensus, cigar, indexOnRef);
     }
 
-    private Pair<Integer, Integer> findBestOffset(final byte[] ref, final AlignedRead read) {
-        final int attempts = ref.length - read.getReadLength() + 1;
-        int bestScore = mismatchQualitySumIgnoreCigar(read, ref, 0);
-        int bestIndex = 0;
-        for ( int i = 1; i < attempts; i++ ) {
-            // we can't get better than 0!
-            if ( bestScore == 0 )
-                return new Pair<Integer, Integer>(bestIndex, 0);
-            int score = mismatchQualitySumIgnoreCigar(read, ref, i);
+    private Pair<Integer, Integer> findBestOffset(final byte[] ref, final AlignedRead read, final int leftmostIndex, int indelSize) {
+
+        // optimization: try the most likely alignment first (to get a low score to beat)
+        int originalAlignment = read.getOriginalAlignmentStart() - leftmostIndex;
+        int bestScore = mismatchQualitySumIgnoreCigar(read, ref, originalAlignment, Integer.MAX_VALUE);
+        int bestIndex = originalAlignment;
+
+        // optimization: we can't get better than 0, so we can quit now
+        if ( bestScore == 0 )
+            return new Pair<Integer, Integer>(bestIndex, 0);
+
+        // optimization: the correct alignment shouldn't be too far from the original one (or else the read wouldn't have aligned in the first place)
+        for ( int i = 0; i < originalAlignment; i++ ) {
+            int score = mismatchQualitySumIgnoreCigar(read, ref, i, bestScore);
             if ( score < bestScore ) {
                 bestScore = score;
                 bestIndex = i;
             }
+            // optimization: we can't get better than 0, so we can quit now
+            if ( bestScore == 0 )
+                return new Pair<Integer, Integer>(bestIndex, 0);
         }
+
+        final int maxPossibleStart = ref.length - read.getReadLength();
+        for ( int i = originalAlignment + 1; i <= maxPossibleStart; i++ ) {
+            int score = mismatchQualitySumIgnoreCigar(read, ref, i, bestScore);
+            if ( score < bestScore ) {
+                bestScore = score;
+                bestIndex = i;
+            }
+            // optimization: we can't get better than 0, so we can quit now
+            if ( bestScore == 0 )
+                return new Pair<Integer, Integer>(bestIndex, 0);
+        }
+
         return new Pair<Integer, Integer>(bestIndex, bestScore);
     }
 
