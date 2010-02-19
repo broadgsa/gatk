@@ -17,18 +17,18 @@ import java.util.*;
 class FirehoseSummaryCLP extends CommandLineProgram {
     @Argument(fullName = "depthOfCoverageFile", shortName = "doc", doc="Path to the depth of coverage file", required=true)
     private File depthOfCoverage = null;
-    @Argument(fullName = "contaminationFile", shortName = "con", doc="Path to the contamination file", required=true)
-    private File contamination = null;
-    @Argument(fullName = "errorRateFile", shortName = "err", doc="Path to the error rate file", required=true)
-    private File errorRate = null;
-    @Argument(fullName = "zipFiles", shortName = "zip", doc="List of paths to zip files which contain summary metrics files", required=false)
-    private String zipFiles = null;
+//    @Argument(fullName = "contaminationFile", shortName = "con", doc="Path to the contamination file", required=true)
+//    private File contamination = null;
+//    @Argument(fullName = "errorRateFile", shortName = "err", doc="Path to the error rate file", required=true)
+//    private File errorRate = null;
+//    @Argument(fullName = "zipFiles", shortName = "zip", doc="List of paths to zip files which contain summary metrics files", required=false)
+//    private String zipFiles = null;
 
     private static String R_SCRIPT = "plotFirehoseDataQCMetrics.R";
     private static String SCRIPT_DOC_FLAG = "DOC";
 
     protected int execute() {
-        SummaryFileCollection metricsFiles = getFileHandles();
+//        SummaryFileCollection metricsFiles = getFileHandles();
         List<DepthStatisticsCalculator> depthStats = calculateDepthStatistics(depthOfCoverage);
         String docSummary = makeDOCPlots(depthStats);
         return 1;
@@ -85,18 +85,18 @@ class FirehoseSummaryCLP extends CommandLineProgram {
         return "temporary";
     }
 
-    private SummaryFileCollection getFileHandles() {
-        if ( zipFiles == null ) {
-            return null;
-        }
-
-        SummaryFileCollection summaryFiles = new SummaryFileCollection();
-        for ( String zipFile : zipFiles.split(",") ) {
-            summaryFiles.process(zipFile);
-        }
-
-        return summaryFiles;
-    }
+//    private SummaryFileCollection getFileHandles() {
+//        if ( zipFiles == null ) {
+//            return null;
+//        }
+//
+//        SummaryFileCollection summaryFiles = new SummaryFileCollection();
+//        for ( String zipFile : zipFiles.split(",") ) {
+//            summaryFiles.process(zipFile);
+//        }
+//
+//        return summaryFiles;
+//    }
 
     private List<DepthStatisticsCalculator> calculateDepthStatistics(File docFile) {
         BufferedReader docReader;
@@ -219,39 +219,39 @@ public class GenerateFirehoseSummary {
     }
 }
 
-class SummaryFileCollection {
-
-    // container class for files we'll be summarizing
-
-    public Map<String,File> fingerprintSummaryFiles;
-    public Map<String,File> hybridSelectionMetricsFiles;
-    public Map<String,File> insertSizeDistributionFiles;
-    public Map<String,File> alignmentMetricsFiles;
-
-    public SummaryFileCollection() {
-        fingerprintSummaryFiles = new HashMap<String,File>();
-        hybridSelectionMetricsFiles = new HashMap<String, File>();
-        insertSizeDistributionFiles = new HashMap<String,File>();
-        alignmentMetricsFiles = new HashMap<String,File>();
-    }
-
-    public void process(String zipFilePath) {
-        String sampleName = zipFilePath.split("_sequencing_metrics.zip")[0].split("_")[1];
-        File fingerprintSummaryFile = new File(sampleName+".summary_fingerprint_metrics");
-        File hybridSelectionFile = new File(sampleName+".hybrid_selection_metrics");
-        File insertSizeFile = new File(sampleName+".insert_size_metrics");
-        File alignmentFile = new File(sampleName+".alignment_metrics");
-
-        String command = "unzip "+zipFilePath;
-        try {
-            Process p = Runtime.getRuntime().exec(command);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not unzip the file "+zipFilePath);
-        }
-
-        fingerprintSummaryFiles.put(sampleName,fingerprintSummaryFile);
-        hybridSelectionMetricsFiles.put(sampleName,hybridSelectionFile);
-        insertSizeDistributionFiles.put(sampleName,insertSizeFile);
-        alignmentMetricsFiles.put(sampleName,alignmentFile);
-    }
-}
+//class SummaryFileCollection {
+//
+//    // container class for files we'll be summarizing
+//
+//    public Map<String,File> fingerprintSummaryFiles;
+//    public Map<String,File> hybridSelectionMetricsFiles;
+//    public Map<String,File> insertSizeDistributionFiles;
+//    public Map<String,File> alignmentMetricsFiles;
+//
+//    public SummaryFileCollection() {
+//        fingerprintSummaryFiles = new HashMap<String,File>();
+//        hybridSelectionMetricsFiles = new HashMap<String, File>();
+//        insertSizeDistributionFiles = new HashMap<String,File>();
+//        alignmentMetricsFiles = new HashMap<String,File>();
+//    }
+//
+//    public void process(String zipFilePath) {
+//        String sampleName = zipFilePath.split("_sequencing_metrics.zip")[0].split("_")[1];
+//        File fingerprintSummaryFile = new File(sampleName+".summary_fingerprint_metrics");
+//        File hybridSelectionFile = new File(sampleName+".hybrid_selection_metrics");
+//        File insertSizeFile = new File(sampleName+".insert_size_metrics");
+//        File alignmentFile = new File(sampleName+".alignment_metrics");
+//
+//        String command = "unzip "+zipFilePath;
+//        try {
+//            Process p = Runtime.getRuntime().exec(command);
+//        } catch (IOException e) {
+//            throw new RuntimeException("Could not unzip the file "+zipFilePath);
+//        }
+//
+//        fingerprintSummaryFiles.put(sampleName,fingerprintSummaryFile);
+//        hybridSelectionMetricsFiles.put(sampleName,hybridSelectionFile);
+//        insertSizeDistributionFiles.put(sampleName,insertSizeFile);
+//        alignmentMetricsFiles.put(sampleName,alignmentFile);
+//    }
+//}

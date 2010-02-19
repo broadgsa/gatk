@@ -25,7 +25,7 @@ public class DepthStatisticsCalculator extends SummaryStatisticsCalculator {
     private int targetsAbove99x;
     private int numTargets;
 
-    public static double[] DEPTH_CUTOFFS = {1,4,10,25,50,100};
+    public static int[] DEPTH_CUTOFFS = {1,4,10,25,50,100};
 
     public DepthStatisticsCalculator(String name) {
         super(name);
@@ -124,5 +124,9 @@ public class DepthStatisticsCalculator extends SummaryStatisticsCalculator {
 
     public double getPercentWellCoveredTargets() {
         return 10*( (double) targetsAbove9x )/( (double) numTargets );
+    }
+
+    public int[] getEvalPoints() {
+        return DepthStatisticsCalculator.DEPTH_CUTOFFS;
     }
 }
