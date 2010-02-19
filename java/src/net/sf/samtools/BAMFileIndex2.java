@@ -184,6 +184,101 @@ public class BAMFileIndex2 extends BAMFileIndex
     }
 
     /**
+     * Perform an overlapping query of all bins bounding the given location.
+     * @param bin The bin over which to perform an overlapping query.
+     * @return The file pointers 
+     */
+    long[] getFilePointersBounding(final Bin bin) {
+        if(bin == null)
+            return null;
+
+        final int referenceSequence = bin.referenceSequence;
+        final Bin[] allBins = referenceToBins.get(referenceSequence);
+
+        final int binLevel = getLevelForBinNumber(bin.binNumber);
+        final int firstLocusInBin = getFirstLocusInBin(bin);
+
+        List<Bin> binTree = new ArrayList<Bin>();
+        binTree.add(bin);
+
+        int currentBinLevel = binLevel;
+        while(--currentBinLevel >= 0) {
+            final int binStart = LEVEL_STARTS[currentBinLevel];
+            final int binWidth = BIN_SPAN/(LEVEL_STARTS[currentBinLevel+1]-LEVEL_STARTS[currentBinLevel]);
+            final int binNumber = firstLocusInBin/binWidth + binStart;
+            for(Bin referenceBin: allBins) {
+                if(binNumber == referenceBin.binNumber)
+                    binTree.add(referenceBin);
+            }
+        }
+        
+        List<Chunk> chunkList = new ArrayList<Chunk>();
+        for(Bin coveringBin: binTree)
+            chunkList.addAll(binToChunks.get(coveringBin));
+
+        // Find the nearest adjacent bin.  This can act as a minimum offset
+        Bin closestAdjacentBin = null;
+        for(Bin adjacentBin: allBins) {
+            if(getLevelForBinNumber(adjacentBin.binNumber) != binLevel)
+                continue;
+            if(adjacentBin.binNumber<bin.binNumber && (closestAdjacentBin == null || closestAdjacentBin.binNumber < adjacentBin.binNumber))
+                closestAdjacentBin = adjacentBin;
+        }
+
+        // Find the offset of the closest bin.
+        long adjacentBinOffset = 0;
+        if(closestAdjacentBin != null) {
+            for(Chunk chunk: binToChunks.get(closestAdjacentBin)) {
+                if(adjacentBinOffset < chunk.getChunkEnd())
+                    adjacentBinOffset = chunk.getChunkEnd();
+            }
+        }
+
+        final int start = getFirstLocusInBin(bin)-1;
+        final int regionLinearBin = start >> BAM_LIDX_SHIFT;
+        LinearIndex index = referenceToLinearIndices.get(referenceSequence);
+        long minimumOffset = 0;
+        if (regionLinearBin < index.indexEntries.length)
+            minimumOffset = index.indexEntries[regionLinearBin];
+
+        chunkList = optimizeChunkList(chunkList, minimumOffset);
+        long[] chunkArray = convertToArray(chunkList);
+
+        // Trim off anything before the first desired bin.
+        int location = Arrays.binarySearch(chunkArray,adjacentBinOffset);
+        // location not found, but insertion point was determined.
+        long trimmedChunkArray[] = chunkArray;
+
+        // If the location of the element is in an even bucket (a start position), trim everything before it.
+        if(location >= 0) {
+            if(location%2==0) {
+                trimmedChunkArray = new long[chunkArray.length-location];
+                System.arraycopy(chunkArray,location,trimmedChunkArray,0,trimmedChunkArray.length);                
+            }
+            else {
+                trimmedChunkArray = new long[chunkArray.length-location-1];
+                System.arraycopy(chunkArray,location+1,trimmedChunkArray,0,trimmedChunkArray.length);
+            }
+        }
+        else {
+            location = -(location+1);
+            if(location < chunkArray.length) {
+                if(location%2==0) {
+                    trimmedChunkArray = new long[chunkArray.length-location];
+                    System.arraycopy(chunkArray,location,trimmedChunkArray,0,trimmedChunkArray.length);
+                }
+                else {
+                    trimmedChunkArray = new long[chunkArray.length-location+1];
+                    trimmedChunkArray[0] = adjacentBinOffset;
+                    System.arraycopy(chunkArray,location,trimmedChunkArray,1,trimmedChunkArray.length-1);
+                }
+            }
+        }
+
+        return trimmedChunkArray;
+    }
+
+    /**
      * Get list of regions of BAM file that may contain SAMRecords for the given range
      * @param referenceIndex sequence of desired SAMRecords
      * @param startPos 1-based start of the desired interval, inclusive

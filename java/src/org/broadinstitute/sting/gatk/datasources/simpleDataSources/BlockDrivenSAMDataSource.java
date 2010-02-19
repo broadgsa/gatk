@@ -7,7 +7,6 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.JVMUtils;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.sam.SamFileHeaderMerger;
@@ -70,14 +69,14 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
 
     /**
      * Gets the file pointers bounded by this bin, grouped by the reader of origination.
-     * @param locus The loci for which to load data.
+     * @param bin The bin for which to load data.
      * @return A map of the file pointers bounding the bin.
      */
-    public Map<SAMFileReader2,List<Chunk>> getFilePointersBounding(GenomeLoc locus) {
+    public Map<SAMFileReader2,List<Chunk>> getFilePointersBounding(Bin bin) {
         Map<SAMFileReader2,List<Chunk>> filePointers = new HashMap<SAMFileReader2,List<Chunk>>();
         for(SAMFileReader reader: headerMerger.getReaders()) {
             SAMFileReader2 reader2 = (SAMFileReader2)reader;
-            filePointers.put(reader2,reader2.getFilePointersBounding(locus.getContig(),(int)locus.getStart(),(int)locus.getStop()));
+            filePointers.put(reader2,reader2.getFilePointersBounding(bin));
         }
         return filePointers;
     }
@@ -154,8 +153,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(Map.Entry<SAMFileReader2,List<Chunk>> chunksByReader: bamAwareShard.getChunks().entrySet()) {
             SAMFileReader2 reader = chunksByReader.getKey();
-            GenomeLoc bounds = bamAwareShard.getBounds();
-            readerToIteratorMap.put(reader,reader.queryOverlapping(bounds.getContig(),(int)bounds.getStart(),(int)bounds.getStop()));
+            readerToIteratorMap.put(reader,reader.iterator(bamAwareShard.getChunks().get(reader)));
         }
 
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.

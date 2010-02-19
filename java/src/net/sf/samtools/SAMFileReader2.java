@@ -147,10 +147,10 @@ public class SAMFileReader2 extends SAMFileReader {
         return reader.getOverlappingBins(sequence,start,end);
     }
 
-    public List<Chunk> getFilePointersBounding(final String sequence, final int start, final int end) {
+    public List<Chunk> getFilePointersBounding(final Bin bin) {
         // TODO: Add sanity checks so that we're not doing this against an unsupported BAM file.
         BAMFileReader2 reader = (BAMFileReader2)JVMUtils.getFieldValue(getField("mReader"),this);
-        return reader.getFilePointersBounding(sequence,start,end);
+        return reader.getFilePointersBounding(bin);
     }
 
     private Field getField(String fieldName) {

@@ -194,14 +194,9 @@ class BAMFileReader2
         return bins;
     }
 
-    public List<Chunk> getFilePointersBounding(final String sequence, final int start, final int end) {
-        final SAMFileHeader fileHeader = getFileHeader();
-        long[] filePointers = null;
-        int referenceIndex = fileHeader.getSequenceIndex(sequence);
-        if (referenceIndex != -1) {
-            final BAMFileIndex2 fileIndex = getFileIndex();
-            filePointers = fileIndex.getFilePointersContaining(referenceIndex,start,end);
-        }
+    public List<Chunk> getFilePointersBounding(final Bin bin) {
+        final BAMFileIndex2 fileIndex = getFileIndex();
+        long[] filePointers = fileIndex.getFilePointersBounding(bin);
         return (filePointers != null) ? Chunk.toChunkList(filePointers) : Collections.<Chunk>emptyList();
     }
 
