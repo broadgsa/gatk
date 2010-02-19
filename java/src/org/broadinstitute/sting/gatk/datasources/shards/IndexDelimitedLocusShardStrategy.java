@@ -120,13 +120,6 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        String contig = null;
-        long start = Long.MAX_VALUE, stop = 0;
-        for(GenomeLoc loc: nextFilePointer.locations) {
-            contig = loc.getContig();
-            start = Math.min(loc.getStart(),start);
-            stop = Math.max(loc.getStop(),stop);
-        }
         Map<SAMFileReader2,List<Chunk>> chunksBounding = blockDrivenDataSource.getFilePointersBounding(nextFilePointer.bin);
         return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }

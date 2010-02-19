@@ -106,7 +106,7 @@ public class BAMFileIndex2 extends BAMFileIndex
         final int level = getLevelForBinNumber(bin.binNumber);
         final int levelStart = LEVEL_STARTS[level];
         final int levelSize = ((level==getNumIndexLevels()-1) ? MAX_BINS-1 : LEVEL_STARTS[level+1]) - levelStart;
-        return (bin.binNumber - levelStart)*(BIN_SPAN/levelSize); 
+        return (bin.binNumber - levelStart)*(BIN_SPAN/levelSize)+1;
     }
 
     /**
@@ -118,7 +118,7 @@ public class BAMFileIndex2 extends BAMFileIndex
         final int level = getLevelForBinNumber(bin.binNumber);
         final int levelStart = LEVEL_STARTS[level];
         final int levelSize = ((level==getNumIndexLevels()-1) ? MAX_BINS-1 : LEVEL_STARTS[level+1]) - levelStart;
-        return (bin.binNumber - levelStart + 1)*(BIN_SPAN/levelSize) - 1;         
+        return (bin.binNumber-levelStart+1)*(BIN_SPAN/levelSize);         
     }
 
     /**
@@ -213,25 +213,9 @@ public class BAMFileIndex2 extends BAMFileIndex
         }
         
         List<Chunk> chunkList = new ArrayList<Chunk>();
-        for(Bin coveringBin: binTree)
-            chunkList.addAll(binToChunks.get(coveringBin));
-
-        // Find the nearest adjacent bin.  This can act as a minimum offset
-        Bin closestAdjacentBin = null;
-        for(Bin adjacentBin: allBins) {
-            if(getLevelForBinNumber(adjacentBin.binNumber) != binLevel)
-                continue;
-            if(adjacentBin.binNumber<bin.binNumber && (closestAdjacentBin == null || closestAdjacentBin.binNumber < adjacentBin.binNumber))
-                closestAdjacentBin = adjacentBin;
-        }
-
-        // Find the offset of the closest bin.
-        long adjacentBinOffset = 0;
-        if(closestAdjacentBin != null) {
-            for(Chunk chunk: binToChunks.get(closestAdjacentBin)) {
-                if(adjacentBinOffset < chunk.getChunkEnd())
-                    adjacentBinOffset = chunk.getChunkEnd();
-            }
+        for(Bin coveringBin: binTree) {
+            for(Chunk chunk: binToChunks.get(coveringBin))
+                chunkList.add(chunk.clone());
         }
 
         final int start = getFirstLocusInBin(bin)-1;
@@ -242,40 +226,7 @@ public class BAMFileIndex2 extends BAMFileIndex
             minimumOffset = index.indexEntries[regionLinearBin];
 
         chunkList = optimizeChunkList(chunkList, minimumOffset);
-        long[] chunkArray = convertToArray(chunkList);
-
-        // Trim off anything before the first desired bin.
-        int location = Arrays.binarySearch(chunkArray,adjacentBinOffset);
-        // location not found, but insertion point was determined.
-        long trimmedChunkArray[] = chunkArray;
-
-        // If the location of the element is in an even bucket (a start position), trim everything before it.
-        if(location >= 0) {
-            if(location%2==0) {
-                trimmedChunkArray = new long[chunkArray.length-location];
-                System.arraycopy(chunkArray,location,trimmedChunkArray,0,trimmedChunkArray.length);                
-            }
-            else {
-                trimmedChunkArray = new long[chunkArray.length-location-1];
-                System.arraycopy(chunkArray,location+1,trimmedChunkArray,0,trimmedChunkArray.length);
-            }
-        }
-        else {
-            location = -(location+1);
-            if(location < chunkArray.length) {
-                if(location%2==0) {
-                    trimmedChunkArray = new long[chunkArray.length-location];
-                    System.arraycopy(chunkArray,location,trimmedChunkArray,0,trimmedChunkArray.length);
-                }
-                else {
-                    trimmedChunkArray = new long[chunkArray.length-location+1];
-                    trimmedChunkArray[0] = adjacentBinOffset;
-                    System.arraycopy(chunkArray,location,trimmedChunkArray,1,trimmedChunkArray.length-1);
-                }
-            }
-        }
-
-        return trimmedChunkArray;
+        return convertToArray(chunkList);
     }
 
     /**
@@ -296,8 +247,10 @@ public class BAMFileIndex2 extends BAMFileIndex
         }
 
         List<Chunk> chunkList = new ArrayList<Chunk>();
-        for(Bin bin: bins)
-            chunkList.addAll(binToChunks.get(bin));
+        for(Bin bin: bins) {
+            for(Chunk chunk: binToChunks.get(bin))
+                chunkList.add(chunk.clone());
+        }
 
         if (chunkList.isEmpty()) {
             return null;

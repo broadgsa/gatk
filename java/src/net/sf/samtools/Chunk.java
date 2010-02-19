@@ -12,7 +12,7 @@ import java.util.ArrayList;
  * @author mhanna
  * @version 0.1
  */
-public class Chunk implements Comparable<Chunk> {
+public class Chunk implements Cloneable,Comparable<Chunk> {
 
     private long mChunkStart;
     private long mChunkEnd;
@@ -20,6 +20,10 @@ public class Chunk implements Comparable<Chunk> {
     Chunk(final long start, final long end) {
         mChunkStart = start;
         mChunkEnd = end;
+    }
+
+    protected Chunk clone() {
+        return new Chunk(mChunkStart,mChunkEnd);
     }
 
     public long getChunkStart() {
