@@ -170,7 +170,8 @@ public class RecalDataManager {
             final Object val = data.get(comp);
             if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps
                 if( data.keySet().size() == 1) {
-                    data.clear(); // don't TableRecalibrate a non-required covariate if it only has one element because that correction has already been done in a previous sequential step
+                    data.clear(); // don't TableRecalibrate a non-required covariate if it only has one element because that correction has already been done ...
+                                                                                                    // in a previous step of the sequential calculation model
                 }
             } else { // Another layer in the nested hash map
                 checkForSingletons( (Map) val );
@@ -358,6 +359,32 @@ public class RecalDataManager {
         return originalQualScores;
     }
 
+    public static boolean checkNoCallColorSpace( final SAMRecord read ) {
+        if( read.getReadGroup().getPlatform().toUpperCase().contains("SOLID") ) {
+            final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
+            if( attr != null ) {
+                char[] colorSpace;
+                if( attr instanceof String ) {
+                    colorSpace = ((String)attr).substring(1).toCharArray(); // trim off the Sentinel
+                } else {
+                    throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                }
+
+                for( char color : colorSpace ) {
+                    if( color != '0' && color != '1' && color != '2' && color != '3' ) {
+                        return true; // There is a bad color in this SOLiD read and the user wants to skip over it
+                    }
+                }
+
+            } else {
+                throw new StingException("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                                        " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
+            }
+        }
+
+        return false; // There aren't any color no calls in this SOLiD read
+    }
+
     /**
      * Perform the SET_Q_ZERO solid recalibration. Inconsistent color space bases and their previous base are set to quality zero
      * @param read The SAMRecord to recalibrate
@@ -516,7 +543,7 @@ public class RecalDataManager {
             //    }
             //}
             
-        } else {
+        } else { // No inconsistency array, so nothing is inconsistent
             return false;
         }
     }

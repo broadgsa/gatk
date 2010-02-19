@@ -61,6 +61,9 @@ public class RecalibrationArgumentCollection {
     public int HOMOPOLYMER_NBACK = 7;
     @Argument(fullName = "exception_if_no_tile", shortName="throwTileException", doc="If provided, TileCovariate will throw an exception when no tile can be found. The default behavior is to use tile = -1", required=false)
     public boolean EXCEPTION_IF_NO_TILE = false;
+    @Argument(fullName = "ignore_nocall_colorspace", shortName="ignore_nocall_colorspace", doc="If provided, the recalibrator will skip over reads with no calls in the color space instead of halting with an exception", required=false)
+    public boolean IGNORE_NOCALL_COLORSPACE = false;
+
     
     public final boolean checkSolidRecalMode() {
         return ( SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ||

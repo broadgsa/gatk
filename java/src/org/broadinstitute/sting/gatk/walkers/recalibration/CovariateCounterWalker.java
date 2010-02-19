@@ -263,28 +263,32 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 offset = p.getOffset();
 
                 RecalDataManager.parseSAMRecord( read, RAC );
-                RecalDataManager.parseColorSpace( read );
 
-                // Skip if base quality is zero
-                if( read.getBaseQualities()[offset] > 0 ) {
+                // Skip over reads with no calls in the color space if the user requested it
+                if( !RAC.IGNORE_NOCALL_COLORSPACE || !RecalDataManager.checkNoCallColorSpace( read ) ) {
+                    RecalDataManager.parseColorSpace( read );
 
-                    bases = read.getReadBases();
-                    refBase = (byte)ref.getBase();
+                    // Skip if base quality is zero
+                    if( read.getBaseQualities()[offset] > 0 ) {
 
-                    // Skip if this base is an 'N' or etc.
-                    if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
+                        bases = read.getReadBases();
+                        refBase = (byte)ref.getBase();
 
-                        // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                        if( !read.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
+                        // Skip if this base is an 'N' or etc.
+                        if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
-                            // This base finally passed all the checks for a good base, so add it to the big data hashmap
-                            updateDataFromRead( read, offset, refBase );
+                            // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
+                            if( !read.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
 
-                        } else { // calculate SOLID reference insertion rate
-                            if( ref.getBase() == (char)bases[offset] ) {
-                                solidInsertedReferenceBases++;
-                            } else {
-                                otherColorSpaceInconsistency++;
+                                // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                                updateDataFromRead( read, offset, refBase );
+
+                            } else { // calculate SOLID reference insertion rate
+                                if( ref.getBase() == (char)bases[offset] ) {
+                                    solidInsertedReferenceBases++;
+                                } else {
+                                    otherColorSpaceInconsistency++;
+                                }
                             }
                         }
                     }

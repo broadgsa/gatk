@@ -98,6 +98,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
     private static final long RANDOM_SEED = 1032861495;
     private final Random coinFlip = new Random( RANDOM_SEED ); // Random number generator is used to remove reference bias in solid bams
+    private long numReadsWithMalformedColorSpace = 0;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -300,6 +301,13 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         final String platform = read.getReadGroup().getPlatform();
         if( platform.toUpperCase().contains("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
+            if( RAC.IGNORE_NOCALL_COLORSPACE ) {
+                final boolean badColor = RecalDataManager.checkNoCallColorSpace( read );
+                if( badColor ) {
+                    numReadsWithMalformedColorSpace++;
+                    return read; // can't recalibrate a SOLiD read with no calls in the color space, and the user wants to skip over them
+                }
+            }
             originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases );
         }
 
@@ -452,5 +460,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @param output The SAMFileWriter that outputs the bam file
      */
     public void onTraversalDone(SAMFileWriter output) {
+        if( numReadsWithMalformedColorSpace != 0 ) {
+            Utils.warnUser("Discovered " + numReadsWithMalformedColorSpace + " SOLiD reads with no calls in the color space. Unfortunately these reads cannot be recalibrated with this recalibration algorithm " +
+                    "because we use reference mismatch rate as the only indication of a base's true quality. These reads have had reference bases inserted as a way of correcting " +
+                    "for color space misalignments and there is now no way of knowing how often it mismatches the reference and therefore no way to recalibrate the quality score. " +
+                    "These reads remain in the output bam file but haven't been corrected for reference bias. Use at your own risk.");
+        }
     }
 }

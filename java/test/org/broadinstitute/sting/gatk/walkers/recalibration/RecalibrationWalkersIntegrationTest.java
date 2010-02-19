@@ -182,6 +182,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -I " + bam +
                             " -L 1:10,000,000-10,200,000" +
                             " -standard" +
+                            " --ignore_nocall_colorspace" +
                             " --solid_recal_mode SET_Q_ZERO" +
                             " -recalFile %s",
                     1, // just one output file
