@@ -114,7 +114,12 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
                 hasPointEvent = true;
         }
 
+        // return null if no event occurred
         if ( !hasIndel && !hasPointEvent )
+            return null;
+
+        // return null if we didn't find any usable reads associated with the event
+        if ( furthestStopPos == -1 )
             return null;
 
         GenomeLoc eventLoc = context.getLocation();
