@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Currently built via:
+    ant playground package -Dexecutable=AnalyzeConcordance
+-->
+<package name="AnalyzeConcordance">
+  <executable name="AnalyzeConcordance">
+    <main-class name="org.broadinstitute.sting.playground.analyzeconcordance.AnalyzeConcordance" />
+    <resource-bundle file="StingText.properties" />
+    <dependencies>
+      <class name="org.broadinstitute.sting.playground.analyzeconcordance.AnalyzeConcordance" />
+    </dependencies>
+  </executable>
+  <resources>
+    <!-- Supplemental scripts for graph generation, etc. -->
+    <file name="R/analyzeConcordance/analyzeConcordance.R" />
+  </resources>
+</package>
