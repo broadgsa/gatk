@@ -130,7 +130,8 @@ public class AnnotationDataManager {
                 // else, continue accumulating variants because this bin isn't full yet
             }
 
-            if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) != 0 ) { // One final bin that may not have been dumped out
+            // One final bin that may not have been dumped out
+            if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) != 0 ) {
                 output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() + "\t" + thisAnnotationBin.calcTPrate() +
                             "\t" + thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) + "\tall");
                 output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.NOVEL_SET ) + "\t-1\t-1\t" + thisAnnotationBin.numVariants( AnnotationDatum.NOVEL_SET ) + "\tnovel");
