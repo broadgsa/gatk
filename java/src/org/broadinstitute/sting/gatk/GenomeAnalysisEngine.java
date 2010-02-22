@@ -41,6 +41,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -299,6 +300,17 @@ public class GenomeAnalysisEngine {
      * @return a list of genomeLoc representing the interval file
      */
     public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals) {
+        return parseIntervalRegion(intervals, GenomeAnalysisEngine.instance.getArguments().intervalMerging);
+    }
+
+    /**
+     * setup the interval regions, from either the interval file of the genome region string
+     *
+     * @param intervals the list of intervals to parse
+     * @param mergingRule the rule for merging intervals
+     * @return a list of genomeLoc representing the interval file
+     */
+    public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals, IntervalMergingRule mergingRule) {
         List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
         for (String interval : intervals) {
             if (new File(interval).exists()) {
@@ -307,12 +319,12 @@ public class GenomeAnalysisEngine {
                     Utils.warnUser("Bed files are 0 based half-open intervals, which are converted to 1-based closed intervals in the GATK.  " +
                             "Be aware that all output information and intervals are 1-based closed intervals.");
                     BedParser parser = new BedParser(new File(interval));
-                    locs.addAll(parser.getSortedAndMergedLocations(GenomeAnalysisEngine.instance.getArguments().intervalMerging));
+                    locs.addAll(parser.getSortedAndMergedLocations(mergingRule));
                 } else {
-                    locs.addAll(GenomeLocParser.intervalFileToList(interval,GenomeAnalysisEngine.instance.getArguments().intervalMerging));
+                    locs.addAll(GenomeLocParser.intervalFileToList(interval,mergingRule));
                 }
             } else {
-                locs.addAll(GenomeLocParser.parseGenomeLocs(interval,GenomeAnalysisEngine.instance.getArguments().intervalMerging));
+                locs.addAll(GenomeLocParser.parseGenomeLocs(interval,mergingRule));
             }
 
         }
