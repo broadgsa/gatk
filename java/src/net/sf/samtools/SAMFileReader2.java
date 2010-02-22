@@ -41,7 +41,6 @@ import org.broadinstitute.sting.utils.StingException;
 public class SAMFileReader2 extends SAMFileReader {
     /**
      * Prepare to read a SAM or BAM file.  If the given file is a BAM, and has a companion BAI index file
-     * that is named according to the convention, it will be found and opened, and indexed query will be allowed.
      */
     public SAMFileReader2(final File file) {
         this(file, null, false);

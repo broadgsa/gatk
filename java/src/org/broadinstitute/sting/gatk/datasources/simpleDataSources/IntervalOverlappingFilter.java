@@ -29,9 +29,10 @@ public class IntervalOverlappingFilter implements SamRecordFilter {
      * @return True to filter the read out.  False otherwise.
      */
     public boolean filterOut(SAMRecord read) {
-        GenomeLoc readLocation = GenomeLocParser.createGenomeLoc(read);
         for(GenomeLoc interval: intervals) {
-            if(interval.overlapsP(readLocation))
+            if((read.getAlignmentStart() >= interval.getStart() && read.getAlignmentStart() <= interval.getStop()) ||
+               (read.getAlignmentEnd() >= interval.getStart() && read.getAlignmentEnd() <= interval.getStop()) ||
+               (read.getAlignmentStart() < interval.getStart() && read.getAlignmentEnd() > interval.getStop()))
                 return false;
         }
         return true;
