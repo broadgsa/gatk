@@ -45,7 +45,7 @@ public class GLFVariableLengthCall extends GLFRecord {
     private int indelLen2 = 0;
     private final short indelSeq1[];
     private final short indelSeq2[];
-
+    private short minlikelihood;
     // our size, which is immutable, in bytes
     private final int size;
 
@@ -57,7 +57,7 @@ public class GLFVariableLengthCall extends GLFRecord {
      * @param refBase   the reference base
      * @param offset    the location, as an offset from the previous glf record
      * @param offset    the location, as an offset from the previous glf record
-
+                                                           s
      * @param readDepth the read depth at the specified postion
      * @param rmsMapQ   the root mean square of the mapping quality
      * @param lkHom1    the negitive log likelihood of the first homozygous indel allele, from 0 to 255
@@ -78,7 +78,7 @@ public class GLFVariableLengthCall extends GLFRecord {
                               final short indelSeq1[],
                               int indelTwoLength,
                               final short indelSeq2[]) {
-        super(contig, refBase, offset, GLFRecord.toCappedShort(findMin(new double[]{lkHom1, lkHom2, lkHet})), readDepth, rmsMapQ);
+        super(contig, refBase, offset, readDepth, rmsMapQ);
         this.lkHom1 = GLFRecord.toCappedShort(lkHom1);
         this.lkHom2 = GLFRecord.toCappedShort(lkHom2);
         this.lkHet = GLFRecord.toCappedShort(lkHet);
@@ -87,7 +87,7 @@ public class GLFVariableLengthCall extends GLFRecord {
         this.indelSeq1 = indelSeq1;
         this.indelSeq2 = indelSeq2;
         size = 16 + indelSeq1.length + indelSeq2.length;
-
+        this.minlikelihood = GLFRecord.toCappedShort(findMin(new double[]{lkHom1, lkHom2, lkHet}));
     }
 
     /**
@@ -118,6 +118,17 @@ public class GLFVariableLengthCall extends GLFRecord {
     /** @return the size of the record, which is the size of our fields plus the generic records fields */
     public int getByteSize() {
         return size + super.getByteSize();
+    }
+
+    /**
+     * this method had to be abstracted so that the underlying records could set the minimum likelihood (ML) in the event
+     * that the ML is above 255.  In this case the records need to scale the value appropriately, and warn the users.
+     *
+     * @return a short of the minimum likelihood.
+     */
+    @Override
+    protected short calculateMinLikelihood() {
+        return minlikelihood;
     }
 
     public short getLkHom1() {

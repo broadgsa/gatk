@@ -47,7 +47,6 @@ public abstract class GLFRecord {
     protected String contig;
     protected REF_BASE refBase;
     protected long position = 1;
-    protected short minimumLikelihood = 0;
     protected int readDepth = 0;
     protected short rmsMapQ = 0;
 
@@ -126,7 +125,7 @@ public abstract class GLFRecord {
         SINGLE((short) 1),
         VARIABLE((short) 2);
 
-        private final short fieldValue;   // in kilograms
+        private final short fieldValue;   // a place to store the type
 
         RECORD_TYPE(short value) {
             fieldValue = value;
@@ -144,13 +143,12 @@ public abstract class GLFRecord {
      * @param contig            the contig string
      * @param base              the reference base in the reference
      * @param position          the distance from the beginning of the reference seq
-     * @param minimumLikelihood it's minimum likelihood
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    public GLFRecord(String contig, char base, long position, short minimumLikelihood, int readDepth, short rmsMapQ) {
+    public GLFRecord(String contig, char base, long position, int readDepth, short rmsMapQ) {
         REF_BASE newBase = REF_BASE.toBase(base);
-        validateInput(contig, newBase, position, minimumLikelihood, readDepth, rmsMapQ);
+        validateInput(contig, newBase, position, readDepth, rmsMapQ);
     }
 
     /**
@@ -159,12 +157,11 @@ public abstract class GLFRecord {
      * @param contig            the contig string
      * @param base              the reference base in the reference
      * @param position          the distance from the beginning of the reference seq
-     * @param minimumLikelihood it's minimum likelihood
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    GLFRecord(String contig, REF_BASE base, long position, short minimumLikelihood, int readDepth, short rmsMapQ) {
-        validateInput(contig, base, position, minimumLikelihood, readDepth, rmsMapQ);
+    GLFRecord(String contig, REF_BASE base, long position, int readDepth, short rmsMapQ) {
+        validateInput(contig, base, position, readDepth, rmsMapQ);
     }
 
     /**
@@ -173,11 +170,10 @@ public abstract class GLFRecord {
      * @param chromosome        the reference contig, as a String
      * @param base              the reference base in the reference, as a REF_BASE
      * @param position          the distance from the beginning of the reference seq
-     * @param minimumLikelihood it's minimum likelihood
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    private void validateInput(String chromosome, REF_BASE base, long position, double minimumLikelihood, int readDepth, short rmsMapQ) {
+    private void validateInput(String chromosome, REF_BASE base, long position, int readDepth, short rmsMapQ) {
         // add any validation to the contig string here
         this.contig = chromosome;
 
@@ -188,10 +184,10 @@ public abstract class GLFRecord {
         }
         this.position = position;
 
-        if (minimumLikelihood > 255 || minimumLikelihood < 0) {
-            throw new IllegalArgumentException("minimumLikelihood is out of bounds (0 to 0xffffffff) value passed = " + minimumLikelihood);
-        }
-        this.minimumLikelihood = GLFRecord.toCappedShort(minimumLikelihood);
+//        if (minimumLikelihood > 255 || minimumLikelihood < 0) {
+//            throw new IllegalArgumentException("minimumLikelihood is out of bounds (0 to 0xffffffff) value passed = " + minimumLikelihood);
+//        }
+//        this.minimumLikelihood = GLFRecord.toCappedShort(minimumLikelihood);
 
         if (readDepth > 16777215 || readDepth < 0) {
             throw new IllegalArgumentException("readDepth is out of bounds (0 to 0xffffff) value passed = " + readDepth);
@@ -218,7 +214,7 @@ public abstract class GLFRecord {
         short bite = ((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUByte((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUInt(((Long) (offset)).intValue()); // we have to subtract one, we're an offset
-        long write = (long) ((long) (readDepth & 0xffffff) | (long) (this.minimumLikelihood & 0xff) << 24);
+        long write = (long) ((long) (readDepth & 0xffffff) | (long) (this.getMinimumLikelihood() & 0xff) << 24);
         out.writeUInt(write);
         out.writeUByte((short) rmsMapQ);
     }
@@ -276,7 +272,7 @@ public abstract class GLFRecord {
     }
 
     public short getMinimumLikelihood() {
-        return minimumLikelihood;
+        return calculateMinLikelihood();
     }
 
     public int getReadDepth() {
@@ -290,5 +286,12 @@ public abstract class GLFRecord {
     public String getContig() {
         return this.contig;
     }
+
+    /**
+     * this method had to be abstracted so that the underlying records could set the minimum likelihood (ML) in the event
+     * that the ML is above 255.  In this case the records need to scale the value appropriately, and warn the users.
+     * @return a short of the minimum likelihood.
+     */
+    protected abstract short calculateMinLikelihood();
 }
 

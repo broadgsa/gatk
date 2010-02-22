@@ -93,6 +93,23 @@ public class GLFWriterTest extends BaseTest {
         return new FakeGenotype(location, genotypes[bestGenotype], ref, SIGNIFICANCE, lk);
     }
 
+    /**
+     * create a fake genotype with a minimum likelihood greater than 255
+     * @param bestGenotype the best genotype, as an index into the array of values
+     * @param location the location we're creating the genotype at
+     * @param ref the reference base
+     * @return a FakeGenotype (a fake genotype)
+     */
+    private FakeGenotype createGreaterThan255MinimumGenotype(int bestGenotype, GenomeLoc location, char ref) {
+        double lk[] = new double[GENOTYPE_COUNT];
+        for (int x = 0; x < GENOTYPE_COUNT; x++) {
+            lk[x] = -355.0 - (double) x; // they'll all be unique like a snowflake
+        }
+        lk[bestGenotype] = -256.0; // lets make the best way better
+
+        return new FakeGenotype(location, genotypes[bestGenotype], ref, SIGNIFICANCE, lk);
+    }
+
 
     /**
      * can we actually write a file?
@@ -113,6 +130,24 @@ public class GLFWriterTest extends BaseTest {
 
     }
 
+    /**
+     * can we actually write a file?
+     */
+    @Test
+    public void basicWriteGreaterMinimumLikelihood() {
+        File writeTo = new File("testGLF2.glf");
+        writeTo.deleteOnExit();
+
+        rec = new GLFWriter(writeTo);
+        ((GLFWriter)rec).writeHeader(header);
+        for (int x = 0; x < 5; x++) {
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
+            Genotype type = createGreaterThan255MinimumGenotype(x % 10, loc, 'A');
+            rec.addGenotypeCall(type);
+        }
+        rec.close();
+
+    }
 
     /**
      * write a bunch of fake records a GLF file, and then read it back from the

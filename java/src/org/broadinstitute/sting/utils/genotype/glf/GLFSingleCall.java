@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
+import org.broadinstitute.sting.utils.Utils;
 
 
 /*
@@ -39,7 +40,7 @@ public class GLFSingleCall extends GLFRecord {
 
     // our likelihoods array
     private double likelihoods[];
-
+    private double minLikelihood;
     /**
      * create a single
      *
@@ -51,7 +52,8 @@ public class GLFSingleCall extends GLFRecord {
      * @param likelihoods the Likelihoods
      */
     public GLFSingleCall(String contig, char refBase, int position, int readDepth, short rmsMapQ, double likelihoods[]) {
-        super(contig, refBase, position, (short) GLFRecord.findMin(likelihoods), readDepth, rmsMapQ);
+        super(contig, refBase, position, readDepth, rmsMapQ);
+        minLikelihood = GLFRecord.findMin(likelihoods);
         this.likelihoods = likelihoods;
     }
 
@@ -64,8 +66,6 @@ public class GLFSingleCall extends GLFRecord {
     void write(BinaryCodec out, GLFRecord lastRec) {
         super.write(out, lastRec);
         short[] adjusted = new short[likelihoods.length];
-        // find the minimum likelihood as a double
-        double minLikelihood = GLFRecord.findMin(likelihoods);
         
         // we want to scale our values
         for (int x = 0; x < likelihoods.length; x++) {
@@ -98,7 +98,27 @@ public class GLFSingleCall extends GLFRecord {
         return likelihoods.length + super.getByteSize();
     }
 
+    /**
+     * this method had to be abstracted so that the underlying records could set the minimum likelihood (ML) in the event
+     * that the ML is above 255.  In this case the records need to scale their likelihood values appropriately, and warn the user.
+     *
+     * @return a short of the minimum likelihood.
+     */
+    @Override
+    protected short calculateMinLikelihood() {
+        if (minLikelihood > 255.0) {
+            double scale = minLikelihood - 255.0;
+            this.minLikelihood = 255.0;
+            for (int x = 0; x < this.likelihoods.length; x++)
+                this.likelihoods[x] = this.likelihoods[x] - scale;
+            Utils.warnUser("GLFRecord: Locus " + this.getContig() + ":" + this.position + " had it's likelihood information scaled, the original likelihood values are unrecoverable");
+        }
+        return toCappedShort(minLikelihood);
+    }
+
     public double[] getLikelihoods() {
         return likelihoods;
     }
+
+
 }
