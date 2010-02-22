@@ -41,6 +41,9 @@ public interface Covariate {
     public void initialize( RecalibrationArgumentCollection RAC ); // Initialize any member variables using the command-line arguments passed to the walkers
     public Comparable getValue( SAMRecord read, int offset ); // Used to pick out the covariate's value from attributes of the read
     public Comparable getValue( String str ); // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    public void getValues( SAMRecord read, Comparable[] comparable ); //Takes an array of size (at least) read.getReadLength() and fills it with covariate
+        //values for each position in the read. This method was created as an optimization over calling getValue( read, offset ) for each offset and allows
+        //read-specific calculations to be done just once rather than for each offset.
 }
 
 interface RequiredCovariate extends Covariate {

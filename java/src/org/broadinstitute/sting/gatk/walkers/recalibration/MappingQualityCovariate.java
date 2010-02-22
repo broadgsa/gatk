@@ -42,13 +42,17 @@ public class MappingQualityCovariate implements ExperimentalCovariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {    	
-    	return read.getMappingQuality();
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
+        return read.getMappingQuality();
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         return Integer.parseInt( str );
+    }
+
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        throw new IllegalStateException("Not yet implemented");
     }
 
 }

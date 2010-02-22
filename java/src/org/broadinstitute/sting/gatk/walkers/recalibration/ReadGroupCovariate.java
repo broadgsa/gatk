@@ -45,12 +45,19 @@ public class ReadGroupCovariate implements RequiredCovariate{
 
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
-    	return read.getReadGroup().getReadGroupId();
+        return read.getReadGroup().getReadGroupId();
+    }
+
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        final String readGroupId = read.getReadGroup().getReadGroupId();
+        for(int i = 0; i < read.getReadLength(); i++) {
+            comparable[i] = readGroupId;
+        }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
-    	return str;
+        return str;
     }
 
 }

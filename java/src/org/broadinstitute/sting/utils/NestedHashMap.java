@@ -39,8 +39,9 @@ public class NestedHashMap{
 
     public Object get( final Object... keys ) {
         Map map = this.data;
-        for( int iii = 0; iii < keys.length; iii++ ) {
-            if( iii == keys.length - 1 ) {
+        final int keysLength = keys.length;
+        for( int iii = 0; iii < keysLength; iii++ ) {
+            if( iii == keysLength - 1 ) {
                 return map.get(keys[iii]);
             } else {
                 map = (Map) map.get(keys[iii]);
@@ -54,8 +55,9 @@ public class NestedHashMap{
     public void put( final Object value, final Object... keys ) {
 
         Map map = this.data;
-        for( int iii = 0; iii < keys.length; iii++ ) {
-            if( iii == keys.length - 1 ) {
+        final int keysLength = keys.length;
+        for( int iii = 0; iii < keysLength; iii++ ) {
+            if( iii == keysLength - 1 ) {
                 map.put(keys[iii], value);
             } else {
                 Map tmp = (Map) map.get(keys[iii]);

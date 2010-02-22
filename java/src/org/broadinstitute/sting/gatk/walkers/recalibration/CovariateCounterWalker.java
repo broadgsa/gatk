@@ -1,23 +1,35 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.gatk.walkers.*;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.NestedHashMap;
+import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.Variation;
-
-import java.io.PrintStream;
-import java.io.FileNotFoundException;
-import java.util.*;
-
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -67,6 +79,13 @@ import net.sf.samtools.SAMRecord;
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
+
+    /////////////////////////////
+    // Constants
+    /////////////////////////////
+    private static final String SKIP_RECORD_ATTRIBUTE = "SKIP"; //used to label GATKSAMRecords that should be skipped.
+    private static final String SEEN_ATTRIBUTE = "SEEN"; //used to label GATKSAMRecords as processed.
+    private static final String COVARS_ATTRIBUTE = "COVARS"; //used to store covariates array as a temporary attribute inside GATKSAMRecord.
 
     /////////////////////////////
     // Shared Arguments
@@ -139,7 +158,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 out.println( covClass.getSimpleName() );
             }
             out.println();
-            
+
             System.exit( 0 ); // Early exit here because user requested it
         }
 
@@ -252,43 +271,57 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( !isSNP && ( ++numUnprocessed >= PROCESS_EVERY_NTH_LOCUS ) ) {
             numUnprocessed = 0; // Reset the counter because we are processing this very locus
 
-            SAMRecord read;
+            GATKSAMRecord gatkRead;
             int offset;
             byte refBase;
             byte[] bases;
 
             // For each read at this locus
             for( PileupElement p : context.getBasePileup() ) {
-                read = p.getRead();
+                gatkRead = (GATKSAMRecord) p.getRead();
                 offset = p.getOffset();
 
-                RecalDataManager.parseSAMRecord( read, RAC );
+                if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE  ) ) {
+                    continue;
+                }
 
-                // Skip over reads with no calls in the color space if the user requested it
-                if( !RAC.IGNORE_NOCALL_COLORSPACE || !RecalDataManager.checkNoCallColorSpace( read ) ) {
-                    RecalDataManager.parseColorSpace( read );
+                if( !gatkRead.containsTemporaryAttribute( SEEN_ATTRIBUTE  ) )
+                {
+                    gatkRead.setTemporaryAttribute( SEEN_ATTRIBUTE, true );
+                    RecalDataManager.parseSAMRecord( gatkRead, RAC );
 
-                    // Skip if base quality is zero
-                    if( read.getBaseQualities()[offset] > 0 ) {
+                    // Skip over reads with no calls in the color space if the user requested it
+                    if( RAC.IGNORE_NOCALL_COLORSPACE && RecalDataManager.checkNoCallColorSpace( gatkRead ) ) {
+                        gatkRead.setTemporaryAttribute( SKIP_RECORD_ATTRIBUTE, true);
+                        continue;
+                    }
 
-                        bases = read.getReadBases();
-                        refBase = (byte)ref.getBase();
+                    RecalDataManager.parseColorSpace( gatkRead );
+                    gatkRead.setTemporaryAttribute( COVARS_ATTRIBUTE,
+                            RecalDataManager.computeCovariates( gatkRead, requestedCovariates ));
+                }
 
-                        // Skip if this base is an 'N' or etc.
-                        if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
-                            // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                            if( !read.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
+                // Skip this position if base quality is zero
+                if( gatkRead.getBaseQualities()[offset] > 0 ) {
 
-                                // This base finally passed all the checks for a good base, so add it to the big data hashmap
-                                updateDataFromRead( read, offset, refBase );
+                    bases = gatkRead.getReadBases();
+                    refBase = (byte)ref.getBase();
 
-                            } else { // calculate SOLID reference insertion rate
-                                if( ref.getBase() == (char)bases[offset] ) {
-                                    solidInsertedReferenceBases++;
-                                } else {
-                                    otherColorSpaceInconsistency++;
-                                }
+                    // Skip if this base is an 'N' or etc.
+                    if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
+
+                        // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
+                        if( !gatkRead.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( gatkRead, offset ) ) {
+
+                            // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                            updateDataFromRead( gatkRead, offset, refBase );
+
+                        } else { // calculate SOLID reference insertion rate
+                            if( refBase == (char)bases[offset] ) {
+                                solidInsertedReferenceBases++;
+                            } else {
+                                otherColorSpaceInconsistency++;
                             }
                         }
                     }
@@ -310,6 +343,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         return 1; // This value isn't actually used anywhere
     }
+
+
 
    /**
      * Update the mismatch / total_base counts for a given class of loci.
@@ -343,7 +378,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         final double fractionMM_novel = (double)novel_counts.first / (double)novel_counts.second;
         final double fractionMM_dbsnp = (double)dbSNP_counts.first / (double)dbSNP_counts.second;
-        
+
         if( fractionMM_dbsnp < DBSNP_VS_NOVEL_MISMATCH_RATE * fractionMM_novel ) {
             Utils.warnUser("The variation rate at the supplied list of known variant sites seems suspiciously low. Please double-check that the correct ROD is being used. " +
                             String.format("[dbSNP variation rate = %.4f, novel variation rate = %.4f]", fractionMM_dbsnp, fractionMM_novel) );
@@ -358,29 +393,26 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      *   adding one to the number of observations and potentially one to the number of mismatches
      * Lots of things are passed as parameters to this method as a strategy for optimizing the covariate.getValue calls
      *   because pulling things out of the SAMRecord is an expensive operation.
-     * @param read The SAMRecord holding all the data for this read
+     * @param gatkRead The SAMRecord holding all the data for this read
      * @param offset The offset in the read for this locus
      * @param refBase The reference base at this locus
      */
-    private void updateDataFromRead(final SAMRecord read, final int offset, final byte refBase) {
+    private void updateDataFromRead(final GATKSAMRecord gatkRead, final int offset, final byte refBase) {
 
-        final Object[] key = new Object[requestedCovariates.size()];
-        
-        // Loop through the list of requested covariates and pick out the value from the read and offset
-        int iii = 0;
-        for( Covariate covariate : requestedCovariates ) {
-            key[iii++] = covariate.getValue( read, offset );
-        }
 
-    	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
-        RecalDatumOptimized datum = (RecalDatumOptimized) dataManager.data.get( key );
+        final Object[][] covars = (Comparable[][]) gatkRead.getTemporaryAttribute(COVARS_ATTRIBUTE);
+        final Object[] key = covars[offset];
+
+        // Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
+        final NestedHashMap data = dataManager.data; //optimization - create local reference
+        RecalDatumOptimized datum = (RecalDatumOptimized) data.get( key );
         if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
             datum = new RecalDatumOptimized(); // initialized with zeros, will be incremented at end of method
-            dataManager.data.put( datum, (Object[])key );
+            data.put( datum, (Object[])key );
         }
-        
+
         // Need the bases to determine whether or not we have a mismatch
-        final byte base = read.getReadBases()[offset];
+        final byte base = gatkRead.getReadBases()[offset];
         final long curMismatches = datum.getNumMismatches();
 
         // Add one to the number of observations and potentially one to the number of mismatches
@@ -427,7 +459,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         logger.info( "Writing raw recalibration data..." );
         outputToCSV( recalTableStream );
         logger.info( "...done!" );
-    
+
         recalTableStream.close();
     }
 
@@ -436,7 +468,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param recalTableStream The PrintStream to write out to
      */
     private void outputToCSV( final PrintStream recalTableStream ) {
-       
+
         recalTableStream.printf("# Counted Sites    %d%n", countedSites);
         recalTableStream.printf("# Counted Bases    %d%n", countedBases);
         recalTableStream.printf("# Skipped Sites    %d%n", skippedSites);

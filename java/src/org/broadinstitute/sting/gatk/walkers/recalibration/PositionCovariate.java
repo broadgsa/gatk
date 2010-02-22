@@ -56,4 +56,8 @@ public class PositionCovariate implements ExperimentalCovariate {
         return Integer.parseInt( str );
     }
 
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        throw new IllegalStateException("Not yet implemented");
+    }
+
 }

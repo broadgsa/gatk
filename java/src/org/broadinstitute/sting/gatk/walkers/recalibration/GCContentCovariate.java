@@ -33,7 +33,7 @@ import net.sf.samtools.SAMRecord;
  * Date: Jan 29, 2010
  *
  * The number of previous N bases (along the direction of the read) that contain G's and C's. The goal is to correct for dye slippage.
- * Only valid for Illumina reads. Otherwise return -1. 
+ * Only valid for Illumina reads. Otherwise return -1.
  */
 
 public class GCContentCovariate implements ExperimentalCovariate {
@@ -69,16 +69,22 @@ public class GCContentCovariate implements ExperimentalCovariate {
                     numGC++;
                 }
             }
-            
+
             return numGC;
         } else { // This effect is specific to the Illumina platform
             return -1;
         }
+    }
+    
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        throw new IllegalStateException("Not yet implemented");
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         return Integer.parseInt( str );
     }
+
+
 
 }

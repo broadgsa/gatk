@@ -44,7 +44,7 @@ import net.sf.samtools.SAMReadGroupRecord;
  */
 
 public class RecalDataManager {
-    
+
     public final NestedHashMap data; // The full dataset
     private final NestedHashMap dataCollapsedReadGroup; // Table where everything except read group has been collapsed
     private final NestedHashMap dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
@@ -58,14 +58,14 @@ public class RecalDataManager {
     private static boolean warnUserNullPlatform = false;
 
     RecalDataManager() {
-    	data = new NestedHashMap();
+        data = new NestedHashMap();
         dataCollapsedReadGroup = null;
         dataCollapsedQualityScore = null;
         dataCollapsedByCovariate = null;
     }
 
     RecalDataManager( final boolean createCollapsedTables, final int numCovariates ) {
-    	if( createCollapsedTables ) { // Initialize all the collapsed tables, only used by TableRecalibrationWalker
+        if( createCollapsedTables ) { // Initialize all the collapsed tables, only used by TableRecalibrationWalker
             data = null;
             dataCollapsedReadGroup = new NestedHashMap();
             dataCollapsedQualityScore = new NestedHashMap();
@@ -78,9 +78,9 @@ public class RecalDataManager {
             dataCollapsedReadGroup = null;
             dataCollapsedQualityScore = null;
             dataCollapsedByCovariate = null;
-        }            
+        }
     }
-    
+
     /**
      * Add the given mapping to all of the collapsed hash tables
      * @param key The list of comparables that is the key for this mapping
@@ -140,7 +140,7 @@ public class RecalDataManager {
      * Loop over all the collapsed tables and turn the recalDatums found there into an empricial quality score
      *   that will be used in the sequential calculation in TableRecalibrationWalker
      * @param smoothing The smoothing paramter that goes into empirical quality score calculation
-     * @param maxQual At which value to cap the quality scores 
+     * @param maxQual At which value to cap the quality scores
      */
     public final void generateEmpiricalQualities( final int smoothing, final int maxQual ) {
 
@@ -349,7 +349,7 @@ public class RecalDataManager {
                 originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, setBaseN);
             } else if( SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") ) { // Use the color space quality to probabilistically remove ref bases at inconsistent color space bases
                 solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead, coinFlip);
-            } 
+            }
 
         } else {
             throw new StingException("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
@@ -542,9 +542,41 @@ public class RecalDataManager {
             //        return (inconsistency[offset] != 0) || (inconsistency[offset + 1] != 0);
             //    }
             //}
-            
+
         } else { // No inconsistency array, so nothing is inconsistent
             return false;
         }
     }
+
+    /**
+     * Computes all requested covariates for every offset in the given read
+     * by calling covariate.getValues(..).
+     *
+     * @param gatkRead The read for which to compute covariate values.
+     * @param requestedCovariates The list of requested covariates.
+     * @return An array of covariate values where result[i][j] is the covariate
+     * value for the ith position in the read and the jth covariate in
+     * reqeustedCovariates list.
+     */
+     public static Comparable[][] computeCovariates(final GATKSAMRecord gatkRead, final List<Covariate> requestedCovariates) {
+         //compute all covariates for this read
+         final List<Covariate> requestedCovariatesRef = requestedCovariates;
+         final int numRequestedCovariates = requestedCovariatesRef.size();
+         final int readLength = gatkRead.getReadLength();
+
+         final Comparable[][] covariateValues_offset_x_covar = new Comparable[readLength][numRequestedCovariates];
+         final Comparable[] tempCovariateValuesHolder = new Comparable[readLength];
+
+         // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
+         for( int i = 0; i < numRequestedCovariates; i++ ) {
+             requestedCovariatesRef.get(i).getValues( gatkRead, tempCovariateValuesHolder );
+             for(int j = 0; j < readLength; j++) {
+                 //copy values into a 2D array that allows all covar types to be extracted at once for
+                 //an offset j by doing covariateValues_offset_x_covar[j]. This avoids the need to later iterate over covar types.
+                 covariateValues_offset_x_covar[j][i] = tempCovariateValuesHolder[j];
+             }
+         }
+
+         return covariateValues_offset_x_covar;
+     }
 }

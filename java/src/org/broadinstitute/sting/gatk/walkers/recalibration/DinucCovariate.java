@@ -2,8 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import java.util.HashMap;
 
-import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
+
+import org.broadinstitute.sting.utils.BaseUtils;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -45,7 +46,7 @@ public class DinucCovariate implements StandardCovariate {
     private static final byte NO_CALL = (byte)'N';
     private static final Dinuc NO_DINUC = new Dinuc(NO_CALL, NO_CALL);
 
-    HashMap<Integer, Dinuc> dinucHashMap;
+    private HashMap<Integer, Dinuc> dinucHashMap;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
@@ -89,8 +90,47 @@ public class DinucCovariate implements StandardCovariate {
         if( !BaseUtils.isRegularBase( prevBase ) ) {
             return NO_DINUC;
         }
-        
+
         return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
+    }
+
+
+    /**
+     * Takes an array of size (at least) read.getReadLength() and fills it with the covariate values for each position in the read.
+     */
+    public void getValues( SAMRecord read, Comparable[] result ) {
+        final HashMap<Integer, Dinuc> dinucHashMapRef = this.dinucHashMap; //optimize access to dinucHashMap
+        final int readLength = read.getReadLength();
+        final boolean negativeStrand = read.getReadNegativeStrandFlag();
+        byte[] bases = read.getReadBases();
+        byte base;
+        byte prevBase;
+        int offset = 0;
+        // If this is a negative strand read then we need to reverse the direction for our previous base
+
+        if(negativeStrand) {
+            bases = BaseUtils.simpleReverseComplement(bases); //this is NOT in-place
+        }
+        result[0] = NO_DINUC; // No dinuc at the beginning of the read
+
+        prevBase = bases[0];
+        offset++;
+        while(offset < readLength) {
+             // Note: We are using the previous base in the read, not the
+             // previous base in the reference. This is done in part to be consistent with unmapped reads.
+             base = bases[offset];
+             if( BaseUtils.isRegularBase( prevBase ) ) {
+                 result[offset] = dinucHashMapRef.get( Dinuc.hashBytes( prevBase, base ) );
+             } else {
+                 result[offset] = NO_DINUC;
+             }
+
+             offset++;
+             prevBase = base;
+        }
+        if(negativeStrand) {
+            reverse( result );
+        }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
@@ -100,7 +140,20 @@ public class DinucCovariate implements StandardCovariate {
             return null;
         }
         return returnDinuc;
-
     }
 
+
+    /**
+     * Reverses the given array in place.
+     *
+     * @param array
+     */
+    private static final void reverse(final Comparable[] array) {
+        final int arrayLength = array.length;
+        for(int l = 0, r = arrayLength - 1; l < r; l++, r--) {
+            final Comparable temp = array[l];
+            array[l] = array[r];
+            array[r] = temp;
+        }
+    }
 }

@@ -1,24 +1,41 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.*;
-import net.sf.samtools.util.SequenceUtil;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.utils.cmdLine.*;
-import org.broadinstitute.sting.utils.*;
-
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.lang.reflect.Field;
+
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMProgramRecord;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMTag;
+import net.sf.samtools.util.SequenceUtil;
+
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.utils.JVMUtils;
+import org.broadinstitute.sting.utils.NestedHashMap;
+import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.TextFormattingUtils;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinition;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentTypeDescriptor;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -33,7 +50,7 @@ import java.lang.reflect.Field;
  * conditions:
  *
  * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
@@ -51,7 +68,7 @@ import java.lang.reflect.Field;
  * For each base in each read this walker calculates various user-specified covariates (such as read group, reported quality score, cycle, and dinuc)
  * Using these values as a key in a large hashmap the walker calculates an empirical base quality score and overwrites the quality score currently in the read.
  * This walker then outputs a new bam file with these updated (recalibrated) reads.
- * 
+ *
  * Note: This walker expects as input the recalibration table file generated previously by CovariateCounterWalker.
  * Note: This walker is designed to be used in conjunction with CovariateCounterWalker.
  *
@@ -81,7 +98,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private int SMOOTHING = 1;
     @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default=40")
     private int MAX_QUALITY_SCORE = 40;
-    
+
     /////////////////////////////
     // Debugging-only Arguments
     /////////////////////////////
@@ -99,6 +116,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final long RANDOM_SEED = 1032861495;
     private final Random coinFlip = new Random( RANDOM_SEED ); // Random number generator is used to remove reference bias in solid bams
     private long numReadsWithMalformedColorSpace = 0;
+
+    /////////////////////////////
+    //  Optimization
+    /////////////////////////////
+    private NestedHashMap qualityScoreByFullCovariateKey = new NestedHashMap(); // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
+
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -277,7 +300,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         final RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
         dataManager.addToAllTables( key, datum, PRESERVE_QSCORES_LESS_THAN );
-        
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -295,7 +317,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     public SAMRecord map( char[] refBases, SAMRecord read ) {
 
         RecalDataManager.parseSAMRecord( read, RAC );
-        
+
         byte[] originalQuals = read.getBaseQualities();
         final byte[] recalQuals = originalQuals.clone();
 
@@ -311,19 +333,23 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases );
         }
 
-        final Object[] fullCovariateKey = new Object[requestedCovariates.size()];
+        //compute all covariate values for this read
+        final Comparable[][] covariateValues_offset_x_covar =
+            RecalDataManager.computeCovariates((GATKSAMRecord) read, requestedCovariates);
 
         // For each base in the read
-        final int readLength = read.getReadLength();
-        for( int offset = 0; offset < readLength; offset++ ) {
+        for( int offset = 0; offset < read.getReadLength(); offset++ ) {
 
-            // Loop through the list of requested covariates and pick out the value from the read and offset
-            int iii = 0;
-            for( Covariate covariate : requestedCovariates ) {
-                fullCovariateKey[iii++] = covariate.getValue( read, offset );
+            final Object[] fullCovariateKey = covariateValues_offset_x_covar[offset];
+
+            Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
+            if(qualityScore == null)
+            {
+                qualityScore = performSequentialQualityCalculation( fullCovariateKey );
+                qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
             }
 
-            recalQuals[offset] = performSequentialQualityCalculation( fullCovariateKey );
+            recalQuals[offset] = qualityScore;
         }
 
         preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
@@ -351,7 +377,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      *      -- i.e., DeltaQ(dinuc) = Sum(pos) Sum(Qual) Qempirical(pos, qual, dinuc) - Qreported(pos, qual, dinuc) / Npos * Nqual
      *   - The final shift equation is:
      *
-     *      Qrecal = Qreported + DeltaQ + DeltaQ(pos) + DeltaQ(dinuc) + DeltaQ( ... any other covariate ... ) 
+     *      Qrecal = Qreported + DeltaQ + DeltaQ(pos) + DeltaQ(dinuc) + DeltaQ( ... any other covariate ... )
      * @param key The list of Comparables that were calculated from the covariates
      * @return A recalibrated quality score as a byte
      */
@@ -381,7 +407,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             final double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
             deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
         }
-        
+
         // The shift in quality due to each covariate by itself in turn
         double deltaQCovariates = 0.0;
         double deltaQCovariateEmpirical;

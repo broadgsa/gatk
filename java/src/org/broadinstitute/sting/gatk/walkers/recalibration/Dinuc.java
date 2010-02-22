@@ -61,7 +61,7 @@ public class Dinuc implements Comparable<Dinuc>{
     }
 
     public static int hashBytes(final byte byte1, final byte byte2) {
-        return byte1 << 16 + byte2 << 4;
+        return byte1 << 8 + byte2;
     }
 
     public String toString() { // This method call is how the Dinuc will get written out to the table recalibration file

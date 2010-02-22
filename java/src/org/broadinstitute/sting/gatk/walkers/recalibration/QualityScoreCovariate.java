@@ -42,8 +42,15 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final SAMRecord read, final int offset ) {    	
-    	return (int)(read.getBaseQualities()[offset]);
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
+        return (int)(read.getBaseQualities()[offset]);
+    }
+
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        byte[] baseQualities = read.getBaseQualities();
+        for(int i = 0; i < read.getReadLength(); i++) {
+            comparable[i] = (int) baseQualities[i];
+        }
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker

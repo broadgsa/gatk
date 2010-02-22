@@ -90,6 +90,10 @@ public class HomopolymerCovariate implements ExperimentalCovariate {
         return numAgree;
     }
 
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        throw new IllegalStateException("Not yet implemented");
+    }
+
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         return Integer.parseInt( str );

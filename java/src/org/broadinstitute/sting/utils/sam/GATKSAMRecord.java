@@ -1,8 +1,15 @@
 package org.broadinstitute.sting.utils.sam;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import net.sf.samtools.*;
+import net.sf.samtools.AlignmentBlock;
+import net.sf.samtools.Cigar;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMValidationError;
 
 /**
  * @author ebanks
@@ -19,22 +26,32 @@ import net.sf.samtools.*;
 public class GATKSAMRecord extends SAMRecord {
 
     // the underlying SAMRecord which we are wrapping
-    private SAMRecord mRecord;
+    private final SAMRecord mRecord;
 
     // the SAMRecord data we're caching
     private String mReadString = null;
     private SAMReadGroupRecord mReadGroup = null;
-    private Boolean mNegativeStrandFlag = null;
-    private Boolean mUnmappedFlag = null;
+    private boolean mNegativeStrandFlag;
+    private boolean mUnmappedFlag;
+    private Boolean mSecondOfPairFlag = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
+
+    // These temporary attributes were added here to make life easier for
+    // certain algorithms by providing a way to label or attach arbitrary data to
+    // individual GATKSAMRecords.
+    // These attributes exist in memory only, and are never written to disk.
+    private Map<Object, Object> temporaryAttributes;
 
     public GATKSAMRecord(SAMRecord record) {
         super(null); // it doesn't matter - this isn't used
         if ( record == null )
             throw new IllegalArgumentException("The SAMRecord argument cannot be null");
         mRecord = record;
+
+        mNegativeStrandFlag = mRecord.getReadNegativeStrandFlag();
+        mUnmappedFlag = mRecord.getReadUnmappedFlag();
 
         // because attribute methods are declared to be final (and we can't overload them),
         // we need to actually set all of the attributes here
@@ -79,8 +96,6 @@ public class GATKSAMRecord extends SAMRecord {
     }
 
     public boolean getReadUnmappedFlag() {
-        if ( mUnmappedFlag == null )
-            mUnmappedFlag = mRecord.getReadUnmappedFlag();
         return mUnmappedFlag;
     }
 
@@ -90,14 +105,96 @@ public class GATKSAMRecord extends SAMRecord {
     }
 
     public boolean getReadNegativeStrandFlag() {
-        if ( mNegativeStrandFlag == null )
-            mNegativeStrandFlag = mRecord.getReadNegativeStrandFlag();
         return mNegativeStrandFlag;
     }
 
     public void setReadNegativeStrandFlag(boolean b) {
         mRecord.setReadNegativeStrandFlag(b);
         mNegativeStrandFlag = b;
+    }
+
+    public boolean getSecondOfPairFlag() {
+        if( mSecondOfPairFlag == null ) {
+            //not done in constructor because this method can't be called for
+            //all SAMRecords.
+            mSecondOfPairFlag = mRecord.getSecondOfPairFlag();
+        }
+        return mSecondOfPairFlag;
+    }
+
+    public void setSecondOfPairFlag(boolean b) {
+        mRecord.setSecondOfPairFlag(b);
+        mSecondOfPairFlag = b;
+    }
+
+
+    /**
+     * Checks whether an attribute has been set for the given key.
+     *
+     * Temporary attributes provide a way to label or attach arbitrary data to
+     * individual GATKSAMRecords. These attributes exist in memory only,
+     * and are never written to disk.
+     *
+     * @param key
+     * @return True if an attribute has been set for this key.
+     */
+    public boolean containsTemporaryAttribute(Object key) {
+        if(temporaryAttributes != null) {
+            return temporaryAttributes.containsKey(key);
+        }
+        return false;
+    }
+
+    /**
+     * Sets the key to the given value, replacing any previous value. The previous
+     * value is returned.
+     *
+     * Temporary attributes provide a way to label or attach arbitrary data to
+     * individual GATKSAMRecords. These attributes exist in memory only,
+     * and are never written to disk.
+     *
+     * @param key
+     * @param value
+     */
+    public Object setTemporaryAttribute(Object key, Object value) {
+        if(temporaryAttributes == null) {
+            temporaryAttributes = new HashMap<Object, Object>();
+        }
+        return temporaryAttributes.put(key, value);
+    }
+
+    /**
+     * Looks up the value associated with the given key.
+     *
+     * Temporary attributes provide a way to label or attach arbitrary data to
+     * individual GATKSAMRecords. These attributes exist in memory only,
+     * and are never written to disk.
+     *
+     * @param key
+     * @return The value, or null.
+     */
+    public Object getTemporaryAttribute(Object key) {
+        if(temporaryAttributes != null) {
+            return temporaryAttributes.get(key);
+        }
+        return null;
+    }
+
+    /**
+     * Removes the attribute that has the given key.
+     *
+     * Temporary attributes provide a way to label or attach arbitrary data to
+     * individual GATKSAMRecords. These attributes exist in memory only,
+     * and are never written to disk.
+     *
+     * @param key
+     * @return The value that was associated with this key, or null.
+     */
+    public Object removeTemporaryAttribute(Object key) {
+         if(temporaryAttributes != null) {
+             return temporaryAttributes.remove(key);
+         }
+         return null;
     }
 
     /////////////////////////////////////////////////////////////////////
@@ -209,8 +306,6 @@ public class GATKSAMRecord extends SAMRecord {
 
     public boolean getFirstOfPairFlag() { return mRecord.getFirstOfPairFlag(); }
 
-    public boolean getSecondOfPairFlag() { return mRecord.getSecondOfPairFlag(); }
-
     public boolean getNotPrimaryAlignmentFlag() { return mRecord.getNotPrimaryAlignmentFlag(); }
 
     public boolean getReadFailsVendorQualityCheckFlag() { return mRecord.getReadFailsVendorQualityCheckFlag(); }
@@ -226,8 +321,6 @@ public class GATKSAMRecord extends SAMRecord {
     public void setMateNegativeStrandFlag(boolean b) { mRecord.setMateNegativeStrandFlag(b); }
 
     public void setFirstOfPairFlag(boolean b) { mRecord.setFirstOfPairFlag(b); }
-
-    public void setSecondOfPairFlag(boolean b) { mRecord.setSecondOfPairFlag(b); }
 
     public void setNotPrimaryAlignmentFlag(boolean b) { mRecord.setNotPrimaryAlignmentFlag(b); }
 

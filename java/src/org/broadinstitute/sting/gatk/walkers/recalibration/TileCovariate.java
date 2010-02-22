@@ -49,7 +49,7 @@ public class TileCovariate implements ExperimentalCovariate {
                 throw new StingException( "Tile number not defined for read: " + read.getReadName() );
             } else {
                 return -1;
-            }            
+            }
         }
         return tile;
     }
@@ -59,4 +59,10 @@ public class TileCovariate implements ExperimentalCovariate {
         return Integer.parseInt( str );
     }
 
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        final Comparable tileCovariateValue = getValue(read, 0);
+        for(int i = 0; i < read.getReadLength(); i++) {
+            comparable[i] = tileCovariateValue;
+        }
+    }
 }

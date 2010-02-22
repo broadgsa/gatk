@@ -47,8 +47,8 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
 
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
-    	
-    	// Loop over the list of base quality scores in the window and find the minimum
+
+        // Loop over the list of base quality scores in the window and find the minimum
         final byte[] quals = read.getBaseQualities();
         int minQual = quals[offset];
         final int minIndex = Math.max(offset - windowReach, 0);
@@ -66,4 +66,7 @@ public class MinimumNQSCovariate implements ExperimentalCovariate {
         return Integer.parseInt( str );
     }
 
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        throw new IllegalStateException("Not yet implemented");
+    }
 }

@@ -34,7 +34,7 @@ import net.sf.samtools.SAMRecord;
  *
  * The Primer Round covariate.
  *  For Solexa and 454 this is the same value of the length of the read.
- *  For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf  
+ *  For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
  */
 
 public class PrimerRoundCovariate implements ExperimentalCovariate {
@@ -47,10 +47,10 @@ public class PrimerRoundCovariate implements ExperimentalCovariate {
     public final Comparable getValue( final SAMRecord read, final int offset ) {
         if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
             int pos = offset;
-	        if( read.getReadNegativeStrandFlag() ) {
-	            pos = read.getReadLength() - (offset + 1);
-	        }
-	        return pos % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+            if( read.getReadNegativeStrandFlag() ) {
+                pos = read.getReadLength() - (offset + 1);
+            }
+            return pos % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
         } else {
             return 1; // nothing to do here because it is always the same
         }
@@ -62,4 +62,7 @@ public class PrimerRoundCovariate implements ExperimentalCovariate {
         return Integer.parseInt( str );
     }
 
+    public void getValues(SAMRecord read, Comparable[] comparable) {
+        throw new IllegalStateException("Not yet implemented");
+    }
 }
