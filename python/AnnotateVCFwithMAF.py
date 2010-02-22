@@ -32,7 +32,7 @@ for record in maf_gen:
     
 #vcf_gen = FlatFileTable.record_generator(vcf_file, "\t", 34)
 vcf_file = open(vcf_filename)
-vcf_out_file = open(os.path.splitext(vcf_filename)[0]+".maf_annotated.vcf", "w")
+vcf_out_file = open(os.path.splitext(os.path.basename(vcf_filename))[0]+".maf_annotated.vcf", "w")
 vcf_format_line = vcf_file.readline()
 vcf_out_file.write(vcf_format_line)
 if vcf_format_line != "##fileformat=VCFv3.3\n":
