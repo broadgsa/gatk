@@ -111,7 +111,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
                 int binStart = filePointer!=null ? blockDrivenDataSource.getFirstLocusInBin(filePointer.bin) : 0;
                 int binStop = filePointer!=null ? blockDrivenDataSource.getLastLocusInBin(filePointer.bin) : 0;
 
-                while(binStop <= locationStart && binIterator.hasNext()) {
+                while(binStop < locationStart && binIterator.hasNext()) {
                     if(filePointer != null && filePointer.locations.size() > 0)
                         filePointers.add(filePointer);
 
