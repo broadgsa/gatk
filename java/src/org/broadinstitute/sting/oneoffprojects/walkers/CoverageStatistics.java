@@ -243,13 +243,13 @@ class DepthOfCoverageStats {
         }
 
         int[] binLeftEndpoints = new int[bins+1];
-        binLeftEndpoints[0] = 0; // depth < start
+        binLeftEndpoints[0] = lower;
 
         int length = upper - lower;
         double scale = Math.log10((double) length)/bins;
 
         for ( int b = 1; b < bins ; b++ ) {
-            int leftEnd = (int) Math.floor(Math.pow(10.0,(b-1.0)*scale));
+            int leftEnd = lower + (int) Math.floor(Math.pow(10.0,(b-1.0)*scale));
 
             while ( leftEnd <= binLeftEndpoints[b-1] ) {
                 leftEnd++;
