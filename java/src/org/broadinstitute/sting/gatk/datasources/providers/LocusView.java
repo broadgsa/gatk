@@ -157,27 +157,9 @@ public abstract class LocusView extends LocusIterator implements View {
                 nextLocus = loci.next();
 
             // If nothing in the shard was found, indicate that by setting nextAlignmentContext to null.
-            if( nextLocus != null && (isBeforeShard(nextLocus.getLocation()) || isAfterShard(nextLocus.getLocation())) )
+            if( nextLocus != null && !isContainedInShard(nextLocus.getLocation()) )
                 nextLocus = null;
         }
-    }
-
-    /**
-     * Is this location before the given shard.
-     * @param location Location to check.
-     * @return True if the given location is before the start of the shard.  False otherwise.
-     */
-    private boolean isBeforeShard(GenomeLoc location) {
-        return location.isBefore(shard.getGenomeLocs().get(0));
-    }
-
-    /**
-     * Is this location after the given shard.
-     * @param location Location to check.
-     * @return True if the given location is after the end of the shard.  False otherwise.
-     */
-    private boolean isAfterShard(GenomeLoc location) {
-        return location.isPast(shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1));
     }
 
     /**
