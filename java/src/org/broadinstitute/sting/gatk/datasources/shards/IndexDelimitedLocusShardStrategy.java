@@ -94,17 +94,25 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
 
             List<Bin> bins = findBinsAtLeastAsDeepAs(blockDrivenDataSource.getOverlappingBins(location),binsDeeperThan);
 
+            // Recursive stopping condition -- algorithm is at the zero point and no bins have been found.
+            if(binsDeeperThan == 0 && bins.size() == 0) {
+                filePointers.add(new FilePointer(location));
+                continue;
+            }
+
+            // No bins found; step up a level and search again.
             if(bins.size() == 0) {
                 if(filePointer != null && filePointer.locations.size() > 0) {
                     filePointers.add(filePointer);
                     filePointer = null;
                 }                
 
-                filePointers.add(new FilePointer(location));
+                filePointers.addAll(batchLociIntoBins(Collections.singletonList(location),binsDeeperThan-1));
                 continue;
             }
-            Collections.sort(bins);
 
+            // Bins found; try to match bins with locations.
+            Collections.sort(bins);
             Iterator<Bin> binIterator = bins.iterator();
 
             while(locationStop >= locationStart) {
