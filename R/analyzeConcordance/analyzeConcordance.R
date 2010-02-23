@@ -29,7 +29,7 @@ if (nrow(d.filtered) > 0) {
   nFilterTypes <- 1
 }
 
-png(outfile, width=600, height=(300 * nFilterTypes))
+bitmap(outfile, width=600, height=(300 * nFilterTypes), units="px")
 par(cex=1.1, mfrow=c(1 * nFilterTypes,2))
 nbreaks <- 20
 color <- "grey"
@@ -51,7 +51,7 @@ dev.off()
 
 outfile = paste(base_name, ".novel_vs_known_titv.png", sep="")
 
-png(outfile, width=600, height=600)
+bitmap(outfile, width=600, height=600, units="px")
 
 d.display <- d.display[order(d.display$novel_titv),]
 plot(1:length(d.display$known_titv),d.display$known_titv,type="b",col="blue",ylim=c(0,4), xlab="Sample #", ylab="Ti / Tv")
