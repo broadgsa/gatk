@@ -38,18 +38,18 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
     @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
     int start = 1;
     @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
-    int stop = 500;
+    int stop = 1000;
     @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
     int nBins = 20;
     @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to 50.", required = false)
     byte minMappingQuality = 50;
     @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to 20.", required = false)
     byte minBaseQuality = 20;
-    @Argument(fullName = "perLocusStatisticsFile", shortName = "locusFile", doc = "File to output per-locus statistics to; if unprovided these will not be calculated")
+    @Argument(fullName = "perLocusStatisticsFile", shortName = "locusFile", doc = "File to output per-locus statistics to; if unprovided these will not be calculated", required = false)
     File perLocusStatisticsFile = null;
-    @Argument(fullName = "perSampleStatisticsFile", shortName = "sampleFile", doc = "File to output per-sample statistics to; if unprovided will go to standard (-o) output")
+    @Argument(fullName = "perSampleStatisticsFile", shortName = "sampleFile", doc = "File to output per-sample statistics to; if unprovided will go to standard (-o) output", required = false)
     File perSampleStatisticsFile = null;
-    @Argument(fullName = "summaryStatisticsFile", shortName = "summaryFile", doc = "File to output summary (mean, median) statistics to; if unprovided will go to standard (-o) output")
+    @Argument(fullName = "summaryStatisticsFile", shortName = "summaryFile", doc = "File to output summary (mean, median) statistics to; if unprovided will go to standard (-o) output", required = false)
     File summaryStatisticsFile = null;
 
     ////////////////////////////////////////////////////////////////////////////////////
@@ -258,6 +258,8 @@ class DepthOfCoverageStats {
             binLeftEndpoints[b] = leftEnd;
         }
 
+        binLeftEndpoints[binLeftEndpoints.length-1] = upper;
+
         return binLeftEndpoints;
     }
 
@@ -269,6 +271,7 @@ class DepthOfCoverageStats {
         this.binLeftEndpoints = leftEndpoints;
         granularHistogramBySample = new HashMap<String,int[]>();
         meanCoverages = new HashMap<String,Double>();
+        meanCoverages.put(DepthOfCoverageStats.ALL_SAMPLES,0.0);
         nLoci = 0;
         totalDepth = 0;
     }
