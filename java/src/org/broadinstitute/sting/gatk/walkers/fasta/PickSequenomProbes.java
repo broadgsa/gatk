@@ -26,7 +26,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
     String project_id = null;
     private byte [] maskFlags = new byte[401];
 
-    private SeekableRODIterator<TabularROD> snpMaskIterator=null;
+    private SeekableRODIterator snpMaskIterator=null;
 
     public void initialize() {
 		if ( SNP_MASK != null ) {
@@ -66,9 +66,9 @@ public class PickSequenomProbes extends RefWalker<String, String> {
 
         // we have variant; let's load all the snps falling into the current window and prepare the mask array:
         if ( snpMaskIterator != null ) {
-            RODRecordList<TabularROD> snpList =  snpMaskIterator.seekForward(GenomeLocParser.createGenomeLoc(contig,offset-200,offset+200));
+            RODRecordList snpList =  snpMaskIterator.seekForward(GenomeLocParser.createGenomeLoc(contig,offset-200,offset+200));
             if ( snpList != null && snpList.size() != 0 ) {
-                Iterator<TabularROD>  snpsInWindow = snpList.iterator();
+                Iterator<ReferenceOrderedDatum>  snpsInWindow = snpList.iterator();
                 int i = 0;
                 while ( snpsInWindow.hasNext() ) {
                     GenomeLoc snp = snpsInWindow.next().getLocation();

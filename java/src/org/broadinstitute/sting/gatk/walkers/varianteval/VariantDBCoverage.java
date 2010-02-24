@@ -58,7 +58,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         return nConcordant() / (1.0 * nSNPsAtdbSNPs());
     }
 
-    public static Variation getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
+    public static Variation getFirstRealSNP(RODRecordList dbsnpList) {
         if (dbsnpList == null)
             return null;
 

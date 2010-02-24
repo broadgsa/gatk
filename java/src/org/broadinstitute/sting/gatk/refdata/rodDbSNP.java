@@ -280,7 +280,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
         return getAlternateAlleleList().size() == 1;
     }
 
-    public static rodDbSNP getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
+    public static rodDbSNP getFirstRealSNP(RODRecordList dbsnpList) {
         if (dbsnpList == null)
             return null;
 

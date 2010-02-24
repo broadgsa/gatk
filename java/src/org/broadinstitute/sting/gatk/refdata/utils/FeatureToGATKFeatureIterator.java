@@ -52,7 +52,7 @@ public class FeatureToGATKFeatureIterator implements Iterator<GATKFeature> {
 
     @Override
     public GATKFeature next() {
-        return new TribbleGATKFeature(iterator.next(),name);
+        return new GATKFeature.TribbleGATKFeature(iterator.next(),name);
     }
 
     @Override

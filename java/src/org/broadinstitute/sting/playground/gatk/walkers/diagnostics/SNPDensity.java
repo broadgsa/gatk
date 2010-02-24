@@ -37,7 +37,7 @@ public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDe
     public Pair<VariantContext, GenomeLoc> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         VariantContext vc = null;
 
-        RODRecordList<ReferenceOrderedDatum> vcfList = tracker.getTrackData("eval", null);
+        RODRecordList vcfList = tracker.getTrackData("eval", null);
         if (vcfList != null) {
             for (ReferenceOrderedDatum d : vcfList) {
                 RodVCF vcfRecord = (RodVCF)d;

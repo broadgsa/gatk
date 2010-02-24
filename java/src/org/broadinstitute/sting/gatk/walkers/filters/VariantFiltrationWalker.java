@@ -115,7 +115,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        RODRecordList<ReferenceOrderedDatum> rods = tracker.getTrackData("variant", null);
+        RODRecordList rods = tracker.getTrackData("variant", null);
         // ignore places where we don't have a variant
         if ( rods == null || rods.getRecords().size() == 0 )
             return 0;
@@ -147,7 +147,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         StringBuilder filterString = new StringBuilder();
 
         // test for SNP mask, if present
-        RODRecordList<ReferenceOrderedDatum> mask = context.first.getTrackData("mask", null);
+        RODRecordList mask = context.first.getTrackData("mask", null);
         if ( mask != null && mask.getRecords().size() > 0 )
             addFilter(filterString, MASK_NAME);
 

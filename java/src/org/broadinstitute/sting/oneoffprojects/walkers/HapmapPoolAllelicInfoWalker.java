@@ -135,7 +135,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
     private List<Pair<Genotype,Genotype>> getChips(String[] rodNames, RefMetaDataTracker tracker) {
         List<Pair<Genotype, Genotype>> chips = new ArrayList <Pair<Genotype,Genotype>>(rodNames.length);
         for ( String name : rodNames ) {
-            RODRecordList<ReferenceOrderedDatum> rods = tracker.getTrackData(name, null);
+            RODRecordList rods = tracker.getTrackData(name, null);
             Variation chip = (rods == null ? null : (Variation)rods.getRecords().get(0));
             if ( chip != null ) {
                 // chips must be Genotypes

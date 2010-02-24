@@ -25,7 +25,7 @@ public class VCFValidator extends RodWalker<Integer, Integer> {
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker != null ) {
-            RODRecordList<ReferenceOrderedDatum> rodlist = tracker.getTrackData("vcf", null);
+            RODRecordList rodlist = tracker.getTrackData("vcf", null);
             if ( rodlist != null ) {
                 RodVCF rod = (RodVCF)rodlist.getRecords().get(0);
                 if ( (rod.isSNP() || rod.isReference()) &&  Character.toUpperCase(rod.getReference().charAt(0)) != Character.toUpperCase(ref.getBase()) )

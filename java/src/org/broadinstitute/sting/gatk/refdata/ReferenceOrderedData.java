@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -20,7 +21,7 @@ import java.util.*;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<RODRecordList<ROD>> { // }, RMDTrackBuilder {
+public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<List<ReferenceOrderedDatum>> { // }, RMDTrackBuilder {
     private String name;
     private File file = null;
 //    private String fieldDelimiter;
@@ -234,11 +235,11 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         return this.name.equals(name) && type.isAssignableFrom(this.type);
     }
 
-    public SeekableRODIterator<ROD> iterator() {
-        Iterator<ROD> it;
+    public SeekableRODIterator iterator() {
+        Iterator<ReferenceOrderedDatum> it;
         try {
             Method m = type.getDeclaredMethod("createIterator", String.class, java.io.File.class);
-            it = (Iterator<ROD>) m.invoke(null, name, file);
+            it = (Iterator<ReferenceOrderedDatum>) m.invoke(null, name, file);
         } catch (java.lang.NoSuchMethodException e) {
             it = new RODRecordIterator(file,name,type);
         } catch (java.lang.NullPointerException e) {
@@ -258,30 +259,12 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
     // ----------------------------------------------------------------------
     //
-    // Testing
-    //
-    // ----------------------------------------------------------------------
-    public void testMe() {
-        for (RODRecordList<ROD> rec : this) {
-            System.out.println(rec.getRecords().get(0).toString());
-
-            RodGenotypeChipAsGFF gff = (RodGenotypeChipAsGFF) rec.getRecords().get(0);
-            String[] keys = {"LENGTH", "ALT", "FOBARBAR"};
-            for (String key : keys) {
-                System.out.printf("  -> %s is (%s)%n", key, gff.containsAttribute(key) ? gff.getAttribute(key) : "none");
-            }
-        }
-        System.exit(1);
-    }
-
-    // ----------------------------------------------------------------------
-    //
     // Manipulations of all of the data
     //
     // ----------------------------------------------------------------------
     public ArrayList<ReferenceOrderedDatum> readAll() {
         ArrayList<ReferenceOrderedDatum> elts = new ArrayList<ReferenceOrderedDatum>();
-        for ( RODRecordList<ROD> l : this ) {
+        for ( List<ReferenceOrderedDatum> l : this ) {
             for (ReferenceOrderedDatum rec : l) {
                 elts.add(rec);
             }
@@ -306,7 +289,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
     public boolean validateFile() throws Exception {
         ReferenceOrderedDatum last = null;
-        for ( RODRecordList<ROD> l : this ) {
+        for ( List<ReferenceOrderedDatum> l : this ) {
             for (ReferenceOrderedDatum rec : l) {
                 if (last != null && last.compareTo(rec) > 1) {
                     // It's out of order

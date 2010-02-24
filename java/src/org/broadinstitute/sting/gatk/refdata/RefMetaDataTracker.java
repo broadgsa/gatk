@@ -24,7 +24,7 @@ Genotype * Traversal calls tracker.bind(name, rod) for each rod in rods
  * Time: 3:05:23 PM
  */
 public class RefMetaDataTracker {
-    final HashMap<String, RODRecordList<ReferenceOrderedDatum>> map = new HashMap<String, RODRecordList<ReferenceOrderedDatum>>();
+    final HashMap<String, RODRecordList> map = new HashMap<String, RODRecordList>();
     protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
 
     /**
@@ -41,7 +41,7 @@ public class RefMetaDataTracker {
         //logger.debug(String.format("Lookup %s%n", name));
         final String luName = canonicalName(name);
         if ( map.containsKey(luName) ) {
-            RODRecordList<ReferenceOrderedDatum> value = map.get(luName) ;
+            RODRecordList value = map.get(luName) ;
             if ( value != null ) {
                 List<ReferenceOrderedDatum> l = value.getRecords();
                 if ( l != null & l.size() > 0 ) return value.getRecords().get(0);
@@ -63,20 +63,20 @@ public class RefMetaDataTracker {
      * @param defaultValue
      * @return
      */
-    public RODRecordList<ReferenceOrderedDatum> getTrackData(final String name, ReferenceOrderedDatum defaultValue, boolean requireExactMatch) {
+    public RODRecordList getTrackData(final String name, ReferenceOrderedDatum defaultValue, boolean requireExactMatch) {
         //logger.debug(String.format("Lookup %s%n", name));
 
         final String luName = canonicalName(name);
-        RODRecordList<ReferenceOrderedDatum> trackData = null;
+        RODRecordList trackData = null;
 
         if ( requireExactMatch ) {
             if ( map.containsKey(luName) )
                 trackData = map.get(luName);
         } else {
-            for ( Map.Entry<String, RODRecordList<ReferenceOrderedDatum>> datum : map.entrySet() ) {
+            for ( Map.Entry<String, RODRecordList> datum : map.entrySet() ) {
                 final String rodName = datum.getKey();
                 if ( rodName.startsWith(luName) ) {
-                    if ( trackData == null ) trackData = new RODRecordList<ReferenceOrderedDatum>(name);
+                    if ( trackData == null ) trackData = new RODRecordList(name);
                     //System.out.printf("Adding bindings from %s to %s at %s%n", rodName, name, datum.getValue().getLocation());
                     trackData.add(datum.getValue(), true);
                 }
@@ -88,12 +88,12 @@ public class RefMetaDataTracker {
         else if ( defaultValue == null )
             return null;
         else
-            return new RODRecordList<ReferenceOrderedDatum>(defaultValue.getName(),
+            return new RODRecordList(defaultValue.getName(),
                     Collections.singletonList(defaultValue),
                     defaultValue.getLocation());
     }
 
-    public RODRecordList<ReferenceOrderedDatum> getTrackData(final String name, ReferenceOrderedDatum defaultValue) {
+    public RODRecordList getTrackData(final String name, ReferenceOrderedDatum defaultValue) {
         return getTrackData(name, defaultValue, true);
     }
 
@@ -142,7 +142,7 @@ public class RefMetaDataTracker {
      */
     public Collection<ReferenceOrderedDatum> getAllRods() {
         List<ReferenceOrderedDatum> l = new ArrayList<ReferenceOrderedDatum>();
-        for ( RODRecordList<ReferenceOrderedDatum> rl : map.values() ) {
+        for ( RODRecordList rl : map.values() ) {
             if ( rl == null ) continue; // how do we get null value stored for a track? shouldn't the track be missing from the map alltogether?
             l.addAll(rl.getRecords());
         }
@@ -156,10 +156,10 @@ public class RefMetaDataTracker {
      *
      * @return
      */
-    public Collection<RODRecordList<ReferenceOrderedDatum>> getBoundRodTracks() {
-        LinkedList<RODRecordList<ReferenceOrderedDatum>> bound = new LinkedList<RODRecordList<ReferenceOrderedDatum>>();
+    public Collection<RODRecordList> getBoundRodTracks() {
+        LinkedList<RODRecordList> bound = new LinkedList<RODRecordList>();
         
-        for ( RODRecordList<ReferenceOrderedDatum> value : map.values() ) {
+        for ( RODRecordList value : map.values() ) {
              if ( value != null && value.size() != 0 ) bound.add(value);
         }
 
@@ -174,7 +174,7 @@ public class RefMetaDataTracker {
         final String exclude = excludeIn == null ? null : canonicalName(excludeIn);
 
         int n = 0;
-        for ( RODRecordList<ReferenceOrderedDatum> value : map.values() ) {
+        for ( RODRecordList value : map.values() ) {
              if ( value != null && ! value.isEmpty() ) {
                  if ( exclude == null || ! value.getName().equals(exclude) )
                     n++;
@@ -187,7 +187,7 @@ public class RefMetaDataTracker {
     public Collection<ReferenceOrderedDatum> getBoundRodRecords() {
         LinkedList<ReferenceOrderedDatum> bound = new LinkedList<ReferenceOrderedDatum>();
 
-        for ( RODRecordList<ReferenceOrderedDatum> valueList : map.values() ) {
+        for ( RODRecordList valueList : map.values() ) {
             for ( ReferenceOrderedDatum value : valueList ) {
                 if ( value != null )
                 bound.add(value);
@@ -227,7 +227,7 @@ public class RefMetaDataTracker {
     public Collection<VariantContext> getAllVariantContexts(EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         List<VariantContext> contexts = new ArrayList<VariantContext>();
 
-        for ( RODRecordList<ReferenceOrderedDatum> rodList : getBoundRodTracks() ) {
+        for ( RODRecordList rodList : getBoundRodTracks() ) {
             addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly);
         }
 
@@ -254,7 +254,7 @@ public class RefMetaDataTracker {
         Collection<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( String name : names ) {
-            RODRecordList<ReferenceOrderedDatum> rodList = getTrackData(name, null);
+            RODRecordList rodList = getTrackData(name, null);
 
             if ( rodList != null )
                 addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
@@ -284,7 +284,7 @@ public class RefMetaDataTracker {
             return contexts.iterator().next();
     }
 
-    private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList<ReferenceOrderedDatum> rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+    private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
             if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec) ) {
                 // ok, we might actually be able to turn this record in a variant context
@@ -316,7 +316,7 @@ public class RefMetaDataTracker {
      * @param name
      * @param rod
      */
-    public void bind(final String name, RODRecordList<ReferenceOrderedDatum>  rod) {
+    public void bind(final String name, RODRecordList rod) {
         //logger.debug(String.format("Binding %s to %s", name, rod));
         map.put(canonicalName(name), rod);
     }

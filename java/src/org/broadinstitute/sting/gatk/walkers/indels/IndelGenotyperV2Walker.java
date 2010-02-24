@@ -80,7 +80,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     boolean outOfContigUserWarned = false;
 
-    private SeekableRODIterator<rodRefSeq> refseqIterator=null;
+    private SeekableRODIterator refseqIterator=null;
 
 	private Set<String> normalReadGroups; // we are going to remember which read groups are normals and which are tumors in order to be able 
 	private Set<String> tumorReadGroups ; // to properly assign the reads coming from a merged stream
@@ -329,7 +329,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
                 location = GenomeLocParser.setStart(location,pos);
                 location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
-                RODRecordList<rodRefSeq> annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+                RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 
                 if ( normalCall.failsNQSMismatch() ) {
                     String fullRecord = makeFullRecord(normalCall);
@@ -487,7 +487,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
             location = GenomeLocParser.setStart(location,pos);
             location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
-            RODRecordList<rodRefSeq> annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+            RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 
             if ( normalCall.failsNQSMismatch() ) {
                 String fullRecord = makeFullRecord(normalCall,tumorCall);
@@ -568,7 +568,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         return fullRecord.toString();
     }
 
-    private String getAnnotationString(RODRecordList<rodRefSeq> ann) {
+    private String getAnnotationString(RODRecordList ann) {
         if ( ann == null ) return annGenomic;
         else {
             StringBuilder b = new StringBuilder();

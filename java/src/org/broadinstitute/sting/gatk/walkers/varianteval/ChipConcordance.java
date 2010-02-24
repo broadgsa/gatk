@@ -78,7 +78,7 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
         // get all of the chip rods at this locus
         HashMap<String, Genotype> chips = new HashMap<String, Genotype>();
         for ( String name : rodNames ) {
-            RODRecordList<ReferenceOrderedDatum> rods = tracker.getTrackData(name, null);
+            RODRecordList rods = tracker.getTrackData(name, null);
             Variation chip = (rods == null ? null : (Variation)rods.getRecords().get(0));
             if ( chip != null ) {
                 // chips must be Genotypes

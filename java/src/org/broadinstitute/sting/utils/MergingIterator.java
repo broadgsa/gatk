@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 
 import java.util.*;
 
-public class MergingIterator<ROD extends ReferenceOrderedDatum> implements Iterator<RODRecordList<ROD>>, Iterable<RODRecordList<ROD>> {
+public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRecordList> {
     PriorityQueue<Element> queue = new PriorityQueue<Element>();
 
     private class Element implements Comparable<Element> {
@@ -16,7 +16,7 @@ public class MergingIterator<ROD extends ReferenceOrderedDatum> implements Itera
         //public E value = null;
         public GenomeLoc nextLoc = null;
 
-        public Element(Iterator<RODRecordList<ROD>> it) {
+        public Element(Iterator<List<ReferenceOrderedDatum>> it) {
             if ( it instanceof SeekableRODIterator ) {
                 this.it = (SeekableRODIterator)it;
                 if ( ! it.hasNext() ) throw new StingException("Iterator is empty");
@@ -42,14 +42,14 @@ public class MergingIterator<ROD extends ReferenceOrderedDatum> implements Itera
             return nextLoc.compareTo(other.nextLoc);
         }
 
-        public RODRecordList<ROD> next() {
-            RODRecordList<ROD> value = it.next();
+        public RODRecordList next() {
+            RODRecordList value = it.next();
             update();
             return value;
         }
     }
 
-    public Iterator<RODRecordList<ROD>> iterator() {
+    public Iterator<RODRecordList> iterator() {
         return this;
     }
 
@@ -57,12 +57,12 @@ public class MergingIterator<ROD extends ReferenceOrderedDatum> implements Itera
         ;
     }
 
-    public MergingIterator(Iterator<RODRecordList<ROD>> it) {
+    public MergingIterator(Iterator<List<ReferenceOrderedDatum>> it) {
          add(it);
     }
 
-    public MergingIterator(Collection<Iterator<RODRecordList<ROD>>> its) {
-        for ( Iterator<RODRecordList<ROD>> it : its ) {
+    public MergingIterator(Collection<Iterator<List<ReferenceOrderedDatum>>> its) {
+        for ( Iterator<List<ReferenceOrderedDatum>> it : its ) {
             add(it);
         }
     }
@@ -71,7 +71,7 @@ public class MergingIterator<ROD extends ReferenceOrderedDatum> implements Itera
      * will be after a call to next() is peeked into and cached as queue's priority value.
      * @param it
      */
-    public void add(Iterator<RODRecordList<ROD>> it) {
+    public void add(Iterator<List<ReferenceOrderedDatum>> it) {
         if ( it.hasNext() )
             queue.add(new Element(it));
     }
@@ -80,9 +80,9 @@ public class MergingIterator<ROD extends ReferenceOrderedDatum> implements Itera
         return ! queue.isEmpty();
     }
 
-    public RODRecordList<ROD> next() {
+    public RODRecordList next() {
         Element e = queue.poll();
-        RODRecordList<ROD> value = e.next(); // next() will also update next location cached by the Element
+        RODRecordList value = e.next(); // next() will also update next location cached by the Element
 
         if ( e.nextLoc != null ) // we have more data in the track
             queue.add(e); // add the element back to queue (note: its next location, on which priority is based, was updated
@@ -99,12 +99,12 @@ public class MergingIterator<ROD extends ReferenceOrderedDatum> implements Itera
         return queue.peek().nextLoc;
     }
 
-    public Collection<RODRecordList<ROD>> allElementsLTE(RODRecordList<ROD> elt) {
+    public Collection<RODRecordList> allElementsLTE(RODRecordList elt) {
         return allElementsLTE(elt, true);
     }
 
-    public Collection<RODRecordList<ROD>> allElementsLTE(RODRecordList<ROD> elt, boolean includeElt) {
-        LinkedList<RODRecordList<ROD>> all = new LinkedList<RODRecordList<ROD>>();
+    public Collection<RODRecordList> allElementsLTE(RODRecordList elt, boolean includeElt) {
+        LinkedList<RODRecordList> all = new LinkedList<RODRecordList>();
 
         if ( includeElt ) all.add(elt);
         

@@ -185,7 +185,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        RODRecordList<ReferenceOrderedDatum> rods = tracker.getTrackData("variant", null);
+        RODRecordList rods = tracker.getTrackData("variant", null);
         // ignore places where we don't have a variant
         if ( rods == null || rods.getRecords().size() == 0 )
             return 0;

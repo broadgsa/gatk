@@ -56,7 +56,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             doc="Name of RefSeq transcript annotation file. If specified, intervals will be specified with gene names", required=false)
     String REFSEQ_FILE = null;
 
-    private SeekableRODIterator<rodRefSeq> refseqIterator=null;
+    private SeekableRODIterator refseqIterator=null;
 
     public static class TargetInfo {
         public int counts = 0;
@@ -247,12 +247,12 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     private String getGeneName(GenomeLoc target) {
         if (refseqIterator == null) { return "UNKNOWN"; }
 
-        RODRecordList<rodRefSeq> annotationList = refseqIterator.seekForward(target);
+        RODRecordList annotationList = refseqIterator.seekForward(target);
         if (annotationList == null) { return "UNKNOWN"; }
         
-        for(rodRefSeq rec : annotationList) {
-            if ( rec.overlapsExonP(target) ) {
-                return rec.getGeneName();
+        for(ReferenceOrderedDatum rec : annotationList) {
+            if ( ((rodRefSeq)rec).overlapsExonP(target) ) {
+                return ((rodRefSeq)rec).getGeneName();
             }
         }
 

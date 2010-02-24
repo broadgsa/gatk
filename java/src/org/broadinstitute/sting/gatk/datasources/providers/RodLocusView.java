@@ -31,11 +31,11 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     /**
      * The data sources along with their current states.
      */
-    private MergingIterator<ReferenceOrderedDatum> rodQueue = null;
+    private MergingIterator rodQueue = null;
 
     RefMetaDataTracker tracker = null;
     GenomeLoc lastLoc = null;
-    RODRecordList<ReferenceOrderedDatum> interval = null;
+    RODRecordList interval = null;
 
     /**
      * The data sources along with their current states.
@@ -59,7 +59,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
 
         GenomeLoc firstLoc = provider.getShard().getGenomeLocs().get(0);
 
-        List< Iterator<RODRecordList<ReferenceOrderedDatum>> > iterators = new LinkedList< Iterator<RODRecordList<ReferenceOrderedDatum>> >();
+        List< Iterator<List<ReferenceOrderedDatum>> > iterators = new LinkedList< Iterator<List<ReferenceOrderedDatum>> >();
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() ) {
             if ( DEBUG ) System.out.printf("Shard is %s%n", provider.getShard().getGenomeLocs());
 
@@ -75,13 +75,13 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             if ( dataSource.getName().equals(INTERVAL_ROD_NAME) ) {
                 if ( interval != null )
                     throw new RuntimeException("BUG: interval local variable already assigned " + interval);
-                interval = (RODRecordList<ReferenceOrderedDatum>)it.next();
+                interval = it.next();
             } else {
                 iterators.add( it );
             }
         }
 
-        rodQueue = new MergingIterator<ReferenceOrderedDatum>(iterators);
+        rodQueue = new MergingIterator(iterators);
 
         //throw new StingException("RodLocusView currently disabled");
     }
@@ -106,13 +106,13 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      */
     public AlignmentContext next() {
         if ( DEBUG ) System.out.printf("In RodLocusView.next()...%n");
-        RODRecordList<ReferenceOrderedDatum> datum = rodQueue.next();
+        RODRecordList datum = rodQueue.next();
         if ( DEBUG ) System.out.printf("In RodLocusView.next(); datum = %s...%n", datum.getLocation());
 
         if ( DEBUG ) System.out.printf("In RodLocusView.next(): creating tracker...%n");
 
         // Update the tracker here for use
-        Collection<RODRecordList<ReferenceOrderedDatum>> allTracksHere = getSpanningTracks(datum);
+        Collection<RODRecordList> allTracksHere = getSpanningTracks(datum);
         tracker = createTracker(allTracksHere);
 
         GenomeLoc rodSite = datum.getLocation();
@@ -131,9 +131,9 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         return null;  
     }
 
-    private RefMetaDataTracker createTracker( Collection<RODRecordList<ReferenceOrderedDatum>> allTracksHere ) {
+    private RefMetaDataTracker createTracker( Collection<RODRecordList> allTracksHere ) {
         RefMetaDataTracker t = new RefMetaDataTracker();
-        for ( RODRecordList<ReferenceOrderedDatum> track : allTracksHere ) {
+        for ( RODRecordList track : allTracksHere ) {
             if ( ! t.hasROD(track.getName()) )
                 t.bind(track.getName(), track);
         }
@@ -144,7 +144,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         return t;
     }
 
-    private Collection<RODRecordList<ReferenceOrderedDatum>> getSpanningTracks(RODRecordList<ReferenceOrderedDatum> marker) {
+    private Collection<RODRecordList> getSpanningTracks(RODRecordList marker) {
         return rodQueue.allElementsLTE(marker);
     }
 

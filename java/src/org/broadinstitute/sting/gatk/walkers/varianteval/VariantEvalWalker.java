@@ -359,7 +359,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     }
 
     private ANALYSIS_TYPE getNovelAnalysisType(RefMetaDataTracker tracker) {
-        RODRecordList<ReferenceOrderedDatum> dbsnpList = tracker.getTrackData("dbsnp", null);
+        RODRecordList dbsnpList = tracker.getTrackData("dbsnp", null);
 
         if (dbsnpList == null)
             return ANALYSIS_TYPE.NOVEL_SNPS;

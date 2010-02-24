@@ -23,7 +23,9 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
+import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 
 import java.io.File;
@@ -64,6 +66,36 @@ public class RODRMDTrack extends RMDTrack {
      */
     @Override
     public Iterator<GATKFeature> getIterator() {
-        return data.iterator();
+        return new SRIToIterator(data.iterator());
+    }
+}
+
+class SRIToIterator implements Iterator<GATKFeature> {
+    private RODRecordList list = null;
+    private SeekableRODIterator iterator = null;
+
+    SRIToIterator(SeekableRODIterator iter) {
+            iterator = iter;
+    }
+
+    public boolean hasNext() {
+        if (this.list != null && list.size() > 0) return true;
+        return iterator.hasNext();
+    }
+
+    public GATKFeature next() {
+        if (this.list != null && list.size() > 0) {
+            GATKFeature f = new GATKFeature.RODGATKFeature(list.get(0));
+            list.remove(0);
+            return f;
+        }
+        else {
+            list = iterator.next();
+            return next();
+        }
+    }
+
+    public void remove() {
+        throw new UnsupportedOperationException("not supported");
     }
 }

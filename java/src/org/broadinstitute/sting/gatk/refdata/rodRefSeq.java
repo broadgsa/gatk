@@ -136,14 +136,14 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
      * NOTE: position can be still within a UTR, see #isCoding
      * @return
      */
-    public static boolean isExon(RODRecordList<rodRefSeq> l) {
+    public static boolean isExon(RODRecordList l) {
 
         if ( l == null ) return false;
 
         GenomeLoc loc = l.getLocation();
 
-        for ( rodRefSeq t : l ) {
-            if ( t.overlapsExonP(loc) ) return true;
+        for ( ReferenceOrderedDatum t : l ) {
+            if ( ((rodRefSeq)t).overlapsExonP(loc) ) return true;
         }
         return false;
 
@@ -159,14 +159,14 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
 	 * indeed within an exon but not in UTR, use #isCodingExon().
      * @return
      */
-    public static boolean isCoding(RODRecordList<rodRefSeq> l) {
+    public static boolean isCoding(RODRecordList l) {
 
         if ( l == null ) return false;
 
         GenomeLoc loc = l.getLocation();
 
-        for ( rodRefSeq t : l ) {
-            if ( t.overlapsCodingP(loc) ) return true;
+        for ( ReferenceOrderedDatum t : l ) {
+            if ( ((rodRefSeq)t).overlapsCodingP(loc) ) return true;
         }
         return false;
 
@@ -179,14 +179,14 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
      * for which the current position is within an exon <i>and</i> within a coding interval simultaneously.
      * @return
      */
-    public static boolean isCodingExon(RODRecordList<rodRefSeq> l) {
+    public static boolean isCodingExon(RODRecordList l) {
 
         if ( l == null ) return false;
 
         GenomeLoc loc = l.getLocation();
 
-        for ( rodRefSeq t : l ) {
-            if ( t.overlapsCodingP(loc) && t.overlapsExonP(loc) ) return true;
+        for ( ReferenceOrderedDatum t : l ) {
+            if ( ((rodRefSeq)t).overlapsCodingP(loc) && ((rodRefSeq)t).overlapsExonP(loc) ) return true;
         }
         return false;
 

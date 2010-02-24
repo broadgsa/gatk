@@ -33,9 +33,9 @@ import java.util.LinkedList;
  * Time: 6:20:46 PM
  * To change this template use File | Settings | File Templates.
  */
-public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements Iterator<RODRecordList<ROD> > {
-    private PushbackIterator<ROD> it;
-    List<ROD> records = null;  // here we will keep a pile of records overlaping with current position; when we iterate
+public class SeekableRODIterator implements Iterator<List<ReferenceOrderedDatum>> {
+    private PushbackIterator<ReferenceOrderedDatum> it;
+    List<ReferenceOrderedDatum> records = null;  // here we will keep a pile of records overlaping with current position; when we iterate
                                // and step out of record's scope, we purge it from the list
     String name = null; // name of the ROD track wrapped by this iterator. Will be pulled from underlying iterator.
 
@@ -76,15 +76,15 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
     // This implementation tracks the query history and makes next() illegal after a seekforward query of length > 1,
     // but re-enables next() again after a length-1 query.
 
-    public SeekableRODIterator(Iterator<ROD> it) {
-        this.it = new PushbackIterator<ROD>(it);
-        records = new LinkedList<ROD>();
+    public SeekableRODIterator(Iterator<ReferenceOrderedDatum> it) {
+        this.it = new PushbackIterator<ReferenceOrderedDatum>(it);
+        records = new LinkedList<ReferenceOrderedDatum>();
         // the following is a trick: we would like the iterator to know the actual name assigned to
         // the ROD implementing object we are working with. But the only way to do that is to
         // get an instance of that ROD and query it for its name. Now, the only generic way we have at this point to instantiate
         // the ROD is to make the underlying stream iterator to do it for us. So we are reading (or rather peeking into)
         // the first line of the track data file just to get the ROD object created.
-        ROD r = null;
+        ReferenceOrderedDatum r = null;
         if (this.it.hasNext()) r = this.it.element();
         name = (r==null?null:r.getName());
     }
@@ -113,7 +113,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
         // the location we will jump to upon next call to next() is the start of the next ROD record that we did
         // not read yet:
         if ( it.hasNext() ) {
-            ROD r = it.element(); // peek, do not load!
+            ReferenceOrderedDatum r = it.element(); // peek, do not load!
             return GenomeLocParser.createGenomeLoc(r.getLocation().getContigIndex(),r.getLocation().getStart());
         }
         return null; // underlying iterator has no more records, there is no next location!
@@ -125,7 +125,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
      * Note that next() is disabled (will throw an exception) after seekForward() operation with query length > 1.
      * @return list of all RODs overlapping with the next "covered" genomic position
      */
-     public RODRecordList<ROD> next() {
+     public RODRecordList next() {
          if ( ! next_is_allowed )
              throw new StingException("Illegal use of iterator: Can not advance iterator with next() after seek-forward query of length > 1");
 
@@ -141,7 +141,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
              // ooops, we are past the end of all loaded records - kill them all at once,
              // load next record and reinitialize by fastforwarding current position to the start of next record
              records.clear();
-             ROD r = it.next(); // if hasNext() previously returned true, we are guaranteed that this call to reader.next() is safe
+             ReferenceOrderedDatum r = it.next(); // if hasNext() previously returned true, we are guaranteed that this call to reader.next() is safe
              records.add( r );
              curr_contig = r.getLocation().getContigIndex();
              curr_position = r.getLocation().getStart();
@@ -154,7 +154,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
          // covered by new records, so we need to load them too:
 
          while ( it.hasNext() ) {
-             ROD r = it.element();
+             ReferenceOrderedDatum r = it.element();
              if ( r == null ) {
                  it.next();
                  continue;
@@ -263,7 +263,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
      * @param interval point-like genomic location to fastforward to.
      * @return ROD object at (or overlapping with) the specified position, or null if no such ROD exists.
      */
-    public RODRecordList<ROD> seekForward(GenomeLoc interval) {
+    public RODRecordList seekForward(GenomeLoc interval) {
 
         if ( interval.getContigIndex() < curr_contig )
             throw new StingException("Out of order query: query contig "+interval.getContig()+" is located before "+
@@ -296,7 +296,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
         // curr_contig and curr_position are set to where we asked to scroll to
 
         while ( it.hasNext() ) {
-            ROD r = it.next();
+            ReferenceOrderedDatum r = it.next();
             if ( r == null ) continue;
             int that_contig = r.getLocation().getContigIndex();
 
@@ -322,7 +322,7 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
         }
 
         if ( records.size() > 0 ) {
-            return new RODRecordList<ROD>(name,records,interval.clone());
+            return new RODRecordList(name,records,interval.clone());
         } else {
             return null;
         }
@@ -335,9 +335,9 @@ public class SeekableRODIterator<ROD extends ReferenceOrderedDatum> implements I
      * curr_position <= max_position, as well as that we are still on the same contig.
      */
     private void purgeOutOfScopeRecords() {
-        Iterator<ROD> i = records.iterator();
+        Iterator<ReferenceOrderedDatum> i = records.iterator();
         while ( i.hasNext() ) {
-            ROD r = i.next();
+            ReferenceOrderedDatum r = i.next();
             if ( r.getLocation().getStop() < curr_position ) {
                 i.remove(); // we moved past the end of interval the record r is associated with, purge the record forever
             }

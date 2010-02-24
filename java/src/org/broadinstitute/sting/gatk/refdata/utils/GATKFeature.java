@@ -57,83 +57,84 @@ public abstract class GATKFeature implements Feature {
     public abstract GenomeLoc getLocation();
 
     public abstract Object getUnderlyingObject();
-}
 
-/**
- * wrapping a Tribble feature in a GATK friendly interface
- */
-class TribbleGATKFeature extends GATKFeature {
-    private final Feature feature;
+    /**
+     * wrapping a Tribble feature in a GATK friendly interface
+     */
+    public static class TribbleGATKFeature extends GATKFeature {
+        private final Feature feature;
 
-    public TribbleGATKFeature(Feature f, String name) {
-        super(name);
-        feature = f;
-    }
-    public GenomeLoc getLocation() {
-        return GenomeLocParser.createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
-    }
+        public TribbleGATKFeature(Feature f, String name) {
+            super(name);
+            feature = f;
+        }
+        public GenomeLoc getLocation() {
+            return GenomeLocParser.createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
+        }
 
-    /** Return the features reference sequence name, e.g chromosome or contig */
-    @Override
-    public String getChr() {
-        return feature.getChr();
-    }
+        /** Return the features reference sequence name, e.g chromosome or contig */
+        @Override
+        public String getChr() {
+            return feature.getChr();
+        }
 
-    /** Return the start position in 1-based coordinates (first base is 1) */
-    @Override
-    public int getStart() {
-        return feature.getStart();
+        /** Return the start position in 1-based coordinates (first base is 1) */
+        @Override
+        public int getStart() {
+            return feature.getStart();
+        }
+
+        /**
+         * Return the end position following 1-based fully closed conventions.  The length of a feature is
+         * end - start + 1;
+         */
+        @Override
+        public int getEnd() {
+            return feature.getEnd();
+        }
+
+        public Object getUnderlyingObject() {
+            return feature;
+        }
     }
 
     /**
-     * Return the end position following 1-based fully closed conventions.  The length of a feature is
-     * end - start + 1;
+     * wrapping a old style rod into the new GATK feature style
      */
-    @Override
-    public int getEnd() {
-        return feature.getEnd();
+    public static class RODGATKFeature extends GATKFeature {
+
+        // our data
+        private ReferenceOrderedDatum datum;
+
+        public RODGATKFeature(ReferenceOrderedDatum datum) {
+            super(datum.getName());
+            this.datum = datum;
+        }
+
+        @Override
+        public GenomeLoc getLocation() {
+            return datum.getLocation();
+        }
+
+        @Override
+        public Object getUnderlyingObject() {
+            return datum;
+        }
+
+        @Override
+        public String getChr() {
+            return datum.getLocation().getContig();
+        }
+
+        @Override
+        public int getStart() {
+            return (int)datum.getLocation().getStart();
+        }
+
+        @Override
+        public int getEnd() {
+            return (int)datum.getLocation().getStop();
+        }
     }
 
-    public Object getUnderlyingObject() {
-        return feature;
-    }
-}
-
-/**
- * wrapping a old style rod into the new GATK feature style
- */
-class RODGATKFeature extends GATKFeature {
-
-    // our data
-    private ReferenceOrderedDatum datum;
-
-    public RODGATKFeature(ReferenceOrderedDatum datum) {
-        super(datum.getName());
-        this.datum = datum;    
-    }
-
-    @Override
-    public GenomeLoc getLocation() {
-        return datum.getLocation();
-    }
-
-    @Override
-    public Object getUnderlyingObject() {
-        return datum;
-    }
-
-    @Override
-    public String getChr() {
-        return datum.getLocation().getContig();
-    }
-
-    @Override
-    public int getStart() {
-        return (int)datum.getLocation().getStart();
-    }
-
-    @Override
-    public int getEnd() {
-        return (int)datum.getLocation().getStop();
-    }
 }
