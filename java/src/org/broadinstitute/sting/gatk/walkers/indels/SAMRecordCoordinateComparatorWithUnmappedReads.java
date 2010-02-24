@@ -50,6 +50,9 @@ public class SAMRecordCoordinateComparatorWithUnmappedReads extends SAMRecordCoo
         if ( samRecord1.getDuplicateReadFlag() != samRecord2.getDuplicateReadFlag() )
             return (samRecord1.getDuplicateReadFlag()? -1: 1);
 
+        if ( samRecord1.getReadPairedFlag() && samRecord2.getReadPairedFlag() && samRecord1.getFirstOfPairFlag() != samRecord2.getFirstOfPairFlag() )
+            return (samRecord1.getFirstOfPairFlag()? -1: 1);
+
         // such a case was actually observed
         return samRecord1.getMappingQuality() - samRecord2.getMappingQuality();
     }
