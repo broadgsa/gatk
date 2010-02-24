@@ -27,6 +27,7 @@ import java.util.Set;
  * distribution of % bases and % targets covered for certain depths. The granularity of DOC can be set by command
  * line arguments.
  *
+ * // todo -- alter logarithmic scaling to spread out bins more
  * // todo -- allow for user to set linear binning (default is logarithmic)
  * // todo -- add per target (e.g. regional) aggregation
  *
@@ -150,15 +151,16 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         // columns - depth of coverage
 
         StringBuilder header = new StringBuilder();
+        header.append(String.format("\t>=0"));
         for ( int d : endpoints ) {
-            header.append(String.format("\t%d",d));
+            header.append(String.format("\t>=%d",d));
         }
         header.append(String.format("%n"));
 
         output.print(header);
 
-        for ( int row = samples; row > 0; row ++ ) {
-            output.printf("%s_%d\t","NSamples",row);
+        for ( int row = 0; row < samples; row ++ ) {
+            output.printf("%s_%d\t","NSamples",row+1);
             for ( int depthBin = 0; depthBin < baseCoverageCumDist[0].length; depthBin ++ ) {
                 output.printf("%d\t",baseCoverageCumDist[row][depthBin]);
             }
@@ -215,6 +217,8 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
             bin++;
         }
 
+        bin = bin == histogram.length-1 ? histogram.length-2 : bin;
+        
         return bin;
     }
 }
@@ -250,7 +254,8 @@ class DepthOfCoverageStats {
 
         for ( int b = 1; b < bins ; b++ ) {
             int leftEnd = lower + (int) Math.floor(Math.pow(10.0,(b-1.0)*scale));
-
+            // todo -- simplify to length^(scale/bins); make non-constant to put bin ends in more "useful"
+            // todo -- positions on the number line
             while ( leftEnd <= binLeftEndpoints[b-1] ) {
                 leftEnd++;
             }
@@ -281,7 +286,7 @@ class DepthOfCoverageStats {
             return;
         }
 
-        int[] binCounts = new int[this.binLeftEndpoints.length];
+        int[] binCounts = new int[this.binLeftEndpoints.length+1];
         for ( int b = 0; b < binCounts.length; b ++ ) {
             binCounts[b] = 0;
         }
@@ -291,9 +296,9 @@ class DepthOfCoverageStats {
     }
 
     public void initializeLocusCounts() {
-        locusCoverageCounts = new int[granularHistogramBySample.size()][binLeftEndpoints.length];
-        locusHistogram = new int[binLeftEndpoints.length];
-        for ( int b = 0; b < binLeftEndpoints.length; b ++ ) {
+        locusCoverageCounts = new int[granularHistogramBySample.size()][binLeftEndpoints.length+1];
+        locusHistogram = new int[binLeftEndpoints.length+1];
+        for ( int b = 0; b < binLeftEndpoints.length+1; b ++ ) {
             for ( int a = 0; a < granularHistogramBySample.size(); a ++ ) {
                 locusCoverageCounts[a][b] = 0;
             }
@@ -339,15 +344,15 @@ class DepthOfCoverageStats {
         meanCoverages.put(sample,newMean);
 
         int[] granularBins = granularHistogramBySample.get(sample);
-        for ( int b = 1; b < granularBins.length; b ++ ) {
+        for ( int b = 0; b < binLeftEndpoints.length; b ++ ) {
             if ( depth < binLeftEndpoints[b] ) {
-                granularBins[b-1]++;
-                return b ;
+                granularBins[b]++;
+                return b;
             }
         }
 
-        granularBins[granularBins.length-1]++; // greater than all left-endpoints
-        return granularBins.length-1;
+        granularBins[binLeftEndpoints.length]++; // greater than all left-endpoints
+        return binLeftEndpoints.length;
     }
 
     public void merge(DepthOfCoverageStats newStats) {
