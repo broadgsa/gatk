@@ -6,8 +6,7 @@
     <dependencies>
       <!-- Local realignment around indels -->
       <class name="org.broadinstitute.sting.gatk.walkers.indels.RealignerTargetCreator" />
-      <class name="org.broadinstitute.sting.gatk.walkers.indels.IntervalCleanerWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector" />
+      <class name="org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner" />
     </dependencies>
   </executable>
 </package>
