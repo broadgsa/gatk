@@ -89,9 +89,9 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
      */
     protected void validateLocation( GenomeLoc loc ) {
         Shard shard = new LocusShard(Collections.singletonList(loc));
-        GenomeLocusIterator shardIterator = new GenomeLocusIterator(shard.getGenomeLocs());
+        GenomeLocusIterator shardIterator = new GenomeLocusIterator(loc);
 
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), null, sequenceFile, null);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, loc, null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
         while (shardIterator.hasNext()) {

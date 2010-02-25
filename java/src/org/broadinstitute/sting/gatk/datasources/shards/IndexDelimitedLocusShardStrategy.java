@@ -66,20 +66,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
             throw new StingException("Cannot power an IndexDelimitedLocusShardStrategy with this data source.");
 
         blockDrivenDataSource = (BlockDrivenSAMDataSource)dataSource;
-
-        // Create a list of contig name -> genome loc, sorted in INSERTION ORDER.
-        LinkedHashMap<String,List<GenomeLoc>> locationToReference = new LinkedHashMap<String,List<GenomeLoc>>();
-        for(GenomeLoc location: locations) {
-            if(!locationToReference.containsKey(location.getContig()))
-                locationToReference.put(location.getContig(),new ArrayList<GenomeLoc>());
-            locationToReference.get(location.getContig()).add(location);
-        }
-
-        // TODO: Not sure there's any reason to pre-separate the contigs now that we're using a streaming approach to file pointer allocation.
-        for(String contig: locationToReference.keySet()) {
-            filePointers.addAll(batchLociIntoBins(locationToReference.get(contig),blockDrivenDataSource.getNumIndexLevels()-1));
-        }
-
+        filePointers.addAll(batchLociIntoBins(locations.toList(),blockDrivenDataSource.getNumIndexLevels()-1));
         filePointerIterator = filePointers.iterator();
     }
 
