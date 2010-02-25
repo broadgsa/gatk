@@ -23,10 +23,11 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 
 import java.io.File;
 import java.util.Iterator;
@@ -72,9 +73,9 @@ public class RODRMDTrack extends RMDTrack {
 
 class SRIToIterator implements Iterator<GATKFeature> {
     private RODRecordList list = null;
-    private SeekableRODIterator iterator = null;
+    private LocationAwareSeekableRODIterator iterator = null;
 
-    SRIToIterator(SeekableRODIterator iter) {
+    SRIToIterator(LocationAwareSeekableRODIterator iter) {
             iterator = iter;
     }
 

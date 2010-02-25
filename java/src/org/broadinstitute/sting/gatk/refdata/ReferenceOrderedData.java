@@ -5,6 +5,8 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -21,7 +23,7 @@ import java.util.*;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<List<ReferenceOrderedDatum>> { // }, RMDTrackBuilder {
+public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<RODRecordList> { // }, RMDTrackBuilder {
     private String name;
     private File file = null;
 //    private String fieldDelimiter;
@@ -235,7 +237,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         return this.name.equals(name) && type.isAssignableFrom(this.type);
     }
 
-    public SeekableRODIterator iterator() {
+    public LocationAwareSeekableRODIterator iterator() {
         Iterator<ReferenceOrderedDatum> it;
         try {
             Method m = type.getDeclaredMethod("createIterator", String.class, java.io.File.class);

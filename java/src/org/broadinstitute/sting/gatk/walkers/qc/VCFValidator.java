@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
 
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.StingException;
@@ -27,7 +26,7 @@ public class VCFValidator extends RodWalker<Integer, Integer> {
         if ( tracker != null ) {
             RODRecordList rodlist = tracker.getTrackData("vcf", null);
             if ( rodlist != null ) {
-                RodVCF rod = (RodVCF)rodlist.getRecords().get(0);
+                RodVCF rod = (RodVCF)rodlist.get(0);
                 if ( (rod.isSNP() || rod.isReference()) &&  Character.toUpperCase(rod.getReference().charAt(0)) != Character.toUpperCase(ref.getBase()) )
                     throw new StingException("The reference base (" + ref.getBase() + ") does not match the base from the VCF record (" + rod.getReference() + ")");
             }

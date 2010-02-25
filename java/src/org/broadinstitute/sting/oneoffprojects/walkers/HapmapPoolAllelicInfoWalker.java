@@ -1,9 +1,8 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -136,7 +135,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         List<Pair<Genotype, Genotype>> chips = new ArrayList <Pair<Genotype,Genotype>>(rodNames.length);
         for ( String name : rodNames ) {
             RODRecordList rods = tracker.getTrackData(name, null);
-            Variation chip = (rods == null ? null : (Variation)rods.getRecords().get(0));
+            Variation chip = (rods == null ? null : (Variation)rods.get(0));
             if ( chip != null ) {
                 // chips must be Genotypes
                 if ( !(chip instanceof VariantBackedByGenotype) )

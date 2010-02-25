@@ -4,6 +4,8 @@ package org.broadinstitute.sting.gatk.refdata;
 
 // the imports for unit testing.
 
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.junit.*;
 import static org.junit.Assert.assertTrue;
 import org.broadinstitute.sting.BaseTest;
@@ -26,7 +28,7 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 public class TabularRODTest extends BaseTest {
     private static ReferenceSequenceFile seq;
     private ReferenceOrderedData ROD;
-    private SeekableRODIterator iter;
+    private LocationAwareSeekableRODIterator iter;
 
 
     @BeforeClass
@@ -49,7 +51,7 @@ public class TabularRODTest extends BaseTest {
     public void test1() {
         logger.warn("Executing test1");
         RODRecordList oneList = iter.next();
-        TabularROD one = (TabularROD)oneList.getRecords().get(0);
+        TabularROD one = (TabularROD)oneList.get(0);
         assertTrue(one.size() == 4);
         assertTrue(one.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 10)));
         assertTrue(one.get("COL1").equals("A"));
@@ -62,8 +64,8 @@ public class TabularRODTest extends BaseTest {
         logger.warn("Executing test2");
         RODRecordList oneList = iter.next();
         RODRecordList twoList = iter.next();
-        TabularROD one = (TabularROD)oneList.getRecords().get(0);
-        TabularROD two = (TabularROD)twoList.getRecords().get(0);
+        TabularROD one = (TabularROD)oneList.get(0);
+        TabularROD two = (TabularROD)twoList.get(0);
         assertTrue(two.size() == 4);
         assertTrue(two.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 20)));
         assertTrue(two.get("COL1").equals("C"));
@@ -77,9 +79,9 @@ public class TabularRODTest extends BaseTest {
         RODRecordList oneList = iter.next();
         RODRecordList twoList = iter.next();
         RODRecordList threeList = iter.next();
-        TabularROD one = (TabularROD)oneList.getRecords().get(0);
-        TabularROD two = (TabularROD)twoList.getRecords().get(0);
-        TabularROD three = (TabularROD)threeList.getRecords().get(0);
+        TabularROD one = (TabularROD)oneList.get(0);
+        TabularROD two = (TabularROD)twoList.get(0);
+        TabularROD three = (TabularROD)threeList.get(0);
         assertTrue(three.size() == 4);
         assertTrue(three.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 30)));
         assertTrue(three.get("COL1").equals("F"));
@@ -93,9 +95,9 @@ public class TabularRODTest extends BaseTest {
         RODRecordList oneList = iter.next();
         RODRecordList twoList = iter.next();
         RODRecordList threeList = iter.next();
-        TabularROD one = (TabularROD)oneList.getRecords().get(0);
-        TabularROD two = (TabularROD)twoList.getRecords().get(0);
-        TabularROD three = (TabularROD)threeList.getRecords().get(0);
+        TabularROD one = (TabularROD)oneList.get(0);
+        TabularROD two = (TabularROD)twoList.get(0);
+        TabularROD three = (TabularROD)threeList.get(0);
         assertTrue(!iter.hasNext());
     }
 
@@ -103,7 +105,7 @@ public class TabularRODTest extends BaseTest {
     public void testSeek() {
         logger.warn("Executing testSeek");
         RODRecordList twoList = iter.seekForward(GenomeLocParser.createGenomeLoc("chrM", 20));
-        TabularROD two = (TabularROD)twoList.getRecords().get(0);
+        TabularROD two = (TabularROD)twoList.get(0);
         assertTrue(two.size() == 4);
         assertTrue(two.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 20)));
         assertTrue(two.get("COL1").equals("C"));
@@ -115,7 +117,7 @@ public class TabularRODTest extends BaseTest {
     public void testToString() {
         logger.warn("Executing testToString");
         RODRecordList oneList = iter.next();
-        TabularROD one = (TabularROD)oneList.getRecords().get(0);
+        TabularROD one = (TabularROD)oneList.get(0);
         assertTrue(one.toString().equals("chrM:10\tA\tB\tC"));
     }
 
@@ -124,11 +126,11 @@ public class TabularRODTest extends BaseTest {
     public void testDelim1() {
         File file2 = new File(testDir + "TabularDataTest2.dat");        
         ReferenceOrderedData ROD_commas = new ReferenceOrderedData("tableTest", file2, TabularROD.class);
-        SeekableRODIterator iter_commas = ROD_commas.iterator();
+        LocationAwareSeekableRODIterator iter_commas = ROD_commas.iterator();
 
         logger.warn("Executing testDelim1");
         RODRecordList one2List = iter_commas.next();
-        TabularROD one2 = (TabularROD)one2List.getRecords().get(0);
+        TabularROD one2 = (TabularROD)one2List.get(0);
         assertTrue(one2.size() == 5);
         assertTrue(one2.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 10)));
         assertTrue(one2.get("COL1").equals("A"));
@@ -142,11 +144,11 @@ public class TabularRODTest extends BaseTest {
         TabularROD.setDelimiter(",",",");
         File file2 = new File(testDir + "TabularDataTest2.dat");
         ReferenceOrderedData ROD_commas = new ReferenceOrderedData("tableTest", file2, TabularROD.class);
-        SeekableRODIterator iter_commas = ROD_commas.iterator();
+        LocationAwareSeekableRODIterator iter_commas = ROD_commas.iterator();
 
         logger.warn("Executing testDelim1");
         RODRecordList one2List = iter_commas.next();
-        TabularROD one2 = (TabularROD)one2List.getRecords().get(0);
+        TabularROD one2 = (TabularROD)one2List.get(0);
         assertTrue(one2.size() == 5);
         assertTrue(one2.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 10)));
         assertTrue(one2.get("COL1").equals("A"));
@@ -187,10 +189,10 @@ public class TabularRODTest extends BaseTest {
         out.println(row.toString());
 
         ReferenceOrderedData ROD_commas = new ReferenceOrderedData("tableTest", outputFile, TabularROD.class);
-        SeekableRODIterator iter_commas = ROD_commas.iterator();
+        LocationAwareSeekableRODIterator iter_commas = ROD_commas.iterator();
 
         RODRecordList oneList = iter_commas.next();
-        TabularROD one = (TabularROD)oneList.getRecords().get(0);
+        TabularROD one = (TabularROD)oneList.get(0);
         assertTrue(one.size() == 4);
         assertTrue(one.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 1)));
         assertTrue(one.get("col1").equals("1"));
@@ -198,7 +200,7 @@ public class TabularRODTest extends BaseTest {
         assertTrue(one.get("col3").equals("3"));
 
         RODRecordList twoList = iter_commas.next();
-        TabularROD two = (TabularROD)twoList.getRecords().get(0);
+        TabularROD two = (TabularROD)twoList.get(0);
         assertTrue(two.size() == 4);
         assertTrue(two.getLocation().equals(GenomeLocParser.createGenomeLoc("chrM", 2)));
         assertTrue(two.get("col1").equals("3"));

@@ -4,6 +4,8 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -26,7 +28,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
     String project_id = null;
     private byte [] maskFlags = new byte[401];
 
-    private SeekableRODIterator snpMaskIterator=null;
+    private LocationAwareSeekableRODIterator snpMaskIterator=null;
 
     public void initialize() {
 		if ( SNP_MASK != null ) {

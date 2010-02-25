@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MergingIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -59,14 +61,14 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
 
         GenomeLoc loc = provider.getLocus();
 
-        List< Iterator<List<ReferenceOrderedDatum>> > iterators = new LinkedList< Iterator<List<ReferenceOrderedDatum>> >();
+        List< Iterator<RODRecordList> > iterators = new LinkedList< Iterator<RODRecordList> >();
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() ) {
             if ( DEBUG ) System.out.printf("Shard is %s%n", provider.getLocus());
 
             // grab the ROD iterator from the data source, and compute the first location in this shard, forwarding
             // the iterator to immediately before it, so that it can be added to the merging iterator primed for
             // next() to return the first real ROD in this shard
-            SeekableRODIterator it = (SeekableRODIterator)dataSource.seek(provider.getShard());
+            FlashBackIterator it = (FlashBackIterator)dataSource.seek(provider.getShard());
             it.seekForward(GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart()-1));
 
             states.add(new ReferenceOrderedDataState(dataSource,it));            
@@ -199,7 +201,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      */
     public void close() {
         for( ReferenceOrderedDataState state: states )
-            state.dataSource.close( state.iterator );        
+            state.dataSource.close( state.iterator );
 
         rodQueue = null;
         tracker = null;

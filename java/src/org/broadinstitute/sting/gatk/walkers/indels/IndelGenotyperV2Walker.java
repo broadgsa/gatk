@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
@@ -80,7 +82,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     boolean outOfContigUserWarned = false;
 
-    private SeekableRODIterator refseqIterator=null;
+    private LocationAwareSeekableRODIterator refseqIterator=null;
 
 	private Set<String> normalReadGroups; // we are going to remember which read groups are normals and which are tumors in order to be able 
 	private Set<String> tumorReadGroups ; // to properly assign the reads coming from a merged stream
@@ -581,7 +583,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 else b.append(annUnknown); // we have no idea what this is. this may actually happen when we have a fully non-coding exon...
             }
             b.append('\t');
-            b.append(((Transcript)ann.getRecords().get(0)).getGeneName()); // there is at least one transcript in the list, guaranteed
+            b.append(((Transcript)ann.get(0)).getGeneName()); // there is at least one transcript in the list, guaranteed
 //			while ( it.hasNext() ) { //
 //				t.getGeneName()
 //			}

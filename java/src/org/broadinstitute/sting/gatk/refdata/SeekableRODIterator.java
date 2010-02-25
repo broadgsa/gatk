@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.iterators.PeekingIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -33,7 +34,7 @@ import java.util.LinkedList;
  * Time: 6:20:46 PM
  * To change this template use File | Settings | File Templates.
  */
-public class SeekableRODIterator implements Iterator<List<ReferenceOrderedDatum>> {
+public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     private PushbackIterator<ReferenceOrderedDatum> it;
     List<ReferenceOrderedDatum> records = null;  // here we will keep a pile of records overlaping with current position; when we iterate
                                // and step out of record's scope, we purge it from the list
@@ -161,12 +162,12 @@ public class SeekableRODIterator implements Iterator<List<ReferenceOrderedDatum>
              }
              int that_contig = r.getLocation().getContigIndex();
              if ( curr_contig > that_contig )
-                 throw new StingException("SeekableRODIterator: contig " +r.getLocation().getContig() +
+                 throw new StingException("LocationAwareSeekableRODIterator: contig " +r.getLocation().getContig() +
                          " occurs out of order in track " + r.getName() );
              if ( curr_contig < that_contig ) break; // next record is on a higher contig, we do not need it yet...
 
              if ( r.getLocation().getStart() < curr_position )
-                 throw new StingException("SeekableRODIterator: track "+r.getName() +
+                 throw new StingException("LocationAwareSeekableRODIterator: track "+r.getName() +
                          " is out of coordinate order on contig "+r.getLocation().getContig());
 
              if ( r.getLocation().getStart() > curr_position ) break; // next record starts after the current position; we do not need it yet
@@ -182,7 +183,7 @@ public class SeekableRODIterator implements Iterator<List<ReferenceOrderedDatum>
          // 'records' and current position are fully updated. Last, we need to set the location of the whole track
         // (collection of ROD records) to the genomic site we are currently looking at, and return the list
 
-         return new RODRecordList(name,records, GenomeLocParser.createGenomeLoc(curr_contig,curr_position));
+         return new RODRecordListImpl(name,records, GenomeLocParser.createGenomeLoc(curr_contig,curr_position));
      }
 
     /**
@@ -200,22 +201,9 @@ public class SeekableRODIterator implements Iterator<List<ReferenceOrderedDatum>
      *                                       method.
      */
     public void remove() {
-        throw new UnsupportedOperationException("SeekableRODIterator does not implement remove() operation");
+        throw new UnsupportedOperationException("LocationAwareSeekableRODIterator does not implement remove() operation");
     }
 
-    /**
-     *
-     */
-    public GenomeLoc lastQueryLocation() {
-        if ( curr_contig < 0 ) return null;
-        if ( curr_query_end > curr_position )  {
-            return GenomeLocParser.createGenomeLoc(curr_contig,curr_position,curr_query_end);
-        }
-        else {
-            return GenomeLocParser.createGenomeLoc(curr_contig,curr_position);
-        }
-
-    }
 
     /**
      * Returns the current "position" (not location!! ;) ) of this iterator. This method is used by the sharding
@@ -322,7 +310,7 @@ public class SeekableRODIterator implements Iterator<List<ReferenceOrderedDatum>
         }
 
         if ( records.size() > 0 ) {
-            return new RODRecordList(name,records,interval.clone());
+            return new RODRecordListImpl(name,records,interval.clone());
         } else {
             return null;
         }

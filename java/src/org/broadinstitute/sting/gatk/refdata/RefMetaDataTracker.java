@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -43,8 +44,8 @@ public class RefMetaDataTracker {
         if ( map.containsKey(luName) ) {
             RODRecordList value = map.get(luName) ;
             if ( value != null ) {
-                List<ReferenceOrderedDatum> l = value.getRecords();
-                if ( l != null & l.size() > 0 ) return value.getRecords().get(0);
+                List<ReferenceOrderedDatum> l = value;
+                if ( l != null & l.size() > 0 ) return value.get(0);
             }
         } 
         return defaultValue;
@@ -76,9 +77,9 @@ public class RefMetaDataTracker {
             for ( Map.Entry<String, RODRecordList> datum : map.entrySet() ) {
                 final String rodName = datum.getKey();
                 if ( rodName.startsWith(luName) ) {
-                    if ( trackData == null ) trackData = new RODRecordList(name);
+                    if ( trackData == null ) trackData = new RODRecordListImpl(name);
                     //System.out.printf("Adding bindings from %s to %s at %s%n", rodName, name, datum.getValue().getLocation());
-                    trackData.add(datum.getValue(), true);
+                    ((RODRecordListImpl)trackData).add(datum.getValue(), true);
                 }
             }
         }
@@ -88,7 +89,7 @@ public class RefMetaDataTracker {
         else if ( defaultValue == null )
             return null;
         else
-            return new RODRecordList(defaultValue.getName(),
+            return new RODRecordListImpl(defaultValue.getName(),
                     Collections.singletonList(defaultValue),
                     defaultValue.getLocation());
     }
@@ -144,7 +145,7 @@ public class RefMetaDataTracker {
         List<ReferenceOrderedDatum> l = new ArrayList<ReferenceOrderedDatum>();
         for ( RODRecordList rl : map.values() ) {
             if ( rl == null ) continue; // how do we get null value stored for a track? shouldn't the track be missing from the map alltogether?
-            l.addAll(rl.getRecords());
+            l.addAll(rl);
         }
         return l;
 
@@ -285,7 +286,7 @@ public class RefMetaDataTracker {
     }
 
     private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        for ( ReferenceOrderedDatum rec : rodList.getRecords() ) {
+        for ( ReferenceOrderedDatum rec : rodList ) {
             if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec) ) {
                 // ok, we might actually be able to turn this record in a variant context
                 VariantContext vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec);

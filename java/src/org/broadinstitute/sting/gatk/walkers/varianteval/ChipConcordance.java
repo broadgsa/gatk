@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
@@ -79,7 +80,7 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
         HashMap<String, Genotype> chips = new HashMap<String, Genotype>();
         for ( String name : rodNames ) {
             RODRecordList rods = tracker.getTrackData(name, null);
-            Variation chip = (rods == null ? null : (Variation)rods.getRecords().get(0));
+            Variation chip = (rods == null ? null : (Variation)rods.get(0));
             if ( chip != null ) {
                 // chips must be Genotypes
                 if ( !(chip instanceof VariantBackedByGenotype) )

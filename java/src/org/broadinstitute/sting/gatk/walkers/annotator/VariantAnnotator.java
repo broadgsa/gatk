@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
@@ -187,11 +188,11 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
 
         RODRecordList rods = tracker.getTrackData("variant", null);
         // ignore places where we don't have a variant
-        if ( rods == null || rods.getRecords().size() == 0 )
+        if ( rods == null || rods.size() == 0 )
             return 0;
 
         Map<String, String> annotations = new HashMap<String, String>();
-        VariationRod variant = (VariationRod)rods.getRecords().get(0);
+        VariationRod variant = (VariationRod)rods.get(0);
 
         // if the reference base is not ambiguous, we can annotate
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {

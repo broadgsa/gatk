@@ -1,10 +1,8 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.gatk.iterators.PeekingIterator;
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 
 import java.util.*;
 
@@ -12,17 +10,17 @@ public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRec
     PriorityQueue<Element> queue = new PriorityQueue<Element>();
 
     private class Element implements Comparable<Element> {
-        public SeekableRODIterator it = null;
+        public FlashBackIterator it = null;
         //public E value = null;
         public GenomeLoc nextLoc = null;
 
-        public Element(Iterator<List<ReferenceOrderedDatum>> it) {
-            if ( it instanceof SeekableRODIterator ) {
-                this.it = (SeekableRODIterator)it;
+        public Element(Iterator<RODRecordList> it) {
+            if ( it instanceof FlashBackIterator) {
+                this.it = (FlashBackIterator)it;
                 if ( ! it.hasNext() ) throw new StingException("Iterator is empty");
                 update();
             } else {
-                throw new StingException("Iterator passed to MergingIterator is not SeekableRODIterator");
+                throw new StingException("Iterator passed to MergingIterator is not LocationAwareSeekableRODIterator");
             }
         }
 
@@ -57,12 +55,12 @@ public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRec
         ;
     }
 
-    public MergingIterator(Iterator<List<ReferenceOrderedDatum>> it) {
+    public MergingIterator(Iterator<RODRecordList> it) {
          add(it);
     }
 
-    public MergingIterator(Collection<Iterator<List<ReferenceOrderedDatum>>> its) {
-        for ( Iterator<List<ReferenceOrderedDatum>> it : its ) {
+    public MergingIterator(Collection<Iterator<RODRecordList>> its) {
+        for ( Iterator<RODRecordList> it : its ) {
             add(it);
         }
     }
@@ -71,7 +69,7 @@ public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRec
      * will be after a call to next() is peeked into and cached as queue's priority value.
      * @param it
      */
-    public void add(Iterator<List<ReferenceOrderedDatum>> it) {
+    public void add(Iterator<RODRecordList> it) {
         if ( it.hasNext() )
             queue.add(new Element(it));
     }

@@ -2,16 +2,13 @@ package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotation;
 import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,9 +39,9 @@ public class ThousandGenomesAnnotator implements VariantAnnotation {
         if ( pilot1 == null && pilot2 == null) {
             return "0";
         } else {
-            if ( pilot1 != null && ! ( (HapmapVCFROD) pilot1.getRecords().get(0)).getRecord().isFiltered() ) {
+            if ( pilot1 != null && ! ( (HapmapVCFROD) pilot1.get(0)).getRecord().isFiltered() ) {
                 return "1";
-            } else if ( pilot2 != null && ! ( (HapmapVCFROD) pilot2.getRecords().get(0)).getRecord().isFiltered() ) {
+            } else if ( pilot2 != null && ! ( (HapmapVCFROD) pilot2.get(0)).getRecord().isFiltered() ) {
                 return "1";
             } else {
                 return "0";

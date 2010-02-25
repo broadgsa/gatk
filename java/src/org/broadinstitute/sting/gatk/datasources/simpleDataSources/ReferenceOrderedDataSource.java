@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -68,15 +68,15 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      */
     public Iterator seek( Shard shard ) {
         DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs().get(0)) : new EntireStream();
-        SeekableRODIterator iterator = iteratorPool.iterator(dataStreamSegment);
-        return iterator;
+        FlashBackIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
+        return RODIterator;
     }
 
     /**
      * Close the specified iterator, returning it to the pool.
      * @param iterator Iterator to close.
      */
-    public void close( SeekableRODIterator iterator ) {
+    public void close( FlashBackIterator iterator ) {
         this.iteratorPool.release(iterator);        
     }
 
@@ -85,9 +85,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
 /**
  * A pool of reference-ordered data iterators.
  */
-class ReferenceOrderedDataPool extends ResourcePool<SeekableRODIterator,SeekableRODIterator> {
+class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBackIterator> {
     private final ReferenceOrderedData<? extends ReferenceOrderedDatum> rod;
-
     public ReferenceOrderedDataPool( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod ) {
         this.rod = rod;
     }
@@ -97,8 +96,8 @@ class ReferenceOrderedDataPool extends ResourcePool<SeekableRODIterator,Seekable
      * to be completely independent of any other iterator.
      * @return The newly created resource.
      */
-    public SeekableRODIterator createNewResource() {
-        return rod.iterator();
+    public FlashBackIterator createNewResource() {
+        return new FlashBackIterator(rod.iterator());
     }
 
     /**
@@ -108,18 +107,21 @@ class ReferenceOrderedDataPool extends ResourcePool<SeekableRODIterator,Seekable
      * @param resources @{inheritedDoc}
      * @return @{inheritedDoc}
      */
-    public SeekableRODIterator selectBestExistingResource( DataStreamSegment segment, List<SeekableRODIterator> resources ) {
+    public FlashBackIterator selectBestExistingResource( DataStreamSegment segment, List<FlashBackIterator> resources ) {
         if(segment instanceof MappedStreamSegment) {
             GenomeLoc position = ((MappedStreamSegment)segment).getFirstLocation();
-            //#########################################
-//## System.out.printf("Searching for iterator at locus %s; %d resources available%n", position, resources.size());
-            for( SeekableRODIterator iterator: resources ) {
-//##System.out.printf("Examining iterator at position %s [last query location: %s]%n", iterator.position(),iterator.lastQueryLocation());
-                if( (iterator.position() == null && iterator.hasNext()) ||
-                    (iterator.position() != null && iterator.position().isBefore(position)) )
-                    return iterator;
+
+            for( FlashBackIterator RODIterator : resources ) {
+
+                if( (RODIterator.position() == null && RODIterator.hasNext()) ||
+                    (RODIterator.position() != null && RODIterator.position().isBefore(position)) )
+                    return RODIterator;
+                if ((RODIterator.position() != null && RODIterator.canFlashBackTo(position))) {
+                    RODIterator.flashBackTo(position);
+                    return RODIterator;
+                }
+
             }
-//##System.out.printf("Failed to find iterator at locus %s%n", position);
             return null;
         }
         else if(segment instanceof EntireStream) {
@@ -135,15 +137,15 @@ class ReferenceOrderedDataPool extends ResourcePool<SeekableRODIterator,Seekable
     /**
      * In this case, the iterator is the resource.  Pass it through.
      */
-    public SeekableRODIterator createIteratorFromResource( DataStreamSegment segment, SeekableRODIterator resource ) {
+    public FlashBackIterator createIteratorFromResource( DataStreamSegment segment, FlashBackIterator resource ) {
         return resource;
     }
 
     /**
      * Don't worry about closing the resource; let the file handles expire naturally for the moment.
      */
-    public void closeResource(  SeekableRODIterator resource ) {
-        
+    public void closeResource( FlashBackIterator resource ) {
+                
     }
 }
 

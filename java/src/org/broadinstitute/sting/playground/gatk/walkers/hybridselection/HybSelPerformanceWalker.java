@@ -2,6 +2,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.hybridselection;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -56,7 +58,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             doc="Name of RefSeq transcript annotation file. If specified, intervals will be specified with gene names", required=false)
     String REFSEQ_FILE = null;
 
-    private SeekableRODIterator refseqIterator=null;
+    private LocationAwareSeekableRODIterator refseqIterator=null;
 
     public static class TargetInfo {
         public int counts = 0;

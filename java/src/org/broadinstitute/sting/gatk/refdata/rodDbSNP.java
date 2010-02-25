@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.samtools.util.SequenceUtil;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.*;
 
 import java.util.ArrayList;

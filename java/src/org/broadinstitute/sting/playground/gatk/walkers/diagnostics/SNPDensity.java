@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.diagnostics;
 
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;

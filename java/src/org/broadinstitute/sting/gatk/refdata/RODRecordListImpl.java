@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.*;
 
@@ -13,12 +13,12 @@ import java.util.*;
  * Time: 6:10:48 PM
  * To change this template use File | Settings | File Templates.
  */
-public class RODRecordList extends AbstractList<ReferenceOrderedDatum> implements Comparable<RODRecordList>, Cloneable {
+public class RODRecordListImpl extends AbstractList<ReferenceOrderedDatum> implements Comparable<RODRecordList>, Cloneable, RODRecordList {
     private List<ReferenceOrderedDatum> records;
     private GenomeLoc location = null;
     private String name = null;
 
-    public RODRecordList(String name) {
+    public RODRecordListImpl(String name) {
         records = new ArrayList<ReferenceOrderedDatum>();
         this.name = name;
     }
@@ -37,7 +37,7 @@ public class RODRecordList extends AbstractList<ReferenceOrderedDatum> implement
      * @param data
      * @param loc
      */
-    public RODRecordList(String name, Collection<ReferenceOrderedDatum> data, GenomeLoc loc) {
+    public RODRecordListImpl(String name, Collection<ReferenceOrderedDatum> data, GenomeLoc loc) {
         this.records = new ArrayList<ReferenceOrderedDatum>(data==null?0:data.size());
         this.name = name;
         this.location = loc;

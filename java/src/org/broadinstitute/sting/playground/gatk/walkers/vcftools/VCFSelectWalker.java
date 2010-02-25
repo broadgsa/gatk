@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.filters.ClusteredSnps;
 import org.broadinstitute.sting.gatk.walkers.filters.VariantContextWindow;
@@ -81,10 +82,10 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
 
         RODRecordList rods = tracker.getTrackData("variant", null);
         // ignore places where we don't have a variant
-        if ( rods == null || rods.getRecords().size() == 0 )
+        if ( rods == null || rods.size() == 0 )
             return 0;
 
-        RodVCF variant = (RodVCF)rods.getRecords().get(0);
+        RodVCF variant = (RodVCF)rods.get(0);
         boolean someoneMatched = false;
         for ( MatchExp exp : matchExpressions ) {
             Map<String, String> infoMap = new HashMap<String, String>(variant.mCurrentRecord.getInfoValues());
