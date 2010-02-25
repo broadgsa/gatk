@@ -124,6 +124,12 @@ public abstract class Accumulator {
      */
     private static class IntervalAccumulator extends Accumulator {
         /**
+         * True if a new interval is being started.  This flag is used to
+         * ensure that reduceInit() is not called unnecessarily.
+         */
+        private boolean startingNewInterval = true;
+
+        /**
          * An iterator through all intervals in the series.
          */
         private final Iterator<GenomeLoc> intervalIterator;
@@ -138,19 +144,27 @@ public abstract class Accumulator {
          */
         private final List<Pair<GenomeLoc,Object>> intervalAccumulator = new ArrayList<Pair<GenomeLoc,Object>>();
 
+        /**
+         * Holds the next value to be passed in as the reduce result.
+         */
         private Object nextReduceInit = null;
 
         protected IntervalAccumulator(Walker walker, GenomeLocSortedSet intervals) {
             super(walker);
             this.intervalIterator = intervals.iterator();
             if(intervalIterator.hasNext()) currentInterval = intervalIterator.next();
-            nextReduceInit = walker.reduceInit();
         }
 
         /**
          * Interval accumulator always feeds reduceInit into every new traversal.
          */
-        public Object getReduceInit() { return nextReduceInit; }
+        public Object getReduceInit() {
+            if(startingNewInterval) {
+                startingNewInterval = false;
+                nextReduceInit = walker.reduceInit();
+            }
+            return nextReduceInit;
+        }
 
         /**
          * Create a holder for interval results if none exists.  Add the result to the holder.
@@ -164,7 +178,7 @@ public abstract class Accumulator {
 
             if(currentInterval != null && currentInterval.getContig().equals(location.getContig()) && currentInterval.getStop() == location.getStop()) {
                 intervalAccumulator.add(new Pair<GenomeLoc,Object>(currentInterval,result));
-                nextReduceInit = walker.reduceInit();
+                startingNewInterval = true;
             }
             else
                 nextReduceInit = result;
