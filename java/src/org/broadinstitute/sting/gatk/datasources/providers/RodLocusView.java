@@ -57,17 +57,17 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     public RodLocusView( ShardDataProvider provider ) {
         super(provider);
 
-        GenomeLoc firstLoc = provider.getShard().getGenomeLocs().get(0);
+        GenomeLoc loc = provider.getLocus();
 
         List< Iterator<List<ReferenceOrderedDatum>> > iterators = new LinkedList< Iterator<List<ReferenceOrderedDatum>> >();
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() ) {
-            if ( DEBUG ) System.out.printf("Shard is %s%n", provider.getShard().getGenomeLocs());
+            if ( DEBUG ) System.out.printf("Shard is %s%n", provider.getLocus());
 
             // grab the ROD iterator from the data source, and compute the first location in this shard, forwarding
             // the iterator to immediately before it, so that it can be added to the merging iterator primed for
             // next() to return the first real ROD in this shard
             SeekableRODIterator it = (SeekableRODIterator)dataSource.seek(provider.getShard());
-            it.seekForward(GenomeLocParser.createGenomeLoc(firstLoc.getContigIndex(), firstLoc.getStart()-1));
+            it.seekForward(GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart()-1));
 
             states.add(new ReferenceOrderedDataState(dataSource,it));            
 
@@ -94,8 +94,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         if ( ! rodQueue.hasNext() )
             return false;
         else {
-            GenomeLoc lastLocus = shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1);
-            return ! rodQueue.peekLocation().isPast(lastLocus);
+            return ! rodQueue.peekLocation().isPast(locus);
         }
     }
 
@@ -160,12 +159,12 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      */
     private long getSkippedBases( GenomeLoc currentPos ) {
         // the minus - is because if lastLoc == null, you haven't yet seen anything in this interval, so it should also be counted as skipped
-        Long compStop = lastLoc == null ? shard.getGenomeLocs().get(0).getStart() - 1 : lastLoc.getStop();
+        Long compStop = lastLoc == null ? locus.getStart() - 1 : lastLoc.getStop();
         long skippedBases = currentPos.getStart() - compStop  - 1;
 
         if ( skippedBases < -1 ) { // minus 1 value is ok
             throw new RuntimeException(String.format("BUG: skipped bases=%d is < 0: cur=%s vs. last=%s, shard=%s",
-                    skippedBases, currentPos, lastLoc, shard.getGenomeLocs()));
+                    skippedBases, currentPos, lastLoc, locus));
         }
         return Math.max(skippedBases, 0);
     }
@@ -175,8 +174,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      * @return
      */
     public GenomeLoc getLocOneBeyondShard() {
-        GenomeLoc lastLocus = !shard.getGenomeLocs().isEmpty() ? shard.getGenomeLocs().get(shard.getGenomeLocs().size()-1) : null;
-        return GenomeLocParser.createGenomeLoc(lastLocus.getContigIndex(),lastLocus.getStop()+1);
+        return GenomeLocParser.createGenomeLoc(locus.getContigIndex(),locus.getStop()+1);
     }
 
     /**

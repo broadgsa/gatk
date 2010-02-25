@@ -195,7 +195,6 @@ public class TraverseDuplicates extends TraversalEngine {
      * Traverse by reads, given the data and the walker
      *
      * @param walker the walker to execute over
-     * @param shard  the shard of data to feed the walker
      * @param sum    of type T, the return from the walker
      * @param <M>    the generic type
      * @param <T>    the return type of the reduce function
@@ -203,7 +202,6 @@ public class TraverseDuplicates extends TraversalEngine {
      * @return the result type T, the product of all the reduce calls
      */
     public <M, T> T traverse(Walker<M, T> walker,
-                             Shard shard,
                              ShardDataProvider dataProvider,
                              T sum) {
         // safety first :-)

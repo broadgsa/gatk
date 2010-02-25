@@ -89,6 +89,11 @@ public class GenomeAnalysisEngine {
     private Map<ArgumentSource, Object> inputs = new HashMap<ArgumentSource, Object>();
 
     /**
+     * Collection of intervals used by the walker.
+     */
+    private GenomeLocSortedSet intervals = null;
+
+    /**
      * Collection of outputs used by the walker.
      */
     private Collection<Stub<?>> outputs = new ArrayList<Stub<?>>();
@@ -156,14 +161,13 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(my_walker, microScheduler.getOutputTracker());
 
-        GenomeLocSortedSet locs = null;
         if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
-            locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
+            intervals = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
         }
 
         ShardStrategy shardStrategy = getShardStrategy(my_walker,
                                                        microScheduler.getReference(),
-                                                       locs,
+                                                       intervals,
                                                        argCollection.maximumEngineIterations,
                                                        readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
 
@@ -281,11 +285,11 @@ public class GenomeAnalysisEngine {
         // we need to verify different parameter based on the walker type
         if (my_walker instanceof LocusWalker || my_walker instanceof LocusWindowWalker) {
             // create the MicroScheduler
-            microScheduler = MicroScheduler.create(my_walker, readsDataSource, referenceDataSource, rodDataSources, argCollection.numberOfThreads);
+            microScheduler = MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource,rodDataSources,argCollection.numberOfThreads);
         } else if (my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
             if (argCollection.referenceFile == null)
                 Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
-            microScheduler = MicroScheduler.create(my_walker, readsDataSource, referenceDataSource, rodDataSources, argCollection.numberOfThreads);
+            microScheduler = MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource,rodDataSources,argCollection.numberOfThreads);
         } else {
             Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type %s", walkerManager.getName(my_walker.getClass())));
         }
@@ -801,6 +805,14 @@ public class GenomeAnalysisEngine {
      */
     public GATKArgumentCollection getArguments() {
         return this.argCollection;
+    }
+
+    /**
+     * Get the list of intervals passed to the engine.
+     * @return List of intervals.
+     */
+    public GenomeLocSortedSet getIntervals() {
+        return this.intervals;
     }
 
     /**

@@ -2,11 +2,15 @@ package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 /**
  * User: hanna
  * Date: May 18, 2009
@@ -43,9 +47,9 @@ public abstract class Accumulator {
      * @param walker Walker for which to build an accumulator.
      * @return Accumulator suitable for this walker.s
      */
-    public static Accumulator create( Walker walker ) {
+    public static Accumulator create( GenomeAnalysisEngine engine, Walker walker ) {
         if( walker.isReduceByInterval() )
-            return new IntervalAccumulator( walker );
+            return new IntervalAccumulator( walker, engine.getIntervals() );
         else
             return new StandardAccumulator( walker );
     }
@@ -61,7 +65,7 @@ public abstract class Accumulator {
      * @param result Result of the most recent accumulation.
      * @return the newest accumulation of the given data.
      */
-    public abstract void accumulate( Shard shard, Object result );
+    public abstract void accumulate( ShardDataProvider provider, Object result );
 
     /**
      * Finishes off the traversal.  Submits accumulated results to
@@ -103,7 +107,7 @@ public abstract class Accumulator {
          * The result of the accumulator in a non-intervals walker
          * already takes the accumulation into account.  return the result. 
          */
-        public void accumulate( Shard shard, Object result ) { this.accumulator = result; }
+        public void accumulate( ShardDataProvider provider, Object result ) { this.accumulator = result; }
 
         /**
          * The result of the traversal is the list of accumulated intervals.
@@ -119,25 +123,51 @@ public abstract class Accumulator {
      * and aggregates those results into a single list.
      */
     private static class IntervalAccumulator extends Accumulator {
-        private List<Pair<GenomeLoc,Object>> intervalAccumulator = new ArrayList<Pair<GenomeLoc,Object>>();
+        /**
+         * An iterator through all intervals in the series.
+         */
+        private final Iterator<GenomeLoc> intervalIterator;
 
-        protected IntervalAccumulator( Walker walker ) {
+        /**
+         * For which interval is the accumulator currently accumulating?
+         */
+        private GenomeLoc currentInterval = null;
+
+        /**
+         * The actual mapping of interval to accumulator.
+         */
+        private final List<Pair<GenomeLoc,Object>> intervalAccumulator = new ArrayList<Pair<GenomeLoc,Object>>();
+
+        private Object nextReduceInit = null;
+
+        protected IntervalAccumulator(Walker walker, GenomeLocSortedSet intervals) {
             super(walker);
+            this.intervalIterator = intervals.iterator();
+            if(intervalIterator.hasNext()) currentInterval = intervalIterator.next();
+            nextReduceInit = walker.reduceInit();
         }
 
         /**
          * Interval accumulator always feeds reduceInit into every new traversal.
          */
-        public Object getReduceInit() { return walker.reduceInit(); }
+        public Object getReduceInit() { return nextReduceInit; }
 
         /**
          * Create a holder for interval results if none exists.  Add the result to the holder.
          */
-        public void accumulate( Shard shard, Object result ) {
-            // TODO: The following code is actually wrong we'll be doubly assigning results to locations.
-            //       Fix before the new sharding system comes online.
-            for(GenomeLoc genomeLoc: shard.getGenomeLocs())
-                intervalAccumulator.add( new Pair<GenomeLoc,Object>( genomeLoc, result ) );
+        public void accumulate( ShardDataProvider provider, Object result ) {
+            GenomeLoc location = provider.getLocus();
+
+            // Pull the interval iterator ahead to the interval overlapping this shard fragment.
+            while((currentInterval == null || currentInterval.isBefore(location)) && intervalIterator.hasNext())
+                currentInterval = intervalIterator.next();
+
+            if(currentInterval != null && currentInterval.getContig().equals(location.getContig()) && currentInterval.getStop() == location.getStop()) {
+                intervalAccumulator.add(new Pair<GenomeLoc,Object>(currentInterval,result));
+                nextReduceInit = walker.reduceInit();
+            }
+            else
+                nextReduceInit = result;
         }
 
         /**

@@ -28,7 +28,6 @@ public class TraverseLocusWindows extends TraversalEngine {
     private static final String LOCUS_WINDOW_STRING = "intervals";
 
     public <M,T> T traverse( Walker<M,T> walker,
-                             Shard shard,
                              ShardDataProvider dataProvider,
                              T sum ) {
 
@@ -37,9 +36,7 @@ public class TraverseLocusWindows extends TraversalEngine {
 
         LocusWindowWalker<M, T> locusWindowWalker = (LocusWindowWalker<M, T>)walker;
 
-        if(shard.getGenomeLocs().size() > 1)
-            throw new StingException("This traversal does not support multiple intervals within a single shard");
-        GenomeLoc interval = shard.getGenomeLocs().get(0);
+        GenomeLoc interval = dataProvider.getLocus();
 
         ReadView readView = new ReadView( dataProvider );
         LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );

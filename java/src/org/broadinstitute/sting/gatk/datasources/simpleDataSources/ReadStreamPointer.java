@@ -146,10 +146,9 @@ class MappedReadStreamPointer extends ReadStreamPointer {
 
         // The getStop() + 1 is a hack to work around an old bug in the way Picard created SAM files where queries
         // over a given interval would occasionally not pick up the last read in that interval.
-        GenomeLoc bounds = mappedSegment.getBounds();
-        mergingIterator.queryOverlapping( bounds.getContig(),
-                                          (int)bounds.getStart(),
-                                          (int)bounds.getStop()+ PlusOneFixIterator.PLUS_ONE_FIX_CONSTANT);
+        mergingIterator.queryOverlapping( mappedSegment.locus.getContig(),
+                                          (int)mappedSegment.locus.getStart(),
+                                          (int)mappedSegment.locus.getStop()+ PlusOneFixIterator.PLUS_ONE_FIX_CONSTANT);
 
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
@@ -165,10 +164,9 @@ class MappedReadStreamPointer extends ReadStreamPointer {
         MergingSamRecordIterator2 mergingIterator = new MergingSamRecordIterator2( headerMerger, sourceInfo );
         // NOTE: explicitly not using the queryOverlapping hack above since, according to the above criteria,
         //       we'd only miss reads that are one base long when performing a contained query.
-        GenomeLoc bounds = mappedSegment.getBounds();
-        mergingIterator.queryContained( bounds.getContig(),
-                (int)bounds.getStart(),
-                (int)bounds.getStop()+1);
+        mergingIterator.queryContained( mappedSegment.locus.getContig(),
+                (int)mappedSegment.locus.getStart(),
+                (int)mappedSegment.locus.getStop()+1);
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
 

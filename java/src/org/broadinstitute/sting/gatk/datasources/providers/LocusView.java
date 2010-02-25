@@ -5,7 +5,6 @@ import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
@@ -34,9 +33,9 @@ import java.util.NoSuchElementException;
 
 public abstract class LocusView extends LocusIterator implements View {
     /**
-     * The shard bounding this view.
+     * The locus bounding this view.
      */
-    protected Shard shard;
+    protected GenomeLoc locus;
 
     /**
      * Source info for this view.  Informs the class about downsampling requirements.
@@ -55,7 +54,7 @@ public abstract class LocusView extends LocusIterator implements View {
     private AlignmentContext nextLocus = null;
 
     public LocusView(ShardDataProvider provider) {
-        this.shard = provider.getShard();
+        this.locus = provider.getLocus();
         
         Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
         this.sourceInfo = provider.getReadIterator().getSourceInfo();
@@ -79,7 +78,7 @@ public abstract class LocusView extends LocusIterator implements View {
      */
     public void close() {
         // Set everything to null with the hope of failing fast.
-        shard = null;
+        locus = null;
         sourceInfo = null;
         loci = null;
 
@@ -151,7 +150,7 @@ public abstract class LocusView extends LocusIterator implements View {
         nextLocus = loci.next();
 
         // If the location of this shard is available, trim the data stream to match the shard.
-        if(!shard.getGenomeLocs().isEmpty()) {
+        if(locus != null) {
             // Iterate through any elements not contained within this shard.
             while( nextLocus != null && !isContainedInShard(nextLocus.getLocation()) && loci.hasNext() )
                 nextLocus = loci.next();
@@ -168,11 +167,7 @@ public abstract class LocusView extends LocusIterator implements View {
      * @return True if the given location is contained within the shard.  False otherwise.
      */
     private boolean isContainedInShard(GenomeLoc location) {
-        for(GenomeLoc shardLocation: shard.getGenomeLocs()) {
-            if(shardLocation.containsP(location))
-                return true;
-        }
-        return false;
+        return locus.containsP(location);
     }
 
     /**

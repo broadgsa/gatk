@@ -67,7 +67,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Iterator through the data.
      */
     public Iterator seek( Shard shard ) {
-        DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs()) : new EntireStream();
+        DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs().get(0)) : new EntireStream();
         SeekableRODIterator iterator = iteratorPool.iterator(dataStreamSegment);
         return iterator;
     }

@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
@@ -34,9 +33,15 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
+import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.*;
+import java.io.File;
 
 
 /**
@@ -51,11 +56,16 @@ import java.util.*;
 public abstract class MicroScheduler {
     protected static Logger logger = Logger.getLogger(MicroScheduler.class);
 
+    /**
+     * The engine invoking this scheduler.
+     */
+    protected final GenomeAnalysisEngine engine;
+
     protected final TraversalEngine traversalEngine;
     protected final IndexedFastaSequenceFile reference;
 
     private final SAMDataSource reads;
-    private final Collection<ReferenceOrderedDataSource> rods;
+    protected final Collection<ReferenceOrderedDataSource> rods;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -69,13 +79,13 @@ public abstract class MicroScheduler {
      *
      * @return The best-fit microscheduler.
      */
-    public static MicroScheduler create(Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
+    public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
         if (walker instanceof TreeReducible && nThreadsToUse > 1) {
             logger.info("Creating hierarchical microscheduler");
-            return new HierarchicalMicroScheduler(walker, reads, reference, rods, nThreadsToUse);
+            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, nThreadsToUse);
         } else {
             logger.info("Creating linear microscheduler");
-            return new LinearMicroScheduler(walker, reads, reference, rods);
+            return new LinearMicroScheduler(engine, walker, reads, reference, rods);
         }
     }
 
@@ -87,7 +97,8 @@ public abstract class MicroScheduler {
      * @param reference The reference.
      * @param rods    the rods to include in the traversal
      */
-    protected MicroScheduler(Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+    protected MicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+        this.engine = engine;
         this.reads = reads;
         this.reference = reference;
         this.rods = rods;
@@ -123,16 +134,13 @@ public abstract class MicroScheduler {
      */
     public abstract OutputTracker getOutputTracker();
 
-
     /**
-     * Gets an window into all the data that can be viewed as a single shard.
-     *
-     * @param shard The section of data to view.
-     *
-     * @return An accessor for all the data in this shard.
+     * Gets the an iterator over the given reads, which will iterate over the reads in the given shard.
+     * @param shard the shard to use when querying reads.
+     * @return an iterator over the reads specified in the shard.
      */
-    protected ShardDataProvider getShardDataProvider(Shard shard) {
-        return new ShardDataProvider(shard, reads, reference, rods);
+    protected StingSAMIterator getReadIterator(Shard shard) {
+        return (reads != null) ? reads.seek(shard) : new NullSAMIterator(new Reads(new ArrayList<File>()));
     }
 
     /**

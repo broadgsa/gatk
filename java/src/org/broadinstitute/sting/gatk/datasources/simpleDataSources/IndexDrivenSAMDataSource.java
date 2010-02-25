@@ -217,7 +217,7 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
             throw new StingException("This SAMDataSource does not support multiple intervals within a single shard");
         GenomeLoc shardGenomeLoc = shard.getGenomeLocs().get(0);
 
-        return createIterator( new MappedStreamSegment(Collections.singletonList(shardGenomeLoc)) );
+        return createIterator( new MappedStreamSegment(shardGenomeLoc) );
     }
 
     /**
@@ -243,11 +243,11 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
         if (!intoUnmappedReads) {
             if (lastReadPos == null) {
                 lastReadPos = GenomeLocParser.createGenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
-                iter = createIterator(new MappedStreamSegment(Collections.singletonList(lastReadPos)));
+                iter = createIterator(new MappedStreamSegment(lastReadPos));
                 return InitialReadIterator(readShard.getSize(), iter);
             } else {
                 lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
-                iter = fastMappedReadSeek(readShard.getSize(), StingSAMIteratorAdapter.adapt(reads, createIterator(new MappedStreamSegment(Collections.singletonList(lastReadPos)))));
+                iter = fastMappedReadSeek(readShard.getSize(), StingSAMIteratorAdapter.adapt(reads, createIterator(new MappedStreamSegment(lastReadPos))));
             }
 
             if (intoUnmappedReads && !includeUnmappedReads)
@@ -347,7 +347,7 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
                     readsTaken = readCount;
                     readsSeenAtLastPos = 0;
                     lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
-                    CloseableIterator<SAMRecord> ret = createIterator(new MappedStreamSegment(Collections.singletonList(lastReadPos)));
+                    CloseableIterator<SAMRecord> ret = createIterator(new MappedStreamSegment(lastReadPos));
                     return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, ret), readCount);
                 }
             }

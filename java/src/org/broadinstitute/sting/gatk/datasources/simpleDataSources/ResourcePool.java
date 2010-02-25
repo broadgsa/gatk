@@ -170,39 +170,18 @@ class EntireStream implements DataStreamSegment {
  * Models a mapped position within a stream of GATK input data.
  */
 class MappedStreamSegment implements DataStreamSegment {
-    public final List<GenomeLoc> loci;
+    public final GenomeLoc locus;
 
     /**
      * Retrieves the first location covered by a mapped stream segment.
      * @return Location of the first base in this segment.
      */
     public GenomeLoc getFirstLocation() {
-        GenomeLoc firstLocus = loci.get(0);
-        return GenomeLocParser.createGenomeLoc(firstLocus.getContigIndex(),firstLocus.getStart());
+        return GenomeLocParser.createGenomeLoc(locus.getContigIndex(),locus.getStart());
     }
 
-    /**
-     * Get the total range of the given mapped stream segment. 
-     * @return A GenomeLoc consisting of the first base of the first locus to the last base of the last locus, inclusive.
-     */
-    public GenomeLoc getBounds() {
-        GenomeLoc firstLocus = loci.get(0);
-        GenomeLoc lastLocus = loci.get(loci.size()-1);
-        return GenomeLocParser.createGenomeLoc(getFirstLocation().getContigIndex(),firstLocus.getStart(),lastLocus.getStop());
-    }
-
-    public MappedStreamSegment( List<GenomeLoc> loci ) {
-        // Validate that the list of loci is non-empty.
-        if(loci.size() == 0)
-            throw new StingException("Cannot map to a locus of length 0.");
-
-        // Validate that all loci in the given list are from the same contig.
-        int contigIndex = loci.get(0).getContigIndex();
-        for(GenomeLoc locus: loci) {
-            if(contigIndex != locus.getContigIndex())
-                throw new StingException("All loci in a MappedStreamSegment must be on the same contig.");
-        }
-        this.loci = loci;
+    public MappedStreamSegment(GenomeLoc locus) {
+        this.locus = locus;
     }
 }
 

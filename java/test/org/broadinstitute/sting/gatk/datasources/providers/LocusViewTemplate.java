@@ -46,7 +46,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         GenomeLoc shardBounds = GenomeLocParser.createGenomeLoc("chr1", 1, 5);
         Shard shard = new LocusShard(Collections.singletonList(shardBounds));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
 
         LocusView view = createView(dataProvider);
 
@@ -60,7 +60,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         GenomeLoc shardBounds = GenomeLocParser.createGenomeLoc("chr1", 1, 5);
         Shard shard = new LocusShard(Collections.singletonList(shardBounds));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
 
         LocusView view = createView(dataProvider);
 
@@ -73,7 +73,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
@@ -85,7 +85,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
@@ -97,7 +97,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
@@ -109,7 +109,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 6, 15)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
@@ -121,7 +121,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         testReadsInContext(view, shard.getGenomeLocs(), Collections.singletonList(read));
@@ -134,7 +134,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
@@ -151,7 +151,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
@@ -168,7 +168,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
@@ -187,7 +187,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4, read5, read6);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
@@ -213,7 +213,7 @@ public abstract class LocusViewTemplate extends BaseTest {
                                                            read07, read08, read09, read10, read11, read12);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 6, 15)));
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, iterator);
+        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), iterator);
         LocusView view = createView(dataProvider);
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();

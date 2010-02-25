@@ -34,7 +34,7 @@ public class ShardDataProviderTest extends BaseTest {
 
     @Before
     public void createProvider() {
-        provider = new ShardDataProvider( null,null,null,null );
+        provider = new ShardDataProvider( null,null,null,null,null );
     }
 
     /**

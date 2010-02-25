@@ -6,8 +6,11 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.io.*;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
@@ -73,12 +76,13 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
      *
+     * @param walker        the walker used to process the dataset.
      * @param reads         Reads file(s) to process.
      * @param reference     Reference for driving the traversal.
      * @param nThreadsToUse maximum number of threads to use to do the work
      */
-    protected HierarchicalMicroScheduler( Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse ) {
-        super(walker, reads, reference, rods);
+    protected HierarchicalMicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse ) {
+        super(engine, walker, reads, reference, rods);
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
 
         try {
@@ -282,8 +286,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         ShardTraverser traverser = new ShardTraverser(this,
                 traversalEngine,
                 walker,
-                shard,
-                getShardDataProvider(shard),
+                new ShardDataProvider(shard,shard.getGenomeLocs().get(0),getReadIterator(shard),reference,rods),
                 outputTracker);
 
         Future traverseResult = threadPool.submit(traverser);

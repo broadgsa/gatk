@@ -38,10 +38,9 @@ public class TraverseLoci extends TraversalEngine {
 
     @Override
     public <M,T> T traverse( Walker<M,T> walker,
-                             Shard shard,
                              ShardDataProvider dataProvider,
                              T sum ) {
-        logger.debug(String.format("TraverseLoci.traverse: Shard is %s", shard));
+        logger.debug(String.format("TraverseLoci.traverse: Shard is %s", dataProvider));
 
         if ( !(walker instanceof LocusWalker) )
             throw new IllegalArgumentException("Walker isn't a loci walker!");

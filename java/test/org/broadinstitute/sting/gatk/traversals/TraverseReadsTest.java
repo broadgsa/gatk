@@ -132,8 +132,8 @@ public class TraverseReadsTest extends BaseTest {
                 fail("Shard == null");
             }
 
-            ShardDataProvider dataProvider = new ShardDataProvider(shard,dataSource,null,null);
-            accumulator = traversalEngine.traverse(countReadWalker, shard, dataProvider, accumulator);
+            ShardDataProvider dataProvider = new ShardDataProvider(shard,null,dataSource.seek(shard),null,null);
+            accumulator = traversalEngine.traverse(countReadWalker, dataProvider, accumulator);
             dataProvider.close();
 
         }
@@ -178,8 +178,8 @@ public class TraverseReadsTest extends BaseTest {
                 fail("Shard == null");
             }
 
-            ShardDataProvider dataProvider = new ShardDataProvider(shard,dataSource,null,null);
-            accumulator = traversalEngine.traverse(countReadWalker, shard, dataProvider, accumulator);
+            ShardDataProvider dataProvider = new ShardDataProvider(shard,null,dataSource.seek(shard),null,null);
+            accumulator = traversalEngine.traverse(countReadWalker, dataProvider, accumulator);
             dataProvider.close();
         }
 

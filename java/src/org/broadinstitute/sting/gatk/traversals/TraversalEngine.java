@@ -113,7 +113,6 @@ public abstract class TraversalEngine {
      * this method must be implemented by all traversal engines
      *
      * @param walker       the walker to run with
-     * @param shard        a shard of data
      * @param dataProvider the data provider that generates data given the shard
      * @param sum          the accumulator
      * @param <M>          an object of the map type
@@ -122,7 +121,6 @@ public abstract class TraversalEngine {
      * @return an object of the reduce type
      */
     public abstract <M, T> T traverse(Walker<M, T> walker,
-                                      Shard shard,
                                       ShardDataProvider dataProvider,
                                       T sum);
 }

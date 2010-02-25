@@ -75,7 +75,6 @@ public class ArtificialReadsTraversal extends TraversalEngine {
      * Traverse by reads, given the data and the walker
      *
      * @param walker       the walker to traverse with
-     * @param shard        the shard, specifying the range of data to iterate over
      * @param dataProvider the provider of the reads data
      * @param sum          the value of type T, specified by the walker, to feed to the walkers reduce function
      * @param <M>          the map type of the walker
@@ -84,7 +83,6 @@ public class ArtificialReadsTraversal extends TraversalEngine {
      * @return the reduce variable of the read walker
      */
     public <M, T> T traverse( Walker<M, T> walker,
-                              Shard shard,
                               ShardDataProvider dataProvider,
                               T sum ) {
 

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import java.util.NoSuchElementException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -46,7 +47,7 @@ public class AllLocusView extends LocusView {
     public AllLocusView(ShardDataProvider provider) {                
         super( provider );
         // Seed the state tracking members with the first possible seek position and the first possible locus context.
-        locusIterator = new GenomeLocusIterator( provider.getShard().getGenomeLocs() );
+        locusIterator = new GenomeLocusIterator( Collections.singletonList(provider.getLocus()) );
         if( locusIterator.hasNext() ) {
             nextPosition = locusIterator.next();
             nextLocus = hasNextLocus() ? nextLocus() : createEmptyLocus(nextPosition);

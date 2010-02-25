@@ -134,19 +134,7 @@ public class LocusReferenceView extends ReferenceView {
     }
 
     private void initializeBounds(ShardDataProvider provider) {
-        List<GenomeLoc> loci = provider.getShard().getGenomeLocs();
-
-        if(loci.isEmpty()) {
-            bounds = null;
-            return;
-        }
-
-        GenomeLoc firstLocus = loci.get(0);
-        GenomeLoc lastLocus = loci.get(loci.size()-1);
-        if(firstLocus.getContigIndex() != lastLocus.getContigIndex())
-            throw new StingException("LocusReferenceView currently only supports multiple intervals on the same contig.");
-
-        bounds = GenomeLocParser.createGenomeLoc(firstLocus.getContig(),firstLocus.getStart(),lastLocus.getStop());
+        bounds = provider.getLocus();
     }
 
     /**

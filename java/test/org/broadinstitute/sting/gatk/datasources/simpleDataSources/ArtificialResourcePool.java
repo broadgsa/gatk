@@ -69,7 +69,7 @@ public class ArtificialResourcePool extends SAMResourcePool {
         if (segment instanceof MappedStreamSegment && iterator instanceof ArtificialSAMQueryIterator) {
             ArtificialSAMQueryIterator queryIterator = (ArtificialSAMQueryIterator)iterator;
             MappedStreamSegment mappedSegment = (MappedStreamSegment)segment;
-            GenomeLoc bounds = mappedSegment.getBounds();
+            GenomeLoc bounds = mappedSegment.locus;
             if (!this.queryOverlapping) {
                 queryIterator.queryContained(bounds.getContig(), (int)bounds.getStart(), (int)bounds.getStop());
             } else {

@@ -1,18 +1,15 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
-import java.io.File;
 /**
  * User: hanna
  * Date: May 8, 2009
@@ -42,6 +39,11 @@ public class ShardDataProvider {
     private final Shard shard;
 
     /**
+     * The particular locus for which data is provided.  Should be contained within shard.getGenomeLocs().
+     */
+    private final GenomeLoc locus;
+
+    /**
      * The raw collection of reads.
      */
     private final StingSAMIterator reads;
@@ -62,6 +64,14 @@ public class ShardDataProvider {
      */
     public Shard getShard() {
         return shard;
+    }
+
+    /**
+     * Gets the locus associated with this shard data provider. 
+     * @return The locus.
+     */
+    public GenomeLoc getLocus() {
+        return locus;
     }
 
     /**
@@ -111,10 +121,10 @@ public class ShardDataProvider {
      * @param reads A window into the reads for a given region.
      * @param reference A getter for a section of the reference.
      */
-    public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+    public ShardDataProvider(Shard shard,GenomeLoc locus,StingSAMIterator reads,IndexedFastaSequenceFile reference,Collection<ReferenceOrderedDataSource> rods) {
         this.shard = shard;
-        // Provide basic reads information.
-        this.reads = (reads != null) ? reads.seek( shard ) : new NullSAMIterator(new Reads(new ArrayList<File>()));
+        this.locus = locus;
+        this.reads = reads;
         this.reference = reference;
         this.referenceOrderedData = rods;
     }
@@ -124,11 +134,8 @@ public class ShardDataProvider {
      * @param shard the shard
      * @param reads reads iterator.
      */
-    ShardDataProvider( Shard shard, StingSAMIterator reads ) {
-        this.shard = shard;
-        this.reads = reads;
-        this.reference = null;
-        this.referenceOrderedData = null;
+    ShardDataProvider(Shard shard,GenomeLoc locus,StingSAMIterator reads) {
+        this(shard,locus,reads,null,null);
     }
 
     /**
@@ -171,6 +178,12 @@ public class ShardDataProvider {
         // to views, which can in turn hold state.
         registeredViews.clear();
 
-        reads.close();
+        if(reads != null)
+            reads.close();
+    }
+
+    @Override
+    public String toString() {
+        return shard.toString();
     }
 }

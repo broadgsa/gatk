@@ -27,7 +27,6 @@ public class ShardTraverser implements Callable {
     private HierarchicalMicroScheduler microScheduler;
     private Walker walker;
     private TraversalEngine traversalEngine;
-    private Shard shard;
     private ShardDataProvider dataProvider;
     private ThreadLocalOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
@@ -40,13 +39,11 @@ public class ShardTraverser implements Callable {
     public ShardTraverser( HierarchicalMicroScheduler microScheduler,
                            TraversalEngine traversalEngine,
                            Walker walker,
-                           Shard shard,
                            ShardDataProvider dataProvider,
                            ThreadLocalOutputTracker outputTracker ) {
         this.microScheduler = microScheduler;
         this.walker = walker;
         this.traversalEngine = traversalEngine;
-        this.shard = shard;
         this.dataProvider = dataProvider;
         this.outputTracker = outputTracker;
     }
@@ -56,7 +53,7 @@ public class ShardTraverser implements Callable {
 
         Object accumulator = walker.reduceInit();
         try {
-            accumulator = traversalEngine.traverse( walker, shard, dataProvider, accumulator );
+            accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
         }
         finally {
             dataProvider.close();

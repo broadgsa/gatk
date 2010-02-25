@@ -67,7 +67,7 @@ public class PrintReadsWalkerTest extends BaseTest {
     public void testReadCount() {
         PrintReadsWalker walker = new PrintReadsWalker();
         ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
-        trav.traverse(walker, (Shard) null, (ShardDataProvider) null, writer);
+        trav.traverse(walker, null, writer);
         assertEquals(readTotal, writer.getRecords().size());
     }
 
