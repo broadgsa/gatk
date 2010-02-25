@@ -231,8 +231,10 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
 
         printIntervalTable(statsOut,nTargetsByAvgCvgBySample,firstStats.getEndpoints());
 
-        summaryOut.close();
-        statsOut.close();
+        if ( ! getToolkit().getArguments().outFileName.contains("stdout")) {
+            summaryOut.close();
+            statsOut.close();
+        }
 
         return firstStats;
     }
