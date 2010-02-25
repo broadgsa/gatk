@@ -17,10 +17,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A parallelizable walker designed to quickly aggregate relevant coverage statistics across samples in the input
@@ -85,6 +82,27 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         if ( getToolkit().getArguments().outFileName == null ) {
             throw new StingException("This walker requires that you specify an output file (-o)");
         }
+
+        if ( ! omitDepthOutput ) { // print header
+            out.printf("%s\t%s\t%s","Locus","Total_Depth","Average_Depth");
+            // get all the samples
+            HashSet<String> allSamples = new HashSet<String>(); // since the DOCS object uses a HashMap, this will be in the same order
+
+            for ( Set<String> sampleSet : getToolkit().getSamplesByReaders()) {
+                for (String s : sampleSet) {
+                    allSamples.add(s);
+                }
+            }
+
+            for ( String s : allSamples) {
+                out.printf("\t%s_%s","Depth_for",s);
+            }
+
+            out.printf("%n");
+
+        } else {
+            out.printf("Per-Locus Depth of Coverage output was omitted");
+        }
     }
 
     public boolean isReduceByInterval() {
@@ -103,16 +121,6 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
 
         if ( ! omitLocusTable ) {
             stats.initializeLocusCounts();
-        }
-        
-        if ( ! omitDepthOutput ) { // print header
-            out.printf("%s\t%s\t%s","Locus","Total_Depth","Average_Depth");
-            for ( String s : stats.getAllSamples()) {
-                out.printf("\t%s_%s","Depth_for",s);
-            }
-            out.printf("%n");
-        } else {
-            out.printf("Per-Locus Depth of Coverage output was omitted");
         }
 
         return stats;
@@ -312,11 +320,20 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
     ////////////////////////////////////////////////////////////////////////////////////
 
     public void onTraversalDone(DepthOfCoverageStats coverageProfiles) {
+        logger.info("I am in the final ONTRAVERSALDONE");
+        logger.info(coverageProfiles.getTotalLoci()+" loci covered");
+        if ( out == null) {
+            logger.info("Out is now null");
+        } else {
+            logger.info(" ::: TESTING OUT ::: ");
+            out.println("====This is a test====");
+        }
         ///////////////////
         // OPTIONAL OUTPUTS
         //////////////////
 
         if ( ! omitSampleSummary ) {
+            logger.info("Printing sample summary");
             File summaryStatisticsFile = deriveFromStream("summary_statistics");
             File perSampleStatisticsFile = deriveFromStream("sample_statistics");
             printSummary(out,summaryStatisticsFile,coverageProfiles);
@@ -324,6 +341,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         }
 
         if ( ! omitLocusTable ) {
+            logger.info("Printing locus summary");
             File perLocusStatisticsFile = deriveFromStream("locus_statistics");
             printPerLocus(perLocusStatisticsFile,coverageProfiles);
         }
