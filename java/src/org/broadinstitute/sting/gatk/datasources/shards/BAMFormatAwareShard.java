@@ -48,12 +48,4 @@ public interface BAMFormatAwareShard extends Shard {
      * @return An iterator over the reads stored in the shard.
      */
     public StingSAMIterator iterator();
-
-    /**
-     * Get the bounds of the current shard.  Current bounds
-     * will be the unfiltered extents of the current shard, from
-     * the start of the first interval to the end of the last interval.
-     * @return The bounds of the shard.
-     */
-    public GenomeLoc getBounds();
 }

@@ -86,14 +86,12 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     }
 
     /**
-     * Get the bounds of the current shard.  Current bounds
-     * will be the unfiltered extents of the current shard, from
-     * the start of the first interval to the end of the last interval.
-     * @return The bounds of the shard.
+     * returns the type of shard.
      */
-    public GenomeLoc getBounds() {
-        return null;
-    }
+    @Override
+    public ShardType getShardType() {
+        return shardType;
+    }    
 
     /**
      * String representation of this shard.
