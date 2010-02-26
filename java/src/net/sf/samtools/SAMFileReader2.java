@@ -24,7 +24,6 @@
 package net.sf.samtools;
 
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.PicardException;
 
 import java.io.*;
 import java.util.List;
@@ -150,6 +149,12 @@ public class SAMFileReader2 extends SAMFileReader {
         // TODO: Add sanity checks so that we're not doing this against an unsupported BAM file.
         BAMFileReader2 reader = (BAMFileReader2)JVMUtils.getFieldValue(getField("mReader"),this);
         return reader.getFilePointersBounding(bin);
+    }
+
+    public Chunk getCurrentPosition() {
+        // TODO: Add sanity checks so that we're not doing this against an unsupported BAM file.
+        BAMFileReader2 reader = (BAMFileReader2)JVMUtils.getFieldValue(getField("mReader"),this);
+        return new Chunk(reader.getFilePointer(),Long.MAX_VALUE);
     }
 
     private Field getField(String fieldName) {

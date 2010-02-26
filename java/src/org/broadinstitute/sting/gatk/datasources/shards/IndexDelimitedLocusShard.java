@@ -3,8 +3,10 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
+import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,27 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
             throw new StingException("Attempted to create an IndexDelimitedLocusShard with invalid shard type: " + shardType);
         this.shardType = shardType;
     }
+
+    /**
+     * Returns true if this shard is meant to buffer reads, rather
+     * than just holding pointers to their locations.
+     * @return True if this shard can buffer reads.  False otherwise.
+     */
+    public boolean buffersReads() { return false; }
+
+    /**
+     * Returns true if the read buffer is currently full.
+     * @return True if this shard's buffer is full (and the shard can buffer reads).
+     */
+    public boolean isBufferFull() { throw new UnsupportedOperationException("This shard does not buffer reads."); }
+
+    /**
+     * Adds a read to the read buffer.
+     * @param read Add a read to the internal shard buffer.
+     */
+    public void addRead(SAMRecord read) { throw new UnsupportedOperationException("This shard does not buffer reads."); }
+
+    public StingSAMIterator iterator() { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
     /**
      * Gets the chunks associated with this locus shard.

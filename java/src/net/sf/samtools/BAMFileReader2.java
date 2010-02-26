@@ -200,6 +200,10 @@ class BAMFileReader2
         return (filePointers != null) ? Chunk.toChunkList(filePointers) : Collections.<Chunk>emptyList();
     }
 
+    public Long getFilePointer() {
+        return mCompressedInputStream.getFilePointer();
+    }
+
     /**
      * Prepare to iterate through the SAMRecords that match the given interval.
      * Only a single iterator on a BAMFile can be extant at a time.  The previous one must be closed

@@ -81,6 +81,18 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         return filePointers;
     }
 
+    /**
+     * Retrieves the current position within the BAM file.
+     * @return A mapping of reader to current position.
+     */
+    public Map<SAMFileReader2,Chunk> getCurrentPosition() {
+        Map<SAMFileReader2,Chunk> currentPositions = new HashMap<SAMFileReader2,Chunk>();
+        for(SAMFileReader reader: headerMerger.getReaders()) {
+            SAMFileReader2 reader2 = (SAMFileReader2)reader;
+            currentPositions.put(reader2,reader2.getCurrentPosition());
+        }
+        return currentPositions;
+    }
 
     /**
      * Get the number of levels employed by this index.
@@ -137,36 +149,65 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         return firstReader.getLastLocusInBin(bin);
     }
 
+    /**
+     * Fill the given buffering shard with reads.
+     * @param shard Shard to fill.
+     * @return true if at the end of the stream.  False otherwise.
+     */
+    public boolean fillShard(BAMFormatAwareShard shard) {
+        if(!shard.buffersReads())
+            throw new StingException("Attempting to fill a non-buffering shard.");
+
+        // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards.  I don't
+        // know why this is.  Please add a comment here if you do.
+        boolean enableVerification = shard instanceof ReadShard;
+
+        CloseableIterator<SAMRecord> iterator = getIterator(shard,false,enableVerification);
+        while(!shard.isBufferFull() && iterator.hasNext())
+            shard.addRead(iterator.next());
+
+        boolean atEndOfStream = !iterator.hasNext();
+
+        iterator.close();
+
+        return atEndOfStream;
+    }
 
     public StingSAMIterator seek(Shard shard) {
         if(!(shard instanceof BAMFormatAwareShard))
             throw new StingException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard.getClass());
         BAMFormatAwareShard bamAwareShard = (BAMFormatAwareShard)shard;
 
-        // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards.  I don't
-        // know why this is.  Please add a comment here if you do.
-        boolean enableVerification = shard instanceof ReadShard;
+        if(bamAwareShard.buffersReads()) {
+            return bamAwareShard.iterator();    
+        }
+        else {
+            // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards.  I don't
+            // know why this is.  Please add a comment here if you do.
+            boolean enableVerification = shard instanceof ReadShard;
+            return getIterator(bamAwareShard,true,enableVerification);
+        }
+    }
 
-        if(shard instanceof ReadShard && reads.getReadsFiles().size() > 1)
-            throw new StingException("Experimental read sharding cannot handle multiple BAM files at this point.");
-
+    private StingSAMIterator getIterator(BAMFormatAwareShard shard, boolean addIntervalFilter, boolean enableVerification) {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
-        for(Map.Entry<SAMFileReader2,List<Chunk>> chunksByReader: bamAwareShard.getChunks().entrySet()) {
+        for(Map.Entry<SAMFileReader2,List<Chunk>> chunksByReader: shard.getChunks().entrySet()) {
             SAMFileReader2 reader = chunksByReader.getKey();
-            readerToIteratorMap.put(reader,reader.iterator(bamAwareShard.getChunks().get(reader)));
+            readerToIteratorMap.put(reader,reader.iterator(shard.getChunks().get(reader)));
         }
 
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
-        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
-        FilteringIterator filteringIterator = new FilteringIterator(mergingIterator,new IntervalOverlappingFilter(shard.getGenomeLocs()));
+        CloseableIterator<SAMRecord> iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
+        if(addIntervalFilter)
+            iterator = new FilteringIterator(iterator,new IntervalOverlappingFilter(shard.getGenomeLocs()));
 
         return applyDecoratingIterators(enableVerification,
-                StingSAMIteratorAdapter.adapt(reads,filteringIterator),
+                StingSAMIteratorAdapter.adapt(reads,iterator),
                 reads.getDownsamplingFraction(),
                 reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
-                reads.getSupplementalFilters());
+                reads.getSupplementalFilters());        
     }
-
+    
     /**
      * Gets the merged header from the SAM file.
      * @return The merged header.

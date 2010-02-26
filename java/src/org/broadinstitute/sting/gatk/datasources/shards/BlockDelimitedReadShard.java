@@ -2,12 +2,15 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
+import net.sf.samtools.SAMRecord;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Collections;
+import java.util.*;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
+import org.broadinstitute.sting.gatk.Reads;
 
 /**
  * Expresses a shard of read data in block format.
@@ -17,18 +20,54 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  */
 public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAwareShard {
     /**
-     * The reader associated with this shard.
+     * Information about the origins of reads.
      */
-    private final SAMFileReader2 reader;
-    
-    /**
-     * The list of chunks to retrieve when loading this shard.
-     */
-    private final List<Chunk> chunks;
+    private final Reads sourceInfo;
 
-    public BlockDelimitedReadShard(SAMFileReader2 reader, List<Chunk> chunks) {
-        this.reader = reader;
+    /**
+     * The data backing the next chunks to deliver to the traversal engine.
+     */
+    private final Map<SAMFileReader2,List<Chunk>> chunks;
+
+    /**
+     * The reads making up this shard.
+     */
+    private final Collection<SAMRecord> reads = new ArrayList<SAMRecord>(BlockDelimitedReadShardStrategy.MAX_READS);
+
+    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMFileReader2,List<Chunk>> chunks) {
+        this.sourceInfo = sourceInfo;
         this.chunks = chunks;
+    }
+
+    /**
+     * Returns true if this shard is meant to buffer reads, rather
+     * than just holding pointers to their locations.
+     * @return True if this shard can buffer reads.  False otherwise.
+     */
+    public boolean buffersReads() {
+        return true;
+    }
+
+    /**
+     * Returns true if the read buffer is currently full.
+     * @return True if this shard's buffer is full (and the shard can buffer reads).
+     */
+    public boolean isBufferFull() {
+        return reads.size() > BlockDelimitedReadShardStrategy.MAX_READS; 
+    }
+
+    /**
+     * Adds a read to the read buffer.
+     * @param read Add a read to the internal shard buffer.
+     */
+    public void addRead(SAMRecord read) {
+        if(isBufferFull())
+            throw new StingException("Cannot store more reads in buffer: out of space");
+        reads.add(read);
+    }
+
+    public StingSAMIterator iterator() {
+        return StingSAMIteratorAdapter.adapt(sourceInfo,reads.iterator());
     }
 
     /**
@@ -36,7 +75,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * @return a list of chunks that contain data for this shard.
      */
     public Map<SAMFileReader2,List<Chunk>> getChunks() {
-        return Collections.singletonMap(reader,chunks);
+        return Collections.unmodifiableMap(chunks);
     }
 
     /**
@@ -56,9 +95,14 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for(Chunk chunk : chunks) {
-            sb.append(chunk);
-            sb.append(' ');
+        for(Map.Entry<SAMFileReader2,List<Chunk>> entry: chunks.entrySet()) {
+            sb.append(entry.getKey());
+            sb.append(": ");
+            for(Chunk chunk : entry.getValue()) {
+                sb.append(chunk);
+                sb.append(' ');
+            }
+            sb.append(';');
         }
         return sb.toString();
     }

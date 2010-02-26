@@ -2,11 +2,13 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
+import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Map;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 
 /**
  * A common interface for shards that natively understand the BAM format.
@@ -20,6 +22,32 @@ public interface BAMFormatAwareShard extends Shard {
      * @return a list of chunks that contain data for this shard.
      */
     public Map<SAMFileReader2,List<Chunk>> getChunks();
+
+    /**
+     * Returns true if this shard is meant to buffer reads, rather
+     * than just holding pointers to their locations.
+     * @return True if this shard can buffer reads.  False otherwise.
+     */
+    public boolean buffersReads();
+
+    /**
+     * Returns true if the read buffer is currently full.
+     * @return True if this shard's buffer is full (and the shard can buffer reads).
+     */
+    public boolean isBufferFull();
+
+    /**
+     * Adds a read to the read buffer.
+     * @param read Add a read to the internal shard buffer.
+     */
+    public void addRead(SAMRecord read);
+
+    /**
+     * Assuming this iterator buffers reads, an iterator to the reads
+     * stored in the shard.
+     * @return An iterator over the reads stored in the shard.
+     */
+    public StingSAMIterator iterator();
 
     /**
      * Get the bounds of the current shard.  Current bounds

@@ -3,11 +3,10 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import net.sf.samtools.*;
 
 import java.util.*;
-import java.io.File;
-import java.io.IOException;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 
 /**
  * A read shard strategy that delimits based on the number of
@@ -18,45 +17,35 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
  */
 public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     /**
-     * Number of blocks in a given shard.
+     * What is the maximum number of reads which should go into a read shard.
      */
-    protected int blockCount = 100;
+    protected static final int MAX_READS = 10000;
 
     /**
      * The data source used to shard.
      */
-    protected final SAMDataSource dataSource;
+    protected final BlockDrivenSAMDataSource dataSource;
 
     /**
-     * The actual chunks streaming into the file.
+     * Position of the last shard in the file.
      */
-    private final BAMChunkIterator chunkIterator;
+    private Map<SAMFileReader2,Chunk> position;
 
     /**
-     * The data backing the next chunks to deliver to the traversal engine.
+     * True if the set of SAM readers is at the end of the stream.  False otherwise.
      */
-    private final List<Chunk> nextChunks;
+    private boolean atEndOfStream = false;
 
     /**
      * Create a new read shard strategy, loading read shards from the given BAM file.
      * @param dataSource Data source from which to load shards.
      */
     public BlockDelimitedReadShardStrategy(SAMDataSource dataSource) {
-        this.dataSource = dataSource;
+        if(!(dataSource instanceof BlockDrivenSAMDataSource))
+            throw new StingException("Block-delimited read shard strategy cannot work without a block-driven data source.");
 
-        if(dataSource.getReadsInfo().getReadsFiles().size() > 1)
-            throw new UnsupportedOperationException("Experimental sharding only works with a single BAM at the moment.");
-        File bamFile = dataSource.getReadsInfo().getReadsFiles().get(0);
-        try {
-            Chunk headerLocation = BAMFileHeaderLoader.load(bamFile).getLocation();
-            chunkIterator = new BAMChunkIterator(new BAMBlockIterator(bamFile),Arrays.asList(BAMFileHeaderLoader.preambleLocation,headerLocation));
-        }
-        catch(IOException ex) {
-            throw new StingException("Unable to open BAM file for sharding.");
-        }
-        nextChunks = new ArrayList<Chunk>();
-
-        advance();
+        this.dataSource = (BlockDrivenSAMDataSource)dataSource;
+        this.position = this.dataSource.getCurrentPosition();        
     }
 
     /**
@@ -64,7 +53,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      * @return True if any more data is available.  False otherwise.
      */
     public boolean hasNext() {
-        return nextChunks.size() > 0;
+        return !atEndOfStream;
     }
 
     /**
@@ -76,11 +65,16 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
         if(!hasNext())
             throw new NoSuchElementException("No such element available: SAM reader has arrived at last shard.");
 
-        if(dataSource.getReaders().size() == 0)
-            throw new StingException("Unable to shard with no readers present.");
+        // TODO: This level of processing should not be necessary.
+        Map<SAMFileReader2,List<Chunk>> boundedPosition = new HashMap<SAMFileReader2,List<Chunk>>();
+        for(Map.Entry<SAMFileReader2,Chunk> entry: position.entrySet())
+            boundedPosition.put(entry.getKey(),Collections.singletonList(entry.getValue()));
 
-        Shard shard = new BlockDelimitedReadShard((SAMFileReader2)dataSource.getReaders().iterator().next(),Collections.unmodifiableList(new ArrayList<Chunk>(nextChunks)));
-        advance();
+        BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),boundedPosition);
+        atEndOfStream = dataSource.fillShard(shard);
+
+        this.position = dataSource.getCurrentPosition();
+
         return shard;
     }
 
@@ -97,13 +91,5 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      */
     public Iterator<Shard> iterator() {
         return this;
-    }
-
-    private void advance() {
-        nextChunks.clear();
-        int chunksCopied = 0;
-
-        while(chunksCopied++ < blockCount && chunkIterator.hasNext())
-            nextChunks.add(chunkIterator.next());
     }
 }
