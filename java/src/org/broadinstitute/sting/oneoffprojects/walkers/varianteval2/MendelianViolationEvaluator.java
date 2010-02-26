@@ -94,16 +94,16 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
 
     public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( vc.isBiallelic() && vc.hasGenotypes() ) { // todo -- currently limited to biallelic loci
-            nVariants++;
-
             Genotype momG   = vc.getGenotype(trio.mom);
             Genotype dadG   = vc.getGenotype(trio.dad);
             Genotype childG = vc.getGenotype(trio.child);
 
-            if ( momG == null || dadG == null || childG == null )
-                throw new IllegalArgumentException(String.format("VariantContext didn't contain genotypes for expected trio members: mom=%s dad=%s child=%s", trio.mom, trio.dad, trio.child));
-
             if ( includeGenotype(momG) && includeGenotype(dadG) && includeGenotype(childG) ) {
+                nVariants++;
+
+                if ( momG == null || dadG == null || childG == null )
+                    throw new IllegalArgumentException(String.format("VariantContext didn't contain genotypes for expected trio members: mom=%s dad=%s child=%s", trio.mom, trio.dad, trio.child));
+
                 // all genotypes are good, so let's see if child is a violation
 
                 if ( isViolation(vc, momG, dadG, childG) ) {

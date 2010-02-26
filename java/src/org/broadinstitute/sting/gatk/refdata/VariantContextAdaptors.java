@@ -176,7 +176,8 @@ public class VariantContextAdaptors {
                 genotypes.put(g.getSampleName(), g);
             }
 
-            VariantContext vc = new VariantContext(name, vcf.getLocation(), alleles, genotypes, vcf.getNegLog10PError(), filters, attributes);
+            double qual = vcf.getQual() == -1 ? VariantContext.NO_NEG_LOG_10PERROR : vcf.getNegLog10PError();
+            VariantContext vc = new VariantContext(name, vcf.getLocation(), alleles, genotypes, qual, filters, attributes);
             vc.validate();
             return vc;
         } else
@@ -207,7 +208,8 @@ public class VariantContextAdaptors {
         String contig = vc.getLocation().getContig();
         long position = vc.getLocation().getStart();
         String ID = vc.hasAttribute("ID") ? vc.getAttributeAsString("ID") : ".";
-        double qual = vc.getPhredScaledQual();
+        double qual = vc.hasNegLog10PError() ? vc.getPhredScaledQual() : -1;
+        
         String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : VCFRecord.PASSES_FILTERS;
 
         Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();

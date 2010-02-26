@@ -100,7 +100,7 @@ final class InferredGeneticContext {
     // ---------------------------------------------------------------------------------------------------------
 
     public boolean hasNegLog10PError() {
-        return getNegLog10PError() == NO_NEG_LOG_10PERROR;
+        return getNegLog10PError() != NO_NEG_LOG_10PERROR;
     }
 
     /**

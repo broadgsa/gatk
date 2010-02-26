@@ -1,3 +1,4 @@
+
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import org.broadinstitute.sting.WalkerTest;

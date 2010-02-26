@@ -21,7 +21,7 @@ public class VariantEval2IntegrationTest extends WalkerTest {
     public void testVE2Simple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
         expectations.put("-L 1:1-10,000,000", "d58a2a22e5fb3a3d8d90ba02de37f62b");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "8a928c8ad99428445e53b0b83f8ccdfa");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "03cddae2afbe0d1a8f5e3490aebc7c9c");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -41,10 +41,10 @@ public class VariantEval2IntegrationTest extends WalkerTest {
                 " -B dbsnp_130,dbSNP," + GATKDataLocation + "dbsnp_130_b36.rod" +
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
-        String eqMD5s = "380e082222111c7bf962095d9afca8da"; // next two examples should be the same!
+        String eqMD5s = "1606e285d9bd586dc6662b1ace0a3a0e"; // next two examples should be the same!
         expectations.put("", eqMD5s);
         expectations.put(" -known comp_hapmap -known dbsnp", eqMD5s);
-        expectations.put(" -known comp_hapmap", "90d7d4d0ff370e9457978b2869782aa0");
+        expectations.put(" -known comp_hapmap", "44773a96d1c5904a57e0e983836768e4");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs2 = entry.getKey();
@@ -62,7 +62,7 @@ public class VariantEval2IntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("b7d52d13e6eb3d593395a644583e449a", "9ec81f7389c0971e44e4b8d2d4af3008"));
+                Arrays.asList("1f2e04f8af061b7190758679a7840f12", "9ec81f7389c0971e44e4b8d2d4af3008"));
         executeTest("testVE2WriteVCF", spec);
     }
 }
