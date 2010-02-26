@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Comparator;
 import java.util.LinkedList;
-import java.util.List;
 
 
 /**
@@ -23,55 +21,95 @@ import java.util.List;
  */
 public class FlashBackIterator implements LocationAwareSeekableRODIterator {
     private LocationAwareSeekableRODIterator iterator;
-    private LinkedList<ComparableList> list = new LinkedList<ComparableList>();
-    private int MAX_QUEUE = 5000;
-    private boolean usingQueue = false;
+    private LinkedList<ComparableList> pastQueue = new LinkedList<ComparableList>();
+    private LinkedList<ComparableList> aheadQueue = new LinkedList<ComparableList>();
+    private int MAX_QUEUE = 200;
 
+    /**
+     * create a flashback iterator
+     * @param iterator given a LocationAwareSeekableRODIterator
+     */
     public FlashBackIterator(LocationAwareSeekableRODIterator iterator) {
         this.iterator = iterator;
     }
 
+    /**
+     * peek at the next location
+     * @return
+     */
     @Override
     public GenomeLoc peekNextLocation() {
-        return iterator.peekNextLocation();
+        return (aheadQueue.size() > 0) ? aheadQueue.getFirst().getLocation() : iterator.peekNextLocation();
     }
 
+    /**
+     * get the position of this iterator
+     * @return
+     */
     @Override
     public GenomeLoc position() {
-        return (usingQueue) ? list.getFirst().getLocation() : iterator.position();
+        return (aheadQueue.size() > 0) ? aheadQueue.getFirst().getLocation() : iterator.position();
     }
 
+    /**
+     * seek forward on the iterator
+     * @param interval the interval to seek to
+     * @return a RODRecordList at that location, null otherwise
+     */
     @Override
     public RODRecordList seekForward(GenomeLoc interval) {
+
         RODRecordList lt = iterator.seekForward(interval);
-        if (lt != null) list.addLast(new ComparableList(lt));
+        createPastRecord(lt);
         return lt;
     }
 
+    /**
+     * do we have a next record
+     * @return true if we have another record
+     */
     @Override
     public boolean hasNext() {
-        if (usingQueue) return (list.size() > 0 || iterator.hasNext());
-        return iterator.hasNext();
+        return (aheadQueue.size() > 0 ||  iterator.hasNext());
     }
 
+    /**
+     * get the next record
+     * @return a RODRecordList
+     */
     @Override
     public RODRecordList next() {
-        RODRecordList ret;
-        if (!usingQueue || list.size() < 1) {
-            usingQueue = false;
-            ret = iterator.next();
-            list.addLast(new ComparableList(ret));
-            if (list.size() > MAX_QUEUE) list.removeFirst();
-        } else {
-            ret = list.getFirst().getList();
-            list.removeFirst();
-        }
-        return ret;
+        return getNext();
     }
 
+    /**
+     * we don't support remove
+     */
     @Override
     public void remove() {
         throw new UnsupportedOperationException("We don't support remove");
+    }
+
+    /**
+     * get the next record, either from the queue or from the iterator
+     * @return a RODRecordList
+     */
+    private RODRecordList getNext() {
+        if (aheadQueue.size() > 0) {
+            RODRecordList ret = aheadQueue.getFirst().getList();
+            aheadQueue.removeFirst();
+            return ret;
+        } else {
+            RODRecordList ret = iterator.next();
+            createPastRecord(ret);
+            return ret;
+        }
+    }
+
+    private void createPastRecord(RODRecordList ret) {
+        ComparableList rec = new ComparableList(ret);
+        if (rec.getLocation() != null) pastQueue.addLast(new ComparableList(ret));
+        if (pastQueue.size() > this.MAX_QUEUE) pastQueue.removeFirst();
     }
 
     /**
@@ -82,8 +120,7 @@ public class FlashBackIterator implements LocationAwareSeekableRODIterator {
      * @return true if we can, false otherwise
      */
     public boolean canFlashBackTo(GenomeLoc location) {
-        GenomeLoc farthestBack = (list.size() > 0) ? list.getFirst().getLocation() : iterator.peekNextLocation();
-        System.err.println("farthestBack = " + farthestBack + " loc = " + location);
+        GenomeLoc farthestBack = (pastQueue.size() > 0) ? pastQueue.getFirst().getLocation() : iterator.peekNextLocation();
         return (!farthestBack.isPast(location));
     }
 
@@ -94,18 +131,29 @@ public class FlashBackIterator implements LocationAwareSeekableRODIterator {
      */
     public void flashBackTo(GenomeLoc location) {
         if (!canFlashBackTo(location)) throw new UnsupportedOperationException("we can't flash back to " + location);
-        if (list.size() > 0 && !list.getLast().getLocation().isBefore(location))
-            usingQueue = true;
+        if (pastQueue.size()==0) return; // the iterator can do it alone
+        while (pastQueue.size() > 0 && !pastQueue.getLast().getLocation().isBefore(location)) {
+            aheadQueue.addFirst(pastQueue.getLast());
+            pastQueue.removeLast();
+        }
+    }
+
+    public void close() {
+        this.aheadQueue.clear();
+        this.pastQueue.clear();
     }
 }
 
+/**
+ * a list that buffers the location for this rod
+ */
 class ComparableList implements Comparator<ComparableList> {
     private RODRecordList list;
     private GenomeLoc location = null;
     public ComparableList(RODRecordList list) {
         this.list = list;
-        if (list != null && list.size() != 0) location = list.get(0).getLocation();
-        else throw new IllegalStateException("Bad voodoo!");
+        if (list != null && list.size() != 0)
+            location = list.getLocation();
     }
 
     @Override

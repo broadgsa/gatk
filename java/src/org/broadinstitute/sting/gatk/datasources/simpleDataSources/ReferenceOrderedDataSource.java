@@ -142,10 +142,10 @@ class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBack
     }
 
     /**
-     * Don't worry about closing the resource; let the file handles expire naturally for the moment.
+     * kill the buffers in the iterator
      */
     public void closeResource( FlashBackIterator resource ) {
-                
+        resource.close();            
     }
 }
 
