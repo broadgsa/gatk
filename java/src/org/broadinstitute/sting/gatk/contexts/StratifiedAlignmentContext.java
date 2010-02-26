@@ -39,6 +39,7 @@ import java.util.Map;
 /**
  * Useful class for storing different AlignmentContexts
  * User: ebanks
+ * Modified: chartl (split by read group)
  */
 public class StratifiedAlignmentContext {
 
@@ -138,6 +139,40 @@ public class StratifiedAlignmentContext {
             // add the read to this sample's context
             // note that bad bases are added to the context (for DoC calculations later)
             myContext.add(read, p.getOffset());
+        }
+
+        return contexts;
+    }
+
+     /**
+     * Splits the given AlignmentContext into a StratifiedAlignmentContext per read group.
+     *
+     * @param pileup                the original pileup
+     * @return a Map of sample name to StratifiedAlignmentContext
+     * @todo - support for collapsing or assuming read groups if they are missing
+     *
+     **/
+    public static Map<String,StratifiedAlignmentContext> splitContextByReadGroup(ReadBackedPileup pileup) {
+        HashMap<String,StratifiedAlignmentContext> contexts = new HashMap<String,StratifiedAlignmentContext>();
+
+        for ( PileupElement p : pileup ) {
+            SAMRecord read = p.getRead();
+
+            SAMReadGroupRecord readGroup = read.getReadGroup();
+            if ( readGroup == null ) {
+                throw new StingException("Missing read group for read " + read.getReadName());
+            }
+
+            String group = readGroup.getReadGroupId();
+
+            StratifiedAlignmentContext myContext = contexts.get(group);
+
+            if ( myContext == null ) {
+                myContext = new StratifiedAlignmentContext(pileup.getLocation());
+                contexts.put(group,myContext);
+            }
+
+            myContext.add(read,p.getOffset());
         }
 
         return contexts;

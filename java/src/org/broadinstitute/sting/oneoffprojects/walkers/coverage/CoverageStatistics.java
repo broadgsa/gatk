@@ -141,12 +141,17 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
     }
 
     public Map<String,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        Map<String, StratifiedAlignmentContext> contextsBySample =
-                                            StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+        Map<String,StratifiedAlignmentContext> contexts;
+        if ( useReadGroup ) {
+            contexts = StratifiedAlignmentContext.splitContextByReadGroup(context.getBasePileup());
+        } else {
+            contexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+        }
+
         HashMap<String,Integer> depthBySample = new HashMap<String,Integer>();
 
-        for ( String sample : contextsBySample.keySet() ) {
-            AlignmentContext sampleContext = contextsBySample.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        for ( String sample : contexts.keySet() ) {
+            AlignmentContext sampleContext = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
             int properDepth = 0;
             for ( PileupElement e : sampleContext.getBasePileup() ) {
                 if ( e.getQual() >= minBaseQuality && e.getMappingQual() >= minMappingQuality ) {
