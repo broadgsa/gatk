@@ -116,10 +116,10 @@ class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBack
                 if( (RODIterator.position() == null && RODIterator.hasNext()) ||
                     (RODIterator.position() != null && RODIterator.position().isBefore(position)) )
                     return RODIterator;
-                if ((RODIterator.position() != null && RODIterator.canFlashBackTo(position))) {
-                    RODIterator.flashBackTo(position);
-                    return RODIterator;
-                }
+//                if (RODIterator.position() != null && RODIterator.canFlashBackTo(position)) {
+//                    RODIterator.flashBackTo(position);
+//                    return RODIterator;
+//                }
 
             }
             return null;
