@@ -245,10 +245,10 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         StringBuilder targetSummary = new StringBuilder();
         targetSummary.append(intervalStats.first.toString());
         targetSummary.append("\t");
-        targetSummary.append(stats.getTotalLoci()*stats.getMeans().get(DepthOfCoverageStats.ALL_SAMPLES));
+        targetSummary.append(stats.getTotalCoverage());
         // TODO: change this to use the raw counts directly rather than re-estimating from mean*nloci
         targetSummary.append("\t");
-        targetSummary.append(stats.getMeans().get(DepthOfCoverageStats.ALL_SAMPLES));
+        targetSummary.append(stats.getTotalMeanCoverage());
 
         for ( String s : stats.getAllSamples() ) {
             targetSummary.append("\t");
@@ -322,14 +322,6 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
     ////////////////////////////////////////////////////////////////////////////////////
 
     public void onTraversalDone(DepthOfCoverageStats coverageProfiles) {
-        logger.info("I am in the final ONTRAVERSALDONE");
-        logger.info(coverageProfiles.getTotalLoci()+" loci covered");
-        if ( out == null) {
-            logger.info("Out is now null");
-        } else {
-            logger.info(" ::: TESTING OUT ::: ");
-            out.println("====This is a test====");
-        }
         ///////////////////
         // OPTIONAL OUTPUTS
         //////////////////
@@ -385,7 +377,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
     }
 
     private void printPerLocus(File locusFile, DepthOfCoverageStats stats) {
-        PrintStream output = getCorrectStream(null,locusFile);
+        PrintStream output = getCorrectStream(out,locusFile);
         if ( output == null ) {
             return;
         }
@@ -453,7 +445,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
             output.printf("%s\t%.2f\t%d\t%d\t%d%n",s,means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
         }
 
-        output.printf("%s\t%.2f\t%s\t%s\t%s%n","Total",means.get(DepthOfCoverageStats.ALL_SAMPLES),"N/A","N/A","N/A");
+        output.printf("%s\t%.2f\t%s\t%s\t%s%n","Total",stats.getTotalMeanCoverage(),"N/A","N/A","N/A");
     }
 
     private int getQuantile(int[] histogram, double prop) {
@@ -494,25 +486,26 @@ class DepthOfCoverageStats {
     // STATIC DATA
     ////////////////////////////////////////////////////////////////////////////////////
 
-    public static String ALL_SAMPLES = "ALL_COMBINED_SAMPLES";
+    /* none so far */
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STANDARD DATA
     ////////////////////////////////////////////////////////////////////////////////////
 
     private Map<String,int[]> granularHistogramBySample; // holds the counts per each bin
-    private Map<String,Double> meanCoverages; // holds mean coverage per sample
+    private Map<String,Long> totalCoverages; // holds total coverage per sample
     private int[] binLeftEndpoints; // describes the left endpoint for each bin
     private int[][] locusCoverageCounts; // holds counts of number of bases with >=X samples at >=Y coverage
     private boolean tabulateLocusCounts = false;
-    private int nLoci; // number of loci seen
+    private long nLoci; // number of loci seen
+    private long totalDepthOfCoverage;
 
     ////////////////////////////////////////////////////////////////////////////////////
     // TEMPORARY DATA ( not worth re-instantiating )
     ////////////////////////////////////////////////////////////////////////////////////
 
     private int[] locusHistogram; // holds a histogram for each locus; reset after each update() call
-    private int totalDepth; // holds the total depth of coverage for each locus; reset after each update() call
+    private int totalLocusDepth; // holds the total depth of coverage for each locus; reset after each update() call
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STATIC METHODS
@@ -553,10 +546,10 @@ class DepthOfCoverageStats {
     public DepthOfCoverageStats(int[] leftEndpoints) {
         this.binLeftEndpoints = leftEndpoints;
         granularHistogramBySample = new HashMap<String,int[]>();
-        meanCoverages = new HashMap<String,Double>();
-        meanCoverages.put(DepthOfCoverageStats.ALL_SAMPLES,0.0);
+        totalCoverages = new HashMap<String,Long>();
         nLoci = 0;
-        totalDepth = 0;
+        totalLocusDepth = 0;
+        totalDepthOfCoverage = 0;
     }
 
     public void addSample(String sample) {
@@ -570,7 +563,7 @@ class DepthOfCoverageStats {
         }
 
         granularHistogramBySample.put(sample,binCounts);
-        meanCoverages.put(sample,0.0);
+        totalCoverages.put(sample,0l);
     }
 
     public void initializeLocusCounts() {
@@ -595,7 +588,7 @@ class DepthOfCoverageStats {
         for ( String sample : granularHistogramBySample.keySet() ) {
             if ( depthBySample.containsKey(sample) ) {
                 b = updateSample(sample,depthBySample.get(sample));
-                totalDepth += depthBySample.get(sample);
+                totalLocusDepth += depthBySample.get(sample);
             } else {
                 b = updateSample(sample,0);
             }
@@ -606,20 +599,15 @@ class DepthOfCoverageStats {
                 }
             }
         }
-
-        double meanDepth = meanCoverages.get(DepthOfCoverageStats.ALL_SAMPLES);
-        double newMean = ( meanDepth*nLoci + (double) totalDepth )/( nLoci + 1 );
-        meanCoverages.put(DepthOfCoverageStats.ALL_SAMPLES,newMean);
         updateLocusCounts(locusHistogram);
 
         nLoci++;
-        totalDepth = 0;
+        totalDepthOfCoverage += totalLocusDepth;
+        totalLocusDepth = 0;
     }
 
     private int updateSample(String sample, int depth) {
-        double mean = meanCoverages.get(sample);
-        double newMean = ( nLoci*mean + (double) depth )/(nLoci + 1.0);
-        meanCoverages.put(sample,newMean);
+        totalCoverages.put(sample,totalCoverages.get(sample)+depth);
 
         int[] granularBins = granularHistogramBySample.get(sample);
         for ( int b = 0; b < binLeftEndpoints.length; b ++ ) {
@@ -638,30 +626,21 @@ class DepthOfCoverageStats {
         if ( this.tabulateLocusCounts && newStats.tabulateLocusCounts ) {
             this.mergeLocusCounts(newStats.getLocusCounts());
         }
-
-        double totalMean = (meanCoverages.get(DepthOfCoverageStats.ALL_SAMPLES)*nLoci +
-                newStats.getMeans().get(DepthOfCoverageStats.ALL_SAMPLES)*newStats.getTotalLoci()) /
-                ( nLoci + newStats.getTotalLoci());
-
-        meanCoverages.put(DepthOfCoverageStats.ALL_SAMPLES,totalMean);
         nLoci += newStats.getTotalLoci();
+        totalDepthOfCoverage += newStats.getTotalCoverage();
     }
 
     private void mergeSamples(DepthOfCoverageStats otherStats) {
         Map<String,int[]> otherHistogram = otherStats.getHistograms();
         Map<String,Double> otherMeans = otherStats.getMeans();
-        for ( String s : granularHistogramBySample.keySet() ) {
+        for ( String s : this.getAllSamples() ) {
             int[] internalCounts = granularHistogramBySample.get(s);
             int[] externalCounts = otherHistogram.get(s);
             for ( int b = 0; b < internalCounts.length; b++ ) {
                 internalCounts[b] += externalCounts[b];
             }
 
-            double internalMean = meanCoverages.get(s);
-            double externalMean = otherMeans.get(s);
-            double newMean = ( internalMean*nLoci + externalMean*otherStats.getTotalLoci())/(nLoci+otherStats.getTotalLoci());
-
-            meanCoverages.put(s,newMean);
+            this.totalCoverages.put(s, this.totalCoverages.get(s) + otherStats.totalCoverages.get(s));
         }
     }
 
@@ -713,15 +692,28 @@ class DepthOfCoverageStats {
     }
 
     public Map<String,Double> getMeans() {
-        return meanCoverages;
+        HashMap<String,Double> means = new HashMap<String,Double>();
+        for ( String s : getAllSamples() ) {
+            means.put(s,( (double)totalCoverages.get(s))/( (double) nLoci ));
+        }
+
+        return means;
     }
 
-    public int getTotalLoci() {
+    public long getTotalLoci() {
         return nLoci;
     }
     
     public Set<String> getAllSamples() {
         return granularHistogramBySample.keySet();
+    }
+
+    public double getTotalMeanCoverage() {
+        return ( (double) totalDepthOfCoverage )/ ( (double) nLoci );
+    }
+
+    public long getTotalCoverage() {
+        return totalDepthOfCoverage;
     }
 
 }
