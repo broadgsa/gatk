@@ -78,7 +78,7 @@ public class ShardStrategyFactory {
             case LOCUS_EXPERIMENTAL:
                 throw new UnsupportedOperationException("Cannot do experimental locus sharding without intervals");
             case READS_EXPERIMENTAL:
-                return new BlockDelimitedReadShardStrategy(dataSource);
+                return new BlockDelimitedReadShardStrategy(dataSource,null);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
@@ -118,7 +118,7 @@ public class ShardStrategyFactory {
             case LOCUS_EXPERIMENTAL:
                 return new IndexDelimitedLocusShardStrategy(dataSource,lst);
             case READS_EXPERIMENTAL:
-                throw new UnsupportedOperationException("Cannot do experimental read sharding with intervals");
+                return new BlockDelimitedReadShardStrategy(dataSource,lst);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented");
         }

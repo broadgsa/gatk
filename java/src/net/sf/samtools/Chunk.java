@@ -30,7 +30,7 @@ public class Chunk implements Cloneable,Comparable<Chunk> {
         return mChunkStart;
     }
 
-    void setChunkStart(final long value) {
+    public void setChunkStart(final long value) {
         mChunkStart = value;
     }
 
@@ -38,7 +38,7 @@ public class Chunk implements Cloneable,Comparable<Chunk> {
         return mChunkEnd;
     }
 
-    void setChunkEnd(final long value) {
+    public void setChunkEnd(final long value) {
         mChunkEnd = value;
     }
 

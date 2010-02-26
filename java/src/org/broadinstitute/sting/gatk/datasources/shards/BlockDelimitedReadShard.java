@@ -34,9 +34,16 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      */
     private final Collection<SAMRecord> reads = new ArrayList<SAMRecord>(BlockDelimitedReadShardStrategy.MAX_READS);
 
-    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMFileReader2,List<Chunk>> chunks) {
+    /**
+     * An BlockDelimitedLocusShard can be used either for READ or READ shard types.
+     * Track which type is being used.
+     */
+    private final Shard.ShardType shardType;        
+
+    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMFileReader2,List<Chunk>> chunks, Shard.ShardType shardType) {
         this.sourceInfo = sourceInfo;
         this.chunks = chunks;
+        this.shardType = shardType;
     }
 
     /**

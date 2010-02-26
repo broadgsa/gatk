@@ -1,16 +1,13 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 
 import java.util.*;
 
 import net.sf.samtools.Chunk;
-import net.sf.samtools.Bin;
 import net.sf.samtools.SAMFileReader2;
 
 /*
@@ -46,7 +43,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
     /**
      * The data source to use when performing this sharding.
      */
-    private final BlockDrivenSAMDataSource blockDrivenDataSource;
+    private final BlockDrivenSAMDataSource dataSource;
 
     /** our storage of the genomic locations they'd like to shard over */
     private final List<FilePointer> filePointers = new ArrayList<FilePointer>();
@@ -65,106 +62,9 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
         if(!(dataSource instanceof BlockDrivenSAMDataSource))
             throw new StingException("Cannot power an IndexDelimitedLocusShardStrategy with this data source.");
 
-        blockDrivenDataSource = (BlockDrivenSAMDataSource)dataSource;
-        filePointers.addAll(batchLociIntoBins(locations.toList(),blockDrivenDataSource.getNumIndexLevels()-1));
+        this.dataSource = (BlockDrivenSAMDataSource)dataSource;
+        filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList(),this.dataSource.getNumIndexLevels()-1));
         filePointerIterator = filePointers.iterator();
-    }
-
-    private List<FilePointer> batchLociIntoBins(final List<GenomeLoc> loci, final int binsDeeperThan) {
-        // Gather bins for the given loci, splitting loci as necessary so that each falls into exactly one lowest-level bin.
-        List<FilePointer> filePointers = new ArrayList<FilePointer>();
-        FilePointer filePointer = null;
-
-        for(GenomeLoc location: loci) {
-            int locationStart = (int)location.getStart();
-            final int locationStop = (int)location.getStop();
-
-            List<Bin> bins = findBinsAtLeastAsDeepAs(blockDrivenDataSource.getOverlappingBins(location),binsDeeperThan);
-
-            // Recursive stopping condition -- algorithm is at the zero point and no bins have been found.
-            if(binsDeeperThan == 0 && bins.size() == 0) {
-                filePointers.add(new FilePointer(location));
-                continue;
-            }
-
-            // No bins found; step up a level and search again.
-            if(bins.size() == 0) {
-                if(filePointer != null && filePointer.locations.size() > 0) {
-                    filePointers.add(filePointer);
-                    filePointer = null;
-                }                
-
-                filePointers.addAll(batchLociIntoBins(Collections.singletonList(location),binsDeeperThan-1));
-                continue;
-            }
-
-            // Bins found; try to match bins with locations.
-            Collections.sort(bins);
-            Iterator<Bin> binIterator = bins.iterator();
-
-            while(locationStop >= locationStart) {
-                int binStart = filePointer!=null ? blockDrivenDataSource.getFirstLocusInBin(filePointer.bin) : 0;
-                int binStop = filePointer!=null ? blockDrivenDataSource.getLastLocusInBin(filePointer.bin) : 0;
-
-                while(binStop < locationStart && binIterator.hasNext()) {
-                    if(filePointer != null && filePointer.locations.size() > 0)
-                        filePointers.add(filePointer);
-
-                    filePointer = new FilePointer(binIterator.next());
-                    binStart = blockDrivenDataSource.getFirstLocusInBin(filePointer.bin);
-                    binStop = blockDrivenDataSource.getLastLocusInBin(filePointer.bin);
-                }
-
-                if(locationStart < binStart) {
-                    // The region starts before the first bin in the sequence.  Add the region occurring before the sequence.
-                    if(filePointer != null && filePointer.locations.size() > 0) {
-                        filePointers.add(filePointer);
-                        filePointer = null;
-                    }
-
-                    final int regionStop = Math.min(locationStop,binStart-1);
-
-                    GenomeLoc subset = GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,regionStop);
-                    filePointers.addAll(batchLociIntoBins(Collections.singletonList(subset),binsDeeperThan-1));
-
-                    locationStart = regionStop + 1;
-                }
-                else if(locationStart > binStop) {
-                    // The region starts after the last bin in the sequence.  Add the region occurring after the sequence.
-                    if(filePointer != null && filePointer.locations.size() > 0) {
-                        filePointers.add(filePointer);
-                        filePointer = null;
-                    }
-
-                    GenomeLoc subset = GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,locationStop);
-                    filePointers.addAll(batchLociIntoBins(Collections.singletonList(subset),binsDeeperThan-1));
-
-                    locationStart = locationStop + 1;
-                }
-                else {
-                    // The start of the region overlaps the bin.  Add the overlapping subset.
-                    final int regionStop = Math.min(locationStop,binStop);
-                    filePointer.addLocation(GenomeLocParser.createGenomeLoc(location.getContig(),
-                            locationStart,
-                            regionStop));
-                    locationStart = regionStop + 1;
-                }
-            }
-        }
-
-        if(filePointer != null && filePointer.locations.size() > 0)
-            filePointers.add(filePointer);
-
-        return filePointers;
-    }
-
-    private List<Bin> findBinsAtLeastAsDeepAs(final List<Bin> bins, final int deepestBinLevel) {
-        List<Bin> deepestBins = new ArrayList<Bin>();
-        for(Bin bin: bins) {
-            if(blockDrivenDataSource.getLevelForBin(bin) >= deepestBinLevel)
-                deepestBins.add(bin);
-        }
-        return deepestBins;
     }
 
     /**
@@ -183,7 +83,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        Map<SAMFileReader2,List<Chunk>> chunksBounding = blockDrivenDataSource.getFilePointersBounding(nextFilePointer.bin);
+        Map<SAMFileReader2,List<Chunk>> chunksBounding = dataSource.getFilePointersBounding(nextFilePointer.bin);
         return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 
@@ -200,28 +100,4 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
     public Iterator<Shard> iterator() {
         return this;
     }
-
-    /**
-     * Represents a small section of a BAM file, and every associated interval.
-     */
-    private class FilePointer {
-        private final Bin bin;
-        private final List<GenomeLoc> locations;
-
-        public FilePointer(Bin bin) {
-            this.bin = bin;
-            this.locations = new ArrayList<GenomeLoc>();
-        }
-
-        public FilePointer(GenomeLoc location) {
-            bin = null;
-            locations = Collections.singletonList(location);
-        }
-
-        public void addLocation(GenomeLoc location) {
-            locations.add(location);
-        }
-        
-    }
-
 }

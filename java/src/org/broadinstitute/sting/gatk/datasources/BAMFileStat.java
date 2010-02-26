@@ -47,8 +47,7 @@ public class BAMFileStat extends CommandLineProgram {
 
         switch(command) {
             case ShowBlocks:
-                showBlocks(new File(bamFileName),startPosition,stopPosition);
-                break;
+                throw new StingException("The BAM block inspector has been disabled.");
             case ShowIndex:
                 showIndexBins(new File(bamFileName+".bai"));
                 break;
@@ -67,26 +66,6 @@ public class BAMFileStat extends CommandLineProgram {
             System.exit(CommandLineProgram.result);
         } catch (Exception e) {
             exitSystemWithError(e);
-        }
-    }
-
-    private void showBlocks(File bamFile, Integer startPosition, Integer stopPosition) {
-        int blockNumber = 0;
-
-        try {
-            BAMBlockIterator iterator = new BAMBlockIterator(bamFile);
-            while(iterator.hasNext()) {
-                Block block = iterator.next();
-                blockNumber++;
-
-                if(startPosition != null && startPosition > blockNumber) continue;
-                if(stopPosition != null && stopPosition < blockNumber) break;
-
-                System.out.printf("Block number = %d; position = %d; compressed size = %d; uncompressed size = %d%n", blockNumber, block.position, block.compressedBlockSize, block.uncompressedBlockSize);
-            }
-        }
-        catch(IOException ex) {
-            throw new StingException("Unable to open BAM file");
         }
     }
 

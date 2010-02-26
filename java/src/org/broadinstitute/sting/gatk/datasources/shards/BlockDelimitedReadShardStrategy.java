@@ -5,6 +5,7 @@ import net.sf.samtools.*;
 import java.util.*;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 
@@ -26,6 +27,9 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      */
     protected final BlockDrivenSAMDataSource dataSource;
 
+    /** our storage of the genomic locations they'd like to shard over */
+    private final List<FilePointer> filePointers = new ArrayList<FilePointer>();
+
     /**
      * Position of the last shard in the file.
      */
@@ -40,12 +44,14 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      * Create a new read shard strategy, loading read shards from the given BAM file.
      * @param dataSource Data source from which to load shards.
      */
-    public BlockDelimitedReadShardStrategy(SAMDataSource dataSource) {
+    public BlockDelimitedReadShardStrategy(SAMDataSource dataSource, GenomeLocSortedSet locations) {
         if(!(dataSource instanceof BlockDrivenSAMDataSource))
             throw new StingException("Block-delimited read shard strategy cannot work without a block-driven data source.");
 
         this.dataSource = (BlockDrivenSAMDataSource)dataSource;
-        this.position = this.dataSource.getCurrentPosition();        
+        this.position = this.dataSource.getCurrentPosition();
+        if(locations != null)
+            filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList(),this.dataSource.getNumIndexLevels()-1));
     }
 
     /**
@@ -65,17 +71,41 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
         if(!hasNext())
             throw new NoSuchElementException("No such element available: SAM reader has arrived at last shard.");
 
-        // TODO: This level of processing should not be necessary.
-        Map<SAMFileReader2,List<Chunk>> boundedPosition = new HashMap<SAMFileReader2,List<Chunk>>();
-        for(Map.Entry<SAMFileReader2,Chunk> entry: position.entrySet())
-            boundedPosition.put(entry.getKey(),Collections.singletonList(entry.getValue()));
+        Map<SAMFileReader2,List<Chunk>> shardPosition = null;
+        if(!filePointers.isEmpty()) {
+            boolean foundData = false;
+            for(FilePointer filePointer: filePointers) {
+                shardPosition = dataSource.getFilePointersBounding(filePointer.bin);
+                for(SAMFileReader2 reader: shardPosition.keySet()) {
+                    List<Chunk> chunks = shardPosition.get(reader);
+                    Chunk filePosition = position.get(reader);
+                    for(Chunk chunk: chunks) {
+                        if(filePosition.getChunkStart() > chunk.getChunkEnd())
+                            chunks.remove(chunk);
+                        else {
+                            if(filePosition.getChunkStart() > chunk.getChunkStart())
+                                chunk.setChunkStart(filePosition.getChunkStart());
+                            foundData = true;
+                        }
+                    }
+                }
+                if(foundData)
+                    break;
+            }
+        }
+        else {
+            // TODO: This level of processing should not be necessary.
+            shardPosition = new HashMap<SAMFileReader2,List<Chunk>>();
+            for(Map.Entry<SAMFileReader2,Chunk> entry: position.entrySet())
+                shardPosition.put(entry.getKey(),Collections.singletonList(entry.getValue()));
+        }
 
-        BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),boundedPosition);
+        BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),shardPosition,Shard.ShardType.READ);
         atEndOfStream = dataSource.fillShard(shard);
 
         this.position = dataSource.getCurrentPosition();
 
-        return shard;
+        return shard;        
     }
 
     /**
