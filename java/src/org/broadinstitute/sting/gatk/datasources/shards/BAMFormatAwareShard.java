@@ -3,11 +3,11 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
 import net.sf.samtools.SAMRecord;
+import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.List;
 import java.util.Map;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 
 /**
@@ -48,4 +48,10 @@ public interface BAMFormatAwareShard extends Shard {
      * @return An iterator over the reads stored in the shard.
      */
     public StingSAMIterator iterator();
+
+    /**
+     * Gets any filter associated with this shard.  Useful for filtering out overlaps, etc.
+     * @return A filter if one exists.  Null if not.
+     */
+    public SamRecordFilter getFilter();
 }

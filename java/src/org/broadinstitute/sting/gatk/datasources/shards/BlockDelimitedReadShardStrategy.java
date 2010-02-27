@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.*;
+import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.*;
 
@@ -72,6 +73,8 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
             throw new NoSuchElementException("No such element available: SAM reader has arrived at last shard.");
 
         Map<SAMFileReader2,List<Chunk>> shardPosition = null;
+        SamRecordFilter filter = null;
+
         if(!filePointers.isEmpty()) {
             boolean foundData = false;
             for(FilePointer filePointer: filePointers) {
@@ -89,8 +92,10 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
                         }
                     }
                 }
-                if(foundData)
+                if(foundData) {
+                    filter = new ReadOverlapFilter(filePointer.locations);                    
                     break;
+                }
             }
         }
         else {
@@ -98,9 +103,10 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
             shardPosition = new HashMap<SAMFileReader2,List<Chunk>>();
             for(Map.Entry<SAMFileReader2,Chunk> entry: position.entrySet())
                 shardPosition.put(entry.getKey(),Collections.singletonList(entry.getValue()));
+            filter = null;
         }
 
-        BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),shardPosition,Shard.ShardType.READ);
+        BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),shardPosition,filter,Shard.ShardType.READ);
         atEndOfStream = dataSource.fillShard(shard);
 
         this.position = dataSource.getCurrentPosition();

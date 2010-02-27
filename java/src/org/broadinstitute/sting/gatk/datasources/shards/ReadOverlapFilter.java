@@ -1,9 +1,8 @@
-package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
+package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.List;
 
@@ -13,13 +12,13 @@ import java.util.List;
  * @author mhanna
  * @version 0.1
  */
-public class IntervalOverlappingFilter implements SamRecordFilter {
+public class ReadOverlapFilter implements SamRecordFilter {
     /**
      * The list of locations containing reads to keep.
      */
     private final List<GenomeLoc> intervals;
 
-    public IntervalOverlappingFilter(List<GenomeLoc> intervals) {
+    public ReadOverlapFilter(List<GenomeLoc> intervals) {
         this.intervals = intervals;
     }
 

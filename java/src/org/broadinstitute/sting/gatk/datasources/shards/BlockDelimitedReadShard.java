@@ -3,10 +3,10 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
 import net.sf.samtools.SAMRecord;
+import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.*;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
@@ -35,14 +35,20 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     private final Collection<SAMRecord> reads = new ArrayList<SAMRecord>(BlockDelimitedReadShardStrategy.MAX_READS);
 
     /**
+     * The filter to be applied to all reads meeting this criteria.
+     */
+    private final SamRecordFilter filter;
+
+    /**
      * An BlockDelimitedLocusShard can be used either for READ or READ shard types.
      * Track which type is being used.
      */
     private final Shard.ShardType shardType;        
 
-    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMFileReader2,List<Chunk>> chunks, Shard.ShardType shardType) {
+    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMFileReader2,List<Chunk>> chunks, SamRecordFilter filter, Shard.ShardType shardType) {
         this.sourceInfo = sourceInfo;
         this.chunks = chunks;
+        this.filter = filter;
         this.shardType = shardType;
     }
 
@@ -73,8 +79,16 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
         reads.add(read);
     }
 
+    /**
+     * Creates an iterator over reads stored in this shard's read cache.
+     * @return
+     */
     public StingSAMIterator iterator() {
         return StingSAMIteratorAdapter.adapt(sourceInfo,reads.iterator());
+    }
+
+    public SamRecordFilter getFilter() {
+        return filter;
     }
 
     /**

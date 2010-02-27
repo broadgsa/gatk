@@ -198,8 +198,8 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
 
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
         CloseableIterator<SAMRecord> iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
-        if(addIntervalFilter)
-            iterator = new FilteringIterator(iterator,new IntervalOverlappingFilter(shard.getGenomeLocs()));
+        if(shard.getFilter() != null)
+            iterator = new FilteringIterator(iterator,shard.getFilter());
 
         return applyDecoratingIterators(enableVerification,
                 StingSAMIteratorAdapter.adapt(reads,iterator),

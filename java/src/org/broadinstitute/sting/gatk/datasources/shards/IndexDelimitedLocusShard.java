@@ -2,11 +2,11 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
 import net.sf.samtools.SAMRecord;
+import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.List;
 import java.util.Map;
@@ -67,6 +67,14 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
     }
 
     /**
+     * Gets the chunks associated with this locus shard.
+     * @return A list of the chunks to use when retrieving locus data.
+     */
+    public Map<SAMFileReader2,List<Chunk>> getChunks() {
+        return chunks;
+    }
+
+    /**
      * Returns true if this shard is meant to buffer reads, rather
      * than just holding pointers to their locations.
      * @return True if this shard can buffer reads.  False otherwise.
@@ -85,14 +93,18 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      */
     public void addRead(SAMRecord read) { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
+    /**
+     * Gets the iterator over the elements cached in the shard.
+     * @return
+     */
     public StingSAMIterator iterator() { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
     /**
-     * Gets the chunks associated with this locus shard.
-     * @return A list of the chunks to use when retrieving locus data.
+     * Gets a filter testing for overlap of this read with the given shard.
+     * @return A filter capable of filtering out reads outside a given shard.
      */
-    public Map<SAMFileReader2,List<Chunk>> getChunks() {
-        return chunks;
+    public SamRecordFilter getFilter() {
+        return new ReadOverlapFilter(loci);    
     }
 
     /**
