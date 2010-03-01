@@ -53,6 +53,8 @@ if not header_fields.startswith("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\t
     sys.exit()
 
 vcf_out_file.write("##source=AnnotateVCFwithMAF\n")
+for header_field in headers:
+    vcf_out_file.write("##INFO="+header_field+",1,String,"+header_field+"\n")
 vcf_out_file.write(header_fields)
 
 for vcf_line, locus_and_info in zip(vcf_file.readlines(), loci_and_info):
@@ -64,6 +66,6 @@ for vcf_line, locus_and_info in zip(vcf_file.readlines(), loci_and_info):
         print "ERROR: VCF and MAF loci did not match"
         sys.exit()
     
-    vcf_line_fields[7] = vcf_line_fields[7]+","+maf_info
+    vcf_line_fields[7] = vcf_line_fields[7]+";"+maf_info
     new_vcf_line = "\t".join(vcf_line_fields)
     vcf_out_file.write(new_vcf_line)
