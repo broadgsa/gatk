@@ -50,7 +50,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         for (Shard shard : shardStrategy) {
             // New experimental code for managing locus intervals.
             // TODO: we'll need a similar but slightly different strategy for dealing with read intervals, so generalize this code.            
-            if(shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) {
+            if(shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) {
                 WindowMaker windowMaker = new WindowMaker(getReadIterator(shard),shard.getGenomeLocs());
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new ShardDataProvider(shard,iterator.getLocus(),iterator,reference,rods);
