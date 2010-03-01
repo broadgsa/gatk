@@ -2,6 +2,8 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 
@@ -9,6 +11,8 @@ import java.util.*;
 
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -62,8 +66,21 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
         if(!(dataSource instanceof BlockDrivenSAMDataSource))
             throw new StingException("Cannot power an IndexDelimitedLocusShardStrategy with this data source.");
 
+        List<GenomeLoc> intervals;
+        if(locations == null) {
+            // If no locations were passed in, shard the entire BAM file.
+            SAMFileHeader header = dataSource.getHeader();
+            intervals = new ArrayList<GenomeLoc>();
+
+            for(SAMSequenceRecord sequenceRecord: header.getSequenceDictionary().getSequences())
+                intervals.add(GenomeLocParser.createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));    
+        }
+        else
+            intervals = locations.toList();
+
+
         this.dataSource = (BlockDrivenSAMDataSource)dataSource;
-        filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList(),this.dataSource.getNumIndexLevels()-1));
+        filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,intervals,this.dataSource.getNumIndexLevels()-1));
         filePointerIterator = filePointers.iterator();
     }
 

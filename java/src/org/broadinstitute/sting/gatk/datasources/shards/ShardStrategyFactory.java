@@ -76,7 +76,7 @@ public class ShardStrategyFactory {
             case INTERVAL:
                 throw new StingException("Requested trategy: " + strat + " doesn't work with the limiting count (-M) command line option");
             case LOCUS_EXPERIMENTAL:
-                throw new UnsupportedOperationException("Cannot do experimental locus sharding without intervals");
+                return new IndexDelimitedLocusShardStrategy(dataSource,null);
             case READS_EXPERIMENTAL:
                 return new BlockDelimitedReadShardStrategy(dataSource,null);
             default:

@@ -674,7 +674,8 @@ public class GenomeAnalysisEngine {
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else
-                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                        argCollection.experimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
         } else if (walker instanceof ReadWalker ||
