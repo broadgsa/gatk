@@ -34,9 +34,9 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements Genot
      * @param ref  the ref character
      * @param loc  the genome loc
      */
-    public GeliGenotypeCall(char ref, GenomeLoc loc) {
+    public GeliGenotypeCall(String ref, GenomeLoc loc) {
         super(ref);
-        mRefBase = ref;
+        mRefBase = ref.charAt(0);
         mLocation = loc;
 
         // fill in empty data
@@ -44,12 +44,12 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements Genot
         Arrays.fill(mPosteriors, Double.MIN_VALUE);
     }
 
-    public GeliGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError) {
+    public GeliGenotypeCall(String ref, GenomeLoc loc, String genotype, double negLog10PError) {
         super(ref);
-        mRefBase = ref;
+        mRefBase = ref.charAt(0);
         mLocation = loc;
         mBestGenotype = DiploidGenotype.valueOf(genotype);
-        mRefGenotype = DiploidGenotype.createHomGenotype(ref);
+        mRefGenotype = DiploidGenotype.createHomGenotype(mRefBase);
         mNextGenotype = mRefGenotype;
 
         // set general posteriors to min double value
@@ -114,7 +114,7 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements Genot
 
     private void lazyEval() {
         if (mBestGenotype == null) {
-            char ref = this.getReference();
+            char ref = this.getReference().charAt(0);
             char alt = this.getAlternateAllele();
 
             mRefGenotype = DiploidGenotype.createHomGenotype(ref);
@@ -285,8 +285,8 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements Genot
      *
      * @return the reference character
      */
-    public char getReference() {
-        return mRefBase;
+    public String getReference() {
+        return Character.toString(mRefBase);
     }
 
     /**

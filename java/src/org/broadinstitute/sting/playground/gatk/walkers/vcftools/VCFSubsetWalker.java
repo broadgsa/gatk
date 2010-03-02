@@ -90,7 +90,7 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
             }
         }
 
-        VCFRecord subset = new VCFRecord(record.getReferenceBase(),
+        VCFRecord subset = new VCFRecord(record.getReference(),
                                          record.getLocation().getContig(),
                                          (int) record.getLocation().getStart(),
                                          record.getID(),
@@ -110,7 +110,7 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
 
             boolean isVariant = false;
             for (VCFGenotypeEncoding ge : ((VCFGenotypeRecord)subset.getGenotypes().get(0)).getAlleles()) {
-                if (record.getReferenceBase() != ge.getBases().charAt(0)) {
+                if (!record.getReference().equals(ge.getBases())) {
                     isVariant = true;
                 }
             }

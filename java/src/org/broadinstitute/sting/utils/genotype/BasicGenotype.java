@@ -24,8 +24,8 @@ public class BasicGenotype implements Genotype {
     // our location
     private GenomeLoc mLocation;
 
-    // the reference base.
-    private char mRef;
+    // the reference bases
+    private String mRef;
 
     // the confidence score
     private double mNegLog10PError;
@@ -38,7 +38,7 @@ public class BasicGenotype implements Genotype {
      * @param ref            the reference base as a char
      * @param negLog10PError the confidence score
      */
-    public BasicGenotype(GenomeLoc location, String genotype, char ref, double negLog10PError) {
+    public BasicGenotype(GenomeLoc location, String genotype, String ref, double negLog10PError) {
         mNegLog10PError = negLog10PError;
 
         for ( char base : genotype.toCharArray() ) {
@@ -56,7 +56,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return the negitive log based error estimate
      */
-    @Override
     public double getNegLog10PError() {
         return mNegLog10PError;
     }
@@ -66,7 +65,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return the bases, as a string
      */
-    @Override
     public String getBases() {
         return mGenotype;
     }
@@ -76,7 +74,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return the ploidy value
      */
-    @Override
     public int getPloidy() {
         return mGenotype.length();
     }
@@ -86,7 +83,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return true if we're homozygous, false otherwise
      */
-    @Override
     public boolean isHom() {
         if (mGenotype.length() < 1)
             return false;
@@ -106,7 +102,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return true if we're het, false otherwise
      */
-    @Override
     public boolean isHet() {
         if (mGenotype.length() < 1)
             return false;
@@ -118,7 +113,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return a GenomeLoc representing the location
      */
-    @Override
     public GenomeLoc getLocation() {
         return mLocation;
     }
@@ -128,7 +122,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return true is a SNP
      */
-    @Override
     public boolean isPointGenotype() {
         return true;
     }
@@ -140,7 +133,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return true if we're a variant
      */
-    @Override
     public boolean isVariant(char ref) {
         return !(mGenotype.charAt(0) == ref && isHom());
     }
@@ -150,8 +142,7 @@ public class BasicGenotype implements Genotype {
      *
      * @return a character, representing the reference base
      */
-    @Override
-    public char getReference() {
+    public String getReference() {
         return mRef;
     }
 
@@ -160,7 +151,6 @@ public class BasicGenotype implements Genotype {
      *
      * @return the variant
      */
-    @Override
     public Variation toVariation(char ref) {
         if (!isVariant(ref)) throw new IllegalStateException("this genotype is not a variant");
         return new BasicVariation(this.getBases(), String.valueOf(ref), this.getBases().length(), mLocation, mNegLog10PError);

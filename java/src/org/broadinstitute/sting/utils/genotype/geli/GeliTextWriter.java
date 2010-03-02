@@ -65,7 +65,7 @@ public class GeliTextWriter implements GeliGenotypeWriter {
             throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
         GeliGenotypeCall gCall = (GeliGenotypeCall)call;
 
-        char ref = gCall.getReference();
+        char ref = gCall.getReference().charAt(0);
 
         double[] posteriors = gCall.getPosteriors();
         double[] lks;

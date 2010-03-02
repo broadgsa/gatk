@@ -81,7 +81,7 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
                     VariantCallContext calls = UG.map(tracker, ref, subContext);
                     if (calls != null && calls.genotypes != null && calls.genotypes.size() > 0) {
                         Genotype call = calls.genotypes.get(0);
-                        String callType = (call.isVariant(call.getReference())) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
+                        String callType = (call.isVariant(call.getReference().charAt(0))) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
                         GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+toGeliString(call));
                     }
                 }
@@ -113,7 +113,7 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
         double nextVrsBest = 0;
         double nextVrsRef = 0;
 
-        char ref = locus.getReference();
+        char ref = locus.getReference().charAt(0);
 
         if (locus instanceof ReadBacked) {
             readDepth = ((ReadBacked)locus).getReadCount();

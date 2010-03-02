@@ -73,7 +73,7 @@ class VCFCallRates extends CommandLineProgram
 						record = reader.next();
 					}
 					
-					char ref = record.getReferenceBase();
+					char ref = record.getReference().charAt(0);
 					
 					String[] new_sample_names = record.getSampleNames();
 					if (new_sample_names.length != sample_names.length) { throw new RuntimeException(); }

@@ -44,7 +44,7 @@ public class VCFRecordTest extends BaseTest {
         altBases.add(new VCFGenotypeEncoding("D1"));
         List<VCFGenotypeRecord> genotypeObjects = new ArrayList<VCFGenotypeRecord>();
         genotypeObjects.add(createGenotype("sample1", "A", "A"));
-        return new VCFRecord('A', "chr1", 1, "RANDOM", altBases, 0, ".", infoFields, "GT:AA", genotypeObjects);
+        return new VCFRecord("A", "chr1", 1, "RANDOM", altBases, 0, ".", infoFields, "GT:AA", genotypeObjects);
     }
 
     /**
@@ -72,7 +72,7 @@ public class VCFRecordTest extends BaseTest {
         altBases.add(new VCFGenotypeEncoding("D1"));
         List<VCFGenotypeRecord> genotypeObjects = new ArrayList<VCFGenotypeRecord>();
         genotypeObjects.add(createGenotype("sample1", "A", "A"));
-        VCFRecord rec = new VCFRecord('A', "chr1", 1, "RANDOM", altBases, 0, ".", new HashMap<String,String>(), "GT:AA", genotypeObjects);
+        VCFRecord rec = new VCFRecord("A", "chr1", 1, "RANDOM", altBases, 0, ".", new HashMap<String,String>(), "GT:AA", genotypeObjects);
         Assert.assertEquals(2, rec.getAlternateAlleles().size());
     }
 

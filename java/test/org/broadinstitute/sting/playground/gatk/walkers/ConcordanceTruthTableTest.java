@@ -26,13 +26,13 @@ public class ConcordanceTruthTableTest extends BaseTest {
 
         ConcordanceTruthTable ctt = new ConcordanceTruthTable(3);
         // this will test the count of non-reference alleles at a T/G polymorphic site
-        Genotype ref1 = new BasicGenotype(null,"GG",'G',30);
-        Genotype ref2 = new BasicGenotype(null,"GG",'G',30);
-        Genotype ref3 = new BasicGenotype(null,"GG",'G',30);
-        Genotype het1 = new BasicGenotype(null,"GT",'G',32);
-        Genotype het2 = new BasicGenotype(null,"GT",'G',28);
-        Genotype hom1 = new BasicGenotype(null,"TT",'G',40);
-        Genotype hom2 = new BasicGenotype(null,"TT",'G',27);
+        Genotype ref1 = new BasicGenotype(null,"GG","G",30);
+        Genotype ref2 = new BasicGenotype(null,"GG","G",30);
+        Genotype ref3 = new BasicGenotype(null,"GG","G",30);
+        Genotype het1 = new BasicGenotype(null,"GT","G",32);
+        Genotype het2 = new BasicGenotype(null,"GT","G",28);
+        Genotype hom1 = new BasicGenotype(null,"TT","G",40);
+        Genotype hom2 = new BasicGenotype(null,"TT","G",27);
 
         List<Pair<Genotype,Genotype>> oneHom = new ArrayList<Pair<Genotype,Genotype>>(4);
         oneHom.add(new Pair<Genotype,Genotype>(ref1,null));

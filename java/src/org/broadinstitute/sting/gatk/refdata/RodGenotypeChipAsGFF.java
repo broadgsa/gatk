@@ -275,7 +275,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      */
     @Override
     public Genotype getCalledGenotype() {
-        return new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence());
+        return new BasicGenotype(this.getLocation(),this.feature,Character.toString(this.getRefSnpFWD()),this.getConsensusConfidence());
     }
 
     /**
@@ -286,7 +286,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
     @Override
     public List<Genotype> getGenotypes() {
         List<Genotype> ret = new ArrayList<Genotype>();
-        ret.add(new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence()));
+        ret.add(new BasicGenotype(this.getLocation(),this.feature,Character.toString(this.getRefSnpFWD()),this.getConsensusConfidence()));
         return ret;
     }
     

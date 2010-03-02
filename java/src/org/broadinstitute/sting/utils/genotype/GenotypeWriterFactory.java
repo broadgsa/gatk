@@ -85,7 +85,7 @@ public class GenotypeWriterFactory {
      * @param loc the location
      * @return an unpopulated genotype call object
      */
-    public static GenotypeCall createSupportedGenotypeCall(GENOTYPE_FORMAT format, char ref, GenomeLoc loc) {
+    public static GenotypeCall createSupportedGenotypeCall(GENOTYPE_FORMAT format, String ref, GenomeLoc loc) {
         switch (format) {
             case VCF:
                 return new VCFGenotypeCall(ref, loc);

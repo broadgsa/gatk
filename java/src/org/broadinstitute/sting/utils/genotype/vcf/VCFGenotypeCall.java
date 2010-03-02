@@ -13,7 +13,7 @@ import org.broadinstitute.sting.utils.genotype.*;
  *         The implementation of the genotype interface, specific to VCF
  */
 public class VCFGenotypeCall extends AlleleConstrainedGenotype implements GenotypeCall, ReadBacked, SampleBacked, Cloneable {
-    private final char mRefBase;
+    private final String mRef;
     private final GenomeLoc mLocation;
 
     private ReadBackedPileup mPileup = null;
@@ -28,19 +28,19 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
     // the sample name, used to propulate the SampleBacked interface
     private String mSampleName;
 
-    public VCFGenotypeCall(char ref, GenomeLoc loc) {
+    public VCFGenotypeCall(String ref, GenomeLoc loc) {
         super(ref);
-        mRefBase = ref;
+        mRef = ref;
         mLocation = loc;
 
         // fill in empty data
-        mGenotype = DiploidGenotype.createHomGenotype(ref);
+        mGenotype = DiploidGenotype.createHomGenotype(ref.charAt(0));
         mSampleName = "";
     }
 
-    public VCFGenotypeCall(char ref, GenomeLoc loc, DiploidGenotype genotype, double negLog10PError, int coverage, String sample) {
+    public VCFGenotypeCall(String ref, GenomeLoc loc, DiploidGenotype genotype, double negLog10PError, int coverage, String sample) {
         super(ref);
-        mRefBase = ref;
+        mRef = ref;
         mLocation = loc;
         mGenotype = genotype;
         mNegLog10PError = negLog10PError;
@@ -80,12 +80,12 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
         return mGenotype.equals(otherCall.mGenotype) &&
                mNegLog10PError == otherCall.mNegLog10PError &&
                mLocation.equals(otherCall.mLocation) &&
-               mRefBase == otherCall.mRefBase;
+               mRef.equals(otherCall.mRef);
     }
 
     public String toString() {
         return String.format("%s best=%s ref=%s depth=%d negLog10PError=%.2f",
-                             getLocation(), mGenotype, mRefBase, getReadCount(), getNegLog10PError());
+                             getLocation(), mGenotype, mRef, getReadCount(), getNegLog10PError());
     }
 
     /**
@@ -168,7 +168,7 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
      * @return true if we're a variant
      */
     public boolean isVariant() {
-        return isVariant(mRefBase);
+        return isVariant(mRef.charAt(0));
     }
 
     /**
@@ -209,12 +209,12 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements Genoty
     }
 
     /**
-     * get the reference character
+     * get the reference string
      *
-     * @return the reference character
+     * @return the reference string
      */
-    public char getReference() {
-        return mRefBase;
+    public String getReference() {
+        return mRef;
     }
 
     /**

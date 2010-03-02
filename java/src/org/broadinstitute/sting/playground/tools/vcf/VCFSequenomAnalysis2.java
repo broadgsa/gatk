@@ -95,7 +95,7 @@ class VCFSequenomAnalysis2 extends CommandLineProgram
 
 					String[] sample_names = record2.getSampleNames();
 					
-					char ref = record1.getReferenceBase();
+					char ref = record1.getReference().charAt(0);
 					char alt = VCFTool.getAlt(record2);
 					
 					int n_total_sequenom = VCFTool.Compute_n_total(record1, sample_names);
@@ -211,8 +211,8 @@ class VCFSequenomAnalysis2 extends CommandLineProgram
 				Arrays.sort(c);
 				g = new String(c);
 				if (g.equals("..")) { continue; }
-				if (g.charAt(0) == sequencing.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
-				if (g.charAt(1) == sequencing.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
+				if (g.charAt(0) == sequencing.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
+				if (g.charAt(1) == sequencing.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
 			}
 			if (n_alt != 1) { throw new RuntimeException(); }
 			if (singleton_name.equals("")) { throw new RuntimeException(); }
@@ -234,8 +234,8 @@ class VCFSequenomAnalysis2 extends CommandLineProgram
 					Arrays.sort(c);
 					g = new String(c);
 					if (g.equals("..")) { continue; }
-					if (g.charAt(0) == sequenom.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
-					if (g.charAt(1) == sequenom.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
+					if (g.charAt(0) == sequenom.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
+					if (g.charAt(1) == sequenom.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; singleton_name = sample_names[i]; }
 					break;
 				}
 			}
@@ -263,8 +263,8 @@ class VCFSequenomAnalysis2 extends CommandLineProgram
 				Arrays.sort(c);
 				g = new String(c);
 				if (g.equals("..")) { continue; }
-				if (g.charAt(0) == sequencing.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
-				if (g.charAt(1) == sequencing.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(0) == sequencing.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(1) == sequencing.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
 				if (n_alt == 1) { het_samples.add(sample_names[i]); }
 			}
 
@@ -291,8 +291,8 @@ class VCFSequenomAnalysis2 extends CommandLineProgram
 					Arrays.sort(c);
 					g = new String(c);
 					if (g.equals("..")) { dropped_hets += 1; continue; }
-					if (g.charAt(0) == sequenom.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
-					if (g.charAt(1) == sequenom.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
+					if (g.charAt(0) == sequenom.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
+					if (g.charAt(1) == sequenom.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
 					if (n_alt == 1) { matched_hets += 1; }	
 					else { mismatched_hets += 1; }
 				}

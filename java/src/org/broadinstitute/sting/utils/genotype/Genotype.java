@@ -79,7 +79,7 @@ public interface Genotype {
      * get the reference base.
      * @return a character, representing the reference base
      */
-    public char getReference();
+    public String getReference();
 
     /**
      * return this genotype as a variant

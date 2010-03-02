@@ -366,7 +366,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      */
     @Override
     public Genotype getCalledGenotype() {
-        return new GeliGenotypeCall(refBase, getLocation(), bestGenotype, lodBtnb);
+        return new GeliGenotypeCall(Character.toString(refBase), getLocation(), bestGenotype, lodBtnb);
     }
 
     /**
@@ -377,7 +377,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     @Override
     public List<Genotype> getGenotypes() {
         List<Genotype> ret = new ArrayList<Genotype>();
-        ret.add(new GeliGenotypeCall(refBase, getLocation(), bestGenotype, lodBtnb));
+        ret.add(new GeliGenotypeCall(Character.toString(refBase), getLocation(), bestGenotype, lodBtnb));
         return ret;
     }
 

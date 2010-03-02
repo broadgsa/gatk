@@ -139,8 +139,8 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         return mRecord != null ? mRecord.getLocation() : null;
     }
 
-    public char getReference() {
-        return mRecord != null ? mRecord.getReferenceBase() : 'N';
+    public String getReference() {
+        return mRecord != null ? mRecord.getReference() : "N";
     }
 
     public Variation toVariation(char ref) {

@@ -36,27 +36,27 @@ public class BasicGenotypeTest extends BaseTest {
 
     @Test
     public void testBasicGenotypeIsHom() {
-        BasicGenotype gt = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"AA",'A',0);
+        BasicGenotype gt = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"AA","A",0);
         Assert.assertTrue(gt.isHom());
-        BasicGenotype gt2 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"GA",'A',0);
+        BasicGenotype gt2 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"GA","A",0);
         Assert.assertTrue(!gt2.isHom());
     }
 
     @Test
     public void testBasicGenotypeIsHet() {
-        BasicGenotype gt = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"AA",'A',0);
+        BasicGenotype gt = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"AA","A",0);
         Assert.assertTrue(!gt.isHet());
-        BasicGenotype gt2 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"GA",'A',0);
+        BasicGenotype gt2 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"GA","A",0);
         Assert.assertTrue(gt2.isHet());
     }
 
     @Test
     public void testBasicGenotypeIsVariant() {
-        BasicGenotype gt = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"AA",'A',0);
+        BasicGenotype gt = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"AA","A",0);
         Assert.assertTrue(!gt.isVariant('A'));
-        BasicGenotype gt2 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"GA",'A',0);
+        BasicGenotype gt2 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"GA","A",0);
         Assert.assertTrue(gt2.isVariant('A'));
-        BasicGenotype gt3 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"TT",'A',0);
+        BasicGenotype gt3 = new BasicGenotype(GenomeLocParser.createGenomeLoc("chr1",1,1),"TT","A",0);
         Assert.assertTrue(gt3.isVariant('A'));
     }
 }

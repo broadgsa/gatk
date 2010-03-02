@@ -66,7 +66,6 @@ public class GeliAdapter implements GeliGenotypeWriter {
      *
      * @param fileHeader the file header to write out
      */
-    @Override
     public void writeHeader(final SAMFileHeader fileHeader) {
         this.writer = GeliFileWriter.newInstanceForPresortedRecords(writeTo, fileHeader);
     }
@@ -131,7 +130,7 @@ public class GeliAdapter implements GeliGenotypeWriter {
             throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
         GeliGenotypeCall gCall = (GeliGenotypeCall)call;
 
-        char ref = gCall.getReference();
+        char ref = gCall.getReference().charAt(0);
         int readCount = gCall.getReadCount();
         double maxMappingQual = 0;
         if ( gCall.getPileup() != null ) {

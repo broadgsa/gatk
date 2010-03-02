@@ -83,9 +83,9 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
                     Genotype parent1call = parent1.genotypes.get(0);
                     Genotype parent2call = parent2.genotypes.get(0);
 
-                    if (!parent1call.isVariant(parent1call.getReference()) &&
+                    if (!parent1call.isVariant(parent1call.getReference().charAt(0)) &&
                         parent1call.getNegLog10PError() > 5 &&
-                        !parent2call.isVariant(parent2call.getReference()) &&
+                        !parent2call.isVariant(parent2call.getReference().charAt(0)) &&
                         parent2call.getNegLog10PError() > 5) {
 
                         double sumConfidences = 0.5 * (0.5 * child.getNegLog10PError() +

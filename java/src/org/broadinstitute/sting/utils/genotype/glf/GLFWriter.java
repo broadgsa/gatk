@@ -149,7 +149,7 @@ public class GLFWriter implements GLFGenotypeWriter {
             throw new IllegalArgumentException("Only GLFGenotypeCall should be passed in to the GLF writers");
         GLFGenotypeCall gCall = (GLFGenotypeCall) call;
 
-        char ref = gCall.getReference();
+        char ref = gCall.getReference().charAt(0);
 
         // get likelihood information if available
         LikelihoodObject obj = new LikelihoodObject(gCall.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);

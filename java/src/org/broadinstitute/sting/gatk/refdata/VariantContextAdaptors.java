@@ -196,14 +196,7 @@ public class VariantContextAdaptors {
 
     public static VCFRecord toVCF(VariantContext vc) {
         // deal with the reference
-        char referenceBase = 'N'; // by default we'll use N
-        if ( vc.getReference().length() == 1 ) {
-            referenceBase = (char)vc.getReference().getBases()[0];
-        }
-
-        if ( ! vc.isSNP() )
-            // todo -- update the code so it works correctly with indels
-            throw new StingException("VariantContext -> VCF converter currently doesn't support indels; complain to the GATK team");
+        String referenceBase = new String(vc.getReference().getBases());
 
         String contig = vc.getLocation().getContig();
         long position = vc.getLocation().getStart();

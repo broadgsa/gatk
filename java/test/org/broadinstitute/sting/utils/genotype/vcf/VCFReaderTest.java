@@ -290,8 +290,8 @@ public class VCFReaderTest extends BaseTest {
         grecords = rec.getVCFGenotypeRecords();
         for ( VCFGenotypeRecord grec : grecords ) {
             if ( !grec.isEmptyGenotype() ) {
-                Assert.assertTrue(grec.isVariant(rec.getReferenceBase()));
-                Assert.assertEquals(rec, grec.toVariation(rec.getReferenceBase()));
+                Assert.assertTrue(grec.isVariant(rec.getReference().charAt(0)));
+                Assert.assertEquals(rec, grec.toVariation(rec.getReference().charAt(0)));
             }
         }
 
@@ -300,7 +300,7 @@ public class VCFReaderTest extends BaseTest {
         rec = reader.next();
         grecords = rec.getVCFGenotypeRecords();
         for ( VCFGenotypeRecord grec : grecords ) {
-            if ( !grec.isVariant(rec.getReferenceBase()) ) {
+            if ( !grec.isVariant(rec.getReference().charAt(0)) ) {
                 Assert.assertTrue(grec.isHom());
                 Assert.assertTrue(grec.getFields().get("GQ").equals("-1"));
                 Assert.assertEquals(-1, grec.getReadCount());

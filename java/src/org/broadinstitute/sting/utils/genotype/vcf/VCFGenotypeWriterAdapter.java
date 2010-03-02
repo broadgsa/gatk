@@ -102,7 +102,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
             if ( locusdata == null )
                 throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry or have variation data");
 
-            params.setLocations(locusdata.getLocation(), locusdata.getReference().charAt(0));
+            params.setLocations(locusdata.getLocation(), locusdata.getReference());
 
             // if there is no genotype data, we'll also need to set an alternate allele
             if ( locusdata.isBiallelic() && locusdata.isSNP() )
@@ -161,7 +161,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         if ( locusdata != null )
             dbSnpID = ((VCFVariationCall)locusdata).getID();
 
-        VCFRecord vcfRecord = new VCFRecord(params.getReferenceBase(),
+        VCFRecord vcfRecord = new VCFRecord(params.getReferenceBases(),
                                             params.getContig(),
                                             params.getPosition(),
                                             (dbSnpID == null ? VCFRecord.EMPTY_ID_FIELD : dbSnpID),

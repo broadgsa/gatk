@@ -263,7 +263,7 @@ class CheckRefFields extends CommandLineProgram
 				}	
 
 				long offset   = record.getLocation().getStart();
-				char vcf_ref_base = record.getReferenceBase();
+				char vcf_ref_base = record.getReference().charAt(0);
 				char fasta_ref_base = (char)ref_seq[(int)offset-1];
 
 				List<VCFGenotypeEncoding> alleles = record.getAlternateAlleles();
@@ -338,7 +338,7 @@ class FixRefFields extends CommandLineProgram
 				}	
 
 				long offset   = record.getLocation().getStart();
-				char vcf_ref_base = record.getReferenceBase();
+				char vcf_ref_base = record.getReference().charAt(0);
 				char fasta_ref_base = (char)ref_seq[(int)offset-1];
 
 				List<VCFGenotypeEncoding> alleles = record.getAlternateAlleles();
@@ -524,7 +524,7 @@ class PrintGQ extends CommandLineProgram
 						record = reader.next();
 					}
 					
-					char ref = record.getReferenceBase();
+					char ref = record.getReference().charAt(0);
 					
 					String[] sample_names = record.getSampleNames();
 
@@ -617,7 +617,7 @@ class VCFSimpleStats extends CommandLineProgram
 						record1 = reader1.next();
 					}
 					
-					char ref = record1.getReferenceBase();
+					char ref = record1.getReference().charAt(0);
 
 					
 					String[] sample_names1 = record1.getSampleNames();
@@ -845,7 +845,7 @@ class VCFConcordance extends CommandLineProgram
 					}
 
 					
-					char ref = record1.getReferenceBase();
+					char ref = record1.getReference().charAt(0);
 					
 					String[] sample_names1 = record1.getSampleNames();
 					String[] sample_names2 = record2.getSampleNames();
@@ -1260,7 +1260,7 @@ public class VCFTool
 
 		public static boolean isTransition(VCFRecord record)
 		{
-			char ref = record.getReferenceBase();
+			char ref = record.getReference().charAt(0);
 			List<VCFGenotypeEncoding> alleles = record.getAlternateAlleles();
 			char alt = alleles.get(0).getBases().charAt(0); 
 
@@ -1315,8 +1315,8 @@ public class VCFTool
 				Arrays.sort(c);
 				g = new String(c);
 				if (g.equals("..")) { continue; }
-				if (g.charAt(0) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
-				if (g.charAt(1) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(0) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(1) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
 			}
 			return n_alt + n_ref;
 		}
@@ -1359,8 +1359,8 @@ public class VCFTool
 				Arrays.sort(c);
 				g = new String(c);
 				if (g.equals("..")) { continue; }
-				if (g.charAt(0) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
-				if (g.charAt(1) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(0) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(1) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
 			}
 			return n_alt;
 		}
@@ -1406,8 +1406,8 @@ public class VCFTool
 				Arrays.sort(c);
 				g = new String(c);
 				if (g.equals("..")) { continue; }
-				if (g.charAt(0) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
-				if (g.charAt(1) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(0) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(1) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
 				if (n_alt == 1) { n_het += 1; }
 			}
 			return n_het;
@@ -1476,8 +1476,8 @@ public class VCFTool
 				Arrays.sort(c);
 				g = new String(c);
 				if (g.equals("..")) { continue; }
-				if (g.charAt(0) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
-				if (g.charAt(1) == record.getReferenceBase()) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(0) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
+				if (g.charAt(1) == record.getReference().charAt(0)) { n_ref += 1; } else { n_alt += 1; }
 
 				if (n_ref == 2)                    { ref += 1; }
 				else if (n_ref == 1 && n_alt == 1) { het += 1; }

@@ -33,9 +33,9 @@ public class GLFGenotypeCall implements GenotypeCall, ReadBacked, LikelihoodsBac
      * @param ref  the ref character
      * @param loc  the genome loc
      */
-    public GLFGenotypeCall(char ref, GenomeLoc loc) {
-        mRefBase = ref;
-        mGenotype = Utils.dupString(ref, 2);
+    public GLFGenotypeCall(String ref, GenomeLoc loc) {
+        mRefBase = ref.charAt(0);
+        mGenotype = Utils.dupString(mRefBase, 2);
 
         // fill in empty data
         mLocation = loc;
@@ -192,8 +192,8 @@ public class GLFGenotypeCall implements GenotypeCall, ReadBacked, LikelihoodsBac
      *
      * @return the reference character
      */
-    public char getReference() {
-        return mRefBase;
+    public String getReference() {
+        return Character.toString(mRefBase);
     }
 
     /**

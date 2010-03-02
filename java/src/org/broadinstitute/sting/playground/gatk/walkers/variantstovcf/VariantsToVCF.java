@@ -186,7 +186,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         if (dbsnp != null) info.put("DB","1");
         if (dbsnp != null && dbsnp.isHapmap()) info.put("H2","1");
 
-        return new VCFRecord(ref.getBase(),
+        return new VCFRecord(Character.toString(ref.getBase()),
                              context.getContig(),
                              (int) context.getPosition(),
                              (dbsnp == null) ? "." : dbsnp.getRS_ID(),

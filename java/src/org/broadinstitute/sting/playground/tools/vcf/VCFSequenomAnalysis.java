@@ -91,7 +91,7 @@ class VCFSequenomAnalysis extends CommandLineProgram
 						continue;
 					}
 					
-					char ref = record1.getReferenceBase();
+					char ref = record1.getReference().charAt(0);
 					char alt = VCFTool.getAlt(record2);
 					
 					int n_total_sequenom = VCFTool.Compute_n_total(record1);

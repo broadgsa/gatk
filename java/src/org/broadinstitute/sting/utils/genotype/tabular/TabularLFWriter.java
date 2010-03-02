@@ -43,7 +43,6 @@ public class TabularLFWriter implements GenotypeWriter {
      *
      * @param locus the locus to add
      */
-    @Override
     public void addGenotypeCall(Genotype locus) {
         double likelihoods[];
         int readDepth = -1;
@@ -56,7 +55,7 @@ public class TabularLFWriter implements GenotypeWriter {
             likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
 
         }
-        char ref = locus.getReference();
+        char ref = locus.getReference().charAt(0);
 
         if (locus instanceof ReadBacked) {
             readDepth = ((ReadBacked)locus).getReadCount();
@@ -84,13 +83,11 @@ public class TabularLFWriter implements GenotypeWriter {
      *
      * @param position
      */
-    @Override
     public void addNoCall(int position) {
         throw new StingException("TabularLFWriter doesn't support no-calls");
     }
 
     /** finish writing, closing any open files. */
-    @Override
     public void close() {
         if (this.outStream != null) {
             outStream.close();
@@ -103,13 +100,11 @@ public class TabularLFWriter implements GenotypeWriter {
      *
      * @param genotypes the list of genotypes, that are backed by sample information
      */
-    @Override
     public void addMultiSampleCall(List<Genotype> genotypes, VariationCall metadata) {
         throw new UnsupportedOperationException("Tabular LF doesn't support multisample calls");
     }
 
     /** @return true if we support multisample, false otherwise */
-    @Override
     public boolean supportsMultiSample() {
         return false;
     }

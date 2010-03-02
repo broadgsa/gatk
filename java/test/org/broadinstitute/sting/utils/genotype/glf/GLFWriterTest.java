@@ -193,7 +193,7 @@ class FakeGenotype extends GLFGenotypeCall implements Comparable<FakeGenotype> {
      * @param negLog10PError the confidence score
      */
     public FakeGenotype(GenomeLoc location, String genotype, char ref, double negLog10PError, double likelihoods[]) {
-        super(ref, location);
+        super(Character.toString(ref), location);
         setLikelihoods(likelihoods);
         setGenotype(genotype);
         setNegLog10PError(negLog10PError);

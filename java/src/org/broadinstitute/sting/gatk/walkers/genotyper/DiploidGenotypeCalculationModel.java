@@ -95,7 +95,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         for ( String sample : GLs.keySet() ) {
 
             // create the call
-            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, loc);
+            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, Character.toString(ref), loc);
 
             // set the genotype and confidence
             Pair<Integer, Double> AFbasedGenotype = matrix.getGenotype(frequency, sample);

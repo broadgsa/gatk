@@ -41,7 +41,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
 
     // the reference base
-    private char mReferenceBase;
+    private String mReferenceBases;
     // our location
     private GenomeLoc mLoc;
     // our id
@@ -55,7 +55,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     // our info fields -- use a TreeMap to ensure they can be pulled out in order (so it passes integration tests)
     private final Map<String, String> mInfoFields = new TreeMap<String, String>();
 
-    private final String mGenotypeFormatString;
+    private String mGenotypeFormatString;
 
     // our genotype sample fields
     private final List<Genotype> mGenotypeRecords = new ArrayList<Genotype>();
@@ -63,12 +63,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     /**
      * given a reference base, a location, and the format string, create a VCF record.
      *
-     * @param referenceBase   the reference base to use
+     * @param referenceBases  the reference bases to use
      * @param location        our genomic location
      * @param genotypeFormatString  the format string
      */
-    public VCFRecord(char referenceBase, GenomeLoc location, String genotypeFormatString) {
-        setReferenceBase(referenceBase);
+    public VCFRecord(String referenceBases, GenomeLoc location, String genotypeFormatString) {
+        setReferenceBase(referenceBases);
         setLocation(location);
         mGenotypeFormatString = genotypeFormatString;
     }
@@ -99,7 +99,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     /**
      * create a VCF record
      *
-     * @param referenceBase   the reference base to use
+     * @param referenceBases  the reference bases to use
      * @param contig          the contig this variant is on
      * @param position        our position
      * @param ID              our ID string
@@ -110,7 +110,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @param genotypeFormatString  the format string
      * @param genotypeObjects the genotype objects
      */
-    public VCFRecord(char referenceBase,
+    public VCFRecord(String referenceBases,
                      String contig,
                      long position,
                      String ID,
@@ -120,7 +120,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
                      Map<String, String> infoFields,
                      String genotypeFormatString,
                      List<VCFGenotypeRecord> genotypeObjects) {
-        setReferenceBase(referenceBase);
+        setReferenceBase(referenceBases);
         setLocation(contig, position);
         this.mID = ID;
         for (VCFGenotypeEncoding alt : altBases)
@@ -155,7 +155,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
                 case REF:
                     if (columnValues.get(val).length() != 1)
                         throw new IllegalArgumentException("Reference base should be a single character");
-                    setReferenceBase(columnValues.get(val).charAt(0));
+                    setReferenceBase(columnValues.get(val));
                     break;
                 case ALT:
                     String values[] = columnValues.get(val).split(",");
@@ -215,16 +215,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @return either A, T, C, G, or N
      */
     public String getReference() {
-        return Character.toString(mReferenceBase);
-    }
-
-    /**
-     * get the reference base
-     *
-     * @return either A, T, C, G, or N
-     */
-    public char getReferenceBase() {
-        return mReferenceBase;
+        return mReferenceBases;
     }
 
     /**
@@ -333,7 +324,6 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public boolean isInHapmap() {
-        boolean inHapmap;
         if ( mInfoFields.get(HAPMAP2_KEY) != null && mInfoFields.get(HAPMAP2_KEY).equals("1") ) {
             return true;
         } else {
@@ -350,7 +340,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     public char getReferenceForSNP() {
         if ( !isSNP() )
             throw new IllegalStateException("This record does not represent a SNP");
-        return getReferenceBase();
+        return getReference().charAt(0);
     }
 
     /**
@@ -460,11 +450,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         return mGenotypeFormatString;
     }// the formatting string for our genotype records
 
-    public void setReferenceBase(char referenceBase) {
-        referenceBase = Character.toUpperCase(referenceBase);
-        if (referenceBase != 'A' && referenceBase != 'C' && referenceBase != 'T' && referenceBase != 'G' && referenceBase != 'N')
-            throw new IllegalArgumentException("Reference base must be one of A,C,G,T,N, we saw: " + referenceBase);
-        mReferenceBase = referenceBase;
+    public void setGenotypeFormatString(String newFormatString) {
+        mGenotypeFormatString = newFormatString;
+    }
+
+    public void setReferenceBase(String reference) {
+        mReferenceBases = reference.toUpperCase();
     }
 
     public void setLocation(String chrom, long position) {
@@ -578,7 +569,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         builder.append(FIELD_SEPERATOR);
         builder.append(getID());
         builder.append(FIELD_SEPERATOR);
-        builder.append(getReferenceBase());
+        builder.append(getReference());
         builder.append(FIELD_SEPERATOR);
         List<VCFGenotypeEncoding> alts = getAlternateAlleles();
         if ( alts.size() > 0 ) {
@@ -667,7 +658,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      */
     public boolean equals(VCFRecord other) {
         if (!this.mAlts.equals(other.mAlts)) return false;
-        if (this.mReferenceBase != other.mReferenceBase) return false;
+        if (!this.mReferenceBases.equals(other.mReferenceBases)) return false;
         if (!this.mLoc.equals(other.mLoc)) return false;
         if (!this.mID.equals(other.mID)) return false;
         if (this.mQual != other.mQual) return false;

@@ -63,7 +63,7 @@ public class HapMap2VCF extends RodWalker<Integer, Integer> {
                 VCFGenotypeEncoding refAllele = new VCFGenotypeEncoding(ref_allele.toString());
 
                 // Create a new record
-                VCFRecord record = new VCFRecord(ref_allele, context.getLocation(), "GT");
+                VCFRecord record = new VCFRecord(Character.toString(ref_allele), context.getLocation(), "GT");
 
                 // Record each sample's genotype info
                 String[] hapmap_rod_genotypes = hapmap_rod.getGenotypes();

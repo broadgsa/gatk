@@ -92,7 +92,7 @@ public class VCFWriterTest extends BaseTest {
             rec.setField("bb", "0");
             gt.add(rec);
         }
-        return new VCFRecord('A',"chr1",1,"RANDOM",altBases,0,".",infoFields, "GT:AA",gt);
+        return new VCFRecord("A","chr1",1,"RANDOM",altBases,0,".",infoFields, "GT:AA",gt);
 
     }
 

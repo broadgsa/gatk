@@ -1,46 +1,44 @@
 package org.broadinstitute.sting.gatk.refdata;
-/*
-import org.broadinstitute.sting.oneoffprojects.variantcontext.Allele;
-import org.broadinstitute.sting.oneoffprojects.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.BaseUtils;
+
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
 
 import java.io.*;
 import java.util.*;
 
-import net.sf.samtools.SAMFileHeader;
-
 /**
  * Created by IntelliJ IDEA.
- * User: chartl
- * Date: Jan 19, 2010
- * Time: 10:24:18 AM
- * To change this template use File | Settings | File Templates.
+ * User: chartl, ebanks
  *
-public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrderedDatum {
+ */
+public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<PlinkRod> {
+
+    public static final String SEQUENOM_NO_CALL = "0";
+    public static final String SEQUENOM_NO_VARIANT = "-";
+
     private final Set<String> headerEntries = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex",
                 "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
     private final byte SNP_MAJOR_MODE = 1;
 
-    private ArrayList<PlinkVariantInfo> variants;
     private PlinkVariantInfo currentVariant;
     private ListIterator<PlinkVariantInfo> variantIterator;
 
     private PlinkFileType plinkFileType;
 
     public enum PlinkFileType {
-        STANDARD_PED,RAW_PED,BINARY_PED
+        STANDARD_PED, RAW_PED, BINARY_PED
     }
-
-//       CONSTRUCTOR
 
     public PlinkRod(String name) {
         super(name);
+    }
+
+    public PlinkRod(String name, PlinkVariantInfo record, ListIterator<PlinkVariantInfo> iter) {
+        super(name);
+        currentVariant = record;
+        variantIterator = iter;
     }
 
     @Override
@@ -49,57 +47,78 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
             throw new FileNotFoundException("File "+plinkFile.getAbsolutePath()+" does not exist.");
         }
 
-        variants = parsePlinkFile(plinkFile);
-        if ( variants != null ) {
-            variantIterator = variants.listIterator();
-            currentVariant = variantIterator.next();
-        }
+        ArrayList<PlinkVariantInfo> variants = parsePlinkFile(plinkFile);
+        if ( variants == null )
+            throw new IllegalStateException("Error parsing Plink file");
 
-        assertNotNull();
-
+        variantIterator = variants.listIterator();
         return null;
+    }
+
+    public static PlinkRod createIterator(String name, File file) {
+        PlinkRod plink = new PlinkRod(name);
+        try {
+            plink.initialize(file);
+        } catch (FileNotFoundException e) {
+            throw new StingException("Unable to find file " + file);
+        }
+        return plink;
     }
 
     private void assertNotNull() {
         if ( currentVariant == null ) {
-            throw new UnsupportedOperationException ( "Current sequenom variant information was set to null" );
+            throw new IllegalStateException("Current variant information is null");
         }
+    }
+
+    public boolean hasNext() {
+        return variantIterator.hasNext();
+    }
+
+    public PlinkRod next() {
+        if ( !this.hasNext() )
+            throw new NoSuchElementException("PlinkRod next called on iterator with no more elements");
+
+        // get the next record
+        currentVariant = variantIterator.next();
+        return new PlinkRod(name, currentVariant, variantIterator);
     }
 
     @Override
     public boolean parseLine(Object obj, String[] args) {
-        if ( variantIterator.hasNext() ) {
-            currentVariant = variantIterator.next();
-            return true;
-        } else {
-            return false;
-        }
+        throw new UnsupportedOperationException("PlinkRod does not support the parseLine method");
+    }
+
+    public void remove() {
+        throw new UnsupportedOperationException("The remove operation is not supported for a PlinkRod");
     }
 
     @Override
     public GenomeLoc getLocation() {
+        assertNotNull();
         return currentVariant.getLocation();
     }
 
     @Override
     public String toString() {
-        return currentVariant == null ? "" : currentVariant.toString();
+        assertNotNull();
+        return currentVariant.toString();
     }
 
     public String getVariantName() {
+        assertNotNull();
         return currentVariant.getName();
+
     }
 
-    public ArrayList<String> getVariantSampleNames() {
-        return currentVariant.getSampleNames();
+    public VariantContext getVariantContext() {
+        assertNotNull();
+        return currentVariant.getVariantContext();
     }
 
-    public ArrayList<Genotype> getGenotypes() {
-        return currentVariant.getGenotypes();
-    }
-
-    public boolean variantIsSNP() {
-        return currentVariant.isSNP();
+    public boolean isIndel() {
+        assertNotNull();
+        return currentVariant.isIndel();
     }
 
 
@@ -123,7 +142,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
     /* *** *** *** *** *** ** *** ** *** ** *** ** *** ** ***
      * *    PARSING    STANDARD   TEXT   PED    FILES    * **
      * *** *** *** *** *** ** *** ** *** ** *** ** *** ** ***/
-/*
+
     private ArrayList<PlinkVariantInfo> parseTextFormattedPlinkFile( File file ) {
         try {
             BufferedReader reader = new BufferedReader( new FileReader ( file ) );
@@ -131,7 +150,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
             ArrayList<PlinkVariantInfo> seqVars = instantiateVariantListFromHeader(header);
             ArrayList<Integer> snpOffsets = getSNPOffsetsFromHeader(header);
 
-            String line = null;
+            String line;
             do {
                 line = reader.readLine();
                 incorporateInfo(seqVars,snpOffsets,line);
@@ -156,40 +175,29 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
         }
 
         String[] plinkInfo;
-        if ( plinkFileType == PlinkFileType.STANDARD_PED) {
-            plinkInfo = plinkLine.split("\t");
-        } else {
+        if ( plinkFileType != PlinkFileType.STANDARD_PED )
             throw new StingException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
-        }
 
+        plinkInfo = plinkLine.split("\t");
         String individualName = plinkInfo[1];
 
         int snpNumber = 0;
-
-        if ( plinkFileType == PlinkFileType.STANDARD_PED ) {
-            for ( int i : offsets ) {
-                vars.get(snpNumber).addGenotypeEntry(plinkInfo[i], individualName);
-                snpNumber++;
-            }
+        for ( int i : offsets ) {
+            vars.get(snpNumber).addGenotypeEntry(plinkInfo[i].split("\\s+"), individualName);
+            snpNumber++;
         }
     }
 
     private ArrayList<PlinkVariantInfo> instantiateVariantListFromHeader(String header) {
-        if ( header.startsWith("#") ) {// first line is a comment; what we're used to seeing
-            plinkFileType = PlinkFileType.STANDARD_PED;
-        } else {// first line is the raw header; comes from de-binary-ing a .bed file
-            plinkFileType = PlinkFileType.RAW_PED;
+        // if the first line is not a comment (what we're used to seeing),
+        // then it's the raw header (comes from de-binary-ing a .bed file)
+        if ( !header.startsWith("#") )
             throw new StingException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
-        }
+
+        plinkFileType = PlinkFileType.STANDARD_PED;
 
         ArrayList<PlinkVariantInfo> seqVars = new ArrayList<PlinkVariantInfo>();
-        String[] headerFields;
-
-        if ( plinkFileType == PlinkFileType.STANDARD_PED ) {
-            headerFields = header.split("\t");
-        } else {
-            throw new StingException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
-        }
+        String[] headerFields = header.split("\t");
 
         for ( String field : headerFields ) {
             if ( ! headerEntries.contains(field) ) {
@@ -225,7 +233,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
     /* *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
      * *    PARSING     BINARY    PLINK   BED/BIM/FAM   FILES      *  *
      * *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***/
- /*
+
     private ArrayList<PlinkVariantInfo> parseBinaryFormattedPlinkFile(File file) {
         PlinkBinaryTrifecta binaryFiles = getPlinkBinaryTriplet(file);
         ArrayList<PlinkVariantInfo> parsedVariants = instantiateVariantsFromBimFile(binaryFiles.bimFile);
@@ -269,17 +277,16 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
         ArrayList<PlinkVariantInfo> variants = new ArrayList<PlinkVariantInfo>();
 
         try {
-            String line = null;
-            do {
+            String line = reader.readLine();
+            while ( line != null ) {
+                String[] snpInfo = line.split("\\s+");
+                PlinkVariantInfo variant = new PlinkVariantInfo(snpInfo[1]);
+                variant.setGenomeLoc(GenomeLocParser.parseGenomeLoc(snpInfo[0],Long.valueOf(snpInfo[3]), Long.valueOf(snpInfo[3])));
+                variant.setAlleles(snpInfo[4],snpInfo[5]);
+                variants.add(variant);
+
                 line = reader.readLine();
-                if ( line != null ) {
-                    String[] snpInfo = line.split("\\s+");
-                    PlinkVariantInfo variant = new PlinkVariantInfo(snpInfo[1],true);
-                    variant.setGenomeLoc(GenomeLocParser.parseGenomeLoc(snpInfo[0],Long.valueOf(snpInfo[3]), Long.valueOf(snpInfo[3])));
-                    variant.setAlleles(snpInfo[4],snpInfo[5]);
-                    variants.add(variant);
-                }
-            } while ( line != null );
+            }
         } catch ( IOException e ) {
             throw new StingException("There was an error reading the .bim file "+bimFile.getAbsolutePath(), e);
         }
@@ -300,7 +307,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
         ArrayList<String> sampleNames = new ArrayList<String>();
 
         try {
-            String line = null;
+            String line;
             do {
                 line = reader.readLine();
                 if ( line != null ) {
@@ -325,7 +332,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
         }
 
         try {
-            byte genotype = -1;
+            byte genotype;
             long bytesRead = 0;
             int snpOffset = 0;
             int sampleOffset = 0;
@@ -397,24 +404,25 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements ReferenceOrd
 
 class PlinkVariantInfo implements Comparable {
 
-    private enum AlleleType {
-        INSERTION,DELETION
-    }
-
     private String variantName;
     private GenomeLoc loc;
-    private ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
-    private ArrayList<String> sampleNames = new ArrayList<String>();
+    private HashSet<Allele> alleles = new HashSet<Allele>();
+    private HashSet<Genotype> genotypes = new HashSet<Genotype>();
 
-    private ArrayList<Allele> indelHolder;
-    private ArrayList<String> sampleHolder;
-    private int siteIndelLength;
-    private AlleleType indelType;
+    // for indels
+    private boolean isIndel = false;
+    private boolean isInsertion = false;
+    private int indelLength = 0;
 
     // for binary parsing
-
     private String locAllele1;
     private String locAllele2;
+
+
+    public PlinkVariantInfo(String variantName) {
+        this.variantName = variantName;
+        parseName();
+    }
 
     public GenomeLoc getLocation() {
         return loc;
@@ -424,79 +432,82 @@ class PlinkVariantInfo implements Comparable {
         return variantName;
     }
 
-    public ArrayList<String> getSampleNames() {
-        return sampleNames;
+    public VariantContext getVariantContext() {
+        try {
+            return new VariantContext(variantName, loc, alleles, genotypes);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(e.getMessage() + "; please make sure that e.g. a sample isn't present more than one time in your ped file");
+        }
     }
 
-    public ArrayList<Genotype> getGenotypes() {
-        return genotypes;
-    }
-
-    public boolean isSNP() {
-        return this.indelType == null;
+    public boolean isIndel() {
+        return isIndel;
     }
 
     public void setGenomeLoc(GenomeLoc loc) {
         this.loc = loc;
     }
 
+    private void parseName() {
+        int chromIdx = variantName.indexOf("|c");
+        if ( chromIdx == -1 )
+            throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c...)");
+        String[] pieces = variantName.substring(chromIdx+2).split("_");
+        if ( pieces.length < 2 )
+            throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
+
+        String chrom = pieces[0];
+        if ( pieces[1].charAt(0) != 'p' )
+            throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
+
+        String pos = pieces[1].substring(1);
+        loc = GenomeLocParser.parseGenomeLoc(chrom+":"+pos);
+
+        if ( pieces.length > 2 && (pieces[2].equals("gI") || pieces[2].equals("gD")) ) {
+            // it's an indel
+            isIndel = true;
+            isInsertion = pieces[2].equals("gI");
+        }
+    }
+
     public void setAlleles(String al1, String al2) {
-        if ( al1.equals("0") ) {
+        if ( al1.equals(PlinkRod.SEQUENOM_NO_CALL) ) {
             // encoding for a site at which no variants were detected
             locAllele1 = al2;
         } else {
             locAllele1 = al1;
         }
         locAllele2 = al2;
-        if ( ! isSNP() ) {
-            siteIndelLength = Math.max(locAllele1.length(),locAllele2.length());
+    }
+
+    public void addGenotypeEntry(String[] alleleStrings, String sampleName) {
+
+        ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
+
+        for ( String alleleString : alleleStrings ) {
+            if ( alleleString.equals(PlinkRod.SEQUENOM_NO_CALL) ) {
+                myAlleles.add(Allele.NO_CALL);
+            } else {
+                Allele allele;
+                if ( !isIndel ) {
+                    allele = new Allele(alleleString);
+                } else if ( alleleString.equals(PlinkRod.SEQUENOM_NO_VARIANT) ) {
+                    allele = new Allele(alleleString, isInsertion);
+                } else {
+                    allele = new Allele(alleleString, !isInsertion);
+                    if ( indelLength == 0 ) {
+                        indelLength = alleleString.length();
+                        loc = GenomeLocParser.parseGenomeLoc(loc.getContig(), loc.getStart(), loc.getStart()+indelLength-1);
+                    }
+                }
+
+                myAlleles.add(allele);
+                if ( alleles.size() < 2 )
+                    alleles.add(allele);
+            }
         }
 
-    }
-
-    // CONSTRUCTOR
-
-    public PlinkVariantInfo(String variantName) {
-        this.variantName = variantName;
-        parseName();
-    }
-
-    public PlinkVariantInfo(String variantName, boolean onlyLookForIndelInfo ) {
-        this.variantName = variantName;
-        if ( onlyLookForIndelInfo ) {
-            parseNameForIndels();
-        } else {
-            parseName();
-        }
-    }
-
-    private void parseName() {
-        String chrom = this.variantName.split("\\|c")[1].split("_")[0];
-        String pos = this.variantName.split("_p")[1].split("_")[0];
-        this.loc = GenomeLocParser.parseGenomeLoc(chrom+":"+pos);
-        this.parseNameForIndels();
-    }
-
-    private void parseNameForIndels() {
-        if ( this.variantName.contains("_gI") || this.variantName.contains("_gD") ) {
-            this.instantiateIndel();
-        }
-    }
-
-    private void instantiateIndel() {
-        this.indelHolder = new ArrayList<Allele>();
-        this.sampleHolder = new ArrayList<String>();
-        this.siteIndelLength = -1;
-        this.indelType = this.variantName.contains("_gI") ? AlleleType.INSERTION : AlleleType.DELETION;
-    }
-
-    public void addGenotypeEntry(String genotypeString, String sampleName) {
-        // identify if we're dealing with a deletion
-        if ( this.isSNP() ) {
-            this.addSNP(genotypeString.split("\\s+"),sampleName);
-        } else {
-            this.addIndel(genotypeString.split("\\s+"),sampleName);
-        }
+        genotypes.add(new Genotype(sampleName, myAlleles, 20.0));
     }
 
     public void addBinaryGenotypeEntry( int genoTYPE, String sampleName ) {
@@ -515,139 +526,7 @@ class PlinkVariantInfo implements Comparable {
             alleleStr[1] = "0";
         }
 
-        if ( this.isSNP() ) {
-            this.addSNP(alleleStr,sampleName);
-        } else {
-            this.addIndel(alleleStr,sampleName);
-        }
-    }
-
-    private void addSNP(String[] alleleStrings, String sampleName) {
-        ArrayList<Allele> alleles = new ArrayList<Allele>(2);
-
-        for ( String alStr : alleleStrings ) {
-            alleles.add(new Allele(alStr.getBytes()));
-        }
-
-        genotypes.add(new Genotype(alleles,sampleName,20.0) );
-        sampleNames.add(sampleName);
-    }
-
-    private void addIndel(String[] alleleStrings, String sampleName) {
-        String alleleStr1 = alleleStrings[0];
-        String alleleStr2 = alleleStrings[1];
-        if ( alleleStr1.contains("-") ^ alleleStr2.contains("-") ) {
-            // heterozygous indel
-            if ( alleleStr1.contains("-") ) {
-                this.addHetIndel(alleleStr2,sampleName) ;
-            } else {
-                this.addHetIndel(alleleStr1,sampleName);
-            }
-        } else {
-            this.addHomIndel(alleleStr1, alleleStr2, sampleName);
-        }
-    }
-
-    private void addHetIndel(String baseStr, String sampleName) {
-        Allele ref;
-        Allele alt;
-
-        if ( indelType == AlleleType.INSERTION ) {
-            ref = new Allele("-",true);
-            alt = new Allele(baseStr.getBytes(),false);
-        } else {
-            alt = new Allele("-",false);
-            ref = new Allele(baseStr.getBytes(),true);
-        }
-
-        // this.setIndelLength(alt,baseStr.length());
-
-        if ( ! indelHolder.isEmpty() ) {
-            siteIndelLength = baseStr.length();
-            this.addHeldIndels();
-        }
-
-        Genotype indel = new Genotype(Arrays.asList(ref,alt), sampleName, 20.0);
-        // this.setIndelGenotypeLength(indel,siteIndelLength);
-        this.genotypes.add(indel);
-        this.sampleNames.add(sampleName);
-    }
-
-    private void addHomIndel(String strand1, String strand2, String sampleName) {
-        Allele allele1;
-        Allele allele2;
-        boolean reference;
-        if ( indelType == AlleleType.DELETION ) {
-            if ( strand1.contains("-") ) {
-                // homozygous deletion
-                allele1 = new Allele("-",false);
-                allele2 = new Allele("-",false);
-                reference = false;
-            } else { // homozygous reference at a deletion variant site
-                allele1 = new Allele(strand1.getBytes(),true);
-                allele2 = new Allele(strand2.getBytes(),true);
-                reference = true;
-            }
-        } else {
-            if ( strand1.contains("-") ) {
-                // homozygous reference
-                allele1 = new Allele("-",true);
-                allele2 = new Allele("-",true);
-                reference = true;
-            } else {
-                allele1 = new Allele(strand1.getBytes(),false);
-                allele2 = new Allele(strand2.getBytes(),false);
-                reference = false;
-            }
-        }
-
-        if ( reference ) {
-            if ( ! indelHolder.isEmpty() ) {
-                siteIndelLength = strand1.length();
-                this.addHeldIndels();
-            }
-        }
-
-        if ( reference || siteIndelLength != -1 ) { // if we're ref or know the insertion/deletion length of the site
-            Genotype gen = new Genotype(Arrays.asList(allele1,allele2), sampleName, 20.0);
-            // setIndelGenotypeLength(gen,siteIndelLength);
-            this.genotypes.add(gen);
-            this.sampleNames.add(sampleName);
-        } else { // hold on the variants until we *do* know the in/del length at this site
-            this.indelHolder.add(allele1);
-            this.indelHolder.add(allele2);
-            this.sampleHolder.add(sampleName);
-        }
-
-    }
-
-/*    private void setIndelGenotypeLength(Genotype g, int length) {
-        g.setAttribute(Genotype.StandardAttributes.DELETION_LENGTH,length);
-    }
-
-    private void addHeldIndels() {
-        Allele del1;
-        Allele del2;
-        int startingSize = indelHolder.size();
-        for ( int i = 0; i < startingSize ; i+=2 ) {
-            del1 = indelHolder.get(i);
-            del2 = indelHolder.get(i+1);
-            this.addIndelFromCache(del1,del2,sampleHolder.get(i/2));
-            if ( indelHolder.size() != startingSize ) {
-                throw new StingException("Halting algorithm -- possible infinite loop");
-            }
-        }
-        indelHolder.clear();
-        sampleHolder.clear();
-    }
-
-    private void addIndelFromCache ( Allele indel1, Allele indel2, String sampleName ) {
-        this.setIndelLength(indel1,siteIndelLength);
-        this.setIndelLength(indel2,siteIndelLength);
-        Genotype indel = new Genotype(Arrays.asList(indel1,indel2),sampleName, 20.0);
-        // this.setIndelGenotypeLength(indel,siteIndelLength);
-        this.genotypes.add(indel);
-        this.sampleNames.add(sampleName);
+        addGenotypeEntry(alleleStr, sampleName);
     }
 
     public int compareTo(Object obj) {
@@ -657,22 +536,14 @@ class PlinkVariantInfo implements Comparable {
 
         return loc.compareTo(((PlinkVariantInfo) obj).getLocation());
     }
-
-    private void setIndelLength(Allele al, int length) {
-        // Todo -- once alleles support deletion lengths add that information
-        // Todo -- into the object; for now this can just return
-        return;
-    }
 }
 
 class PlinkBinaryTrifecta {
 
-    public PlinkBinaryTrifecta() {
-
-    }
+    public PlinkBinaryTrifecta() {}
 
     public File bedFile;
     public File bimFile;
     public File famFile;
 
-} */
+}

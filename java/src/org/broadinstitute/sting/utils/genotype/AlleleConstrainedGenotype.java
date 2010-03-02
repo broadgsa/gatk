@@ -15,8 +15,8 @@ public abstract class AlleleConstrainedGenotype implements Genotype {
     private char ref = NO_CONSTRAINT;
     private char alt = NO_CONSTRAINT;
 
-    public AlleleConstrainedGenotype(char ref) {
-        this.ref = ref;
+    public AlleleConstrainedGenotype(String ref) {
+        this.ref = ref.charAt(0);
     }
 
     /**

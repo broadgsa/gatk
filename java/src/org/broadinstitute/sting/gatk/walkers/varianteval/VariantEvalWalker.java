@@ -347,7 +347,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     private RodVCF fakeVCFForSample(RodVCF eval, ReferenceContext ref, final String sampleName) {
         VCFGenotypeRecord genotype = (VCFGenotypeRecord)eval.getGenotype(sampleName);
         if ( genotype.getNegLog10PError() > 0 ) {
-            VCFRecord record = new VCFRecord(ref.getBase(), ref.getLocus(), "GT");
+            VCFRecord record = new VCFRecord(Character.toString(ref.getBase()), ref.getLocus(), "GT");
             record.setAlternateBases(eval.getRecord().getAlternateAlleles());
             record.addGenotypeRecord(genotype);
             record.setQual(10*genotype.getNegLog10PError());
