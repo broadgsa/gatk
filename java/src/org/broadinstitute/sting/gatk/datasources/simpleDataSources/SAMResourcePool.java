@@ -45,6 +45,7 @@ import java.io.File;
  * @author hanna
  * @version 0.1
  */
+@Deprecated
 class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator> {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(SAMResourcePool.class);

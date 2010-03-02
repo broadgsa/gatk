@@ -133,8 +133,19 @@ public class LocusReferenceView extends ReferenceView {
         initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
     }
 
+    /**
+     * Initialize the bounds of this shard, trimming the bounds so that they match the reference.
+     * @param provider Provider covering the appropriate locus.
+     */
     private void initializeBounds(ShardDataProvider provider) {
-        bounds = provider.getLocus();
+        if(provider.getLocus() != null) {
+            long sequenceLength = reference.getSequenceDictionary().getSequence(provider.getLocus().getContig()).getSequenceLength();
+            bounds = GenomeLocParser.createGenomeLoc(provider.getLocus().getContig(),
+                    Math.max(provider.getLocus().getStart(),1),
+                    Math.min(provider.getLocus().getStop(),sequenceLength));
+        }
+        else
+            bounds = null;
     }
 
     /**

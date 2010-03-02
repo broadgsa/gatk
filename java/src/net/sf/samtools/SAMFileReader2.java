@@ -38,6 +38,8 @@ import org.broadinstitute.sting.utils.StingException;
  * Class for reading and querying SAM/BAM files.  Delegates to appropriate concrete implementation.
  */
 public class SAMFileReader2 extends SAMFileReader {
+    private final File sourceFile;
+
     /**
      * Prepare to read a SAM or BAM file.  If the given file is a BAM, and has a companion BAI index file
      */
@@ -66,6 +68,7 @@ public class SAMFileReader2 extends SAMFileReader {
      */
     public SAMFileReader2(final File file, final File indexFile, final boolean eagerDecode){
         super(file,indexFile,eagerDecode);
+        this.sourceFile = file;
         close();
 
         try {
@@ -181,6 +184,17 @@ public class SAMFileReader2 extends SAMFileReader {
         catch(NoSuchMethodException ex) {
             throw new StingException("Unable to run method findIndexFile",ex);
         }
+    }
 
+    @Override
+    public boolean equals(Object other) {
+        if(other == null) return false;
+        if(!(other instanceof SAMFileReader2)) return false;
+        return this.sourceFile.equals(((SAMFileReader2)other).sourceFile);
+    }
+
+    @Override
+    public int hashCode() {
+        return sourceFile.hashCode();
     }
 }
