@@ -194,13 +194,25 @@ public class AlignmentUtils {
      * @return the number of mismatches
      */
     public static int mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite) {
+        return mismatchesInRefWindow(p, ref, ignoreTargetSite, false);
+    }
 
-        int mismatches = 0;
+    /** Returns the number of mismatches in the pileup element within the given reference context.
+     *
+     * @param p       the pileup element
+     * @param ref     the reference context
+     * @param ignoreTargetSite     if true, ignore mismatches at the target locus (i.e. the center of the window)
+     * @param qualitySumInsteadOfMismatchCount if true, return the quality score sum of the mismatches rather than the count
+     * @return the number of mismatches
+     */
+    public static int mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite, boolean qualitySumInsteadOfMismatchCount) {
+        int sum = 0;
 
         int windowStart = (int)ref.getWindow().getStart();
         int windowStop = (int)ref.getWindow().getStop();
         char[] refBases = ref.getBases();
         byte[] readBases = p.getRead().getReadBases();
+        byte[] readQualities = p.getRead().getBaseQualities();
         Cigar c = p.getRead().getCigar();
 
         int readIndex = 0;
@@ -228,8 +240,8 @@ public class AlignmentUtils {
                             continue;
 
                         char readChr = (char)readBases[readIndex];
-                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
-                            mismatches++;
+                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )                       
+                            sum += (qualitySumInsteadOfMismatchCount) ? readQualities[readIndex] : 1;
                     }
                     break;
                 case I:
@@ -246,10 +258,9 @@ public class AlignmentUtils {
                     // fail silently
                     return 0;
             }
-
         }
 
-        return mismatches;
+        return sum;
     }
 
     /** Returns number of alignment blocks (continuous stretches of aligned bases) in the specified alignment.
