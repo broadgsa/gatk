@@ -175,6 +175,9 @@ public class VariantContext {
     /** A mapping from sampleName -> genotype objects for all genotypes associated with this context */
     protected Map<String, Genotype> genotypes = null;
 
+    /** Counts for each of the possible Genotype types in this context */
+    protected int[] genotypeCounts = null;
+
     protected final static Map<String, Genotype> NO_GENOTYPES = Collections.unmodifiableMap(new HashMap<String, Genotype>());
 
     // ---------------------------------------------------------------------------------------------------------
@@ -199,6 +202,7 @@ public class VariantContext {
 
         if ( genotypes == null ) { genotypes = NO_GENOTYPES; }
         this.genotypes = Collections.unmodifiableMap(genotypes);
+        calculateGenotypeCounts();
 
         validate();
     }
@@ -695,7 +699,7 @@ public class VariantContext {
      * Genotype-specific functions -- are the genotypes monomorphic w.r.t. to the alleles segregating at this
      * site?  That is, is the number of alternate alleles among all fo the genotype == 0?
      *
-     * @return
+     * @return true if it's monomorphic
      */
     public boolean isMonomorphic() {
         return ! isVariant() || getChromosomeCount(getReference()) == getChromosomeCount();
@@ -705,10 +709,63 @@ public class VariantContext {
      * Genotype-specific functions -- are the genotypes polymorphic w.r.t. to the alleles segregating at this
      * site?  That is, is the number of alternate alleles among all fo the genotype > 0?
      *
-     * @return
+     * @return true if it's polymorphic
      */
     public boolean isPolymorphic() {
         return ! isMonomorphic();
+    }
+
+    private void calculateGenotypeCounts() {
+        genotypeCounts = new int[Genotype.Type.values().length];
+
+        for ( Genotype g : getGenotypes().values() ) {
+            if ( g.isNoCall() )
+                genotypeCounts[Genotype.Type.NO_CALL.ordinal()]++;
+            else if ( g.isHomRef() )
+                genotypeCounts[Genotype.Type.HOM_REF.ordinal()]++;
+            else if ( g.isHet() )
+                genotypeCounts[Genotype.Type.HET.ordinal()]++;
+            else if ( g.isHomVar() )
+                genotypeCounts[Genotype.Type.HOM_VAR.ordinal()]++;
+            else
+                throw new StingException("Genotype of unknown type: " + g);
+        }
+    }
+
+    /**
+     * Genotype-specific functions -- how many no-calls are there in the genotypes?
+     *
+     * @return number of no calls
+     */
+    public int getNoCallCount() {
+        return genotypeCounts[Genotype.Type.NO_CALL.ordinal()];
+    }
+
+    /**
+     * Genotype-specific functions -- how many hom ref calls are there in the genotypes?
+     *
+     * @return number of hom ref calls
+     */
+    public int getHomRefCount() {
+        return genotypeCounts[Genotype.Type.HOM_REF.ordinal()];
+    }
+
+    /**
+     * Genotype-specific functions -- how many het calls are there in the genotypes?
+     *
+     * @return number of het calls
+     */
+    public int getHetCount() {
+        return genotypeCounts[Genotype.Type.HET.ordinal()];
+    }
+
+    /**
+     * Genotype-specific functions -- how many hom var calls are there in the genotypes?
+     *
+     * @return number of hom var calls
+     */
+    public int getHomVarCount() {
+        return genotypeCounts[Genotype.Type.HOM_VAR.ordinal()];
     }
 
     // ---------------------------------------------------------------------------------------------------------
