@@ -14,7 +14,7 @@ import java.io.File;
  * @version 0.1
  */
 public class AlignerIntegrationTest extends WalkerTest {
-    //@Test
+    @Test
     public void testBasicAlignment() {
         String md5 = "c6d95d8ae707e78fefdaa7375f130995";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
