@@ -107,11 +107,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
     }
 
     private ReadMetaDataTracker getRMDT(int incr) {
-        SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "name", 0, 1, 10);
-        byte[] c = new byte[10];
-        for (int x = 0; x < 10; x++)
-            c[x] = 'A';
-        record.setReadBases(c);
+        SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "name", 0, 1, 10);        
         TreeMap<Long, Set<ReferenceOrderedDatum>> data = new TreeMap<Long, Set<ReferenceOrderedDatum>>();
         for (int x = 0; x < record.getAlignmentEnd(); x+=incr) {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(record.getReferenceIndex(), record.getAlignmentStart() + x, record.getAlignmentStart() + x);

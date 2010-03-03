@@ -73,12 +73,7 @@ public class ReadBasedReferenceOrderedViewTest extends BaseTest {
         // make ten reads,
         List<SAMRecord> records = new ArrayList<SAMRecord>();
         for (int x = 1; x < 11; x++) {
-            SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "name", 0, x, 10);
-            byte[] c = new byte[10];
-            for (int y = 0; y < 10; y++)
-                c[y] = 'A';
-            rec.setReadBases(c);
-            records.add(rec);
+            SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "name", 0, x, 10);          
         }
         GenomeLoc start = GenomeLocParser.createGenomeLoc(0,0,0);
         List<RMDDataState> list = new ArrayList<RMDDataState>();

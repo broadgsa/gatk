@@ -154,11 +154,13 @@ public class ArtificialSAMUtils {
         elements.add(new CigarElement(length, CigarOperator.characterToEnum('M')));
         record.setCigar(new Cigar(elements));
         record.setProperPairFlag(false);
-        // TODO: add to code after checking why it breaks the clean read injector test
-        /*byte[] c = new byte[length];
+
+        // our reads are all 'A's by default
+        byte[] c = new byte[length];
         for (int x = 0; x < length; x++)
-            c[x] = 'A';  */
-        //record.setReadBases(c);
+            c[x] = 'A';
+        record.setReadBases(c);
+        
         if (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
             record.setReadUmappedFlag(true);
         }
