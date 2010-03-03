@@ -215,7 +215,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         return sum;
     }
 
-    // Close any file writers
     public void onTraversalDone(UGStatistics sum) {
         logger.info(String.format("Visited bases                                %d", sum.nBasesVisited));
         logger.info(String.format("Callable bases                               %d", sum.nBasesCallable));
@@ -223,6 +222,5 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         logger.info(String.format("%% callable bases of all loci                 %3.3f", sum.percentCallableOfAll()));
         logger.info(String.format("%% confidently called bases of all loci       %3.3f", sum.percentCalledOfAll()));
         logger.info(String.format("%% confidently called bases of callable loci  %3.3f", sum.percentCalledOfCallable()));
-//        logger.info("Processed " + sum.nBasesCallable + " loci that are callable for SNPs");
     }
 }

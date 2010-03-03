@@ -7,8 +7,6 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
-import java.util.List;
-import java.io.File;
 
 public class VariantContextIntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T TestVariantContext" +
@@ -50,7 +48,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
         WalkerTestSpec spec = new WalkerTestSpec( cmdRoot + " -B vcf,VCF," + validationDataLocation + "/yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.vcf -L 1:1-1000000 -o %s --outputVCF %s",
                 2, // just one output file
-                Arrays.asList("e3c35d0c4b5d4935c84a270f9df0951f", "461960b26ee1f8998ccc47da9bd3913c"));
+                Arrays.asList("e3c35d0c4b5d4935c84a270f9df0951f", "62f06802c2cac1a41068a3d9b6330ad4"));
          executeTest("testToVCF", spec);
     }
 

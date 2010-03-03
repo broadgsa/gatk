@@ -158,7 +158,10 @@ public class VCFUtils {
         record.setField(VCFGenotypeRecord.DEPTH_KEY, String.valueOf(gtype.getReadCount()));
         params.addFormatItem(VCFGenotypeRecord.DEPTH_KEY);
         double qual = Math.min(10.0 * gtype.getNegLog10PError(), VCFGenotypeRecord.MAX_QUAL_VALUE);
-        record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
+        if ( qual >= 0 )
+            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
+        else
+            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%d", VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY));
         params.addFormatItem(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
 
         record.setVCFRecord(vcfrecord);
@@ -186,7 +189,10 @@ public class VCFUtils {
         record.setField(VCFGenotypeRecord.DEPTH_KEY, String.valueOf(gtype.getReadCount()));
         params.addFormatItem(VCFGenotypeRecord.DEPTH_KEY);
         double qual = Math.min(10.0 * gtype.getNegLog10PError(), VCFGenotypeRecord.MAX_QUAL_VALUE);
-        record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
+        if ( qual >= 0 )
+            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
+        else
+            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%d", VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY));
         params.addFormatItem(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
 
         return record;

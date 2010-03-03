@@ -638,7 +638,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
                 tempStr.append(rec.toStringEncoding(mAlts, genotypeFormatStrings));
                 gMap.remove(genotype);
             } else {
-                tempStr.append(VCFGenotypeRecord.EMPTY_GENOTYPE);
+                tempStr.append(VCFGenotypeRecord.stringEncodingForEmptyGenotype(genotypeFormatStrings));
             }
         }
         if ( gMap.size() != 0 ) {

@@ -309,7 +309,7 @@ public class VCFReaderTest extends BaseTest {
                 if ( grec.getReadCount() == 4 )
                     Assert.assertTrue(grec.getFields().get("GQ").equals("-1"));
                 else
-                    Assert.assertTrue(grec.getFields().get("GQ").equals("5.85") && grec.getReadCount() == -1);                    
+                    Assert.assertTrue(grec.getFields().get("GQ").equals("5.85") && grec.getReadCount() == -1);
             }
         }
  

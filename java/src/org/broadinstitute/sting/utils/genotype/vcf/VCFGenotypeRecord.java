@@ -266,20 +266,41 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         StringBuilder builder = new StringBuilder();
         builder.append(toGenotypeString(altAlleles));
 
-        if ( !isEmptyGenotype() ) {
-            for ( String field : genotypeFormatStrings ) {
-                String value = mFields.get(field);
-                if ( value == null && field.equals(OLD_DEPTH_KEY) )
-                    value = mFields.get(DEPTH_KEY);
-                if ( value == null )
-                    continue;
+        for ( String field : genotypeFormatStrings ) {
+            if ( field.equals(GENOTYPE_KEY) )
+                continue;
 
-                builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
-                if (value.equals(""))
-                    builder.append(getMissingFieldValue(field));
-                else
-                    builder.append(value);
-            }
+            String value = mFields.get(field);
+            if ( value == null && field.equals(OLD_DEPTH_KEY) )
+                value = mFields.get(DEPTH_KEY);
+
+            builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
+            if ( value == null || value.equals("") )
+                builder.append(getMissingFieldValue(field));
+            else
+                builder.append(value);
+        }
+
+        return builder.toString();
+    }
+
+    /**
+     * output a string representation of an empty genotype
+     *
+     * @param genotypeFormatStrings  genotype format strings
+     *
+     * @return a string
+     */
+    public static String stringEncodingForEmptyGenotype(String[] genotypeFormatStrings) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(EMPTY_GENOTYPE);
+
+        for ( String field : genotypeFormatStrings ) {
+            if ( field.equals(GENOTYPE_KEY) )
+                continue;
+
+            builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
+            builder.append(getMissingFieldValue(field));
         }
 
         return builder.toString();
@@ -289,7 +310,7 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         String result = "";
         if ( field.equals(GENOTYPE_QUALITY_KEY) )
             result = String.valueOf(MISSING_GENOTYPE_QUALITY);
-        else if ( field.equals(DEPTH_KEY) )
+        else if ( field.equals(DEPTH_KEY) || field.equals(OLD_DEPTH_KEY) )
             result = String.valueOf(MISSING_DEPTH);
         else if ( field.equals(GENOTYPE_FILTER_KEY) )
             result = UNFILTERED;
@@ -302,7 +323,7 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
     public static Set<VCFFormatHeaderLine> getSupportedHeaderStrings() {
         Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
         result.add(new VCFFormatHeaderLine(GENOTYPE_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.String, "Genotype"));
-        result.add(new VCFFormatHeaderLine(GENOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Genotype Quality"));
+        result.add(new VCFFormatHeaderLine(GENOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Float, "Genotype Quality"));
         result.add(new VCFFormatHeaderLine(DEPTH_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Read Depth (only filtered reads used for calling)"));
         //result.add(new VCFFormatHeaderLine(HAPLOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Haplotype Quality"));
         return result;
