@@ -37,11 +37,11 @@ public class VariantNearestNeighborsModel extends VariantOptimizationModel {
        super( _dataManager, _targetTITV );
     }
     
-    public double[][] run() {
+    public double[] run() {
 
         final int numVariants = dataManager.numVariants;
 
-        final double[][] pTrueVariant = new double[1][numVariants];
+        final double[] pTrueVariant = new double[numVariants];
 
         final VariantTree vTree = new VariantTree( 2000 );
         vTree.createTreeFromData( dataManager.data );
@@ -49,7 +49,7 @@ public class VariantNearestNeighborsModel extends VariantOptimizationModel {
         System.out.println("Finished creating the kd-tree.");
 
         for(int iii = 0; iii < numVariants; iii++) {
-            pTrueVariant[0][iii] = calcTruePositiveRateFromTITV( vTree.calcNeighborhoodTITV( dataManager.data[iii] ) );
+            pTrueVariant[iii] = calcTruePositiveRateFromTITV( vTree.calcNeighborhoodTITV( dataManager.data[iii] ) );
         }
 
         return pTrueVariant;

@@ -51,11 +51,15 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName = "target_titv", shortName="titv", doc="The target Ti/Tv ratio to optimize towards. (~~2.2 for whole genome experiments)", required=true)
-    public double TARGET_TITV = 2.2;
-    @Argument(fullName = "filter_output", shortName="filter", doc="If specified the optimizer will not only update the QUAL field of the output VCF file but will also filter the variants", required=false)
-    public boolean FILTER_OUTPUT = false;
-    
+    @Argument(fullName = "target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=true)
+    private double TARGET_TITV = 2.12;
+    //@Argument(fullName = "filter_output", shortName="filter", doc="If specified the optimizer will not only update the QUAL field of the output VCF file but will also filter the variants", required=false)
+    //private boolean FILTER_OUTPUT = false;
+    @Argument(fullName = "ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
+    private boolean IGNORE_INPUT_FILTERS = false;
+    @Argument(fullName = "exclude_annotation", shortName = "exclude", doc = "The names of the annotations which should be excluded from the calculations", required = false)
+    private String[] EXCLUDED_ANNOTATIONS = null;
+
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
@@ -90,46 +94,48 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         double annotationValues[] = new double[numAnnotations];
 
         for( final VariantContext vc : tracker.getAllVariantContexts(null, context.getLocation(), false, false) ) {
-            if( vc != null && vc.isSNP() ) {
+
+            if( vc != null && vc.isSNP() && (IGNORE_INPUT_FILTERS || !vc.isFiltered()) ) { 
                 if( firstVariant ) { // This is the first variant encountered so set up the list of annotations
                     annotationKeys.addAll( vc.getAttributes().keySet() );
-                    if( annotationKeys.contains("ID") ) { annotationKeys.remove("ID"); } // ID field is added to the vc's INFO field??
+                    if( annotationKeys.contains("ID") ) { annotationKeys.remove("ID"); } // ID field is added to the vc's INFO field?
                     if( annotationKeys.contains("DB") ) { annotationKeys.remove("DB"); }
-                    if( annotationKeys.contains("Dels") ) { annotationKeys.remove("Dels"); }
-                    if( annotationKeys.contains("AN") ) { annotationKeys.remove("AN"); }
+                    if( EXCLUDED_ANNOTATIONS != null ) {
+                        for( final String excludedAnnotation : EXCLUDED_ANNOTATIONS ) {
+                            if( annotationKeys.contains( excludedAnnotation ) ) { annotationKeys.remove( excludedAnnotation ); }
+                        }
+                    }
                     numAnnotations = annotationKeys.size() + 1; // +1 for variant quality ("QUAL")
                     annotationValues = new double[numAnnotations];
                     firstVariant = false;
                 }
 
-                //BUGBUG: for now only using the novel SNPs
-                if( vc.getAttribute("ID").equals(".") ) {
-                    int iii = 0;
-                    for( final String key : annotationKeys ) {
+                int iii = 0;
+                for( final String key : annotationKeys ) {
 
-                        double value = 0.0f;
-                        try {
-                            value = Double.parseDouble( (String)vc.getAttribute( key, "0.0" ) );
-                        } catch( NumberFormatException e ) {
-                            // do nothing, default value is 0.0f, annotations with zero variance will be ignored later
-                        }
-                        annotationValues[iii++] = value;
+                    double value = 0.0;
+                    try {
+                        value = Double.parseDouble( (String)vc.getAttribute( key, "0.0" ) );
+                    } catch( NumberFormatException e ) {
+                        // do nothing, default value is 0.0,
+                        // BUGBUG: annotations with zero variance should be ignored
                     }
-
-                    // Variant quality ("QUAL") is not in the list of annotations
-                    annotationValues[iii] = vc.getPhredScaledQual();
-
-                    VariantDatum variantDatum = new VariantDatum();
-                    variantDatum.annotations = annotationValues;
-                    variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
-                    variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
-                    variantDatum.isFiltered = vc.isFiltered();
-                    mapList.add( variantDatum );
+                    annotationValues[iii++] = value;
                 }
+
+                // Variant quality ("QUAL") is not in the list of annotations, but is useful so add it here.
+                annotationValues[iii] = vc.getPhredScaledQual();
+
+                VariantDatum variantDatum = new VariantDatum();
+                variantDatum.annotations = annotationValues;
+                variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+                variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
+                variantDatum.isFiltered = vc.isFiltered(); // BUGBUG: This field won't be needed in the final version.
+                mapList.add( variantDatum );
             }
         }
 
-        return mapList; // This value isn't actually used for anything
+        return mapList;
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -149,7 +155,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
 
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
 
-        final VariantDataManager dataManager = new VariantDataManager( reduceSum );
+        final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
         logger.info( "There are " + dataManager.numVariants + " variants and " + dataManager.numAnnotations + " annotations.");
@@ -158,19 +164,17 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
 
         final VariantOptimizationModel gmm = new VariantGaussianMixtureModel( dataManager, TARGET_TITV );
-        final double[][] p = gmm.run();
-        final int numIterations = 16;
+        final double[] p = gmm.run();
 
+        // BUGBUG: Change to call a second ROD walker to output the new VCF file with new qual fields and filters
+        // Intermediate cluster ROD can be analyzed to assess clustering performance
         try {
-            final PrintStream out = new PrintStream("gmm512x16norm.data");
+            final PrintStream out = new PrintStream("gmm128clusterNovel.data"); // Parse in Matlab to create performance plots
             for(int iii = 0; iii < dataManager.numVariants; iii++) {
-                for( int ttt = 0; ttt < numIterations; ttt++ ) {
-                    out.print(p[ttt][iii] + "\t");
-                }
-                out.println((dataManager.data[iii].isTransition ? 1 : 0)
+                out.print(p[iii] + "\t");
+                out.println( (dataManager.data[iii].isTransition ? 1 : 0)
                         + "\t" + (dataManager.data[iii].isKnown? 1 : 0)
-                        + "\t" + (dataManager.data[iii].isFiltered ? 1 : 0)
-                );
+                        + "\t" + (dataManager.data[iii].isFiltered ? 1 : 0) );
             }
 
 
@@ -178,6 +182,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
             e.printStackTrace();
             System.exit(-1);
         }
+
     }
 
 }

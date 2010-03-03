@@ -39,7 +39,7 @@ public class VariantTreeNode {
     public double cutValue;
     public VariantDatum[] variants;
 
-    private final int minBinSize = 8000; // BUGBUG: must be bigger than KNN
+    private final int minBinSize = 8000; // BUGBUG: must be larger than number of kNN
 
     public VariantTreeNode() {
         left = null;

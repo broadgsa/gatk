@@ -92,7 +92,7 @@ public class VariantTree {
         final double[] distSquared = new double[data.length];
         int iii = 0;
         for( final VariantDatum variantDatum : data ) {
-            distSquared[iii] = 0.0f;
+            distSquared[iii] = 0.0;
             int jjj = 0;
             for( final double value : variantDatum.annotations) {
                 final double diff = variant[jjj] - value;
