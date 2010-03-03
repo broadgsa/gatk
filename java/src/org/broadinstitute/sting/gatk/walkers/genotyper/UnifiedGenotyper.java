@@ -205,7 +205,11 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         // use multi-sample mode if we have multiple samples or the output type allows it
         else {
-            writer.addMultiSampleCall(value.genotypes, value.variation);
+            try {
+                writer.addMultiSampleCall(value.genotypes, value.variation);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");    
+            }
         }
 
         return sum;
