@@ -76,7 +76,7 @@ public class PrintReadsWalkerTest extends BaseTest {
     public void testNullRead() {
         PrintReadsWalker walker = new PrintReadsWalker();
 
-        SAMRecord rec = walker.map(bases, null);
+        SAMRecord rec = walker.map(bases, null, null);
         assertTrue(rec == null);
     }
 
@@ -86,7 +86,7 @@ public class PrintReadsWalkerTest extends BaseTest {
         PrintReadsWalker walker = new PrintReadsWalker();
         SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
         SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
-        SAMRecord ret = walker.map(bases, rec);
+        SAMRecord ret = walker.map(bases, rec,null);
         assertTrue(ret == rec);
         assertTrue(ret.getReadName().equals(rec.getReadName()));
     }
@@ -98,7 +98,7 @@ public class PrintReadsWalkerTest extends BaseTest {
          SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
         SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
         ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
-        SAMRecord ret = walker.map(bases, null);
+        SAMRecord ret = walker.map(bases, null,null);
         walker.reduce(ret,writer);
 
         assertTrue(writer.getRecords().size() == 1);

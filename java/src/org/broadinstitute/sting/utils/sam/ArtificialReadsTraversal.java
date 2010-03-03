@@ -112,7 +112,7 @@ public class ArtificialReadsTraversal extends TraversalEngine {
 
             final boolean keepMeP = readWalker.filter(refSeq, read);
             if (keepMeP) {
-                M x = readWalker.map(refSeq, read);
+                M x = readWalker.map(refSeq, read,null);  // TODO: fix me at some point, it would be nice to fake out ROD data too
                 sum = readWalker.reduce(x, sum);
             }
 

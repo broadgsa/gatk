@@ -4,6 +4,7 @@ import net.sf.samtools.*;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
@@ -141,7 +142,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
      * @param read the read itself, as a SAMRecord
      * @return the ReadClipper object describing what should be done to clip this read
      */
-    public ReadClipper map(char[] ref, SAMRecord read) {
+    public ReadClipper map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
             ReadClipper clipper = new ReadClipper(read);
 

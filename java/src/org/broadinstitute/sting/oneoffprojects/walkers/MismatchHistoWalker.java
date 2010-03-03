@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.Utils;
@@ -21,7 +22,7 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
 	    return !read.getReadUnmappedFlag();
     }
 
-    public Integer map(char[] ref, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());
 

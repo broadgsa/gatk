@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -46,7 +47,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
      *         Last element is for internal use so the reduce() function can figure out how
      *         many reads we processed.
      */
-    public boolean[] map(char[] ref, SAMRecord read) {
+    public boolean[] map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         boolean[] errorsPerCycle = new boolean[read.getReadLength() + 1];
 
         byte[] bases  = read.getReadBases();

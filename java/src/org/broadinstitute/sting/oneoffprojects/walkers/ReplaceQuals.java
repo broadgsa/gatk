@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
@@ -64,7 +65,7 @@ public class ReplaceQuals extends ReadWalker<SAMRecord, SAMFileWriter> {
     /**
      *
      */
-    public SAMRecord map(char[] ref, SAMRecord read) {
+    public SAMRecord map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         final String name = read.getReadName();
 
         if ( readNameToPairs.containsKey(name) ) {

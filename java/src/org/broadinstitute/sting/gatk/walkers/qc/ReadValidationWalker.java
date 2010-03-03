@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
@@ -76,7 +77,7 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
      * @param read the read itself, as a SAMRecord
      * @return the read itself
      */
-    public SAMRecord map( char[] ref, SAMRecord read ) {
+    public SAMRecord map( char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         return read;
     }
 

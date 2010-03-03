@@ -166,7 +166,7 @@ public class GraphReferenceAssessor extends ReadWalker<Integer, Integer> {
         return minNMM;
     }
 
-    public Integer map(char[] refArg, SAMRecord read) {
+    public Integer map(char[] refArg, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
         if ( MAXREADS-- == 0 ) {
             System.exit(0);

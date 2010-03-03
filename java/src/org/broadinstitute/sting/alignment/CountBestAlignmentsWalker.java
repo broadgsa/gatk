@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.alignment;
 
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
@@ -49,7 +50,7 @@ public class CountBestAlignmentsWalker extends ReadWalker<Integer,Integer> {
      * @return Number of alignments found for this read.
      */
     @Override
-    public Integer map(char[] ref, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         Iterator<Alignment[]> alignmentIterator = aligner.getAllAlignments(read.getReadBases()).iterator();
         if(alignmentIterator.hasNext()) {
             int numAlignments = alignmentIterator.next().length;

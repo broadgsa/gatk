@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.alignment;
 
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
@@ -58,7 +59,7 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
      * @return Number of reads aligned by this map (aka 1).
      */
     @Override
-    public Integer map(char[] ref, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         //logger.info(String.format("examining read %s", read.getReadName()));
 
         byte[] bases = read.getReadBases();

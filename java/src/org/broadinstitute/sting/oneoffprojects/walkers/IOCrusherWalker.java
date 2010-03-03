@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
@@ -37,7 +38,7 @@ public class IOCrusherWalker extends ReadWalker<SAMRecord, ArrayList<SAMFileWrit
     /**
      *
      */
-    public SAMRecord map(char[] ref, SAMRecord read) {
+    public SAMRecord map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         nReadsRead++;
         return read;
     }

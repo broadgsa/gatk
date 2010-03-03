@@ -21,23 +21,26 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.refdata.utils;
+package org.broadinstitute.sting.gatk.iterators;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.Iterator;
 import java.util.List;
 
 
 /**
  * @author aaron
  *         <p/>
- *         Class RODRecordList
+ *         Class PeekableRODIterator
  *         <p/>
- *         make the RODRecord list an interface, so we can stub in other implementations
- *         during testing.
+ *         the methods attached to a peekable ROD iterator
  */
-public interface RODRecordList extends List<ReferenceOrderedDatum>, Comparable<RODRecordList> {
-    public GenomeLoc getLocation();
-    public String getName();
+public interface PeekableRODIterator extends Iterator<List<ReferenceOrderedDatum>> {
+    public GenomeLoc peekNextLocation();
+
+    public RODRecordList seekForward(GenomeLoc interval);
 }
+

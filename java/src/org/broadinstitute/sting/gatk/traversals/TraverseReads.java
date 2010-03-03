@@ -3,9 +3,11 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrderedView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -80,6 +82,9 @@ public class TraverseReads extends TraversalEngine {
         ReadView reads = new ReadView(dataProvider);
         ReadReferenceView reference = new ReadReferenceView(dataProvider);
 
+        // get the reference ordered data
+        ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
+
         // while we still have more reads
         for (SAMRecord read : reads) {
             // an array of characters that represent the reference
@@ -92,9 +97,12 @@ public class TraverseReads extends TraversalEngine {
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
 
+            // if the read is mapped, create a metadata tracker
+            ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
+
             final boolean keepMeP = readWalker.filter(refSeq, read);
             if (keepMeP) {
-                M x = readWalker.map(refSeq, read);
+                M x = readWalker.map(refSeq, read, tracker); // the tracker can be null
                 sum = readWalker.reduce(x, sum);
             }
 

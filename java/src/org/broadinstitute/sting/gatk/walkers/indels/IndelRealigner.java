@@ -226,7 +226,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    public Integer map(char[] ref, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( currentInterval == null ) {
             emit(read);
             return 0;
@@ -278,7 +278,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             } while ( currentInterval != null && currentInterval.isBefore(readLoc) );
 
             // call back into map now that the state has been updated
-            map(ref, read);
+            map(ref, read,metaDataTracker);
         }
 
         return 0;

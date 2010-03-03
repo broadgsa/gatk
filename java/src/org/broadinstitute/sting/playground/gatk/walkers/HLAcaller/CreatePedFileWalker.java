@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -177,7 +178,7 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         }
     }
 
-    public Integer map(char[] ref, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         HLAnamesAL.add(read.getReadName());
         HLAreadsAL.add(formatter.FormatRead(read.getCigarString(), read.getReadString()));
         HLAstartposAL.add(read.getAlignmentStart());

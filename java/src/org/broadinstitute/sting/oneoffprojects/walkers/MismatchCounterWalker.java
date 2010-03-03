@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.Utils;
@@ -9,7 +10,7 @@ import java.util.List;
 
 @WalkerName("CountMismatches")
 public class MismatchCounterWalker extends ReadWalker<Integer, Integer> {
-    public Integer map(char[] ref, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         int nMismatches = 0;
         
         int start = read.getAlignmentStart()-1;

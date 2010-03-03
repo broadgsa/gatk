@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 
 /**
  * Created by IntelliJ IDEA.
@@ -23,5 +24,5 @@ public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, Re
     }
 
     // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
-    public abstract MapType map(char[] ref, SAMRecord read);
+    public abstract MapType map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker);
 }

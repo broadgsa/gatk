@@ -148,7 +148,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 
 	@Override
-	public Integer map(char[] ref, SAMRecord read) {
+	public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
     //        if ( read.getReadName().equals("428EFAAXX090610:2:36:1384:639#0") ) System.out.println("GOT READ");
 

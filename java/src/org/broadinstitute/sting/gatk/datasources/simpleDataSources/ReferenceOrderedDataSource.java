@@ -73,6 +73,20 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     }
 
     /**
+     * Seek to the specified position and return an iterator through the data.
+     *
+     * @param loc GenomeLoc that points to the selected position.
+     *
+     * @return Iterator through the data.
+     */
+    public Iterator seek(GenomeLoc loc) {
+        DataStreamSegment dataStreamSegment = new MappedStreamSegment(loc);
+        FlashBackIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
+        return RODIterator;
+    }
+
+
+    /**
      * Close the specified iterator, returning it to the pool.
      * @param iterator Iterator to close.
      */
@@ -116,10 +130,10 @@ class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBack
                 if( (RODIterator.position() == null && RODIterator.hasNext()) ||
                     (RODIterator.position() != null && RODIterator.position().isBefore(position)) )
                     return RODIterator;
-//                if (RODIterator.position() != null && RODIterator.canFlashBackTo(position)) {
-//                    RODIterator.flashBackTo(position);
-//                    return RODIterator;
-//                }
+                if (RODIterator.position() != null && RODIterator.canFlashBackTo(position)) {
+                    RODIterator.flashBackTo(position);
+                    return RODIterator;
+                }
 
             }
             return null;

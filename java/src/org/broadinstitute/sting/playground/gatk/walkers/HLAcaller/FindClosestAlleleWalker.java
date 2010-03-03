@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -231,7 +232,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
         return maxFreq;
     }
 
-    public Integer map(char[] ref, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         //Calculate concordance for this read and all overlapping reads
         double maxConcordance = CalculateConcordance(read);
 
