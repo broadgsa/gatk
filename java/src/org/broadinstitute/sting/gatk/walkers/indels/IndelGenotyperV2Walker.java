@@ -70,6 +70,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
      @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging, do not turn this on",required=false) Boolean DEBUG = false;
     @Argument(fullName="window_size", shortName="ws", doc="Size (bp) of the sliding window used for accumulating the coverage. "+
             "May need to be increased to accomodate longer reads or longer deletions.",required=false) int WINDOW_SIZE = 200;
+    @Argument(fullName="maxNumberOfReads",shortName="mnr",doc="Maximum number of reads to cache in the window; if number of reads exceeds this number,"+
+                " the window will be skipped and no calls will be made from it",required=false) int MAX_READ_NUMBER = 10000;
 
 	private WindowContext tumor_context;
 	private WindowContext normal_context; 
@@ -201,6 +203,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 					+lastRead.getAlignmentEnd()+" cigar="+lastRead.getCigarString());
 
             currentPosition = read.getAlignmentStart();
+            lastRead = read;
 
             if ( read.getAlignmentEnd() > contigLength  ) {
                 if ( ! outOfContigUserWarned ) {
@@ -210,14 +213,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 return 0;
             }
 
-            if ( read.getAlignmentStart() < normal_context.getStart() ) {
-                // should never happen
-                throw new StingException("Read "+read.getReadName()+": out of order on the contig\n"+
-					"Read starts at "+read.getReferenceName()+":"+read.getAlignmentStart()+ " (cigar="+read.getCigarString()+
-					"); window starts at "+normal_context.getStart());
-            }
-
-            lastRead = read;
+//            if ( read.getAlignmentStart() < normal_context.getStart() ) {
+//                if ( skippingReads ) return 0; // return if we are legitimately skipping reads over some bad region.
+//                // this should never happen
+//                throw new StingException("Read "+read.getReadName()+": out of order on the contig\n"+
+//					"Read starts at "+read.getReferenceName()+":"+read.getAlignmentStart()+ " (cigar="+read.getCigarString()+
+//					"); window starts at "+normal_context.getStart());
+//           }
 
             // a little trick here: we want to make sure that current read completely fits into the current
             // window so that we can accumulate indel observations over the whole length of the read.
@@ -268,8 +270,27 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 } else {
                     throw new StingException("Unrecognized read group in merged stream: "+rg);
                 }
+                if ( tumor_context.getReads().size() > MAX_READ_NUMBER ) {
+                    System.out.println("WARNING: a count of "+MAX_READ_NUMBER+" reads reached in a window "+
+                            refName+':'+tumor_context.getStart()+'-'+tumor_context.getStop()+" in tumor sample. The whole window will be dropped.");
+                    tumor_context.shift(WINDOW_SIZE);
+                    normal_context.shift(WINDOW_SIZE);
+                }
+                if ( normal_context.getReads().size() > MAX_READ_NUMBER ) {
+                    System.out.println("WARNING: a count of "+MAX_READ_NUMBER+" reads reached in a window "+
+                            refName+':'+normal_context.getStart()+'-'+normal_context.getStop()+" in normal sample. The whole window will be dropped");
+                    tumor_context.shift(WINDOW_SIZE);
+                    normal_context.shift(WINDOW_SIZE);
+                }
+
+
             } else {
                 normal_context.add(read, ref);
+                if ( normal_context.getReads().size() > MAX_READ_NUMBER ) {
+                    System.out.println("WARNING: a count of "+MAX_READ_NUMBER+" reads reached in a window "+
+                            refName+':'+normal_context.getStart()+'-'+normal_context.getStop()+". The whole window will be dropped");
+                    normal_context.shift(WINDOW_SIZE);
+                }
             }
 
             return 1;
@@ -1162,6 +1183,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             }
 
             public void add(SAMRecord read, char [] ref) {
+
+                if ( read.getAlignmentStart() < start ) return; // silently ignore reads starting before the window start
 
                 ExpandedSAMRecord er = new ExpandedSAMRecord(read,ref,read.getAlignmentStart()-start,this);
                 //TODO duplicate records may actually indicate a problem with input bam file; throw an exception when the bug in CleanedReadInjector is fixed
