@@ -4,6 +4,11 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
@@ -48,9 +53,9 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
     @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
     int start = 1;
     @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
-    int stop = 1000;
+    int stop = 500;
     @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
-    int nBins = 20;
+    int nBins = 499;
     @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to 50.", required = false)
     byte minMappingQuality = 50;
     @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to 20.", required = false)
@@ -73,6 +78,8 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
     boolean includeDeletions = false;
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
     boolean ignoreDeletionSites = false;
+    @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate the coverage statistics over this list of genes. Currently accepts RefSeq.", required = false)
+    File refSeqGeneList = null;
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STANDARD WALKER METHODS
@@ -98,17 +105,21 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
 
         if ( ! omitDepthOutput ) { // print header
             out.printf("%s\t%s\t%s","Locus","Total_Depth","Average_Depth");
+            //System.out.printf("\t[log]\t%s\t%s\t%s","Locus","Total_Depth","Average_Depth");
             // get all the samples
             HashSet<String> allSamples = getSamplesFromToolKit(useReadGroup);
 
             for ( String s : allSamples) {
                 out.printf("\t%s_%s","Depth_for",s);
+                //System.out.printf("\t%s_%s","Depth_for",s);
                 if ( printBaseCounts ) {
-                    out.printf("\t%s_%s",s,"_base_counts");
+                    out.printf("\t%s_%s",s,"base_counts");
+                    //System.out.printf("\t%s_%s",s,"base_counts");
                 }
             }
 
             out.printf("%n");
+            //System.out.printf("%n");
 
         } else {
             out.printf("Per-Locus Depth of Coverage output was omitted");
@@ -162,6 +173,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         
         if ( ! omitDepthOutput ) {
             out.printf("%s",ref.getLocus()); // yes: print locus in map, and the rest of the info in reduce (for eventual cumulatives)
+            //System.out.printf("\t[log]\t%s",ref.getLocus());
         }
 
         Map<String,int[]> countsBySample = CoverageUtils.getBaseCountsBySample(context,minMappingQuality,minBaseQuality,
@@ -191,6 +203,9 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
     ////////////////////////////////////////////////////////////////////////////////////
 
     public void onTraversalDone( List<Pair<GenomeLoc,DepthOfCoverageStats>> statsByInterval ) {
+        if ( refSeqGeneList != null ) {
+            printGeneStats(statsByInterval);
+        }
         File intervalStatisticsFile = deriveFromStream("interval_statistics");
         File intervalSummaryFile = deriveFromStream("interval_summary");
         DepthOfCoverageStats mergedStats = printIntervalStatsAndMerge(statsByInterval,intervalSummaryFile, intervalStatisticsFile);
@@ -263,7 +278,57 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         return firstStats;
     }
 
-    private void printTargetSummary(PrintStream output, Pair<GenomeLoc,DepthOfCoverageStats> intervalStats) {
+    private void printGeneStats(List<Pair<GenomeLoc,DepthOfCoverageStats>> statsByTarget) {
+        LocationAwareSeekableRODIterator refseqIterator = initializeRefSeq();
+        List<Pair<String,DepthOfCoverageStats>> statsByGene = new ArrayList<Pair<String,DepthOfCoverageStats>>();// maintains order
+        Map<String,DepthOfCoverageStats> geneNamesToStats = new HashMap<String,DepthOfCoverageStats>(); // alows indirect updating of objects in list
+
+        for ( Pair<GenomeLoc,DepthOfCoverageStats> targetStats : statsByTarget ) {
+            String gene = getGeneName(targetStats.first,refseqIterator);
+            if ( geneNamesToStats.keySet().contains(gene) ) {
+                geneNamesToStats.get(gene).merge(targetStats.second);
+            } else {
+                geneNamesToStats.put(gene,targetStats.second);
+                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,targetStats.second));
+            }
+        }
+
+        PrintStream geneSummaryOut = getCorrectStream(out,deriveFromStream("gene_summary"));
+
+        for ( Pair<String,DepthOfCoverageStats> geneStats : statsByGene ) {
+            printTargetSummary(geneSummaryOut,geneStats);
+        }
+
+        if ( ! getToolkit().getArguments().outFileName.contains("stdout")) {
+            geneSummaryOut.close();
+        }
+        
+    }
+
+    //blatantly stolen from Andrew Kernytsky
+    private String getGeneName(GenomeLoc target, LocationAwareSeekableRODIterator refseqIterator) {
+        if (refseqIterator == null) { return "UNKNOWN"; }
+
+        RODRecordList annotationList = refseqIterator.seekForward(target);
+        if (annotationList == null) { return "UNKNOWN"; }
+
+        for(ReferenceOrderedDatum rec : annotationList) {
+            if ( ((rodRefSeq)rec).overlapsExonP(target) ) {
+                return ((rodRefSeq)rec).getGeneName();
+            }
+        }
+
+        return "UNKNOWN";
+
+    }
+
+    private LocationAwareSeekableRODIterator initializeRefSeq() {
+        ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
+                refSeqGeneList, rodRefSeq.class);
+        return refseq.iterator();
+    }
+
+    private void printTargetSummary(PrintStream output, Pair<?,DepthOfCoverageStats> intervalStats) {
         DepthOfCoverageStats stats = intervalStats.second;
         int[] bins = stats.getEndpoints();
         StringBuilder targetSummary = new StringBuilder();
@@ -452,10 +517,11 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
     private void printSummary(PrintStream out, File optionalFile, DepthOfCoverageStats stats) {
         PrintStream output = getCorrectStream(out,optionalFile);
 
-        output.printf("%s\t%s\t%s\t%s\t%s%n","sample_id","mean","granular_third_quartile","granular_median","granular_first_quartile");
+        output.printf("%s\t%s\t%s\t%s\t%s\t%s%n","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
 
         Map<String,int[]> histograms = stats.getHistograms();
         Map<String,Double> means = stats.getMeans();
+        Map<String,Long> totals = stats.getTotals();
         int[] leftEnds = stats.getEndpoints();
 
         for ( String s : histograms.keySet() ) {
@@ -467,10 +533,10 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
             median =  median == histogram.length-1 ? histogram.length-2 : median;
             q1 = q1 == histogram.length-1 ? histogram.length-2 : q1;
             q3 = q3 == histogram.length-1 ? histogram.length-2 : q3;
-            output.printf("%s\t%.2f\t%d\t%d\t%d%n",s,means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
+            output.printf("%s\t%d\t%.2f\t%d\t%d\t%d%n",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
         }
 
-        output.printf("%s\t%.2f\t%s\t%s\t%s%n","Total",stats.getTotalMeanCoverage(),"N/A","N/A","N/A");
+        output.printf("%s\t%d\t%.2f\t%s\t%s\t%s%n","Total",stats.getTotalCoverage(),stats.getTotalMeanCoverage(),"N/A","N/A","N/A");
     }
 
     private int getQuantile(int[] histogram, double prop) {
@@ -507,6 +573,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         }
         // remember -- genome locus was printed in map()
         stream.printf("\t%d\t%.2f\t%s%n",tDepth,( (double) tDepth/ (double) allSamples.size()), perSampleOutput);
+        //System.out.printf("\t%d\t%.2f\t%s%n",tDepth,( (double) tDepth/ (double) allSamples.size()), perSampleOutput);
         
     }
 
