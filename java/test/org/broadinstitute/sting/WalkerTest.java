@@ -148,7 +148,7 @@ public class WalkerTest extends BaseTest {
     public File createTempFile(String name, String extension) {
         try {
             File fl = File.createTempFile(name, extension);
-            //fl.deleteOnExit();
+            fl.deleteOnExit();
             return fl;
         } catch (IOException ex) {
             throw new StingException("Cannot create temp file: " + ex.getMessage(), ex);
