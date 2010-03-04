@@ -84,8 +84,10 @@ public class Allele implements Comparable<Allele> {
 
     private byte[] bases = null;
 
+    public final static String NULL_ALLELE_STRING = "-";
+    public final static String NO_CALL_STRING = ".";
     /** A generic static NO_CALL allele for use */
-    public final static Allele NO_CALL = new Allele(".");
+    public final static Allele NO_CALL = new Allele(NO_CALL_STRING);
 
     /**
      * Create a new Allele that includes bases and if tagged as the reference allele if isRef == true.  If bases

@@ -582,7 +582,10 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
             builder.append(EMPTY_ALLELE_FIELD);
         }
         builder.append(FIELD_SEPERATOR);
-        builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, getQual()));
+        if ( MathUtils.compareDoubles(mQual, -1.0) == 0 )
+            builder.append("-1");
+        else
+            builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, mQual));
         builder.append(FIELD_SEPERATOR);
         builder.append(Utils.join(FILTER_CODE_SEPERATOR, getFilteringCodes()));
         builder.append(FIELD_SEPERATOR);
@@ -623,12 +626,20 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @param header  the header object
      */
     private void addGenotypeData(StringBuilder builder, VCFHeader header) {
+        Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(getGenotypes());
+
         StringBuffer tempStr = new StringBuffer();
-        if ( header.getGenotypeSamples().size() < getGenotypes().size() )
-            throw new IllegalStateException("We have more genotype samples than the header specified");
+        if ( header.getGenotypeSamples().size() < getGenotypes().size() ) {
+            for ( String sample : gMap.keySet() ) {
+                if ( !header.getGenotypeSamples().contains(sample) )
+                    System.err.println("Sample " + sample + " is a duplicate or is otherwise not present in the header");
+                else
+                    header.getGenotypeSamples().remove(sample);
+            }
+            throw new IllegalStateException("We have more genotype samples than the header specified; please check that samples aren't duplicated");
+        }
         tempStr.append(FIELD_SEPERATOR + mGenotypeFormatString);
 
-        Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(getGenotypes());
         String[] genotypeFormatStrings = mGenotypeFormatString.split(":");
 
         for ( String genotype : header.getGenotypeSamples() ) {

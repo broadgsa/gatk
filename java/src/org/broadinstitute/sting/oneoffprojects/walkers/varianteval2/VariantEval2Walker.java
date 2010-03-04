@@ -396,13 +396,13 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
             }
 
             if ( group.enableInterestingSiteCaptures && captureInterestingSitesOfEvalSet(group) )
-                writeInterestingSite(interestingReasons, vc);
+                writeInterestingSite(interestingReasons, vc, ref.getBase());
         }
 
         return 0;
     }
 
-    private void writeInterestingSite(List<String> interestingReasons, VariantContext vc) {
+    private void writeInterestingSite(List<String> interestingReasons, VariantContext vc, char ref) {
         if ( writer != null && interestingReasons.size() > 0 ) {
             MutableVariantContext mvc = new MutableVariantContext(vc);
 
@@ -431,7 +431,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 wroteHeader = true;
             }
 
-            writer.addRecord(VariantContextAdaptors.toVCF(mvc));
+            writer.addRecord(VariantContextAdaptors.toVCF(mvc, ref));
             //interestingReasons.clear();
         }
     }

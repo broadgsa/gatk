@@ -16,7 +16,7 @@ import java.util.*;
 public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<PlinkRod> {
 
     public static final String SEQUENOM_NO_CALL = "0";
-    public static final String SEQUENOM_NO_VARIANT = "-";
+    public static final String SEQUENOM_NO_BASE = "-";
 
     private final Set<String> headerEntries = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex",
                 "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
@@ -27,6 +27,8 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
     private PlinkFileType plinkFileType;
 
+    private List<String> sampleNames;
+
     public enum PlinkFileType {
         STANDARD_PED, RAW_PED, BINARY_PED
     }
@@ -35,10 +37,11 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         super(name);
     }
 
-    public PlinkRod(String name, PlinkVariantInfo record, ListIterator<PlinkVariantInfo> iter) {
+    public PlinkRod(String name, PlinkVariantInfo record, ListIterator<PlinkVariantInfo> iter, List<String> sampleNames) {
         super(name);
         currentVariant = record;
         variantIterator = iter;
+        this.sampleNames = sampleNames;
     }
 
     @Override
@@ -81,7 +84,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
         // get the next record
         currentVariant = variantIterator.next();
-        return new PlinkRod(name, currentVariant, variantIterator);
+        return new PlinkRod(name, currentVariant, variantIterator, sampleNames);
     }
 
     @Override
@@ -111,14 +114,27 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
     }
 
-    public VariantContext getVariantContext() {
-        assertNotNull();
-        return currentVariant.getVariantContext();
+    public Map<String, List<String>> getGenotypes() {
+        return currentVariant.getGenotypes();
+    }
+
+    public List<String> getSampleNames() {
+        return sampleNames;
     }
 
     public boolean isIndel() {
         assertNotNull();
         return currentVariant.isIndel();
+    }
+
+    public boolean isInsertion() {
+        assertNotNull();
+        return currentVariant.isInsertion();
+    }
+
+    public int getLength() {
+        assertNotNull();
+        return currentVariant.getLength();
     }
 
 
@@ -150,6 +166,8 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
             ArrayList<PlinkVariantInfo> seqVars = instantiateVariantListFromHeader(header);
             ArrayList<Integer> snpOffsets = getSNPOffsetsFromHeader(header);
 
+            sampleNames = new ArrayList<String>();
+
             String line;
             do {
                 line = reader.readLine();
@@ -180,6 +198,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
         plinkInfo = plinkLine.split("\t");
         String individualName = plinkInfo[1];
+        sampleNames.add(individualName);
 
         int snpNumber = 0;
         for ( int i : offsets ) {
@@ -237,8 +256,8 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
     private ArrayList<PlinkVariantInfo> parseBinaryFormattedPlinkFile(File file) {
         PlinkBinaryTrifecta binaryFiles = getPlinkBinaryTriplet(file);
         ArrayList<PlinkVariantInfo> parsedVariants = instantiateVariantsFromBimFile(binaryFiles.bimFile);
-        ArrayList<String> sampleNames = getSampleNameOrderingFromFamFile(binaryFiles.famFile);
-        ArrayList<PlinkVariantInfo> updatedVariants = getGenotypesFromBedFile(parsedVariants,sampleNames,binaryFiles.bedFile);
+        sampleNames = getSampleNameOrderingFromFamFile(binaryFiles.famFile);
+        ArrayList<PlinkVariantInfo> updatedVariants = getGenotypesFromBedFile(parsedVariants, binaryFiles.bedFile);
 
         java.util.Collections.sort(updatedVariants);
 
@@ -294,7 +313,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         return variants;
     }
 
-    private ArrayList<String> getSampleNameOrderingFromFamFile(File famFile) {
+    private static ArrayList<String> getSampleNameOrderingFromFamFile(File famFile) {
         BufferedReader reader;
         try {
             reader = new BufferedReader( new FileReader( famFile ));
@@ -321,7 +340,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         return sampleNames;
     }
 
-    private ArrayList<PlinkVariantInfo> getGenotypesFromBedFile(ArrayList<PlinkVariantInfo> variants, ArrayList<String> samples, File bedFile) {
+    private ArrayList<PlinkVariantInfo> getGenotypesFromBedFile(ArrayList<PlinkVariantInfo> variants, File bedFile) {
         FileInputStream inStream;
         try {
             inStream = new FileInputStream(bedFile);
@@ -342,11 +361,11 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
                 bytesRead++;
                 if ( genotype != -1 ) {
                     if ( bytesRead > 3 ) {
-                        addGenotypeByte(genotype,variants,samples,snpOffset,sampleOffset, snpMajorMode);
+                        addGenotypeByte(genotype,variants,snpOffset,sampleOffset, snpMajorMode);
 
                         if ( snpMajorMode ) {
                             sampleOffset = sampleOffset + 4;
-                            if ( sampleOffset > samples.size() -1 ) {
+                            if ( sampleOffset > sampleNames.size() -1 ) {
                                 snpOffset ++;
                                 sampleOffset = 0;
                             }
@@ -372,7 +391,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         return variants;
     }
 
-    private void addGenotypeByte(byte genotype, ArrayList<PlinkVariantInfo> variants, ArrayList<String> sampleNames, int snpOffset, int sampleOffset, boolean major) {
+    private void addGenotypeByte(byte genotype, ArrayList<PlinkVariantInfo> variants, int snpOffset, int sampleOffset, boolean major) {
         // four genotypes encoded in this byte
         int[] genotypes = parseGenotypes(genotype);
         for ( int g : genotypes ) {
@@ -406,13 +425,12 @@ class PlinkVariantInfo implements Comparable {
 
     private String variantName;
     private GenomeLoc loc;
-    private HashSet<Allele> alleles = new HashSet<Allele>();
-    private HashSet<Genotype> genotypes = new HashSet<Genotype>();
+    private Map<String, List<String>> genotypes = new HashMap<String, List<String>>();
 
     // for indels
     private boolean isIndel = false;
     private boolean isInsertion = false;
-    private int indelLength = 0;
+    private int length = 1;
 
     // for binary parsing
     private String locAllele1;
@@ -432,16 +450,20 @@ class PlinkVariantInfo implements Comparable {
         return variantName;
     }
 
-    public VariantContext getVariantContext() {
-        try {
-            return new VariantContext(variantName, loc, alleles, genotypes);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(e.getMessage() + "; please make sure that e.g. a sample isn't present more than one time in your ped file");
-        }
+    public Map<String, List<String>> getGenotypes() {
+        return genotypes;
     }
 
     public boolean isIndel() {
         return isIndel;
+    }
+
+    public boolean isInsertion() {
+        return isInsertion;
+    }
+
+    public int getLength() {
+        return length;
     }
 
     public void setGenomeLoc(GenomeLoc loc) {
@@ -463,10 +485,17 @@ class PlinkVariantInfo implements Comparable {
         String pos = pieces[1].substring(1);
         loc = GenomeLocParser.parseGenomeLoc(chrom+":"+pos);
 
-        if ( pieces.length > 2 && (pieces[2].equals("gI") || pieces[2].equals("gD")) ) {
+        if ( pieces.length > 2 && (pieces[2].startsWith("gI") || pieces[2].startsWith("gD")) ) {
             // it's an indel
             isIndel = true;
-            isInsertion = pieces[2].equals("gI");
+            isInsertion = pieces[2].startsWith("gI");
+            try {
+                // length of insertion on reference is still 1
+                if ( !isInsertion )
+                    length = Integer.parseInt(pieces[2].substring(2));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p..._g[I/D][length])");
+            }
         }
     }
 
@@ -482,32 +511,16 @@ class PlinkVariantInfo implements Comparable {
 
     public void addGenotypeEntry(String[] alleleStrings, String sampleName) {
 
-        ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
+        ArrayList<String> alleles = new ArrayList<String>(2);
 
         for ( String alleleString : alleleStrings ) {
-            if ( alleleString.equals(PlinkRod.SEQUENOM_NO_CALL) ) {
-                myAlleles.add(Allele.NO_CALL);
-            } else {
-                Allele allele;
-                if ( !isIndel ) {
-                    allele = new Allele(alleleString);
-                } else if ( alleleString.equals(PlinkRod.SEQUENOM_NO_VARIANT) ) {
-                    allele = new Allele(alleleString, isInsertion);
-                } else {
-                    allele = new Allele(alleleString, !isInsertion);
-                    if ( indelLength == 0 ) {
-                        indelLength = alleleString.length();
-                        loc = GenomeLocParser.parseGenomeLoc(loc.getContig(), loc.getStart(), loc.getStart()+indelLength-1);
-                    }
-                }
-
-                myAlleles.add(allele);
-                if ( alleles.size() < 2 )
-                    alleles.add(allele);
-            }
+            if ( alleleString.equals(PlinkRod.SEQUENOM_NO_CALL) )
+                alleles.add(Allele.NO_CALL_STRING);
+            else
+                alleles.add(alleleString);
         }
 
-        genotypes.add(new Genotype(sampleName, myAlleles, 20.0));
+        genotypes.put(sampleName, alleles);
     }
 
     public void addBinaryGenotypeEntry( int genoTYPE, String sampleName ) {

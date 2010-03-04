@@ -10,19 +10,11 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.oneoffprojects.walkers.varianteval2.MendelianViolationEvaluator;
 
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.io.File;
-import java.io.FileNotFoundException;
 
 /**
  * Test routine for new VariantContext object
@@ -67,6 +59,9 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
                 vc = maybePhaseVC(vc, beagle);
             }
         }
+
+        if ( vc != null )
+            writer.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase()));
 
         return vc;
     }
@@ -121,13 +116,6 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
     }
 
     public Long reduce(VariantContext vc, Long prevReduce) {
-        if ( vc == null ) {
-            return prevReduce;
-        } else {
-            writer.addRecord(VariantContextAdaptors.toVCF(vc));
-            prevReduce++;
-        }
-
-        return prevReduce;
+        return ( vc == null ? prevReduce : prevReduce+1);
     }
 }

@@ -5,15 +5,10 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.EnumSet;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.List;
 import java.io.File;
 
 /**
@@ -29,7 +24,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="onlyContextsStartinAtCurrentPosition", doc="Only take variant contexts at actually start at the current position, excluding those at span to the current location but start earlier", required=false)
     boolean onlyContextsStartinAtCurrentPosition = false;
 
-    @Argument(fullName="printPerLocus", doc="If true, we'll print the variant contexts, in addition to counts", required=false)
+    @Argument(fullName="printPerLocus", doc="If true, we'll psetenv LD_LIBRARY_PATH .:/util/gcc-4.3.0/lib64:/util/gcc-4.3.0/lib/gcc/x86_64-unknown-linux-gnu/4.3.0:/util/gcc-4.3.0/lib/:/util/lib:/broad/tools/Linux/x86_64/pkgs/boost_1.38.0/lib:/humgen/gsa-scr1/GATK_Data/bwarint the variant contexts, in addition to counts", required=false)
     boolean printContexts = false;
 
     @Argument(fullName="outputVCF", doc="If provided, we'll convert the first input context into a VCF", required=false)
@@ -57,7 +52,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
                         wroteHeader = true;
                     }
 
-                    writer.addRecord(VariantContextAdaptors.toVCF(vc));
+                    writer.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase()));
                 }
 
                 n++;

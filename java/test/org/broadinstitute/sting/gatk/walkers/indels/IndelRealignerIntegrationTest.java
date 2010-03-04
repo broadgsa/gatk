@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 public class IndelRealignerIntegrationTest extends WalkerTest {
     @Test
-    public void testIntervals() {
+    public void testRealigner() {
 
         String[] md5lod5 = {"67c3fc25e9d192cc5fbfd48ade0efc84", "86778f92b0fa6aa7c26e651c8c1eb320"};
         WalkerTestSpec spec1 = new WalkerTestSpec(

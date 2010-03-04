@@ -10,6 +10,8 @@ import org.broadinstitute.sting.gatk.refdata.PlinkRod;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
@@ -22,6 +24,7 @@ import java.util.*;
 /**
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
+@Reference(window=@Window(start=0,stop=40))
 public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
     @Argument(fullName="outputVCF", shortName="vcf", doc="The VCF file to write to", required=true)
     public File vcfFile = null;
@@ -39,27 +42,19 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
     @Argument(fullName="maxHomNonref", doc="Maximum homozygous-nonreference rate (as a proportion) to consider an assay valid", required = false)
     public double maxHomNonref = 1.1;
 
-    private final Set<String> HEADER_FIELDS = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex","Paternal ID","Maternal ID","Phenotype",
-                "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
+    private static final int MAX_INDEL_SIZE = 40;
+    
     private final int INIT_NUMBER_OF_POPULATIONS = 10;
-    private final int DEFAULT_QUALITY = 20;
     private ArrayList<String> sampleNames = new ArrayList<String>(nSamples);
-    private VCFGenotypeWriterAdapter vcfWriter;
+    private VCFWriter vcfWriter = null;
     private final HardyWeinberg HWCalc = new HardyWeinberg();
     private final boolean useSmartHardy = popFile != null;
     private HashMap<String,String> samplesToPopulation;
 
     public void initialize() {
-        vcfWriter = new VCFGenotypeWriterAdapter(vcfFile);
         if ( useSmartHardy ) {
             samplesToPopulation = parsePopulationFile(popFile);
         }
-        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFHeaderLine("source", "PlinkToVCF"));
-        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-        vcfWriter.writeHeader(new TreeSet<String>(sampleNames), hInfo);
-        nSamples = sampleNames.size();
     }
 
     public Integer reduceInit() {
@@ -85,50 +80,69 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         if ( plinkRod == null )
             return null;
 
+        if ( vcfWriter == null )
+            initializeWriter(plinkRod);
+
         return addVariantInformationToCall(ref, plinkRod);
+    }
+
+    private void initializeWriter(PlinkRod plinkRod) {
+        vcfWriter = new VCFWriter(vcfFile);
+
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        hInfo.add(new VCFHeaderLine("source", "PlinkToVCF"));
+        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
+
+        VCFHeader header = new VCFHeader(hInfo, new TreeSet<String>(plinkRod.getSampleNames()));
+        vcfWriter.writeHeader(header);
+
+        nSamples = sampleNames.size();
+
     }
 
     public Integer reduce(VCFRecord call, Integer numVariants) {
         if ( call != null ) {
             numVariants++;
-            printToVCF(call);
+            vcfWriter.addRecord(call);
         }
         return numVariants;                        
     }
 
     public void onTraversalDone(Integer finalReduce) {
         logger.info("Variants processed="+finalReduce.toString());
-        vcfWriter.close();
+        if ( vcfWriter != null )
+            vcfWriter.close();
     }
 
-    private void printToVCF(VCFRecord call) {
-        try {
-            vcfWriter.addRecord(call);
-        } catch ( RuntimeException e ) {
-            if ( e.getLocalizedMessage().equalsIgnoreCase("We have more genotype samples than the header specified")) {
-                throw new StingException("We have more sample genotypes than sample names -- check that there are no duplicates in the .ped file",e);
-            } else {
-                throw new StingException("Error in VCF creation: "+e.getLocalizedMessage(),e);
-            }
-        }
-    }
 
     private VCFRecord addVariantInformationToCall(ReferenceContext ref, PlinkRod plinkRod) {
 
-        VariantContext vContext = plinkRod.getVariantContext();
-        VCFRecord record = VariantContextAdaptors.toVCF(vContext);
+        // determine the reference allele
+        Allele refAllele;
+        if ( !plinkRod.isIndel() ) {
+            refAllele = new Allele(Character.toString(ref.getBase()), true);
+        } else if ( plinkRod.isInsertion() ) {
+            refAllele = new Allele(PlinkRod.SEQUENOM_NO_BASE, true);
+        } else {
+            if ( plinkRod.getLength() > MAX_INDEL_SIZE )
+                throw new UnsupportedOperationException("PlinkToVCF currently can only handle indels up to length " + MAX_INDEL_SIZE);
+            char[] deletion = new char[plinkRod.getLength()];
+            System.arraycopy(ref.getBases(), 1, deletion, 0, plinkRod.getLength());
+            refAllele = new Allele(new String(deletion), true);
+        }
+
+        VariantContext vContext = VariantContextAdaptors.toVariantContext(plinkRod.getName(), plinkRod, refAllele);
+        VCFRecord record = VariantContextAdaptors.toVCF(vContext, ref.getBase());
         record.setGenotypeFormatString("GT");
 
-        int numNoCalls = vContext.getNoCallCount();
-        int numHomVarCalls = vContext.getHomVarCount();
+        if ( true )
+            return record;
+
         int numHetCalls = vContext.getHetCount();
 
+        double noCallProp = (double)vContext.getNoCallCount() / (double)vContext.getNSamples();
+        double homVarProp = (double)vContext.getHomVarCount() / (double)vContext.getNSamples();
 
-
-        double noCallProp = ( (double) numNoCalls )/( (double) sampleNames.size());
-        double homNonRProp = ( (double) numHomVarCalls )/( (double) sampleNames.size() - numNoCalls);
-
-        record.setQual(DEFAULT_QUALITY);
         String hw = hardyWeinbergCalculation(ref,record);
         double hwScore = hw != null ? Double.valueOf(hw) : -0.0;
         // TODO -- record.addInfoFields(generateInfoField(record, numNoCalls,numHomVarCalls,numNonrefAlleles,ref, plinkRod, hwScore));
@@ -136,7 +150,7 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
             record.setFilterString("Hardy-Weinberg");
         } else if ( noCallProp > maxNoCall ) {
             record.setFilterString("No-calls");
-        } else if ( homNonRProp > maxHomNonref) {
+        } else if ( homVarProp > maxHomNonref) {
             record.setFilterString("HomNonref-calls");
         }
         

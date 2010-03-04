@@ -597,6 +597,11 @@ public class VariantContext {
     // ---------------------------------------------------------------------------------------------------------
 
     /**
+     * @return the number of samples in the context
+     */
+   public int getNSamples() { return genotypes.size(); }
+
+    /**
      * @return true if the context has associated genotypes
      */
     public boolean hasGenotypes() { return genotypes.size() > 0; }
@@ -905,7 +910,7 @@ public class VariantContext {
         for ( Allele a : alleles ) {
             for ( Allele b : dest ) {
                 if ( a.basesMatch(b) )
-                    throw new IllegalArgumentException("Duplicate allele added to VariantContext" + a);
+                    throw new IllegalArgumentException("Duplicate allele added to VariantContext: " + a);
             }
             
             dest.add(a);
@@ -915,10 +920,10 @@ public class VariantContext {
     }
 
     private static Map<String, Genotype> genotypeCollectionToMap(Map<String, Genotype> dest, Collection<Genotype> genotypes) {
-        for ( Genotype a : genotypes ) {
-            if ( dest.containsKey(a.getSampleName() ) )
-                throw new IllegalArgumentException("Duplicate genotype added to VariantContext " + a);
-            dest.put(a.getSampleName(), a);
+        for ( Genotype g : genotypes ) {
+            if ( dest.containsKey(g.getSampleName() ) )
+                throw new IllegalArgumentException("Duplicate genotype added to VariantContext: " + g);
+            dest.put(g.getSampleName(), g);
         }
 
         return dest;
