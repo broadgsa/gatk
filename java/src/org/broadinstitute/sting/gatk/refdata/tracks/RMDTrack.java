@@ -85,4 +85,10 @@ public abstract class RMDTrack {
     public boolean matches(String name, String type) {
         return (name.equals(this.name) && type.equals(this.type.getSimpleName()));
     }
+
+    /**
+     * do we support the query interface?
+     * @return true if we can be cast to the QueryableTrack interface 
+     */
+    public abstract boolean supportsQuery();
 }

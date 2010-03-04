@@ -24,7 +24,6 @@
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
@@ -40,7 +39,7 @@ import java.util.Iterator;
  * 
  * Class RODRMDTrack
  *
- * wrap a reference ordered data object in the new track style. This will hopefully be phased-out as we move to
+ * wrap a reference ordered data object in the new track style. This track will hopefully be phased-out as we move to
  * a FeatureReader based system.
  */
 public class RODRMDTrack extends RMDTrack {
@@ -67,15 +66,29 @@ public class RODRMDTrack extends RMDTrack {
      */
     @Override
     public Iterator<GATKFeature> getIterator() {
-        return new SRIToIterator(data.iterator());
+        return new RODIteratorToRMDIterator(data.iterator());
+    }
+
+    /**
+     * do we support the query interface?
+     *
+     * @return false
+     */
+    @Override
+    public boolean supportsQuery() {
+        return false; // sadly no, we don't
     }
 }
 
-class SRIToIterator implements Iterator<GATKFeature> {
+/**
+ * this class wraps a ROD iterator, so that it produces GATKFeatures (basicly features that can generate a GenomeLoc
+ * for its position).  
+ */
+class RODIteratorToRMDIterator implements Iterator<GATKFeature> {
     private RODRecordList list = null;
     private LocationAwareSeekableRODIterator iterator = null;
 
-    SRIToIterator(LocationAwareSeekableRODIterator iter) {
+    RODIteratorToRMDIterator(LocationAwareSeekableRODIterator iter) {
             iterator = iter;
     }
 

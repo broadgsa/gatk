@@ -72,6 +72,16 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
         }
     }
 
+    /**
+     * do we support the query interface?
+     *
+     * @return true
+     */
+    @Override
+    public boolean supportsQuery() {
+        return true;
+    }
+
     @Override
     public Iterator<GATKFeature> query(GenomeLoc interval) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());

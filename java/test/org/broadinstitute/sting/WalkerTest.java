@@ -15,8 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class WalkerTest extends BaseTest {
     public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5 ) {
@@ -90,6 +89,8 @@ public class WalkerTest extends BaseTest {
         List<String> md5s = null;
         List<String> exts = null;
 
+        Map<String,File> auxillaryFiles = new HashMap<String,File>();
+
         public WalkerTestSpec(String args, int nOutputFiles, List<String> md5s) {
             this.args = args;
             this.nOutputFiles = nOutputFiles;
@@ -101,6 +102,10 @@ public class WalkerTest extends BaseTest {
             this.nOutputFiles = nOutputFiles;
             this.md5s = md5s;
             this.exts = exts;
+        }
+
+        public void addAuxFile(String expectededMD5sum, File outputfile) {
+            auxillaryFiles.put(expectededMD5sum,outputfile);
         }
     }
 
@@ -125,6 +130,28 @@ public class WalkerTest extends BaseTest {
         System.out.println(Utils.dupString('-', 80));
         System.out.println(String.format("Executing test %s with GATK arguments: %s", name, args));
 
+        List<String> md5s = new LinkedList<String>();
+        md5s.addAll(spec.md5s);
+
+        // check to see if they included any auxillary files, if so add them to the list
+        for (String md5 : spec.auxillaryFiles.keySet()) {
+            md5s.add(md5);
+            tmpFiles.add(spec.auxillaryFiles.get(md5));
+        }
+
+        return executeTest(name, md5s, tmpFiles, args);
+    }
+
+
+    /**
+     * execute the test, given the following:
+     * @param name the name of the test
+     * @param md5s the list of md5s
+     * @param tmpFiles the temp file corresponding to the md5 list
+     * @param args the argument list
+     * @return a pair of file and string lists
+     */
+    private Pair<List<File>, List<String>> executeTest(String name, List<String> md5s, List<File> tmpFiles, String args) {
         CommandLineGATK instance = new CommandLineGATK();
         String[] command;
 
@@ -142,8 +169,8 @@ public class WalkerTest extends BaseTest {
             throw new RuntimeException("Error running the GATK with arguments: " + args);
         }
 
-        return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, spec.md5s));
-    }    
+        return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, md5s));
+    }
 
     private static String[] escapeExpressions(String args, String delimiter) {
         String[] command = {};
