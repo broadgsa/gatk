@@ -28,6 +28,8 @@ public class PickSequenomProbes extends RefWalker<String, String> {
     String project_id = null;
     @Argument(required = false, shortName="omitWindow", doc = "If specified, the window appender will be omitted from the design files (e.g. \"_chr:start-stop\")")
     boolean omitWindow = false;
+    @Argument(required = false, fullName="usePlinkRODNamingConvention", shortName="nameConvention",doc="Use the naming convention defined in PLINKROD")
+    boolean useNamingConvention = false;
 
     private byte [] maskFlags = new byte[401];
 
@@ -118,7 +120,12 @@ public class PickSequenomProbes extends RefWalker<String, String> {
             assay_id.append(project_id);
             assay_id.append('|');
         }
-        assay_id.append(context.getLocation().toString().replace(':','_'));
+        if ( useNamingConvention ) {
+            assay_id.append('c');
+            assay_id.append(context.getLocation().toString().replace(":","_p"));
+        } else {
+            assay_id.append(context.getLocation().toString().replace(':','_'));
+        }
         if ( variant.isInsertion() ) assay_id.append("_gI");
         else if ( variant.isDeletion()) assay_id.append("_gD");
 
