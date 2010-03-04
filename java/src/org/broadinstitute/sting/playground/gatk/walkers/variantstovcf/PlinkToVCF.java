@@ -3,8 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantstovcf;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
-import org.broadinstitute.sting.gatk.walkers.annotator.HardyWeinberg;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.PlinkRod;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -26,33 +26,35 @@ import java.util.*;
  */
 @Reference(window=@Window(start=0,stop=40))
 public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
-    @Argument(fullName="outputVCF", shortName="vcf", doc="The VCF file to write to", required=true)
-    public File vcfFile = null;
-    @Argument(fullName="numberOfSamples", shortName="ns", doc="The number of samples sequenced", required=false)
-    public int nSamples = 192; // The number of samples in the ped file I wrote this tool for
+    @Argument(fullName="outputVCF", shortName="vcf", doc="The VCF file to write results", required=true)
+    protected File vcfFile = null;
+    @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid [default:20]", required=false)
+    protected double maxHardy = 20.0;
+    @Argument(fullName="maxNoCall", doc="Maximum no-call rate (as a fraction) to consider an assay valid [default:0.05]", required=false)
+    protected double maxNoCall = 0.05;
+    @Argument(fullName="maxHomVar", doc="Maximum homozygous variant rate (as a fraction) to consider an assay valid [default:1.1, disabled]", required=false)
+    protected double maxHomNonref = 1.1;
+
     @Argument(fullName="populationFile", shortName="populations", doc="A tab-delimited file relating individuals to populations,"+
               "used for smart Hardy-Weinberg annotation",required = false)
     public File popFile = null;
-    @Argument(fullName="useb36ContigNames",shortName="b36contig",doc="Uses b36 contig names (1:1,000,000) rather than hg18 (chr1:1,000,000) for comparison with ref", required=false)
-    public boolean useb36contigs=false;
-    @Argument(fullName="maxHardy", doc="Maximum Hardy-Weinberg score to consider an assay valid", required=false)
-    public double maxHardy = 10;
-    @Argument(fullName="maxNoCall", doc="Maximum no-call rate (as a proportion) to consider an assay valid", required=false)
-    public double maxNoCall = 0.05;
-    @Argument(fullName="maxHomNonref", doc="Maximum homozygous-nonreference rate (as a proportion) to consider an assay valid", required = false)
-    public double maxHomNonref = 1.1;
 
+    // max allowable indel size (based on ref window)
     private static final int MAX_INDEL_SIZE = 40;
-    
-    private final int INIT_NUMBER_OF_POPULATIONS = 10;
-    private ArrayList<String> sampleNames = new ArrayList<String>(nSamples);
+
+    // the VCF writer
     private VCFWriter vcfWriter = null;
-    private final HardyWeinberg HWCalc = new HardyWeinberg();
-    private final boolean useSmartHardy = popFile != null;
+
+    // statistics
+    private int numRecords = 0;
+    private int numHWViolations = 0;
+    private int numNoCallViolations = 0;
+    private int numHomVarViolations = 0;
+
     private HashMap<String,String> samplesToPopulation;
 
     public void initialize() {
-        if ( useSmartHardy ) {
+        if ( popFile != null ) {
             samplesToPopulation = parsePopulationFile(popFile);
         }
     }
@@ -89,15 +91,23 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
     private void initializeWriter(PlinkRod plinkRod) {
         vcfWriter = new VCFWriter(vcfFile);
 
+        // set up the info and filter headers
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.add(new VCFHeaderLine("source", "PlinkToVCF"));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
+        hInfo.add(new VCFInfoHeaderLine("NoCallPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of no-calls"));
+        hInfo.add(new VCFInfoHeaderLine("HomRefPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of homozygous reference genotypes"));
+        hInfo.add(new VCFInfoHeaderLine("HetPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of heterozygous genotypes"));
+        hInfo.add(new VCFInfoHeaderLine("HomVarPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent homozygous variant genotypes"));
+        hInfo.add(new VCFInfoHeaderLine("HW", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled Hardy-Weinberg violation p-value"));
+        hInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
+        hInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total number of alleles in called genotypes"));
+        hInfo.add(new VCFFilterHeaderLine("HardyWeinbergViolation", "The validation is in Hardy-Weinberg violation"));
+        hInfo.add(new VCFFilterHeaderLine("HighNoCallRate", "The validation no-call rate is too high"));
+        hInfo.add(new VCFFilterHeaderLine("TooManyHomVars", "The validation homozygous variant rate is too high"));
 
         VCFHeader header = new VCFHeader(hInfo, new TreeSet<String>(plinkRod.getSampleNames()));
         vcfWriter.writeHeader(header);
-
-        nSamples = sampleNames.size();
-
     }
 
     public Integer reduce(VCFRecord call, Integer numVariants) {
@@ -109,9 +119,14 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
     }
 
     public void onTraversalDone(Integer finalReduce) {
-        logger.info("Variants processed="+finalReduce.toString());
         if ( vcfWriter != null )
             vcfWriter.close();
+        System.out.println(String.format("Total number of records processed:\t\t%d", numRecords));
+        System.out.println(String.format("Number of Hardy-Weinberg violations:\t\t%d (%d%%)", numHWViolations, 100*numHWViolations/numRecords));
+        System.out.println(String.format("Number of no-call violations:\t\t\t%d (%d%%)", numNoCallViolations, 100*numNoCallViolations/numRecords));
+        System.out.println(String.format("Number of homozygous variant violations:\t%d (%d%%)", numHomVarViolations, 100*numHomVarViolations/numRecords));
+        int goodRecords = numRecords - numHWViolations - numNoCallViolations - numHomVarViolations;
+        System.out.println(String.format("Number of records passing all filters:\t\t%d (%d%%)", goodRecords, 100*goodRecords/numRecords));
     }
 
 
@@ -135,80 +150,69 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         VCFRecord record = VariantContextAdaptors.toVCF(vContext, ref.getBase());
         record.setGenotypeFormatString("GT");
 
-        if ( true )
-            return record;
-
-        int numHetCalls = vContext.getHetCount();
-
+        // check possible filters
+        double hwPvalue = hardyWeinbergCalculation(vContext);
+        double hwScore = Math.abs(QualityUtils.phredScaleErrorRate(hwPvalue));
         double noCallProp = (double)vContext.getNoCallCount() / (double)vContext.getNSamples();
+        double homRefProp = (double)vContext.getHomRefCount() / (double)vContext.getNSamples();
+        double hetProp = (double)vContext.getHetCount() / (double)vContext.getNSamples();
         double homVarProp = (double)vContext.getHomVarCount() / (double)vContext.getNSamples();
 
-        String hw = hardyWeinbergCalculation(ref,record);
-        double hwScore = hw != null ? Double.valueOf(hw) : -0.0;
-        // TODO -- record.addInfoFields(generateInfoField(record, numNoCalls,numHomVarCalls,numNonrefAlleles,ref, plinkRod, hwScore));
         if ( hwScore > maxHardy ) {
-            record.setFilterString("Hardy-Weinberg");
+            record.setFilterString("HardyWeinbergViolation");
+            numHWViolations++;
         } else if ( noCallProp > maxNoCall ) {
-            record.setFilterString("No-calls");
+            record.setFilterString("HighNoCallRate");
+            numNoCallViolations++;
         } else if ( homVarProp > maxHomNonref) {
-            record.setFilterString("HomNonref-calls");
+            record.setFilterString("TooManyHomVars");
+            numHomVarViolations++;
         }
-        
+        numRecords++;
+
+        // add the info fields
+        HashMap<String, String> infoMap = new HashMap<String,String>(5);
+        infoMap.put("NoCallPct", String.format("%.1f", 100.0*noCallProp));
+        infoMap.put("HomRefPct", String.format("%.1f", 100.0*homRefProp));
+        infoMap.put("HomVarPct", String.format("%.1f", 100.0*homVarProp));
+        infoMap.put("HetPct", String.format("%.1f", 100.0*hetProp));
+        infoMap.put("HW", String.format("%.2f", hwScore));
+        Set<Allele> altAlleles = vContext.getAlternateAlleles();
+        int altAlleleCount = altAlleles.size() == 0 ? 0 : vContext.getChromosomeCount(altAlleles.iterator().next());
+        infoMap.put(VCFRecord.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
+        infoMap.put(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
+        record.addInfoFields(infoMap);
+
         return record;
-
     }
 
-    private String hardyWeinbergCalculation(ReferenceContext ref, VCFRecord rec) {
-        if ( useSmartHardy ) {
-            return smartHardy(ref, rec);
+    private double hardyWeinbergCalculation(VariantContext vc) {
+        if ( popFile != null ) {
+            throw new StingException("We still need to implement this!");
         } else {
-            VCFVariationCall variant = new VCFVariationCall(ref.getBase(),ref.getLocus(),VCFVariationCall.VARIANT_TYPE.SNP);
-            variant.setGenotypeCalls(rec.getGenotypes());
-            return HWCalc.annotate(null, ref, null, variant);
+            return VariantContextUtils.computeHardyWeinbergPvalue(vc);
         }
-    }
-
-    private Map<String,String> generateInfoField(VCFRecord rec, int nocall, int homnonref, int allnonref,
-                                                 ReferenceContext ref, PlinkRod info, double hwScore) {
-        double propNoCall = ( ( double ) nocall / (double) nSamples );
-        double propHomNR = ( (double) homnonref / (double) nSamples );
-        HashMap<String,String> infoMap = new HashMap<String,String>(1);
-        putInfoStrings(infoMap,propNoCall,propHomNR,allnonref,hwScore,info.getName());
-
-        return infoMap;
-    }
-
-    private void putInfoStrings(HashMap<String,String> infoMap, double pnc, double phnr, int nra, double hw, String nm) {
-
-        infoMap.put("snpID",nm);
-        infoMap.put("noCallPct",String.format("%.2f",100.0*pnc));
-        infoMap.put("homNonrefPct",String.format("%.2f",100.0*phnr));
-        infoMap.put("nonrefAlleles",String.format("%d",nra));
-        infoMap.put("HW",String.format("%.2f",hw));
-
-        //return String.format("snpID=%s;nocall=%f;homNonref=%4f;numNonrefAlleles=%d;HW=%s",nm,pnc,phnr,nra,hw);
-
     }
 
     private String smartHardy(ReferenceContext ref, VCFRecord rec) {
-        HashMap<String,ArrayList<Genotype>> genotypesByPopulation = new HashMap<String,ArrayList<Genotype>>(INIT_NUMBER_OF_POPULATIONS);
-        HashMap<String,String> hardyWeinbergByPopulation = new HashMap<String,String>(INIT_NUMBER_OF_POPULATIONS);
+        HashMap<String,ArrayList<Genotype>> genotypesByPopulation = new HashMap<String,ArrayList<Genotype>>(10);
+        HashMap<String,String> hardyWeinbergByPopulation = new HashMap<String,String>(10);
 
         for ( String population : samplesToPopulation.values() ) {
             genotypesByPopulation.put(population,new ArrayList<Genotype>());
         }
 
-        for ( String name : sampleNames ) {
-            String pop = samplesToPopulation.get(name);
-            if ( rec.getGenotype(name) != null ) {
-                // TODO -- genotypesByPopulation.get(pop).add(rec.getGenotype(name));
-            }
-        }
+        //for ( String name : sampleNames ) {
+        //    String pop = samplesToPopulation.get(name);
+        //    if ( rec.getGenotype(name) != null ) {
+        //        genotypesByPopulation.get(pop).add(rec.getGenotype(name));
+        //    }
+        //}
 
         for ( String population : samplesToPopulation.values() ) {
             VCFVariationCall v = new VCFVariationCall(ref.getBase(),ref.getLocus(),VCFVariationCall.VARIANT_TYPE.SNP);
             // TODO -- v.setGenotypeCalls(genotypesByPopulation.get(population));
-            hardyWeinbergByPopulation.put(population,HWCalc.annotate(null,ref,null,v));
+            // TODO -- hardyWeinbergByPopulation.put(population,HWCalc.annotate(null,ref,null,v));
         }
 
         return smartHardyString(hardyWeinbergByPopulation);

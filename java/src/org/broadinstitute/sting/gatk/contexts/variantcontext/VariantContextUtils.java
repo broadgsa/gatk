@@ -4,6 +4,7 @@ import java.util.*;
 import org.apache.commons.jexl.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 
 public class VariantContextUtils {
     /** 
@@ -15,8 +16,8 @@ public class VariantContextUtils {
 
         /**
          * Create a new matcher expression with name and JEXL expression exp
-         * @param name
-         * @param exp
+         * @param name name
+         * @param exp  expression
          */
         public JexlVCMatchExp(String name, Expression exp) {
             this.name = name;
@@ -30,9 +31,9 @@ public class VariantContextUtils {
      * a list of JexlVCMatchExp, in order, that correspond to the names and exps.  These are suitable input to
      * match() below.
      *
-     * @param names
-     * @param exps
-     * @return
+     * @param names names
+     * @param exps  expressions
+     * @return list of matches
      */
     public static List<JexlVCMatchExp> initializeMatchExps(String[] names, String[] exps) {
         if ( names == null || exps == null )
@@ -53,8 +54,8 @@ public class VariantContextUtils {
      * a list of JexlVCMatchExp, in order, that correspond to the names and exps.  These are suitable input to
      * match() below.
      *
-     * @param names_and_exps
-     * @return
+     * @param names_and_exps mapping of names to expressions
+     * @return list of matches
      */
     public static List<JexlVCMatchExp> initializeMatchExps(Map<String, String> names_and_exps) {
         List<JexlVCMatchExp> exps = new ArrayList<JexlVCMatchExp>();
@@ -77,9 +78,9 @@ public class VariantContextUtils {
 
     /**
      * Returns true if exp match VC.  See collection<> version for full docs.
-     * @param vc
-     * @param exp
-     * @return
+     * @param vc    variant context
+     * @param exp   expression
+     * @return true if there is a match
      */
     public static boolean match(VariantContext vc, JexlVCMatchExp exp) {
         return match(vc,Arrays.asList(exp)).get(exp);
@@ -91,9 +92,9 @@ public class VariantContextUtils {
      * expressions to VariantContext records.  Use initializeMatchExps() to create the list of JexlVCMatchExp
      * expressions.
      *
-     * @param vc
-     * @param exps
-     * @return
+     * @param vc   variant context
+     * @param exps expressions
+     * @return true if there is a match
      */
     public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Collection<JexlVCMatchExp> exps) {
         // todo -- actually, we should implement a JEXL context interface to VariantContext,
@@ -245,4 +246,10 @@ public class VariantContextUtils {
 //        }
 //        return contexts;
 //    }
+
+
+    public static double computeHardyWeinbergPvalue(VariantContext vc) {
+        return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
+    }
+
 }
