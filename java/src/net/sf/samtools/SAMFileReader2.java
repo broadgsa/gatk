@@ -185,16 +185,4 @@ public class SAMFileReader2 extends SAMFileReader {
             throw new StingException("Unable to run method findIndexFile",ex);
         }
     }
-
-    @Override
-    public boolean equals(Object other) {
-        if(other == null) return false;
-        if(!(other instanceof SAMFileReader2)) return false;
-        return this.sourceFile.equals(((SAMFileReader2)other).sourceFile);
-    }
-
-    @Override
-    public int hashCode() {
-        return sourceFile.hashCode();
-    }
 }

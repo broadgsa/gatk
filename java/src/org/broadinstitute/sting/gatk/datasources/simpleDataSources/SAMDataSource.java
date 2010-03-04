@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
 import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 
@@ -14,6 +13,8 @@ import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 import java.io.File;
 import java.util.Collection;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -48,9 +49,13 @@ import java.util.Map;
  * Converts shards to SAM iterators over the specified region
  */
 public abstract class SAMDataSource implements SimpleDataSource {
-
     /** Backing support for reads. */
     protected final Reads reads;
+
+    /**
+     * Identifiers for the readers driving this data source.
+     */
+    protected final List<SAMReaderID> readerIDs = new ArrayList<SAMReaderID>();
 
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(SAMDataSource.class);
@@ -87,6 +92,7 @@ public abstract class SAMDataSource implements SimpleDataSource {
             if (!smFile.canRead()) {
                 throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + smFile.getName());
             }
+            readerIDs.add(new SAMReaderID(smFile));
         }
     }
 
@@ -104,6 +110,12 @@ public abstract class SAMDataSource implements SimpleDataSource {
      */
     public abstract SAMFileHeader getHeader();
 
+    /**
+     * Gets the (unmerged) header for the given reader.
+     * @param reader Unique identifier for the reader.
+     * @return Unmerged header.
+     */
+    public abstract SAMFileHeader getHeader(SAMReaderID reader);    
 
     /**
      * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
@@ -113,22 +125,26 @@ public abstract class SAMDataSource implements SimpleDataSource {
     public Reads getReadsInfo() { return reads; }
 
     /**
-     * Returns a mapping from original input files to their (merged) read group ids
-     *
-     * @return the mapping
-     */
-    public Map<File, SAMFileReader> getFileToReaderMapping() { return null; }
-
-    /**
      * Returns readers used by this data source.
      */
-    public abstract Collection<SAMFileReader> getReaders();
+    public List<SAMReaderID> getReaderIDs() {
+        return readerIDs;
+    }
+
+    /**
+     * Gets the SAM file associated with a given reader ID.
+     * @param id The reader for which to retrieve the source file.
+     * @return the file actually associated with the id.
+     */
+    public File getSAMFile(SAMReaderID id) {
+        return id.samFile;
+    }    
 
     /** Returns true if there are read group duplicates within the merged headers. */
     public abstract boolean hasReadGroupCollisions();
 
     /** Returns the read group id that should be used for the input read and RG id. */
-    public abstract String getReadGroupId(final SAMFileReader reader, final String originalReadGroupId);
+    public abstract String getReadGroupId(final SAMReaderID reader, final String originalReadGroupId);
 
     /**
      *

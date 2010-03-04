@@ -23,7 +23,6 @@ import java.io.File;
  * @version 0.1
  */
 public class BlockDrivenSAMDataSource extends SAMDataSource {
-
     /**
      * A collection of readers driving the merging process.
      */
@@ -32,7 +31,17 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     /**
      * The merged header.
      */
-    private final SAMFileHeader header;
+    private final SAMFileHeader mergedHeader;
+
+    /**
+     * Whether the read groups in overlapping files collide.
+     */
+    private final boolean hasReadGroupCollisions;
+
+    /**
+     * Maps the SAM readers' original read group ids to their revised ids.
+     */
+    private final Map<SAMReaderID,ReadGroupMapping> mergedReadGroupMappings = new HashMap<SAMReaderID,ReadGroupMapping>();
 
     /**
      * Create a new block-aware SAM data source given the supplied read metadata.
@@ -44,32 +53,36 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         logger.warn("Experimental sharding is enabled.  Many use cases are not supported.  Please use with care.");
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        header = new SamFileHeaderMerger(readers,SAMFileHeader.SortOrder.coordinate,true).getMergedHeader(); 
+        SAMReaders readers = resourcePool.getAvailableReaders();
+
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
+        mergedHeader = headerMerger.getMergedHeader();
+        hasReadGroupCollisions = headerMerger.hasReadGroupCollisions();
+
+        for(SAMReaderID id: readerIDs) {
+            SAMFileReader reader = readers.getReader(id);
+            ReadGroupMapping mapping = new ReadGroupMapping();
+
+            List<SAMReadGroupRecord> readGroups = reader.getFileHeader().getReadGroups();
+            for(SAMReadGroupRecord readGroup: readGroups)
+                mapping.put(readGroup.getReadGroupId(),headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()));    
+
+            mergedReadGroupMappings.put(id,mapping);
+        }
+
         resourcePool.releaseReaders(readers);
     }
 
-    public boolean hasIndex() {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        try {
-            return hasIndex(readers);
-        }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }
-    }
-
     /**
-     * Report whether a given collection of SAM file readers is indexed.
-     * @param readers The collection of readers.
-     * @return True if the given collection of readers is indexed.
+     * True if all readers have an index.
+     * @return
      */
-    private boolean hasIndex(Collection<SAMFileReader> readers) {
-        for(SAMFileReader reader: readers) {
+    public boolean hasIndex() {
+        for(SAMFileReader reader: resourcePool.getReadersWithoutLocking()) {
             if(!reader.hasIndex())
                 return false;
         }
-        return true;    
+        return true;
     }
 
     /**
@@ -78,19 +91,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return A map of reader back to bin.
      */
     public List<Bin> getOverlappingBins(final GenomeLoc location) {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
+        SAMReaders readers = resourcePool.getReadersWithoutLocking();
+        if(readers.isEmpty())
+            return Collections.emptyList();
 
-        try {
-            if(readers.size() == 0)
-                return Collections.emptyList();
-
-            // All readers will have the same bin structure, so just use the first bin as an example.
-            SAMFileReader2 reader = (SAMFileReader2)readers.iterator().next();
-            return reader.getOverlappingBins(location.getContig(),(int)location.getStart(),(int)location.getStop());
-        }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }
+        // All readers will have the same bin structure, so just use the first bin as an example.
+        SAMFileReader2 reader = (SAMFileReader2)readers.iterator().next();
+        return reader.getOverlappingBins(location.getContig(),(int)location.getStart(),(int)location.getStop());
     }
 
     /**
@@ -99,18 +106,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return A map of the file pointers bounding the bin.
      */
     public Map<SAMFileReader2,List<Chunk>> getFilePointersBounding(Bin bin) {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        try {
-            Map<SAMFileReader2,List<Chunk>> filePointers = new HashMap<SAMFileReader2,List<Chunk>>();
-            for(SAMFileReader reader: readers) {
-                SAMFileReader2 reader2 = (SAMFileReader2)reader;
-                filePointers.put(reader2,reader2.getFilePointersBounding(bin));
-            }
-            return filePointers;
+        SAMReaders readers = resourcePool.getReadersWithoutLocking();
+        Map<SAMFileReader2,List<Chunk>> filePointers = new HashMap<SAMFileReader2,List<Chunk>>();
+        for(SAMFileReader reader: readers) {
+            SAMFileReader2 reader2 = (SAMFileReader2)reader;
+            filePointers.put(reader2,reader2.getFilePointersBounding(bin));
         }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }
+        return filePointers;
     }
 
     /**
@@ -118,18 +120,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return A mapping of reader to current position.
      */
     public Map<SAMFileReader2,Chunk> getCurrentPosition() {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        try {
-            Map<SAMFileReader2,Chunk> currentPositions = new HashMap<SAMFileReader2,Chunk>();
-            for(SAMFileReader reader: readers) {
-                SAMFileReader2 reader2 = (SAMFileReader2)reader;
-                currentPositions.put(reader2,reader2.getCurrentPosition());
-            }
-            return currentPositions;
+        SAMReaders readers = resourcePool.getReadersWithoutLocking();        
+        Map<SAMFileReader2,Chunk> currentPositions = new HashMap<SAMFileReader2,Chunk>();
+        for(SAMFileReader reader: readers) {
+            SAMFileReader2 reader2 = (SAMFileReader2)reader;
+            currentPositions.put(reader2,reader2.getCurrentPosition());
         }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }
+        return currentPositions;
     }
 
     /**
@@ -137,18 +134,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return Number of levels in this index.
      */
     public int getNumIndexLevels() {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        try {
-            if(readers.size() == 0)
-                throw new StingException("Unable to determine number of index levels; no BAMs are present.");
-            if(!hasIndex(readers))
-                throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
-            SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-            return firstReader.getNumIndexLevels();
-        }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }            
+        SAMReaders readers = resourcePool.getReadersWithoutLocking();
+        if(readers.isEmpty())
+            throw new StingException("Unable to determine number of index levels; no BAMs are present.");
+        if(!hasIndex())
+            throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
+        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
+        return firstReader.getNumIndexLevels();
     }
 
     /**
@@ -157,18 +149,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return the level associated with the given bin number.
      */
     public int getLevelForBin(final Bin bin) {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        try {
-            if(readers.size() == 0)
-                throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
-            if(!hasIndex(readers))
-                throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
-            SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-            return firstReader.getLevelForBin(bin);
-        }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }
+        SAMReaders readers = resourcePool.getReadersWithoutLocking();
+        if(readers.isEmpty())
+            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
+        if(!hasIndex())
+            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
+        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
+        return firstReader.getLevelForBin(bin);
     }
 
     /**
@@ -177,18 +164,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return The last position that the given bin can represent.
      */
     public int getFirstLocusInBin(final Bin bin) {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        try {
-            if(readers.size() == 0)
-                throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
-            if(!hasIndex(readers))
-                throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
-            SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-            return firstReader.getFirstLocusInBin(bin);
-        }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }
+        SAMReaders readers = resourcePool.getReadersWithoutLocking();
+        if(readers.isEmpty())
+            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
+        if(!hasIndex())
+            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
+        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
+        return firstReader.getFirstLocusInBin(bin);
     }
 
     /**
@@ -197,18 +179,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return The last position that the given bin can represent.
      */
     public int getLastLocusInBin(final Bin bin) {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();
-        try {
-            if(readers.size() == 0)
-                throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
-            if(!hasIndex(readers))
-                throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
-            SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-            return firstReader.getLastLocusInBin(bin);
-        }
-        finally {
-            resourcePool.releaseReaders(readers);
-        }
+        SAMReaders readers = resourcePool.getReadersWithoutLocking();
+        if(readers.isEmpty())
+            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
+        if(!hasIndex())
+            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
+        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
+        return firstReader.getLastLocusInBin(bin);
     }
 
     /**
@@ -252,7 +229,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     }
 
     private StingSAMIterator getIterator(BAMFormatAwareShard shard, boolean enableVerification) {
-        Collection<SAMFileReader> readers = resourcePool.getAvailableReaders();        
+        SAMReaders readers = resourcePool.getAvailableReaders();        
 
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(SAMFileReader reader: readers) {
@@ -261,7 +238,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             readerToIteratorMap.put(reader2,reader2.iterator(chunks));
         }
 
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers,SAMFileHeader.SortOrder.coordinate,true);
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
 
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
         CloseableIterator<SAMRecord> iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
@@ -280,15 +257,11 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return The merged header.
      */
     public SAMFileHeader getHeader() {
-        return header;
+        return mergedHeader;
     }
 
-    /**
-     * Currently unsupported.
-     * @return
-     */
-    public Collection<SAMFileReader> getReaders() {
-        throw new StingException("Currently unable to get readers for shard-based fields.");
+    public SAMFileHeader getHeader(SAMReaderID id) {
+        return resourcePool.getReadersWithoutLocking().getReader(id).getFileHeader();
     }
 
     /**
@@ -296,15 +269,15 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return False always.
      */
     public boolean hasReadGroupCollisions() {
-        return false;
+        return hasReadGroupCollisions;
     }
 
     /**
-     * Currently unsupported.
-     * @return
+     * Gets the revised read group id mapped to this 'original' read group id.
+     * @return Merged read group ID.
      */
-    public String getReadGroupId(final SAMFileReader reader, final String originalReadGroupId) {
-        throw new UnsupportedOperationException("Getting read group ID from this experimental SAM reader is not currently supported.");
+    public String getReadGroupId(final SAMReaderID reader, final String originalReadGroupId) {
+        return mergedReadGroupMappings.get(reader).get(originalReadGroupId);
     }
 
     private class SAMResourcePool {
@@ -316,66 +289,130 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         /**
          * All iterators of this reference-ordered data.
          */
-        private List<SAMFileReaders> allResources = new ArrayList<SAMFileReaders>();
+        private List<SAMReaders> allResources = new ArrayList<SAMReaders>();
 
         /**
          * All iterators that are not currently in service.
          */
-        private List<SAMFileReaders> availableResources = new ArrayList<SAMFileReaders>();
+        private List<SAMReaders> availableResources = new ArrayList<SAMReaders>();
 
         public SAMResourcePool(final int maxEntries) {
             this.maxEntries = maxEntries;
         }
 
         /**
+         * Dangerous internal method; retrieves any set of readers, whether in iteration or not.
+         * Used to handle non-exclusive, stateless operations, such as index queries.
+         * @return Any collection of SAMReaders, whether in iteration or not.
+         */
+        protected SAMReaders getReadersWithoutLocking() {
+            synchronized(this) {
+                if(allResources.size() == 0)
+                    createNewResource();
+            }
+            return allResources.get(0);
+        }
+
+        /**
          * Choose a set of readers from the pool to use for this query.  When complete,
          * @return
          */
-        public synchronized Collection<SAMFileReader> getAvailableReaders() {
+        public synchronized SAMReaders getAvailableReaders() {
             if(availableResources.size() == 0)
                 createNewResource();
-            SAMFileReaders readers = availableResources.get(0);
+            SAMReaders readers = availableResources.get(0);
             availableResources.remove(readers);
             return readers;
         }
 
-        public synchronized void releaseReaders(Collection<SAMFileReader> readers) {
+        public synchronized void releaseReaders(SAMReaders readers) {
             if(!allResources.contains(readers))
                 throw new StingException("Tried to return readers from the pool that didn't originate in the pool.");
-            availableResources.add((SAMFileReaders)readers);
+            availableResources.add(readers);
         }
 
         private synchronized void createNewResource() {
             if(allResources.size() > maxEntries)
                 throw new StingException("Cannot create a new resource pool.  All resources are in use.");
-            SAMFileReaders readers = new SAMFileReaders(reads);
+            SAMReaders readers = new SAMReaders(reads);
             allResources.add(readers);
             availableResources.add(readers);
         }
 
+    }
+
+    /**
+     * A collection of readers derived from a reads metadata structure.
+     */
+    private class SAMReaders implements Iterable<SAMFileReader> {
         /**
-         * A collection of readers derived from a reads metadata structure.
+         * Internal storage for a map of id -> reader.
          */
-        private class SAMFileReaders extends ArrayList<SAMFileReader> {
-            /**
-             * Derive a new set of readers from the Reads metadata.
-             * @param sourceInfo Metadata for the reads to load.
-             */
-            public SAMFileReaders(Reads sourceInfo) {
-                for(File readsFile: sourceInfo.getReadsFiles()) {
-                    SAMFileReader2 reader = new SAMFileReader2(readsFile);
-                    reader.setValidationStringency(sourceInfo.getValidationStringency());
-                    add(reader);
-                }
+        private final Map<SAMReaderID,SAMFileReader> readers = new LinkedHashMap<SAMReaderID,SAMFileReader>();
+
+        /**
+         * Derive a new set of readers from the Reads metadata.
+         * @param sourceInfo Metadata for the reads to load.
+         */
+        public SAMReaders(Reads sourceInfo) {
+            for(File readsFile: sourceInfo.getReadsFiles()) {
+                SAMFileReader2 reader = new SAMFileReader2(readsFile);
+                reader.setValidationStringency(sourceInfo.getValidationStringency());
+                readers.put(new SAMReaderID(readsFile),reader);
             }
-        }        
+        }
+
+        /**
+         * Retrieve the reader from the data structure.
+         * @param id The ID of the reader to retrieve.
+         */
+        public SAMFileReader getReader(SAMReaderID id) {
+            if(!readers.containsKey(id))
+                throw new NoSuchElementException("No reader is associated with id " + id);
+            return readers.get(id);
+        }
+
+        /**
+         * Convenience method to get the header associated with an individual ID.
+         * @param id ID for which to retrieve the header.
+         * @return Header for this SAM file.
+         */
+        public SAMFileHeader getHeader(SAMReaderID id) {
+            if(!readers.containsKey(id))
+                throw new NoSuchElementException("No reader is associated with id " + id);
+            return readers.get(id).getFileHeader();            
+        }
+
+        /**
+         * Returns an iterator over all readers in this structure.
+         * @return An iterator over readers.
+         */
+        public Iterator<SAMFileReader> iterator() {
+            return readers.values().iterator();
+        }
+
+        /**
+         * Returns whether any readers are present in this structure.
+         * @return
+         */
+        public boolean isEmpty() {
+            return readers.isEmpty();
+        }
+
+        /**
+         * Gets all the actual readers out of this data structure.
+         * @return A collection of the readers.
+         */
+        public Collection<SAMFileReader> values() {
+            return readers.values();
+        }
     }
 
     private class ReleasingIterator implements StingSAMIterator {
         /**
          * The resource acting as the source of the data.
          */
-        private final Collection<SAMFileReader> resource;
+        private final SAMReaders resource;
 
         /**
          * The iterator to wrap.
@@ -386,7 +423,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             return wrappedIterator.getSourceInfo();
         }
 
-        public ReleasingIterator( Collection<SAMFileReader> resource, StingSAMIterator wrapped ) {
+        public ReleasingIterator(SAMReaders resource, StingSAMIterator wrapped) {
             this.resource = resource;
             this.wrappedIterator = wrapped;
         }
@@ -412,4 +449,9 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             return wrappedIterator.next();
         }
     }
+
+    /**
+     * Maps read groups in the original SAMFileReaders to read groups in 
+     */
+    private class ReadGroupMapping extends HashMap<String,String> {}
 }

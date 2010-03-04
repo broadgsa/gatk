@@ -4,7 +4,6 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.sam.SamFileHeaderMerger;
 
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShard;
@@ -16,9 +15,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
-
-import java.util.*;
-import java.io.File;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -112,13 +108,8 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
         return resourcePool.getHeader();
     }
 
-    /**
-     * Returns a mapping from original input files to the SAMFileReaders
-     *
-     * @return the mapping
-     */
-    public Map<File, SAMFileReader> getFileToReaderMapping() {
-        return resourcePool.getFileToReaderMapping();
+    public SAMFileHeader getHeader(SAMReaderID id) {
+        return resourcePool.fileToReaderMap.get(id.samFile).getFileHeader();
     }
 
     /**
@@ -128,21 +119,14 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
      */
     public Reads getReadsInfo() { return reads; }
 
-    /**
-     * Returns header merger: a class that keeps the mapping between original read groups and read groups
-     * of the merged stream; merger also provides access to the individual file readers (and hence headers
-     * prior to the merging too) maintained by the system.
-     * @return
-     */
-    public Collection<SAMFileReader> getReaders() { return resourcePool.getHeaderMerger().getReaders(); }
-
     /** Returns true if there are read group duplicates within the merged headers. */
     public boolean hasReadGroupCollisions() {
         return resourcePool.getHeaderMerger().hasReadGroupCollisions();
     }
 
     /** Returns the read group id that should be used for the input read and RG id. */
-    public String getReadGroupId(final SAMFileReader reader, final String originalReadGroupId) {
+    public String getReadGroupId(final SAMReaderID id, final String originalReadGroupId) {
+        SAMFileReader reader = resourcePool.getFileToReaderMapping().get(id.samFile);
         return resourcePool.getHeaderMerger().getReadGroupId(reader,originalReadGroupId);
     }
 

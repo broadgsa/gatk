@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -127,9 +128,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             SAMFileWriterFactory factory = new SAMFileWriterFactory();
 
             if ( NWAY_OUTPUT ) {
-                Map<File, SAMFileReader> readerMap = getToolkit().getFileToReaderMapping();
-                for ( File file : readerMap.keySet() ) {
-                    SAMFileHeader header = readerMap.get(file).getFileHeader();
+                List<SAMReaderID> ids = getToolkit().getDataSource().getReaderIDs();
+                for ( SAMReaderID id: ids ) {
+                    File file = getToolkit().getDataSource().getSAMFile(id);
+                    SAMFileHeader header = getToolkit().getSAMFileHeader(id);
                     if ( SORTING_STRATEGY == RealignerSortingStrategy.NO_SORT )
                         header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
                     String newFileName = file.getName().substring(0, file.getName().length()-3) + outputSuffix + ".bam";

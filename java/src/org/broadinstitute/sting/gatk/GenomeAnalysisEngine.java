@@ -30,10 +30,7 @@ import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.*;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.IndexDrivenSAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.*;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -344,18 +341,16 @@ public class GenomeAnalysisEngine {
      * @return
      */
     public List<Set<String>> getSamplesByReaders() {
-
-
-        Collection<SAMFileReader> readers = getDataSource().getReaders();
+        List<SAMReaderID> readers = getDataSource().getReaderIDs();
 
         List<Set<String>> sample_sets = new ArrayList<Set<String>>(readers.size());
 
-        for (SAMFileReader r : readers) {
+        for (SAMReaderID r : readers) {
 
             Set<String> samples = new HashSet<String>(1);
             sample_sets.add(samples);
 
-            for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
+            for (SAMReadGroupRecord g : getDataSource().getHeader(r).getReadGroups()) {
                 samples.add(g.getSample());
             }
         }
@@ -375,16 +370,16 @@ public class GenomeAnalysisEngine {
     public List<Set<String>> getLibrariesByReaders() {
 
 
-        Collection<SAMFileReader> readers = getDataSource().getReaders();
+        List<SAMReaderID> readers = getDataSource().getReaderIDs();
 
         List<Set<String>> lib_sets = new ArrayList<Set<String>>(readers.size());
 
-        for (SAMFileReader r : readers) {
+        for (SAMReaderID r : readers) {
 
             Set<String> libs = new HashSet<String>(2);
             lib_sets.add(libs);
 
-            for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
+            for (SAMReadGroupRecord g : getDataSource().getHeader(r).getReadGroups()) {
                 libs.add(g.getLibrary());
             }
         }
@@ -394,41 +389,29 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Returns a mapping from original input files to the SAMFileReaders
-     *
-     * @return the mapping
-     */
-    public Map<File, SAMFileReader> getFileToReaderMapping() {
-        return getDataSource().getFileToReaderMapping();
-    }
-
-    /**
      * Returns a mapping from original input files to their (merged) read group ids
      *
      * @return the mapping
      */
     public Map<File, Set<String>> getFileToReadGroupIdMapping() {
-        Map<File, SAMFileReader> fileToReaderMap = getFileToReaderMapping();
-
         // populate the file -> read group mapping
         Map<File, Set<String>> fileToReadGroupIdMap = new HashMap<File, Set<String>>();
-        for (Map.Entry<File, SAMFileReader> entry : fileToReaderMap.entrySet()) {
-
+        for (SAMReaderID id: getDataSource().getReaderIDs()) {
             Set<String> readGroups = new HashSet<String>(5);
 
-            for (SAMReadGroupRecord g : entry.getValue().getFileHeader().getReadGroups()) {
+            for (SAMReadGroupRecord g : getDataSource().getHeader(id).getReadGroups()) {
                 if (getDataSource().hasReadGroupCollisions()) {
                     // Check if there were read group clashes.
                     // If there were, use the SamFileHeaderMerger to translate from the
                     // original read group id to the read group id in the merged stream
-                    readGroups.add(getDataSource().getReadGroupId(entry.getValue(), g.getReadGroupId()));
+                    readGroups.add(getDataSource().getReadGroupId(id,g.getReadGroupId()));
                 } else {
                     // otherwise, pass through the unmapped read groups since this is what Picard does as well
                     readGroups.add(g.getReadGroupId());
                 }
             }
 
-            fileToReadGroupIdMap.put(entry.getKey(), readGroups);
+            fileToReadGroupIdMap.put(getDataSource().getSAMFile(id),readGroups);
         }
 
         return fileToReadGroupIdMap;
@@ -447,16 +430,16 @@ public class GenomeAnalysisEngine {
     public List<Set<String>> getMergedReadGroupsByReaders() {
 
 
-        Collection<SAMFileReader> readers = getDataSource().getReaders();
+        List<SAMReaderID> readers = getDataSource().getReaderIDs();
 
         List<Set<String>> rg_sets = new ArrayList<Set<String>>(readers.size());
 
-        for (SAMFileReader r : readers) {
+        for (SAMReaderID r : readers) {
 
             Set<String> groups = new HashSet<String>(5);
             rg_sets.add(groups);
 
-            for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
+            for (SAMReadGroupRecord g : getDataSource().getHeader(r).getReadGroups()) {
                 if (getDataSource().hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
                     // use HeaderMerger to translate original read group id from the reader into the read group id in the
                     // merged stream, and save that remapped read group id to associate it with specific reader
@@ -787,6 +770,15 @@ public class GenomeAnalysisEngine {
      */
     public SAMFileHeader getSAMFileHeader() {
         return readsDataSource.getHeader();
+    }
+
+    /**
+     * Returns the unmerged SAM file header for an individual reader.
+     * @param reader The reader.
+     * @return Header for that reader.
+     */
+    public SAMFileHeader getSAMFileHeader(SAMReaderID reader) {
+        return readsDataSource.getHeader(reader);
     }
 
     /**
