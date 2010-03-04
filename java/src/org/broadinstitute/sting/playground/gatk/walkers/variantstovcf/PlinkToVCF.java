@@ -194,6 +194,9 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         }
     }
 
+    // TODO -- REWRITE THIS TO WORK WITH VARIANT CONTEXT
+    /******
+
     private String smartHardy(ReferenceContext ref, VCFRecord rec) {
         HashMap<String,ArrayList<Genotype>> genotypesByPopulation = new HashMap<String,ArrayList<Genotype>>(10);
         HashMap<String,String> hardyWeinbergByPopulation = new HashMap<String,String>(10);
@@ -211,8 +214,8 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
 
         for ( String population : samplesToPopulation.values() ) {
             VCFVariationCall v = new VCFVariationCall(ref.getBase(),ref.getLocus(),VCFVariationCall.VARIANT_TYPE.SNP);
-            // TODO -- v.setGenotypeCalls(genotypesByPopulation.get(population));
-            // TODO -- hardyWeinbergByPopulation.put(population,HWCalc.annotate(null,ref,null,v));
+            v.setGenotypeCalls(genotypesByPopulation.get(population));
+            hardyWeinbergByPopulation.put(population,HWCalc.annotate(null,ref,null,v));
         }
 
         return smartHardyString(hardyWeinbergByPopulation);
@@ -228,6 +231,8 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         return String.format("%s",maxH);
     }
 
+    *********/
+
     private HashMap<String,String> parsePopulationFile(File file) {
         HashMap<String,String> samplesToPopulation = new HashMap<String,String>();
         try {
@@ -237,7 +242,7 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
                 String[] populationSamples = line.split("\t");
                 String population = populationSamples[0];
                 for ( int i = 1; i < populationSamples.length; i ++ ) {
-                    samplesToPopulation.put(populationSamples[i],population);
+                    samplesToPopulation.put(populationSamples[i], population);
                 }
             }
         } catch ( IOException e) {
