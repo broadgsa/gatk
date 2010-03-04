@@ -46,7 +46,7 @@ public class WalkerTest extends BaseTest {
 
             return filemd5sum;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to read bytes from calls file: " + resultsFile);
+            throw new RuntimeException("Failed to read bytes from calls file: " + resultsFile, e);
         }
     }
 
