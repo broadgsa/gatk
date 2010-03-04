@@ -26,6 +26,9 @@ public class PickSequenomProbes extends RefWalker<String, String> {
     protected String SNP_MASK = null;
     @Argument(required=false, shortName="project_id",doc="If specified, all probenames will be prepended with 'project_id|'")
     String project_id = null;
+    @Argument(required = false, shortName="omitWindow", doc = "If specified, the window appender will be omitted from the design files (e.g. \"_chr:start-stop\")")
+    boolean omitWindow = false;
+
     private byte [] maskFlags = new byte[401];
 
     private LocationAwareSeekableRODIterator snpMaskIterator=null;
@@ -116,11 +119,14 @@ public class PickSequenomProbes extends RefWalker<String, String> {
             assay_id.append('|');
         }
         assay_id.append(context.getLocation().toString().replace(':','_'));
-        assay_id.append('_');
-        if ( variant.isInsertion() ) assay_id.append("gI_");
-        else if ( variant.isDeletion()) assay_id.append("gD_");
+        if ( variant.isInsertion() ) assay_id.append("_gI");
+        else if ( variant.isDeletion()) assay_id.append("_gD");
 
-        assay_id.append(ref.getWindow().toString().replace(':', '_'));
+        if ( ! omitWindow ) {
+            assay_id.append("_");
+            assay_id.append(ref.getWindow().toString().replace(':', '_'));
+        }
+        
         return assay_id.toString() + "\t" + assay_sequence + "\n";
     }
 

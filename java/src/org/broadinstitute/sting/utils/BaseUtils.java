@@ -9,6 +9,10 @@ import java.util.Random;
  */
 public class BaseUtils {
     public final static char[] BASES = { 'A', 'C', 'G', 'T' };
+    public final static char[] EXTENDED_BASES = { 'A', 'C', 'G', 'T', 'N', 'D' };
+    // todo -- fix me (enums?)
+    public static final byte DELETION_INDEX = 4;
+    public static final byte NO_CALL_INDEX = 5; // (this is 'N')
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).
@@ -132,6 +136,17 @@ public class BaseUtils {
             case 't': return 3;
 
             default: return -1;
+        }
+    }
+
+    static public int extendedBaseToBaseIndex(char base) {
+        switch (base) {
+            case 'd':
+            case 'D': return DELETION_INDEX;
+            case 'n':
+            case 'N': return NO_CALL_INDEX;
+
+            default: return simpleBaseToBaseIndex(base);
         }
     }
 

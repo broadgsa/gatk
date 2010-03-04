@@ -8,6 +8,8 @@ import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
@@ -33,15 +35,16 @@ import java.util.*;
 // todo [DONE] -- add ability to print out the calculated bins and quit (for pre-analysis bin size selection)
 // todo [DONE] -- refactor the location of the ALL_SAMPLE metrics [keep out of the per-sample HashMaps]
 // todo [DONE] -- per locus output through -o
-// todo -- support for using read groups instead of samples
-// todo -- coverage without deletions
-// todo -- base counts
-// todo -- support for aggregate (ignoring sample IDs) granular histograms; maybe n*[start,stop], bins*sqrt(n)
+// todo [DONE] -- support for using read groups instead of samples
+// todo [DONE] -- coverage including deletions
+// todo [DONE] -- base counts
+// todo -- cache the map from sample names to means in the print functions, rather than regenerating each time
+// todo -- support for granular histograms for total depth; maybe n*[start,stop], bins*sqrt(n)
 // todo -- alter logarithmic scaling to spread out bins more
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
 @By(DataSource.REFERENCE)
-public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOfCoverageStats> implements TreeReducible<DepthOfCoverageStats> {
+public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCoverageStats> implements TreeReducible<DepthOfCoverageStats> {
     @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
     int start = 1;
     @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
@@ -52,6 +55,8 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
     byte minMappingQuality = 50;
     @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to 20.", required = false)
     byte minBaseQuality = 20;
+    @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
+    boolean printBaseCounts = false;
     @Argument(fullName = "omitLocusTable", shortName = "omitLocus", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
     boolean omitLocusTable = false;
     @Argument(fullName = "omitIntervalStatistics", shortName = "omitIntervals", doc = "Will omit the per-interval statistics section, which should result in speedup", required = false)
@@ -64,10 +69,16 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
     boolean omitSampleSummary = false;
     @Argument(fullName = "useReadGroups", shortName = "rg", doc = "Split depth of coverage output by read group rather than by sample", required = false)
     boolean useReadGroup = false;
+    @Argument(fullName = "includeDeletions", shortName = "dels", doc = "Include information on deletions", required = false)
+    boolean includeDeletions = false;
+    @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
+    boolean ignoreDeletionSites = false;
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STANDARD WALKER METHODS
     ////////////////////////////////////////////////////////////////////////////////////
+
+    public boolean includeReadsWithDeletionAtLoci() { return includeDeletions && ! ignoreDeletionSites; }
 
     public void initialize() {
 
@@ -92,6 +103,9 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
 
             for ( String s : allSamples) {
                 out.printf("\t%s_%s","Depth_for",s);
+                if ( printBaseCounts ) {
+                    out.printf("\t%s_%s",s,"_base_counts");
+                }
             }
 
             out.printf("%n");
@@ -137,45 +151,33 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
             stats.initializeLocusCounts();
         }
 
+        if ( includeDeletions ) {
+            stats.initializeDeletions();
+        }
+
         return stats;
     }
 
-    public Map<String,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        Map<String,StratifiedAlignmentContext> contexts;
-        if ( useReadGroup ) {
-            contexts = StratifiedAlignmentContext.splitContextByReadGroup(context.getBasePileup());
-        } else {
-            contexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
-        }
-
-        HashMap<String,Integer> depthBySample = new HashMap<String,Integer>();
-
-        for ( String sample : contexts.keySet() ) {
-            AlignmentContext sampleContext = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
-            int properDepth = 0;
-            for ( PileupElement e : sampleContext.getBasePileup() ) {
-                if ( e.getQual() >= minBaseQuality && e.getMappingQual() >= minMappingQuality ) {
-                    properDepth++;
-                }
-            }
-
-            depthBySample.put(sample,properDepth);
-        }
+    public Map<String,int[]> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         
         if ( ! omitDepthOutput ) {
             out.printf("%s",ref.getLocus()); // yes: print locus in map, and the rest of the info in reduce (for eventual cumulatives)
         }
 
-        return depthBySample;
+        Map<String,int[]> countsBySample = CoverageUtils.getBaseCountsBySample(context,minMappingQuality,minBaseQuality,
+                useReadGroup ? CoverageUtils.PartitionType.BY_READ_GROUP : CoverageUtils.PartitionType.BY_SAMPLE);
+
+        return countsBySample;
     }
 
-    public DepthOfCoverageStats reduce(Map<String,Integer> thisMap, DepthOfCoverageStats prevReduce) {
+    public DepthOfCoverageStats reduce(Map<String,int[]> thisMap, DepthOfCoverageStats prevReduce) {
         prevReduce.update(thisMap);
         if ( ! omitDepthOutput ) {
             printDepths(out,thisMap, prevReduce.getAllSamples());
             // this is an additional iteration through thisMap, plus dealing with IO, so should be much slower without
             // turning on omit
         }
+
         return prevReduce;
     }
 
@@ -216,6 +218,9 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         summaryHeader.append("\taverage_coverage");
 
         for ( String s : firstStats.getAllSamples() ) {
+            summaryHeader.append("\t");
+            summaryHeader.append(s);
+            summaryHeader.append("_total_cvg");
             summaryHeader.append("\t");
             summaryHeader.append(s);
             summaryHeader.append("_mean_cvg");
@@ -265,11 +270,12 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         targetSummary.append(intervalStats.first.toString());
         targetSummary.append("\t");
         targetSummary.append(stats.getTotalCoverage());
-        // TODO: change this to use the raw counts directly rather than re-estimating from mean*nloci
         targetSummary.append("\t");
-        targetSummary.append(stats.getTotalMeanCoverage());
+        targetSummary.append(String.format("%.2f",stats.getTotalMeanCoverage()));
 
         for ( String s : stats.getAllSamples() ) {
+            targetSummary.append("\t");
+            targetSummary.append(stats.getTotals().get(s));
             targetSummary.append("\t");
             targetSummary.append(String.format("%.2f", stats.getMeans().get(s)));
             targetSummary.append("\t");
@@ -344,7 +350,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         ///////////////////
         // OPTIONAL OUTPUTS
         //////////////////
-
+        
         if ( ! omitSampleSummary ) {
             logger.info("Printing sample summary");
             File summaryStatisticsFile = deriveFromStream("summary_statistics");
@@ -484,18 +490,52 @@ public class CoverageStatistics extends LocusWalker<Map<String,Integer>, DepthOf
         return bin;
     }
     
-    private void printDepths(PrintStream stream, Map<String,Integer> depthBySample, Set<String> allSamples) {
+    private void printDepths(PrintStream stream, Map<String,int[]> countsBySample, Set<String> allSamples) {
         // get the depths per sample and build up the output string while tabulating total and average coverage
+        // todo -- update me to deal with base counts/indels
         StringBuilder perSampleOutput = new StringBuilder();
         int tDepth = 0;
         for ( String s : allSamples ) {
             perSampleOutput.append("\t");
-            int dp = depthBySample.keySet().contains(s) ? depthBySample.get(s) : 0;
+            long dp = countsBySample.keySet().contains(s) ? sumArray(countsBySample.get(s)) : 0;
             perSampleOutput.append(dp);
+            if ( printBaseCounts ) {
+                perSampleOutput.append("\t");
+                perSampleOutput.append(baseCounts(countsBySample.get(s)));
+            }
             tDepth += dp;
         }
         // remember -- genome locus was printed in map()
         stream.printf("\t%d\t%.2f\t%s%n",tDepth,( (double) tDepth/ (double) allSamples.size()), perSampleOutput);
         
+    }
+
+    private long sumArray(int[] array) {
+        long i = 0;
+        for ( int j : array ) {
+            i += j;
+        }
+        return i;
+    }
+
+    private String baseCounts(int[] counts) {
+        if ( counts == null ) {
+            counts = new int[6];
+        }
+        StringBuilder s = new StringBuilder();
+        int nbases = 0;
+        for ( char b : BaseUtils.EXTENDED_BASES ) {
+            nbases++;
+            if ( includeDeletions || b != 'D' ) {
+                s.append(b);
+                s.append(":");
+                s.append(counts[BaseUtils.extendedBaseToBaseIndex(b)]);
+                if ( nbases < 6 ) {
+                    s.append(" ");
+                }
+            }
+        }
+
+        return s.toString();
     }
 }

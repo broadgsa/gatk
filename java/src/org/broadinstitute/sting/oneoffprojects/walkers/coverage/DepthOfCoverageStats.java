@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.coverage;
 
+import org.broadinstitute.sting.utils.BaseUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +30,7 @@ public class DepthOfCoverageStats {
     private boolean tabulateLocusCounts = false;
     private long nLoci; // number of loci seen
     private long totalDepthOfCoverage;
+    private boolean includeDeletions = false;
 
     ////////////////////////////////////////////////////////////////////////////////////
     // TEMPORARY DATA ( not worth re-instantiating )
@@ -108,11 +111,15 @@ public class DepthOfCoverageStats {
         tabulateLocusCounts = true;
     }
 
+    public void initializeDeletions() {
+        includeDeletions = true;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////
     // UPDATE METHODS
     ////////////////////////////////////////////////////////////////////////////////////
 
-    public void update(Map<String,Integer> depthBySample) {
+    public void updateDepths(Map<String,Integer> depthBySample) {
         int b;
         for ( String sample : granularHistogramBySample.keySet() ) {
             if ( depthBySample.containsKey(sample) ) {
@@ -133,6 +140,24 @@ public class DepthOfCoverageStats {
         nLoci++;
         totalDepthOfCoverage += totalLocusDepth;
         totalLocusDepth = 0;
+    }
+
+    public void update(Map<String,int[]> countsBySample) {
+        // todo -- do we want to do anything special regarding base count or deletion statistics?
+        HashMap<String,Integer> depthBySample = new HashMap<String,Integer>();
+        // todo -- needs fixing with advent of new baseutils functionality using ENUMS and handling N,D
+        for ( String s : countsBySample.keySet() ) {
+            int total = 0;
+            int[] counts = countsBySample.get(s);
+            for ( char base : BaseUtils.EXTENDED_BASES ) {
+                if ( includeDeletions || ! ( base == 'D') ) { // note basesAreEqual assigns TRUE to (N,D) as both have simple index -1
+                    total += counts[BaseUtils.extendedBaseToBaseIndex(base)];
+                }
+            }
+            depthBySample.put(s,total);
+        }
+        
+        this.updateDepths(depthBySample);
     }
 
     private int updateSample(String sample, int depth) {
@@ -227,6 +252,10 @@ public class DepthOfCoverageStats {
         }
 
         return means;
+    }
+
+    public Map<String,Long> getTotals() {
+        return totalCoverages;
     }
 
     public long getTotalLoci() {
