@@ -64,8 +64,12 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             ReadGroupMapping mapping = new ReadGroupMapping();
 
             List<SAMReadGroupRecord> readGroups = reader.getFileHeader().getReadGroups();
-            for(SAMReadGroupRecord readGroup: readGroups)
-                mapping.put(readGroup.getReadGroupId(),headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()));    
+            for(SAMReadGroupRecord readGroup: readGroups) {
+                if(headerMerger.hasReadGroupCollisions())
+                    mapping.put(readGroup.getReadGroupId(),headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()));
+                else
+                    mapping.put(readGroup.getReadGroupId(),readGroup.getReadGroupId());
+            }
 
             mergedReadGroupMappings.put(id,mapping);
         }
@@ -110,7 +114,10 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         Map<SAMFileReader2,List<Chunk>> filePointers = new HashMap<SAMFileReader2,List<Chunk>>();
         for(SAMFileReader reader: readers) {
             SAMFileReader2 reader2 = (SAMFileReader2)reader;
-            filePointers.put(reader2,reader2.getFilePointersBounding(bin));
+            if(bin != null)
+                filePointers.put(reader2,reader2.getFilePointersBounding(bin));
+            else
+                filePointers.put(reader2,Collections.<Chunk>emptyList());
         }
         return filePointers;
     }

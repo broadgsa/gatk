@@ -63,25 +63,35 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      * @param locations List of locations for which to load data.
      */
     IndexDelimitedLocusShardStrategy(SAMDataSource dataSource, GenomeLocSortedSet locations) {
-        if(!(dataSource instanceof BlockDrivenSAMDataSource))
-            throw new StingException("Cannot power an IndexDelimitedLocusShardStrategy with this data source.");
+        if(dataSource != null) {
+            // Shard based on reads.
+            // TODO: Push this sharding into the data source.
+            if(!(dataSource instanceof BlockDrivenSAMDataSource))
+                throw new StingException("Cannot power an IndexDelimitedLocusShardStrategy with this data source.");
 
-        List<GenomeLoc> intervals;
-        if(locations == null) {
-            // If no locations were passed in, shard the entire BAM file.
-            SAMFileHeader header = dataSource.getHeader();
-            intervals = new ArrayList<GenomeLoc>();
+            List<GenomeLoc> intervals;
+            if(locations == null) {
+                // If no locations were passed in, shard the entire BAM file.
+                SAMFileHeader header = dataSource.getHeader();
+                intervals = new ArrayList<GenomeLoc>();
 
-            for(SAMSequenceRecord sequenceRecord: header.getSequenceDictionary().getSequences())
-                intervals.add(GenomeLocParser.createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));    
+                for(SAMSequenceRecord sequenceRecord: header.getSequenceDictionary().getSequences())
+                    intervals.add(GenomeLocParser.createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
+            }
+            else
+                intervals = locations.toList();
+
+
+            this.dataSource = (BlockDrivenSAMDataSource)dataSource;
+            filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,intervals,this.dataSource.getNumIndexLevels()-1));
         }
-        else
-            intervals = locations.toList();
+        else {
+            this.dataSource = null;
+            for(GenomeLoc interval: locations)
+                filePointers.add(new FilePointer(interval));
+        }
 
-
-        this.dataSource = (BlockDrivenSAMDataSource)dataSource;
-        filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,intervals,this.dataSource.getNumIndexLevels()-1));
-        filePointerIterator = filePointers.iterator();
+        filePointerIterator = filePointers.iterator();        
     }
 
     /**
@@ -100,7 +110,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        Map<SAMFileReader2,List<Chunk>> chunksBounding = dataSource.getFilePointersBounding(nextFilePointer.bin);
+        Map<SAMFileReader2,List<Chunk>> chunksBounding = dataSource!=null ? dataSource.getFilePointersBounding(nextFilePointer.bin) : null;
         return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 

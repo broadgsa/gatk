@@ -329,8 +329,8 @@
         <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
-                <path refid="runtime.dependencies"/>
                 <pathelement location="${dist.dir}/GenomeAnalysisTK.jar"/>
+                <path refid="runtime.dependencies"/>
                 <pathelement location="${test.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
