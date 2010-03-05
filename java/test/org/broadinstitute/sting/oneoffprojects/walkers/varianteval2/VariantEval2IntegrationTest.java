@@ -62,7 +62,7 @@ public class VariantEval2IntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("1f2e04f8af061b7190758679a7840f12", "9ec81f7389c0971e44e4b8d2d4af3008"));
+                Arrays.asList("1f2e04f8af061b7190758679a7840f12", "a3ce1d70d8ae3874807e9d61994d42af"));
         executeTest("testVE2WriteVCF", spec);
     }
 }
