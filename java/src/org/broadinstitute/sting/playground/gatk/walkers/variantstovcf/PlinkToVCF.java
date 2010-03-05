@@ -50,6 +50,7 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
     private int numHWViolations = 0;
     private int numNoCallViolations = 0;
     private int numHomVarViolations = 0;
+    private int numTrueVariants = 0;
 
     private HashMap<String,String> samplesToPopulation;
 
@@ -121,12 +122,13 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
     public void onTraversalDone(Integer finalReduce) {
         if ( vcfWriter != null )
             vcfWriter.close();
-        System.out.println(String.format("Total number of records processed:\t\t%d", numRecords));
-        System.out.println(String.format("Number of Hardy-Weinberg violations:\t\t%d (%d%%)", numHWViolations, 100*numHWViolations/numRecords));
-        System.out.println(String.format("Number of no-call violations:\t\t\t%d (%d%%)", numNoCallViolations, 100*numNoCallViolations/numRecords));
-        System.out.println(String.format("Number of homozygous variant violations:\t%d (%d%%)", numHomVarViolations, 100*numHomVarViolations/numRecords));
+        System.out.println(String.format("Total number of records processed:\t\t\t%d", numRecords));
+        System.out.println(String.format("Number of Hardy-Weinberg violations:\t\t\t%d (%d%%)", numHWViolations, 100*numHWViolations/numRecords));
+        System.out.println(String.format("Number of no-call violations:\t\t\t\t%d (%d%%)", numNoCallViolations, 100*numNoCallViolations/numRecords));
+        System.out.println(String.format("Number of homozygous variant violations:\t\t%d (%d%%)", numHomVarViolations, 100*numHomVarViolations/numRecords));
         int goodRecords = numRecords - numHWViolations - numNoCallViolations - numHomVarViolations;
-        System.out.println(String.format("Number of records passing all filters:\t\t%d (%d%%)", goodRecords, 100*goodRecords/numRecords));
+        System.out.println(String.format("Number of records passing all filters:\t\t\t%d (%d%%)", goodRecords, 100*goodRecords/numRecords));
+        System.out.println(String.format("Number of passing records that validated as true:\t%d (%d%%)", numTrueVariants, 100*numTrueVariants/goodRecords));
     }
 
 
@@ -158,15 +160,19 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         double hetProp = (double)vContext.getHetCount() / (double)vContext.getNSamples();
         double homVarProp = (double)vContext.getHomVarCount() / (double)vContext.getNSamples();
 
+        boolean isViolation = false;
         if ( noCallProp > maxNoCall ) {
             record.setFilterString("HighNoCallRate");
             numNoCallViolations++;
+            isViolation = true;
         } else if ( hwScore > maxHardy ) {
             record.setFilterString("HardyWeinbergViolation");
             numHWViolations++;
+            isViolation = true;
         } else if ( homVarProp > maxHomNonref) {
             record.setFilterString("TooManyHomVars");
             numHomVarViolations++;
+            isViolation = true;
         }
         numRecords++;
 
@@ -179,6 +185,8 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         infoMap.put("HW", String.format("%.2f", hwScore));
         Set<Allele> altAlleles = vContext.getAlternateAlleles();
         int altAlleleCount = altAlleles.size() == 0 ? 0 : vContext.getChromosomeCount(altAlleles.iterator().next());
+        if ( !isViolation && altAlleleCount > 0 )
+            numTrueVariants++;
         infoMap.put(VCFRecord.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
         record.addInfoFields(infoMap);
