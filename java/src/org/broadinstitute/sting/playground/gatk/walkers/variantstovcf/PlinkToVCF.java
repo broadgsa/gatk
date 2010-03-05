@@ -158,12 +158,12 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         double hetProp = (double)vContext.getHetCount() / (double)vContext.getNSamples();
         double homVarProp = (double)vContext.getHomVarCount() / (double)vContext.getNSamples();
 
-        if ( hwScore > maxHardy ) {
-            record.setFilterString("HardyWeinbergViolation");
-            numHWViolations++;
-        } else if ( noCallProp > maxNoCall ) {
+        if ( noCallProp > maxNoCall ) {
             record.setFilterString("HighNoCallRate");
             numNoCallViolations++;
+        } else if ( hwScore > maxHardy ) {
+            record.setFilterString("HardyWeinbergViolation");
+            numHWViolations++;
         } else if ( homVarProp > maxHomNonref) {
             record.setFilterString("TooManyHomVars");
             numHomVarViolations++;
@@ -182,6 +182,9 @@ public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
         infoMap.put(VCFRecord.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
         record.addInfoFields(infoMap);
+
+        // add the id
+        record.setID(plinkRod.getVariantName());
 
         return record;
     }

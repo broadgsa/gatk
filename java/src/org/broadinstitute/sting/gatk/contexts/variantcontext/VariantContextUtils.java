@@ -249,6 +249,8 @@ public class VariantContextUtils {
 
 
     public static double computeHardyWeinbergPvalue(VariantContext vc) {
+        if ( vc.getChromosomeCount() == 0 )
+            return 0.0;
         return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
     }
 
