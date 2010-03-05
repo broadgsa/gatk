@@ -126,7 +126,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
                         throw new StingException("BUG: unexpected child genotype class " + childG);
                     }
 
-                    return label;
+                    return "MendelViolation=" + label;
                 }
             }
         }
