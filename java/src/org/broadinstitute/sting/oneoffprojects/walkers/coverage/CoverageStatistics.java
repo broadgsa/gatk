@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.coverage;
 
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -49,7 +50,7 @@ import java.util.*;
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
 @By(DataSource.REFERENCE)
-public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCoverageStats> implements TreeReducible<DepthOfCoverageStats> {
+public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageAggregator> implements TreeReducible<CoverageAggregator> {
     @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
     int start = 1;
     @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
@@ -74,6 +75,8 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
     boolean omitSampleSummary = false;
     @Argument(fullName = "useReadGroups", shortName = "rg", doc = "Split depth of coverage output by read group rather than by sample", required = false)
     boolean useReadGroup = false;
+    @Argument(fullName = "useBothSampleAndReadGroup", shortName = "both", doc = "Split output by both read group and by sample", required = false)
+    boolean useBoth = false;
     @Argument(fullName = "includeDeletions", shortName = "dels", doc = "Include information on deletions", required = false)
     boolean includeDeletions = false;
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
@@ -105,21 +108,20 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
 
         if ( ! omitDepthOutput ) { // print header
             out.printf("%s\t%s\t%s","Locus","Total_Depth","Average_Depth");
-            //System.out.printf("\t[log]\t%s\t%s\t%s","Locus","Total_Depth","Average_Depth");
             // get all the samples
             HashSet<String> allSamples = getSamplesFromToolKit(useReadGroup);
+            if ( useBoth ) {
+                allSamples.addAll(getSamplesFromToolKit(!useReadGroup));
+            }
 
             for ( String s : allSamples) {
                 out.printf("\t%s_%s","Depth_for",s);
-                //System.out.printf("\t%s_%s","Depth_for",s);
                 if ( printBaseCounts ) {
                     out.printf("\t%s_%s",s,"base_counts");
-                    //System.out.printf("\t%s_%s",s,"base_counts");
                 }
             }
 
             out.printf("%n");
-            //System.out.printf("%n");
 
         } else {
             out.printf("Per-Locus Depth of Coverage output was omitted");
@@ -130,10 +132,8 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         HashSet<String> partitions = new HashSet<String>(); // since the DOCS object uses a HashMap, this will be in the same order
 
         if ( getReadGroupsInstead ) {
-            for ( Set<String> rgSet : getToolkit().getMergedReadGroupsByReaders() ) {
-                for ( String rg : rgSet ) {
-                    partitions.add(rg);
-                }
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partitions.add(rg.getSample()+"_rg_"+rg.getReadGroupId());
             }
         } else {
             for ( Set<String> sampleSet : getToolkit().getSamplesByReaders()) {
@@ -150,23 +150,23 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         return ( ! omitIntervals );
     }
 
-    public DepthOfCoverageStats reduceInit() {
-        DepthOfCoverageStats stats = new DepthOfCoverageStats(DepthOfCoverageStats.calculateBinEndpoints(start,stop,nBins));
+    public CoverageAggregator reduceInit() {
+        CoverageAggregator.AggregationType agType = useBoth ? CoverageAggregator.AggregationType.BOTH :
+                ( useReadGroup ? CoverageAggregator.AggregationType.READ : CoverageAggregator.AggregationType.SAMPLE) ;
 
-        for ( String sample : getSamplesFromToolKit(useReadGroup) ) {
-            stats.addSample(sample);
+        CoverageAggregator aggro = new CoverageAggregator(agType,start,stop,nBins);
+
+        if ( ! useReadGroup || useBoth ) {
+            aggro.addSamples(getSamplesFromToolKit(false));
         }
 
-
-        if ( ! omitLocusTable ) {
-            stats.initializeLocusCounts();
+        if ( useReadGroup || useBoth ) {
+            aggro.addReadGroups(getSamplesFromToolKit(true));
         }
 
-        if ( includeDeletions ) {
-            stats.initializeDeletions();
-        }
+        aggro.initialize(includeDeletions,omitLocusTable);
 
-        return stats;
+        return aggro;
     }
 
     public Map<String,int[]> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -182,18 +182,19 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         return countsBySample;
     }
 
-    public DepthOfCoverageStats reduce(Map<String,int[]> thisMap, DepthOfCoverageStats prevReduce) {
-        prevReduce.update(thisMap);
+    public CoverageAggregator reduce(Map<String,int[]> thisMap, CoverageAggregator prevReduce) {
         if ( ! omitDepthOutput ) {
             printDepths(out,thisMap, prevReduce.getAllSamples());
             // this is an additional iteration through thisMap, plus dealing with IO, so should be much slower without
             // turning on omit
         }
 
+        prevReduce.update(thisMap); // note that in "useBoth" cases, this method alters the thisMap object
+
         return prevReduce;
     }
 
-    public DepthOfCoverageStats treeReduce(DepthOfCoverageStats left, DepthOfCoverageStats right) {
+    public CoverageAggregator treeReduce(CoverageAggregator left, CoverageAggregator right) {
         left.merge(right);
         return left;
     }
@@ -202,17 +203,37 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
     // INTERVAL ON TRAVERSAL DONE
     ////////////////////////////////////////////////////////////////////////////////////
 
-    public void onTraversalDone( List<Pair<GenomeLoc,DepthOfCoverageStats>> statsByInterval ) {
-        if ( refSeqGeneList != null ) {
+    public void onTraversalDone( List<Pair<GenomeLoc,CoverageAggregator>> statsByInterval ) {
+        if ( refSeqGeneList != null && ( useBoth || ! useReadGroup ) ) {
             printGeneStats(statsByInterval);
         }
-        File intervalStatisticsFile = deriveFromStream("interval_statistics");
-        File intervalSummaryFile = deriveFromStream("interval_summary");
-        DepthOfCoverageStats mergedStats = printIntervalStatsAndMerge(statsByInterval,intervalSummaryFile, intervalStatisticsFile);
-        this.onTraversalDone(mergedStats);
+
+        if ( useBoth || ! useReadGroup ) {
+            File intervalStatisticsFile = deriveFromStream("sample_interval_statistics");
+            File intervalSummaryFile = deriveFromStream("sample_interval_summary");
+            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, true);
+        }
+
+        if ( useBoth || useReadGroup ) {
+            File intervalStatisticsFile = deriveFromStream("read_group_interval_statistics");
+            File intervalSummaryFile = deriveFromStream("read_group_interval_summary");
+            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, true);
+        }
+
+        onTraversalDone(mergeAll(statsByInterval));
+
     }
 
-    private DepthOfCoverageStats printIntervalStatsAndMerge(List<Pair<GenomeLoc,DepthOfCoverageStats>> statsByInterval, File summaryFile, File statsFile) {
+    public CoverageAggregator mergeAll(List<Pair<GenomeLoc,CoverageAggregator>> stats) {
+        CoverageAggregator first = stats.remove(0).second;
+        for ( Pair<GenomeLoc,CoverageAggregator> iStat : stats ) {
+            treeReduce(first,iStat.second);
+        }
+
+        return first;
+    }
+
+    private DepthOfCoverageStats printIntervalStats(List<Pair<GenomeLoc,CoverageAggregator>> statsByInterval, File summaryFile, File statsFile, boolean isSample) {
         PrintStream summaryOut;
         PrintStream statsOut;
 
@@ -224,8 +245,9 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         }
 
 
-        Pair<GenomeLoc,DepthOfCoverageStats> firstPair = statsByInterval.remove(0);
-        DepthOfCoverageStats firstStats = firstPair.second;
+        Pair<GenomeLoc,CoverageAggregator> firstPair = statsByInterval.get(0);
+        CoverageAggregator firstAggregator = firstPair.second;
+        DepthOfCoverageStats firstStats = isSample ? firstAggregator.getCoverageBySample() : firstAggregator.getCoverageByReadGroup();
 
         StringBuilder summaryHeader = new StringBuilder();
         summaryHeader.append("Target");
@@ -253,19 +275,14 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         summaryOut.printf("%s%n",summaryHeader);
 
         int[][] nTargetsByAvgCvgBySample = new int[firstStats.getHistograms().size()][firstStats.getEndpoints().length+1];
-        for ( int i = 0; i < nTargetsByAvgCvgBySample.length; i ++ ) {
-            for ( int b = 0; b < nTargetsByAvgCvgBySample[0].length; b++) {
-                nTargetsByAvgCvgBySample[i][b] = 0;
-            }
-        }
 
-        printTargetSummary(summaryOut,firstPair);
-        updateTargetTable(nTargetsByAvgCvgBySample,firstStats);
+        for ( Pair<GenomeLoc,CoverageAggregator> targetAggregator : statsByInterval ) {
 
-        for ( Pair<GenomeLoc,DepthOfCoverageStats> targetStats : statsByInterval ) {
+            Pair<GenomeLoc,DepthOfCoverageStats> targetStats = new Pair<GenomeLoc,DepthOfCoverageStats>(
+                    targetAggregator.first, isSample ? targetAggregator.second.getCoverageBySample() :
+                    targetAggregator.second.getCoverageByReadGroup());
             printTargetSummary(summaryOut,targetStats);
             updateTargetTable(nTargetsByAvgCvgBySample,targetStats.second);
-            firstStats = this.treeReduce(firstStats,targetStats.second);
         }
 
         printIntervalTable(statsOut,nTargetsByAvgCvgBySample,firstStats.getEndpoints());
@@ -278,18 +295,18 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
         return firstStats;
     }
 
-    private void printGeneStats(List<Pair<GenomeLoc,DepthOfCoverageStats>> statsByTarget) {
+    private void printGeneStats(List<Pair<GenomeLoc,CoverageAggregator>> statsByTarget) {
         LocationAwareSeekableRODIterator refseqIterator = initializeRefSeq();
         List<Pair<String,DepthOfCoverageStats>> statsByGene = new ArrayList<Pair<String,DepthOfCoverageStats>>();// maintains order
         Map<String,DepthOfCoverageStats> geneNamesToStats = new HashMap<String,DepthOfCoverageStats>(); // alows indirect updating of objects in list
 
-        for ( Pair<GenomeLoc,DepthOfCoverageStats> targetStats : statsByTarget ) {
+        for ( Pair<GenomeLoc,CoverageAggregator> targetStats : statsByTarget ) {
             String gene = getGeneName(targetStats.first,refseqIterator);
             if ( geneNamesToStats.keySet().contains(gene) ) {
-                geneNamesToStats.get(gene).merge(targetStats.second);
+                geneNamesToStats.get(gene).merge(targetStats.second.getCoverageBySample());
             } else {
-                geneNamesToStats.put(gene,targetStats.second);
-                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,targetStats.second));
+                geneNamesToStats.put(gene,targetStats.second.getCoverageBySample());
+                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,targetStats.second.getCoverageBySample()));
             }
         }
 
@@ -411,23 +428,39 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
     // FINAL ON TRAVERSAL DONE
     ////////////////////////////////////////////////////////////////////////////////////
 
-    public void onTraversalDone(DepthOfCoverageStats coverageProfiles) {
+    public void onTraversalDone(CoverageAggregator coverageProfiles) {
         ///////////////////
         // OPTIONAL OUTPUTS
         //////////////////
         
         if ( ! omitSampleSummary ) {
-            logger.info("Printing sample summary");
-            File summaryStatisticsFile = deriveFromStream("summary_statistics");
-            File perSampleStatisticsFile = deriveFromStream("sample_statistics");
-            printSummary(out,summaryStatisticsFile,coverageProfiles);
-            printPerSample(out,perSampleStatisticsFile,coverageProfiles);
+            logger.info("Printing summary info");
+            if ( ! useReadGroup || useBoth ) {
+                File summaryStatisticsFile = deriveFromStream("sample_summary_statistics");
+                File perSampleStatisticsFile = deriveFromStream("sample_statistics");
+                printSummary(out,summaryStatisticsFile,coverageProfiles.getCoverageBySample());
+                printPerSample(out,perSampleStatisticsFile,coverageProfiles.getCoverageBySample());
+            }
+
+            if ( useReadGroup || useBoth ) {
+                File rgStatsFile = deriveFromStream("read_group_summary");
+                File rgSumFile = deriveFromStream("read_group_statistics");
+                printSummary(out,rgStatsFile,coverageProfiles.getCoverageByReadGroup());
+                printPerSample(out,rgSumFile,coverageProfiles.getCoverageByReadGroup());
+            }
         }
 
         if ( ! omitLocusTable ) {
             logger.info("Printing locus summary");
-            File perLocusStatisticsFile = deriveFromStream("locus_statistics");
-            printPerLocus(perLocusStatisticsFile,coverageProfiles);
+            if ( ! useReadGroup || useBoth ) {
+                File perLocusStatisticsFile = deriveFromStream("sample_locus_statistics");
+                printPerLocus(perLocusStatisticsFile,coverageProfiles.getCoverageBySample());
+            }
+
+            if ( useReadGroup || useBoth ) {
+                File perLocusRGStats = deriveFromStream("read_group_locus_statistics");
+                printPerLocus(perLocusRGStats,coverageProfiles.getCoverageByReadGroup());
+            }
         }
     }
 
@@ -605,4 +638,112 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, DepthOfCo
 
         return s.toString();
     }
+}
+
+
+class CoverageAggregator {
+    private DepthOfCoverageStats coverageByRead;
+    private DepthOfCoverageStats coverageBySample;
+
+    enum AggregationType { READ, SAMPLE, BOTH }
+
+    private AggregationType agType;
+    private Set<String> sampleNames;
+    private Set<String> allSamples;
+
+    public CoverageAggregator(AggregationType type, int start, int stop, int nBins) {
+        if ( type == AggregationType.READ || type == AggregationType.BOTH) {
+            coverageByRead = new DepthOfCoverageStats(DepthOfCoverageStats.calculateBinEndpoints(start,stop,nBins));
+        }
+
+        if ( type == AggregationType.SAMPLE || type == AggregationType.BOTH) {
+            coverageBySample = new DepthOfCoverageStats(DepthOfCoverageStats.calculateBinEndpoints(start,stop,nBins));
+        }
+
+        agType = type;
+        allSamples = new HashSet<String>();
+    }
+
+    public void merge(CoverageAggregator otherAggregator) {
+        if ( agType == AggregationType.SAMPLE || agType == AggregationType.BOTH ) {
+            this.coverageBySample.merge(otherAggregator.coverageBySample);
+        }
+
+        if ( agType == AggregationType.READ || agType == AggregationType.BOTH) {
+            this.coverageByRead.merge(otherAggregator.coverageByRead);
+        }
+    }
+
+    public DepthOfCoverageStats getCoverageByReadGroup() {
+        return coverageByRead;
+    }
+
+    public DepthOfCoverageStats getCoverageBySample() {
+        return coverageBySample;
+    }
+
+    public void addSamples(Set<String> samples) {
+        for ( String s : samples ) {
+            coverageBySample.addSample(s);
+            allSamples.add(s);
+        }
+
+        if ( agType == AggregationType.BOTH ) {
+            sampleNames = samples;
+        }
+    }
+
+    public void addReadGroups(Set<String> readGroupNames) {
+        for ( String s : readGroupNames ) {
+            coverageByRead.addSample(s);
+            allSamples.add(s);
+        }
+    }
+
+    public void initialize(boolean useDels, boolean omitLocusTable) {
+        if ( agType == AggregationType.SAMPLE || agType == AggregationType.BOTH ) {
+            if ( useDels ) {
+                coverageBySample.initializeDeletions();
+            }
+
+            if ( ! omitLocusTable ) {
+                coverageBySample.initializeLocusCounts();
+            }
+        }
+
+        if ( agType == AggregationType.READ || agType == AggregationType.BOTH) {
+            if ( useDels ) {
+                coverageByRead.initializeDeletions();
+            }
+
+            if ( ! omitLocusTable ) {
+                coverageByRead.initializeLocusCounts();
+            }
+        }
+    }
+
+    public void update(Map<String,int[]> countsByIdentifier) {
+        if ( agType != AggregationType.BOTH ) {
+            if ( agType == AggregationType.SAMPLE ) {
+                coverageBySample.update(countsByIdentifier);
+            } else {
+                coverageByRead.update(countsByIdentifier);
+            }
+        } else { // have to separate samples and read groups
+            HashMap<String,int[]> countsBySample = new HashMap<String,int[]>(sampleNames.size());
+            for ( String s : countsByIdentifier.keySet() ) {
+                if ( sampleNames.contains(s) ) {
+                    countsBySample.put(s,countsByIdentifier.remove(s));
+                }
+            }
+
+            coverageBySample.update(countsBySample);
+            coverageByRead.update(countsByIdentifier);
+        }
+    }
+
+    public Set<String> getAllSamples() {
+        return allSamples;
+    }
+
 }

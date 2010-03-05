@@ -24,7 +24,8 @@ public class CoverageUtils {
 
             for (PileupElement e : context.getBasePileup()) {
                 if ( e.getMappingQual() >= minMapQ && ( e.getQual() >= minBaseQ || e.isDeletion() ) ) {
-                    String sample = type == PartitionType.BY_SAMPLE ? e.getRead().getReadGroup().getSample() : e.getRead().getReadGroup().getReadGroupId();
+                    String sample = type == PartitionType.BY_SAMPLE ? e.getRead().getReadGroup().getSample() :
+                            e.getRead().getReadGroup().getSample()+"_rg_"+e.getRead().getReadGroup().getReadGroupId();
                     if ( samplesToCounts.keySet().contains(sample) ) {
                         updateCounts(samplesToCounts.get(sample),e);
                     } else {
