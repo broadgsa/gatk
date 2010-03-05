@@ -152,7 +152,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
 
     public CoverageAggregator reduceInit() {
         CoverageAggregator.AggregationType agType = useBoth ? CoverageAggregator.AggregationType.BOTH :
-                ( useReadGroup ? CoverageAggregator.AggregationType.READ : CoverageAggregator.AggregationType.SAMPLE) ;
+                ( useReadGroup ? CoverageAggregator.AggregationType.READ : CoverageAggregator.AggregationType.SAMPLE ) ;
 
         CoverageAggregator aggro = new CoverageAggregator(agType,start,stop,nBins);
 
@@ -178,6 +178,14 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
 
         Map<String,int[]> countsBySample = CoverageUtils.getBaseCountsBySample(context,minMappingQuality,minBaseQuality,
                 useReadGroup ? CoverageUtils.PartitionType.BY_READ_GROUP : CoverageUtils.PartitionType.BY_SAMPLE);
+
+        if ( useBoth ) {
+            Map<String,int[]> countsByOther = CoverageUtils.getBaseCountsBySample(context,minMappingQuality,minBaseQuality,
+                !useReadGroup ? CoverageUtils.PartitionType.BY_READ_GROUP : CoverageUtils.PartitionType.BY_SAMPLE);
+            for ( String s : countsByOther.keySet()) {
+                countsBySample.put(s,countsByOther.get(s));
+            }
+        }
 
         return countsBySample;
     }
@@ -217,7 +225,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         if ( useBoth || useReadGroup ) {
             File intervalStatisticsFile = deriveFromStream("read_group_interval_statistics");
             File intervalSummaryFile = deriveFromStream("read_group_interval_summary");
-            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, true);
+            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, false);
         }
 
         onTraversalDone(mergeAll(statsByInterval));
@@ -700,6 +708,7 @@ class CoverageAggregator {
         }
     }
 
+
     public void initialize(boolean useDels, boolean omitLocusTable) {
         if ( agType == AggregationType.SAMPLE || agType == AggregationType.BOTH ) {
             if ( useDels ) {
@@ -731,14 +740,17 @@ class CoverageAggregator {
             }
         } else { // have to separate samples and read groups
             HashMap<String,int[]> countsBySample = new HashMap<String,int[]>(sampleNames.size());
+            HashMap<String,int[]> countsByRG = new HashMap<String,int[]>(allSamples.size()-sampleNames.size());
             for ( String s : countsByIdentifier.keySet() ) {
                 if ( sampleNames.contains(s) ) {
-                    countsBySample.put(s,countsByIdentifier.remove(s));
+                    countsBySample.put(s,countsByIdentifier.get(s));
+                } else {                                               // cannot use .remove() to save time due to concurrency issues
+                    countsByRG.put(s,countsByIdentifier.get(s));
                 }
             }
 
             coverageBySample.update(countsBySample);
-            coverageByRead.update(countsByIdentifier);
+            coverageByRead.update(countsByRG);
         }
     }
 
