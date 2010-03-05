@@ -45,5 +45,13 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
                 1, // just one output file
                 Arrays.asList("a332d1539b29dff615b198818a3d4dd1"));
         executeTest("testDepthOfCoverage454", spec);
-    }    
+    }
+
+    @Test
+    public void testDepthOfCoverageNoIntervals() {
+        WalkerTestSpec spec = new WalkerTestSpec( "-T DepthOfCoverage -R " + validationDataLocation + "human_b36_both.partial.fasta -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -o %s",
+                1, // just one output file
+                Arrays.asList("7b8fc75dd1995d270831b31c268392a5"));
+        executeTest("testDepthOfCoverageNoIntervals", spec);        
+    }
 }

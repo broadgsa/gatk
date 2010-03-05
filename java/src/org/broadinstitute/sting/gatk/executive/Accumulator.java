@@ -48,7 +48,7 @@ public abstract class Accumulator {
      * @return Accumulator suitable for this walker.s
      */
     public static Accumulator create( GenomeAnalysisEngine engine, Walker walker ) {
-        if( walker.isReduceByInterval() )
+        if( walker.isReduceByInterval() && engine.getIntervals() != null)
             return new IntervalAccumulator( walker, engine.getIntervals() );
         else
             return new StandardAccumulator( walker );

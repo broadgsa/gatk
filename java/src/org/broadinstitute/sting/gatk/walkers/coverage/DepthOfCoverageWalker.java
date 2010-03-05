@@ -410,5 +410,16 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
             }
         }
 
+        @Override
+        public String toString() {
+            // This is an executive summary, included mainly so that integration tests will pass.
+            // TODO: Add a more compelling summary.
+            return String.format("Summary: total coverage = %d; # of deletions = %d; # of bad mapping quality reads = %d; minimum covered depth =%d",
+                    totalCoverage,
+                    numDeletions,
+                    numBadMQReads,
+                    minDepthCoveredLoci);    
+        }
+
     }
 }
