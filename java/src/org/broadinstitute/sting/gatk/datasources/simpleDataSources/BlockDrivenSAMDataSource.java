@@ -363,7 +363,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
          */
         public SAMReaders(Reads sourceInfo) {
             for(File readsFile: sourceInfo.getReadsFiles()) {
-                SAMFileReader2 reader = new SAMFileReader2(readsFile);
+                SAMFileReader2 reader = new SAMFileReader2(readsFile,true);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
                 readers.put(new SAMReaderID(readsFile),reader);
             }
