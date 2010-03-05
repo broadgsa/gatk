@@ -73,6 +73,7 @@ public class SAMFileReader2 extends SAMFileReader {
 
         try {
             BAMFileReader2 reader = new BAMFileReader2(file,eagerDecode,getDefaultValidationStringency());
+            reader.setReader(this);
             BAMFileIndex2 index = new BAMFileIndex2(indexFile != null ? indexFile : findIndexFileFromParent(file));
             reader.setFileIndex(index);
 

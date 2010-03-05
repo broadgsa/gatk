@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
 import java.util.*;
 
@@ -110,7 +111,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        Map<SAMFileReader2,List<Chunk>> chunksBounding = dataSource!=null ? dataSource.getFilePointersBounding(nextFilePointer.bin) : null;
+        Map<SAMReaderID,List<Chunk>> chunksBounding = dataSource!=null ? dataSource.getFilePointersBounding(nextFilePointer.bin) : null;
         return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 

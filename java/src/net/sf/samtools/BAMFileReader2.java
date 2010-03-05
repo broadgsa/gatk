@@ -45,6 +45,7 @@ class BAMFileReader2
     private BinaryCodec mStream = null;
     // Underlying compressed data stream.
     private final BlockCompressedInputStream mCompressedInputStream;
+    private SAMFileReader mFileReader = null;
     private SAMFileHeader mFileHeader = null;
     // Populated if the file is seekable and an index exists
     private BAMFileIndex2 mFileIndex = null;
@@ -98,6 +99,14 @@ class BAMFileReader2
         this.mValidationStringency = validationStringency;
         readHeader(source);
         mFirstRecordPointer = mCompressedInputStream.getFilePointer();
+    }
+
+    /**
+     * Sets the reader reading this file.
+     * @param reader The source reader.
+     */
+    void setReader(SAMFileReader reader) {
+        mFileReader = reader;    
     }
 
     void close() {
@@ -415,11 +424,16 @@ class BAMFileReader2
 
         void advance() {
             try {
+                long startCoordinate = mCompressedInputStream.getFilePointer();
                 mNextRecord = getNextRecord();
+                long stopCoordinate = mCompressedInputStream.getFilePointer();
+
                 if (mNextRecord != null) {
                     ++this.samRecordIndex;
                     // Because some decoding is done lazily, the record needs to remember the validation stringency.
+                    mNextRecord.setReader(mFileReader);
                     mNextRecord.setValidationStringency(mValidationStringency);
+                    mNextRecord.setCoordinates(new Chunk(startCoordinate,stopCoordinate));
 
                     if (mValidationStringency != ValidationStringency.SILENT) {
                         final List<SAMValidationError> validationErrors = mNextRecord.isValid();

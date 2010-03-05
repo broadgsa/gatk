@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
 /**
  * A common interface for shards that natively understand the BAM format.
@@ -21,7 +22,7 @@ public interface BAMFormatAwareShard extends Shard {
      * Get the list of chunks delimiting this shard.
      * @return a list of chunks that contain data for this shard.
      */
-    public Map<SAMFileReader2,List<Chunk>> getChunks();
+    public Map<SAMReaderID,List<Chunk>> getChunks();
 
     /**
      * Returns true if this shard is meant to buffer reads, rather
@@ -29,6 +30,12 @@ public interface BAMFormatAwareShard extends Shard {
      * @return True if this shard can buffer reads.  False otherwise.
      */
     public boolean buffersReads();
+
+    /**
+     * Checks to see whether the buffer is empty.
+     * @return True if the buffer is empty.
+     */
+    public boolean isBufferEmpty();
 
     /**
      * Returns true if the read buffer is currently full.

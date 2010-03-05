@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileReader2;
 import net.sf.samtools.SAMRecord;
@@ -44,7 +45,7 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
     /**
      * A list of the chunks associated with this shard.
      */
-    private final Map<SAMFileReader2,List<Chunk>> chunks;
+    private final Map<SAMReaderID,List<Chunk>> chunks;
 
     /**
      * An IndexDelimitedLocusShard can be used either for LOCUS or LOCUS_INTERVAL shard types.
@@ -58,7 +59,7 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      * @param chunks Chunks associated with that interval.
      * @param shardType Type of the shard; must be either LOCUS or LOCUS_INTERVAL.
      */
-    IndexDelimitedLocusShard(List<GenomeLoc> intervals, Map<SAMFileReader2,List<Chunk>> chunks, ShardType shardType) {
+    IndexDelimitedLocusShard(List<GenomeLoc> intervals, Map<SAMReaderID,List<Chunk>> chunks, ShardType shardType) {
         super(intervals);
         this.chunks = chunks;
         if(shardType != ShardType.LOCUS && shardType != ShardType.LOCUS_INTERVAL)
@@ -70,7 +71,7 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      * Gets the chunks associated with this locus shard.
      * @return A list of the chunks to use when retrieving locus data.
      */
-    public Map<SAMFileReader2,List<Chunk>> getChunks() {
+    public Map<SAMReaderID,List<Chunk>> getChunks() {
         return chunks;
     }
 
@@ -80,6 +81,12 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      * @return True if this shard can buffer reads.  False otherwise.
      */
     public boolean buffersReads() { return false; }
+
+    /**
+     * Returns true if the read buffer is currently full.
+     * @return True if this shard's buffer is full (and the shard can buffer reads).
+     */
+    public boolean isBufferEmpty() { throw new UnsupportedOperationException("This shard does not buffer reads."); }    
 
     /**
      * Returns true if the read buffer is currently full.

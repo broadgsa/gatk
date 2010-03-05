@@ -17,7 +17,7 @@ public class Chunk implements Cloneable,Comparable<Chunk> {
     private long mChunkStart;
     private long mChunkEnd;
 
-    Chunk(final long start, final long end) {
+    public Chunk(final long start, final long end) {
         mChunkStart = start;
         mChunkEnd = end;
     }

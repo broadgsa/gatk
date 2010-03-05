@@ -9,6 +9,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
 /**
  * A read shard strategy that delimits based on the number of
@@ -28,18 +29,15 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      */
     protected final BlockDrivenSAMDataSource dataSource;
 
+    private Shard nextShard = null;
+
     /** our storage of the genomic locations they'd like to shard over */
     private final List<FilePointer> filePointers = new ArrayList<FilePointer>();
 
     /**
      * Position of the last shard in the file.
      */
-    private Map<SAMFileReader2,Chunk> position;
-
-    /**
-     * True if the set of SAM readers is at the end of the stream.  False otherwise.
-     */
-    private boolean atEndOfStream = false;
+    private Map<SAMReaderID,Chunk> position;
 
     /**
      * Create a new read shard strategy, loading read shards from the given BAM file.
@@ -53,6 +51,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
         this.position = this.dataSource.getCurrentPosition();
         if(locations != null)
             filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList(),this.dataSource.getNumIndexLevels()-1));
+        advance();
     }
 
     /**
@@ -60,7 +59,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      * @return True if any more data is available.  False otherwise.
      */
     public boolean hasNext() {
-        return !atEndOfStream;
+        return nextShard != null;
     }
 
     /**
@@ -70,48 +69,61 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      */
     public Shard next() {
         if(!hasNext())
-            throw new NoSuchElementException("No such element available: SAM reader has arrived at last shard.");
+            throw new NoSuchElementException("No next read shard available");
+        Shard currentShard = nextShard;
+        advance();
+        return currentShard;
+    }
 
-        Map<SAMFileReader2,List<Chunk>> shardPosition = null;
+    public void advance() {
+        Map<SAMReaderID,List<Chunk>> shardPosition = null;
+        nextShard = null;
         SamRecordFilter filter = null;
 
         if(!filePointers.isEmpty()) {
-            boolean foundData = false;
             for(FilePointer filePointer: filePointers) {
                 shardPosition = dataSource.getFilePointersBounding(filePointer.bin);
-                for(SAMFileReader2 reader: shardPosition.keySet()) {
-                    List<Chunk> chunks = shardPosition.get(reader);
-                    Chunk filePosition = position.get(reader);
-                    for(Chunk chunk: chunks) {
-                        if(filePosition.getChunkStart() > chunk.getChunkEnd())
-                            chunks.remove(chunk);
-                        else {
-                            if(filePosition.getChunkStart() > chunk.getChunkStart())
-                                chunk.setChunkStart(filePosition.getChunkStart());
-                            foundData = true;
-                        }
+
+                Map<SAMReaderID,List<Chunk>> selectedReaders = new HashMap<SAMReaderID,List<Chunk>>();
+                for(SAMReaderID id: shardPosition.keySet()) {
+                    List<Chunk> chunks = shardPosition.get(id);
+                    List<Chunk> selectedChunks = new ArrayList<Chunk>();
+                    Chunk filePosition = position.get(id);
+                    for(Chunk chunk: chunks)
+                        if(filePosition.getChunkStart() <= chunk.getChunkStart())
+                            selectedChunks.add(chunk);
+                        else if(filePosition.getChunkStart() > chunk.getChunkStart() && filePosition.getChunkStart() < chunk.getChunkEnd()) {
+                            selectedChunks.add(new Chunk(filePosition.getChunkStart(),chunk.getChunkEnd()));
                     }
+                    if(selectedChunks.size() > 0)
+                        selectedReaders.put(id,selectedChunks);
                 }
-                if(foundData) {
-                    filter = new ReadOverlapFilter(filePointer.locations);                    
-                    break;
+                if(selectedReaders.size() > 0) {
+                    filter = new ReadOverlapFilter(filePointer.locations);
+
+                    BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),selectedReaders,filter,Shard.ShardType.READ);
+                    dataSource.fillShard(shard);
+
+                    if(!shard.isBufferEmpty()) {
+                        nextShard = shard;
+                        break;
+                    }
                 }
             }
         }
         else {
             // TODO: This level of processing should not be necessary.
-            shardPosition = new HashMap<SAMFileReader2,List<Chunk>>();
-            for(Map.Entry<SAMFileReader2,Chunk> entry: position.entrySet())
+            shardPosition = new HashMap<SAMReaderID,List<Chunk>>();
+            for(Map.Entry<SAMReaderID,Chunk> entry: position.entrySet())
                 shardPosition.put(entry.getKey(),Collections.singletonList(entry.getValue()));
             filter = null;
+
+            BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),shardPosition,filter,Shard.ShardType.READ);
+            dataSource.fillShard(shard);
+            nextShard = !shard.isBufferEmpty() ? shard : null;
         }
 
-        BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),shardPosition,filter,Shard.ShardType.READ);
-        atEndOfStream = dataSource.fillShard(shard);
-
         this.position = dataSource.getCurrentPosition();
-
-        return shard;        
     }
 
     /**
@@ -128,4 +140,5 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     public Iterator<Shard> iterator() {
         return this;
     }
+
 }

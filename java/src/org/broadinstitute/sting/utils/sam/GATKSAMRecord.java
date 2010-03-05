@@ -4,12 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.sf.samtools.AlignmentBlock;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMValidationError;
+import net.sf.samtools.*;
 
 /**
  * @author ebanks
@@ -332,6 +327,8 @@ public class GATKSAMRecord extends SAMRecord {
 
     public void setValidationStringency(net.sf.samtools.SAMFileReader.ValidationStringency validationStringency) { mRecord.setValidationStringency(validationStringency); }
 
+    public SAMFileReader getReader() { return mRecord.getReader(); }
+
     public SAMFileHeader getHeader() { return mRecord.getHeader(); }
 
     public void setHeader(SAMFileHeader samFileHeader) { mRecord.setHeader(samFileHeader); }
@@ -355,4 +352,6 @@ public class GATKSAMRecord extends SAMRecord {
     public Object clone() throws CloneNotSupportedException { return mRecord.clone(); }
 
     public String toString() { return mRecord.toString(); }
+
+    public Chunk getCoordinates() { return mRecord.getCoordinates(); }
 }

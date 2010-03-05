@@ -44,6 +44,11 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     private final Map<SAMReaderID,ReadGroupMapping> mergedReadGroupMappings = new HashMap<SAMReaderID,ReadGroupMapping>();
 
     /**
+     * How far along is each reader?
+     */
+    private final Map<SAMReaderID,Chunk> readerPositions = new HashMap<SAMReaderID,Chunk>();
+
+    /**
      * Create a new block-aware SAM data source given the supplied read metadata.
      * @param reads The read metadata.
      */
@@ -55,10 +60,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
         SAMReaders readers = resourcePool.getAvailableReaders();
 
+        initializeReaderPositions(readers);
+        
         SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
         mergedHeader = headerMerger.getMergedHeader();
         hasReadGroupCollisions = headerMerger.hasReadGroupCollisions();
 
+        // cache the read group id (original) -> read group id (merged) mapping.
         for(SAMReaderID id: readerIDs) {
             SAMFileReader reader = readers.getReader(id);
             ReadGroupMapping mapping = new ReadGroupMapping();
@@ -109,15 +117,15 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @param bin The bin for which to load data.
      * @return A map of the file pointers bounding the bin.
      */
-    public Map<SAMFileReader2,List<Chunk>> getFilePointersBounding(Bin bin) {
+    public Map<SAMReaderID,List<Chunk>> getFilePointersBounding(Bin bin) {
         SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        Map<SAMFileReader2,List<Chunk>> filePointers = new HashMap<SAMFileReader2,List<Chunk>>();
-        for(SAMFileReader reader: readers) {
-            SAMFileReader2 reader2 = (SAMFileReader2)reader;
+        Map<SAMReaderID,List<Chunk>> filePointers = new HashMap<SAMReaderID,List<Chunk>>();
+        for(SAMReaderID id: getReaderIDs()) {
+            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
             if(bin != null)
-                filePointers.put(reader2,reader2.getFilePointersBounding(bin));
+                filePointers.put(id,reader2.getFilePointersBounding(bin));
             else
-                filePointers.put(reader2,Collections.<Chunk>emptyList());
+                filePointers.put(id,Collections.<Chunk>emptyList());
         }
         return filePointers;
     }
@@ -126,14 +134,8 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * Retrieves the current position within the BAM file.
      * @return A mapping of reader to current position.
      */
-    public Map<SAMFileReader2,Chunk> getCurrentPosition() {
-        SAMReaders readers = resourcePool.getReadersWithoutLocking();        
-        Map<SAMFileReader2,Chunk> currentPositions = new HashMap<SAMFileReader2,Chunk>();
-        for(SAMFileReader reader: readers) {
-            SAMFileReader2 reader2 = (SAMFileReader2)reader;
-            currentPositions.put(reader2,reader2.getCurrentPosition());
-        }
-        return currentPositions;
+    public Map<SAMReaderID,Chunk> getCurrentPosition() {
+        return readerPositions;
     }
 
     /**
@@ -200,7 +202,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @param shard Shard to fill.
      * @return true if at the end of the stream.  False otherwise.
      */
-    public boolean fillShard(BAMFormatAwareShard shard) {
+    public void fillShard(BAMFormatAwareShard shard) {
         if(!shard.buffersReads())
             throw new StingException("Attempting to fill a non-buffering shard.");
 
@@ -208,17 +210,40 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         // know why this is.  Please add a comment here if you do.
         boolean enableVerification = shard instanceof ReadShard;
 
-        CloseableIterator<SAMRecord> iterator = getIterator(shard,enableVerification);
-        while(!shard.isBufferFull() && iterator.hasNext())
-            shard.addRead(iterator.next());
+        SAMReaders readers = resourcePool.getAvailableReaders();
 
-        boolean atEndOfStream = !iterator.hasNext();
+        CloseableIterator<SAMRecord> iterator = getIterator(readers,shard,enableVerification);
+        while(!shard.isBufferFull() && iterator.hasNext()) {
+            SAMRecord read = iterator.next();
+            Chunk endChunk = new Chunk(read.getCoordinates().getChunkEnd(),Long.MAX_VALUE);
+            shard.addRead(read);
+            readerPositions.put(getReaderID(readers,read),endChunk);
+        }
 
         iterator.close();
-
-        return atEndOfStream;
     }
 
+    /**
+     * Gets the reader associated with the given read.
+     * @param readers Available readers.
+     * @param read
+     * @return
+     */
+    private SAMReaderID getReaderID(SAMReaders readers, SAMRecord read) {
+        for(SAMReaderID id: getReaderIDs()) {
+            if(readers.getReader(id) == read.getReader())
+                return id;
+        }
+        throw new StingException("Unable to find id for reader associated with read " + read.getReadName());
+    }
+
+    private void initializeReaderPositions(SAMReaders readers) {
+        for(SAMReaderID id: getReaderIDs()) {
+            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
+            readerPositions.put(id,reader2.getCurrentPosition());
+        }
+    }
+    
     public StingSAMIterator seek(Shard shard) {
         if(!(shard instanceof BAMFormatAwareShard))
             throw new StingException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard.getClass());
@@ -228,20 +253,19 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             return bamAwareShard.iterator();    
         }
         else {
-            // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards.  I don't
-            // know why this is.  Please add a comment here if you do.
-            boolean enableVerification = shard instanceof ReadShard;
-            return getIterator(bamAwareShard,enableVerification);
+            SAMReaders readers = resourcePool.getAvailableReaders();
+
+            // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards, because
+            //
+            return getIterator(readers,bamAwareShard,shard instanceof ReadShard);
         }
     }
 
-    private StingSAMIterator getIterator(BAMFormatAwareShard shard, boolean enableVerification) {
-        SAMReaders readers = resourcePool.getAvailableReaders();        
-
+    private StingSAMIterator getIterator(SAMReaders readers, BAMFormatAwareShard shard, boolean enableVerification) {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
-        for(SAMFileReader reader: readers) {
-            SAMFileReader2 reader2 = (SAMFileReader2)reader;
-            List<Chunk> chunks = shard.getChunks().get(reader2);
+        for(SAMReaderID id: getReaderIDs()) {
+            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
+            List<Chunk> chunks = shard.getChunks().get(id);
             readerToIteratorMap.put(reader2,reader2.iterator(chunks));
         }
 
@@ -372,22 +396,12 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         /**
          * Retrieve the reader from the data structure.
          * @param id The ID of the reader to retrieve.
+         * @return the reader associated with the given id.
          */
         public SAMFileReader getReader(SAMReaderID id) {
             if(!readers.containsKey(id))
                 throw new NoSuchElementException("No reader is associated with id " + id);
             return readers.get(id);
-        }
-
-        /**
-         * Convenience method to get the header associated with an individual ID.
-         * @param id ID for which to retrieve the header.
-         * @return Header for this SAM file.
-         */
-        public SAMFileHeader getHeader(SAMReaderID id) {
-            if(!readers.containsKey(id))
-                throw new NoSuchElementException("No reader is associated with id " + id);
-            return readers.get(id).getFileHeader();            
         }
 
         /**

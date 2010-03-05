@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
 /**
  * Expresses a shard of read data in block format.
@@ -27,7 +28,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     /**
      * The data backing the next chunks to deliver to the traversal engine.
      */
-    private final Map<SAMFileReader2,List<Chunk>> chunks;
+    private final Map<SAMReaderID,List<Chunk>> chunks;
 
     /**
      * The reads making up this shard.
@@ -45,7 +46,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      */
     private final Shard.ShardType shardType;        
 
-    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMFileReader2,List<Chunk>> chunks, SamRecordFilter filter, Shard.ShardType shardType) {
+    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMReaderID,List<Chunk>> chunks, SamRecordFilter filter, Shard.ShardType shardType) {
         this.sourceInfo = sourceInfo;
         this.chunks = chunks;
         this.filter = filter;
@@ -60,6 +61,14 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     public boolean buffersReads() {
         return true;
     }
+
+    /**
+     * Returns true if the read buffer is currently full.
+     * @return True if this shard's buffer is full (and the shard can buffer reads).
+     */
+    public boolean isBufferEmpty() {
+        return reads.size() == 0;
+    }    
 
     /**
      * Returns true if the read buffer is currently full.
@@ -95,7 +104,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * Get the list of chunks delimiting this shard.
      * @return a list of chunks that contain data for this shard.
      */
-    public Map<SAMFileReader2,List<Chunk>> getChunks() {
+    public Map<SAMReaderID,List<Chunk>> getChunks() {
         return Collections.unmodifiableMap(chunks);
     }
 
@@ -114,7 +123,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for(Map.Entry<SAMFileReader2,List<Chunk>> entry: chunks.entrySet()) {
+        for(Map.Entry<SAMReaderID,List<Chunk>> entry: chunks.entrySet()) {
             sb.append(entry.getKey());
             sb.append(": ");
             for(Chunk chunk : entry.getValue()) {
