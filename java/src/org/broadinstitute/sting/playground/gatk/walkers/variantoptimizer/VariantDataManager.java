@@ -58,13 +58,20 @@ public class VariantDataManager {
     }
 
     public void normalizeData() {
-        for( int iii = 0; iii < numAnnotations; iii++ ) {
-            final double theMean = mean(data, iii);
-            final double theSTD = standardDeviation(data, theMean, iii);
-            System.out.println( (iii == numAnnotations-1 ? "QUAL" : annotationKeys.get(iii)) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
-            varianceVector[iii] = theSTD * theSTD;
-            for( int jjj=0; jjj<numVariants; jjj++ ) {
-                data[jjj].annotations[iii] = ( data[jjj].annotations[iii] - theMean ) / theSTD;
+        for( int iii = 0; iii < numVariants; iii++ ) {
+            data[iii].originalAnnotations = data[iii].annotations.clone();
+        }
+        for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+            final double theMean = mean(data, jjj);
+            final double theSTD = standardDeviation(data, theMean, jjj);
+            System.out.println( (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
+            if( theSTD < 1E-8 ) {
+                throw new StingException("Zero variance is a problem: standard deviation = " + theSTD);
+            }
+
+            varianceVector[jjj] = theSTD * theSTD;
+            for( int iii = 0; iii < numVariants; iii++ ) {
+                data[iii].annotations[jjj] = ( data[iii].annotations[jjj] - theMean ) / theSTD;
             }
         }
         isNormalized = true; // Each data point is now [ (x - mean) / standard deviation ]

@@ -40,7 +40,7 @@ public abstract class VariantOptimizationModel implements VariantOptimizationInt
         targetTITV = _targetTITV;
     }
 
-    public double calcTruePositiveRateFromTITV( double titv ) {
+    public final double calcTruePositiveRateFromTITV( double titv ) {
         if( titv > targetTITV ) { titv -= 2.0f*(titv-targetTITV); }
         if( titv < 0.5 ) { titv = 0.5; }
         return ( (titv - 0.5) / (targetTITV - 0.5) );

@@ -9,8 +9,6 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ExpandingArrayList;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.io.PrintStream;
-
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -51,14 +49,21 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName = "target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=true)
+    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=true)
     private double TARGET_TITV = 2.12;
-    //@Argument(fullName = "filter_output", shortName="filter", doc="If specified the optimizer will not only update the QUAL field of the output VCF file but will also filter the variants", required=false)
+    //@Argument(fullName="filter_output", shortName="filter", doc="If specified the optimizer will not only update the QUAL field of the output VCF file but will also filter the variants", required=false)
     //private boolean FILTER_OUTPUT = false;
-    @Argument(fullName = "ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
+    @Argument(fullName="ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
     private boolean IGNORE_INPUT_FILTERS = false;
-    @Argument(fullName = "exclude_annotation", shortName = "exclude", doc = "The names of the annotations which should be excluded from the calculations", required = false)
+    @Argument(fullName="exclude_annotation", shortName="exclude", doc="The names of the annotations which should be excluded from the calculations", required=false)
     private String[] EXCLUDED_ANNOTATIONS = null;
+    @Argument(fullName="output", shortName="output", doc="The output file name", required=false)
+    private String OUTPUT_FILE = "optimizer.data";
+    @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian mixture model", required=false)
+    private int NUM_GAUSSIANS = 32;
+    @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian mixture model", required=false)
+    private int NUM_ITERATIONS = 5; //BUGBUG: should automatically decided when to stop by looking at how entropy changes with each iteration
+
 
     /////////////////////////////
     // Private Member Variables
@@ -118,7 +123,6 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                         value = Double.parseDouble( (String)vc.getAttribute( key, "0.0" ) );
                     } catch( NumberFormatException e ) {
                         // do nothing, default value is 0.0,
-                        // BUGBUG: annotations with zero variance should be ignored
                     }
                     annotationValues[iii++] = value;
                 }
@@ -155,7 +159,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
 
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
 
-        final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
+        final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys);
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
         logger.info( "There are " + dataManager.numVariants + " variants and " + dataManager.numAnnotations + " annotations.");
@@ -163,26 +167,9 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
 
-        final VariantOptimizationModel gmm = new VariantGaussianMixtureModel( dataManager, TARGET_TITV );
-        final double[] p = gmm.run();
-
-        // BUGBUG: Change to call a second ROD walker to output the new VCF file with new qual fields and filters
-        // Intermediate cluster ROD can be analyzed to assess clustering performance
-        try {
-            final PrintStream out = new PrintStream("gmm128clusterNovel.data"); // Parse in Matlab to create performance plots
-            for(int iii = 0; iii < dataManager.numVariants; iii++) {
-                out.print(p[iii] + "\t");
-                out.println( (dataManager.data[iii].isTransition ? 1 : 0)
-                        + "\t" + (dataManager.data[iii].isKnown? 1 : 0)
-                        + "\t" + (dataManager.data[iii].isFiltered ? 1 : 0) );
-            }
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-
+        // Create either the Gaussian Mixture Model or the Nearest Neighbors model and run it
+        final VariantOptimizationModel gmm = new VariantGaussianMixtureModel( dataManager, TARGET_TITV, NUM_GAUSSIANS, NUM_ITERATIONS  );
+        gmm.run( OUTPUT_FILE );
     }
 
 }

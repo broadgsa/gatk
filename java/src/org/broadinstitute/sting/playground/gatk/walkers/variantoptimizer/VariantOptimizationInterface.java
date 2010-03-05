@@ -32,5 +32,5 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
  */
 
 public interface VariantOptimizationInterface {
-    public double[] run();
+    public void run( String outputPrefix );
 }

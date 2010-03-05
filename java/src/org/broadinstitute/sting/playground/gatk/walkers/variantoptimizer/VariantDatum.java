@@ -33,6 +33,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
 public class VariantDatum {
     public double[] annotations;
+    public double[] originalAnnotations;
     public boolean isTransition;
     public boolean isKnown;
     public boolean isFiltered;

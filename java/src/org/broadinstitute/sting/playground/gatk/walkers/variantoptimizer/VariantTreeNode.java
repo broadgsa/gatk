@@ -49,7 +49,7 @@ public class VariantTreeNode {
         cutValue = -1;
     }
 
-    public void cutData( final VariantDatum[] data, final int depth, final int lastCutDepth, final int numAnnotations ) {
+    public final void cutData( final VariantDatum[] data, final int depth, final int lastCutDepth, final int numAnnotations ) {
 
         cutDim = depth % numAnnotations;
 

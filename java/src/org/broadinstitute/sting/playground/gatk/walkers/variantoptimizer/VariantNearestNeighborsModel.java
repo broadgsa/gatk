@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import java.io.PrintStream;
+
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -31,13 +33,13 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
  * Date: Mar 1, 2010
  */
 
-public class VariantNearestNeighborsModel extends VariantOptimizationModel {
+public final class VariantNearestNeighborsModel extends VariantOptimizationModel {
 
     public VariantNearestNeighborsModel( VariantDataManager _dataManager, final double _targetTITV ) {
        super( _dataManager, _targetTITV );
     }
     
-    public double[] run() {
+    public void run( final String outputPrefix ) {
 
         final int numVariants = dataManager.numVariants;
 
@@ -52,6 +54,7 @@ public class VariantNearestNeighborsModel extends VariantOptimizationModel {
             pTrueVariant[iii] = calcTruePositiveRateFromTITV( vTree.calcNeighborhoodTITV( dataManager.data[iii] ) );
         }
 
-        return pTrueVariant;
+        //BUGBUG: need to output pTrueVariant and other metrics in this method
+        //return pTrueVariant;
     }
 }
