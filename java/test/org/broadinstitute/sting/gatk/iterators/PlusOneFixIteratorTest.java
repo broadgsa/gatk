@@ -51,11 +51,11 @@ public class PlusOneFixIteratorTest extends BaseTest {
     public void testReadAtEndOfInterval() {
         int countOfReads = 0;
         SAMFileReader reader = new SAMFileReader(bam, true);
-        final int size = 1108664;
+        final int size = 1108663;
         reader.setValidationStringency(SAMFileReader.ValidationStringency.LENIENT);
 
         GenomeLoc last = GenomeLocParser.createGenomeLoc("chr1", 1, size);
-        Iterator<SAMRecord> i = new PlusOneFixIterator(last, StingSAMIteratorAdapter.adapt(null, reader.queryOverlapping("chr1", 1, size)));
+        Iterator<SAMRecord> i = new PlusOneFixIterator(last, StingSAMIteratorAdapter.adapt(null, reader.queryOverlapping("chr1", 1, 1108663)));
         //Iterator<SAMRecord> i = reader.queryOverlapping("chr1", 1, size);
         while (i.hasNext()) {
             SAMRecord rec = i.next();

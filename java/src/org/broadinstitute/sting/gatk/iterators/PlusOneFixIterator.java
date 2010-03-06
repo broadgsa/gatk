@@ -15,14 +15,6 @@ import org.broadinstitute.sting.gatk.Reads;
  * Time: 10:41:02 PM
  */
 public class PlusOneFixIterator implements StingSAMIterator {
-
-    /**
-     * this holds the value that we use to correct our query overlapping calls with,
-     * but more importantly it ties the ReadStreamPointer code to this so we don't loose
-     * track of this adjustment across the code.
-     */
-    public static final Integer PLUS_ONE_FIX_CONSTANT = 1;
-
     /**
      * our interval region
      */
@@ -86,7 +78,7 @@ public class PlusOneFixIterator implements StingSAMIterator {
         SAMRecord ret = mNextRecord;
         while (mIterator.hasNext()) {
             mNextRecord = mIterator.next();
-            if (!(mNextRecord.getAlignmentStart() > (mInterval.getStop() - PLUS_ONE_FIX_CONSTANT))) return ret;
+            if (!(mNextRecord.getAlignmentStart() > mInterval.getStop())) return ret;
         }
         mNextRecord = null;
         return ret;
