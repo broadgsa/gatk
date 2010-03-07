@@ -89,7 +89,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         // the sharding strat.
         SAMDataSource data = new IndexDrivenSAMDataSource(reads);
-        ShardStrategy strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
         int count = 0;
 
         try {
@@ -134,7 +134,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         // the sharding strat.
         SAMDataSource data = new IndexDrivenSAMDataSource(reads);
-        ShardStrategy strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();
@@ -177,7 +177,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
         count = 0;
         // the sharding strat.
         data = new IndexDrivenSAMDataSource(reads);
-        strat = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        strat = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
 
         logger.debug("Pile two:");
         try {

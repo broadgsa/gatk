@@ -66,7 +66,7 @@ public class SAMFileReader2 extends SAMFileReader {
      * @param indexFile Location of index file, or null in order to use the default index file (if present).
      * @param eagerDecode eagerDecode if true, decode SAM record entirely when reading it.
      */
-    public SAMFileReader2(final File file, final File indexFile, final boolean eagerDecode){
+    public SAMFileReader2(final File file, File indexFile, final boolean eagerDecode){
         super(file,indexFile,eagerDecode);
         this.sourceFile = file;
         close();
@@ -74,11 +74,13 @@ public class SAMFileReader2 extends SAMFileReader {
         try {
             BAMFileReader2 reader = new BAMFileReader2(file,eagerDecode,getDefaultValidationStringency());
             reader.setReader(this);
-            BAMFileIndex2 index = new BAMFileIndex2(indexFile != null ? indexFile : findIndexFileFromParent(file));
-            reader.setFileIndex(index);
-
             JVMUtils.setFieldValue(getField("mReader"),this,reader);
-            JVMUtils.setFieldValue(getField("mFileIndex"),this,index);
+
+            if(indexFile != null || findIndexFileFromParent(file) != null) {
+                BAMFileIndex2 index = new BAMFileIndex2(indexFile != null ? indexFile : findIndexFileFromParent(file));
+                reader.setFileIndex(index);
+                JVMUtils.setFieldValue(getField("mFileIndex"),this,index);
+            }
         }
         catch(IOException ex) {
             throw new StingException("Unable to load BAM file: " + file,ex);

@@ -245,18 +245,19 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     }
     
     public StingSAMIterator seek(Shard shard) {
+        // todo: refresh monolithic sharding implementation
+        if(shard instanceof MonolithicShard)
+            return seekMonolithic(shard);
+
         if(!(shard instanceof BAMFormatAwareShard))
             throw new StingException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard.getClass());
         BAMFormatAwareShard bamAwareShard = (BAMFormatAwareShard)shard;
 
         if(bamAwareShard.buffersReads()) {
-            return bamAwareShard.iterator();    
+            return bamAwareShard.iterator();
         }
         else {
             SAMReaders readers = resourcePool.getAvailableReaders();
-
-            // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards, because
-            //
             return getIterator(readers,bamAwareShard,shard instanceof ReadShard);
         }
     }
@@ -282,6 +283,31 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
                 reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 reads.getSupplementalFilters());        
     }
+
+    /**
+     * A stopgap measure to handle monolithic sharding
+     * @param shard the (monolithic) shard.
+     * @return An iterator over the monolithic shard.
+     */
+    private StingSAMIterator seekMonolithic(Shard shard) {
+        SAMReaders readers = resourcePool.getAvailableReaders();
+
+        Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
+        for(SAMReaderID id: getReaderIDs()) {
+            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
+            readerToIteratorMap.put(reader2,reader2.iterator());
+        }
+
+        // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
+        CloseableIterator<SAMRecord> iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
+
+        return applyDecoratingIterators(shard instanceof ReadShard,
+                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,iterator)),
+                reads.getDownsamplingFraction(),
+                reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
+                reads.getSupplementalFilters());
+    }    
     
     /**
      * Gets the merged header from the SAM file.

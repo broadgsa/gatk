@@ -112,7 +112,7 @@ public class SAMByReadsTest extends BaseTest {
             IndexDrivenSAMDataSource data = new IndexDrivenSAMDataSource(reads);
 
             data.setResourcePool(gen);
-            shardStrategy = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
+            shardStrategy = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
                 StingSAMIterator ret = data.seek(shardStrategy.next());
                 assertTrue(ret != null);
@@ -144,7 +144,7 @@ public class SAMByReadsTest extends BaseTest {
 
 
             data.setResourcePool(gen);
-            shardStrategy = ShardStrategyFactory.shatter(data,ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
+            shardStrategy = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
 
 

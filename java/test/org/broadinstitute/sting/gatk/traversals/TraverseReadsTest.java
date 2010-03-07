@@ -118,7 +118,7 @@ public class TraverseReadsTest extends BaseTest {
 
         SAMDataSource dataSource = new IndexDrivenSAMDataSource(new Reads(bamList));
         dataSource.viewUnmappedReads(false);
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ShardStrategyFactory.SHATTER_STRATEGY.READS,
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
                 readSize);
 
@@ -164,7 +164,7 @@ public class TraverseReadsTest extends BaseTest {
 
         SAMDataSource dataSource = new IndexDrivenSAMDataSource(new Reads(bamList));
         dataSource.viewUnmappedReads(true);
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ShardStrategyFactory.SHATTER_STRATEGY.READS,
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
                 readSize);
 

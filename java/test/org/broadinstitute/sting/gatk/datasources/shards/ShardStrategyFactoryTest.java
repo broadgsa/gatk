@@ -49,7 +49,7 @@ public class ShardStrategyFactoryTest extends BaseTest {
 
     @Test
     public void testReadNonInterval() {
-        ShardStrategy st = ShardStrategyFactory.shatter(null,ShardStrategyFactory.SHATTER_STRATEGY.READS,header.getSequenceDictionary(),100);
+        ShardStrategy st = ShardStrategyFactory.shatter(null,null,ShardStrategyFactory.SHATTER_STRATEGY.READS,header.getSequenceDictionary(),100);
         assertTrue(st instanceof ReadShardStrategy);
     }
 
@@ -57,13 +57,13 @@ public class ShardStrategyFactoryTest extends BaseTest {
     public void testReadInterval() {
         GenomeLoc l = GenomeLocParser.createGenomeLoc(0,1,100);
         set.add(l);
-        ShardStrategy st = ShardStrategyFactory.shatter(null,ShardStrategyFactory.SHATTER_STRATEGY.READS,header.getSequenceDictionary(),100,set);
+        ShardStrategy st = ShardStrategyFactory.shatter(null,null,ShardStrategyFactory.SHATTER_STRATEGY.READS,header.getSequenceDictionary(),100,set);
         assertTrue(st instanceof IntervalShardStrategy);
     }
 
     @Test
     public void testLinearNonInterval() {
-        ShardStrategy st = ShardStrategyFactory.shatter(null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,header.getSequenceDictionary(),100);
+        ShardStrategy st = ShardStrategyFactory.shatter(null,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,header.getSequenceDictionary(),100);
         assertTrue(st instanceof LinearLocusShardStrategy);
     }
 
@@ -71,7 +71,7 @@ public class ShardStrategyFactoryTest extends BaseTest {
     public void testLinearInterval() {
         GenomeLoc l = GenomeLocParser.createGenomeLoc(0,1,100);
         set.add(l);
-        ShardStrategy st = ShardStrategyFactory.shatter(null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,header.getSequenceDictionary(),100,set);
+        ShardStrategy st = ShardStrategyFactory.shatter(null,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,header.getSequenceDictionary(),100,set);
         assertTrue(st instanceof LinearLocusShardStrategy);
     }
     

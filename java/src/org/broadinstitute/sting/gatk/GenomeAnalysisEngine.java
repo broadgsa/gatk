@@ -652,12 +652,14 @@ public class GenomeAnalysisEngine {
                         ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
                         ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                        referenceDataSource,
                         argCollection.experimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                        referenceDataSource,
                         argCollection.experimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
@@ -669,12 +671,16 @@ public class GenomeAnalysisEngine {
                 shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
 
             if (intervals != null && !intervals.isEmpty()) {
-                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,shardType,
+                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                        referenceDataSource,
+                        shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else {
-                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,shardType,
+                shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                        referenceDataSource,
+                        shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
             }
@@ -683,6 +689,7 @@ public class GenomeAnalysisEngine {
                 Utils.warnUser("walker is of type LocusWindow (which operates over intervals), but no intervals were provided." +
                                "This may be unintentional, check your command-line arguments.");
             shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                    referenceDataSource,
                     ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
                     drivingDataSource.getSequenceDictionary(),
                     SHARD_SIZE,

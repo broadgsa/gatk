@@ -4,6 +4,7 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 
 import java.io.File;
@@ -48,26 +49,28 @@ public class ShardStrategyFactory {
     /**
      * get a new shatter strategy
      *
-     * @param dataSource   File pointer to BAM.  TODO: Eliminate this argument; pass a data source instead!
+     * @param readsDataSource     File pointer to BAM.
+     * @param referenceDataSource File pointer to reference.
      * @param strat        what's our strategy - SHATTER_STRATEGY type
      * @param dic          the seq dictionary
      * @param startingSize the starting size
      * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
-        return ShardStrategyFactory.shatter(dataSource, strat, dic, startingSize, -1L);
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
+        return ShardStrategyFactory.shatter(readsDataSource, referenceDataSource, strat, dic, startingSize, -1L);
     }
 
     /**
      * get a new shatter strategy
      *
-     * @param dataSource   File pointer to BAM.
-     * @param strat        what's our strategy - SHATTER_STRATEGY type
-     * @param dic          the seq dictionary
-     * @param startingSize the starting size
+     * @param readsDataSource     File pointer to BAM.
+     * @param referenceDataSource File pointer to reference.
+     * @param strat               what's our strategy - SHATTER_STRATEGY type
+     * @param dic                 the seq dictionary
+     * @param startingSize        the starting size
      * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
         switch (strat) {
             case LINEAR:
                 return new LinearLocusShardStrategy(dic, startingSize, limitByCount);
@@ -76,9 +79,9 @@ public class ShardStrategyFactory {
             case INTERVAL:
                 throw new StingException("Requested trategy: " + strat + " doesn't work with the limiting count (-M) command line option");
             case LOCUS_EXPERIMENTAL:
-                return new IndexDelimitedLocusShardStrategy(dataSource,null);
+                return new IndexDelimitedLocusShardStrategy(readsDataSource,referenceDataSource,null);
             case READS_EXPERIMENTAL:
-                return new BlockDelimitedReadShardStrategy(dataSource,null);
+                return new BlockDelimitedReadShardStrategy(readsDataSource,null);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
@@ -89,25 +92,29 @@ public class ShardStrategyFactory {
     /**
      * get a new shatter strategy
      *
+     * @param readsDataSource     File pointer to BAM.
+     * @param referenceDataSource File pointer to reference.
      * @param strat        what's our strategy - SHATTER_STRATEGY type
      * @param dic          the seq dictionary
      * @param startingSize the starting size
-     * @return
+     * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst) {
-        return ShardStrategyFactory.shatter(dataSource, strat, dic, startingSize, lst, -1l);    
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst) {
+        return ShardStrategyFactory.shatter(readsDataSource, referenceDataSource, strat, dic, startingSize, lst, -1l);
 
     }
 
     /**
      * get a new shatter strategy
      *
+     * @param readsDataSource The reads used to shatter this file.
+     * @param referenceDataSource The reference used to shatter this file.
      * @param strat        what's our strategy - SHATTER_STRATEGY type
      * @param dic          the seq dictionary
      * @param startingSize the starting size
-     * @return
+     * @return A strategy for shattering this data.
      */
-    static public ShardStrategy shatter(SAMDataSource dataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
         switch (strat) {
             case LINEAR:
                 return new LinearLocusShardStrategy(dic, startingSize, lst, limitDataCount);
@@ -116,9 +123,9 @@ public class ShardStrategyFactory {
             case READS:
                 return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.READ_INTERVAL);
             case LOCUS_EXPERIMENTAL:
-                return new IndexDelimitedLocusShardStrategy(dataSource,lst);
+                return new IndexDelimitedLocusShardStrategy(readsDataSource,referenceDataSource,lst);
             case READS_EXPERIMENTAL:
-                return new BlockDelimitedReadShardStrategy(dataSource,lst);
+                return new BlockDelimitedReadShardStrategy(readsDataSource,lst);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented");
         }
