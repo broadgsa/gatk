@@ -415,6 +415,20 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             for(File readsFile: sourceInfo.getReadsFiles()) {
                 SAMFileReader2 reader = new SAMFileReader2(readsFile,true);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
+
+                // If no read group is present, hallucinate one.
+                // TODO: Straw poll to see whether this is really required.
+                final SAMFileHeader header = reader.getFileHeader();
+                logger.debug(String.format("Sort order is: " + header.getSortOrder()));
+
+                if (reader.getFileHeader().getReadGroups().size() < 1) {
+                    SAMReadGroupRecord rec = new SAMReadGroupRecord(readsFile.getName());
+                    rec.setLibrary(readsFile.getName());
+                    rec.setSample(readsFile.getName());
+
+                    reader.getFileHeader().addReadGroup(rec);
+                }
+
                 readers.put(new SAMReaderID(readsFile),reader);
             }
         }

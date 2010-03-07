@@ -415,7 +415,7 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
     private StingSAMIterator createIterator( DataStreamSegment segment ) {
         StingSAMIterator iterator = resourcePool.iterator(segment);
         StingSAMIterator malformedWrappedIterator =  new MalformedSAMFilteringIterator( getHeader(), iterator, violations );
-        StingSAMIterator readWrappingIterator = new ReadWrappingIterator(malformedWrappedIterator);
+        StingSAMIterator readWrappingIterator = new ReadFormattingIterator(malformedWrappedIterator);
         return readWrappingIterator;
     }
 }

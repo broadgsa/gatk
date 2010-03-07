@@ -305,8 +305,8 @@
             <jvmarg value="-javaagent:${build.dir}/TestAgent.jar"/>
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
-                <path refid="runtime.dependencies"/>
                 <pathelement location="build"/>
+                <path refid="runtime.dependencies"/>
                 <pathelement location="${test.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>

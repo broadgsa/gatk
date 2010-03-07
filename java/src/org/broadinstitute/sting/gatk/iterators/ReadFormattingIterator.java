@@ -1,17 +1,27 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMTag;
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.apache.log4j.Logger;
+
+import java.util.List;
 
 /**
- * An iterator which wraps each SAMRecord inside a wrapper class, bringing new functionality to the read while
- * presenting the original SAMRecord interface.
+ * An iterator which does post-processing of a read, including potentially wrapping
+ * the read in something with a compatible interface or replacing the read entirely.
  *
  * @author mhanna
  * @version 0.1
  */
-public class ReadWrappingIterator implements StingSAMIterator {
+public class ReadFormattingIterator implements StingSAMIterator {
+    /**
+     * Logger.
+     */
+    protected static Logger logger = Logger.getLogger(ReadFormattingIterator.class);    
+
     /**
      * Iterator to which to pass
      */
@@ -21,7 +31,7 @@ public class ReadWrappingIterator implements StingSAMIterator {
      * Decorate the given iterator inside a ReadWrappingIterator.
      * @param wrappedIterator iterator
      */
-    public ReadWrappingIterator(StingSAMIterator wrappedIterator) {
+    public ReadFormattingIterator(StingSAMIterator wrappedIterator) {
         this.wrappedIterator = wrappedIterator;
     }
 
@@ -65,7 +75,21 @@ public class ReadWrappingIterator implements StingSAMIterator {
      *         no next exists.
      */
     public SAMRecord next() {
-        return new GATKSAMRecord(wrappedIterator.next());
+        SAMRecord read = wrappedIterator.next();
+
+        // if we don't have a read group, set one.
+        // TODO: Straw poll to see whether this is really required.        
+        if (read.getAttribute(SAMTag.RG.toString()) == null && read.getReader() != null) {
+            List<SAMReadGroupRecord> readGroups = read.getReader().getFileHeader().getReadGroups();
+            if (readGroups.size() == 1) {
+                read.setAttribute(SAMTag.RG.toString(), readGroups.get(0).getReadGroupId());
+                read.setAttribute(SAMTag.SM.toString(), readGroups.get(0).getReadGroupId());
+            } else {
+                logger.warn("Unable to set read group of ungrouped read: unable to pick default group, there are " + readGroups.size() + " possible.");
+            }
+        }
+
+        return new GATKSAMRecord(read);
     }
 
     /**

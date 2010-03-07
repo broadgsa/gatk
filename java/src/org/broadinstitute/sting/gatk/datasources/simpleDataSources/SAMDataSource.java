@@ -12,7 +12,6 @@ import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -182,7 +181,7 @@ public abstract class SAMDataSource implements SimpleDataSource {
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<SamRecordFilter> supplementalFilters) {
         wrappedIterator = new MalformedSAMFilteringIterator(getHeader(),wrappedIterator,violations );
-        wrappedIterator = new ReadWrappingIterator(wrappedIterator);
+        wrappedIterator = new ReadFormattingIterator(wrappedIterator);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
