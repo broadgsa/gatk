@@ -7,10 +7,12 @@ if (scalar(@ARGV) != 1) {
 
 my ($maf) = @ARGV;
 
+# TODO: Have a common checkout of https://svn/CancerGenomeAnalysis
+# or a compiled version of this matlab program like Firehose uses.
 my $cmd = "matlab <<STOP\n" .
-          "addpath /home/radon00/lawrence/CancerGenomeAnalysis/trunk/matlab/mike" . "\n" .
-          "addpath /home/radon00/lawrence/CancerGenomeAnalysis/trunk/matlab/seq" . "\n" .
-          "addpath /home/radon00/lawrence/CancerGenomeAnalysis/trunk/matlab" . "\n" .
+          "addpath /humgen/gsa-hphome1/kshakir/src/cga_matlab_r7169/mike" . "\n" .
+          "addpath /humgen/gsa-hphome1/kshakir/src/cga_matlab_r7169/seq" . "\n" .
+          "addpath /humgen/gsa-hphome1/kshakir/src/cga_matlab_r7169" . "\n" .
           "annotate_maflite('$maf', '$maf.annotated')" . "\n" .
           "quit" . "\n" .
           "STOP" . "\n";
