@@ -55,8 +55,6 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     public BlockDrivenSAMDataSource(Reads reads) {
         super(reads);
 
-        logger.warn("Experimental sharding is enabled.  Many use cases are not supported.  Please use with care.");
-
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
         SAMReaders readers = resourcePool.getAvailableReaders();
 
