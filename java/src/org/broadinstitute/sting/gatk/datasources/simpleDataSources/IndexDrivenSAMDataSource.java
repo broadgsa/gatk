@@ -169,9 +169,13 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
             if(shard.getGenomeLocs().size() > 1)
                 throw new StingException("This SAMDataSource does not support multiple intervals within a single shard");
             GenomeLoc shardGenomeLoc = shard.getGenomeLocs().get(0);
-            if (mLastInterval != null && shard.getShardType() == Shard.ShardType.READ_INTERVAL )
-                iterator = new PlusOneFixIterator(shardGenomeLoc,new IntervalOverlapIterator(iterator,mLastInterval,false));
-            mLastInterval = shardGenomeLoc;
+            if(shard.getShardType() == Shard.ShardType.READ_INTERVAL) {
+                if (mLastInterval != null)
+                    iterator = new PlusOneFixIterator(shardGenomeLoc,new IntervalOverlapIterator(iterator,mLastInterval,false));
+                else
+                    iterator = new PlusOneFixIterator(shardGenomeLoc,iterator);
+                mLastInterval = shardGenomeLoc;                
+            }
         } else {
 
             throw new StingException("seek: Unknown shard type");

@@ -181,6 +181,9 @@ public abstract class SAMDataSource implements SimpleDataSource {
                                                         Double downsamplingFraction,
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<SamRecordFilter> supplementalFilters) {
+        wrappedIterator = new MalformedSAMFilteringIterator(getHeader(),wrappedIterator,violations );
+        wrappedIterator = new ReadWrappingIterator(wrappedIterator);
+
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (downsamplingFraction != null)
