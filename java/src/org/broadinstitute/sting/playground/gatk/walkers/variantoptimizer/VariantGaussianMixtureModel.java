@@ -68,23 +68,23 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     public final void run( final String outputPrefix ) {
 
         // Create the subset of the data to cluster with
-        int numSubset = 0;
+        int numNovel = 0;
         for( final VariantDatum datum : dataManager.data ) {
             if( !datum.isKnown ) {
-                numSubset++;
+                numNovel++;
             }
         }
         VariantDatum[] data;
 
-        if( numSubset * 2 * 1.3 < dataManager.numVariants ) {
-            data = new VariantDatum[numSubset*2];
+        if( numNovel * 2 * 1.3 < dataManager.numVariants ) {
+            data = new VariantDatum[numNovel*2];
             int iii = 0;
             for( final VariantDatum datum : dataManager.data ) {
                 if( !datum.isKnown ) {
                     data[iii++] = datum;
                 }
             }
-            while( iii < numSubset*2 ) { // grab an equal number of known variants at random
+            while( iii < numNovel*2 ) { // grab an equal number of known variants at random
                 final VariantDatum datum = dataManager.data[rand.nextInt(dataManager.numVariants)];
                 if( datum.isKnown ) {
                     data[iii++] = datum;
@@ -94,7 +94,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             data = dataManager.data;
         }
 
-        System.out.println("Clustering with " + data.length + " variants...");
+        System.out.println("Clustering with " + numNovel + " novel variants and " + (data.length - numNovel) + " known variants...");
         if( data.length == dataManager.numVariants ) { System.out.println(" (used all variants since 2*numNovel is so large compared to the full set) "); }
         createClusters( data ); // Using a subset of the data
         System.out.println("Printing out cluster parameters...");

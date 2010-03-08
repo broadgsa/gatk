@@ -57,6 +57,8 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private boolean IGNORE_INPUT_FILTERS = false;
     @Argument(fullName="exclude_annotation", shortName="exclude", doc="The names of the annotations which should be excluded from the calculations", required=false)
     private String[] EXCLUDED_ANNOTATIONS = null;
+    @Argument(fullName="force_annotation", shortName="force", doc="The names of the annotations which should be forced into the calculations even if they aren't present in every variant", required=false)
+    private String[] FORCED_ANNOTATIONS = null;
     @Argument(fullName="output", shortName="output", doc="The output file name", required=false)
     private String OUTPUT_FILE = "optimizer.data";
     @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian mixture model", required=false)
@@ -71,6 +73,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private final ExpandingArrayList<String> annotationKeys = new ExpandingArrayList<String>();
     private boolean firstVariant = true;
     private int numAnnotations = 0;
+    private static final double INFINITE_ANNOTATION_VALUE = 10000.0;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -110,6 +113,11 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                             if( annotationKeys.contains( excludedAnnotation ) ) { annotationKeys.remove( excludedAnnotation ); }
                         }
                     }
+                    if( FORCED_ANNOTATIONS != null ) {
+                        for( final String forcedAnnotation : FORCED_ANNOTATIONS ) {
+                            if( !annotationKeys.contains( forcedAnnotation ) ) { annotationKeys.add( forcedAnnotation ); }
+                        }
+                    }
                     numAnnotations = annotationKeys.size() + 1; // +1 for variant quality ("QUAL")
                     annotationValues = new double[numAnnotations];
                     firstVariant = false;
@@ -121,6 +129,9 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                     double value = 0.0;
                     try {
                         value = Double.parseDouble( (String)vc.getAttribute( key, "0.0" ) );
+                        if( Double.isInfinite(value) ) {
+                            value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
+                        }
                     } catch( NumberFormatException e ) {
                         // do nothing, default value is 0.0,
                     }
@@ -166,7 +177,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         logger.info( "The annotations are: " + annotationKeys + " and QUAL." );
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
-
+        
         // Create either the Gaussian Mixture Model or the Nearest Neighbors model and run it
         final VariantOptimizationModel gmm = new VariantGaussianMixtureModel( dataManager, TARGET_TITV, NUM_GAUSSIANS, NUM_ITERATIONS  );
         gmm.run( OUTPUT_FILE );
