@@ -74,21 +74,28 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 numSubset++;
             }
         }
-        final VariantDatum[] data = new VariantDatum[numSubset*2];
-        int iii = 0;
-        for( final VariantDatum datum : dataManager.data ) {
-            if( !datum.isKnown ) {
-                data[iii++] = datum;
+        VariantDatum[] data;
+
+        if( numSubset * 2 * 1.3 < dataManager.numVariants ) {
+            data = new VariantDatum[numSubset*2];
+            int iii = 0;
+            for( final VariantDatum datum : dataManager.data ) {
+                if( !datum.isKnown ) {
+                    data[iii++] = datum;
+                }
             }
-        }
-        while( iii < numSubset*2 ) { // grab an equal number of known variants at random
-            final VariantDatum datum = dataManager.data[rand.nextInt(dataManager.numVariants)];
-            if( datum.isKnown ) {
-                data[iii++] = datum;
+            while( iii < numSubset*2 ) { // grab an equal number of known variants at random
+                final VariantDatum datum = dataManager.data[rand.nextInt(dataManager.numVariants)];
+                if( datum.isKnown ) {
+                    data[iii++] = datum;
+                }
             }
+        } else {
+            data = dataManager.data;
         }
 
-        System.out.println("Clustering with " + numSubset*2 + " variants...");
+        System.out.println("Clustering with " + data.length + " variants...");
+        if( data.length == dataManager.numVariants ) { System.out.println(" (used all variants since 2*numNovel is so large compared to the full set) "); }
         createClusters( data ); // Using a subset of the data
         System.out.println("Printing out cluster parameters...");
         printClusters( outputPrefix );
@@ -124,7 +131,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             final double[] randSigma = new double[numAnnotations];
             if( dataManager.isNormalized ) {
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    randSigma[jjj] = 0.9 + 0.2 * rand.nextDouble();
+                    randSigma[jjj] = 0.75 + 0.4 * rand.nextDouble();
                 }
             } else { // BUGBUG: if not normalized then the varianceVector hasn't been calculated --> null pointer
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
@@ -414,7 +421,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     // Find a place to put the example variant
                     if( rrr == 0 ) { // Replace the big cluster that kicked this process off
                         mu[kkk] = data[randVarIndex].annotations;
-                        //sigma[kkk] = savedSigma;
                         pCluster[kkk] = 1.0 / ((double) numGaussians);
                     } else { // Replace the cluster with the minimum prob
                         double minProb = pCluster[0];
@@ -428,7 +434,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                         mu[minClusterIndex] = data[randVarIndex].annotations;
                         sigma[minClusterIndex] = savedSigma;
                         for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                            sigma[minClusterIndex][jjj] += -0.02 + 0.04 * rand.nextDouble();
+                            sigma[minClusterIndex][jjj] += -0.06 + 0.12 * rand.nextDouble();
+                            if( sigma[minClusterIndex][jjj] < MIN_SUM_PROB ) {
+                                sigma[minClusterIndex][jjj] = MIN_SUM_PROB;
+                            }
                         }
                         pCluster[minClusterIndex] = 1.0 / ((double) numGaussians);
                     }
@@ -444,7 +453,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 final double[] randSigma = new double[numAnnotations];
                 if( dataManager.isNormalized ) {
                     for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        randSigma[jjj] = 0.9 + 0.2 * rand.nextDouble();
+                        randSigma[jjj] = 0.6 + 0.4 * rand.nextDouble(); // Explore a wider range
                     }
                 } else { // BUGBUG: if not normalized then the varianceVector hasn't been calculated --> null pointer
                     for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
