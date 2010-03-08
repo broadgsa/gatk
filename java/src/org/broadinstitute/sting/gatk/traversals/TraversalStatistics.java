@@ -13,13 +13,13 @@ public class TraversalStatistics {
     // Number of records (loci, reads) we've processed
     public static long nRecords;
     // How many reads have we processed, along with those skipped for various reasons
-    public static int nReads;
-    public static int nSkippedReads;
-    public static int nUnmappedReads;
-    public static int nNotPrimary;
-    public static int nBadAlignments;
-    public static int nSkippedIndels;
-    public static int nDuplicates;
+    public static long nReads;
+    public static long nSkippedReads;
+    public static long nUnmappedReads;
+    public static long nNotPrimary;
+    public static long nBadAlignments;
+    public static long nSkippedIndels;
+    public static long nDuplicates;
 
     static {
         reset();

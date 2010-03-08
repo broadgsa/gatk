@@ -96,6 +96,7 @@ public class TraverseReads extends TraversalEngine {
 
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
+            TraversalStatistics.nReads++;
 
             // if the read is mapped, create a metadata tracker
             ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
