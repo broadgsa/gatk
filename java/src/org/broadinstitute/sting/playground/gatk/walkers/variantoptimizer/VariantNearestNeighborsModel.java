@@ -35,8 +35,11 @@ import java.io.PrintStream;
 
 public final class VariantNearestNeighborsModel extends VariantOptimizationModel {
 
-    public VariantNearestNeighborsModel( VariantDataManager _dataManager, final double _targetTITV ) {
-       super( _dataManager, _targetTITV );
+    private final int numKNN;
+
+    public VariantNearestNeighborsModel( VariantDataManager _dataManager, final double _targetTITV, final int _numKNN ) {
+        super( _dataManager, _targetTITV );
+        numKNN = _numKNN;
     }
     
     public void run( final String outputPrefix ) {
@@ -45,7 +48,7 @@ public final class VariantNearestNeighborsModel extends VariantOptimizationModel
 
         final double[] pTrueVariant = new double[numVariants];
 
-        final VariantTree vTree = new VariantTree( 2000 );
+        final VariantTree vTree = new VariantTree( numKNN );
         vTree.createTreeFromData( dataManager.data );
 
         System.out.println("Finished creating the kd-tree.");
@@ -54,7 +57,18 @@ public final class VariantNearestNeighborsModel extends VariantOptimizationModel
             pTrueVariant[iii] = calcTruePositiveRateFromTITV( vTree.calcNeighborhoodTITV( dataManager.data[iii] ) );
         }
 
-        //BUGBUG: need to output pTrueVariant and other metrics in this method
-        //return pTrueVariant;
+        PrintStream outputFile = null;
+        try {
+            outputFile = new PrintStream( outputPrefix + ".knn.optimize" );
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        for(int iii = 0; iii < numVariants; iii++) {
+            outputFile.print(String.format("%.4f",pTrueVariant[iii]) + ",");
+            outputFile.println( (dataManager.data[iii].isTransition ? 1 : 0)
+                    + "," + (dataManager.data[iii].isKnown? 1 : 0)
+                    + "," + (dataManager.data[iii].isFiltered ? 1 : 0) );
+        }
     }
 }

@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ExpandingArrayList;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 /*
@@ -61,10 +62,14 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private String[] FORCED_ANNOTATIONS = null;
     @Argument(fullName="output", shortName="output", doc="The output file name", required=false)
     private String OUTPUT_FILE = "optimizer.data";
-    @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian mixture model", required=false)
+    @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian Mixture model", required=false)
     private int NUM_GAUSSIANS = 32;
-    @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian mixture model", required=false)
-    private int NUM_ITERATIONS = 5; //BUGBUG: should automatically decided when to stop by looking at how entropy changes with each iteration
+    @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian Mixture model", required=false)
+    private int NUM_ITERATIONS = 10;
+    @Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
+    private int NUM_KNN = 2000;
+    @Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
+    private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
 
 
     /////////////////////////////
@@ -179,8 +184,19 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
         
         // Create either the Gaussian Mixture Model or the Nearest Neighbors model and run it
-        final VariantOptimizationModel gmm = new VariantGaussianMixtureModel( dataManager, TARGET_TITV, NUM_GAUSSIANS, NUM_ITERATIONS  );
-        gmm.run( OUTPUT_FILE );
+        VariantOptimizationModel theModel;
+        switch (OPTIMIZATION_MODEL) {
+            case GAUSSIAN_MIXTURE_MODEL:
+                theModel = new VariantGaussianMixtureModel( dataManager, TARGET_TITV, NUM_GAUSSIANS, NUM_ITERATIONS  );
+                break;
+            case K_NEAREST_NEIGHBORS:
+                theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
+                break;
+            default:
+                throw new StingException("Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS");
+        }
+
+        theModel.run( OUTPUT_FILE );
     }
 
 }

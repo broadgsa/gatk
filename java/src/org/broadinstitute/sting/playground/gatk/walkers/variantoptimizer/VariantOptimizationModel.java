@@ -32,6 +32,12 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
  */
 
 public abstract class VariantOptimizationModel implements VariantOptimizationInterface {
+
+    public enum Model {
+        GAUSSIAN_MIXTURE_MODEL,
+        K_NEAREST_NEIGHBORS
+    }
+
     protected final VariantDataManager dataManager;
     protected final double targetTITV;
 
