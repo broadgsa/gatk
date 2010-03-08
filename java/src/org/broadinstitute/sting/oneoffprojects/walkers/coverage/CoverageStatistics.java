@@ -63,7 +63,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
     byte minBaseQuality = 20;
     @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
     boolean printBaseCounts = false;
-    @Argument(fullName = "omitLocusTable", shortName = "omitLocus", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
+    @Argument(fullName = "omitLocusTable", shortName = "omitLocusTable", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
     boolean omitLocusTable = false;
     @Argument(fullName = "omitIntervalStatistics", shortName = "omitIntervals", doc = "Will omit the per-interval statistics section, which should result in speedup", required = false)
     boolean omitIntervals = false;
@@ -372,15 +372,25 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
             int median = getQuantile(stats.getHistograms().get(s),0.5);
             int q1 = getQuantile(stats.getHistograms().get(s),0.25);
             int q3 = getQuantile(stats.getHistograms().get(s),0.75);
-            targetSummary.append(bins[q1]);
+            targetSummary.append(formatBin(bins,q1));
             targetSummary.append("\t");
-            targetSummary.append(bins[median]);
+            targetSummary.append(formatBin(bins,median));
             targetSummary.append("\t");
-            targetSummary.append(bins[q3]);
+            targetSummary.append(formatBin(bins,q3));
 
         }
 
         output.printf("%s%n", targetSummary);
+    }
+
+    private String formatBin(int[] bins, int quartile) {
+        if ( quartile >= bins.length ) {
+            return String.format(">%d",bins[quartile]);
+        } else if ( quartile < 0 ) {
+            return String.format("<%d",bins[0]);
+        } else {
+            return String.format("%d",bins[quartile]);
+        }
     }
 
     private void printIntervalTable(PrintStream output, int[][] intervalTable, int[] cutoffs) {
