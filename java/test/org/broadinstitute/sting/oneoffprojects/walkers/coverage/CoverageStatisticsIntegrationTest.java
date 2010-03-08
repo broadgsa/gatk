@@ -53,17 +53,42 @@ public class CoverageStatisticsIntegrationTest extends WalkerTest {
         String[] intervals = {"1:10,000,000-10,000,800","1:10,250,001-10,250,500","1:10,500,001-10,500,300","1:10,750,001-10,750,400"};
         String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam","/broad/1KG/DCC_merged/freeze5/NA19240.pilot2.454.bam"};
 
-        String cmd = buildRootCmd(b36,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 0 -dels -baseCounts";
+        String cmd = buildRootCmd(b36,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 0 -dels -baseCounts -both";
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
 
         // now add the expected files that get generated
-        spec.addAuxFile("cb87d6069ac60c73f047efc6d9386619", baseOutputFile);
+        spec.addAuxFile("959937a9b0ace520b4b7d9915d708003", baseOutputFile);
         spec.addAuxFile("aff2349d6dc221c08f6c469379aeaedf", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
         spec.addAuxFile("6476ed0c54a4307a618aa6d3268b050f", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
         spec.addAuxFile("c744a298b7541f3f823e6937e9a0bc67", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_locus_statistics"));
         spec.addAuxFile("65318c1e73d98a59cc6f817cde12d3d4", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary_statistics"));
         spec.addAuxFile("9fc19f773a7ddfbb473d124e675a3d94", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
+        spec.addAuxFile("223377e07b35e81a394b75b38d8e72ee", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_interval_statistics"));
+        spec.addAuxFile("096f4ed94020327288ea76245ebd6942", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_interval_summary"));
+        spec.addAuxFile("437b92f70a6c414de9178a12c02511c2", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_locus_statistics"));
+        spec.addAuxFile("cf1d038e278f28f382f79c30d8416b8b", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_statistics"));
+        spec.addAuxFile("a374410efe20609c5c4b87a6da7f4d51", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".read_group_summary"));
+        
         execute("testBaseOutputNoFiltering",spec);
+    }
+
+    @Test
+    public void testMedianOverRightHandBin() {
+        File base = this.createTempFile("depthofcoveragelowbins",".tmp");
+        this.setOutputFileLocation(base);
+        String[] intervals = {"1:10,000,000-10,000,800","1:10,250,001-10,250,500","1:10,500,001-10,500,300","1:10,750,001-10,750,400"};
+        String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam","/broad/1KG/DCC_merged/freeze5/NA19240.pilot2.454.bam"};
+
+        String cmd = buildRootCmd(b36,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) +
+                " -mmq 0 -mbq 0 -dels -baseCounts -both --start 1 --stop 14 --nBins 13";
+        WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
+        spec.addAuxFile("959937a9b0ace520b4b7d9915d708003", base);
+        spec.addAuxFile("219d643627eedd696bc476aac96376c2", createTempFileFromBase(base.getAbsolutePath()+".read_group_interval_statistics"));
+        spec.addAuxFile("dd0225cf1e0b0bd4289b82fd4939f9fd", createTempFileFromBase(base.getAbsolutePath()+".sample_interval_statistics"));
+        spec.addAuxFile("63575a8a2110507e08d421d44d06b327", createTempFileFromBase(base.getAbsolutePath()+".sample_interval_summary"));
+
+        execute("testMedianOverRHBin",spec);
+
     }
 
     public File createTempFileFromBase(String name) {
