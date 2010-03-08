@@ -385,7 +385,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
 
     private String formatBin(int[] bins, int quartile) {
         if ( quartile >= bins.length ) {
-            return String.format(">%d",bins[quartile]);
+            return String.format(">%d",bins[bins.length-1]);
         } else if ( quartile < 0 ) {
             return String.format("<%d",bins[0]);
         } else {
