@@ -95,10 +95,15 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
             filePointers.addAll(IntervalSharder.shardIntervals(this.reads,intervals,this.reads.getNumIndexLevels()-1));
         }
         else {
-            // TODO: Non-intervaled ref traversals.
             this.reads = null;
-            for(GenomeLoc interval: locations)
-                filePointers.add(new FilePointer(interval));
+            if(locations == null) {
+                for(SAMSequenceRecord refSequenceRecord: reference.getSequenceDictionary().getSequences())
+                    filePointers.add(new FilePointer(GenomeLocParser.createGenomeLoc(refSequenceRecord.getSequenceName(),1,refSequenceRecord.getSequenceLength())));
+            }
+            else {
+                for(GenomeLoc interval: locations)
+                    filePointers.add(new FilePointer(interval));
+            }
         }
 
         filePointerIterator = filePointers.iterator();        
