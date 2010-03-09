@@ -26,11 +26,11 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
 import java.io.*;
-import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -76,20 +76,8 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
         GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());
     }
 
-    public void addGenotypeCall(Genotype call) {
-        writer.addGenotypeCall(call);
-    }
-
-    public void addNoCall(int position) {
-        writer.addNoCall(position);
-    }
-
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall variation) {
-        writer.addMultiSampleCall(genotypes, variation);
-    }
-
-    public boolean supportsMultiSample() {
-        return writer.supportsMultiSample();
+    public void addCall(VariantContext vc) {
+        writer.addCall(vc);
     }
 
     public void close() {

@@ -2,9 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
@@ -12,12 +12,12 @@ import java.util.Map;
 
 public class HomopolymerRun extends StandardVariantAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
-        if ( !variation.isBiallelic() || !variation.isSNP() )
+        if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
 
-        int run = computeHomopolymerRun(variation.getAlternativeBaseForSNP(), ref);
+        int run = computeHomopolymerRun(vc.getAlternateAllele(0).toString().charAt(0), ref);
         return String.format("%d", run);
     }
 

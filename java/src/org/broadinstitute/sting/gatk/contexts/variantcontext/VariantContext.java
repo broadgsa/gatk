@@ -463,7 +463,7 @@ public class VariantContext {
     public double getNegLog10PError()           { return commonInfo.getNegLog10PError(); }
     public double getPhredScaledQual()          { return commonInfo.getPhredScaledQual(); }
 
-    public Map<String, Object> getAttributes()  { return commonInfo.getAttributes(); }
+    public Map<String, Object>  getAttributes()  { return commonInfo.getAttributes(); }
     public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }
     public Object getAttribute(String key)      { return commonInfo.getAttribute(key); }
 

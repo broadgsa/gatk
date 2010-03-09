@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * the basic VCF record type
  */
-public class VCFRecord implements Variation, VariantBackedByGenotype {
+public class VCFRecord {
 
     // standard info field keys
     public static final String ANCESTRAL_ALLELE_KEY = "AA";
@@ -58,7 +58,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     private String mGenotypeFormatString;
 
     // our genotype sample fields
-    private final List<Genotype> mGenotypeRecords = new ArrayList<Genotype>();
+    private final List<VCFGenotypeRecord> mGenotypeRecords = new ArrayList<VCFGenotypeRecord>();
 
     /**
      * given a reference base, a location, and the format string, create a VCF record.
@@ -274,9 +274,9 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         return 0.0;
     }
     
-    public VARIANT_TYPE getType() {
+    public Variation.VARIANT_TYPE getType() {
         if ( ! hasAlternateAllele() )
-            return VARIANT_TYPE.REFERENCE;
+            return Variation.VARIANT_TYPE.REFERENCE;
 
         VCFGenotypeEncoding.TYPE type = mAlts.get(0).getType();
         for (int i = 1; i < mAlts.size(); i++) {
@@ -286,25 +286,25 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
 
         switch ( type ) {
             case SINGLE_BASE:
-                return VARIANT_TYPE.SNP;
+                return Variation.VARIANT_TYPE.SNP;
             case UNCALLED:
                 // If there are no alt alleles, all of the genotypes are reference or no calls, so we're a reference site
-                return VARIANT_TYPE.REFERENCE;
+                return Variation.VARIANT_TYPE.REFERENCE;
             case DELETION:
-                return VARIANT_TYPE.DELETION;
+                return Variation.VARIANT_TYPE.DELETION;
             case INSERTION:
-                return VARIANT_TYPE.INSERTION;
+                return Variation.VARIANT_TYPE.INSERTION;
         }
 
         throw new IllegalStateException("The record contains unknown genotype encodings");
     }
 
     public boolean isDeletion() {
-        return getType() == VARIANT_TYPE.DELETION;
+        return getType() == Variation.VARIANT_TYPE.DELETION;
     }
 
     public boolean isInsertion() {
-        return getType() == VARIANT_TYPE.INSERTION;
+        return getType() == Variation.VARIANT_TYPE.INSERTION;
     }
 
     public boolean isIndel() {
@@ -312,7 +312,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public boolean isSNP() {
-        return getType() == VARIANT_TYPE.SNP;
+        return getType() == Variation.VARIANT_TYPE.SNP;
     }
 
     public boolean isNovel() {
@@ -385,7 +385,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      *
      * @return a map, of the info key-value pairs
      */
-    public Map<String, String> getInfoValues() {
+    public final Map<String, String> getInfoValues() {
         if (mInfoFields.size() < 1) {
             Map<String, String> map = new HashMap<String, String>();
             map.put(".", "");
@@ -395,33 +395,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public List<VCFGenotypeRecord> getVCFGenotypeRecords() {
-        ArrayList<VCFGenotypeRecord> list = new ArrayList<VCFGenotypeRecord>();
-        for ( Genotype g : mGenotypeRecords )
-            list.add((VCFGenotypeRecord)g);       
-        return list;
-    }
-
-    public List<Genotype> getGenotypes() {
         return mGenotypeRecords;
-    }
-
-    public Genotype getCalledGenotype() {
-        if ( mGenotypeRecords == null || mGenotypeRecords.size() != 1 )
-            throw new IllegalStateException("There is not one and only one genotype associated with this record");
-        VCFGenotypeRecord record = (VCFGenotypeRecord)mGenotypeRecords.get(0);
-        if ( record.isEmptyGenotype() )
-            return null;
-        return record;
-    }
-
-    public boolean hasGenotype(DiploidGenotype x) {
-        if ( mGenotypeRecords == null )
-            return false;
-        for ( Genotype g : mGenotypeRecords ) {
-            if ( DiploidGenotype.valueOf(g.getBases()).equals(x) )
-                return true;
-        }
-        return false;
     }
 
     /**
@@ -430,8 +404,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     public String[] getSampleNames() {
         String names[] = new String[mGenotypeRecords.size()];
         for (int i = 0; i < mGenotypeRecords.size(); i++) {
-            VCFGenotypeRecord rec = (VCFGenotypeRecord)mGenotypeRecords.get(i);
-            names[i] = rec.getSampleName();
+            names[i] = mGenotypeRecords.get(i).getSampleName();
         }
         return names;
     }
@@ -611,6 +584,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     protected String createInfoString() {
         String info = "";
         for (String str : getInfoValues().keySet()) {
+
             if (str.equals(EMPTY_INFO_FIELD))
                 return EMPTY_INFO_FIELD;
             else
@@ -626,10 +600,10 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @param header  the header object
      */
     private void addGenotypeData(StringBuilder builder, VCFHeader header) {
-        Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(getGenotypes());
+        Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(getVCFGenotypeRecords());
 
         StringBuffer tempStr = new StringBuffer();
-        if ( header.getGenotypeSamples().size() < getGenotypes().size() ) {
+        if ( header.getGenotypeSamples().size() < getVCFGenotypeRecords().size() ) {
             for ( String sample : gMap.keySet() ) {
                 if ( !header.getGenotypeSamples().contains(sample) )
                     System.err.println("Sample " + sample + " is a duplicate or is otherwise not present in the header");
@@ -687,10 +661,10 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
      * @param list a list of genotype samples
      * @return a mapping of the sample name to VCF genotype record
      */
-    private static Map<String, VCFGenotypeRecord> genotypeListToMap(List<Genotype> list) {
+    private static Map<String, VCFGenotypeRecord> genotypeListToMap(List<VCFGenotypeRecord> list) {
         Map<String, VCFGenotypeRecord> map = new HashMap<String, VCFGenotypeRecord>();
         for (int i = 0; i < list.size(); i++) {
-            VCFGenotypeRecord rec = (VCFGenotypeRecord)list.get(i);
+            VCFGenotypeRecord rec = list.get(i);
             map.put(rec.getSampleName(), rec);
         }
         return map;

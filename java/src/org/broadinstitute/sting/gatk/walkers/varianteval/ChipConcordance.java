@@ -94,6 +94,9 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
     }
 
     public String inc(Map<String, Genotype> chips, Variation eval, char ref) {
+        // TODO -- needed to add this for now while we're moving over to VE2
+        if ( !(eval instanceof VariantBackedByGenotype) )
+            return null;
 
         // each implementing class can decide whether the Variation is valid
         assertVariationIsValid(eval);

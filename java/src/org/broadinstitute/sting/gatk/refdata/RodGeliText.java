@@ -28,17 +28,14 @@ package org.broadinstitute.sting.gatk.refdata;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class RodGeliText extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype {
+public class RodGeliText extends BasicReferenceOrderedDatum implements Variation {
     public enum Genotype_Strings {
         AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
     }
@@ -119,7 +116,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      *
      * @return the reference base or bases, as a string
      */
-    @Override
     public String getReference() {
         return String.valueOf(this.refBase);
     }
@@ -130,7 +126,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      *
      * @return the log based error estimate
      */
-    @Override
     public double getNegLog10PError() {
         return Math.abs(lodBtr);
     }
@@ -143,7 +138,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      *
      * @return an alternate allele list
      */
-    @Override
     public List<String> getAlternateAlleleList() {
         List<String> list = new ArrayList<String>();
         for (char base : bestGenotype.toCharArray())
@@ -159,7 +153,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      *
      * @return an alternate allele list
      */
-    @Override
     public List<String> getAlleleList() {
         List<String> list = new ArrayList<String>();
         if (this.bestGenotype.contains(getReference())) list.add(getReference());
@@ -197,15 +190,13 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      *
      * @return VariantFrequency with the stored frequency
      */
-    @Override
     public double getNonRefAlleleFrequency() {
         return 1.0;
     }
 
     /** @return the VARIANT_TYPE of the current variant */
-    @Override
-    public VARIANT_TYPE getType() {
-        return VARIANT_TYPE.SNP;
+    public Variation.VARIANT_TYPE getType() {
+        return Variation.VARIANT_TYPE.SNP;
     }
 
     public boolean isSNP() {
@@ -232,7 +223,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
         // we know that if we're a SNP, the alt is a single base
@@ -247,7 +237,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getReferenceForSNP() {
         if (!isSNP()) throw new IllegalStateException("This site is not a SNP");
         // we know that if we're a SNP, the reference is a single base
@@ -356,41 +345,5 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
         this.bestGenotype = bestGenotype;
         this.lodBtr = (bestLikelihood - refLikelihood);
         this.lodBtnb = (bestLikelihood - nextBestLikelihood);
-    }
-
-
-    /**
-     * get the genotype
-     *
-     * @return a map in lexigraphical order of the genotypes
-     */
-    @Override
-    public Genotype getCalledGenotype() {
-        return new GeliGenotypeCall(Character.toString(refBase), getLocation(), bestGenotype, lodBtnb);
-    }
-
-    /**
-     * get the likelihoods
-     *
-     * @return an array in lexigraphical order of the likelihoods
-     */
-    @Override
-    public List<Genotype> getGenotypes() {
-        List<Genotype> ret = new ArrayList<Genotype>();
-        ret.add(new GeliGenotypeCall(Character.toString(refBase), getLocation(), bestGenotype, lodBtnb));
-        return ret;
-    }
-
-    /**
-     * do we have the specified genotype?  not all backedByGenotypes
-     * have all the genotype data.
-     *
-     * @param x the genotype
-     *
-     * @return true if available, false otherwise
-     */
-    @Override
-    public boolean hasGenotype(DiploidGenotype x) {
-        return (x.toString().equals(this.getAltBasesFWD()));
     }
 }

@@ -11,7 +11,7 @@ import java.util.*;
  *         <p/>
  *         represents a genotype-backed Variation.
  */
-public class BasicGenotypeBackedVariation implements Variation, VariantBackedByGenotype, ConfidenceBacked {
+public class BasicGenotypeBackedVariation implements Variation, VariantBackedByGenotype {
 
     // the discovery lod score
     private double mConfidence = 0.0;

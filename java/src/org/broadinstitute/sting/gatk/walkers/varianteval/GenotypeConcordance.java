@@ -50,8 +50,9 @@ public class GenotypeConcordance extends ChipConcordance implements GenotypeAnal
         for ( Genotype eval : evals ) {
             if ( providedChipName != null )
                 hash.put(providedChipName, eval);
-            else if ( eval instanceof SampleBacked )
-                hash.put(((SampleBacked)eval).getSampleName(), eval);
+            // TODO -- fix me in VE2
+            //else if ( eval instanceof SampleBacked )
+            //    hash.put(((SampleBacked)eval).getSampleName(), eval);
             else if ( rodNames.size() == 1 )
                 hash.put(rodNames.get(0), eval);
             else

@@ -5,11 +5,10 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.junit.Assert;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
@@ -31,11 +30,11 @@ import java.util.List;
  */
 public class RodVCFTest extends BaseTest {
 
-    private static IndexedFastaSequenceFile seq;
     private static File vcfFile = new File(validationDataLocation + "vcfexample.vcf");
     private VCFHeader mHeader;
     @BeforeClass
     public static void beforeTests() {
+        IndexedFastaSequenceFile seq;
         try {
             seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         } catch (FileNotFoundException e) {
@@ -147,13 +146,13 @@ public class RodVCFTest extends BaseTest {
         Iterator<RodVCF> iter = vcf.createIterator("VCF", vcfFile);
         RodVCF rec = iter.next();
         // we should get back a ref 'G' and an alt 'A'
-        List<Genotype> list = rec.getGenotypes();
+        List<VCFGenotypeRecord> list = rec.getVCFGenotypeRecords();
         List<String> knowngenotypes = new ArrayList<String>();
         knowngenotypes.add("GG");
         knowngenotypes.add("AG");
         knowngenotypes.add("AA");
         Assert.assertEquals(3, list.size());
-        for (Genotype g: list) {
+        for (VCFGenotypeRecord g: list) {
             Assert.assertTrue(knowngenotypes.contains(g.getBases()));
         }
     }
@@ -163,22 +162,11 @@ public class RodVCFTest extends BaseTest {
         Iterator<RodVCF> iter = vcf.createIterator("VCF", vcfFile);
         RodVCF rec = iter.next();
         // we should get back a ref 'G' and an alt 'A'
-        List<Genotype> list = rec.getGenotypes();
+        List<VCFGenotypeRecord> list = rec.getVCFGenotypeRecords();
         Assert.assertEquals(4.8,list.get(0).getNegLog10PError(),0.0001);
         Assert.assertEquals(4.8,list.get(1).getNegLog10PError(),0.0001);
         Assert.assertEquals(4.3,list.get(2).getNegLog10PError(),0.0001);
     }
-    @Test
-    public void testHasGenotypes() {
-        RodVCF vcf = getVCFObject();
-        Iterator<RodVCF> iter = vcf.createIterator("VCF", vcfFile);
-        RodVCF rec = iter.next();
-        Assert.assertTrue(rec.hasGenotype(DiploidGenotype.valueOf("GG")));
-        Assert.assertTrue(rec.hasGenotype(DiploidGenotype.valueOf("AG")));
-        Assert.assertTrue(rec.hasGenotype(DiploidGenotype.valueOf("AA")));
-        Assert.assertTrue(!rec.hasGenotype(DiploidGenotype.valueOf("TT")));
-    }
-
     @Test
     public void testGetLocation() {
         RodVCF vcf = getVCFObject();

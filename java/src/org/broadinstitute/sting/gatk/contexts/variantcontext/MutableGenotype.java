@@ -12,9 +12,16 @@ public class MutableGenotype extends Genotype {
         super(parent.getSampleName(), parent.getAlleles(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes(), parent.genotypesArePhased());
     }
 
-    // todo -- add rest of genotype constructors here
+    public MutableGenotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean genotypesArePhased) {
+        super(sampleName, alleles, negLog10PError, filters, attributes, genotypesArePhased);
+    }
+
     public MutableGenotype(String sampleName, List<Allele> alleles, double negLog10PError) {
         super(sampleName, alleles, negLog10PError);
+    }
+
+    public MutableGenotype(String sampleName, List<Allele> alleles) {
+        super(sampleName, alleles);
     }
 
     public Genotype unmodifiableGenotype() {
@@ -24,7 +31,7 @@ public class MutableGenotype extends Genotype {
 
     /**
      *
-     * @param alleles
+     * @param alleles list of alleles
      */
     public void setAlleles(List<Allele> alleles) {
         this.alleles.clear();

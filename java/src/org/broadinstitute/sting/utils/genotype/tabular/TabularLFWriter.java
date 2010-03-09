@@ -1,13 +1,14 @@
 package org.broadinstitute.sting.utils.genotype.tabular;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.List;
 
 
 /**
@@ -26,7 +27,7 @@ public class TabularLFWriter implements GenotypeWriter {
 
     /**
      * construct, writing to a specified file
-     * @param writeTo
+     * @param writeTo file to write to
      */
     public TabularLFWriter(File writeTo) {
         try {
@@ -39,52 +40,56 @@ public class TabularLFWriter implements GenotypeWriter {
     }
 
     /**
-     * Add a genotype, given a genotype locus
+     * Add a genotype, given a variant context
      *
-     * @param locus the locus to add
+     * @param vc  the variant context representing the call to add
      */
-    public void addGenotypeCall(Genotype locus) {
-        double likelihoods[];
-        int readDepth = -1;
-        double nextVrsBest = 0;
-        double nextVrsRef = 0;
-        if (!(locus instanceof LikelihoodsBacked)) {
+    public void addCall(VariantContext vc) {
+        if ( vc.getNSamples() != 1 )
+            throw new IllegalArgumentException("The tabular LF format does not support multi-sample or no-calls");
+
+        org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype genotype = vc.getGenotypes().values().iterator().next();
+        if ( genotype.isNoCall() )
+            throw new IllegalArgumentException("The tabular LF format does not support no-calls");
+
+        ReadBackedPileup pileup;
+        double[] likelihoods;
+        if ( genotype instanceof CalledGenotype) {
+            pileup = ((CalledGenotype)genotype).getReadBackedPileup();
+            likelihoods = ((CalledGenotype)genotype).getLikelihoods();
+        } else {
+            pileup = (ReadBackedPileup)genotype.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
+            likelihoods = (double[])genotype.getAttribute(CalledGenotype.LIKELIHOODS_ATTRIBUTE_KEY);
+        }
+
+        if ( likelihoods == null ) {
             likelihoods = new double[10];
             Arrays.fill(likelihoods, Double.MIN_VALUE);
-        } else {
-            likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
-
         }
-        char ref = locus.getReference().charAt(0);
 
-        if (locus instanceof ReadBacked) {
-            readDepth = ((ReadBacked)locus).getReadCount();
-        }
+        int readDepth = pileup == null ? -1 : pileup.size();
+
+        double nextVrsBest = 0;
+        double nextVrsRef = 0;
+        char ref = vc.getReference().toString().charAt(0);
+
+
         /**
          * This output is not correct, but I don't we even use this format anymore.  If we do, someone
          * should change this code
           */
         outStream.println(String.format("%s %s %c %s %s %f %f %f %f %d %s",
-	                                        locus.getLocation().toString(),
+	                                        vc.getLocation().toString(),
 											"NOT OUTPUTED",
 	                                        ref,
-	                                        locus.getBases(),
-											locus.getBases(),
+	                                        genotype.getGenotypeString(),
+											genotype.getGenotypeString(),
 	                                        -1,
 	                                        -1,
                                             nextVrsRef,
                                             nextVrsBest,
 	                                        readDepth,
-											locus.getBases()));
-    }
-
-    /**
-     * add a no call to the genotype file, if supported.
-     *
-     * @param position
-     */
-    public void addNoCall(int position) {
-        throw new StingException("TabularLFWriter doesn't support no-calls");
+											genotype.getGenotypeString()));
     }
 
     /** finish writing, closing any open files. */
@@ -92,20 +97,5 @@ public class TabularLFWriter implements GenotypeWriter {
         if (this.outStream != null) {
             outStream.close();
         }
-    }
-
-
-    /**
-     * add a multi-sample call if we support it
-     *
-     * @param genotypes the list of genotypes, that are backed by sample information
-     */
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall metadata) {
-        throw new UnsupportedOperationException("Tabular LF doesn't support multisample calls");
-    }
-
-    /** @return true if we support multisample, false otherwise */
-    public boolean supportsMultiSample() {
-        return false;
     }
 }

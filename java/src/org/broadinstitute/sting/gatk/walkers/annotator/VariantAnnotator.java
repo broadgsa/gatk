@@ -1,16 +1,15 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
-import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.playground.gatk.walkers.variantstovcf.VariantsToVCF;
 
 import java.util.*;
 import java.io.*;
@@ -38,7 +37,6 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     protected Boolean LIST = false;
 
     private VCFWriter vcfWriter;
-    private VCFHeader vcfHeader;
 
     private HashMap<String, String> nonVCFsampleName = new HashMap<String, String>();
 
@@ -155,7 +153,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             hInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY,1,VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 3 membership"));
 
         vcfWriter = new VCFWriter(VCF_OUT);
-        vcfHeader = new VCFHeader(hInfo, samples);
+        VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }
 
@@ -192,15 +190,26 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             return 0;
 
         Map<String, String> annotations = new HashMap<String, String>();
-        VariationRod variant = (VariationRod)rods.get(0);
+        ReferenceOrderedDatum variant = rods.get(0);
+        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant);
+        if ( vc == null )
+            return 0;
 
         // if the reference base is not ambiguous, we can annotate
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null )
-                annotations = getAnnotations(tracker, ref, stratifiedContexts, variant, requestedAnnotations, annotateDbsnp, annotateHapmap2, annotateHapmap3);
+                annotations = getAnnotations(tracker, ref, stratifiedContexts, vc, requestedAnnotations, annotateDbsnp, annotateHapmap2, annotateHapmap3);
         }
-        writeVCF(tracker, ref, context, variant, annotations);
+
+        VCFRecord record;
+        if ( variant instanceof RodVCF )
+            record = ((RodVCF)variant).mCurrentRecord;
+        else
+            record = VariantContextAdaptors.toVCF(vc, ref.getBase());
+
+        record.addInfoFields(annotations);
+        writeVCF(tracker, record);
 
         return 1;
     }
@@ -240,21 +249,21 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     }
 
     // option #1: don't specify annotations to be used: standard annotations are used by default
-    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(tracker, ref, stratifiedContexts, variation, standardAnnotations.values(), annotateDbsnp, annotateHapmap2, annotateHapmap3);
+        return getAnnotations(tracker, ref, stratifiedContexts, vc, standardAnnotations.values(), annotateDbsnp, annotateHapmap2, annotateHapmap3);
     }
 
     // option #2: specify that all possible annotations be used
-    public static Map<String, String> getAllAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
+    public static Map<String, String> getAllAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
         if ( allAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(tracker, ref, stratifiedContexts, variation, allAnnotations.values(), annotateDbsnp, annotateHapmap2, annotateHapmap3);
+        return getAnnotations(tracker, ref, stratifiedContexts, vc, allAnnotations.values(), annotateDbsnp, annotateHapmap2, annotateHapmap3);
     }
 
     // option #3: specify the exact annotations to be used
-    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation, Collection<VariantAnnotation> annotations, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
+    public static Map<String, String> getAnnotations(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc, Collection<VariantAnnotation> annotations, boolean annotateDbsnp, boolean annotateHapmap2, boolean annotateHapmap3) {
 
         HashMap<String, String> results = new HashMap<String, String>();
 
@@ -275,7 +284,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         }
 
         for ( VariantAnnotation annotator : annotations) {
-            String annot = annotator.annotate(tracker, ref, stratifiedContexts, variation);
+            String annot = annotator.annotate(tracker, ref, stratifiedContexts, vc);
             if ( annot != null ) {
                 results.put(annotator.getKeyName(), annot);
             }
@@ -284,29 +293,14 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         return results;
     }
 
-    private void writeVCF(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariationRod variant, Map<String, String> annotations) {
-        VCFRecord rec = getVCFRecord(tracker, ref, context, variant);
-        if ( rec != null ) {
-            rec.addInfoFields(annotations);
-            // also, annotate dbsnp id if available and not already there
-            if ( annotateDbsnp && (rec.getID() == null || rec.getID().equals(".")) ) {
-                rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
-                if ( dbsnp != null )
-                    rec.setID(dbsnp.getRS_ID());
-            }
-            vcfWriter.addRecord(rec);
+    private void writeVCF(RefMetaDataTracker tracker, VCFRecord record) {
+        // annotate dbsnp id if available and not already there
+        if ( annotateDbsnp && (record.getID() == null || record.getID().equals(VCFRecord.EMPTY_ID_FIELD)) ) {
+            rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+            if ( dbsnp != null )
+                record.setID(dbsnp.getRS_ID());
         }
-    }
-
-
-    private VCFRecord getVCFRecord(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariationRod variant) {
-        if ( variant instanceof RodVCF ) {
-            return ((RodVCF)variant).mCurrentRecord;
-        } else {
-            List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
-            Map<VCFHeader.HEADER_FIELDS, String> map = new HashMap<VCFHeader.HEADER_FIELDS, String>();
-            return VariantsToVCF.generateVCFRecord(tracker, ref, context, vcfHeader, gt, map, nonVCFsampleName, out, false, false);
-        }
+        vcfWriter.addRecord(record);
     }
 
     /**

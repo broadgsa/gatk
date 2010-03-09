@@ -2,33 +2,27 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.SampleBacked;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
 
 
 public class QualByDepth extends StandardVariantAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
-        if ( !(variation instanceof VariantBackedByGenotype) )
-            return null;
-        final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();
+    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
-        //double QbyD = genotypeQualByDepth(ref.getBase(), genotypes, stratifiedContexts);
-        int qDepth = variationQualByDepth(ref.getBase(), genotypes, stratifiedContexts);
+        //double QbyD = genotypeQualByDepth(genotypes, stratifiedContexts);
+        int qDepth = variationQualByDepth(genotypes, stratifiedContexts);
         if ( qDepth == 0 )
             return null;
 
-        double QbyD = 10.0 * variation.getNegLog10PError() / (double)qDepth;
+        double QbyD = 10.0 * vc.getNegLog10PError() / (double)qDepth;
         return String.format("%.2f", QbyD);
     }
 
@@ -36,18 +30,15 @@ public class QualByDepth extends StandardVariantAnnotation {
 
     public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Variant Confidence/Quality by Depth"); }
 
-    private int variationQualByDepth(char ref, final List<Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
+    private int variationQualByDepth(final Map<String, Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
         int depth = 0;
-        for ( Genotype genotype : genotypes ) {
-            if ( !(genotype instanceof SampleBacked) )
-                continue;
+        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
 
             // we care only about variant calls
-            if ( !genotype.isVariant(ref) )
+            if ( genotype.getValue().isHomRef() )
                 continue;
 
-            String sample = ((SampleBacked)genotype).getSampleName();
-            StratifiedAlignmentContext context = stratifiedContexts.get(sample);
+            StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
             if ( context != null )
                 depth += context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
         }
@@ -55,22 +46,19 @@ public class QualByDepth extends StandardVariantAnnotation {
         return depth;
     }
 
-    private double genotypeQualByDepth(char ref, final List<Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
+    private double genotypeQualByDepth(final Map<String, Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
         ArrayList<Double> qualsByDepth = new ArrayList<Double>();
-        for ( Genotype genotype : genotypes ) {
-            if ( !(genotype instanceof SampleBacked) )
-                continue;
+        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
 
             // we care only about variant calls
-            if ( !genotype.isVariant(ref) )
+            if ( genotype.getValue().isHomRef() )
                 continue;
 
-            String sample = ((SampleBacked)genotype).getSampleName();
-            StratifiedAlignmentContext context = stratifiedContexts.get(sample);
+            StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
             if ( context == null )
                 continue;
 
-            qualsByDepth.add(genotype.getNegLog10PError() / context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+            qualsByDepth.add(genotype.getValue().getNegLog10PError() / context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
         }
 
         double mean = 0.0;

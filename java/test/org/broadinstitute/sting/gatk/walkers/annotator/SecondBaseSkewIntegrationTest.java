@@ -14,7 +14,9 @@ import java.util.Arrays;
  */
 public class SecondBaseSkewIntegrationTest extends WalkerTest {
 
-    @Test
+    // TODO -- reinstitute these integration tests when GELI -> VariantContext is supported
+
+    //@Test
     public void secondBaseSkewTest() {
         for ( int test = 1; test <= 2; test ++ ) {
             String bamFilePath = VariantAnnotatorIntegrationTest.validationDataPath()+VariantAnnotatorIntegrationTest.secondBaseTestFile(test)+".a2b.recal.annotation_subset.bam";
@@ -25,7 +27,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testOnE2File() {
         String test_args = "-T VariantAnnotator -A SecondBaseSkew "
                 +"-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
@@ -41,7 +43,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
 
     }
 
-    @Test
+    //@Test
     public void testOnUnannotatedFile() {
         String test_args = "-T VariantAnnotator -A SecondBaseSkew "
                 +"-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "

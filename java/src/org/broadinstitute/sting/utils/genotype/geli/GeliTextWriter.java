@@ -1,16 +1,19 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Arrays;
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 
@@ -56,18 +59,34 @@ public class GeliTextWriter implements GeliGenotypeWriter {
     }
 
     /**
-     * Add a genotype, given a call
+     * Add a genotype, given a variant context
      *
-     * @param call the call to add
+     * @param vc  the variant context representing the call to add
      */
-    public void addGenotypeCall(Genotype call) {
-        if ( !(call instanceof GeliGenotypeCall) )
-            throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
-        GeliGenotypeCall gCall = (GeliGenotypeCall)call;
+    public void addCall(VariantContext vc) {
 
-        char ref = gCall.getReference().charAt(0);
+        char ref = vc.getReference().toString().charAt(0);
 
-        double[] posteriors = gCall.getPosteriors();
+        if ( vc.getNSamples() != 1 )
+            throw new IllegalArgumentException("The Geli format does not support multi-sample or no-calls");
+
+        org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype genotype = vc.getGenotypes().values().iterator().next();
+        if ( genotype.isNoCall() )
+            throw new IllegalArgumentException("The Geli format does not support no-calls");
+
+        ReadBackedPileup pileup;
+        double[] posteriors;
+        if ( genotype instanceof CalledGenotype ) {
+            pileup = ((CalledGenotype)genotype).getReadBackedPileup();
+            posteriors = ((CalledGenotype)genotype).getPosteriors();
+        } else {
+            pileup = (ReadBackedPileup)genotype.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
+            posteriors = (double[])genotype.getAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY);
+        }
+
+        if ( posteriors == null )
+            throw new IllegalArgumentException("The Geli format requires posteriors");
+
         double[] lks;
         lks = Arrays.copyOf(posteriors, posteriors.length);
         Arrays.sort(lks);
@@ -77,20 +96,31 @@ public class GeliTextWriter implements GeliGenotypeWriter {
         if (ref != 'X')
             nextVrsRef = lks[9] - posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
 
+        int readCount = 0;
         double maxMappingQual = 0;
-        List<SAMRecord> recs = gCall.getPileup().getReads();
-        int readDepth = recs.size();
-        for (SAMRecord rec : recs) {
-            if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
+        if ( pileup != null ) {
+            readCount = pileup.size();
+            for (PileupElement p : pileup ) {
+                if ( maxMappingQual < p.getMappingQual() )
+                    maxMappingQual = p.getMappingQual();
+            }
         }
 
+        ArrayList<Character> alleles = new ArrayList<Character>();
+        for ( Allele a : genotype.getAlleles() )
+            alleles.add(a.toString().charAt(0));
+        Collections.sort(alleles);
+        StringBuffer sb = new StringBuffer();
+        for ( Character base : alleles )
+            sb.append(base);
+
         mWriter.println(String.format("%s    %16d  %c  %8d  %.0f  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
-                                      gCall.getLocation().getContig(),
-                                      gCall.getLocation().getStart(),
+                                      vc.getLocation().getContig(),
+                                      vc.getLocation().getStart(),
                                       ref,
-                                      readDepth,
+                                      readCount,
                                       maxMappingQual,
-                                      gCall.getBases(),
+                                      sb.toString(),
                                       nextVrsRef,
                                       nextVrsBest,
                                       posteriors[0],
@@ -111,32 +141,9 @@ public class GeliTextWriter implements GeliGenotypeWriter {
         mWriter.flush();  // necessary so that writing to an output stream will work
     }
 
-    /**
-     * add a no call to the genotype file, if supported.
-     *
-     * @param position the position to add the no call at
-     */
-    public void addNoCall(int position) {
-        throw new UnsupportedOperationException("Geli text format doesn't support a no-call call.");
-    }
-
     /** finish writing, closing any open files. */
     public void close() {
         mWriter.flush();
         mWriter.close();
-    }
-
-    /**
-     * add a multi-sample call if we support it
-     *
-     * @param genotypes the list of genotypes
-     */
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall metadata) {
-        throw new UnsupportedOperationException("Geli text doesn't support multisample calls");
-    }
-
-    /** @return true if we support multisample, false otherwise */
-    public boolean supportsMultiSample() {
-        return false;
     }
 }

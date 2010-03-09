@@ -101,6 +101,30 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
+    // testing beagle output
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testOtherOutput() {
+        String[] md5s = {"8c7dd53a402b727753002ebcd76168ac", "8cba0b8752f18fc620b4697840bc7291"};
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper" +
+                        " -R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam" +
+                        " -varout %s" +
+                        " -beagle %s" +
+                        " -L 1:10,023,400-10,024,000" +
+                        " -bm empirical" +
+                        " -gm JOINT_ESTIMATE" +
+		        " -vf VCF",
+                2,
+                Arrays.asList(md5s));
+
+        executeTest(String.format("testOtherOutput"), spec);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
     // testing other output formats
     //
     // --------------------------------------------------------------------------------------------------------------
@@ -182,29 +206,5 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 Arrays.asList("3c6d76d55d608482940cd725b87ef07d"));
 
         executeTest(String.format("testMultiTechnologies"), spec);
-    }
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // testing beagle output
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void testOtherOutput() {
-        String[] md5s = {"78482125d51f9eb2ee850a6b25921e84", "8cba0b8752f18fc620b4697840bc7291"};
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper" +
-                        " -R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam" +
-                        " -varout %s" +
-                        " -beagle %s" +
-                        " -L 1:10,023,400-10,024,000" +
-                        " -bm empirical" +
-                        " -gm JOINT_ESTIMATE" +
-		        " -vf GELI",
-                2,
-                Arrays.asList(md5s));
-
-        executeTest(String.format("testOtherOutput"), spec);
     }
 }

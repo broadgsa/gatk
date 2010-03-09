@@ -23,9 +23,9 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
 
     /**
      *
-     * @param ref
-     * @param contexts
-     * @param contextType
+     * @param ref           reference base
+     * @param contexts      alignment contexts
+     * @param contextType   context type
      */
     protected void initialize(char ref, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
         super.initialize(ref, contexts, contextType);
@@ -48,7 +48,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
     protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int nChromosomes, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
 
         StratifiedAlignmentContext context = contexts.get(POOL_SAMPLE_NAME);
-        ReadBackedPileup pileup = context.getContext(contextType).getPileup();
+        ReadBackedPileup pileup = context.getContext(contextType).getBasePileup();
 
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref);
         int altIndex = BaseUtils.simpleBaseToBaseIndex(alt);
@@ -119,7 +119,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
     }
 
     private double calcPBGivenH(int refIndex, int altIndex, int nAltAlleles, int nChromosomes, char base, byte qual, SAMRecord read, int offset) {
-        double L = 0.0;
+        double L;
 
         if ( USE_CACHE ) {
             L = getCache(refIndex, altIndex, nAltAlleles, base, qual, read);

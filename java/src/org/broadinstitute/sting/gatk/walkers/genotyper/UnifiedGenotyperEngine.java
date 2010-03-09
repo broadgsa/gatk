@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
@@ -108,10 +109,6 @@ public class UnifiedGenotyperEngine {
 
         // in pooled mode we need to check that the format is acceptable
         if ( UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED && genotypeWriter != null ) {
-            // only multi-sample calls use Variations
-            if ( !genotypeWriter.supportsMultiSample() )
-                throw new IllegalArgumentException("The POOLED model is not compatible with the specified format; try using VCF instead");
-
             // when using VCF with multiple threads, we need to turn down the validation stringency so that writing temporary files will work
             if ( toolkit.getArguments().numberOfThreads > 1 && genotypeWriter instanceof VCFGenotypeWriter )
                 ((VCFGenotypeWriter)genotypeWriter).setValidationStringency(VCFGenotypeWriterAdapter.VALIDATION_STRINGENCY.SILENT);
@@ -194,16 +191,16 @@ public class UnifiedGenotyperEngine {
         VariantCallContext call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
         // annotate the call, if possible
-        if ( call != null && call.variation != null && call.variation instanceof ArbitraryFieldsBacked ) {
+        if ( call != null && call.vc != null ) {
             // first off, we want to use the *unfiltered* context for the annotations
             stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
 
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp, annotateHapmap2, annotateHapmap3);
+                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
             else
-                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.variation, annotateDbsnp, annotateHapmap2, annotateHapmap3);
-            ((ArbitraryFieldsBacked)call.variation).setFields(annotations);
+                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
+            ((MutableVariantContext)call.vc).putAttributes(annotations);
         }
 
         return call;

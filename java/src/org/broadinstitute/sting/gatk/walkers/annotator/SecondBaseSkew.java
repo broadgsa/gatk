@@ -4,10 +4,10 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 import java.util.Map;
@@ -30,11 +30,11 @@ public class SecondBaseSkew implements VariantAnnotation {
 
     public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Chi-square Secondary Base Skew"); }
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
-        if ( !variation.isBiallelic() || !variation.isSNP() )
+    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
 
-        char alternate = variation.getAlternativeBaseForSNP();
+        char alternate = vc.getAlternateAllele(0).toString().charAt(0);
 
         Pair<Integer, Integer> depth = new Pair<Integer, Integer>(0, 0);
         for ( String sample : stratifiedContexts.keySet() ) {

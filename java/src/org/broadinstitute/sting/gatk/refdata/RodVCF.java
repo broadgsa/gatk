@@ -2,9 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
@@ -20,7 +18,7 @@ import java.util.*;
  *         <p/>
  *         An implementation of the ROD for VCF.
  */
-public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, Iterator<RodVCF> {
+public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Iterator<RodVCF> {
     public VCFReader getReader() {
         return mReader;
     }
@@ -107,7 +105,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     /** @return the VARIANT_TYPE of the current variant */
-    public VARIANT_TYPE getType() {
+    public Variation.VARIANT_TYPE getType() {
         assertNotNull();
         return mCurrentRecord.getType();
     }
@@ -130,8 +128,9 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     /**
      * are we a novel site? Is there a DBSNP identifier
      * or a hapmap entry for the site?
+     *
+     * @return true if this site is novel
      */
-
     public boolean isNovel() {
         assertNotNull();
         return mCurrentRecord.isNovel();
@@ -173,7 +172,9 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         return mCurrentRecord.getReference();
     }
 
-    /** are we bi-allelic? */
+    /** are we bi-allelic?
+     * @return true if we're bi-allelic
+     */
     public boolean isBiallelic() {
         assertNotNull();
         return mCurrentRecord.isBiallelic();
@@ -271,28 +272,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     /**
-     * get the genotype
-     *
-     * // todo -- WTF is this?  This is a deeply unsafe call
-     *
-     * @return a map in lexigraphical order of the genotypes
-     */
-    public Genotype getCalledGenotype() {
-        assertNotNull();
-        return mCurrentRecord.getCalledGenotype();
-    }
-
-    /**
-     * get the genotypes
-     *
-     * @return a list of the genotypes
-     */
-    public List<Genotype> getGenotypes() {
-        assertNotNull();
-        return mCurrentRecord.getGenotypes();
-    }
-
-    /**
      * get the genotypes
      *
      * @return a list of the genotypes
@@ -306,23 +285,10 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      * Returns the genotype associated with sample, or null if the genotype is missing
      *
      * @param sampleName the name of the sample genotype to fetch
-     * @return
+     * @return genotype record
      */
-    public Genotype getGenotype(final String sampleName) {
+    public VCFGenotypeRecord getGenotype(final String sampleName) {
         return mCurrentRecord.getGenotype(sampleName);
-    }
-
-    /**
-     * do we have the specified genotype?  not all backedByGenotypes
-     * have all the genotype data.
-     *
-     * @param x the genotype
-     *
-     * @return true if available, false otherwise
-     */
-    public boolean hasGenotype(DiploidGenotype x) {
-        assertNotNull();
-        return mCurrentRecord.hasGenotype(x);
     }
 
     public String[] getSampleNames() {

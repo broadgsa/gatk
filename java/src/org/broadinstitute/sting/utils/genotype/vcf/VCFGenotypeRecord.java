@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 
@@ -12,7 +11,7 @@ import java.util.*;
  *         Class VCFGenotypeRecord
  *         <p/>
  */
-public class VCFGenotypeRecord implements Genotype, SampleBacked {
+public class VCFGenotypeRecord {
 
     // key names
     public static final String GENOTYPE_KEY = "GT";
@@ -143,10 +142,6 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
         return mRecord != null ? mRecord.getReference() : "N";
     }
 
-    public Variation toVariation(char ref) {
-        return mRecord != null ? mRecord : null;
-    }
-
     public String getBases() {
         String genotype = "";
         for ( VCFGenotypeEncoding encoding : mGenotypeAlleles )
@@ -199,6 +194,10 @@ public class VCFGenotypeRecord implements Genotype, SampleBacked {
 
     public int getPloidy() {
         return 2;
+    }
+
+    public VCFRecord getRecord() {
+        return mRecord;
     }
 
     private String toGenotypeString(List<VCFGenotypeEncoding> altAlleles) {

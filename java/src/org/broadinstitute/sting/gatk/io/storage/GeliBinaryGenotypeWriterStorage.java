@@ -54,7 +54,6 @@ public class GeliBinaryGenotypeWriterStorage extends GenotypeWriterStorage<GeliG
      * Merges the stream backing up this temporary storage into the target.
      * @param target Target stream for the temporary storage.  May not be null.
      */
-    @Override
     public void mergeInto(GeliGenotypeWriter target) {
         GeliFileReader reader = new GeliFileReader(file);
         while ( reader.hasNext() )

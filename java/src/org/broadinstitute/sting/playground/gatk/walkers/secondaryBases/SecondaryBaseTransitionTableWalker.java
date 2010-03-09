@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.secondaryBases;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
@@ -9,7 +10,6 @@ import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.playground.utils.NamedTable;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -50,12 +50,12 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
 
         if (contextBases.length == 3 && refBase != 'N' && pileup.getBases() != null && pileup.getSecondaryBases() != null) {
             VariantCallContext ugResult = ug.runGenotyper(tracker,ref,context);
-            if (ugResult != null && ugResult.variation != null) {
-                Genotype res = ugResult.genotypes.get(0);
-                String call = res.getBases();
+            if (ugResult != null && ugResult.vc != null) {
+                Genotype res = ugResult.vc.getGenotype(0);
+                String call = res.getGenotypeString();
                 String type;
                 String alleleBalance = "N/A";
-                if (!res.isVariant(refBase)) {
+                if (res.isHomRef()) {
                     type = "homref";
                 }
                 else if (!res.isHet()) {type = "homvar";}

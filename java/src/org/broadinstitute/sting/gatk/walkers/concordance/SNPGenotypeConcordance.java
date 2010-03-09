@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 
 import java.util.*;
 
@@ -30,13 +30,13 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         sample2 = iter.next();
     }
 
-    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
+    public String computeConcordance(Map<String, VCFGenotypeRecord> samplesToRecords, ReferenceContext ref) {
         char refBase = ref.getBase();
 
-        Genotype call1 = samplesToRecords.get(sample1);
+        VCFGenotypeRecord call1 = samplesToRecords.get(sample1);
         if ( call1 != null && call1.isNoCall() )
             call1 = null;
-        Genotype call2 = samplesToRecords.get(sample2);
+        VCFGenotypeRecord call2 = samplesToRecords.get(sample2);
         if ( call2 != null && call2.isNoCall() )
             call2 = null;
 

@@ -2,10 +2,10 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -16,27 +16,26 @@ public abstract class RankSumTest implements VariantAnnotation {
     private final static boolean DEBUG = false;
     private static final double minPValue = 1e-10;
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, Variation variation) {
+    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
-        if ( !variation.isBiallelic() || !variation.isSNP() || !(variation instanceof VariantBackedByGenotype) )
+        if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
         
-        final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();
+        final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
         ArrayList<Integer> refQuals = new ArrayList<Integer>();
         ArrayList<Integer> altQuals = new ArrayList<Integer>();
 
-        for ( Genotype genotype : genotypes ) {
+        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
             // we care only about het calls
-            if ( genotype.isHet() ) {
-                String sample = ((SampleBacked)genotype).getSampleName();
-                StratifiedAlignmentContext context = stratifiedContexts.get(sample);
+            if ( genotype.getValue().isHet() ) {
+                StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
                 if ( context == null )
                     continue;
 
-                fillQualsFromPileup(ref.getBase(), variation.getAlternativeBaseForSNP(), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
+                fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
             }
         }
 

@@ -54,7 +54,6 @@ public class GLFGenotypeWriterStorage extends GenotypeWriterStorage<GLFGenotypeW
      * Merges the stream backing up this temporary storage into the target.
      * @param target Target stream for the temporary storage.  May not be null.
      */
-    @Override
     public void mergeInto(GLFGenotypeWriter target) {
         GLFReader reader = new GLFReader(file);
         while ( reader.hasNext() ) {

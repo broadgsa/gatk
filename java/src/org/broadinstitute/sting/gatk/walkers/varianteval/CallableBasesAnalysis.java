@@ -61,7 +61,8 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
 
         // we actually have a record here
         if (!(eval instanceof VariantBackedByGenotype)) {            // evaluation record isn't a genotype, die!
-            throw new RuntimeException("Evaluation track isn't backed by a Genotype!");
+            return null;
+            //throw new RuntimeException("Evaluation track isn't backed by a Genotype!");
         }
 
         all_calls++;

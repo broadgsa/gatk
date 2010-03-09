@@ -5,8 +5,6 @@ import net.sf.samtools.SAMFileHeader;
 
 import java.util.*;
 
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.SampleBacked;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
@@ -39,21 +37,6 @@ public class SampleUtils {
         List<SAMReadGroupRecord> readGroups = header.getReadGroups();
         for ( SAMReadGroupRecord readGroup : readGroups )
             samples.add(readGroup.getSample());
-        return samples;
-    }
-
-    /**
-     * get the samples names from genotype objects if they are backed by samples
-     *
-     * @param genotypes the genotype list
-     * @return list of strings representing the sample names
-     */
-    public static List<String> getGenotypeSamples(List<Genotype> genotypes) {
-        List<String> samples = new ArrayList<String>();
-        for ( Genotype genotype : genotypes ) {
-            if ( genotype instanceof SampleBacked )
-                samples.add(((SampleBacked)genotype).getSampleName());
-        }
         return samples;
     }
 

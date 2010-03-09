@@ -5,8 +5,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -14,8 +13,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
+
+import net.sf.samtools.SAMSequenceRecord;
 
 
 /*
@@ -55,9 +54,8 @@ public class GLFWriterTest extends BaseTest {
     /** some made up values that we use to generate the GLF */
     private final String header = "";
     private static final int GENOTYPE_COUNT = 10;
-    private GenotypeWriter rec;
+    private GLFWriter rec;
     protected static final String[] genotypes = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT"};
-    private static IndexedFastaSequenceFile seq;
     protected final static double SIGNIFICANCE = 5.1;
 
     @Before
@@ -67,6 +65,7 @@ public class GLFWriterTest extends BaseTest {
 
     @BeforeClass
     public static void beforeTests() {
+        IndexedFastaSequenceFile seq;
         try {
             seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         } catch (FileNotFoundException e) {
@@ -77,37 +76,31 @@ public class GLFWriterTest extends BaseTest {
     }
 
     /**
-     * create a fake genotype
+     * create a fake genotype likehoods set
      * @param bestGenotype the best genotype, as an index into the array of values
-     * @param location the location we're creating the genotype at
-     * @param ref the reference base
-     * @return a FakeGenotype (a fake genotype)
+     * @return fake genotype likelihoods
      */
-    private FakeGenotype createGenotype(int bestGenotype, GenomeLoc location, char ref) {
+    private LikelihoodObject createLikelihoods(int bestGenotype) {
         double lk[] = new double[GENOTYPE_COUNT];
         for (int x = 0; x < GENOTYPE_COUNT; x++) {
             lk[x] = -15.0 - (double) x; // they'll all be unique like a snowflake
         }
         lk[bestGenotype] = -10.0; // lets make the best way better
-
-        return new FakeGenotype(location, genotypes[bestGenotype], ref, SIGNIFICANCE, lk);
+        return new LikelihoodObject(lk, LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
     }
 
     /**
-     * create a fake genotype with a minimum likelihood greater than 255
+     * create a fake genotype likelihhods set with a minimum likelihood greater than 255
      * @param bestGenotype the best genotype, as an index into the array of values
-     * @param location the location we're creating the genotype at
-     * @param ref the reference base
-     * @return a FakeGenotype (a fake genotype)
+     * @return fake genotype likelihoods
      */
-    private FakeGenotype createGreaterThan255MinimumGenotype(int bestGenotype, GenomeLoc location, char ref) {
+    private LikelihoodObject createGreaterThan255MinimumGenotype(int bestGenotype) {
         double lk[] = new double[GENOTYPE_COUNT];
         for (int x = 0; x < GENOTYPE_COUNT; x++) {
             lk[x] = -355.0 - (double) x; // they'll all be unique like a snowflake
         }
         lk[bestGenotype] = -256.0; // lets make the best way better
-
-        return new FakeGenotype(location, genotypes[bestGenotype], ref, SIGNIFICANCE, lk);
+        return new LikelihoodObject(lk, LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
     }
 
 
@@ -120,11 +113,10 @@ public class GLFWriterTest extends BaseTest {
         writeTo.deleteOnExit();
 
         rec = new GLFWriter(writeTo);
-        ((GLFWriter)rec).writeHeader(header);
+        rec.writeHeader(header);
         for (int x = 0; x < 100; x++) {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
-            Genotype type = createGenotype(x % 10, loc, 'A');
-            rec.addGenotypeCall(type);
+            rec.addCall(new SAMSequenceRecord("test", 0), (int)loc.getStart(), 10, 'A', 9, createLikelihoods(x % 10));
         }
         rec.close();
 
@@ -139,11 +131,10 @@ public class GLFWriterTest extends BaseTest {
         writeTo.deleteOnExit();
 
         rec = new GLFWriter(writeTo);
-        ((GLFWriter)rec).writeHeader(header);
+        rec.writeHeader(header);
         for (int x = 0; x < 5; x++) {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
-            Genotype type = createGreaterThan255MinimumGenotype(x % 10, loc, 'A');
-            rec.addGenotypeCall(type);
+            rec.addCall(new SAMSequenceRecord("test", 0), (int)loc.getStart(), 10, 'A', 9, createGreaterThan255MinimumGenotype(x % 10));
         }
         rec.close();
 
@@ -158,96 +149,19 @@ public class GLFWriterTest extends BaseTest {
     public void basicWriteThenRead() {
         File writeTo = new File("testGLF2.glf");
         writeTo.deleteOnExit();
-        List<FakeGenotype> types = new ArrayList<FakeGenotype>();
         rec = new GLFWriter(writeTo);
-        ((GLFWriter)rec).writeHeader(header);
+        rec.writeHeader(header);
         for (int x = 0; x < 100; x++) {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
-            FakeGenotype type = createGenotype(x % 10, loc, 'A');
-            types.add(type);
-            rec.addGenotypeCall(type);
+            rec.addCall(new SAMSequenceRecord("test", 0), (int)loc.getStart(), 10, 'A', 9, createLikelihoods(x % 10));
         }
         rec.close();
         GLFReader reader = new GLFReader(writeTo);
         int count = 0;
         while (reader.hasNext()) {
-            GLFRecord rec = reader.next();
-            Assert.assertTrue(types.get(count).compareTo(FakeGenotype.toFakeGenotype((GLFSingleCall) rec, rec.getContig(), (int)rec.getPosition())) == 0);
+            reader.next();
             count++;
         }
+        Assert.assertEquals(count, 100);
     }
-
-
-}
-
-class FakeGenotype extends GLFGenotypeCall implements Comparable<FakeGenotype> {
-
-    private double[] likelihoods;
-
-    /**
-     * create a basic genotype, given the following fields
-     *
-     * @param location       the genomic location
-     * @param genotype       the genotype, as a string, where ploidy = string.length
-     * @param ref            the reference base as a char
-     * @param negLog10PError the confidence score
-     */
-    public FakeGenotype(GenomeLoc location, String genotype, char ref, double negLog10PError, double likelihoods[]) {
-        super(Character.toString(ref), location);
-        setLikelihoods(likelihoods);
-        setGenotype(genotype);
-        setNegLog10PError(negLog10PError);
-
-    }
-
-    /**
-     * get the likelihood information for this
-     *
-     * @return
-     */
-    @Override
-    public double[] getLikelihoods() {
-        return likelihoods;
-    }
-
-    public void setLikelihoods(double[] likelihoods) {
-        this.likelihoods = likelihoods;
-    }
-
-
-    public int compareTo(FakeGenotype that) {
-        if (this.getLocation().compareTo(that.getLocation()) != 0) {
-            System.err.println("Location's aren't equal; this = " + this.getLocation() + " that = " + that.getLocation());
-            return this.getLocation().compareTo(that.getLocation());
-        }
-        if (!this.getBases().equals(that.getBases())) {
-            System.err.println("getBases's aren't equal; this = " + this.getBases() + " that = " + that.getBases());
-            return -1;
-        }
-        for (int x = 0; x < this.likelihoods.length; x++) {
-            if (this.likelihoods[x] != that.getLikelihoods()[x]) {
-                System.err.println("likelihoods' aren't equal; this = " + this.likelihoods[x] + " that = " + that.getLikelihoods()[x]);
-                return -1;
-            }
-        }
-        return 0;
-    }
-
-    public static FakeGenotype toFakeGenotype(GLFSingleCall record, String contig, int postition) {
-        double likelihoods[] = record.getLikelihoods();
-        char ref = record.getRefBase().toChar();
-        double significance = GLFWriterTest.SIGNIFICANCE;
-        int minIndex = 0;
-        for (int i = 0; i < likelihoods.length; i++) {
-            if (likelihoods[i] < likelihoods[minIndex]) minIndex = i;
-        }
-        for (int i = 0; i < likelihoods.length; i++) {
-            likelihoods[i] = likelihoods[i] * -1;
-        }
-
-        String genotype = GLFWriterTest.genotypes[minIndex];
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(contig, postition);
-        return new FakeGenotype(loc, genotype, ref, significance, likelihoods);
-    }
-
 }

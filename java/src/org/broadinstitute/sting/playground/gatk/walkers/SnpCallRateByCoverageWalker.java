@@ -3,21 +3,17 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ListUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -45,7 +41,7 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
     }
 
     public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 && context.getPileup().size() != 0);
+        return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 && context.getBasePileup().size() != 0);
     }
 
     public List<String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -79,10 +75,11 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
 
                     AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
                     VariantCallContext calls = UG.map(tracker, ref, subContext);
-                    if (calls != null && calls.genotypes != null && calls.genotypes.size() > 0) {
-                        Genotype call = calls.genotypes.get(0);
-                        String callType = (call.isVariant(call.getReference().charAt(0))) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
-                        GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+toGeliString(call));
+                    if (calls != null && calls.vc != null && calls.vc.getNSamples() > 0) {
+                        Genotype call = calls.vc.getGenotype(0);
+                        String callType = (!call.isHomRef()) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
+                        // TODO -- fixme: the old way of doing things isn't being supported anymore
+                        GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+call.toString());
                     }
                 }
             }
@@ -105,55 +102,6 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
 
         return "";
 	}
-
-    // a method to support getting the geli string, since the AlleleFrequencyEstimate is going away
-    public String toGeliString (Genotype locus) {
-        double posteriors[];
-        int readDepth = -1;
-        double nextVrsBest = 0;
-        double nextVrsRef = 0;
-
-        char ref = locus.getReference().charAt(0);
-
-        if (locus instanceof ReadBacked) {
-            readDepth = ((ReadBacked)locus).getReadCount();
-        }
-        if (!(locus instanceof PosteriorsBacked)) {
-            posteriors = new double[10];
-            Arrays.fill(posteriors, 0.0);
-        } else {
-            posteriors = ((PosteriorsBacked) locus).getPosteriors();
-            double[] lks;
-            lks = Arrays.copyOf(posteriors,posteriors.length);
-            Arrays.sort(lks);
-            nextVrsBest = lks[9] - lks[8];
-            if (ref != 'X')  {
-                int index = (DiploidGenotype.valueOf(Utils.dupString(ref,2)).ordinal());
-                nextVrsRef = lks[9] - posteriors[index];
-            }
-        }
-        // we have to calcuate our own
-
-       return new String(String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
-                                      locus.getLocation().getContig(),
-                                      locus.getLocation().getStart(),
-                                      ref,
-                                      readDepth,
-                                      -1,
-                                      locus.getBases(),
-                                      nextVrsRef,
-                                      nextVrsBest,
-                                      posteriors[0],
-                                      posteriors[1],
-                                      posteriors[2],
-                                      posteriors[3],
-                                      posteriors[4],
-                                      posteriors[5],
-                                      posteriors[6],
-                                      posteriors[7],
-                                      posteriors[8],
-                                      posteriors[9]));
-    }
 }
 
 

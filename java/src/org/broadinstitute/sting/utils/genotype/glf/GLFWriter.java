@@ -1,17 +1,20 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
+import org.broadinstitute.sting.utils.genotype.CalledGenotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.OutputStream;
-import java.util.List;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -113,12 +116,12 @@ public class GLFWriter implements GLFGenotypeWriter {
      * @param rmsMapQ    the root mean square of the mapping quality
      * @param lhValues   the GenotypeLikelihoods object, representing the genotype likelyhoods
      */
-    public void addGenotypeCall(SAMSequenceRecord contig,
-                                int genomicLoc,
-                                float rmsMapQ,
-                                char refBase,
-                                int readDepth,
-                                LikelihoodObject lhValues) {
+    public void addCall(SAMSequenceRecord contig,
+                        int genomicLoc,
+                        float rmsMapQ,
+                        char refBase,
+                        int readDepth,
+                        LikelihoodObject lhValues) {
         if ( headerText == null )
             throw new IllegalStateException("The GLF Header must be written before calls can be added");
 
@@ -137,45 +140,61 @@ public class GLFWriter implements GLFGenotypeWriter {
     }
 
     /**
-     * Add a genotype, given a genotype call
+     * Add a genotype, given a variant context
      *
-     * @param call the genotype call
+     * @param vc  the variant context representing the call to add
      */
-    public void addGenotypeCall(Genotype call) {
+    public void addCall(VariantContext vc) {
         if ( headerText == null )
             throw new IllegalStateException("The GLF Header must be written before calls can be added");
 
-        if ( !(call instanceof GLFGenotypeCall) )
-            throw new IllegalArgumentException("Only GLFGenotypeCall should be passed in to the GLF writers");
-        GLFGenotypeCall gCall = (GLFGenotypeCall) call;
 
-        char ref = gCall.getReference().charAt(0);
+        char ref = vc.getReference().toString().charAt(0);
+        if ( vc.getNSamples() != 1 )
+            throw new IllegalArgumentException("The GLF format does not support multi-sample or no-calls");
 
-        // get likelihood information if available
-        LikelihoodObject obj = new LikelihoodObject(gCall.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype genotype = vc.getGenotypes().values().iterator().next();
+        if ( genotype.isNoCall() )
+            throw new IllegalArgumentException("The GLF format does not support no-calls");
+
+        ReadBackedPileup pileup;
+        double[] likelihoods;
+        if ( genotype instanceof CalledGenotype) {
+            pileup = ((CalledGenotype)genotype).getReadBackedPileup();
+            likelihoods = ((CalledGenotype)genotype).getLikelihoods();
+        } else {
+            pileup = (ReadBackedPileup)genotype.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
+            likelihoods = (double[])genotype.getAttribute(CalledGenotype.LIKELIHOODS_ATTRIBUTE_KEY);
+        }
+
+        if ( likelihoods == null )
+            throw new IllegalArgumentException("The GLF format requires likelihoods");
+        LikelihoodObject obj = new LikelihoodObject(likelihoods, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
         obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);  // transform! ... to negitive log likelihoods
 
         // calculate the RMS mapping qualities and the read depth
         double rms = 0.0;
-        if (gCall.getPileup() != null)
-            rms = calculateRMS(gCall.getPileup().getReads());
-        int readCount = gCall.getReadCount();
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(gCall.getLocation().getContig()), (int) gCall.getLocation().getStart(), (float) rms, ref, readCount, obj);
+        int readCount = 0;
+        if ( pileup != null ) {
+            rms = calculateRMS(pileup);
+            readCount = pileup.size();
+        }
+        addCall(GenomeLocParser.getContigInfo(vc.getLocation().getContig()), (int)vc.getLocation().getStart(), (float) rms, ref, readCount, obj);
     }
 
 
     /**
      * calculate the rms , given the read pileup
      *
-     * @param reads the read array
+     * @param pileup the pileup
      *
      * @return the rms of the read mapping qualities
      */
-    private double calculateRMS(List<SAMRecord> reads) {
-        int[] qualities = new int[reads.size()];
-        for (int i = 0; i < reads.size(); i++) {
-            qualities[i] = reads.get(i).getMappingQuality();
-        }
+    private double calculateRMS(ReadBackedPileup pileup) {
+        int[] qualities = new int[pileup.size()];
+        int index = 0;
+        for (PileupElement p : pileup )
+            qualities[index++] = p.getMappingQual();
         return MathUtils.rms(qualities);
     }
 
@@ -222,16 +241,6 @@ public class GLFWriter implements GLFGenotypeWriter {
         lastPos = genomicLoc;
         call.write(this.outputBinaryCodec,mLastRecord);
         mLastRecord = call;
-    }
-
-    /**
-     * add a no call to the genotype file, if supported.
-     *
-     * @param position the position
-     */
-    public void addNoCall(int position) {
-        // glf doesn't support this operation
-        throw new UnsupportedOperationException("GLF doesn't support a 'no call' call.");
     }
 
     /**
@@ -294,20 +303,6 @@ public class GLFWriter implements GLFGenotypeWriter {
     public void close() {
         writeEndRecord();
         outputBinaryCodec.close();
-    }
-
-    /**
-     * add a multi-sample call if we support it
-     *
-     * @param genotypes the list of genotypes
-     */
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall metadata) {
-        throw new UnsupportedOperationException("GLF writer doesn't support multisample calls");
-    }
-
-    /** @return true if we support multisample, false otherwise */
-    public boolean supportsMultiSample() {
-        return false;
     }
 }
 

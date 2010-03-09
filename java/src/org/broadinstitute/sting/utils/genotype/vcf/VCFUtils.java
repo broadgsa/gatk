@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 
@@ -169,43 +168,13 @@ public class VCFUtils {
     }
 
     /**
-     * create the VCF genotype record
-     *
-     * @param params the VCF parameters object
-     * @param gtype  the genotype
-     *
-     * @return a VCFGenotypeRecord
-     */
-    public static VCFGenotypeRecord createVCFGenotypeRecord(VCFParameters params, VCFGenotypeCall gtype) {
-
-        List<VCFGenotypeEncoding> alleles = createAlleleArray(gtype);
-        for (VCFGenotypeEncoding allele : alleles) {
-            params.addAlternateBase(allele);
-        }
-
-        VCFGenotypeRecord record = new VCFGenotypeRecord(gtype.getSampleName(), alleles, VCFGenotypeRecord.PHASE.UNPHASED);
-
-        // calculate the RMS mapping qualities and the read depth
-        record.setField(VCFGenotypeRecord.DEPTH_KEY, String.valueOf(gtype.getReadCount()));
-        params.addFormatItem(VCFGenotypeRecord.DEPTH_KEY);
-        double qual = Math.min(10.0 * gtype.getNegLog10PError(), VCFGenotypeRecord.MAX_QUAL_VALUE);
-        if ( qual >= 0 )
-            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
-        else
-            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%d", VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY));
-        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
-
-        return record;
-    }
-
-    /**
      * create the allele array?
      *
      * @param gtype the gentoype object
      *
      * @return a list of string representing the string array of alleles
      */
-    private static List<VCFGenotypeEncoding> createAlleleArray(Genotype gtype) {
+    private static List<VCFGenotypeEncoding> createAlleleArray(VCFGenotypeRecord gtype) {
         List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
         for (char allele : gtype.getBases().toCharArray()) {
             alleles.add(new VCFGenotypeEncoding(String.valueOf(allele)));

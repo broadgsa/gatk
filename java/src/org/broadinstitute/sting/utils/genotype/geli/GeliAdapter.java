@@ -3,13 +3,15 @@ package org.broadinstitute.sting.utils.genotype.geli;
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.CalledGenotype;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.io.File;
-import java.util.List;
 
 
 /*
@@ -38,7 +40,7 @@ import java.util.List;
  */
 
 /**
- * @author aaron
+ * @author aaron, ebanks
  * @version 1.0
  *          <p/>
  *          Class GeliAdapter
@@ -81,33 +83,17 @@ public class GeliAdapter implements GeliGenotypeWriter {
      * @param readCount     the read count
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
-    private void addGenotypeCall(SAMSequenceRecord contig,
-                                int position,
-                                char referenceBase,
-                                double maxMappingQuality,
-                                int readCount,
-                                LikelihoodObject likelihoods) {
+    private void addCall(SAMSequenceRecord contig,
+                         int position,
+                         char referenceBase,
+                         double maxMappingQuality,
+                         int readCount,
+                         LikelihoodObject likelihoods) {
         GenotypeLikelihoods lk = likelihoods.convertToGenotypeLikelihoods(writer.getFileHeader(), contig.getSequenceIndex(), position, (byte) referenceBase);
         lk.setNumReads(readCount);
 
         lk.setMaxMappingQuality(maxMappingQuality > Short.MAX_VALUE ? Short.MAX_VALUE : (short)Math.round(maxMappingQuality));
         writer.addGenotypeLikelihoods(lk);
-    }
-
-    /**
-     * add a variable length call to the genotyper
-     *
-     * @param contig        the contig you're calling in
-     * @param position      the position on the genome
-     * @param rmsMapQuals   the root mean square of the mapping qualities
-     * @param readDepth     the read depth
-     * @param refBase       the reference base
-     * @param firstHomZyg   the first homozygous indel
-     * @param secondHomZyg  the second homozygous indel (if present, null if not)
-     * @param hetLikelihood the heterozygous likelihood
-     */
-    public void addVariableLengthCall(SAMSequenceRecord contig, int position, float rmsMapQuals, int readDepth, char refBase, IndelLikelihood firstHomZyg, IndelLikelihood secondHomZyg, byte hetLikelihood) {
-        throw new UnsupportedOperationException("Geli format does not support variable length allele calls");
     }
 
     public void addGenotypeLikelihoods(GenotypeLikelihoods gl) {
@@ -118,45 +104,52 @@ public class GeliAdapter implements GeliGenotypeWriter {
     }
 
     /**
-     * Add a genotype, given a genotype call
+     * Add a genotype, given a variant context
      *
-     * @param call the call to add
+     * @param vc  the variant context representing the call to add
      */
-    public void addGenotypeCall(Genotype call) {
+    public void addCall(VariantContext vc) {
         if ( writer == null )
             throw new IllegalStateException("The Geli Header must be written before calls can be added");
 
-        if ( !(call instanceof GeliGenotypeCall) )
-            throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
-        GeliGenotypeCall gCall = (GeliGenotypeCall)call;
+        char ref = vc.getReference().toString().charAt(0);
+        if ( vc.getNSamples() != 1 )
+            throw new IllegalArgumentException("The Geli format does not support multi-sample or no-calls");
 
-        char ref = gCall.getReference().charAt(0);
-        int readCount = gCall.getReadCount();
+        Genotype genotype = vc.getGenotypes().values().iterator().next();
+        if ( genotype.isNoCall() )
+            throw new IllegalArgumentException("The Geli format does not support no-calls");
+
+        ReadBackedPileup pileup;
+        double[] posteriors;
+        if ( genotype instanceof CalledGenotype ) {
+            pileup = ((CalledGenotype)genotype).getReadBackedPileup();
+            posteriors = ((CalledGenotype)genotype).getPosteriors();
+        } else {
+            pileup = (ReadBackedPileup)genotype.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
+            posteriors = (double[])genotype.getAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY);
+        }
+
+        if ( posteriors == null )
+            throw new IllegalArgumentException("The Geli format requires posteriors");
+
+        int readCount = 0;
         double maxMappingQual = 0;
-        if ( gCall.getPileup() != null ) {
-            List<SAMRecord> recs = gCall.getPileup().getReads();
-            for (SAMRecord rec : recs) {
-                if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
+        if ( pileup != null ) {
+            readCount = pileup.size();
+            for (PileupElement p : pileup ) {
+                if ( maxMappingQual < p.getMappingQual() )
+                    maxMappingQual = p.getMappingQual();
             }
         }
 
-        double[] posteriors = gCall.getPosteriors();
         LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(gCall.getLocation().getContig()),
-                             (int)gCall.getLocation().getStart(),
-                             ref,
-                             maxMappingQual,
-                             readCount,
-                             obj);
-    }
-
-    /**
-     * add a no call to the genotype file, if supported.
-     *
-     * @param position  the position
-     */
-    public void addNoCall(int position) {
-        throw new UnsupportedOperationException("Geli format does not support no-calls");
+        addCall(GenomeLocParser.getContigInfo(vc.getLocation().getContig()),
+                (int)vc.getLocation().getStart(),
+                ref,
+                maxMappingQual,
+                readCount,
+                obj);
     }
 
     /** finish writing, closing any open files. */
@@ -164,19 +157,5 @@ public class GeliAdapter implements GeliGenotypeWriter {
         if (this.writer != null) {
             this.writer.close();
         }
-    }
-
-    /**
-     * add a multi-sample call if we support it
-     *
-     * @param genotypes the list of genotypes
-     */
-    public void addMultiSampleCall( List<Genotype> genotypes, VariationCall metadata) {
-        throw new UnsupportedOperationException("Geli binary doesn't support multisample calls");
-    }
-
-    /** @return true if we support multisample, false otherwise */
-    public boolean supportsMultiSample() {
-        return false;
     }
 }

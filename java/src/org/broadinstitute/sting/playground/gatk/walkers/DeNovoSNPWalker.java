@@ -3,14 +3,13 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
-import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +44,8 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
      }
 
     public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        Variation child = (Variation)tracker.lookup("child", null);
-        Variation dbsnp = (Variation)tracker.lookup("dbSNP", null);
+        VariationRod child = (VariationRod)tracker.lookup("child", null);
+        VariationRod dbsnp = (VariationRod)tracker.lookup("dbSNP", null);
         if (child != null) {
             if (child.isSNP() && child.getNegLog10PError() > 5) { // BTR > 5
 
@@ -79,13 +78,13 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
                 AlignmentContext parent2_subContext = new AlignmentContext(context.getLocation(), parent2_reads, parent2_offsets);
                 VariantCallContext parent2 = UG.map(tracker, ref, parent2_subContext);
 
-                if ( parent1 != null && parent1.genotypes != null && parent2 != null && parent2.genotypes != null ) {
-                    Genotype parent1call = parent1.genotypes.get(0);
-                    Genotype parent2call = parent2.genotypes.get(0);
+                if ( parent1 != null && parent1.vc != null && parent2 != null && parent2.vc != null ) {
+                    Genotype parent1call = parent1.vc.getGenotype(0);
+                    Genotype parent2call = parent2.vc.getGenotype(0);
 
-                    if (!parent1call.isVariant(parent1call.getReference().charAt(0)) &&
+                    if (parent1call.isHomRef() &&
                         parent1call.getNegLog10PError() > 5 &&
-                        !parent2call.isVariant(parent2call.getReference().charAt(0)) &&
+                        !parent2call.isHomRef() &&
                         parent2call.getNegLog10PError() > 5) {
 
                         double sumConfidences = 0.5 * (0.5 * child.getNegLog10PError() +

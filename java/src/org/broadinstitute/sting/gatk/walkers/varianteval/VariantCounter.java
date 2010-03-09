@@ -33,7 +33,7 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
 
         // TODO -- break the het check out to a different module used only for single samples
 
-        if ( this.getMaster().evalContainsGenotypes && eval != null && eval.isBiallelic() && eval.isSNP() ) {
+        if ( this.getMaster().evalContainsGenotypes && eval != null && eval.isBiallelic() && eval.isSNP() && eval instanceof VariantBackedByGenotype ) {
             List<Genotype> genotypes = ((VariantBackedByGenotype)eval).getGenotypes();
             if ( genotypes.size() == 1 && genotypes.get(0).isHet() ) {
                 nHets++;

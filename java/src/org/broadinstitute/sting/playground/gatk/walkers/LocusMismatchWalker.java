@@ -4,13 +4,14 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.genotype.*;
 
 
 /**
@@ -56,7 +57,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
         ReadBackedPileup pileup = context.getBasePileup();
         if ( locusIsUsable(tracker, ref, pileup, context) ) {
             Genotype g = getGenotype(tracker, ref, context);
-            if ( g != null && g.isPointGenotype() )
+            if ( g != null )
                 result = errorCounts( ref, pileup, g );
         }
 
@@ -105,15 +106,15 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
             }
             return String.format("%s %c %10s %5.2f %d %d %d %s",
                     pileup.getLocation(), ref.getBase(),
-                    getGenotypeClass(g, ref.getBase()), 10 * g.getNegLog10PError(), 
+                    getGenotypeClass(g), 10 * g.getNegLog10PError(),
                     usableDepth, nMismatches, qSumMismatches, baseCountString);
         }
 
         return null;
     }
 
-    private String getGenotypeClass(Genotype g, char ref) {
-        if ( ! g.isVariant(ref) ) return "HOM-REF";
+    private String getGenotypeClass(Genotype g) {
+        if ( g.isHomRef() ) return "HOM-REF";
         else if ( g.isHet() ) return "HET";
         else if ( g.isHom() ) return "HOM-NONREF";
         else throw new StingException("Unexpected genotype in getGenotypeClass " + g);
@@ -142,7 +143,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
 
     private boolean notCoveredByVariations( RefMetaDataTracker tracker ) {
         for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
-            if ( datum instanceof Variation || datum instanceof Genotype ) {
+            if ( datum instanceof VariationRod || datum instanceof Genotype ) {
                 //System.out.printf("Ignoring site because of %s%n", datum);
                 return false;
             }
@@ -163,10 +164,10 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
 
     private Genotype getGenotype( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         VariantCallContext calls = ug.runGenotyper(tracker,ref,context);
-        if ( calls == null || calls.variation == null || calls.genotypes == null )
+        if ( calls == null || calls.vc == null || calls.vc.getNSamples() == 0 || !calls.vc.isSNP() )
             return null;
         else {
-            return calls.genotypes.get(0);
+            return calls.vc.getGenotype(0);
         }
     }
 

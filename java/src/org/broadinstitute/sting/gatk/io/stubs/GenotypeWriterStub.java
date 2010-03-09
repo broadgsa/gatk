@@ -27,13 +27,11 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.List;
 
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariationCall;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import net.sf.samtools.SAMFileHeader;
 
@@ -131,29 +129,8 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
     /**
      * @{inheritDoc}
      */
-    public void addGenotypeCall(Genotype call) {
-        outputTracker.getStorage(this).addGenotypeCall(call);
-    }
-
-    /**
-     * @{inheritDoc}
-     */
-    public void addNoCall(int position) {
-        outputTracker.getStorage(this).addNoCall(position);
-    }
-
-    /**
-     * @{inheritDoc}
-     */
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall variation) {
-        outputTracker.getStorage(this).addMultiSampleCall(genotypes, variation);
-    }
-
-    /**
-     * @{inheritDoc}
-     */
-    public boolean supportsMultiSample() {
-        return outputTracker.getStorage(this).supportsMultiSample();
+    public void addCall(VariantContext vc) {
+        outputTracker.getStorage(this).addCall(vc);
     }
 
     /**

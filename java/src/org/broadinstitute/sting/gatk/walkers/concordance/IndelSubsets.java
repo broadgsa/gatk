@@ -3,9 +3,9 @@ package org.broadinstitute.sting.gatk.walkers.concordance;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.util.*;
 
@@ -54,10 +54,10 @@ public class IndelSubsets implements ConcordanceType {
         }
     }
 
-    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
+    public String computeConcordance(Map<String, VCFGenotypeRecord> samplesToRecords, ReferenceContext ref) {
 
-        Genotype indel1 = samplesToRecords.get(sample1);
-        Genotype indel2 = samplesToRecords.get(sample2);
+        VCFGenotypeRecord indel1 = samplesToRecords.get(sample1);
+        VCFGenotypeRecord indel2 = samplesToRecords.get(sample2);
 
         int set1 = ( indel1 != null && !indel1.isPointGenotype() ? 0 : 1 );
         int set2 = ( indel2 != null && !indel2.isPointGenotype() ? 0 : 1 );
@@ -67,7 +67,7 @@ public class IndelSubsets implements ConcordanceType {
             return null;
 
         // only deal with a valid indel
-        Variation indel = ( indel1 != null ? indel1.toVariation(ref.getBase()) : indel2.toVariation(ref.getBase()) );
+        VCFRecord indel = ( indel1 != null ? indel1.getRecord() : indel2.getRecord() );
 
         // we only deal with the first allele
         int size = ( indel.getAlternateAlleleList().get(0).length() <= sizeCutoff ? 0 : 1 );
@@ -76,7 +76,7 @@ public class IndelSubsets implements ConcordanceType {
         return tags[set1][set2][size][homopol];
     }
 
-    private int homopolymerRunSize(ReferenceContext ref, Variation indel) {
+    private int homopolymerRunSize(ReferenceContext ref, VCFRecord indel) {
         char[] bases = ref.getBases();
         GenomeLoc window = ref.getWindow();
         GenomeLoc locus = ref.getLocus();

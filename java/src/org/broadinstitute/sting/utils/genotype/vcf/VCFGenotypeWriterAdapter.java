@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -28,6 +30,10 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     // validation stringency
     private VALIDATION_STRINGENCY validationStringency = VALIDATION_STRINGENCY.STRICT;
 
+    // standard genotype format strings
+    private static String[] standardGenotypeFormatStrings = { VCFGenotypeRecord.GENOTYPE_KEY,
+                                                              VCFGenotypeRecord.DEPTH_KEY,
+                                                              VCFGenotypeRecord.GENOTYPE_QUALITY_KEY };
 
     public VCFGenotypeWriterAdapter(File writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output file must not be null");
@@ -58,186 +64,45 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         mWriter.writeHeader(mHeader);
     }
 
-    /**
-     * Add a genotype, given a genotype locus
-     *
-     * @param call the locus to add
-     */
-    public void addGenotypeCall(Genotype call) {
-        throw new UnsupportedOperationException("VCF calls require locusdata; use the addMultiSampleCall method instead");
-    }
-
-    /**
-     * add a no call to the genotype file, if supported.
-     *
-     * @param position the position to add the no call at
-     */
-    public void addNoCall(int position) {
-        throw new UnsupportedOperationException("We don't currently support no-calls in VCF");
-    }
-
     /** finish writing, closing any open files. */
     public void close() {
         mWriter.close();
     }
 
     /**
-     * add a multi-sample call if we support it
+     * Add a genotype, given a variant context
      *
-     * @param genotypes the list of genotypes
+     * @param vc  the variant context representing the call to add
      */
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall locusdata) {
+    public void addCall(VariantContext vc) {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
-        if ( locusdata != null && !(locusdata instanceof VCFVariationCall) )
-            throw new IllegalArgumentException("Only VCFVariationCall objects should be passed in to the VCF writers");
+        List<String> formatStrings;
+        if ( vc.getChromosomeCount() > 0 )
+            formatStrings = Arrays.asList(standardGenotypeFormatStrings);
+        else
+            formatStrings = new ArrayList<String>();
+        VCFRecord call = VariantContextAdaptors.toVCF(vc, vc.getReference().toString().charAt(0), formatStrings, false);
 
-        VCFParameters params = new VCFParameters();
-        if ( genotypes.size() > 0 )
-            params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
-
-        // get the location and reference
-        if ( genotypes.size() == 0 ) {
-            if ( locusdata == null )
-                throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry or have variation data");
-
-            params.setLocations(locusdata.getLocation(), locusdata.getReference());
-
-            // if there is no genotype data, we'll also need to set an alternate allele
-            if ( locusdata.isBiallelic() && locusdata.isSNP() )
-                params.addAlternateBase(new VCFGenotypeEncoding(locusdata.getAlternateAlleleList().get(0)));
-        } else {
-            params.setLocations(genotypes.get(0).getLocation(), genotypes.get(0).getReference());
+        Set<Allele> altAlleles = vc.getAlternateAlleles();
+        StringBuffer altAlleleCountString = new StringBuffer();
+        for ( Allele allele : altAlleles ) {
+            if ( altAlleleCountString.length() > 0 )
+                altAlleleCountString.append(",");
+            altAlleleCountString.append(vc.getChromosomeCount(allele));
+        }
+        if ( vc.getChromosomeCount() > 0 ) {
+            call.addInfoField(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", vc.getChromosomeCount()));
+            if ( altAlleleCountString.length() > 0 )
+                call.addInfoField(VCFRecord.ALLELE_COUNT_KEY, altAlleleCountString.toString());
         }
 
-        Map<String, VCFGenotypeCall> genotypeMap = genotypeListToSampleNameMap(genotypes);
-
-        int totalAlleles = 0;
-        for (String name : mHeader.getGenotypeSamples()) {
-            if (genotypeMap.containsKey(name)) {
-                Genotype gtype = genotypeMap.get(name);
-                VCFGenotypeRecord record = VCFUtils.createVCFGenotypeRecord(params, (VCFGenotypeCall)gtype);
-                params.addGenotypeRecord(record);
-                totalAlleles += record.getAlleles().size();
-                genotypeMap.remove(name);
-            } else {
-                VCFGenotypeRecord record = createNoCallRecord(name);
-                params.addGenotypeRecord(record);
-            }
-        }
-
-        if ( validationStringency == VALIDATION_STRINGENCY.STRICT && genotypeMap.size() > 0 ) {
-            for (String name : genotypeMap.keySet())
-                logger.fatal("Genotype " + name + " was present in the VCFHeader");
-            throw new IllegalArgumentException("Genotype array passed to VCFGenotypeWriterAdapter contained Genotypes not in the VCF header");
-        }
-
-        // info fields
-        Map<String, String> infoFields = getInfoFields((VCFVariationCall)locusdata);
-        if ( totalAlleles > 0 ) {
-            infoFields.put(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", totalAlleles));
-
-            // count up the alternate counts
-            List<Integer> altAlleleCounts = params.getAlleleCounts();
-            if ( altAlleleCounts.size() > 0 ) {
-                StringBuffer sb = new StringBuffer();
-                sb.append(altAlleleCounts.get(0));
-                for (int i = 1; i < altAlleleCounts.size(); i++ ) {
-                    sb.append(",");
-                    sb.append(altAlleleCounts.get(i));
-                }
-                infoFields.put(VCFRecord.ALLELE_COUNT_KEY, sb.toString());
-            }
-        }
-
-        // q-score
-        double qual = (locusdata == null) ? 0 : ((VCFVariationCall)locusdata).getConfidence();
-        // min Q-score is zero
-        qual = Math.max(qual, 0);
-
-        // dbsnp id
-        String dbSnpID = null;
-        if ( locusdata != null )
-            dbSnpID = ((VCFVariationCall)locusdata).getID();
-
-        VCFRecord vcfRecord = new VCFRecord(params.getReferenceBases(),
-                                            params.getContig(),
-                                            params.getPosition(),
-                                            (dbSnpID == null ? VCFRecord.EMPTY_ID_FIELD : dbSnpID),
-                                            params.getAlternateBases(),
-                                            qual,
-                                            VCFRecord.UNFILTERED,
-                                            infoFields,
-                                            params.getFormatString(),
-                                            params.getGenotypeRecords());
-
-        mWriter.addRecord(vcfRecord, validationStringency);
+        mWriter.addRecord(call, validationStringency);
     }
 
     public void addRecord(VCFRecord vcfRecord) {
         mWriter.addRecord(vcfRecord, validationStringency);
-    }
-
-    /**
-     * get the information fields of the VCF record, given the meta data and parameters
-     *
-     * @param locusdata the metadata associated with this multi sample call
-     *
-     * @return a mapping of info field to value
-     */
-    private static Map<String, String> getInfoFields(VCFVariationCall locusdata) {
-        Map<String, String> infoFields = new HashMap<String, String>();
-        if ( locusdata != null ) {
-            if ( locusdata.getSLOD() != null )
-                infoFields.put(VCFRecord.STRAND_BIAS_KEY, String.format("%.2f", locusdata.getSLOD()));
-            if ( locusdata.hasNonRefAlleleFrequency() )
-                infoFields.put(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%.2f", locusdata.getNonRefAlleleFrequency()));
-            Map<String, String> otherFields = locusdata.getFields();
-            if ( otherFields != null ) {
-                infoFields.putAll(otherFields);
-            }
-        }
-        return infoFields;
-    }
-
-    /**
-     * create a no call record
-     *
-     * @param sampleName the sample name
-     *
-     * @return a VCFGenotypeRecord for the no call situation
-     */
-    private VCFGenotypeRecord createNoCallRecord(String sampleName) {
-
-        List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
-        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
-        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
-
-        return new VCFGenotypeRecord(sampleName, alleles, VCFGenotypeRecord.PHASE.UNPHASED);
-    }
-
-    /** @return true if we support multisample, false otherwise */
-    public boolean supportsMultiSample() {
-        return true;
-    }
-
-    /**
-     * create a genotype mapping from a list and their sample names
-     * while we're at it, checks that all genotypes are VCF-based
-     *
-     * @param list a list of genotype samples
-     *
-     * @return a mapping of the sample name to genotype fields
-     */
-    private static Map<String, VCFGenotypeCall> genotypeListToSampleNameMap(List<Genotype> list) {
-        Map<String, VCFGenotypeCall> map = new HashMap<String, VCFGenotypeCall>();
-        for (Genotype rec : list) {
-            if ( !(rec instanceof VCFGenotypeCall) )
-                throw new IllegalArgumentException("Only VCFGenotypeCalls should be passed in to the VCF writers");
-            map.put(((VCFGenotypeCall) rec).getSampleName(), (VCFGenotypeCall) rec);
-        }
-        return map;
     }
 
     /**

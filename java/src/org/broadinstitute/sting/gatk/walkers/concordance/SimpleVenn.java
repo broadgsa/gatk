@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
@@ -26,12 +26,12 @@ public class SimpleVenn implements ConcordanceType {
         sample2 = iter.next();
     }
 
-    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref ) {
+    public String computeConcordance(Map<String, VCFGenotypeRecord> samplesToRecords, ReferenceContext ref ) {
 
-        Genotype call1 = samplesToRecords.get(sample1);
+        VCFGenotypeRecord call1 = samplesToRecords.get(sample1);
         if ( call1 != null && call1.isNoCall() )
             call1 = null;
-        Genotype call2 = samplesToRecords.get(sample2);
+        VCFGenotypeRecord call2 = samplesToRecords.get(sample2);
         if ( call2 != null && call2.isNoCall() )
             call2 = null;
 
@@ -47,8 +47,8 @@ public class SimpleVenn implements ConcordanceType {
             return sample2 + "_only";
 
         // at this point we know that neither is null, so now we need to test for alternate allele concordance
-        Variation callV1 = call1.toVariation(ref.getBase());
-        Variation callV2 = call2.toVariation(ref.getBase());
+        VCFRecord callV1 = call1.getRecord();
+        VCFRecord callV2 = call2.getRecord();
 
         // we can't really deal with multi-allelic variants
         if ( callV1.isBiallelic() && callV2.isBiallelic() ) {

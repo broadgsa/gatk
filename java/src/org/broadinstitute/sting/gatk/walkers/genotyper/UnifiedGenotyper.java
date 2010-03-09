@@ -193,23 +193,13 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
 
         // can't make a confident variant call here
-        if ( value.genotypes == null ||
-                (UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED && value.genotypes.size() == 0) ) {
+        if ( value.vc == null )
             return sum;
-        }
 
-        // if we have a single-sample call (single sample from PointEstimate model returns no VariationCall data)
-        if ( value.variation == null || (!writer.supportsMultiSample() && UG_engine.samples.size() <= 1) ) {
-            writer.addGenotypeCall(value.genotypes.get(0));
-        }
-
-        // use multi-sample mode if we have multiple samples or the output type allows it
-        else {
-            try {
-                writer.addMultiSampleCall(value.genotypes, value.variation);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");    
-            }
+        try {
+            writer.addCall(value.vc);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }
 
         return sum;

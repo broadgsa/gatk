@@ -70,7 +70,8 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Variatio
     }
 
     public List<Genotype> getGenotypes() {
-        return rod.getGenotypes();
+        return null;
+        //return rod.getGenotypes();
     }
 
     public String getReference() {
@@ -130,7 +131,8 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Variatio
     }
 
     public Genotype getCalledGenotype() {
-        return rod.getCalledGenotype();
+        return null;
+        //return rod.getCalledGenotype();
     }
 
     public char getReferenceForSNP() {
@@ -138,7 +140,8 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Variatio
     }
 
     public boolean hasGenotype(DiploidGenotype g) {
-        return rod.hasGenotype(g);
+        return false;
+        //return rod.hasGenotype(g);
     }
 
     public VCFHeader getHeader() {

@@ -1,9 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 
 import java.util.*;
 
@@ -83,53 +86,44 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected List<Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
-        ArrayList<Genotype> calls = new ArrayList<Genotype>();
+    protected Map<String, Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
+        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
 
         // set up some variables we'll need in the loop
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
-        DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
-        DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
-        DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
+        Allele refAllele = new Allele(Character.toString(ref), true);
+        Allele altAllele = new Allele(Character.toString(alt), false);
 
         for ( String sample : GLs.keySet() ) {
 
-            // create the call
-            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, Character.toString(ref), loc);
-
             // set the genotype and confidence
             Pair<Integer, Double> AFbasedGenotype = matrix.getGenotype(frequency, sample);
-            call.setNegLog10PError(AFbasedGenotype.second);
-            if ( AFbasedGenotype.first == GenotypeType.REF.ordinal() )
-                call.setGenotype(refGenotype);
-            else if ( AFbasedGenotype.first == GenotypeType.HET.ordinal() )
-                call.setGenotype(hetGenotype);
-            else // ( AFbasedGenotype.first == GenotypeType.HOM.ordinal() )
-                call.setGenotype(homGenotype);
 
-
-            if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
-                ((ReadBacked)call).setPileup(pileup);
-            }
-            if ( call instanceof SampleBacked ) {
-                ((SampleBacked)call).setSampleName(sample);
-            }
-            if ( call instanceof LikelihoodsBacked ) {
-                ((LikelihoodsBacked)call).setLikelihoods(GLs.get(sample).getLikelihoods());
-            }
-            if ( call instanceof PosteriorsBacked ) {
-                ((PosteriorsBacked)call).setPosteriors(GLs.get(sample).getPosteriors());
-            }
-            if ( call instanceof AlleleConstrainedGenotype ) {
-                ((AlleleConstrainedGenotype)call).setAlternateAllele(alt);
+            ArrayList<Allele> myAlleles = new ArrayList<Allele>();
+            if ( AFbasedGenotype.first == GenotypeType.REF.ordinal() ) {
+                myAlleles.add(refAllele);
+                myAlleles.add(refAllele);
+            } else if ( AFbasedGenotype.first == GenotypeType.HET.ordinal() ) {
+                myAlleles.add(refAllele);
+                myAlleles.add(altAllele);
+            } else { // ( AFbasedGenotype.first == GenotypeType.HOM.ordinal() )
+                myAlleles.add(altAllele);
+                myAlleles.add(altAllele);
             }
 
-            calls.add(call);
+            CalledGenotype cg = new CalledGenotype(sample, myAlleles, AFbasedGenotype.second);
+            cg.setLikelihoods(GLs.get(sample).getLikelihoods());
+            cg.setPosteriors(GLs.get(sample).getPosteriors());
+            cg.setReadBackedPileup(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup());
+
+            calls.put(sample, cg);
         }
 
         // output to beagle file if requested
         if ( beagleWriter != null ) {
+            DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
+            DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
+            DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
             for ( String sample : samples ) {
                 GenotypeLikelihoods gl = GLs.get(sample);
                 if ( gl == null ) {

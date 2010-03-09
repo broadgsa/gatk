@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
@@ -26,12 +26,12 @@ public class QualityAdjustedSecondBaseLod implements VariantAnnotation {
 
     public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Adjusted residual quality based on second-base skew"); }
     
-    public String annotate( RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> contexts, Variation variant) {
-	String chi = skewCalc.annotate(tracker, ref,contexts,variant);
+    public String annotate( RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> contexts, VariantContext vc) {
+	String chi = skewCalc.annotate(tracker, ref,contexts,vc);
 	if ( chi == null )
 	    return null;
-	double chi_square = Double.valueOf(chi);
+        double chi_square = Double.valueOf(chi);
         double chi_loglik = chi_square <= 0.0 ? 0.0 : Math.max(-(chi_square/2.0)*log10e + log10half,CHI_LOD_MAX); // cap it...
-        return String.format("%f", 10*(variant.getNegLog10PError() + chi_loglik));
+        return String.format("%f", 10*(vc.getNegLog10PError() + chi_loglik));
     }
 }

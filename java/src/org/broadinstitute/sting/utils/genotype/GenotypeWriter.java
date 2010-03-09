@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import java.util.List;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -28,7 +29,7 @@ import java.util.List;
  */
 
 /**
- * @author aaron
+ * @author aaron, ebanks
  *         <p/>
  *         Class GenotypeWriter
  *         <p/>
@@ -36,31 +37,12 @@ import java.util.List;
  */
 public interface GenotypeWriter {
     /**
-     * Add a genotype, given a genotype locus
-     * @param call the locus to add
+     * Add a genotype, given a variant context
+     * @param vc  the variant context representing the call to add
      */
-    public void addGenotypeCall(Genotype call);
-
-    /**
-     * add a no call to the genotype file, if supported.
-     *
-     * @param position the position to add the no call at
-     */
-    public void addNoCall(int position);
+    public void addCall(VariantContext vc);
 
     /** finish writing, closing any open files. */
     public void close();
-
-    /**
-     * add a multi-sample call if we support it
-     * @param genotypes the list of genotypes, that are backed by sample information
-     * @param variation the variation
-     */
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall variation);
-
-    /**
-     * @return true if we support multisample, false otherwise
-     */
-    public boolean supportsMultiSample();
 
 }

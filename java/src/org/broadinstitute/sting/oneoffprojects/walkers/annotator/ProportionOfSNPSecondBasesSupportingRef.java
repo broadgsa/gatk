@@ -2,9 +2,9 @@ package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotation;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -12,7 +12,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.Map;
- import org.broadinstitute.sting.gatk.walkers.annotator.*;
+
 /**
  * Created by IntelliJ IDEA.
  * User: chartl
@@ -29,14 +29,14 @@ public class ProportionOfSNPSecondBasesSupportingRef implements VariantAnnotatio
 
     public boolean useZeroQualityReads() { return USE_MAPQ0_READS; }
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, Variation var) {
-        if ( ! var.isSNP() || ! var.isBiallelic() ) {
+    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
+        if ( ! vc.isSNP() || ! vc.isBiallelic() ) {
             return null;
         } else {
             Pair<Integer,Integer> totalAndSNPSupporting = new Pair<Integer,Integer>(0,0);
             for ( String sample : context.keySet() ) {
-                ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup();
-                totalAndSNPSupporting = getTotalSNPandRefSupporting(pileup, ref.getBase(), var.getAlternativeBaseForSNP(), totalAndSNPSupporting);
+                ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+                totalAndSNPSupporting = getTotalSNPandRefSupporting(pileup, ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), totalAndSNPSupporting);
 
             }
             if ( totalAndSNPSupporting.equals(new Pair<Integer,Integer>(0,0)) )

@@ -74,7 +74,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public Set<BaseTransitionTable> map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        ReadBackedPileup pileup = context.getPileup();
+        ReadBackedPileup pileup = context.getBasePileup();
         Set<BaseTransitionTable> newCounts = null;
         //System.out.println(pileup.getBases());
         if ( baseIsUsable(tracker, ref, pileup, context) ) {
@@ -360,9 +360,9 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         if ( !BaseUtils.isRegularBase(ref.getBase()) )
             return false;
         VariantCallContext calls = ug.runGenotyper(tracker,ref,context);
-        if ( calls == null || calls.genotypes == null)
+        if ( calls == null || calls.vc == null)
             return false;
-        return  ( calls.genotypes.size() > 0 && !calls.genotypes.get(0).isVariant(ref.getBase()) && calls.genotypes.get(0).getNegLog10PError() > confidentRefThreshold );
+        return  ( calls.vc.getNSamples() > 0 && calls.vc.getGenotype(0).isHomRef() && calls.vc.getGenotype(0).getNegLog10PError() > confidentRefThreshold );
 
     }
 

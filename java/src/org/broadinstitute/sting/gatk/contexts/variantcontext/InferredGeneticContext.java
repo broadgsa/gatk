@@ -11,7 +11,7 @@ import java.util.*;
  * @author depristo
  */
 final class InferredGeneticContext {
-    public static final double NO_NEG_LOG_10PERROR = Double.MAX_VALUE; // todo -- is this really safe?
+    public static final double NO_NEG_LOG_10PERROR = -1.0;
 
     private double negLog10PError = NO_NEG_LOG_10PERROR;
     private String name = null;

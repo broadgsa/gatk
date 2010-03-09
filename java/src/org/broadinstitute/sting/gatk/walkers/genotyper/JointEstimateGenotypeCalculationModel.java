@@ -2,11 +2,11 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
-import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.genotype.Variation.VARIANT_TYPE;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.util.*;
 
@@ -73,7 +73,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // technically, at this point our confidence in a reference call isn't accurately
         //  estimated because it didn't take into account samples with no data
-        if ( vcc.variation == null )
+        if ( vcc.vc == null )
             estimateReferenceConfidence(vcc, contexts, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY, true);
         return vcc;
     }
@@ -306,9 +306,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         verboseWriter.println();
     }
 
-    protected List<Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
+    protected Map<String, Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
         // by default, we return no genotypes
-        return new ArrayList<Genotype>();
+        return new HashMap<String, Genotype>();
     }    
 
     protected VariantCallContext createCalls(RefMetaDataTracker tracker, char ref, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
@@ -345,70 +345,62 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
 
         // populate the sample-specific data (output it to beagle also if requested)
-        List<Genotype> calls = makeGenotypeCalls(ref, bestAlternateAllele, bestAFguess, contexts, loc);
+        Map<String, Genotype> genotypes = makeGenotypeCalls(ref, bestAlternateAllele, bestAFguess, contexts, loc);
 
         // close beagle record (if requested)
-        if ( beagleWriter != null ) {
+        if ( beagleWriter != null )
             beagleWriter.println();
-        }
 
-        // next, the general locus data
+        // next, the variant context data (alleles, attributes, etc.)
+        ArrayList<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(new Allele(Character.toString(ref), true));
+        if ( bestAFguess != 0 )
+            alleles.add(new Allele(bestAlternateAllele.toString(), false));
+
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
-        VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc, bestAFguess == 0 ? VARIANT_TYPE.REFERENCE : VARIANT_TYPE.SNP);
-        if ( locusdata != null ) {
-            if ( bestAFguess != 0 ) {
-                locusdata.addAlternateAllele(bestAlternateAllele.toString());
-                locusdata.setNonRefAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
-            }
-            if ( locusdata instanceof ConfidenceBacked ) {
-                ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
-            }
-            if ( locusdata instanceof IDBacked ) {
-                rodDbSNP dbsnp = getDbSNP(tracker);
-                if ( dbsnp != null )
-                    ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
-            }
-            if ( locusdata instanceof SLODBacked && REPORT_SLOD ) {
-                // the overall lod
-                double overallLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
-                double overallLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
-                double lod = overallLog10PofF - overallLog10PofNull;
+        HashMap<String, Object> attributes = new HashMap<String, Object>();
+        if ( bestAFguess != 0 )
+            attributes.put(VCFRecord.ALLELE_FREQUENCY_KEY, new Double((double)bestAFguess / (double)(frequencyEstimationPoints-1)));
 
-                // the forward lod
-                initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD);
-                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD);
-                calculatePofFs(ref, frequencyEstimationPoints);
-                double forwardLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
-                double forwardLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
+        rodDbSNP dbsnp = getDbSNP(tracker);
+        if ( dbsnp != null )
+            attributes.put("ID", dbsnp.getRS_ID());
 
-                // the reverse lod
-                initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE);
-                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE);
-                calculatePofFs(ref, frequencyEstimationPoints);
-                double reverseLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
-                double reverseLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
+        if ( REPORT_SLOD ) {
+            // the overall lod
+            double overallLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
+            double overallLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
+            double lod = overallLog10PofF - overallLog10PofNull;
 
-                double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
-                double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
-                //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+            // the forward lod
+            initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD);
+            calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD);
+            calculatePofFs(ref, frequencyEstimationPoints);
+            double forwardLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
+            double forwardLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
 
-                // strand score is max bias between forward and reverse strands
-                double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
-                // rescale by a factor of 10
-                strandScore *= 10.0;
-                //logger.debug(String.format("SLOD=%f", strandScore));
+            // the reverse lod
+            initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE);
+            calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE);
+            calculatePofFs(ref, frequencyEstimationPoints);
+            double reverseLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
+            double reverseLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
 
-                ((SLODBacked)locusdata).setSLOD(strandScore);
-            }
+            double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
+            double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
+            //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+
+            // strand score is max bias between forward and reverse strands
+            double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
+            // rescale by a factor of 10
+            strandScore *= 10.0;
+            //logger.debug(String.format("SLOD=%f", strandScore));
+
+            attributes.put("SB", new Double(strandScore));
         }
 
-        // finally, associate the Variation with the Genotypes (if available)
-        if ( locusdata != null ) {
-            locusdata.setGenotypeCalls(calls);
-            for ( Genotype call : calls )
-                ((GenotypeCall)call).setVariation(locusdata);
-        }
+        VariantContext vc = new MutableVariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, null, attributes);
 
-        return new VariantCallContext(locusdata, calls, phredScaledConfidence >= CONFIDENCE_THRESHOLD);
+        return new VariantCallContext(vc, phredScaledConfidence >= CONFIDENCE_THRESHOLD);
     }
 }

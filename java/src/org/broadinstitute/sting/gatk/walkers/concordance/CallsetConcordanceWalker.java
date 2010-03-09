@@ -4,7 +4,6 @@ import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -140,7 +139,7 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
 
         // pull out all of the individual calls from the rods and insert into a map based on the
         // mapping from rod/sample to uniquified name
-        HashMap<String, Genotype> samplesToRecords = new HashMap<String, Genotype>();
+        HashMap<String, VCFGenotypeRecord> samplesToRecords = new HashMap<String, VCFGenotypeRecord>();
         for ( RodVCF rod : vcfRods ) {
             List<VCFGenotypeRecord> records = rod.getVCFGenotypeRecords();
             for ( VCFGenotypeRecord vcfRec : records ) {
