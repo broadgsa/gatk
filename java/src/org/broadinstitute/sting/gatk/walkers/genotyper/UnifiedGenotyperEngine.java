@@ -87,6 +87,9 @@ public class UnifiedGenotyperEngine {
         this.beagleWriter = beagleWriter;
 
         // deal with input errors
+        if ( UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS && !(genotypeWriter instanceof VCFGenotypeWriter) ) {
+            throw new IllegalArgumentException("Attempting to use an output format other than VCF with indels. Please set the output format to VCF.");
+        }
         if ( UAC.POOLSIZE > 0 && UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
             throw new IllegalArgumentException("Attempting to use a model other than POOLED with pooled data. Please set the model to POOLED.");
         }

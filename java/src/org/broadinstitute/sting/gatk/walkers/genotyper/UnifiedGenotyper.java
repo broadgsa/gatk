@@ -62,8 +62,12 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     // the calculation arguments
     private UnifiedGenotyperEngine UG_engine = null;
 
-    // Enable deletions in the pileup
+    // enable deletions in the pileup
     public boolean includeReadsWithDeletionAtLoci() { return true; }
+
+    // enable extended events for indels
+    public boolean generateExtendedEvents() { return true; }
+    //public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS; }
 
     /**
      * Inner class for collecting output statistics from the UG
@@ -170,6 +174,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      * @return the VariantCallContext object
      */
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+        if ( rawContext.hasExtendedEventPileup() )
+            System.out.println("Saw extended event at location " + rawContext.getLocation());
         return UG_engine.runGenotyper(tracker, refContext, rawContext);
     }
 

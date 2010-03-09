@@ -70,6 +70,9 @@ public class GenotypeCalculationModelFactory {
             case POOLED:
                 gcm = new PooledCalculationModel();
                 break;
+            case INDELS:
+                gcm = new SimpleIndelCalculationModel();
+                break;
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
 
