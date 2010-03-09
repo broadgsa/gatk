@@ -1,5 +1,3 @@
-#!/broad/tools/apps/R-2.6.0/bin/Rscript
-
 args <- commandArgs(TRUE)
 docBase <- args[1]
 
