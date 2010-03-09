@@ -6,9 +6,7 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 
 import java.util.*;
@@ -45,6 +43,9 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     @Argument(fullName="read", doc="", required=false)
     String onlyDoRead = null;
 
+    @Argument(fullName="useOriginalQualities", shortName = "OQ", doc="If set, use the original base quality scores", required=false)
+    boolean USE_ORIGINAL_QUALS = false;
+
     //@Argument(fullName = "keepCompletelyClipped", shortName = "KCC", doc = "Unfortunately, sometimes a read is completely clipped away but with SOFTCLIP_BASES this results in an invalid CIGAR string.  ", required = false)
     //boolean keepCompletelyClippedReads = false;
 
@@ -53,6 +54,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
 
     @Argument(fullName = "clipRepresentation", shortName = "CR", doc = "How should we actually clip the bases?", required = false)
     ClippingRepresentation clippingRepresentation = ClippingRepresentation.WRITE_NS;
+
+    private final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
 
     /**
      * List of sequence that should be clipped from the reads
@@ -253,7 +256,21 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     private void clipBadQualityScores(ReadClipper clipper) {
         SAMRecord read = clipper.getRead();
         int readLen = read.getReadBases().length;
-        byte[] quals = read.getBaseQualities();
+        byte[] quals = null;
+
+        if ( USE_ORIGINAL_QUALS ) {
+            final Object attr = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
+            if ( attr != null ) {
+                if ( attr instanceof String ) {
+                    quals = QualityUtils.fastqToPhred((String)attr);
+                } else {
+                    throw new StingException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+                }
+            }
+        }
+        // if we don't want original quals or couldn't find them, use the main quals
+        if ( quals == null )
+            quals = read.getBaseQualities();
 
 
         int clipSum = 0, lastMax = -1, clipPoint = -1; // -1 means no clip
