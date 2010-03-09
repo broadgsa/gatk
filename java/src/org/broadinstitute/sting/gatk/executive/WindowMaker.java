@@ -4,10 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 
-import java.util.List;
-import java.util.Queue;
-import java.util.ArrayDeque;
-import java.util.Iterator;
+import java.util.*;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.util.PeekableIterator;
@@ -22,9 +19,14 @@ import net.sf.picard.util.PeekableIterator;
  */
 public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, Iterator<WindowMaker.WindowMakerIterator> {
     /**
+     * Source information for iteration.
+     */
+    private final Reads sourceInfo;
+
+    /**
      * The data source for reads.  Will probably come directly from the BAM file.
      */
-    private final StingSAMIterator sourceIterator;
+    private final PeekableIterator<SAMRecord> sourceIterator;
 
     /**
      * Stores the sequence of intervals that the windowmaker should be tracking.
@@ -43,7 +45,8 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * @param intervals The set of intervals over which to traverse.
      */
     public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals) {
-        this.sourceIterator = iterator;
+        this.sourceInfo = iterator.getSourceInfo();
+        this.sourceIterator = new PeekableIterator<SAMRecord>(iterator);
         this.intervalIterator = new PeekableIterator<GenomeLoc>(intervals.iterator());
     }
 
@@ -83,7 +86,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         }
 
         public Reads getSourceInfo() {
-            return sourceIterator.getSourceInfo();
+            return sourceInfo;
         }
 
         public GenomeLoc getLocus() {
@@ -95,10 +98,20 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         }
 
         public boolean hasNext() {
-            return overlappingReads.size() > 0 || sourceIterator.hasNext();
+            if(overlappingReads.size() > 0) return true;
+            if(sourceIterator.hasNext()) {
+                SAMRecord nextRead = sourceIterator.peek();
+                if((nextRead.getAlignmentStart() >= locus.getStart() && nextRead.getAlignmentStart() <= locus.getStop()) ||
+                   (nextRead.getAlignmentEnd() >= locus.getStart() && nextRead.getAlignmentEnd() <= locus.getStop()) ||
+                   (nextRead.getAlignmentStart() < locus.getStart() && nextRead.getAlignmentEnd() > locus.getStop()))
+                    return true;
+
+            }
+            return false;
         }
 
         public SAMRecord next() {
+            if(!hasNext()) throw new NoSuchElementException("WindowMakerIterator is out of elements for this interval.");
             SAMRecord nextRead = overlappingReads.size() > 0 ? overlappingReads.remove() : sourceIterator.next();
             if(intervalIterator.hasNext() && nextRead.getAlignmentEnd() >= intervalIterator.peek().getStart())
                 pendingOverlaps.add(nextRead);
