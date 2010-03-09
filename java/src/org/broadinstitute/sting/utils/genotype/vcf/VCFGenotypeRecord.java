@@ -19,6 +19,7 @@ public class VCFGenotypeRecord {
     public static final String DEPTH_KEY = "DP";
     public static final String HAPLOTYPE_QUALITY_KEY = "HQ";
     public static final String GENOTYPE_FILTER_KEY = "FT";
+    public static final String GENOTYPE_POSTERIORS_TRIPLET_KEY = "GL";
     public static final String OLD_DEPTH_KEY = "RD";
 
     // the values for empty fields
@@ -313,6 +314,8 @@ public class VCFGenotypeRecord {
             result = String.valueOf(MISSING_DEPTH);
         else if ( field.equals(GENOTYPE_FILTER_KEY) )
             result = UNFILTERED;
+        else if ( field.equals(GENOTYPE_POSTERIORS_TRIPLET_KEY) )
+            result = "0,0,0";
         // TODO -- support haplotype quality
         //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
         //    result = String.valueOf(MISSING_HAPLOTYPE_QUALITY);
@@ -324,6 +327,7 @@ public class VCFGenotypeRecord {
         result.add(new VCFFormatHeaderLine(GENOTYPE_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.String, "Genotype"));
         result.add(new VCFFormatHeaderLine(GENOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Float, "Genotype Quality"));
         result.add(new VCFFormatHeaderLine(DEPTH_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Read Depth (only filtered reads used for calling)"));
+        result.add(new VCFFormatHeaderLine(GENOTYPE_POSTERIORS_TRIPLET_KEY, 3, VCFFormatHeaderLine.INFO_TYPE.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
         //result.add(new VCFFormatHeaderLine(HAPLOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Haplotype Quality"));
         return result;
     }

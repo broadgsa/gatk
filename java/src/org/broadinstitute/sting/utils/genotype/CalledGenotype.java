@@ -6,15 +6,17 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import java.util.*;
 
 /**
- * This class emcompasses all the basic information about a genotype.  It is immutable.
+ * This class emcompasses all the basic information about a called genotype.
  *
  * @author ebanks
  */
 public class CalledGenotype extends MutableGenotype {
 
+    // key names for standard genotype attributes
     public static final String LIKELIHOODS_ATTRIBUTE_KEY = "Likelihoods";
     public static final String POSTERIORS_ATTRIBUTE_KEY = "Posteriors";
     public static final String READBACKEDPILEUP_ATTRIBUTE_KEY = "ReadBackedPileup";
+
 
     public CalledGenotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean genotypesArePhased) {
         super(sampleName, alleles, negLog10PError, filters, attributes, genotypesArePhased);

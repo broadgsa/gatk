@@ -11,7 +11,7 @@ import java.util.*;
 
 
 /**
- * @author aaron
+ * @author aaron, ebanks
  *         <p/>
  *         Class VCFGenotypeWriterAdapter
  *         <p/>
@@ -33,7 +33,8 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     // standard genotype format strings
     private static String[] standardGenotypeFormatStrings = { VCFGenotypeRecord.GENOTYPE_KEY,
                                                               VCFGenotypeRecord.DEPTH_KEY,
-                                                              VCFGenotypeRecord.GENOTYPE_QUALITY_KEY };
+                                                              VCFGenotypeRecord.GENOTYPE_QUALITY_KEY,
+                                                              VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY };
 
     public VCFGenotypeWriterAdapter(File writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output file must not be null");

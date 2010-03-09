@@ -37,6 +37,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
 import java.io.PrintStream;
+import java.io.File;
 
 
 /**
@@ -139,7 +140,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 
-        // FORMAT fields if not in POOLED mode
+        // FORMAT and INFO fields if not in POOLED mode
         if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
             headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
@@ -153,6 +154,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(args);
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
             headerInfo.add(new VCFHeaderLine(String.format("UG_%s", commandLineArg.getKey()), commandLineArg.getValue()));
+        // also, the list of input bams
+        for ( File file : getToolkit().getArguments().samFiles )
+            headerInfo.add(new VCFHeaderLine("UG_bam_file_used", file.getName()));
 
         return headerInfo;
     }

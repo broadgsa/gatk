@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
@@ -93,6 +94,9 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
         Allele refAllele = new Allele(Character.toString(ref), true);
         Allele altAllele = new Allele(Character.toString(alt), false);
+        DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
+        DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
+        DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
 
         for ( String sample : GLs.keySet() ) {
 
@@ -113,17 +117,21 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
             CalledGenotype cg = new CalledGenotype(sample, myAlleles, AFbasedGenotype.second);
             cg.setLikelihoods(GLs.get(sample).getLikelihoods());
-            cg.setPosteriors(GLs.get(sample).getPosteriors());
             cg.setReadBackedPileup(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup());
+
+            double[] posteriors = GLs.get(sample).getPosteriors();
+            cg.setPosteriors(posteriors);
+            String GL = String.format("%.2f,%.2f,%.2f",
+                    posteriors[refGenotype.ordinal()],
+                    posteriors[hetGenotype.ordinal()],
+                    posteriors[homGenotype.ordinal()]);
+            cg.putAttribute(VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY, GL);
 
             calls.put(sample, cg);
         }
 
         // output to beagle file if requested
         if ( beagleWriter != null ) {
-            DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
-            DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
-            DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
             for ( String sample : samples ) {
                 GenotypeLikelihoods gl = GLs.get(sample);
                 if ( gl == null ) {

@@ -162,8 +162,7 @@ public class VariantContextAdaptors {
             alleles.add(refAllele);
             for ( String alt : vcf.getAlternateAlleleList() ) {
                 if ( ! Allele.acceptableAlleleBases(alt) ) {
-                    // todo -- cleanup
-                    System.out.printf("Excluding vcf record %s%n", vcf);
+                    //System.out.printf("Excluding vcf record %s%n", vcf);
                     return null;
                 }
                 alleles.add(new Allele(alt, false));
@@ -288,15 +287,7 @@ public class VariantContextAdaptors {
         for ( Genotype g : vc.getGenotypesSortedByName() ) {
             List<VCFGenotypeEncoding> encodings = new ArrayList<VCFGenotypeEncoding>(g.getPloidy());
 
-            // TODO -- REMOVE ME ONCE INTEGRATION TESTS PASS!!!
-            ArrayList<Allele> temporaryList = new ArrayList<Allele>(g.getAlleles());
-            Collections.sort(temporaryList, new Comparator<Allele>() {
-                public int compare(Allele a1, Allele a2) {
-                    return a1.toString().charAt(0) - a2.toString().charAt(0);
-                }
-            });
-            for ( Allele a : temporaryList ) {
-            //for ( Allele a : g.getAlleles() ) {
+            for ( Allele a : g.getAlleles() ) {
                 encodings.add(alleleMap.get(a.toString()));
             }
 
