@@ -500,15 +500,15 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         int[] leftEnds = stats.getEndpoints();
         StringBuilder hBuilder = new StringBuilder();
         hBuilder.append("\t");
-        hBuilder.append(String.format("[0,%d)\t",leftEnds[0]));
+        hBuilder.append(String.format("from_0_to_%d)\t",leftEnds[0]));
         for ( int i = 1; i < leftEnds.length; i++ )
-            hBuilder.append(String.format("[%d,%d)\t",leftEnds[i-1],leftEnds[i]));
-        hBuilder.append(String.format("[%d,inf)%n",leftEnds[leftEnds.length-1]));
+            hBuilder.append(String.format("from_%d_to_%d)\t",leftEnds[i-1],leftEnds[i]));
+        hBuilder.append(String.format("from_%d_to_inf%n",leftEnds[leftEnds.length-1]));
         output.print(hBuilder.toString());
         Map<String,int[]> histograms = stats.getHistograms();
         for ( String s : histograms.keySet() ) {
             StringBuilder sBuilder = new StringBuilder();
-            sBuilder.append(String.format("%s",s));
+            sBuilder.append(String.format("sample_%s",s));
             for ( int count : histograms.get(s) ) {
                 sBuilder.append(String.format("\t%d",count));
             }
@@ -532,9 +532,9 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         // columns - depth of coverage
 
         StringBuilder header = new StringBuilder();
-        header.append(String.format("\t>=0"));
+        header.append(String.format("\tgte_0"));
         for ( int d : endpoints ) {
-            header.append(String.format("\t>=%d",d));
+            header.append(String.format("\tgte_%d",d));
         }
         header.append(String.format("%n"));
 
