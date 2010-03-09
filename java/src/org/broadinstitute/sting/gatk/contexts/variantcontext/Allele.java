@@ -121,23 +121,33 @@ public class Allele implements Comparable<Allele> {
     }
 
     /**
-     * Do the bases represent the null allele?
+     * @param bases  bases representing an allele
+     * @return true if the bases represent the null allele
      */
     public static boolean wouldBeNullAllele(byte[] bases) {
         return (bases.length == 1 && bases[0] == '-') || bases.length == 0;
     }
 
-    /** Do the bases represent the NO_CALL allele? */
+    /**
+     * @param bases  bases representing an allele
+     * @return true if the bases represent the NO_CALL allele
+     */
     public static boolean wouldBeNoCallAllele(byte[] bases) {
         return bases.length == 1 && bases[0] == '.';
     }
 
-    /** Do the bases represent the null allele? */
+    /**
+     * @param bases  bases representing an allele
+     * @return true if the bases represent the well formatted allele
+     */
     public static boolean acceptableAlleleBases(String bases) {
         return acceptableAlleleBases(bases.getBytes());
     }
 
-    /** Can we create an allele from bases, including NO_CALL and Null alleles? */
+    /**
+     * @param bases  bases representing an allele
+     * @return true if the bases represent the well formatted allele
+     */
     public static boolean acceptableAlleleBases(byte[] bases) {
         if ( wouldBeNullAllele(bases) || wouldBeNoCallAllele(bases) )
             return true;
@@ -154,8 +164,8 @@ public class Allele implements Comparable<Allele> {
     /**
      * @see Allele(byte[], boolean)
      *
-     * @param bases
-     * @param isRef
+     * @param bases  bases representing an allele
+     * @param isRef  is this the reference allele?
      */
     public Allele(String bases, boolean isRef) {
         this(bases.getBytes(), isRef);
@@ -164,14 +174,14 @@ public class Allele implements Comparable<Allele> {
     /**
      * Creates a non-Ref allele.  @see Allele(byte[], boolean) for full information
      *
-     * @param bases
+     * @param bases  bases representing an allele
      */
     public Allele(String bases) { this(bases, false); }
 
     /**
      * Creates a non-Ref allele.  @see Allele(byte[], boolean) for full information
      *
-     * @param bases
+     * @param bases  bases representing an allele
      */
     public Allele(byte[] bases) { this(bases, false); }
 
@@ -181,22 +191,22 @@ public class Allele implements Comparable<Allele> {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    /** Returns true if this is the null allele */
+    //Returns true if this is the null allele
     public boolean isNull()             { return isNull; }
-    /** Returns true if this is not the null allele */
+    // Returns true if this is not the null allele
     public boolean isNonNull()          { return ! isNull(); }
 
-    /** Returns true if this is the NO_CALL allele */
+    // Returns true if this is the NO_CALL allele
     public boolean isNoCall()           { return isNoCall; }
-    /** Returns true if this is the not the NO_CALL allele */
+    // Returns true if this is the not the NO_CALL allele
     public boolean isCalled()           { return ! isNoCall(); }
 
-    /** Returns true if this Allele is the reference allele */
+    // Returns true if this Allele is the reference allele
     public boolean isReference()        { return isRef; }
-    /** Returns true if this Allele is not the reference allele */
+    // Returns true if this Allele is not the reference allele
     public boolean isNonReference()     { return ! isReference(); }
 
-    /** Returns a nice string representation of this object */
+    // Returns a nice string representation of this object
     public String toString() {
         return (isNull() ? "-" : ( isNoCall() ? "." : new String(getBases()))) + (isReference() ? "*" : "");
     }
@@ -214,52 +224,55 @@ public class Allele implements Comparable<Allele> {
      *
      * @return true if these alleles are equal
      */
-    public boolean equals(Allele other) {
-        return equals(other, false);
+    public boolean equals(Object other) {
+        return ( ! (other instanceof Allele) ? false : equals((Allele)other, false) );
+    }
+
+    /**
+     * @return hash code
+     */
+    public int hashCode() {
+        int hash = 1;
+        for (int i = 0; i < bases.length; i++)
+            hash += (i+1) * bases[i];
+        return hash;
     }
 
     /**
      * Returns true if this and other are equal.  If ignoreRefState is true, then doesn't require both alleles has the
      * same ref tag
      *
-     * @param other
-     * @param ignoreRefState
-     * @return
+     * @param other            allele to compare to
+     * @param ignoreRefState   if true, ignore ref state in comparison
+     * @return true if this and other are equal
      */
     public boolean equals(Allele other, boolean ignoreRefState) {
-        return (isRef == other.isRef || ignoreRefState) && isNull == other.isNull && isNoCall == other.isNoCall && this.basesMatch(other.getBases());
+        return (isRef == other.isRef || ignoreRefState) && isNull == other.isNull && isNoCall == other.isNoCall && basesMatch(other.getBases());
     }
 
     /**
-     * Returns true if this Alelle contains the same bases as test, regardless of its reference status.  Also handles
-     * Null and NO_CALL alleles
+     * @param test  bases to test against
      *
-     * @param test
-     * @return
+     * @return  true if this Alelle contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
      */
     public boolean basesMatch(byte[] test) { return bases == test || Arrays.equals(bases, test); }
 
     /**
-     * Returns true if this Alelle contains the same bases as test, regardless of its reference status.  Also handles
-     * Null and NO_CALL alleles
+     * @param test  bases to test against
      *
-     * @param test
-     * @return
+     * @return  true if this Alelle contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
      */
     public boolean basesMatch(String test) { return basesMatch(test.toUpperCase().getBytes()); }
 
     /**
-     * Returns true if this Alelle contains the same bases as test, regardless of its reference status.  Also handles
-     * Null and NO_CALL alleles
+     * @param test  allele to test against
      *
-     * @param test
-     * @return
+     * @return  true if this Alelle contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
      */
     public boolean basesMatch(Allele test) { return basesMatch(test.getBases()); }
 
     /**
-     * Returns the length of this allele.  Null and NO_CALL alleles have 0 length.
-     * @return
+     * @return the length of this allele.  Null and NO_CALL alleles have 0 length.
      */
     public int length() {
         return bases.length;

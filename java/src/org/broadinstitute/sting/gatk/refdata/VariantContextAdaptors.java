@@ -227,9 +227,8 @@ public class VariantContextAdaptors {
         
         String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? VCFRecord.PASSES_FILTERS : VCFRecord.UNFILTERED);
 
-        // TODO - fixme: temporarily using Strings as keys because Alleles aren't hashing correctly
-        Map<String, VCFGenotypeEncoding> alleleMap = new HashMap<String, VCFGenotypeEncoding>();
-        alleleMap.put(Allele.NO_CALL.toString(), new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
+        Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();
+        alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
         List<VCFGenotypeEncoding> vcfAltAlleles = new ArrayList<VCFGenotypeEncoding>();
         for ( Allele a : vc.getAlleles() ) {
 
@@ -271,7 +270,7 @@ public class VariantContextAdaptors {
                 vcfAltAlleles.add(encoding);
             }
 
-            alleleMap.put(a.toString(), encoding);
+            alleleMap.put(a, encoding);
         }
 
         if ( vcfGenotypeAttributeKeys == null ) {
@@ -288,7 +287,7 @@ public class VariantContextAdaptors {
             List<VCFGenotypeEncoding> encodings = new ArrayList<VCFGenotypeEncoding>(g.getPloidy());
 
             for ( Allele a : g.getAlleles() ) {
-                encodings.add(alleleMap.get(a.toString()));
+                encodings.add(alleleMap.get(a));
             }
 
             VCFGenotypeRecord.PHASE phasing = g.genotypesArePhased() ? VCFGenotypeRecord.PHASE.PHASED : VCFGenotypeRecord.PHASE.UNPHASED;
