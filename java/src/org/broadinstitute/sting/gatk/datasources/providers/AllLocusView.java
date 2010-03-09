@@ -30,13 +30,13 @@ public class AllLocusView extends LocusView {
     private GenomeLocusIterator locusIterator;
 
     /**
-     * Gets the current position in the view.
+     * Gets the next position in the view: next call to next() will jump there.
+     * Note that both nextPosition and nextLocus are PRE-read and cached.
      */
     private GenomeLoc nextPosition = null;
 
     /**
-     * What's the context for the last locus accessed?
-     * @param provider
+     * What's the next available context?
      */
     private AlignmentContext nextLocus = null;
 
@@ -49,6 +49,7 @@ public class AllLocusView extends LocusView {
         // Seed the state tracking members with the first possible seek position and the first possible locus context.
         locusIterator = new GenomeLocusIterator(provider.getLocus());
         if( locusIterator.hasNext() ) {
+            // cache next position and next alignment context
             nextPosition = locusIterator.next();
             nextLocus = hasNextLocus() ? nextLocus() : createEmptyLocus(nextPosition);
         }
@@ -59,22 +60,35 @@ public class AllLocusView extends LocusView {
     }
 
     public AlignmentContext next() {
+
         GenomeLoc currentPosition = nextPosition;
         if( currentPosition == null )
             throw new NoSuchElementException("No next is available in the all locus view");
-
-        // Determine the next locus.
-        nextPosition = locusIterator.hasNext() ? locusIterator.next() : null;
 
         // Crank the iterator to (if possible) or past the next context.
         while( nextLocus != null && nextLocus.getLocation().isBefore(currentPosition) && hasNextLocus() )
             nextLocus = nextLocus();
 
+        AlignmentContext currentLocus = null; // context we are gonna return
+
         // If actual data is present, return it.  Otherwise, return empty data.
-        if( nextLocus != null && nextLocus.getLocation().equals(currentPosition) )
-            return nextLocus;
+        if( nextLocus != null && nextLocus.getLocation().equals(currentPosition) ) {
+            currentLocus = nextLocus; // found alignment context at the current position
+            nextLocus = hasNextLocus() ? nextLocus() : null; 
+        }
         else
-            return createEmptyLocus( currentPosition );
+            currentLocus = createEmptyLocus( currentPosition );
+
+        // Determine the next locus. The trick is that we may have more than one alignment context at the same
+        // reference position (regular base pileup, then extended pileup). If next alignment context (that we just pre-read)
+        // is still at the current position, we do not increment current position and wait for next call to next() to return
+        // that context. If we know that next context is past the current position, we are done with current
+        // position
+        if ( nextLocus == null || ! nextLocus.getLocation().equals(currentPosition) )
+            nextPosition = locusIterator.hasNext() ? locusIterator.next() : null;
+
+
+        return currentLocus;
     }
 
     @Override
