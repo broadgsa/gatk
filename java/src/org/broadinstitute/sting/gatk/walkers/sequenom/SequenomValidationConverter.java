@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.variantstovcf;
+package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -25,7 +25,7 @@ import java.util.*;
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
 @Reference(window=@Window(start=0,stop=40))
-public class PlinkToVCF extends RodWalker<VCFRecord,Integer> {
+public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     @Argument(fullName="outputVCF", shortName="vcf", doc="The VCF file to write results", required=true)
     protected File vcfFile = null;
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid [default:20]", required=false)
