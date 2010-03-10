@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -55,8 +56,8 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
 
     @Test
     public void testCreateSingleIterator() {
-        ResourcePool iteratorPool = new ReferenceOrderedDataPool(rod);
-        FlashBackIterator iterator = (FlashBackIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
+        ResourcePool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        LocationAwareSeekableRODIterator iterator = (LocationAwareSeekableRODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -76,11 +77,11 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
 
     @Test
     public void testCreateMultipleIterators() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        FlashBackIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        LocationAwareSeekableRODIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         // Create a new iterator at position 2.
-        FlashBackIterator iterator2 = iteratorPool.iterator( new MappedStreamSegment(testSite2) );
+        LocationAwareSeekableRODIterator iterator2 = iteratorPool.iterator( new MappedStreamSegment(testSite2) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -126,8 +127,8 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
 
     @Test
     public void testIteratorConservation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        FlashBackIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -161,8 +162,8 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
 
     @Test
     public void testIteratorCreation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        FlashBackIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());

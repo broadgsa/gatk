@@ -67,7 +67,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
     public void testSingleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
         ReferenceOrderedData rod = new ReferenceOrderedData("tableTest", file, TabularROD.class);
-        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(rod);
+        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(null,rod);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
@@ -90,9 +90,9 @@ public class ReferenceOrderedViewTest extends BaseTest {
         File file = new File(testDir + "TabularDataTest.dat");
 
         ReferenceOrderedData rod1 = new ReferenceOrderedData("tableTest1", file, TabularROD.class);
-        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(rod1);
+        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(null,rod1);
         ReferenceOrderedData rod2 = new ReferenceOrderedData("tableTest2", file, TabularROD.class);
-        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(rod2);
+        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(null,rod2);
 
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MergingIterator;
@@ -68,7 +68,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             // grab the ROD iterator from the data source, and compute the first location in this shard, forwarding
             // the iterator to immediately before it, so that it can be added to the merging iterator primed for
             // next() to return the first real ROD in this shard
-            FlashBackIterator it = (FlashBackIterator)dataSource.seek(provider.getShard());
+            LocationAwareSeekableRODIterator it = dataSource.seek(provider.getShard());
             it.seekForward(GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart()-1));
 
             states.add(new ReferenceOrderedDataState(dataSource,it));            

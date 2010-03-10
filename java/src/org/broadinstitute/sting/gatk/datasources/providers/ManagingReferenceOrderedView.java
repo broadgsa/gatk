@@ -2,8 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.List;
@@ -38,7 +37,7 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      */
     public ManagingReferenceOrderedView( ShardDataProvider provider ) {
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() )
-            states.add( new ReferenceOrderedDataState( dataSource, ((FlashBackIterator)dataSource.seek(provider.getShard()) )) );
+            states.add( new ReferenceOrderedDataState( dataSource, (dataSource.seek(provider.getShard()) )) );
 
         provider.register(this);
     }
@@ -74,9 +73,9 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
  */
 class ReferenceOrderedDataState {
     public final ReferenceOrderedDataSource dataSource;
-    public final FlashBackIterator iterator;
+    public final LocationAwareSeekableRODIterator iterator;
 
-    public ReferenceOrderedDataState( ReferenceOrderedDataSource dataSource, FlashBackIterator iterator ) {
+    public ReferenceOrderedDataState( ReferenceOrderedDataSource dataSource, LocationAwareSeekableRODIterator iterator ) {
         this.dataSource = dataSource;
         this.iterator = iterator;
     }

@@ -102,7 +102,7 @@ class WindowedData {
         states = new ArrayList<RMDDataState>();
         if (provider != null && provider.getReferenceOrderedData() != null)
             for (ReferenceOrderedDataSource dataSource : provider.getReferenceOrderedData())
-                states.add(new RMDDataState(dataSource, ((FlashBackIterator) dataSource.seek(GenomeLocParser.createGenomeLoc(rec.getReferenceIndex(), rec.getAlignmentStart())))));
+                states.add(new RMDDataState(dataSource, (LocationAwareSeekableRODIterator)dataSource.seek(GenomeLocParser.createGenomeLoc(rec.getReferenceIndex(), rec.getAlignmentStart()))));
     }
 
     /**

@@ -1,9 +1,14 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
+import org.broadinstitute.sting.gatk.refdata.IntervalRod;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -40,9 +45,9 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Create a new reference-ordered data source.
      * @param rod
      */
-    public ReferenceOrderedDataSource( ReferenceOrderedData rod) {
+    public ReferenceOrderedDataSource( Walker walker, ReferenceOrderedData rod) {
         this.rod = rod;
-        this.iteratorPool = new ReferenceOrderedDataPool( rod );
+        this.iteratorPool = new ReferenceOrderedDataPool( walker, rod );
     }
 
     /**
@@ -66,9 +71,9 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @param shard Shard that points to the selected position.
      * @return Iterator through the data.
      */
-    public Iterator seek( Shard shard ) {
+    public LocationAwareSeekableRODIterator seek( Shard shard ) {
         DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs().get(0)) : new EntireStream();
-        FlashBackIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
+        LocationAwareSeekableRODIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
         return RODIterator;
     }
 
@@ -81,7 +86,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      */
     public Iterator seek(GenomeLoc loc) {
         DataStreamSegment dataStreamSegment = new MappedStreamSegment(loc);
-        FlashBackIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
+        LocationAwareSeekableRODIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
         return RODIterator;
     }
 
@@ -90,7 +95,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Close the specified iterator, returning it to the pool.
      * @param iterator Iterator to close.
      */
-    public void close( FlashBackIterator iterator ) {
+    public void close( LocationAwareSeekableRODIterator iterator ) {
         this.iteratorPool.release(iterator);        
     }
 
@@ -99,9 +104,11 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
 /**
  * A pool of reference-ordered data iterators.
  */
-class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBackIterator> {
+class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIterator, LocationAwareSeekableRODIterator> {
     private final ReferenceOrderedData<? extends ReferenceOrderedDatum> rod;
-    public ReferenceOrderedDataPool( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod ) {
+    boolean flashbackData = false;
+    public ReferenceOrderedDataPool( Walker walker, ReferenceOrderedData<? extends ReferenceOrderedDatum> rod ) {
+        if (walker instanceof ReadWalker) flashbackData = true; // && (rod.getType() != IntervalRod.class)
         this.rod = rod;
     }
 
@@ -110,8 +117,8 @@ class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBack
      * to be completely independent of any other iterator.
      * @return The newly created resource.
      */
-    public FlashBackIterator createNewResource() {
-        return new FlashBackIterator(rod.iterator());
+    public LocationAwareSeekableRODIterator createNewResource() {
+        return (flashbackData) ? new FlashBackIterator(rod.iterator()) : rod.iterator();
     }
 
     /**
@@ -121,17 +128,17 @@ class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBack
      * @param resources @{inheritedDoc}
      * @return @{inheritedDoc}
      */
-    public FlashBackIterator selectBestExistingResource( DataStreamSegment segment, List<FlashBackIterator> resources ) {
+    public LocationAwareSeekableRODIterator selectBestExistingResource( DataStreamSegment segment, List<LocationAwareSeekableRODIterator> resources ) {
         if(segment instanceof MappedStreamSegment) {
             GenomeLoc position = ((MappedStreamSegment)segment).getFirstLocation();
 
-            for( FlashBackIterator RODIterator : resources ) {
+            for( LocationAwareSeekableRODIterator RODIterator : resources ) {
 
                 if( (RODIterator.position() == null && RODIterator.hasNext()) ||
                     (RODIterator.position() != null && RODIterator.position().isBefore(position)) )
                     return RODIterator;
-                if (RODIterator.position() != null && RODIterator.canFlashBackTo(position)) {
-                    RODIterator.flashBackTo(position);
+                if (RODIterator.position() != null && RODIterator instanceof FlashBackIterator && ((FlashBackIterator)RODIterator).canFlashBackTo(position)) {
+                    ((FlashBackIterator)RODIterator).flashBackTo(position);
                     return RODIterator;
                 }
 
@@ -151,15 +158,15 @@ class ReferenceOrderedDataPool extends ResourcePool<FlashBackIterator, FlashBack
     /**
      * In this case, the iterator is the resource.  Pass it through.
      */
-    public FlashBackIterator createIteratorFromResource( DataStreamSegment segment, FlashBackIterator resource ) {
+    public LocationAwareSeekableRODIterator createIteratorFromResource( DataStreamSegment segment, LocationAwareSeekableRODIterator resource ) {
         return resource;
     }
 
     /**
      * kill the buffers in the iterator
      */
-    public void closeResource( FlashBackIterator resource ) {
-        resource.close();            
+    public void closeResource( LocationAwareSeekableRODIterator resource ) {
+        if (resource instanceof FlashBackIterator) ((FlashBackIterator)resource).close();            
     }
 }
 

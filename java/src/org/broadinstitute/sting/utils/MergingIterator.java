@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 
 import java.util.*;
@@ -10,13 +9,12 @@ public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRec
     PriorityQueue<Element> queue = new PriorityQueue<Element>();
 
     private class Element implements Comparable<Element> {
-        public FlashBackIterator it = null;
-        //public E value = null;
+        public LocationAwareSeekableRODIterator it = null;
         public GenomeLoc nextLoc = null;
 
         public Element(Iterator<RODRecordList> it) {
-            if ( it instanceof FlashBackIterator) {
-                this.it = (FlashBackIterator)it;
+            if ( it instanceof LocationAwareSeekableRODIterator) {
+                this.it = (LocationAwareSeekableRODIterator)it;
                 if ( ! it.hasNext() ) throw new StingException("Iterator is empty");
                 update();
             } else {

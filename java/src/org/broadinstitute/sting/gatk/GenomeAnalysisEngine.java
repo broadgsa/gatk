@@ -266,7 +266,7 @@ public class GenomeAnalysisEngine {
 
         validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, rods);
 
-        rodDataSources = getReferenceOrderedDataSources(rods);
+        rodDataSources = getReferenceOrderedDataSources(my_walker, rods);
     }
 
     /**
@@ -744,10 +744,10 @@ public class GenomeAnalysisEngine {
      * @param rods the reference order data to execute using
      * @return A list of reference-ordered data sources.
      */
-    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(Walker walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods)
-            dataSources.add(new ReferenceOrderedDataSource(rod));
+            dataSources.add(new ReferenceOrderedDataSource(walker, rod));
         return dataSources;
     }
 
