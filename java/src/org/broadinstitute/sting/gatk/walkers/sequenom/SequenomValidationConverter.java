@@ -42,8 +42,11 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     // max allowable indel size (based on ref window)
     private static final int MAX_INDEL_SIZE = 40;
 
-    // the VCF writer
-    private VCFWriter vcfWriter = null;
+    // sample names
+    private TreeSet<String> sampleNames = null;
+
+    // vcf records
+    private ArrayList<VCFRecord> records = new ArrayList<VCFRecord>();
 
     // statistics
     private int numRecords = 0;
@@ -83,18 +86,26 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         if ( plinkRod == null )
             return null;
 
-        if ( vcfWriter == null )
-            initializeWriter(plinkRod);
+        if ( sampleNames == null )
+            sampleNames = new TreeSet<String>(plinkRod.getSampleNames());
 
         return addVariantInformationToCall(ref, plinkRod);
     }
 
-    private void initializeWriter(PlinkRod plinkRod) {
-        vcfWriter = new VCFWriter(vcfFile);
+    public Integer reduce(VCFRecord call, Integer numVariants) {
+        if ( call != null ) {
+            numVariants++;
+            records.add(call);
+        }
+        return numVariants;                        
+    }
+
+    public void onTraversalDone(Integer finalReduce) {
+        VCFWriter vcfWriter = new VCFWriter(vcfFile);
 
         // set up the info and filter headers
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.add(new VCFHeaderLine("source", "PlinkToVCF"));
+        hInfo.add(new VCFHeaderLine("source", "SequenomValidationConverter"));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.add(new VCFInfoHeaderLine("NoCallPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of no-calls"));
         hInfo.add(new VCFInfoHeaderLine("HomRefPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of homozygous reference genotypes"));
@@ -107,28 +118,29 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         hInfo.add(new VCFFilterHeaderLine("HighNoCallRate", "The validation no-call rate is too high"));
         hInfo.add(new VCFFilterHeaderLine("TooManyHomVars", "The validation homozygous variant rate is too high"));
 
-        VCFHeader header = new VCFHeader(hInfo, new TreeSet<String>(plinkRod.getSampleNames()));
-        vcfWriter.writeHeader(header);
-    }
-
-    public Integer reduce(VCFRecord call, Integer numVariants) {
-        if ( call != null ) {
-            numVariants++;
-            vcfWriter.addRecord(call);
-        }
-        return numVariants;                        
-    }
-
-    public void onTraversalDone(Integer finalReduce) {
-        if ( vcfWriter != null )
-            vcfWriter.close();
+        // print out (and add to headers) the validation metrics
+        System.out.println(String.format("Total number of samples assayed:\t\t\t%d", sampleNames.size()));
+        hInfo.add(new VCFHeaderLine("ValidationMetrics_SamplesAssayed", String.format("%d", sampleNames.size())));
         System.out.println(String.format("Total number of records processed:\t\t\t%d", numRecords));
+        hInfo.add(new VCFHeaderLine("ValidationMetrics_RecordsProcessed", String.format("%d", numRecords)));
         System.out.println(String.format("Number of Hardy-Weinberg violations:\t\t\t%d (%d%%)", numHWViolations, 100*numHWViolations/numRecords));
+        hInfo.add(new VCFHeaderLine("ValidationMetrics_HardyWeinbergViolations", String.format("\"%d (%d%%)\"", numHWViolations, 100*numHWViolations/numRecords)));
         System.out.println(String.format("Number of no-call violations:\t\t\t\t%d (%d%%)", numNoCallViolations, 100*numNoCallViolations/numRecords));
+        hInfo.add(new VCFHeaderLine("ValidationMetrics_NoCallViolations", String.format("\"%d (%d%%)\"", numNoCallViolations, 100*numNoCallViolations/numRecords)));
         System.out.println(String.format("Number of homozygous variant violations:\t\t%d (%d%%)", numHomVarViolations, 100*numHomVarViolations/numRecords));
+        hInfo.add(new VCFHeaderLine("ValidationMetrics_HomVarViolations", String.format("\"%d (%d%%)\"", numHomVarViolations, 100*numHomVarViolations/numRecords)));
         int goodRecords = numRecords - numHWViolations - numNoCallViolations - numHomVarViolations;
         System.out.println(String.format("Number of records passing all filters:\t\t\t%d (%d%%)", goodRecords, 100*goodRecords/numRecords));
-        System.out.println(String.format("Number of passing records that validated as true:\t%d (%d%%)", numTrueVariants, 100*numTrueVariants/goodRecords));
+        hInfo.add(new VCFHeaderLine("ValidationMetrics_RecordsPassingFilters", String.format("\"%d (%d%%)\"", goodRecords, 100*goodRecords/numRecords)));
+        System.out.println(String.format("Number of passing records that are polymorphic:\t\t%d (%d%%)", numTrueVariants, 100*numTrueVariants/goodRecords));
+        hInfo.add(new VCFHeaderLine("ValidationMetrics_PolymorphicPassingRecords", String.format("\"%d (%d%%)\"", numTrueVariants, 100*numTrueVariants/goodRecords)));
+
+        VCFHeader header = new VCFHeader(hInfo, sampleNames);
+        vcfWriter.writeHeader(header);
+
+        for ( VCFRecord record : records )
+            vcfWriter.addRecord(record);
+        vcfWriter.close();
     }
 
 
