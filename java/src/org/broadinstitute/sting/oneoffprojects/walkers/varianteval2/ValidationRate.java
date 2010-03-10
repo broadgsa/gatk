@@ -20,10 +20,15 @@ import java.util.Arrays;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 public class ValidationRate extends VariantEvaluator {
+
+    // todo -- subset validation data by list of samples, if provided
+
+    // todo -- print out PPV and sensitivity numbers
+
     class SiteStats {
         long nPoly = 0, nMono = 0, nNoCall = 0;
 
-        double polyPercent() { return rate(nPoly, nPoly + nMono + nNoCall); }
+        double polyPercent() { return 100 * rate(nPoly, nPoly + nMono + nNoCall); }
     }
 
     private SiteStats validationStats = new SiteStats();
@@ -47,16 +52,22 @@ public class ValidationRate extends VariantEvaluator {
     }
 
     private String summaryLine() {
-        return String.format("%d %d %.2f %d %d %d %.2f %d %d %d %.2f",
+        long TP = evalOverlapAtPoly.nPoly + evalOverlapAtMono.nMono;
+        long FP = evalOverlapAtMono.nPoly + evalOverlapAtPoly.nMono;
+        long FN = evalOverlapAtPoly.nMono + evalOverlapAtPoly.nNoCall;
+
+        return String.format("%d %d %.2f %d %d %d %.2f %d %d %d %.2f %.2f %.2f",
                 validationStats.nMono, validationStats.nPoly, validationStats.polyPercent(),
                 evalOverlapAtMono.nMono, evalOverlapAtMono.nPoly, evalOverlapAtMono.nNoCall, evalOverlapAtMono.polyPercent(),
-                evalOverlapAtPoly.nMono, evalOverlapAtPoly.nPoly, evalOverlapAtPoly.nNoCall, evalOverlapAtPoly.polyPercent());
+                evalOverlapAtPoly.nMono, evalOverlapAtPoly.nPoly, evalOverlapAtPoly.nNoCall, evalOverlapAtPoly.polyPercent(),
+                100 * rate(TP, TP + FP), 100 * rate(TP, TP + FN));
     }
 
     private static List<String> HEADER =
             Arrays.asList("n_mono_in_comp", "n_poly_in_comp", "percent_poly_in_comp",
                     "n_mono_calls_at_mono_sites", "n_poly_calls_at_mono_sites", "n_nocalls_at_mono_sites", "percent_mono_sites_called_poly",
-                    "n_mono_calls_at_poly_sites", "n_poly_calls_at_poly_sites", "n_nocalls_at_poly_sites", "percent_poly_sites_called_poly");
+                    "n_mono_calls_at_poly_sites", "n_poly_calls_at_poly_sites", "n_nocalls_at_poly_sites", "percent_poly_sites_called_poly",
+                    "PPV", "Sensitivity");
 
     // making it a table
     public List<String> getTableHeader() {

@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
@@ -110,6 +111,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {"dbsnp"};
 
+    @Argument(shortName="sample", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
+    protected String[] SAMPLES = {};
+    private List<String> SAMPLES_LIST = null;
+
     //
     // Arguments for Mendelian Violation calculations
     //
@@ -213,6 +218,8 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        SAMPLES_LIST = Arrays.asList(SAMPLES);
+
         determineAllEvalations();
         List<VariantContextUtils.JexlVCMatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
 
@@ -494,6 +501,13 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 throw new StingException("Found multiple variant contexts at " + context.getLocation());
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
+
+            if ( vc != null && vc.hasGenotypes(SAMPLES_LIST) ) {
+                //if ( ! name.equals("eval") ) logger.info(String.format("subsetting VC %s", vc));
+                vc = vc.subContextFromGenotypes(vc.getGenotypes(SAMPLES_LIST).values());
+                //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));
+            }
+
             map.put(name, allowExcludes && excludeComp(vc) ? null : vc);
         }
     }

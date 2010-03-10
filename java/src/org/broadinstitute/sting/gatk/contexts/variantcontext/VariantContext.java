@@ -606,6 +606,14 @@ public class VariantContext {
      */
     public boolean hasGenotypes() { return genotypes.size() > 0; }
 
+    public boolean hasGenotypes(Collection<String> sampleNames) {
+        for ( String name : sampleNames ) {
+            if ( ! genotypes.containsKey(name) )
+                return false;
+        }
+        return true;
+    }
+
     /**
      * @return set of all Genotypes associated with this context
      */
