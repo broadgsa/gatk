@@ -5,7 +5,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * In the "standard" locus traversal mode,
@@ -33,7 +32,7 @@ import java.util.Collections;
  * Time: 2:57:55 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ExtendedEventPileupElement {
+public class ExtendedEventPileupElement extends PileupElement {
     public enum Type {
         NOEVENT, DELETION, INSERTION
     };
@@ -53,8 +52,7 @@ public class ExtendedEventPileupElement {
      * @param eventBases inserted bases. null indicates that the event is a deletion; ignored if length<=0 (noevent)
      */
     public ExtendedEventPileupElement( SAMRecord read, int offset, int length, byte[] eventBases ) {
-        this.read = read;
-        this.offset = offset;
+        super(read, offset);
         this.eventLength = length;
         if ( length <= 0 ) type = Type.NOEVENT;
         else {
@@ -88,12 +86,6 @@ public class ExtendedEventPileupElement {
     public boolean isIndel() {
         return isDeletion() || isInsertion();
     }
-
-    public SAMRecord getRead() { return read; }
-
-    public int getOffset() { return offset; }
-
-    public int getMappingQual() { return read.getMappingQuality(); }    
 
     public Type getType() { return type; }
 

@@ -167,43 +167,70 @@ public class UnifiedGenotyperEngine {
         if ( rawContext.hasExceededMaxPileup() )
             return null;
 
-        ReadBackedPileup rawPileup = rawContext.getBasePileup();
+        VariantCallContext call;
 
-        // filter the context based on min base and mapping qualities
-        ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
+        if ( rawContext.hasExtendedEventPileup() ) {
 
-        // filter the context based on mapping quality and mismatch rate
-        pileup = filterPileup(pileup, refContext);
+            ReadBackedExtendedEventPileup rawPileup = rawContext.getExtendedEventPileup();
 
-        // don't call when there is no coverage
-        if ( pileup.size() == 0 )
-            return null;
+            // filter the context based on min mapping quality
+            ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
 
-        // are there too many deletions in the pileup?
-        if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
-             (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
-            return null;
+            // filter the context based on bad mates and mismatch rate
+            pileup = filterPileup(pileup, refContext);
 
-        // stratify the AlignmentContext and cut by sample
-        // Note that for testing purposes, we may want to throw multi-samples at pooled mode
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
-        if ( stratifiedContexts == null )
-            return null;
+            // don't call when there is no coverage
+            if ( pileup.size() == 0 )
+                return null;
 
-        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
-        VariantCallContext call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
+            // stratify the AlignmentContext and cut by sample
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, null);
+            if ( stratifiedContexts == null )
+                return null;
 
-        // annotate the call, if possible
-        if ( call != null && call.vc != null ) {
-            // first off, we want to use the *unfiltered* context for the annotations
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
+            call = gcm.get().callExtendedLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts);
 
-            Map<String, String> annotations;
-            if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
-            else
-                annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
-            ((MutableVariantContext)call.vc).putAttributes(annotations);
+        } else {
+
+            ReadBackedPileup rawPileup = rawContext.getBasePileup();
+
+            // filter the context based on min base and mapping qualities
+            ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
+
+            // filter the context based on bad mates and mismatch rate
+            pileup = filterPileup(pileup, refContext);
+
+            // don't call when there is no coverage
+            if ( pileup.size() == 0 )
+                return null;
+
+            // are there too many deletions in the pileup?
+            if ( UAC.genotypeModel != GenotypeCalculationModel.Model.INDELS &&
+                 isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
+                 (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
+                return null;
+
+            // stratify the AlignmentContext and cut by sample
+            // Note that for testing purposes, we may want to throw multi-samples at pooled mode
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
+            if ( stratifiedContexts == null )
+                return null;
+
+            DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
+            call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
+
+            // annotate the call, if possible
+            if ( call != null && call.vc != null ) {
+                // first off, we want to use the *unfiltered* context for the annotations
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
+
+                Map<String, String> annotations;
+                if ( UAC.ALL_ANNOTATIONS )
+                    annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
+                else
+                    annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
+                ((MutableVariantContext)call.vc).putAttributes(annotations);
+            }
         }
 
         return call;
@@ -219,6 +246,18 @@ public class UnifiedGenotyperEngine {
                 filteredPileup.add(p);
         }
         return new ReadBackedPileup(pileup.getLocation(), filteredPileup);
+    }
+
+    // filter based on maximum mismatches and bad mates
+    private ReadBackedExtendedEventPileup filterPileup(ReadBackedExtendedEventPileup pileup, ReferenceContext refContext) {
+
+        ArrayList<ExtendedEventPileupElement> filteredPileup = new ArrayList<ExtendedEventPileupElement>();
+        for ( ExtendedEventPileupElement p : pileup ) {
+            if  ( (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
+                  AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
+                filteredPileup.add(p);
+        }
+        return new ReadBackedExtendedEventPileup(pileup.getLocation(), filteredPileup);
     }
 
     private static boolean isValidDeletionFraction(double d) {

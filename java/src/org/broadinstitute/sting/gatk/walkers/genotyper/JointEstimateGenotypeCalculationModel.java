@@ -39,6 +39,10 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     protected JointEstimateGenotypeCalculationModel() {}
 
+    public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
+        return null;
+    }
+    
     public VariantCallContext callLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
         int numSamples = getNSamples(contexts);
         int frequencyEstimationPoints = (2 * numSamples) + 1;  // (add 1 for allele frequency of zero)

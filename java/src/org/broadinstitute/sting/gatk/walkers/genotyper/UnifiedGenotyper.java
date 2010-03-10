@@ -81,9 +81,12 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         /** The number of bases called confidently (according to user threshold), either ref or other */
         long nBasesCalledConfidently = 0;
 
-        double percentCallableOfAll()    { return (100.0 * nBasesCallable) / nBasesVisited; }
-        double percentCalledOfAll()      { return (100.0 * nBasesCalledConfidently) / nBasesVisited; }
-        double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / nBasesCallable; }
+        /** The total number of extended events encountered */
+        long nExtendedEvents = 0;
+
+        double percentCallableOfAll()    { return (100.0 * nBasesCallable) / (nBasesVisited-nExtendedEvents); }
+        double percentCalledOfAll()      { return (100.0 * nBasesCalledConfidently) / (nBasesVisited-nExtendedEvents); }
+        double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / (nBasesVisited-nExtendedEvents); }
     }
 
     /**
@@ -186,7 +189,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     }
 
     public UGStatistics reduce(VariantCallContext value, UGStatistics sum) {
-        // We get a point for reaching reduce :-)
+        // we get a point for reaching reduce
         sum.nBasesVisited++;
 
         // can't call the locus because of no coverage
@@ -196,7 +199,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         // A call was attempted -- the base was potentially callable
         sum.nBasesCallable++;
 
-        // if the base was confidently called something, print it out 
+        // if the base was confidently called something, print it out
         sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
 
         // can't make a confident variant call here

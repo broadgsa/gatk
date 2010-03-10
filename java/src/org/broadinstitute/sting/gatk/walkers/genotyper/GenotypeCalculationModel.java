@@ -83,13 +83,26 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param stratifiedContexts   stratified alignment contexts
      * @param priors               priors to use for GL
      *
-     * @return calls
+     * @return call
      */
     public abstract VariantCallContext callLocus(RefMetaDataTracker tracker,
                                                  char ref,
                                                  GenomeLoc loc,
                                                  Map<String, StratifiedAlignmentContext> stratifiedContexts,
                                                  DiploidGenotypePriors priors);
+
+    /**
+     * @param tracker              rod data
+     * @param ref                  reference base
+     * @param loc                  GenomeLoc
+     * @param stratifiedContexts   stratified alignment contexts
+     *
+     * @return call
+     */
+    public abstract VariantCallContext callExtendedLocus(RefMetaDataTracker tracker,
+                                                         char ref,
+                                                         GenomeLoc loc,
+                                                         Map<String, StratifiedAlignmentContext> stratifiedContexts);
 
     /**
      * @param tracker   rod data

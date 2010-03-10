@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -108,40 +109,76 @@ public class StratifiedAlignmentContext {
     public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedPileup pileup, String assumedSingleSample, String collapseToThisSample) {
 
         HashMap<String, StratifiedAlignmentContext> contexts = new HashMap<String, StratifiedAlignmentContext>();
+        GenomeLoc loc = pileup.getLocation();
 
-        for (PileupElement p : pileup ) {
-
-            // get the read
-            SAMRecord read = p.getRead();
-
-            // find the sample
-            String sample;
-            if ( collapseToThisSample != null ) {
-                sample = collapseToThisSample;
-            } else {
-                SAMReadGroupRecord readGroup = read.getReadGroup();
-                if ( readGroup == null ) {
-                    if ( assumedSingleSample == null )
-                        throw new StingException("Missing read group for read " + read.getReadName());
-                    sample = assumedSingleSample;
-                } else {
-                    sample = readGroup.getSample();
-                }
-            }
-
-            // create a new context object if this is the first time we're seeing a read for this sample
-            StratifiedAlignmentContext myContext = contexts.get(sample);
-            if ( myContext == null ) {
-                myContext = new StratifiedAlignmentContext(pileup.getLocation());
-                contexts.put(sample, myContext);
-            }
-
-            // add the read to this sample's context
-            // note that bad bases are added to the context (for DoC calculations later)
-            myContext.add(read, p.getOffset());
-        }
+        for (PileupElement p : pileup )
+            addToContext(contexts, p, loc, assumedSingleSample, collapseToThisSample);
 
         return contexts;
+    }
+
+    /**
+     * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.
+     *
+     * @param pileup                the original pileup
+     *
+     * @return a Map of sample name to StratifiedAlignmentContext
+     *
+     **/
+    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedExtendedEventPileup pileup) {
+        return splitContextBySample(pileup, null, null);
+    }
+
+    /**
+     * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.
+     *
+     * @param pileup                the original pileup
+     * @param assumedSingleSample   if not null, any read without a readgroup will be given this sample name
+     * @param collapseToThisSample  if not null, all reads will be assigned this read group regardless of their actual read group
+     *
+     * @return a Map of sample name to StratifiedAlignmentContext
+     *
+     **/
+    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedExtendedEventPileup pileup, String assumedSingleSample, String collapseToThisSample) {
+
+        HashMap<String, StratifiedAlignmentContext> contexts = new HashMap<String, StratifiedAlignmentContext>();
+        GenomeLoc loc = pileup.getLocation();
+
+        for (PileupElement p : pileup )
+            addToContext(contexts, p, loc, assumedSingleSample, collapseToThisSample);
+
+        return contexts;
+    }
+
+    private static void addToContext(HashMap<String, StratifiedAlignmentContext> contexts, PileupElement p, GenomeLoc loc, String assumedSingleSample, String collapseToThisSample) {
+        // get the read
+        SAMRecord read = p.getRead();
+
+        // find the sample
+        String sample;
+        if ( collapseToThisSample != null ) {
+            sample = collapseToThisSample;
+        } else {
+            SAMReadGroupRecord readGroup = read.getReadGroup();
+            if ( readGroup == null ) {
+                if ( assumedSingleSample == null )
+                    throw new StingException("Missing read group for read " + read.getReadName());
+                sample = assumedSingleSample;
+            } else {
+                sample = readGroup.getSample();
+            }
+        }
+
+        // create a new context object if this is the first time we're seeing a read for this sample
+        StratifiedAlignmentContext myContext = contexts.get(sample);
+        if ( myContext == null ) {
+            myContext = new StratifiedAlignmentContext(loc);
+            contexts.put(sample, myContext);
+        }
+
+        // add the read to this sample's context
+        // note that bad bases are added to the context (for DoC calculations later)
+        myContext.add(read, p.getOffset());
     }
 
      /**
@@ -149,7 +186,7 @@ public class StratifiedAlignmentContext {
      *
      * @param pileup                the original pileup
      * @return a Map of sample name to StratifiedAlignmentContext
-     * @todo - support for collapsing or assuming read groups if they are missing
+     * TODO - support for collapsing or assuming read groups if they are missing
      *
      **/
     public static Map<String,StratifiedAlignmentContext> splitContextByReadGroup(ReadBackedPileup pileup) {

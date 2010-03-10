@@ -19,8 +19,8 @@ public class PileupElement {
     public static final byte DELETION_BASE = 'D';
     public static final byte DELETION_QUAL = 0;
 
-    private SAMRecord read;
-    private int offset;
+    protected SAMRecord read;
+    protected int offset;
 
     public PileupElement( SAMRecord read, int offset ) {
         this.read = read;
