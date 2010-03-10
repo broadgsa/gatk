@@ -146,7 +146,7 @@ public class VariantContextAdaptors {
 
 
     private static VariantContext vcfToVariantContext(String name, VCFRecord vcf, Allele refAllele) {
-        if ( vcf.isSNP() || vcf.isIndel() ) {
+        if ( vcf.isReference() || vcf.isSNP() || vcf.isIndel() ) {
             // add the reference allele
             if ( ! Allele.acceptableAlleleBases(vcf.getReference()) ) {
                 System.out.printf("Excluding vcf record %s%n", vcf);
@@ -165,7 +165,10 @@ public class VariantContextAdaptors {
                     //System.out.printf("Excluding vcf record %s%n", vcf);
                     return null;
                 }
-                alleles.add(new Allele(alt, false));
+
+                Allele allele = new Allele(alt, false);
+                if ( ! allele.isNoCall() )
+                    alleles.add(allele);
             }
 
             Map<String, Genotype> genotypes = new HashMap<String, Genotype>();

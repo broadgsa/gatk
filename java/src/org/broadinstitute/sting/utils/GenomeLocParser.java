@@ -163,27 +163,34 @@ public class GenomeLocParser {
 
         Matcher match = mPattern.matcher(str);
 		try {
-			if (match.matches() && match.groupCount() == 4) {
-				if (match.group(1) != null) contig = match.group(1);
-				if (match.group(2) != null) start = parsePosition(match.group(2));
-				if ((match.group(3) != null && match.group(3).equals("+")) ||							// chr:1+
-					(match.group(3) == null && match.group(4) == null && match.group(2) == null)) 		// chr1
-					stop = Integer.MAX_VALUE;
-				else if (match.group(3) != null && match.group(3).equals("-")) 							// chr1:1-1
-					stop = parsePosition(match.group(4));
-				else if (match.group(3) == null && match.group(4) == null)								// chr1:1
-					stop = start;
-				else {
-					bad = true;
-				}
-			}			
-		} catch (Exception e) {
+            if (match.matches() && match.groupCount() == 4) {
+                if (match.group(1) != null) contig = match.group(1);
+                if (match.group(2) != null) start = parsePosition(match.group(2));
+                if ((match.group(3) != null && match.group(3).equals("+")) ||							// chr:1+
+                        (match.group(3) == null && match.group(4) == null && match.group(2) == null)) 		// chr1
+                    stop = Integer.MAX_VALUE;
+                else if (match.group(3) != null && match.group(3).equals("-")) 							// chr1:1-1
+                    stop = parsePosition(match.group(4));
+                else if (match.group(3) == null && match.group(4) == null)								// chr1:1
+                    stop = start;
+                else {
+                    bad = true;
+                }
+            }
+        } catch (Exception e) {
 			bad = true;
         }
 
-        if (bad || start < 0 || stop < 0 || contig == null)
-		    throw new StingException("Invalid Genome Location string: " + str);
-		
+        if (bad)
+		    throw new StingException("Failed to parse Genome Location string: " + str);
+        if (start < 0)
+		    throw new StingException("Invalid Genome Location start < 0: " + str + ' ' + start);
+        if (stop < 0)
+            throw new StingException("Invalid Genome Location stop < 0: " + str + ' ' + stop);
+        if (contig == null)
+            throw new StingException("Invalid Genome Location contig == null : " + str);
+
+
 		if (!isContigValid(contig))
             throw new StingException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
 

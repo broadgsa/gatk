@@ -123,7 +123,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     protected String outputVCF = null;
 
     /** Right now we will only be looking at SNPS */
-    EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP);
+    EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION);
 
     @Argument(shortName="rsID", fullName="rsID", doc="If provided, list of rsID and build number for capping known snps by their build date", required=false)
     protected String rsIDFile = null;
@@ -366,7 +366,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         for ( EvaluationContext group : contexts ) {
             VariantContext vc = vcs.get(group.evalTrackName);
 
-            //logger.debug(String.format("Updating %s of %s with variant", group.name, vc));
+            //logger.debug(String.format("Updating %s with variant", vc));
             Set<VariantEvaluator> evaluations = group.evaluations;
             boolean evalWantsVC = applyVCtoEvaluation(vc, vcs, group);
             List<String> interestingReasons = new ArrayList<String>();

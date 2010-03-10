@@ -478,11 +478,11 @@ class PlinkVariantInfo implements Comparable {
         if ( pieces.length < 2 )
             throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
 
-        String chrom = pieces[0];
+        String chrom = pieces[0].trim();
         if ( pieces[1].charAt(0) != 'p' )
             throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
 
-        String pos = pieces[1].substring(1);
+        String pos = pieces[1].substring(1).trim();
         loc = GenomeLocParser.parseGenomeLoc(chrom+":"+pos);
 
         if ( pieces.length > 2 && (pieces[2].startsWith("gI") || pieces[2].startsWith("gD")) ) {
