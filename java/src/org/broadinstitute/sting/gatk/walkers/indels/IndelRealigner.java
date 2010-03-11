@@ -69,8 +69,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_READS_FOR_CONSENSUSES = 120;
 
-    @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment", required=false)
+    @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment; "+
+                       "if this value is exceeded, realignment is not attempted and the reads are passed to the output file(s) as-is", required=false)
     protected int MAX_READS = 20000;
+
+    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time "+
+                "when using ON_DISK sorting option. If too low, the tool may run out of system file descriptors needed to perform sorting; "+
+            "if too high, the tool may run out of memory in the regions of unusually deep coverage (consider also increasing VM heap size if this happens)",
+            required=false)
+    protected int MAX_RECORDS_IN_RAM = 500000;
 
     @Argument(fullName="writerWindowSize", shortName="writerWindowSize", doc="the window over which the writer will store reads when --sortInMemory is enabled", required=false)
     protected int SORTING_WRITER_WINDOW = 100;
@@ -126,6 +133,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             writers = new HashMap<String, SAMFileWriter>();
             Map<File, Set<String>> readGroupMap = getToolkit().getFileToReadGroupIdMapping();
             SAMFileWriterFactory factory = new SAMFileWriterFactory();
+            factory.setMaxRecordsInRam(MAX_RECORDS_IN_RAM);
 
             if ( NWAY_OUTPUT ) {
                 List<SAMReaderID> ids = getToolkit().getDataSource().getReaderIDs();
