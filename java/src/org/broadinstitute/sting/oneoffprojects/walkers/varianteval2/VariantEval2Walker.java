@@ -27,55 +27,42 @@ import java.util.*;
 // todo -- evalations should support comment lines
 // todo -- add Mendelian variable explanations (nDeNovo and nMissingTransmissions)
 
-//
 // todo -- write a simple column table system and have the evaluators return this instead of the list<list<string>> objects
-//
 
 // todo -- site frequency spectrum eval (freq. of variants in eval as a function of their AC and AN numbers)
 // todo -- multiple sample concordance tool (genotypes in eval vs. genotypes in truth)
 // todo -- allele freqeuncy discovery tool (FREQ in true vs. discovery counts in eval).  Needs to process subset of samples in true (pools)
 // todo -- clustered SNP counter
 // todo -- HWEs
-// todo -- Validation data analysis from VE1?  What is it and should we transition it over?
 // todo -- indel metrics [count of sizes in/del should be in CountVariants]
+// todo -- synonymous / non-synonmous ratio, or really just comparison of observed vs. expected biological annotation values
 
-//
-// todo -- Performance
+// todo -- Performance:
 // todo -- create JEXL context implementing object that simply looks up values for JEXL evaluations.  Throws error for unknown fields
-//
+// todo -- deal with performance issues with variant contexts
 
-//
-// todo -- port over SNP density evaluator.
-// todo -- make it work with intervals correctly
-//
+// todo -- port over SNP density walker:
+// todo -- see walker for WG calc but will need to make it work with intervals correctly
 
 // todo -- counts of snps per target [target name, gene, etc]
 
 // todo -- add subgroup of known variants as to those at hapmap sites [it's in the dbSNP record]
 
-// todo -- deal with performance issues with variant contexts
-
-//
 // Todo -- should really include argument parsing @annotations from subclass in this walker.  Very
 // todo -- useful general capability.  Right now you need to add arguments to VariantEval2 to handle new
 // todo -- evaluation arguments (which is better than passing a string!)
-//
 
-//
-// todo -- the whole organization only supports a single eval x comp evaluation.  We need to instantiate
-// todo -- new contexts for each comparison object too!  The output table should be clear as to what the "comp"
-// todo -- variable is in the analysis
-//
 
-//
 // todo -- write or find a simple way to organize the table like output of variant eval 2.  A generic table of strings?
-//
 
+// todo -- these really should be implemented as default select expression
 // todo Extend VariantEval, our general-purpose tool for SNP evaluation, to differentiate Ti/Tv at CpG islands and also
 // todo classify (and count) variants into coding, non-coding, synonomous/non-symonomous, 2/4 fold degenerate sites, etc.
 // todo Assume that the incoming VCF has the annotations (you don't need to do this) but VE2 should split up results by
 // todo these catogies automatically (using the default selects)
-//
+
+// todo -- this is really more a documentation issue.  Really would be nice to have a pre-defined argument packet that
+// todo -- can be provided to the system
 // todo -- We agreed to report two standard values for variant evaluation from here out. One, we will continue to report
 // todo -- the dbSNP 129 rate. Additionally, we will start to report the % of variants found that have already been seen in
 // todo -- 1000 Genomes. This should be implemented as another standard comp_1kg binding, pointing to only variants
@@ -84,10 +71,11 @@ import java.util.*;
 //
 // todo -- aux. plotting routines for VE2
 //
+// todo -- implement as select statment, but it's hard for multi-sample calls.
 // todo -- Provide separate dbsnp rates for het only calls and any call where there is at least one hom-var genotype,
 // todo -- since hets are much more likely to be errors
-
-// todo -- Add Heng's hom run metrics
+//
+// todo -- Add Heng's hom run metrics -- single sample haplotype block lengths
 
 
 /**
