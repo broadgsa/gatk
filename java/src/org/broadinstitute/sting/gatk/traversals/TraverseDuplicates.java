@@ -31,17 +31,11 @@ import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ManagingReferenceOrderedView;
-import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
@@ -54,7 +48,7 @@ import java.util.*;
  *          <p/>
  *          This class handles traversing lists of duplicate reads in the new shardable style
  */
-public class TraverseDuplicates extends TraversalEngine {
+public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker<M,T>,ReadShardDataProvider> {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseDuplicates.class);
 
@@ -196,19 +190,12 @@ public class TraverseDuplicates extends TraversalEngine {
      *
      * @param walker the walker to execute over
      * @param sum    of type T, the return from the walker
-     * @param <M>    the generic type
-     * @param <T>    the return type of the reduce function
      *
      * @return the result type T, the product of all the reduce calls
      */
-    public <M, T> T traverse(Walker<M, T> walker,
-                             ShardDataProvider dataProvider,
-                             T sum) {
-        // safety first :-)
-        if (!(walker instanceof DuplicateWalker))
-            throw new IllegalArgumentException("Walker isn't a duplicate walker!");
-        DuplicateWalker<M, T> dupWalker = (DuplicateWalker<M, T>) walker;
-
+    public T traverse(DuplicateWalker<M, T> walker,
+                      ReadShardDataProvider dataProvider,
+                      T sum) {
         FilteringIterator filterIter = new FilteringIterator(new ReadView(dataProvider).iterator(), new duplicateStreamFilterFunc());
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(filterIter);
 
@@ -233,10 +220,10 @@ public class TraverseDuplicates extends TraversalEngine {
             TraversalStatistics.nRecords++;
 
             // actually call filter and map, accumulating sum
-            final boolean keepMeP = dupWalker.filter(site, locus, readSets);
+            final boolean keepMeP = walker.filter(site, locus, readSets);
             if (keepMeP) {
-                M x = dupWalker.map(site, locus, readSets);
-                sum = dupWalker.reduce(x, sum);
+                M x = walker.map(site, locus, readSets);
+                sum = walker.reduce(x, sum);
             }
 
             printProgress(DUPS_STRING, site);
@@ -254,9 +241,8 @@ public class TraverseDuplicates extends TraversalEngine {
      * Temporary override of printOnTraversalDone.
      *
      * @param sum Result of the computation.
-     * @param <T> Type of the result.
      */
-    public <T> void printOnTraversalDone(T sum) {
+    public void printOnTraversalDone(T sum) {
         printOnTraversalDone(DUPS_STRING, sum);
     }
 }

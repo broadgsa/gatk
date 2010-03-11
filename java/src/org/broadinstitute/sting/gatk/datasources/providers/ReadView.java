@@ -32,7 +32,7 @@ public class ReadView implements View, Iterable<SAMRecord> {
      * Create a new view of the reads given the current data set.
      * @param provider Source for the data.
      */
-    public ReadView( ShardDataProvider provider ) {
+    public ReadView( ReadShardDataProvider provider ) {
         reads = provider.getReadIterator();
     }
 

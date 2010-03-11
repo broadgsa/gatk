@@ -27,7 +27,7 @@ public class CoveredLocusView extends LocusView {
      * Create a new queue of locus contexts.
      * @param provider
      */
-    public CoveredLocusView(ShardDataProvider provider) {
+    public CoveredLocusView(LocusShardDataProvider provider) {
         super(provider);
     }
 

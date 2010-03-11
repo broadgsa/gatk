@@ -29,7 +29,7 @@ public class CoveredLocusViewTest extends LocusViewTemplate {
      * Retrieve a covered locus view.
      */
     @Override
-    protected LocusView createView(ShardDataProvider provider) {
+    protected LocusView createView(LocusShardDataProvider provider) {
         return new CoveredLocusView(provider);
     }
 

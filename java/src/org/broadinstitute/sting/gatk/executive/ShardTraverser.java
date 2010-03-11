@@ -1,10 +1,12 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.concurrent.Callable;
@@ -26,8 +28,8 @@ import java.util.concurrent.Callable;
 public class ShardTraverser implements Callable {
     private HierarchicalMicroScheduler microScheduler;
     private Walker walker;
+    private Shard shard;
     private TraversalEngine traversalEngine;
-    private ShardDataProvider dataProvider;
     private ThreadLocalOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
 
@@ -39,12 +41,12 @@ public class ShardTraverser implements Callable {
     public ShardTraverser( HierarchicalMicroScheduler microScheduler,
                            TraversalEngine traversalEngine,
                            Walker walker,
-                           ShardDataProvider dataProvider,
+                           Shard shard,
                            ThreadLocalOutputTracker outputTracker ) {
         this.microScheduler = microScheduler;
         this.walker = walker;
         this.traversalEngine = traversalEngine;
-        this.dataProvider = dataProvider;
+        this.shard = shard;
         this.outputTracker = outputTracker;
     }
 
@@ -52,11 +54,16 @@ public class ShardTraverser implements Callable {
         long startTime = System.currentTimeMillis(); 
 
         Object accumulator = walker.reduceInit();
+        WindowMaker windowMaker = new WindowMaker(microScheduler.getReadIterator(shard),shard.getGenomeLocs());
         try {
-            accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
+            for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
+                ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
+                accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
+                dataProvider.close();
+            }
         }
         finally {
-            dataProvider.close();
+            windowMaker.close();
             outputMergeTask = outputTracker.closeStorage();
 
             synchronized(this) {

@@ -2,11 +2,10 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-public abstract class TraversalEngine {
+public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
     // Time in milliseconds since we initialized this engine
     private long startTime = -1;
     private long lastProgressPrintTime = -1;                // When was the last time we printed our progress?
@@ -76,18 +75,16 @@ public abstract class TraversalEngine {
      * A passthrough method so that subclasses can report which types of traversals they're using.
      *
      * @param sum Result of the computation.
-     * @param <T> Type of the computation.
      */
-    public abstract <T> void printOnTraversalDone(T sum);
+    public abstract void printOnTraversalDone(T sum);
 
     /**
      * Called after a traversal to print out information about the traversal process
      *
      * @param type describing this type of traversal
      * @param sum  The reduce result of the traversal
-     * @param <T>  ReduceType of the traversal
      */
-    protected <T> void printOnTraversalDone(final String type, T sum) {
+    protected void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
         logger.info("Traversal reduce result is " + sum);
         final long curTime = System.currentTimeMillis();
@@ -115,12 +112,10 @@ public abstract class TraversalEngine {
      * @param walker       the walker to run with
      * @param dataProvider the data provider that generates data given the shard
      * @param sum          the accumulator
-     * @param <M>          an object of the map type
-     * @param <T>          an object of the reduce type
      *
      * @return an object of the reduce type
      */
-    public abstract <M, T> T traverse(Walker<M, T> walker,
-                                      ShardDataProvider dataProvider,
-                                      T sum);
+    public abstract T traverse(WalkerType walker,
+                               ProviderType dataProvider,
+                               T sum);
 }

@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
@@ -9,9 +11,14 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Collection;
+
+import net.sf.picard.filter.FilteringIterator;
 
 /** A micro-scheduling manager for single-threaded execution of a traversal. */
 public class LinearMicroScheduler extends MicroScheduler {
@@ -49,12 +56,10 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         for (Shard shard : shardStrategy) {
             // New experimental code for managing locus intervals.
-            // TODO: we'll need a similar but slightly different strategy for dealing with read intervals, so generalize this code.            
-            if((shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) &&
-                    shard.getGenomeLocs().size() > 0) {
+            if(shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) {
                 WindowMaker windowMaker = new WindowMaker(getReadIterator(shard),shard.getGenomeLocs());
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-                    ShardDataProvider dataProvider = new ShardDataProvider(shard,iterator.getLocus(),iterator,reference,rods);
+                    ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                     accumulator.accumulate(dataProvider,result);
                     dataProvider.close();
@@ -62,7 +67,7 @@ public class LinearMicroScheduler extends MicroScheduler {
                 windowMaker.close();
             }
             else {
-                ShardDataProvider dataProvider = new ShardDataProvider(shard,null,getReadIterator(shard),reference,rods);
+                ShardDataProvider dataProvider = new ReadShardDataProvider(shard,getReadIterator(shard),reference,rods);
                 Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                 accumulator.accumulate(dataProvider,result);
                 dataProvider.close();

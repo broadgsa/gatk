@@ -56,7 +56,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      *
      * @param provider
      */
-    public RodLocusView( ShardDataProvider provider ) {
+    public RodLocusView( LocusShardDataProvider provider ) {
         super(provider);
 
         GenomeLoc loc = provider.getLocus();

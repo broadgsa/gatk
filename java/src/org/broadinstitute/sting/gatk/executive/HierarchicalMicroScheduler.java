@@ -6,11 +6,9 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.io.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
@@ -277,7 +275,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      * @param walker     Walker to apply to the dataset.
      * @param reduceTree Tree of reduces to which to add this shard traverse.
      */
-    protected Future queueNextShardTraverse( Walker walker, ReduceTree reduceTree ) {
+    protected void queueNextShardTraverse( Walker walker, ReduceTree reduceTree ) {
         if (traverseTasks.size() == 0)
             throw new IllegalStateException("Cannot traverse; no pending traversals exist.");
 
@@ -286,7 +284,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         ShardTraverser traverser = new ShardTraverser(this,
                 traversalEngine,
                 walker,
-                new ShardDataProvider(shard,shard.getGenomeLocs().get(0),getReadIterator(shard),reference,rods),
+                shard,
                 outputTracker);
 
         Future traverseResult = threadPool.submit(traverser);
@@ -298,8 +296,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         // No more data?  Let the reduce tree know so it can finish processing what it's got.
         if (!isShardTraversePending())
             reduceTree.complete();
-
-        return traverseResult;
     }
 
     /** Pulls the next reduce from the queue and runs it. */

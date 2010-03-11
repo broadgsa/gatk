@@ -53,13 +53,12 @@ public abstract class LocusView extends LocusIterator implements View {
      */
     private AlignmentContext nextLocus = null;
 
-    public LocusView(ShardDataProvider provider) {
+    public LocusView(LocusShardDataProvider provider) {
         this.locus = provider.getLocus();
         
-        Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
-        this.sourceInfo = provider.getReadIterator().getSourceInfo();
+        this.sourceInfo = provider.getSourceInfo();
+        this.loci = provider.getLocusIterator();
 
-        this.loci = new LocusIteratorByState(reads, sourceInfo);
         seedNextLocus();
 
         provider.register(this);
@@ -150,6 +149,7 @@ public abstract class LocusView extends LocusIterator implements View {
         nextLocus = loci.next();
 
         // If the location of this shard is available, trim the data stream to match the shard.
+        // TODO: Much of this functionality is being replaced by the WindowMaker.
         if(locus != null) {
             // Iterate through any elements not contained within this shard.
             while( nextLocus != null && !isContainedInShard(nextLocus.getLocation()) && loci.hasNext() )
@@ -168,45 +168,5 @@ public abstract class LocusView extends LocusIterator implements View {
      */
     private boolean isContainedInShard(GenomeLoc location) {
         return locus.containsP(location);
-    }
-
-    /**
-     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
-     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
-     */
-    private static class LocusStreamFilterFunc implements SamRecordFilter {
-        SAMRecord lastRead = null;
-        public boolean filterOut(SAMRecord rec) {
-            boolean result = false;
-            String why = "";
-            if (rec.getReadUnmappedFlag()) {
-                TraversalStatistics.nUnmappedReads++;
-                result = true;
-                why = "Unmapped";
-            } else if (rec.getNotPrimaryAlignmentFlag()) {
-                TraversalStatistics.nNotPrimary++;
-                result = true;
-                why = "Not Primary";
-            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-                why = "No alignment start";
-            } else if (rec.getDuplicateReadFlag()) {
-                TraversalStatistics.nDuplicates++;
-                result = true;
-                why = "Duplicate reads";
-            }
-            else {
-                result = false;
-            }
-
-            if (result) {
-                TraversalStatistics.nSkippedReads++;
-                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
-            } else {
-                TraversalStatistics.nReads++;
-            }
-            return result;
-        }
     }
 }

@@ -58,7 +58,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
     public void testOverlappingReferenceBases() {
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length())));
 
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), null, sequenceFile, null);
+        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
         char[] results = view.getReferenceBases(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length() + 9));
@@ -75,7 +75,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
     public void testBoundsFailure() {
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, 1, 50)));
 
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, shard.getGenomeLocs().get(0), null, sequenceFile, null);
+        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
         view.getReferenceContext(GenomeLocParser.createGenomeLoc(0, 51)).getBase();
@@ -91,7 +91,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
         Shard shard = new LocusShard(Collections.singletonList(loc));
         GenomeLocusIterator shardIterator = new GenomeLocusIterator(loc);
 
-        ShardDataProvider dataProvider = new ShardDataProvider(shard, loc, null, sequenceFile, null);
+        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, loc, null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
         while (shardIterator.hasNext()) {

@@ -4,7 +4,6 @@ import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.apache.log4j.Logger;
@@ -43,7 +42,7 @@ import net.sf.samtools.SAMFileHeader;
  *
  * this class acts as a fake reads traversal engine for testing out reads based traversals.
  */
-public class ArtificialReadsTraversal extends TraversalEngine {
+public class ArtificialReadsTraversal<M,T> extends TraversalEngine<M,T,Walker<M,T>,ShardDataProvider> {
 
     public int startingChr = 1;
     public int endingChr = 5;
@@ -77,12 +76,10 @@ public class ArtificialReadsTraversal extends TraversalEngine {
      * @param walker       the walker to traverse with
      * @param dataProvider the provider of the reads data
      * @param sum          the value of type T, specified by the walker, to feed to the walkers reduce function
-     * @param <M>          the map type of the walker
-     * @param <T>          the reduce type of the walker
      *
      * @return the reduce variable of the read walker
      */
-    public <M, T> T traverse( Walker<M, T> walker,
+    public T traverse( Walker<M, T> walker,
                               ShardDataProvider dataProvider,
                               T sum ) {
 
@@ -126,9 +123,8 @@ public class ArtificialReadsTraversal extends TraversalEngine {
      * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
      *
      * @param sum Result of the computation.
-     * @param <T> Type of the result.
      */
-    public <T> void printOnTraversalDone( T sum ) {
+    public void printOnTraversalDone( T sum ) {
         printOnTraversalDone("reads", sum);
     }
 

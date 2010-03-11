@@ -26,7 +26,7 @@ import java.util.List;
 public class AllLocusViewTest extends LocusViewTemplate {
 
     @Override
-    protected LocusView createView(ShardDataProvider provider) {
+    protected LocusView createView(LocusShardDataProvider provider) {
         return new AllLocusView(provider);
     }
 

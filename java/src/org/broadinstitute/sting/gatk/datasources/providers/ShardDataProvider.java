@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +25,7 @@ import java.util.Collection;
  * An umbrella class that examines the data passed to the microscheduler and
  * tries to assemble as much as possible with it. 
  */
-public class ShardDataProvider {
+public abstract class ShardDataProvider {
     /**
      * An ArrayList of all the views that are examining this data.
      */
@@ -37,16 +35,6 @@ public class ShardDataProvider {
      * The shard over which we're providing data.
      */
     private final Shard shard;
-
-    /**
-     * The particular locus for which data is provided.  Should be contained within shard.getGenomeLocs().
-     */
-    private final GenomeLoc locus;
-
-    /**
-     * The raw collection of reads.
-     */
-    private final StingSAMIterator reads;
 
     /**
      * Provider of reference data for this particular shard.
@@ -67,22 +55,6 @@ public class ShardDataProvider {
     }
 
     /**
-     * Gets the locus associated with this shard data provider. 
-     * @return The locus.
-     */
-    public GenomeLoc getLocus() {
-        return locus;
-    }
-
-    /**
-     * Can this data source provide reads?
-     * @return True if reads are available, false otherwise.
-     */
-    public boolean hasReads() {
-        return reads != null;
-    }
-
-    /**
      * Can this data source provide reference information?
      * @return True if possible, false otherwise.
      */
@@ -90,13 +62,6 @@ public class ShardDataProvider {
         return reference != null;
     }
 
-    /**
-     * Gets an iterator over all the reads bound by this shard.
-     * @return An iterator over all reads in this shard.
-     */
-    public StingSAMIterator getReadIterator() {
-        return reads;
-    }
 
     /**
      * Gets a pointer into the given indexed fasta sequence file.
@@ -118,13 +83,10 @@ public class ShardDataProvider {
     /**
      * Create a data provider for the shard given the reads and reference.
      * @param shard The chunk of data over which traversals happen.
-     * @param reads A window into the reads for a given region.
      * @param reference A getter for a section of the reference.
      */
-    public ShardDataProvider(Shard shard,GenomeLoc locus,StingSAMIterator reads,IndexedFastaSequenceFile reference,Collection<ReferenceOrderedDataSource> rods) {
+    public ShardDataProvider(Shard shard,IndexedFastaSequenceFile reference,Collection<ReferenceOrderedDataSource> rods) {
         this.shard = shard;
-        this.locus = locus;
-        this.reads = reads;
         this.reference = reference;
         this.referenceOrderedData = rods;
     }
@@ -132,10 +94,9 @@ public class ShardDataProvider {
     /**
      * Skeletal, package protected constructor for unit tests which require a ShardDataProvider.
      * @param shard the shard
-     * @param reads reads iterator.
      */
-    ShardDataProvider(Shard shard,GenomeLoc locus,StingSAMIterator reads) {
-        this(shard,locus,reads,null,null);
+    ShardDataProvider(Shard shard) {
+        this(shard,null,null);
     }
 
     /**
@@ -177,9 +138,6 @@ public class ShardDataProvider {
         // Explicitly purge registered views to ensure that we don't end up with circular references
         // to views, which can in turn hold state.
         registeredViews.clear();
-
-        if(reads != null)
-            reads.close();
     }
 
     @Override

@@ -44,7 +44,7 @@ public class AllLocusView extends LocusView {
      * Create a new queue of locus contexts.
      * @param provider
      */
-    public AllLocusView(ShardDataProvider provider) {                
+    public AllLocusView(LocusShardDataProvider provider) {                
         super( provider );
         // Seed the state tracking members with the first possible seek position and the first possible locus context.
         locusIterator = new GenomeLocusIterator(provider.getLocus());

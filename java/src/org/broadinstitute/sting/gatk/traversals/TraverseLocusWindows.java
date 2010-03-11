@@ -1,20 +1,17 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -23,26 +20,20 @@ import java.util.List;
  * Time: 10:26:03 AM
  * To change this template use File | Settings | File Templates.
  */
-public class TraverseLocusWindows extends TraversalEngine {
+public class TraverseLocusWindows<M,T> extends TraversalEngine<M,T,LocusWindowWalker<M,T>,LocusShardDataProvider> {
     /** descriptor of the type */
     private static final String LOCUS_WINDOW_STRING = "intervals";
 
-    public <M,T> T traverse( Walker<M,T> walker,
-                             ShardDataProvider dataProvider,
-                             T sum ) {
-
-        if ( !(walker instanceof LocusWindowWalker) )
-            throw new IllegalArgumentException("Walker isn't a locus window walker!");
-
-        LocusWindowWalker<M, T> locusWindowWalker = (LocusWindowWalker<M, T>)walker;
+    public T traverse( LocusWindowWalker<M,T> walker,
+                       LocusShardDataProvider dataProvider,
+                       T sum ) {
 
         GenomeLoc interval = dataProvider.getLocus();
 
-        ReadView readView = new ReadView( dataProvider );
         LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
         ReferenceOrderedView referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
 
-         Pair<GenomeLoc, List<SAMRecord>> locus = getLocusContext(readView.iterator(), interval);
+        Pair<GenomeLoc, List<SAMRecord>> locus = getLocusContext(dataProvider.getLocusIterator(), interval);
 
         // The TraverseByLocusWindow expands intervals to cover all reads in a non-standard way.
         // TODO: Convert this approach to the standard.
@@ -58,8 +49,8 @@ public class TraverseLocusWindows extends TraversalEngine {
         //
         //final boolean keepMeP = locusWindowWalker.filter(tracker, referenceSubsequence, locus);
         //if (keepMeP) {
-        M x = locusWindowWalker.map(tracker, referenceSubsequence, locus.getFirst(), locus.getSecond());
-        sum = locusWindowWalker.reduce(x, sum);
+        M x = walker.map(tracker, referenceSubsequence, locus.getFirst(), locus.getSecond());
+        sum = walker.reduce(x, sum);
         //}
 
         printProgress(LOCUS_WINDOW_STRING, locus.getFirst());
@@ -67,25 +58,33 @@ public class TraverseLocusWindows extends TraversalEngine {
         return sum;
     }
 
-    private Pair<GenomeLoc, List<SAMRecord>> getLocusContext(StingSAMIterator readIter, GenomeLoc interval) {
-        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
+    private Pair<GenomeLoc, List<SAMRecord>> getLocusContext(LocusIterator locusIter, GenomeLoc interval) {
+        List<SAMRecord> reads = new ArrayList<SAMRecord>();
         boolean done = false;
         long leftmostIndex = interval.getStart(),
                 rightmostIndex = interval.getStop();
-        while (readIter.hasNext() && !done) {
-            TraversalStatistics.nRecords++;
 
-            SAMRecord read = readIter.next();
-            reads.add(read);
-            if ( read.getAlignmentStart() < leftmostIndex )
-                leftmostIndex = read.getAlignmentStart();
-            if ( read.getAlignmentEnd() > rightmostIndex )
-                rightmostIndex = read.getAlignmentEnd();
-            if ( this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
-                logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
-                done = true;
+        while(locusIter.hasNext() && !done) {
+            AlignmentContext alignment = locusIter.next();
+            Iterator<SAMRecord> readIter = alignment.getReads().iterator();
+
+            while (readIter.hasNext() && !done) {
+                TraversalStatistics.nRecords++;
+
+                SAMRecord read = readIter.next();
+                if(reads.contains(read)) continue;
+                reads.add(read);
+                if ( read.getAlignmentStart() < leftmostIndex )
+                    leftmostIndex = read.getAlignmentStart();
+                if ( read.getAlignmentEnd() > rightmostIndex )
+                    rightmostIndex = read.getAlignmentEnd();
+                if ( this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
+                    logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
+                    done = true;
+                }
             }
         }
+
 
         GenomeLoc window = GenomeLocParser.createGenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
 //        AlignmentContext locus = new AlignmentContext(window, reads, null);
@@ -99,9 +98,8 @@ public class TraverseLocusWindows extends TraversalEngine {
      * Temporary override of printOnTraversalDone.
      * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
      * @param sum Result of the computation.
-     * @param <T> Type of the result.
      */
-    public <T> void printOnTraversalDone( T sum ) {
+    public void printOnTraversalDone( T sum ) {
         printOnTraversalDone(LOCUS_WINDOW_STRING, sum );
     }
 

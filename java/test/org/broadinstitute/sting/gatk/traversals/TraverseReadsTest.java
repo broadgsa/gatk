@@ -4,6 +4,7 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
@@ -132,7 +133,7 @@ public class TraverseReadsTest extends BaseTest {
                 fail("Shard == null");
             }
 
-            ShardDataProvider dataProvider = new ShardDataProvider(shard,null,dataSource.seek(shard),null,null);
+            ShardDataProvider dataProvider = new ReadShardDataProvider(shard,dataSource.seek(shard),null,null);
             accumulator = traversalEngine.traverse(countReadWalker, dataProvider, accumulator);
             dataProvider.close();
 
@@ -178,7 +179,7 @@ public class TraverseReadsTest extends BaseTest {
                 fail("Shard == null");
             }
 
-            ShardDataProvider dataProvider = new ShardDataProvider(shard,null,dataSource.seek(shard),null,null);
+            ShardDataProvider dataProvider = new ReadShardDataProvider(shard,dataSource.seek(shard),null,null);
             accumulator = traversalEngine.traverse(countReadWalker, dataProvider, accumulator);
             dataProvider.close();
         }

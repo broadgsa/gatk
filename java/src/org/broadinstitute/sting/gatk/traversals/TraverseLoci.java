@@ -2,26 +2,21 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-
-import java.util.ArrayList;
 
 /**
  * A simple solution to iterating over all reference positions over a series of genomic locations.
  */
-public class TraverseLoci extends TraversalEngine {
+public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,LocusShardDataProvider> {
     final private static String LOCI_STRING = "sites";
 
     /**
@@ -29,23 +24,11 @@ public class TraverseLoci extends TraversalEngine {
      */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
-        if ( locations.isEmpty() )
-            Utils.scareUser("Requested all locations be processed without providing locations to be processed!");
-
-        throw new UnsupportedOperationException("This traversal type not supported by TraverseLoci");
-    }
-
     @Override
-    public <M,T> T traverse( Walker<M,T> walker,
-                             ShardDataProvider dataProvider,
-                             T sum ) {
+    public T traverse( LocusWalker<M,T> walker,
+                       LocusShardDataProvider dataProvider,
+                       T sum ) {
         logger.debug(String.format("TraverseLoci.traverse: Shard is %s", dataProvider));
-
-        if ( !(walker instanceof LocusWalker) )
-            throw new IllegalArgumentException("Walker isn't a loci walker!");
-
-        LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
 
         LocusView locusView = getLocusView( walker, dataProvider );
 
@@ -87,10 +70,10 @@ public class TraverseLoci extends TraversalEngine {
                 // hold the (longest) stretch of deleted reference bases (if deletions are present in the pileup).
                 ReferenceContext refContext = referenceView.getReferenceContext(location);
 
-                final boolean keepMeP = locusWalker.filter(tracker, refContext, locus);
+                final boolean keepMeP = walker.filter(tracker, refContext, locus);
                 if (keepMeP) {
-                    M x = locusWalker.map(tracker, refContext, locus);
-                    sum = locusWalker.reduce(x, sum);
+                    M x = walker.map(tracker, refContext, locus);
+                    sum = walker.reduce(x, sum);
                 }
 
                 if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
@@ -110,8 +93,8 @@ public class TraverseLoci extends TraversalEngine {
             if ( nSkipped > 0 ) {
                 GenomeLoc site = rodLocusView.getLocOneBeyondShard();
                 AlignmentContext ac = new AlignmentContext(site, new ReadBackedPileup(site), nSkipped);
-                M x = locusWalker.map(null, null, ac);
-                sum = locusWalker.reduce(x, sum);
+                M x = walker.map(null, null, ac);
+                sum = walker.reduce(x, sum);
             }
         }
 
@@ -122,9 +105,8 @@ public class TraverseLoci extends TraversalEngine {
      * Temporary override of printOnTraversalDone.
      * 
      * @param sum Result of the computation.
-     * @param <T> Type of the result.
      */
-    public <T> void printOnTraversalDone( T sum ) {
+    public void printOnTraversalDone( T sum ) {
         printOnTraversalDone(LOCI_STRING, sum );
     }
 
@@ -132,8 +114,9 @@ public class TraverseLoci extends TraversalEngine {
      * Gets the best view of loci for this walker given the available data.
      * @param walker walker to interrogate.
      * @param dataProvider Data which which to drive the locus view.
+     * @return A view of the locus data, where one iteration of the locus view maps to one iteration of the traversal.
      */
-    private LocusView getLocusView( Walker walker, ShardDataProvider dataProvider ) {
+    private LocusView getLocusView( Walker<M,T> walker, LocusShardDataProvider dataProvider ) {
         DataSource dataSource = WalkerManager.getWalkerDataSource(walker);
         if( dataSource == DataSource.READS )
             return new CoveredLocusView(dataProvider);

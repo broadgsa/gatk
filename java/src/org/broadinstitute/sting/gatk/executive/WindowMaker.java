@@ -2,12 +2,19 @@ package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.util.PeekableIterator;
+import net.sf.picard.filter.FilteringIterator;
+import net.sf.picard.filter.SamRecordFilter;
 
 /**
  * Buffer shards of data which may or may not contain multiple loci into
@@ -24,9 +31,19 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     private final Reads sourceInfo;
 
     /**
+     * Hold the read iterator so that it can be closed later.
+     */
+    private final StingSAMIterator readIterator;
+
+    /**
+     * The locus overflow tracker.
+     */
+    private final LocusOverflowTracker locusOverflowTracker;
+
+    /**
      * The data source for reads.  Will probably come directly from the BAM file.
      */
-    private final PeekableIterator<SAMRecord> sourceIterator;
+    private final PeekableIterator<AlignmentContext> sourceIterator;
 
     /**
      * Stores the sequence of intervals that the windowmaker should be tracking.
@@ -34,9 +51,9 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     private final PeekableIterator<GenomeLoc> intervalIterator;
 
     /**
-     * Which reads should be saved to go into the next interval?
+     * In the case of monolithic sharding, this case returns whether the only shard has been generated.
      */
-    private Queue<SAMRecord> overlappingReads = new ArrayDeque<SAMRecord>();
+    private boolean shardGenerated = false;
 
     /**
      * Create a new window maker with the given iterator as a data source, covering
@@ -46,8 +63,13 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      */
     public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals) {
         this.sourceInfo = iterator.getSourceInfo();
-        this.sourceIterator = new PeekableIterator<SAMRecord>(iterator);
-        this.intervalIterator = new PeekableIterator<GenomeLoc>(intervals.iterator());
+        this.readIterator = iterator;
+        
+        LocusIterator locusIterator = new LocusIteratorByState(new FilteringIterator(iterator,new LocusStreamFilterFunc()),sourceInfo);
+        this.locusOverflowTracker = locusIterator.getLocusOverflowTracker();
+
+        this.sourceIterator = new PeekableIterator<AlignmentContext>(locusIterator);
+        this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }
 
     public Iterator<WindowMakerIterator> iterator() {
@@ -55,11 +77,12 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     }
 
     public boolean hasNext() {
-        return intervalIterator.hasNext();
+        return (intervalIterator != null && intervalIterator.hasNext()) || !shardGenerated;
     }
 
     public WindowMakerIterator next() {
-        return new WindowMakerIterator(intervalIterator.next());
+        shardGenerated = true;
+        return new WindowMakerIterator(intervalIterator != null ? intervalIterator.next() : null);
     }
 
     public void remove() {
@@ -67,22 +90,18 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     }
 
     public void close() {
-        this.sourceIterator.close();
+        this.readIterator.close();
     }
 
-    public class WindowMakerIterator implements StingSAMIterator {
+    public class WindowMakerIterator extends LocusIterator {
         /**
          * The locus for which this iterator is currently returning reads.
          */
         private final GenomeLoc locus;
 
-        /**
-         * Which reads should be saved to go into the next interval?
-         */
-        private final Queue<SAMRecord> pendingOverlaps = new ArrayDeque<SAMRecord>();
-
         public WindowMakerIterator(GenomeLoc locus) {
             this.locus = locus;
+            seedNextLocus();
         }
 
         public Reads getSourceInfo() {
@@ -98,32 +117,68 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         }
 
         public boolean hasNext() {
-            if(overlappingReads.size() > 0) return true;
-            if(sourceIterator.hasNext()) {
-                SAMRecord nextRead = sourceIterator.peek();
-                if((nextRead.getAlignmentStart() >= locus.getStart() && nextRead.getAlignmentStart() <= locus.getStop()) ||
-                   (nextRead.getAlignmentEnd() >= locus.getStart() && nextRead.getAlignmentEnd() <= locus.getStop()) ||
-                   (nextRead.getAlignmentStart() < locus.getStart() && nextRead.getAlignmentEnd() > locus.getStop()))
-                    return true;
-
-            }
-            return false;
+            // locus == null when doing monolithic sharding.
+            // TODO: Move the monolithic sharding iterator so that we don't have to special case here.
+            return sourceIterator.hasNext() && (locus == null || sourceIterator.peek().getLocation().overlapsP(locus));
         }
 
-        public SAMRecord next() {
+        public AlignmentContext next() {
             if(!hasNext()) throw new NoSuchElementException("WindowMakerIterator is out of elements for this interval.");
-            SAMRecord nextRead = overlappingReads.size() > 0 ? overlappingReads.remove() : sourceIterator.next();
-            if(intervalIterator.hasNext() && nextRead.getAlignmentEnd() >= intervalIterator.peek().getStart())
-                pendingOverlaps.add(nextRead);
-            return nextRead;
+            return sourceIterator.next();
         }
 
-        public void close() {
-            overlappingReads = pendingOverlaps;    
+        public LocusOverflowTracker getLocusOverflowTracker() {
+            return locusOverflowTracker;
         }
 
-        public void remove() {
-            throw new UnsupportedOperationException("Unable to remove from a window maker iterator.");
-        }       
+        public void seedNextLocus() {
+            // locus == null when doing monolithic sharding.
+            // TODO: Move the monolithic sharding iterator so that we don't have to special case here.
+            if(locus == null) return;
+
+            while(sourceIterator.hasNext() && sourceIterator.peek().getLocation().isBefore(locus))
+                sourceIterator.next();                
+        }
     }
+
+    /**
+     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
+     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
+     */
+    private static class LocusStreamFilterFunc implements SamRecordFilter {
+        SAMRecord lastRead = null;
+        public boolean filterOut(SAMRecord rec) {
+            boolean result = false;
+            String why = "";
+            if (rec.getReadUnmappedFlag()) {
+                TraversalStatistics.nUnmappedReads++;
+                result = true;
+                why = "Unmapped";
+            } else if (rec.getNotPrimaryAlignmentFlag()) {
+                TraversalStatistics.nNotPrimary++;
+                result = true;
+                why = "Not Primary";
+            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
+                TraversalStatistics.nBadAlignments++;
+                result = true;
+                why = "No alignment start";
+            } else if (rec.getDuplicateReadFlag()) {
+                TraversalStatistics.nDuplicates++;
+                result = true;
+                why = "Duplicate reads";
+            }
+            else {
+                result = false;
+            }
+
+            if (result) {
+                TraversalStatistics.nSkippedReads++;
+                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
+            } else {
+                TraversalStatistics.nReads++;
+            }
+            return result;
+        }
+    }
+
 }

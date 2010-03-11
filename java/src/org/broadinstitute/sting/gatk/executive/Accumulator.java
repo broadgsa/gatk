@@ -3,10 +3,12 @@ package org.broadinstitute.sting.gatk.executive;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -170,7 +172,10 @@ public abstract class Accumulator {
          * Create a holder for interval results if none exists.  Add the result to the holder.
          */
         public void accumulate( ShardDataProvider provider, Object result ) {
-            GenomeLoc location = provider.getLocus();
+            if(!(provider instanceof LocusShardDataProvider))
+                throw new StingException("Unable to reduce by interval on reads traversals at this time.");
+
+            GenomeLoc location = ((LocusShardDataProvider)provider).getLocus();
 
             // Pull the interval iterator ahead to the interval overlapping this shard fragment.
             while((currentInterval == null || currentInterval.isBefore(location)) && intervalIterator.hasNext())

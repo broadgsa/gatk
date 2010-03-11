@@ -411,7 +411,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
          */
         public SAMReaders(Reads sourceInfo) {
             for(File readsFile: sourceInfo.getReadsFiles()) {
-                SAMFileReader2 reader = new SAMFileReader2(readsFile,true);
+                SAMFileReader2 reader = new SAMFileReader2(readsFile,false);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
 
                 // If no read group is present, hallucinate one.

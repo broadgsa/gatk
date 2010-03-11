@@ -69,7 +69,7 @@ public class LocusReferenceView extends ReferenceView {
      * the walkers, etc.
      * @param provider  source for locus data.
      */
-    public LocusReferenceView( ShardDataProvider provider ) {
+    public LocusReferenceView( LocusShardDataProvider provider ) {
         super(provider);
         initializeBounds(provider);
         windowStart = windowStop = 0;
@@ -80,7 +80,7 @@ public class LocusReferenceView extends ReferenceView {
      * Create a new locus reference view.
      * @param provider source for locus data.
      */
-    public LocusReferenceView( Walker walker, ShardDataProvider provider ) {
+    public LocusReferenceView( Walker walker, LocusShardDataProvider provider ) {
         super( provider );
         initializeBounds(provider);
 
@@ -137,7 +137,7 @@ public class LocusReferenceView extends ReferenceView {
      * Initialize the bounds of this shard, trimming the bounds so that they match the reference.
      * @param provider Provider covering the appropriate locus.
      */
-    private void initializeBounds(ShardDataProvider provider) {
+    private void initializeBounds(LocusShardDataProvider provider) {
         if(provider.getLocus() != null) {
             long sequenceLength = reference.getSequenceDictionary().getSequence(provider.getLocus().getContig()).getSequenceLength();
             bounds = GenomeLocParser.createGenomeLoc(provider.getLocus().getContig(),

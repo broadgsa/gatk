@@ -3,14 +3,10 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrderedView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /*
@@ -47,7 +43,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
  * <p/>
  * This class handles traversing by reads in the new shardable style
  */
-public class TraverseReads extends TraversalEngine {    
+public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,ReadShardDataProvider> {    
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseReads.class);
 
@@ -60,23 +56,17 @@ public class TraverseReads extends TraversalEngine {
      * @param walker the walker to traverse with
      * @param dataProvider the provider of the reads data
      * @param sum the value of type T, specified by the walker, to feed to the walkers reduce function
-     * @param <M> the map type of the walker
-     * @param <T> the reduce type of the walker
      * @return the reduce variable of the read walker
      */
-    public <M, T> T traverse(Walker<M, T> walker,
-                             ShardDataProvider dataProvider,
-                             T sum) {
+    public T traverse(ReadWalker<M,T> walker,
+                      ReadShardDataProvider dataProvider,
+                      T sum) {
 
         logger.debug(String.format("TraverseReads.traverse Covered dataset is %s", dataProvider));
-
-        if (!(walker instanceof ReadWalker))
-            throw new IllegalArgumentException("Walker isn't a read walker!");
 
         if( !dataProvider.hasReads() )
             throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
 
-        ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
         boolean needsReferenceBasesP = WalkerManager.isRequired(walker, DataSource.REFERENCE_BASES);
 
         ReadView reads = new ReadView(dataProvider);
@@ -101,10 +91,10 @@ public class TraverseReads extends TraversalEngine {
             // if the read is mapped, create a metadata tracker
             ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
 
-            final boolean keepMeP = readWalker.filter(refSeq, read);
+            final boolean keepMeP = walker.filter(refSeq, read);
             if (keepMeP) {
-                M x = readWalker.map(refSeq, read, tracker); // the tracker can be null
-                sum = readWalker.reduce(x, sum);
+                M x = walker.map(refSeq, read, tracker); // the tracker can be null
+                sum = walker.reduce(x, sum);
             }
 
             printProgress(READS_STRING,
@@ -119,9 +109,8 @@ public class TraverseReads extends TraversalEngine {
      * Temporary override of printOnTraversalDone.
      * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
      * @param sum Result of the computation.
-     * @param <T> Type of the result.
      */
-    public <T> void printOnTraversalDone( T sum ) {
+    public void printOnTraversalDone( T sum ) {
         printOnTraversalDone(READS_STRING, sum );
     }
 }
