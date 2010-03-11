@@ -16,6 +16,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     // how much off from the max likelihoods do we need to be before we can quit calculating?
     protected static final Double LOG10_OPTIMIZATION_EPSILON = 8.0;
     protected static final Double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
+    private int minAlleleFrequencyToTest;
 
     // because the null allele frequencies are constant for a given N,
     // we cache the results to avoid having to recompute everything
@@ -46,6 +47,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     public VariantCallContext callLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
         int numSamples = getNSamples(contexts);
         int frequencyEstimationPoints = (2 * numSamples) + 1;  // (add 1 for allele frequency of zero)
+
+        // reset the optimization value
+        minAlleleFrequencyToTest = 0;
 
         // find the alternate allele with the largest sum of quality scores
         initializeBestAlternateAllele(ref, contexts);
@@ -80,6 +84,10 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( vcc.vc == null )
             estimateReferenceConfidence(vcc, contexts, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY, true);
         return vcc;
+    }
+
+    protected int getMinAlleleFrequencyToTest() {
+        return minAlleleFrequencyToTest;
     }
 
     protected int getNSamples(Map<String, StratifiedAlignmentContext> contexts) {
@@ -375,6 +383,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             double overallLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
             double overallLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
             double lod = overallLog10PofF - overallLog10PofNull;
+
+            // set the optimization value for the subsequent strand calculations
+            minAlleleFrequencyToTest = bestAFguess;
 
             // the forward lod
             initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD);

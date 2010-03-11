@@ -54,6 +54,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         int altIndex = BaseUtils.simpleBaseToBaseIndex(alt);
 
         double maxLikelihoodSeen = -1.0 * Double.MAX_VALUE;
+        int minAlleleFrequencyToTest = getMinAlleleFrequencyToTest();
 
         // for each minor allele frequency, calculate log10PofDgivenAFi
         for (int frequency = 0; frequency <= nChromosomes; frequency++) {
@@ -72,7 +73,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
 
             // an optimization to speed up the calculation: if we are beyond the local maximum such
             //  that subsequent likelihoods won't factor into the confidence score, just quit
-            if ( frequency > 0 && maxLikelihoodSeen - log10PofDgivenAFi[altIndex][frequency] > LOG10_OPTIMIZATION_EPSILON ) {
+            if ( frequency > minAlleleFrequencyToTest && maxLikelihoodSeen - log10PofDgivenAFi[altIndex][frequency] > LOG10_OPTIMIZATION_EPSILON ) {
                 ignoreAlleleFrequenciesAboveI(frequency, nChromosomes, altIndex);
                 return;
             }

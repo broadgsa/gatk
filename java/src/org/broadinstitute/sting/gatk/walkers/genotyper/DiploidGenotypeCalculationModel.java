@@ -66,6 +66,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         // first, calculate for AF=0 (no change to matrix)
         log10PofDgivenAFi[baseIndex][0] = matrix.getLikelihoodsOfFrequency();
         double maxLikelihoodSeen = log10PofDgivenAFi[baseIndex][0];
+        int minAlleleFrequencyToTest = getMinAlleleFrequencyToTest();
 
         // for each minor allele frequency, calculate log10PofDgivenAFi
         for (int i = 1; i <= numFrequencies; i++) {
@@ -77,7 +78,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
             // an optimization to speed up the calculation: if we are beyond the local maximum such
             //  that subsequent likelihoods won't factor into the confidence score, just quit
-            if ( maxLikelihoodSeen - log10PofDgivenAFi[baseIndex][i] > LOG10_OPTIMIZATION_EPSILON ) {
+            if ( i >= minAlleleFrequencyToTest && maxLikelihoodSeen - log10PofDgivenAFi[baseIndex][i] > LOG10_OPTIMIZATION_EPSILON ) {
                 ignoreAlleleFrequenciesAboveI(i, numFrequencies, baseIndex);
                 return;
             }
