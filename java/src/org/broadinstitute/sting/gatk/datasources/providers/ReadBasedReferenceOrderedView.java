@@ -72,7 +72,7 @@ public class ReadBasedReferenceOrderedView implements View {
 /** stores a window of data, dropping RODs if we've passed the new reads start point. */
 class WindowedData {
     // the queue of possibly in-frame RODs; RODs are dropped removed as soon as they are out of scope
-    private final TreeMap<Long, Set<ReferenceOrderedDatum>> mapping = new TreeMap<Long, Set<ReferenceOrderedDatum>>();
+    private final TreeMap<Long, RODMetaDataContainer> mapping = new TreeMap<Long, RODMetaDataContainer>();
 
     // our current location from the last read we processed
     private GenomeLoc currentLoc;
@@ -149,8 +149,8 @@ class WindowedData {
                 RODRecordList list = state.iterator.next();
                 for (ReferenceOrderedDatum datum : list) {
                     if (!mapping.containsKey(list.getLocation().getStart()))
-                        mapping.put(list.getLocation().getStart(), new HashSet<ReferenceOrderedDatum>());
-                    mapping.get(list.getLocation().getStart()).add(datum);
+                        mapping.put(list.getLocation().getStart(), new RODMetaDataContainer());
+                    mapping.get(list.getLocation().getStart()).addEntry(datum);
                 }
             }
         }

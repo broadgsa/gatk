@@ -258,8 +258,8 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
                                      "the iterator's current contig");
         if ( interval.getContigIndex() == curr_contig ) {
             if ( interval.getStart() < curr_position )
-                throw new StingException("Out of order query: query position "+interval.getStart()+" is located before "+
-                        "the iterator's current position "+curr_position);
+                throw new StingException("Out of order query: query position "+interval +" is located before "+
+                        "the iterator's current position "+curr_contig + ":" + curr_position);
             if ( interval.getStop() < curr_query_end )
                 throw new StingException("Unsupported querying sequence: current query interval " +
                         interval+" ends before the end of previous query interval ("+curr_query_end+")");

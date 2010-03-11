@@ -24,6 +24,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.datasources.providers.RODMetaDataContainer;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
@@ -39,7 +40,9 @@ import java.util.*;
  */
 public class ReadMetaDataTracker {
     private final SAMRecord record;
-    private final TreeMap<Long, Set<ReferenceOrderedDatum>> mapping;
+
+    // the buffer of positions and RODs we've stored
+    private final TreeMap<Long, RODMetaDataContainer> mapping;
 
     /**
      * create a read meta data tracker, given the read and a queue of RODatum positions
@@ -47,7 +50,7 @@ public class ReadMetaDataTracker {
      * @param record the read to create offset from
      * @param mapping  the mapping of reference ordered datum
      */
-    public ReadMetaDataTracker(SAMRecord record, TreeMap<Long, Set<ReferenceOrderedDatum>> mapping) {
+    public ReadMetaDataTracker(SAMRecord record, TreeMap<Long, RODMetaDataContainer> mapping) {
         this.record = record;
         this.mapping = mapping;
     }
@@ -62,14 +65,22 @@ public class ReadMetaDataTracker {
      * 
      * @return a mapping from the position in the read to the reference ordered datum
      */
-    private Map<Integer, Set<ReferenceOrderedDatum>> createReadAlignment(SAMRecord record, TreeMap<Long, Set<ReferenceOrderedDatum>> queue, Class cl, String name) {
-        Map<Integer, Set<ReferenceOrderedDatum>> ret = new LinkedHashMap<Integer, Set<ReferenceOrderedDatum>>();
+    private Map<Long, Collection<ReferenceOrderedDatum>> createReadAlignment(SAMRecord record, TreeMap<Long, RODMetaDataContainer> queue, Class cl, String name) {
+        if (name != null && cl != null) throw new IllegalStateException("Both a class and name cannot be specified");
+        Map<Long, Collection<ReferenceOrderedDatum>> ret = new LinkedHashMap<Long, Collection<ReferenceOrderedDatum>>();
         GenomeLoc location = GenomeLocParser.createGenomeLoc(record);
         int length = record.getReadLength();
         for (Long loc : queue.keySet()) {
-            //if (location.containsP(loc)) {
-                long position = loc - location.getStart();
-                if (position >= 0 && position < length) ret.put((int)(position),queue.get(loc));
+            Long position = loc - location.getStart();
+            if (position >= 0 && position < length) {
+                Collection<ReferenceOrderedDatum> set;
+                if (cl != null)
+                    set = queue.get(loc).getSet(cl);
+                else
+                    set = queue.get(loc).getSet(name);
+                if (set != null && set.size() > 0)
+                    ret.put(position,set);
+            }
         }
         return ret;
   
@@ -80,12 +91,16 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping from the position in the read to the reference ordered datum
      */
-    private Map<Long, Set<ReferenceOrderedDatum>> createGenomeLocAlignment(SAMRecord record, TreeMap<Long, Set<ReferenceOrderedDatum>> mapping, Class cl, String name) {
-        Map<Long, Set<ReferenceOrderedDatum>> ret = new LinkedHashMap<Long, Set<ReferenceOrderedDatum>>();
+    private Map<Long, Collection<ReferenceOrderedDatum>> createGenomeLocAlignment(SAMRecord record, TreeMap<Long, RODMetaDataContainer> mapping, Class cl, String name) {
+        Map<Long, Collection<ReferenceOrderedDatum>> ret = new LinkedHashMap<Long, Collection<ReferenceOrderedDatum>>();
         int start = record.getAlignmentStart();
         int stop = record.getAlignmentEnd();
         for (Long location : mapping.keySet()) {
-            if (location >= start && location <= stop) ret.put(location,mapping.get(location));
+            if (location >= start && location <= stop)
+                if (cl != null)
+                        ret.put(location,mapping.get(location).getSet(cl));
+                    else
+                        ret.put(location,mapping.get(location).getSet(name));
         }
         return ret;
     }
@@ -95,7 +110,7 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of read offset to ROD(s)
      */
-    public Map<Integer, Set<ReferenceOrderedDatum>> getPositionMapping() {
+    public Map<Long, Collection<ReferenceOrderedDatum>> getPositionMapping() {
         return createReadAlignment(record, mapping, null, null);
     }
 
@@ -104,7 +119,43 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of genome loc position to ROD(s)
      */
-    public Map<Long, Set<ReferenceOrderedDatum>> getGenomeLocMapping() {
+    public Map<Long, Collection<ReferenceOrderedDatum>> getGenomeLocMapping() {
         return createGenomeLocAlignment(record, mapping, null, null);
+    }
+
+    /**
+     * get the position mapping, from read offset to ROD
+     *
+     * @return a mapping of read offset to ROD(s)
+     */
+    public Map<Long, Collection<ReferenceOrderedDatum>> getPositionMapping(String name) {
+        return createReadAlignment(record, mapping, null, name);
+    }
+
+    /**
+     * get the position mapping, from read offset to ROD
+     *
+     * @return a mapping of genome loc position to ROD(s)
+     */
+    public Map<Long, Collection<ReferenceOrderedDatum>> getGenomeLocMapping(String name) {
+        return createGenomeLocAlignment(record, mapping, null, name);
+    }
+
+    /**
+     * get the position mapping, from read offset to ROD
+     *
+     * @return a mapping of read offset to ROD(s)
+     */
+    public Map<Long, Collection<ReferenceOrderedDatum>> getPositionMapping(Class cl) {
+        return createReadAlignment(record, mapping, cl, null);
+    }
+
+    /**
+     * get the position mapping, from read offset to ROD
+     *
+     * @return a mapping of genome loc position to ROD(s)
+     */
+    public Map<Long, Collection<ReferenceOrderedDatum>> getGenomeLocMapping(Class cl) {
+        return createGenomeLocAlignment(record, mapping, cl, null);
     }
 }

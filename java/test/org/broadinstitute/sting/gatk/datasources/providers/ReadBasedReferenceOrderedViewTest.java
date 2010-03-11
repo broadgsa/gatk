@@ -77,13 +77,13 @@ public class ReadBasedReferenceOrderedViewTest extends BaseTest {
         }
         GenomeLoc start = GenomeLocParser.createGenomeLoc(0,0,0);
         List<RMDDataState> list = new ArrayList<RMDDataState>();
-        list.add(new RMDDataState(null, new FakePeekingRODIterator(start)));
+        list.add(new RMDDataState(null, new FakePeekingRODIterator(start,"fakeName")));
         ReadBasedReferenceOrderedView view = new ReadBasedReferenceOrderedView(new WindowedData(list));
 
         for (SAMRecord rec : records) {
             ReadMetaDataTracker tracker = view.getReferenceOrderedDataForRead(rec);
-            Map<Integer, Set<ReferenceOrderedDatum>> map = tracker.getPositionMapping();
-            for (Integer i : map.keySet()) {
+            Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping();
+            for (Long i : map.keySet()) {
                 Assert.assertEquals(1,map.get(i).size());
             }
             Assert.assertEquals(10,map.keySet().size());
@@ -99,8 +99,9 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
     // current location
     private GenomeLoc location;
     private ReadMetaDataTrackerTest.FakeRODatum curROD;
-
-    public FakePeekingRODIterator(GenomeLoc startingLoc) {
+    private final String name;
+    public FakePeekingRODIterator(GenomeLoc startingLoc, String name) {
+        this.name = name;
         this.location = GenomeLocParser.createGenomeLoc(startingLoc.getContigIndex(),startingLoc.getStart()+1,startingLoc.getStop()+1);;
     }
 
@@ -130,7 +131,7 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
     @Override
     public RODRecordList next() {
         System.err.println("Next -> " + location);
-        curROD = new ReadMetaDataTrackerTest.FakeRODatum(location);
+        curROD = new ReadMetaDataTrackerTest.FakeRODatum(location,name);
         location = GenomeLocParser.createGenomeLoc(location.getContigIndex(),location.getStart()+1,location.getStop()+1);
         FakeRODRecordList list = new FakeRODRecordList();
         list.add(curROD);

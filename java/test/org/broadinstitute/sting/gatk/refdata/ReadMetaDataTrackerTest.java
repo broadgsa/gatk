@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.datasources.providers.RODMetaDataContainer;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -37,10 +38,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 
 /**
@@ -56,6 +54,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
     private static int readCount = 100;
     private static int DEFAULT_READ_LENGTH = ArtificialSAMUtils.DEFAULT_READ_LENGTH;
     private static SAMFileHeader header;
+    private Set<String> nameSet;
 
     @BeforeClass
     public static void beforeClass() {
@@ -65,15 +64,32 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
     @Before
     public void beforeEach() {
+        nameSet = new TreeSet<String>();
+        nameSet.add("default");
+    }
+
+    @Test
+    public void twoRodsAtEachReadBase() {
+        nameSet.add("default2");
+        ReadMetaDataTracker tracker = getRMDT(1, nameSet, true);
+
+        // count the positions
+        int count = 0;
+        for (Long x : tracker.getPositionMapping().keySet()) {
+            count++;
+            Assert.assertEquals(2, tracker.getPositionMapping().get(x).size());
+        }
+        Assert.assertEquals(10, count);
     }
 
     @Test
     public void rodAtEachReadBase() {
-       ReadMetaDataTracker tracker = getRMDT(1);
+
+        ReadMetaDataTracker tracker = getRMDT(1, nameSet, true);
 
         // count the positions
         int count = 0;
-        for (int x : tracker.getPositionMapping().keySet()) {
+        for (Long x : tracker.getPositionMapping().keySet()) {
             count++;
             Assert.assertEquals(1, tracker.getPositionMapping().get(x).size());
         }
@@ -81,12 +97,78 @@ public class ReadMetaDataTrackerTest extends BaseTest {
     }
 
     @Test
-    public void sparceRODsForRead() {
-        ReadMetaDataTracker tracker = getRMDT(7);
+    public void filterByName() {
+        nameSet.add("default2");
+        ReadMetaDataTracker tracker = getRMDT(1, nameSet, true);
 
         // count the positions
         int count = 0;
-        for (int x : tracker.getPositionMapping().keySet()) {
+        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping("default");
+        for (Long x : map.keySet()) {
+            count++;
+            Assert.assertEquals(1, map.get(x).size());
+        }
+        Assert.assertEquals(10, count);
+    }
+
+    @Test
+    public void filterByDupType() {
+        nameSet.add("default2");
+        ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
+        // count the positions
+        int count = 0;
+        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping(FakeRODatum.class);
+        for (Long x : map.keySet()) {
+            count++;
+            Assert.assertEquals(2, map.get(x).size());
+        }
+        Assert.assertEquals(10, count);
+    }
+
+    // @Test this test can be uncommented to determine the speed impacts of any changes to the RODs for reads system
+    public void filterByMassiveDupType() {
+
+        for (int y = 0; y < 20; y++) {
+            nameSet.add("default" + String.valueOf(y));
+            long firstTime = System.currentTimeMillis();
+            for (int lp = 0; lp < 1000; lp++) {
+                ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
+                // count the positions
+                int count = 0;
+                Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping(FakeRODatum.class);
+                for (Long x : map.keySet()) {
+                    count++;
+                    Assert.assertEquals(y + 2, map.get(x).size());
+                }
+                Assert.assertEquals(10, count);
+            }
+            System.err.println(y + " = " + (System.currentTimeMillis() - firstTime));
+        }
+    }
+
+
+    @Test
+    public void filterByType() {
+        nameSet.add("default2");
+        ReadMetaDataTracker tracker = getRMDT(1, nameSet, true);
+
+        // count the positions
+        int count = 0;
+        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping(Fake2RODatum.class);
+        for (long x : map.keySet()) {
+            count++;
+            Assert.assertEquals(1, map.get(x).size());
+        }
+        Assert.assertEquals(10, count);
+    }
+
+    @Test
+    public void sparceRODsForRead() {
+        ReadMetaDataTracker tracker = getRMDT(7, nameSet, true);
+
+        // count the positions
+        int count = 0;
+        for (Long x : tracker.getPositionMapping().keySet()) {
             count++;
             Assert.assertEquals(1, tracker.getPositionMapping().get(x).size());
         }
@@ -95,7 +177,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
     @Test
     public void rodByGenomeLoc() {
-        ReadMetaDataTracker tracker = getRMDT(1);
+        ReadMetaDataTracker tracker = getRMDT(1, nameSet, true);
 
         // count the positions
         int count = 0;
@@ -106,17 +188,45 @@ public class ReadMetaDataTrackerTest extends BaseTest {
         Assert.assertEquals(10, count);
     }
 
-    private ReadMetaDataTracker getRMDT(int incr) {
-        SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "name", 0, 1, 10);        
-        TreeMap<Long, Set<ReferenceOrderedDatum>> data = new TreeMap<Long, Set<ReferenceOrderedDatum>>();
-        for (int x = 0; x < record.getAlignmentEnd(); x+=incr) {
+
+    /**
+     * create a ReadMetaDataTracker given:
+     *
+     * @param incr  the spacing between site locations
+     * @param names the names of the reference ordered data to create: one will be created at every location for each name
+     *
+     * @return a ReadMetaDataTracker
+     */
+    private ReadMetaDataTracker getRMDT(int incr, Set<String> names, boolean alternateTypes) {
+        SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "name", 0, 1, 10);
+        TreeMap<Long, RODMetaDataContainer> data = new TreeMap<Long, RODMetaDataContainer>();
+        for (int x = 0; x < record.getAlignmentEnd(); x += incr) {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(record.getReferenceIndex(), record.getAlignmentStart() + x, record.getAlignmentStart() + x);
-            Set<ReferenceOrderedDatum> set = new HashSet<ReferenceOrderedDatum>();
-            set.add(new FakeRODatum(loc));
-            data.put((long)record.getAlignmentStart() + x,set);
+            RODMetaDataContainer set = new RODMetaDataContainer();
+
+            int cnt = 0;
+            for (String name : names) {
+                if (alternateTypes)
+                    set.addEntry((cnt % 2 == 0) ? new FakeRODatum(loc, name) : new Fake2RODatum(loc, name));
+                else
+                    set.addEntry(new FakeRODatum(loc, name));
+                cnt++;
+            }
+            data.put((long) record.getAlignmentStart() + x, set);
         }
         ReadMetaDataTracker tracker = new ReadMetaDataTracker(record, data);
         return tracker;
+    }
+
+
+    /**
+     * for testing, we want a fake rod with a different classname, for the get-by-class-name functions
+     */
+    static public class Fake2RODatum extends FakeRODatum {
+
+        public Fake2RODatum(GenomeLoc location, String name) {
+            super(location, name);
+        }
     }
 
 
@@ -124,14 +234,16 @@ public class ReadMetaDataTrackerTest extends BaseTest {
     static public class FakeRODatum implements ReferenceOrderedDatum {
 
         final GenomeLoc location;
+        final String name;
 
-        public FakeRODatum(GenomeLoc location) {
+        public FakeRODatum(GenomeLoc location, String name) {
             this.location = location;
+            this.name = name;
         }
 
         @Override
         public String getName() {
-            return "false";
+            return name;
         }
 
         @Override
