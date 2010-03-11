@@ -35,7 +35,17 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     private final List<FilePointer> filePointers = new ArrayList<FilePointer>();
 
     /**
-     * Position of the last shard in the file.
+     * Iterator over the list of file pointers.
+     */
+    private final Iterator<FilePointer> filePointerIterator;
+
+    /**
+     * The file pointer currently being processed.
+     */
+    private FilePointer currentFilePointer;
+
+    /**
+     * Ending position of the last shard in the file.
      */
     private Map<SAMReaderID,Chunk> position;
 
@@ -51,6 +61,11 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
         this.position = this.dataSource.getCurrentPosition();
         if(locations != null)
             filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList(),this.dataSource.getNumIndexLevels()-1));
+
+        filePointerIterator = filePointers.iterator();
+        if(filePointerIterator.hasNext())
+            currentFilePointer = filePointerIterator.next();
+
         advance();
     }
 
@@ -81,10 +96,10 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
         SamRecordFilter filter = null;
 
         if(!filePointers.isEmpty()) {
-            for(FilePointer filePointer: filePointers) {
-                shardPosition = dataSource.getFilePointersBounding(filePointer.bin);
+            Map<SAMReaderID,List<Chunk>> selectedReaders = new HashMap<SAMReaderID,List<Chunk>>();
+            while(selectedReaders.size() == 0 && currentFilePointer != null) {
+                shardPosition = dataSource.getFilePointersBounding(currentFilePointer.bin);
 
-                Map<SAMReaderID,List<Chunk>> selectedReaders = new HashMap<SAMReaderID,List<Chunk>>();
                 for(SAMReaderID id: shardPosition.keySet()) {
                     List<Chunk> chunks = shardPosition.get(id);
                     List<Chunk> selectedChunks = new ArrayList<Chunk>();
@@ -98,17 +113,19 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
                     if(selectedChunks.size() > 0)
                         selectedReaders.put(id,selectedChunks);
                 }
-                if(selectedReaders.size() > 0) {
-                    filter = new ReadOverlapFilter(filePointer.locations);
 
+                if(selectedReaders.size() > 0) {
                     BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),selectedReaders,filter,Shard.ShardType.READ);
                     dataSource.fillShard(shard);
 
                     if(!shard.isBufferEmpty()) {
+                        filter = new ReadOverlapFilter(currentFilePointer.locations);
                         nextShard = shard;
                         break;
                     }
                 }
+
+                currentFilePointer = filePointerIterator.hasNext() ? filePointerIterator.next() : null;
             }
         }
         else {

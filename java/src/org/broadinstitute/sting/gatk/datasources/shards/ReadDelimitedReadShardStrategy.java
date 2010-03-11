@@ -11,7 +11,7 @@ import java.util.Iterator;
  */
 public class ReadDelimitedReadShardStrategy extends ReadShardStrategy {
     // our read bucket size, default
-    protected long readCount = 100000L;
+    protected long readCount = 1000L;
 
     // our hasnext flag
     boolean hasNext = true;
