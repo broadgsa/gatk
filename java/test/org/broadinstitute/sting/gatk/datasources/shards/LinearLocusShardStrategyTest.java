@@ -113,7 +113,7 @@ public class LinearLocusShardStrategyTest extends BaseTest {
             Shard d = strat.next();
             assertTrue(d instanceof LocusShard);
             assertEquals("Sharding strategy must emit single locus shards",1,d.getGenomeLocs().size());
-            assertTrue((d.getGenomeLocs().get(0).getStop() - d.getGenomeLocs().get(0).getStart()) == 199);
+            assertEquals(199,(d.getGenomeLocs().get(0).getStop() - d.getGenomeLocs().get(0).getStart()));
             ++counter;
         }
         assertTrue(counter == 1);

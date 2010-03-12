@@ -94,7 +94,7 @@ public class IntervalShardStrategy implements ShardStrategy {
         // get the first region in the list
         GenomeLoc loc = regions.iterator().next();
 
-        regions.removeRegion(loc);
+        regions.remove(loc);
         return new IntervalShard(loc,type);
 
     }

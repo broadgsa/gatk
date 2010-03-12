@@ -62,7 +62,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      *
      * @param dic the seq dictionary
      */
-    LocusShardStrategy( SAMSequenceDictionary dic ) {
+    LocusShardStrategy(SAMSequenceDictionary dic) {
         this.dic = dic;
         limitingFactor = -1;
         mLoc = GenomeLocParser.createGenomeLoc(0, 0, 0);
@@ -76,7 +76,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      *
      * @param old the old strategy
      */
-    LocusShardStrategy( LocusShardStrategy old ) {
+    LocusShardStrategy(LocusShardStrategy old) {
         this.dic = old.dic;
         this.mLoc = old.mLoc;
         this.seqLoc = old.seqLoc;
@@ -92,7 +92,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      * @param dic       the seq dictionary
      * @param intervals file
      */
-    LocusShardStrategy( SAMSequenceDictionary dic, GenomeLocSortedSet intervals ) {
+    LocusShardStrategy(SAMSequenceDictionary dic, GenomeLocSortedSet intervals) {
         this.dic = dic;
         this.intervals = intervals.clone();
         // set the starting point to the beginning interval
@@ -152,7 +152,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
         if (this.intervals == null) {
             return nonIntervaledNext(length, proposedSize, nextStart);
         } else {
-            return intervaledNext(proposedSize);
+            return intervaledNext();
         }
 
     }
@@ -160,26 +160,20 @@ public abstract class LocusShardStrategy implements ShardStrategy {
     /**
      * Interval based next processing
      *
-     * @param proposedSize the proposed size
      *
      * @return the shard that represents this data
      */
-    private Shard intervaledNext( long proposedSize ) {
-        if (( this.intervals == null ) || ( intervals.isEmpty() )) {
+    private Shard intervaledNext() {
+        if ((this.intervals == null) || (intervals.isEmpty())) {
             throw new StingException("LocusShardStrategy: genomic regions list is empty in next() function.");
         }
 
         // get the first region in the list
         GenomeLoc loc = intervals.iterator().next();
 
-        if (loc.getStop() - loc.getStart() <= proposedSize) {
-            intervals.removeRegion(loc);
-            return new IntervalShard(loc,Shard.ShardType.LOCUS_INTERVAL);
-        } else {
-            GenomeLoc subLoc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStart() + proposedSize - 1);
-            intervals.removeRegion(subLoc);
-            return new IntervalShard(subLoc,Shard.ShardType.LOCUS_INTERVAL);
-        }
+        intervals.remove(loc);
+        return new IntervalShard(loc, Shard.ShardType.LOCUS_INTERVAL);
+
     }
 
     /**
@@ -191,7 +185,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      *
      * @return the shard to return to the user
      */
-    private Shard nonIntervaledNext( long length, long proposedSize, long nextStart ) {
+    private Shard nonIntervaledNext(long length, long proposedSize, long nextStart) {
         // can we fit it into the current seq size?
         if (nextStart + proposedSize - 1 < length) {
             lastGenomeLocSize = proposedSize;
@@ -223,7 +217,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
     private void jumpContig() {
         ++seqLoc;
 
-        if (!( seqLoc < dic.getSequences().size() )) {
+        if (!(seqLoc < dic.getSequences().size())) {
             nextContig = false;
             return;
         }
@@ -246,7 +240,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
         if (this.intervals == null) {
             return nextContig;
         } else {
-            return ( this.intervals.size() > 0 );
+            return (this.intervals.size() > 0);
         }
     }
 

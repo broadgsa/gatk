@@ -224,6 +224,15 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     }
 
     /**
+     * a simple removal of an interval contained in this list.  The interval must be identical to one in the list (no partial locations or overlapping)
+     * @param location the GenomeLoc to remove
+     */
+    public void remove(GenomeLoc location) {
+        if (!mArray.contains(location)) throw new IllegalArgumentException("Unable to remove location: " + location + ", not in the list");
+        mArray.remove(location);
+    }
+
+    /**
      * create a list of genomic locations, given a reference sequence
      *
      * @param dict the sequence dictionary to create a collection from
