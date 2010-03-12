@@ -490,7 +490,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
 
-            if ( vc != null && vc.hasGenotypes(SAMPLES_LIST) ) {
+            if ( vc != null && vc.hasGenotypes(SAMPLES_LIST) && SAMPLES_LIST.size() > 0 ) {
                 //if ( ! name.equals("eval") ) logger.info(String.format("subsetting VC %s", vc));
                 vc = vc.subContextFromGenotypes(vc.getGenotypes(SAMPLES_LIST).values());
                 //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));

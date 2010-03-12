@@ -158,8 +158,19 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(my_walker, microScheduler.getOutputTracker());
 
+        // todo -- call createSetFromList for -XL argument, and unify this with intervals, if provided
+        GenomeLocSortedSet excludeIntervals = null;
+        if (argCollection.excludeIntervals != null && argCollection.intervalMerging.check()) {
+            excludeIntervals = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.excludeIntervals, IntervalMergingRule.ALL));
+        }
+
         if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
             intervals = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
+        }
+
+        if ( excludeIntervals != null ) {
+            GenomeLocSortedSet toPrune = intervals == null ? GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) : intervals;
+            intervals = pruneIntervals( toPrune, excludeIntervals );
         }
 
         ShardStrategy shardStrategy = getShardStrategy(my_walker,
@@ -292,6 +303,15 @@ public class GenomeAnalysisEngine {
         }
 
         return microScheduler;
+    }
+
+    private GenomeLocSortedSet pruneIntervals( GenomeLocSortedSet toPrune, GenomeLocSortedSet toExclude) {
+        logger.info(String.format("pruning intervals from %d against %d", toPrune.size(), toExclude.size()));
+        for ( GenomeLoc exclude : toExclude )
+            toPrune.removeRegion(exclude);
+        logger.info(String.format("done pruning intervals == now have %d", toPrune.size()));
+
+        return toPrune;
     }
 
     /**

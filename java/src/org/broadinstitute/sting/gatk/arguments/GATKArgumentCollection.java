@@ -64,6 +64,10 @@ public class GATKArgumentCollection {
     @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
     public List<String> intervals = null;
 
+    @ElementList(required = false)
+    @Argument(fullName = "excludeIntervals", shortName = "XL", doc = "A list of genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file.", required = false)
+    public List<String> excludeIntervals = null;
+
     @Element(required = false)
     @Argument(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
@@ -259,6 +263,9 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.intervals.equals(this.intervals)) {
+            return false;
+        }
+        if (!other.excludeIntervals.equals(this.excludeIntervals)) {
             return false;
         }
         if (!other.DBSNPFile.equals(this.DBSNPFile)) {
