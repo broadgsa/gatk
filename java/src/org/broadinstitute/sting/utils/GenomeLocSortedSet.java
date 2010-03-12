@@ -242,39 +242,6 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         }
     }
 
-    /**
-     * remove an element from the set.  Given a specific genome location, this function will
-     * remove all regions in the element set that overlap the specified region.
-     *
-     * @param e the genomic range to remove
-     *
-     * @return true if a removal action was performed, false if the collection was unchanged.
-     */
-    public boolean removeRegion(GenomeLoc e) {
-        // todo -- delete me
-        if (e == null) {
-            return false;
-        }
-
-        // sometimes we can't return right away, this holds the value for those cases
-        boolean returnValue = false;
-
-        /**
-         * check if the specified element overlaps any current locations, subtract the removed
-         * region and reinsert what is left.
-         */
-        for (GenomeLoc g : mArray) {
-            if (g.overlapsP(e)) {
-                returnValue = true;
-
-                boolean finishEarly = removeOverlappingRegion(g, e);
-                if ( finishEarly )
-                    break;
-            }
-        }
-
-        return returnValue;
-    }
 
 //    public boolean removeRegions(GenomeLocSortedSet toRemove) {
 //        int i = 0, j = 0;
@@ -308,70 +275,6 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 //        }
 //    }
 //
-
-    // todo -- delete me
-    private boolean removeOverlappingRegion(GenomeLoc g, GenomeLoc e) {
-        if (g.equals(e)) {
-            mArray.remove(mArray.indexOf(g));
-            return true;
-        } else if (g.containsP(e)) {
-            /**
-             * we have to create two new region, one for the before part, one for the after
-             * The old region:
-             * |----------------- old region (g) -------------|
-             *        |----- to delete (e) ------|
-             *
-             * product (two new regions):
-             * |------|  + |--------|
-             *
-             */
-            GenomeLoc before = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
-            GenomeLoc after = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
-            int index = mArray.indexOf(g);
-            if (after.getStop() - after.getStart() >= 0) {
-                mArray.add(index, after);
-            }
-            if (before.getStop() - before.getStart() >= 0) {
-                mArray.add(index, before);
-            }
-            mArray.remove(mArray.indexOf(g));
-            return true;
-        } else if (e.containsP(g)) {
-            /**
-             * e completely contains g, delete g, but keep looking, there may be more regions
-             * i.e.:
-             *   |--------------------- e --------------------|
-             *       |--- g ---|    |---- others ----|
-             */
-            mArray.remove(mArray.indexOf(g));
-            return false;
-        } else {
-            /**
-             * otherwise e overlaps some part of g
-             */
-            GenomeLoc l;
-
-            /**
-             * figure out which region occurs first on the genome.  I.e., is it:
-             * |------------- g ----------|
-             *       |------------- e ----------|
-             *
-             * or:
-             *       |------------- g ----------|
-             * |------------ e -----------|
-             *
-             */
-
-            if (e.getStart() < g.getStart()) {
-                l = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
-            } else {
-                l = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
-            }
-            // replace g with the new region
-            mArray.set(mArray.indexOf(g), l);
-            return false;
-        }
-    }
 
     /**
      * a simple removal of an interval contained in this list.  The interval must be identical to one in the list (no partial locations or overlapping)
