@@ -115,16 +115,17 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
                 }
 
                 if(selectedReaders.size() > 0) {
+                    filter = new ReadOverlapFilter(currentFilePointer.locations);
                     BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),selectedReaders,filter,Shard.ShardType.READ);
                     dataSource.fillShard(shard);
 
                     if(!shard.isBufferEmpty()) {
-                        filter = new ReadOverlapFilter(currentFilePointer.locations);
                         nextShard = shard;
                         break;
                     }
                 }
 
+                selectedReaders.clear();
                 currentFilePointer = filePointerIterator.hasNext() ? filePointerIterator.next() : null;
             }
         }
