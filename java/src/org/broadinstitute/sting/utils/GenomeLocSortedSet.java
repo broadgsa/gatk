@@ -136,6 +136,112 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         return true;
     }
 
+    public GenomeLocSortedSet substractRegions(GenomeLocSortedSet toRemoveSet) {
+        LinkedList<GenomeLoc> good = new LinkedList<GenomeLoc>();
+        Stack<GenomeLoc> toProcess = new Stack<GenomeLoc>();
+        Stack<GenomeLoc> toExclude = new Stack<GenomeLoc>();
+
+        // initialize the stacks
+        toProcess.addAll(mArray);
+        Collections.reverse(toProcess);
+        toExclude.addAll(toRemoveSet.mArray);
+        Collections.reverse(toExclude);
+
+        int i = 0;
+        while ( ! toProcess.empty() ) {    // while there's still stuff to process
+            if ( toExclude.empty() ) {
+                good.addAll(toProcess);         // no more excludes, all the processing stuff is good
+                break;
+            }
+
+            GenomeLoc p = toProcess.peek();
+            GenomeLoc e = toExclude.peek();
+
+            if ( p.overlapsP(e) ) {
+                toProcess.pop();
+                for ( GenomeLoc newP : subtractRegion(p, e) )
+                    toProcess.push(newP);
+            } else if ( p.compareContigs(e) < 0 ) {
+                good.add(toProcess.pop());         // p is now good
+            } else if ( p.compareContigs(e) > 0 ) {
+                toExclude.pop();                 // e can't effect anything
+            } else if ( p.getStop() < e.getStart() ) {
+                good.add(toProcess.pop());         // p stops before e starts, p is good
+            } else if ( e.getStop() < p.getStart() ) {
+                toExclude.pop();                 // p starts after e stops, e is done
+            } else {
+                throw new StingException("BUG: unexpected condition: p=" + p + ", e=" + e);
+            }
+
+            if ( i++ % 10000 == 0 )
+                logger.debug("removeRegions operation: i = " + i);
+        }
+
+        return GenomeLocSortedSet.createSetFromList(good);
+    }
+
+
+    private static final List<GenomeLoc> EMPTY_LIST = new ArrayList<GenomeLoc>();
+    private List<GenomeLoc> subtractRegion(GenomeLoc g, GenomeLoc e) {
+        if (g.equals(e)) {
+            return EMPTY_LIST;
+        } else if (g.containsP(e)) {
+            List<GenomeLoc> l = new ArrayList<GenomeLoc>();
+
+            /**
+             * we have to create two new region, one for the before part, one for the after
+             * The old region:
+             * |----------------- old region (g) -------------|
+             *        |----- to delete (e) ------|
+             *
+             * product (two new regions):
+             * |------|  + |--------|
+             *
+             */
+            GenomeLoc before = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
+            GenomeLoc after = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
+            if (after.getStop() - after.getStart() >= 0) {
+                l.add(after);
+            }
+            if (before.getStop() - before.getStart() >= 0) {
+                l.add(before);
+            }
+
+            return l;
+        } else if (e.containsP(g)) {
+            /**
+             * e completely contains g, delete g, but keep looking, there may be more regions
+             * i.e.:
+             *   |--------------------- e --------------------|
+             *       |--- g ---|    |---- others ----|
+             */
+            return EMPTY_LIST;   // don't need to do anything
+        } else {
+            /**
+             * otherwise e overlaps some part of g
+             *
+             * figure out which region occurs first on the genome.  I.e., is it:
+             * |------------- g ----------|
+             *       |------------- e ----------|
+             *
+             * or:
+             *       |------------- g ----------|
+             * |------------ e -----------|
+             *
+             */
+
+            GenomeLoc n;
+            if (e.getStart() < g.getStart()) {
+                n = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
+            } else {
+                n = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
+            }
+
+            // replace g with the new region
+            return Arrays.asList(n);
+        }
+    }
+
     /**
      * remove an element from the set.  Given a specific genome location, this function will
      * remove all regions in the element set that overlap the specified region.
@@ -145,82 +251,126 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * @return true if a removal action was performed, false if the collection was unchanged.
      */
     public boolean removeRegion(GenomeLoc e) {
+        // todo -- delete me
         if (e == null) {
             return false;
         }
 
         // sometimes we can't return right away, this holds the value for those cases
         boolean returnValue = false;
+
         /**
          * check if the specified element overlaps any current locations, subtract the removed
          * region and reinsert what is left.
          */
         for (GenomeLoc g : mArray) {
             if (g.overlapsP(e)) {
-                if (g.equals(e)) {
-                    mArray.remove(mArray.indexOf(g));
-                    return true;
-                } else if (g.containsP(e)) {
-                    /**
-                     * we have to create two new region, one for the before part, one for the after
-                     * The old region:
-                     * |----------------- old region (g) -------------|
-                     *        |----- to delete (e) ------|
-                     *
-                     * product (two new regions):
-                     * |------|  + |--------|
-                     *
-                     */
-                    GenomeLoc before = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
-                    GenomeLoc after = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
-                    int index = mArray.indexOf(g);
-                    if (after.getStop() - after.getStart() >= 0) {
-                        mArray.add(index, after);
-                    }
-                    if (before.getStop() - before.getStart() >= 0) {
-                        mArray.add(index, before);
-                    }
-                    mArray.remove(mArray.indexOf(g));
-                    return true;
-                } else if (e.containsP(g)) {
-                    /**
-                     * e completely contains g, delete g, but keep looking, there may be more regions
-                     * i.e.:
-                     *   |--------------------- e --------------------|
-                     *       |--- g ---|    |---- others ----|
-                     */
-                    mArray.remove(mArray.indexOf(g));
-                    returnValue = true;
-                } else {
+                returnValue = true;
 
-                    /**
-                     * otherwise e overlaps some part of g
-                     */
-                    GenomeLoc l;
-
-                    /**
-                     * figure out which region occurs first on the genome.  I.e., is it:
-                     * |------------- g ----------|
-                     *       |------------- e ----------|
-                     *
-                     * or:
-                     *       |------------- g ----------|
-                     * |------------ e -----------|
-                     *
-                     */
-
-                    if (e.getStart() < g.getStart()) {
-                        l = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
-                    } else {
-                        l = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
-                    }
-                    // replace g with the new region
-                    mArray.set(mArray.indexOf(g), l);
-                    returnValue = true;
-                }
+                boolean finishEarly = removeOverlappingRegion(g, e);
+                if ( finishEarly )
+                    break;
             }
         }
+
         return returnValue;
+    }
+
+//    public boolean removeRegions(GenomeLocSortedSet toRemove) {
+//        int i = 0, j = 0;
+//
+//        while ( true ) {
+//            if ( i >= mArray.size() || j >= toRemove.mArray.size() )
+//                return true;
+//
+//            GenomeLoc g = mArray.get(i);
+//            GenomeLoc e = toRemove.mArray.get(j);
+//
+//            if (g.overlapsP(e)) {
+//                boolean finishEarly = removeOverlappingRegion(g, e);
+//                if ( finishEarly ) {
+//                    i++;
+//                }
+//            } else if ( g.compareContigs(e) < 0 ) {
+//                i++;        // g is on an earlier contig, move g forward
+//            } else if ( g.compareContigs(e) > 0 ) {
+//                j++;        // g is on a later contig, move e forward
+//            } else if ( g.getStop() < e.getStart() ) {
+//                i++;        // g stops before e starts, move g forward
+//            } else if ( e.getStop() < g.getStart() ) {
+//                j++;        // g starts after e stops, move e forward
+//            } else {
+//                throw new StingException("BUG: unexpected condition: g=" + g + ", e=" + e);
+//            }
+//
+//            if ( (i + j) % 10000 == 0 )
+//                logger.debug("removeRegions operation: i + j = " + ( i + j ));
+//        }
+//    }
+//
+
+    // todo -- delete me
+    private boolean removeOverlappingRegion(GenomeLoc g, GenomeLoc e) {
+        if (g.equals(e)) {
+            mArray.remove(mArray.indexOf(g));
+            return true;
+        } else if (g.containsP(e)) {
+            /**
+             * we have to create two new region, one for the before part, one for the after
+             * The old region:
+             * |----------------- old region (g) -------------|
+             *        |----- to delete (e) ------|
+             *
+             * product (two new regions):
+             * |------|  + |--------|
+             *
+             */
+            GenomeLoc before = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
+            GenomeLoc after = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
+            int index = mArray.indexOf(g);
+            if (after.getStop() - after.getStart() >= 0) {
+                mArray.add(index, after);
+            }
+            if (before.getStop() - before.getStart() >= 0) {
+                mArray.add(index, before);
+            }
+            mArray.remove(mArray.indexOf(g));
+            return true;
+        } else if (e.containsP(g)) {
+            /**
+             * e completely contains g, delete g, but keep looking, there may be more regions
+             * i.e.:
+             *   |--------------------- e --------------------|
+             *       |--- g ---|    |---- others ----|
+             */
+            mArray.remove(mArray.indexOf(g));
+            return false;
+        } else {
+            /**
+             * otherwise e overlaps some part of g
+             */
+            GenomeLoc l;
+
+            /**
+             * figure out which region occurs first on the genome.  I.e., is it:
+             * |------------- g ----------|
+             *       |------------- e ----------|
+             *
+             * or:
+             *       |------------- g ----------|
+             * |------------ e -----------|
+             *
+             */
+
+            if (e.getStart() < g.getStart()) {
+                l = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
+            } else {
+                l = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
+            }
+            // replace g with the new region
+            mArray.set(mArray.indexOf(g), l);
+            return false;
+        }
     }
 
     /**

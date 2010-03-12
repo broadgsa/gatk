@@ -161,7 +161,8 @@ public class GenomeAnalysisEngine {
         // todo -- call createSetFromList for -XL argument, and unify this with intervals, if provided
         GenomeLocSortedSet excludeIntervals = null;
         if (argCollection.excludeIntervals != null && argCollection.intervalMerging.check()) {
-            excludeIntervals = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.excludeIntervals, IntervalMergingRule.ALL));
+            List<GenomeLoc> rawExcludeIntervals = parseIntervalRegion(argCollection.excludeIntervals, IntervalMergingRule.ALL);
+            excludeIntervals = GenomeLocSortedSet.createSetFromList(rawExcludeIntervals);
         }
 
         if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
@@ -307,11 +308,12 @@ public class GenomeAnalysisEngine {
 
     private GenomeLocSortedSet pruneIntervals( GenomeLocSortedSet toPrune, GenomeLocSortedSet toExclude) {
         logger.info(String.format("pruning intervals from %d against %d", toPrune.size(), toExclude.size()));
-        for ( GenomeLoc exclude : toExclude )
-            toPrune.removeRegion(exclude);
-        logger.info(String.format("done pruning intervals == now have %d", toPrune.size()));
+        //for ( GenomeLoc exclude : toExclude )
+        //    toPrune.removeRegion(exclude);
+        GenomeLocSortedSet x = toPrune.substractRegions(toExclude);
+        logger.info(String.format("done pruning intervals == now have %d", x.size()));
 
-        return toPrune;
+        return x;
     }
 
     /**
