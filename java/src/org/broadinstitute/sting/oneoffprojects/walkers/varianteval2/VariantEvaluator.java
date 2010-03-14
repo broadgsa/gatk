@@ -6,14 +6,15 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 
 import java.util.List;
-import java.util.ArrayList;
 
 /**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: Jan 29, 2010
- * Time: 3:38:02 PM
- * To change this template use File | Settings | File Templates.
+ * The Broad Institute
+ * SOFTWARE COPYRIGHT NOTICE AGREEMENT
+ * This software and its documentation are copyright 2009 by the
+ * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ * <p/>
+ * This software is supplied without any warranty or guaranteed support whatsoever. Neither
+ * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 abstract class VariantEvaluator {
 //    protected boolean accumulateInterestingSites = false, printInterestingSites = false;
@@ -40,13 +41,11 @@ abstract class VariantEvaluator {
     //public boolean processedAnySites()                                  { return processedASite; }
     //protected void markSiteAsProcessed()                                { processedASite = true; }
 
-    /** Should return the number of VariantContexts expected as inputs to update.  Can be 1 or 2 */
+    // Should return the number of VariantContexts expected as inputs to update.  Can be 1 or 2
     public abstract int getComparisonOrder();
 
-    /** called at all sites, regardless of eval context itself; useful for counting processed bases */
-    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-
-    }
+    // called at all sites, regardless of eval context itself; useful for counting processed bases
+    public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) { }
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return null;

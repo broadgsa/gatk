@@ -4,9 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 
@@ -84,7 +82,7 @@ public class ValidationRate extends VariantEvaluator {
         String interesting = null;
 
         if ( validation != null && validation.hasGenotypes() && validation.isNotFiltered() ) {
-            SiteStats overlap = null;
+            SiteStats overlap;
 
             if ( validation.isPolymorphic() ) {
                 validationStats.nPoly++;

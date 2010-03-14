@@ -109,7 +109,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
                 if ( isViolation(vc, momG, dadG, childG) ) {
                     nViolations++;
 
-                    String label = null;
+                    String label;
                     if ( childG.isHomRef() && (momG.isHomVar() || dadG.isHomVar() )) {
                         label = "KidHomRef_ParentHomVar";
                         KidHomRef_ParentHomVar++;

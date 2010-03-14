@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 
@@ -47,7 +46,7 @@ public class DbSNPPercentage extends VariantEvaluator {
     /**
      * What fraction of the evaluated site variants were also found in the db?
      *
-     * @return
+     * @return db rate
      */
     public double dbSNPRate()           { return rate(nSNPsAtdbSNPs(), nEvalSNPs()); }
     public double concordanceRate()     { return rate(nConcordant(), nSNPsAtdbSNPs()); }
@@ -79,9 +78,9 @@ public class DbSNPPercentage extends VariantEvaluator {
     /**
      * Returns true if every allele in eval is also in dbsnp
      *
-     * @param eval
-     * @param dbsnp
-     * @return
+     * @param eval   eval context
+     * @param dbsnp  db context
+     * @return true if eval and db are discordant
      */
     public boolean discordantP(VariantContext eval, VariantContext dbsnp ) {
         for ( Allele a : eval.getAlleles() ) {

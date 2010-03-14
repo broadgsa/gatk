@@ -3,10 +3,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
@@ -30,7 +27,6 @@ import java.util.*;
 // todo -- write a simple column table system and have the evaluators return this instead of the list<list<string>> objects
 
 // todo -- site frequency spectrum eval (freq. of variants in eval as a function of their AC and AN numbers)
-// todo -- multiple sample concordance tool (genotypes in eval vs. genotypes in truth)
 // todo -- allele freqeuncy discovery tool (FREQ in true vs. discovery counts in eval).  Needs to process subset of samples in true (pools)
 // todo -- clustered SNP counter
 // todo -- HWEs
@@ -121,7 +117,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     @Argument(shortName="rsID", fullName="rsID", doc="If provided, list of rsID and build number for capping known snps by their build date", required=false)
     protected String rsIDFile = null;
 
-    @Argument(shortName="maxRsIDBuild", fullName="maxRsIDBuild", doc="If provided, only variants with rsIDs <= maxRsIDBuild will be included in the set of knwon snps", required=false)
+    @Argument(shortName="maxRsIDBuild", fullName="maxRsIDBuild", doc="If provided, only variants with rsIDs <= maxRsIDBuild will be included in the set of known snps", required=false)
     protected int maxRsIDBuild = Integer.MAX_VALUE;
 
     Set<String> rsIDsToExclude = null;
@@ -183,6 +179,8 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     private static String KNOWN_SET_NAME    = "known";
     private static String NOVEL_SET_NAME    = "novel";
 
+    private static String NO_COMP_NAME = "N/A";
+
     private final static String CONTEXT_HEADER = "eval.comp.select.filter.novelty";
     private final static int N_CONTEXT_NAME_PARTS = CONTEXT_HEADER.split("\\.").length;
     private static int[] nameSizes = new int[N_CONTEXT_NAME_PARTS];
@@ -220,6 +218,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 logger.info("Not evaluating ROD binding " + d.getName());
             }
         }
+
+        // if no comp rod was provided, we still want to be able to do evaluations, so use a default comp name
+        if ( compNames.size() == 0 )
+            compNames.add(NO_COMP_NAME);
 
         contexts = initializeEvaluationContexts(evalNames, compNames, selectExps);
         determineContextNamePartSizes();
