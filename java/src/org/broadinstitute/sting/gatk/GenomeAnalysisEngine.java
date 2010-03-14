@@ -158,7 +158,22 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(my_walker, microScheduler.getOutputTracker());
 
-        // todo -- call createSetFromList for -XL argument, and unify this with intervals, if provided
+        initializeIntervals();
+
+        ShardStrategy shardStrategy = getShardStrategy(my_walker,
+                                                       microScheduler.getReference(),
+                                                       intervals,
+                                                       argCollection.maximumEngineIterations,
+                                                       readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
+
+        // execute the microscheduler, storing the results
+        return microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
+    }
+
+    /**
+     * Setup the intervals to be processed
+     */
+    private void initializeIntervals() {
         GenomeLocSortedSet excludeIntervals = null;
         if (argCollection.excludeIntervals != null && argCollection.intervalMerging.check()) {
             List<GenomeLoc> rawExcludeIntervals = parseIntervalRegion(argCollection.excludeIntervals, IntervalMergingRule.ALL);
@@ -171,17 +186,18 @@ public class GenomeAnalysisEngine {
 
         if ( excludeIntervals != null ) {
             GenomeLocSortedSet toPrune = intervals == null ? GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) : intervals;
-            intervals = pruneIntervals( toPrune, excludeIntervals );
+            long toPruneSize = toPrune.coveredSize();
+            long toExcludeSize = excludeIntervals.coveredSize();
+            logger.info(String.format("Initial include intervals cover %d bases", toPruneSize));
+            logger.info(String.format("Initial exclude intervals cover %d bases", toExcludeSize));
+            intervals = toPrune.substractRegions( excludeIntervals );
+            long intervalSize = intervals.coveredSize();
+            logger.info(String.format("Excluding %d bases from original intervals (%.2f%% reduction)",
+                    toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
         }
 
-        ShardStrategy shardStrategy = getShardStrategy(my_walker,
-                                                       microScheduler.getReference(),
-                                                       intervals,
-                                                       argCollection.maximumEngineIterations,
-                                                       readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
-
-        // execute the microscheduler, storing the results
-        return microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
+        if ( intervals != null )
+            logger.info(String.format("Processing %d bases in intervals", intervals.coveredSize()));
     }
 
     /**
@@ -304,16 +320,6 @@ public class GenomeAnalysisEngine {
         }
 
         return microScheduler;
-    }
-
-    private GenomeLocSortedSet pruneIntervals( GenomeLocSortedSet toPrune, GenomeLocSortedSet toExclude) {
-        logger.info(String.format("pruning intervals from %d against %d", toPrune.size(), toExclude.size()));
-        //for ( GenomeLoc exclude : toExclude )
-        //    toPrune.removeRegion(exclude);
-        GenomeLocSortedSet x = toPrune.substractRegions(toExclude);
-        logger.info(String.format("done pruning intervals == now have %d", x.size()));
-
-        return x;
     }
 
     /**

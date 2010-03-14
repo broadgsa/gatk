@@ -44,6 +44,18 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     public GenomeLocSortedSet() {
     }
 
+    public GenomeLocSortedSet(GenomeLoc e) {
+        this();
+        add(e);
+    }
+
+    public GenomeLocSortedSet(Collection<GenomeLoc> l) {
+        this();
+
+        for ( GenomeLoc e : l )
+            add(e);
+    }
+
     /**
      * get an iterator over this collection
      *
@@ -60,6 +72,17 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      */
     public int size() {
         return mArray.size();
+    }
+
+    /**
+     * Return the size, in bp, of the genomic regions by all of the regions in this set
+     * @return size in bp of the covered regions
+     */
+    public long coveredSize() {
+        long s = 0;
+        for ( GenomeLoc e : this )
+            s += e.size();
+        return s;
     }
 
     /**
@@ -180,7 +203,6 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         return GenomeLocSortedSet.createSetFromList(good);
     }
 
-
     private static final List<GenomeLoc> EMPTY_LIST = new ArrayList<GenomeLoc>();
     private List<GenomeLoc> subtractRegion(GenomeLoc g, GenomeLoc e) {
         if (g.equals(e)) {
@@ -242,39 +264,6 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         }
     }
 
-
-//    public boolean removeRegions(GenomeLocSortedSet toRemove) {
-//        int i = 0, j = 0;
-//
-//        while ( true ) {
-//            if ( i >= mArray.size() || j >= toRemove.mArray.size() )
-//                return true;
-//
-//            GenomeLoc g = mArray.get(i);
-//            GenomeLoc e = toRemove.mArray.get(j);
-//
-//            if (g.overlapsP(e)) {
-//                boolean finishEarly = removeOverlappingRegion(g, e);
-//                if ( finishEarly ) {
-//                    i++;
-//                }
-//            } else if ( g.compareContigs(e) < 0 ) {
-//                i++;        // g is on an earlier contig, move g forward
-//            } else if ( g.compareContigs(e) > 0 ) {
-//                j++;        // g is on a later contig, move e forward
-//            } else if ( g.getStop() < e.getStart() ) {
-//                i++;        // g stops before e starts, move g forward
-//            } else if ( e.getStop() < g.getStart() ) {
-//                j++;        // g starts after e stops, move e forward
-//            } else {
-//                throw new StingException("BUG: unexpected condition: g=" + g + ", e=" + e);
-//            }
-//
-//            if ( (i + j) % 10000 == 0 )
-//                logger.debug("removeRegions operation: i + j = " + ( i + j ));
-//        }
-//    }
-//
 
     /**
      * a simple removal of an interval contained in this list.  The interval must be identical to one in the list (no partial locations or overlapping)
@@ -373,4 +362,15 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         return this.mArray;
     }
 
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        s.append("[");
+        for ( GenomeLoc e : this ) {
+            s.append(" ");
+            s.append(e.toString());
+        }
+        s.append("]");
+
+        return s.toString();
+    }
 }

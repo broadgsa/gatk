@@ -14,6 +14,12 @@ public class BaseUtils {
     public static final byte DELETION_INDEX = 4;
     public static final byte NO_CALL_INDEX = 5; // (this is 'N')
 
+    public static int gIndex = BaseUtils.simpleBaseToBaseIndex('G');
+    public static int cIndex = BaseUtils.simpleBaseToBaseIndex('C');
+    public static int aIndex = BaseUtils.simpleBaseToBaseIndex('A');
+    public static int tIndex = BaseUtils.simpleBaseToBaseIndex('T');
+
+
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).
     // Approximately two out of every three single nucleotide polymorphisms (SNPs) are transitions.
