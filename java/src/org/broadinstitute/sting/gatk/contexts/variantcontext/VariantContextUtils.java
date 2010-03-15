@@ -1,9 +1,31 @@
+/*
+ * Copyright (c) 2010.  The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import java.util.*;
 import org.apache.commons.jexl.*;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 
 public class VariantContextUtils {
@@ -97,50 +119,7 @@ public class VariantContextUtils {
      * @return true if there is a match
      */
     public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Collection<JexlVCMatchExp> exps) {
-        // todo -- actually, we should implement a JEXL context interface to VariantContext,
-        // todo -- which just looks up the values assigned statically here.  Much better approach
-
-        Map<String, String> infoMap = new HashMap<String, String>();
-
-        infoMap.put("CHROM", vc.getLocation().getContig());
-        infoMap.put("POS", String.valueOf(vc.getLocation().getStart()));
-        infoMap.put("TYPE", vc.getType().toString());
-        infoMap.put("QUAL", String.valueOf(10 * vc.getNegLog10PError()));
-
-        // add alleles
-        infoMap.put("ALLELES", Utils.join(";", vc.getAlleles()));
-        infoMap.put("N_ALLELES", String.valueOf(vc.getNAlleles()));
-
-        // add attributes
-        addAttributesToMap(infoMap, vc.getAttributes(), "");
-
-        // add filter fields
-        infoMap.put("FILTER", String.valueOf(vc.isFiltered() ? "1" : "0"));
-        for ( Object filterCode : vc.getFilters() ) {
-            infoMap.put(String.valueOf(filterCode), "1");
-        }
-
-        // add genotypes
-        // todo -- comment this back in when we figure out how to represent it nicely
-//        for ( Genotype g : vc.getGenotypes().values() ) {
-//            String prefix = g.getSampleName() + ".";
-//            addAttributesToMap(infoMap, g.getAttributes(), prefix);
-//            infoMap.put(prefix + "GT", g.getGenotypeString());
-//        }
-
-        JexlContext jContext = JexlHelper.createContext();
-        //System.out.printf(infoMap.toString());
-        jContext.setVars(infoMap);
-
-        try {
-            Map<JexlVCMatchExp, Boolean> resultMap = new HashMap<JexlVCMatchExp, Boolean>();
-            for ( JexlVCMatchExp e : exps ) {
-                resultMap.put(e, (Boolean)e.exp.evaluate(jContext));
-            }
-            return resultMap;
-        } catch (Exception e) {
-            throw new StingException(e.getMessage());
-        }
+        return new VariantJEXLContext(exps,vc).getVars();
 
     }
 
