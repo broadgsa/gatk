@@ -174,6 +174,41 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     }
 
     /**
+     * Returns a new ReadBackedPileup where only one read from an overlapping read
+     * pair is retained.  If the two reads in question disagree to their basecall,
+     * neither read is retained.  If they agree on the base, the read with the higher
+     * quality observation is retained
+     *
+     * @return the newly filtered pileup
+     */
+    public ReadBackedPileup getOverlappingFragementFilteredPileup() {
+        Map<String, PileupElement> filteredPileup = new HashMap<String, PileupElement>();
+
+        for ( PileupElement p : pileup ) {
+            String readName = p.getRead().getReadName();
+
+            // if we've never seen this read before, life is good
+            if (!filteredPileup.containsKey(readName)) {
+                filteredPileup.put(readName, p);
+            } else {
+                PileupElement existing = filteredPileup.get(readName);
+
+                // if the reads disagree at this position, throw them both out.  Otherwise
+                // keep the element with the higher quality score
+                if (existing.getBase() != p.getBase()) {
+                    filteredPileup.remove(readName);
+                } else {
+                    if (existing.getQual() < p.getQual()) {
+                        filteredPileup.put(readName, p);
+                    }
+                }
+            }
+        }
+
+        return new ReadBackedPileup(loc, new ArrayList<PileupElement>(filteredPileup.values()));
+    }
+
+    /**
      * Returns a new ReadBackedPileup that is free of mapping quality zero reads in this pileup.  Note that this
      * does not copy the data, so both ReadBackedPileups should not be changed.  Doesn't make an unnecessary copy
      * of the pileup (just returns this) if there are no MQ0 reads in the pileup.
