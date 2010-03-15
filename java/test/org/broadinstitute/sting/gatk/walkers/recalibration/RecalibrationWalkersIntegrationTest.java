@@ -79,6 +79,29 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testCountCovariatesUseOriginalQuals() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "26ae1bede4f337901b6194753f6cf914");
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                            " -T CountCovariates" +
+                            " -I " + bam +
+                            " -L 1:1-1,000" +
+                            " -standard" +
+                            " -OQ" +
+                            " -recalFile %s",
+                    1, // just one output file
+                    Arrays.asList(md5));
+            executeTest("testCountCovariatesUseOriginalQuals", spec);
+        }
+    }
+
+    @Test
     public void testTableRecalibratorMaxQ70() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "0e2bca11d09b1b93bfc4af5c185e0d1d" );

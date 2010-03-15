@@ -25,6 +25,8 @@ public class GATKSAMRecord extends SAMRecord {
 
     // the SAMRecord data we're caching
     private String mReadString = null;
+    private String mQualString = null;
+    private byte[] mQualities = null;
     private SAMReadGroupRecord mReadGroup = null;
     private boolean mNegativeStrandFlag;
     private boolean mUnmappedFlag;
@@ -50,16 +52,9 @@ public class GATKSAMRecord extends SAMRecord {
 
         // because attribute methods are declared to be final (and we can't overload them),
         // we need to actually set all of the attributes here
-
-        // TODO -- remove this exception catch when Picard fixes its internal bug (PIC-291)
-
-        try {
-            List<SAMTagAndValue> attributes = record.getAttributes();
-            for ( SAMTagAndValue attribute : attributes )
-                setAttribute(attribute.tag, attribute.value);
-        } catch (NullPointerException picardError) {
-            ; // do nothing
-        }
+        List<SAMTagAndValue> attributes = record.getAttributes();
+        for ( SAMTagAndValue attribute : attributes )
+            setAttribute(attribute.tag, attribute.value);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -122,6 +117,27 @@ public class GATKSAMRecord extends SAMRecord {
         mSecondOfPairFlag = b;
     }
 
+    public byte[] getBaseQualities() {
+        if ( mQualities == null )
+            mQualities = mRecord.getBaseQualities();
+        return mQualities;
+    }
+
+    public String getBaseQualityString() {
+        if ( mQualString == null )
+            mQualString = mRecord.getBaseQualityString();
+        return mQualString;
+    }
+
+    public void setBaseQualities(byte[] bytes) {
+        mQualities = bytes;
+        mRecord.setBaseQualities(bytes);
+    }
+
+    public void setBaseQualityString(String s) {
+        mQualString = s;
+        mRecord.setBaseQualityString(s);
+    }
 
     /**
      * Checks whether an attribute has been set for the given key.
@@ -130,7 +146,7 @@ public class GATKSAMRecord extends SAMRecord {
      * individual GATKSAMRecords. These attributes exist in memory only,
      * and are never written to disk.
      *
-     * @param key
+     * @param key key
      * @return True if an attribute has been set for this key.
      */
     public boolean containsTemporaryAttribute(Object key) {
@@ -148,8 +164,9 @@ public class GATKSAMRecord extends SAMRecord {
      * individual GATKSAMRecords. These attributes exist in memory only,
      * and are never written to disk.
      *
-     * @param key
-     * @param value
+     * @param key    key
+     * @param value  value
+     * @return attribute
      */
     public Object setTemporaryAttribute(Object key, Object value) {
         if(temporaryAttributes == null) {
@@ -165,7 +182,7 @@ public class GATKSAMRecord extends SAMRecord {
      * individual GATKSAMRecords. These attributes exist in memory only,
      * and are never written to disk.
      *
-     * @param key
+     * @param key key
      * @return The value, or null.
      */
     public Object getTemporaryAttribute(Object key) {
@@ -182,7 +199,7 @@ public class GATKSAMRecord extends SAMRecord {
      * individual GATKSAMRecords. These attributes exist in memory only,
      * and are never written to disk.
      *
-     * @param key
+     * @param key key
      * @return The value that was associated with this key, or null.
      */
     public Object removeTemporaryAttribute(Object key) {
@@ -191,23 +208,6 @@ public class GATKSAMRecord extends SAMRecord {
          }
          return null;
     }
-
-    /////////////////////////////////////////////////////////////////////
-    // *** The following methods are final and cannot be overridden ***//
-    /////////////////////////////////////////////////////////////////////
-
-    //public final Object getAttribute(String s) { return mRecord.getAttribute(s); }
-
-    //public final Integer getIntegerAttribute(java.lang.String s) { return mRecord.getIntegerAttribute(s); }
-
-    //public final Short getShortAttribute(String s) { return mRecord.getShortAttribute(s); }
-
-    //public final Byte getByteAttribute(java.lang.String s) { return mRecord.getByteAttribute(s); }
-
-    //public final void setAttribute(String s, Object o) { mRecord.setAttribute(s, o); }
-
-    //public final List<net.sf.samtools.SAMRecord.SAMTagAndValue> getAttributes() { return mRecord.getAttributes(); }
-
 
     /////////////////////////////////////////////////////////////////////////////////
     // *** The following methods just call the appropriate method in the record ***//
@@ -224,14 +224,6 @@ public class GATKSAMRecord extends SAMRecord {
     public void setReadBases(byte[] bytes) { mRecord.setReadBases(bytes); }
 
     public int getReadLength() { return mRecord.getReadLength(); }
-
-    public String getBaseQualityString() { return mRecord.getBaseQualityString(); }
-
-    public void setBaseQualityString(java.lang.String s) { mRecord.setBaseQualityString(s); }
-
-    public byte[] getBaseQualities() { return mRecord.getBaseQualities(); }
-
-    public void setBaseQualities(byte[] bytes) { mRecord.setBaseQualities(bytes); }
 
     public byte[] getOriginalBaseQualities() { return mRecord.getOriginalBaseQualities(); }
 

@@ -39,4 +39,18 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", Q10ClipOutput, "fb77d3122df468a71e03ca92b69493f4"); }
     @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", Q10ClipOutput, "24053a87b00c0bc2ddf420975e9fea4d"); }
     @Test public void testClipSoft() { testClipper("testClipSoft", "-QT 10 -CR SOFTCLIP_BASES", Q10ClipOutput, "aeb67cca75285a68af8a965faa547e7f"); }
+
+    @Test
+    public void testUseOriginalQuals() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                        " -T ClipReads" +
+                        " -I " + validationDataLocation + "originalQuals.chr1.1-1K.bam" +
+                        " -L chr1:1-1,000" +
+                        " -OQ -QT 4" +
+                        " -o %s -ob %s",
+                2,
+                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "f9b1347fabbc33bb24f7c7fa8dfb798b"));
+        executeTest("clipOriginalQuals", spec);
+    }
 }
