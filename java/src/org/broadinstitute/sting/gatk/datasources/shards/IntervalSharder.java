@@ -24,6 +24,12 @@ public class IntervalSharder {
         FilePointer filePointer = null;
 
         for(GenomeLoc location: loci) {
+            // If crossing contigs, be sure to reset the filepointer that's been accumulating shard data.
+            if(filePointer != null && filePointer.bin.referenceSequence != location.getContigIndex()) {
+                filePointers.add(filePointer);
+                filePointer = null;
+            }
+
             int locationStart = (int)location.getStart();
             final int locationStop = (int)location.getStop();
 
