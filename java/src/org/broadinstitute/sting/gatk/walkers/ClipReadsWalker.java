@@ -123,7 +123,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
             }
         }
 
-        outputBam.setPresorted(clippingRepresentation != ClippingRepresentation.SOFTCLIP_BASES);
+        if (outputBam != null)
+            outputBam.setPresorted(clippingRepresentation != ClippingRepresentation.SOFTCLIP_BASES);
     }
 
     /**
