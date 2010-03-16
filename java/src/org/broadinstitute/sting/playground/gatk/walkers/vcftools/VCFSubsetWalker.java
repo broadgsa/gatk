@@ -32,7 +32,6 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
     private VCFWriter vwriter = null;
 
     public void initializeWriter() {
-
         Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
         metaData.add(new VCFHeaderLine("source", "VariantsToVCF"));
         metaData.add(new VCFHeaderLine("reference", this.getToolkit().getArguments().referenceFile.getAbsolutePath()));
@@ -51,23 +50,25 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
     public ArrayList<VCFRecord> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         ArrayList<VCFRecord> records = new ArrayList<VCFRecord>();
 
-        for (ReferenceOrderedDatum rod : tracker.getAllRods()) {
-            if (rod instanceof RodVCF) {
-                RodVCF vcfrod = (RodVCF) rod;
-                VCFRecord record = vcfrod.mCurrentRecord;
+        if (tracker != null) {
+            for (ReferenceOrderedDatum rod : tracker.getAllRods()) {
+                if (rod instanceof RodVCF) {
+                    RodVCF vcfrod = (RodVCF) rod;
+                    VCFRecord record = vcfrod.mCurrentRecord;
 
-                if (SAMPLES == null) {
-                    SAMPLES = new HashSet<String>();
-                    SAMPLES.addAll(vcfrod.getHeader().getGenotypeSamples());
+                    if (SAMPLES == null) {
+                        SAMPLES = new HashSet<String>();
+                        SAMPLES.addAll(vcfrod.getHeader().getGenotypeSamples());
+                    }
+
+                    if (VPATH != null && vwriter == null) {
+                        initializeWriter();
+                    }
+
+                    //out.println(record.toStringEncoding(vcfrod.getHeader()));
+
+                    records.add(record);
                 }
-
-                if (VPATH != null && vwriter == null) {
-                    initializeWriter();
-                }
-
-                //out.println(record.toStringEncoding(vcfrod.getHeader()));
-
-                records.add(record);
             }
         }
         
@@ -80,20 +81,30 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
 
     private VCFRecord subsetRecord(VCFRecord record) {
         ArrayList<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
-        for ( VCFGenotypeRecord gr : record.getVCFGenotypeRecords() ) {
+        HashSet<VCFGenotypeEncoding> genotypeEncodingSet = new HashSet<VCFGenotypeEncoding>();
 
-            //if (gr.getSampleName().equalsIgnoreCase(SAMPLE)) {
+        for ( VCFGenotypeRecord gr : record.getVCFGenotypeRecords() ) {
             if (SAMPLES.contains(gr.getSampleName())) {
-                //out.println(gr.getSampleName() + " " + gr.toGenotypeString(record.getAlternateAlleles()));
                 genotypeRecords.add(gr);
+
+                for (VCFGenotypeEncoding allele : gr.getAlleles()) {
+                    if (!allele.getBases().equalsIgnoreCase(record.getReference())) {
+                        genotypeEncodingSet.add(allele);
+                    }
+                }
             }
+        }
+
+        ArrayList<VCFGenotypeEncoding> genotypeEncodings = new ArrayList<VCFGenotypeEncoding>();
+        for (VCFGenotypeEncoding allele : genotypeEncodingSet) {
+            genotypeEncodings.add(allele);
         }
 
         VCFRecord subset = new VCFRecord(record.getReference(),
                                          record.getLocation().getContig(),
                                          (int) record.getLocation().getStart(),
                                          record.getID(),
-                                         record.getAlternateAlleles(),
+                                         genotypeEncodings,
                                          record.getQual(),
                                          record.getFilterString(),
                                          record.getInfoValues(),
@@ -116,8 +127,8 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
 
             //if (isVariant && !subset.isFiltered()) {
             if ((isVariant || INCLUDE_NON_VARIANTS) && (!subset.isFiltered() || INCLUDE_FILTERED)) {
-                if (writer != null) {
-                    writer.addRecord(subset);
+                if (vwriter != null) {
+                    vwriter.addRecord(subset);
                 } else {
                     out.println(subset.toStringEncoding(vheader));
                 }
@@ -128,8 +139,8 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
     }
 
     public void onTraversalDone(VCFWriter writer) {
-        if (writer != null) {
-            writer.close();
+        if (vwriter != null) {
+            vwriter.close();
         }
     }
 }
