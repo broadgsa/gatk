@@ -1,11 +1,8 @@
 package org.broadinstitute.sting.utils.sam;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import net.sf.samtools.*;
-import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -149,8 +146,10 @@ public class GATKSAMRecord extends SAMRecord {
     public String getBaseQualityString() {
         if ( mQualString == null ) {
             final byte[] quals = getBaseQualities();
-            if ( quals.length > 0 )
-                mQualString = StringUtil.bytesToString(quals);
+	    if ( Arrays.equals(NULL_QUALS, quals) )
+		mQualString = NULL_QUALS_STRING;
+	    else
+		mQualString = SAMUtils.phredToFastq(quals);
         }
         return mQualString;
     }
