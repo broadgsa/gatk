@@ -3,6 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 import org.broadinstitute.sting.utils.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 
+import java.io.PrintStream;
+
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -39,6 +41,7 @@ public class VariantDataManager {
     public final int numVariants;
     public final int numAnnotations;
     public final double[] varianceVector;
+    public final double[] meanVector;
     public boolean isNormalized;
     private final ExpandingArrayList<String> annotationKeys;
 
@@ -52,6 +55,7 @@ public class VariantDataManager {
         if( numAnnotations <= 0 ) {
             throw new StingException( "There are zero annotations! (or possibly a problem with integer overflow)" );
         }
+        meanVector = new double[numAnnotations];
         varianceVector = new double[numAnnotations];
         isNormalized = false;
         annotationKeys = _annotationKeys;
@@ -68,7 +72,7 @@ public class VariantDataManager {
             if( theSTD < 1E-8 ) {
                 throw new StingException("Zero variance is a problem: standard deviation = " + theSTD);
             }
-
+            meanVector[jjj] = theMean;
             varianceVector[jjj] = theSTD * theSTD;
             for( int iii = 0; iii < numVariants; iii++ ) {
                 data[iii].annotations[jjj] = ( data[iii].annotations[jjj] - theMean ) / theSTD;
@@ -94,5 +98,11 @@ public class VariantDataManager {
         }
         return Math.sqrt( sum );
     }
+
+//    public void printClusterFileHeader( PrintStream outputFile ) {
+//        for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+//            outputFile.println("@ANNOTATION," + (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)) + "," + meanVector[jjj] + "," + varianceVector[jjj]);
+//        }
+//    }
 
 }

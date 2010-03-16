@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broadinstitute.sting.utils.StingException;
+
 import java.io.PrintStream;
 
 /*
@@ -44,6 +46,8 @@ public final class VariantNearestNeighborsModel extends VariantOptimizationModel
     
     public void run( final String outputPrefix ) {
 
+        throw new StingException( "Nearest Neighbors model hasn't been updated yet." );
+        /*
         final int numVariants = dataManager.numVariants;
 
         final double[] pTrueVariant = new double[numVariants];
@@ -67,8 +71,8 @@ public final class VariantNearestNeighborsModel extends VariantOptimizationModel
         for(int iii = 0; iii < numVariants; iii++) {
             outputFile.print(String.format("%.4f",pTrueVariant[iii]) + ",");
             outputFile.println( (dataManager.data[iii].isTransition ? 1 : 0)
-                    + "," + (dataManager.data[iii].isKnown? 1 : 0)
-                    + "," + (dataManager.data[iii].isFiltered ? 1 : 0) );
+                    + "," + (dataManager.data[iii].isKnown? 1 : 0));
         }
+        */
     }
 }

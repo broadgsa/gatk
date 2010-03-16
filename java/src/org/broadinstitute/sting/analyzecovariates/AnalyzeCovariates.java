@@ -84,7 +84,8 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
         try {
             Process p = Runtime.getRuntime().exec("mkdir " + OUTPUT_DIR);
         } catch (IOException e) {
-            throw new RuntimeException("Couldn't create directory: " + OUTPUT_DIR);
+            System.out.println("Couldn't create directory: " + OUTPUT_DIR);
+            System.out.println("User is responsible for making sure the output directory exists.");
         }
         if( !OUTPUT_DIR.endsWith("/") ) { OUTPUT_DIR = OUTPUT_DIR + "/"; }
         if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }

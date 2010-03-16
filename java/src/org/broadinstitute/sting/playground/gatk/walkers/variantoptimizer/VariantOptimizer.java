@@ -10,6 +10,8 @@ import org.broadinstitute.sting.utils.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
+import java.io.IOException;
+
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -51,17 +53,15 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     // Command Line Arguments
     /////////////////////////////
     @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=true)
-    private double TARGET_TITV = 2.12;
-    //@Argument(fullName="filter_output", shortName="filter", doc="If specified the optimizer will not only update the QUAL field of the output VCF file but will also filter the variants", required=false)
-    //private boolean FILTER_OUTPUT = false;
+    private double TARGET_TITV = 2.1;
     @Argument(fullName="ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
     private boolean IGNORE_INPUT_FILTERS = false;
     @Argument(fullName="exclude_annotation", shortName="exclude", doc="The names of the annotations which should be excluded from the calculations", required=false)
     private String[] EXCLUDED_ANNOTATIONS = null;
     @Argument(fullName="force_annotation", shortName="force", doc="The names of the annotations which should be forced into the calculations even if they aren't present in every variant", required=false)
     private String[] FORCED_ANNOTATIONS = null;
-    @Argument(fullName="output", shortName="output", doc="The output file name", required=false)
-    private String OUTPUT_FILE = "optimizer.data";
+    @Argument(fullName="output_prefix", shortName="output", doc="The output prefix added to output cluster file name and optimization curve pdf file name", required=false)
+    private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian Mixture model", required=false)
     private int NUM_GAUSSIANS = 32;
     @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian Mixture model", required=false)
@@ -70,7 +70,10 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private int NUM_KNN = 2000;
     @Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
     private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
-
+    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
+    @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
+    private String PATH_TO_RESOURCES = "R/";
 
     /////////////////////////////
     // Private Member Variables
@@ -87,7 +90,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
-
+        if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }   
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -138,7 +141,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                             value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
                         }
                     } catch( NumberFormatException e ) {
-                        // do nothing, default value is 0.0,
+                        // do nothing, default value is 0.0
                     }
                     annotationValues[iii++] = value;
                 }
@@ -150,7 +153,6 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                 variantDatum.annotations = annotationValues;
                 variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
                 variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
-                variantDatum.isFiltered = vc.isFiltered(); // BUGBUG: This field won't be needed in the final version.
                 mapList.add( variantDatum );
             }
         }
@@ -195,8 +197,20 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
             default:
                 throw new StingException("Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS");
         }
+        
+        theModel.run( OUTPUT_PREFIX );
 
-        theModel.run( OUTPUT_FILE );
+        // Execute Rscript command to plot the optimization curve
+        // Print out the command line to make it clear to the user what is being executed and how one might modify it
+        final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
+        System.out.println( rScriptCommandLine );
+
+        // Execute the RScript command to plot the table of truth values
+        try {
+            Runtime.getRuntime().exec( rScriptCommandLine );
+        } catch ( IOException e ) {
+            throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
+        }
     }
 
 }
