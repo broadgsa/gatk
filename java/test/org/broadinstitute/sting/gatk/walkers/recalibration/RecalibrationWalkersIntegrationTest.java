@@ -14,7 +14,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     static HashMap<String, String> paramsFilesNoReadGroupTest = new HashMap<String, String>();
     static HashMap<String, String> paramsFilesSolidIndels = new HashMap<String, String>();
 
-    @Test
+    //@Test
     public void testCountCovariates1() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "e5b2d5a2f4283718dae678cbc84be847" );
@@ -47,7 +47,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
     
-    @Test
+    //@Test
     public void testTableRecalibrator1() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12892.SLX.SRP000031.2009_06.selected.bam", "6c59d291c37d053e0f188b762f3060a5" );
@@ -78,7 +78,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testCountCovariatesUseOriginalQuals() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "26ae1bede4f337901b6194753f6cf914");
@@ -132,7 +132,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
 
 
-    @Test
+    //@Test
     public void testCountCovariatesSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "3889abcc7f6fe420f546fc049bfc2b5a" );
@@ -158,7 +158,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testTableRecalibratorSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "a6eb2f8f531164b0a3cb19b4bb1d2f4f" );
@@ -189,7 +189,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
 
 
-    @Test
+    //@Test
     public void testCountCovariatesVCF() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "9b9d21ffb70f15ef2aebad21f3fc05cb");
@@ -213,7 +213,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testCountCovariatesVCFPlusDBsnp() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "cc1cc9c1ff184d388d81574fdccc608e");
@@ -241,7 +241,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testCountCovariatesNoReadGroups() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "a86c64f649b847b7f81ac50a808d3d45" );
@@ -271,7 +271,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testTableRecalibratorNoReadGroups() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "474e05b5a0f13776daebeb964a5e0e2b" );

@@ -35,9 +35,9 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      * Create a new view of reference-ordered data.
      * @param provider
      */
-    public ManagingReferenceOrderedView( ShardDataProvider provider ) {
+    public ManagingReferenceOrderedView( LocusShardDataProvider provider ) {
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() )
-            states.add( new ReferenceOrderedDataState( dataSource, (dataSource.seek(provider.getShard()) )) );
+            states.add(new ReferenceOrderedDataState(dataSource, dataSource.seek(provider.getLocus())));
 
         provider.register(this);
     }

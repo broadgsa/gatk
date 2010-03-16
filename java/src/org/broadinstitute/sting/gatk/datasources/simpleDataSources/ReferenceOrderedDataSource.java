@@ -84,8 +84,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      *
      * @return Iterator through the data.
      */
-    public Iterator seek(GenomeLoc loc) {
-        DataStreamSegment dataStreamSegment = new MappedStreamSegment(loc);
+    public LocationAwareSeekableRODIterator seek(GenomeLoc loc) {
+        DataStreamSegment dataStreamSegment = loc != null ? new MappedStreamSegment(loc) : new EntireStream();
         LocationAwareSeekableRODIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
         return RODIterator;
     }

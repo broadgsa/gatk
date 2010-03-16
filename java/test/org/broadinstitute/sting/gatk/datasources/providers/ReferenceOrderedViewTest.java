@@ -53,7 +53,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
     @Test
     public void testNoBindings() {
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
-        ShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
+        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",10));
@@ -71,7 +71,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
-        ShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.singletonList(dataSource));
+        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.singletonList(dataSource));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
@@ -97,7 +97,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
-        ShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Arrays.asList(dataSource1,dataSource2));
+        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Arrays.asList(dataSource1,dataSource2));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
