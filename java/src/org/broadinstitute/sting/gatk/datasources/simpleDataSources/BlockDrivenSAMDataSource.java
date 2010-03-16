@@ -264,16 +264,16 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(SAMReaderID id: getReaderIDs()) {
             SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
-            List<Chunk> chunks = shard.getChunks().get(id);
-            readerToIteratorMap.put(reader2,reader2.iterator(chunks));
+            CloseableIterator<SAMRecord> iterator = reader2.iterator(shard.getChunks().get(id));
+            if(shard.getFilter() != null)
+                iterator = new FilteringIterator(iterator,shard.getFilter());
+            readerToIteratorMap.put(reader2,iterator);
         }
 
         SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
 
-        // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
+        // Set up merging to dynamically merge together multiple BAMs.
         CloseableIterator<SAMRecord> iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
-        if(shard.getFilter() != null)
-            iterator = new FilteringIterator(iterator,shard.getFilter());
 
         return applyDecoratingIterators(enableVerification,
                 new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,iterator)),
