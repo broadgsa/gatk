@@ -120,6 +120,10 @@ public class GATKArgumentCollection {
     public Integer downsampleCoverage = null;
 
     @Element(required = false)
+    @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
+    public Boolean useOriginalBaseQualities = false;
+
+    @Element(required = false)
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
 

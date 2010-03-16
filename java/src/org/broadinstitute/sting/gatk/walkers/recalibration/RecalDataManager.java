@@ -201,18 +201,6 @@ public class RecalDataManager {
      */
     public static void parseSAMRecord( final SAMRecord read, final RecalibrationArgumentCollection RAC ) {
 
-        // Check if we need to use the original quality scores instead
-        if( RAC.USE_ORIGINAL_QUALS ) {
-            final Object attr = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
-            if( attr != null ) {
-                if( attr instanceof String ) {
-                    read.setBaseQualities( QualityUtils.fastqToPhred((String)attr) );
-                } else {
-                    throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-                }
-            }
-        }
-
         SAMReadGroupRecord readGroup = read.getReadGroup();
 
         // If there are no read groups we have to default to something, and that something could be specified by the user using command line arguments

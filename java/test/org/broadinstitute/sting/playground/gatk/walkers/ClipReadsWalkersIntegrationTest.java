@@ -50,7 +50,7 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
                         " -OQ -QT 4" +
                         " -o %s -ob %s",
                 2,
-                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "f9b1347fabbc33bb24f7c7fa8dfb798b"));
+                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "ff7c6edba61307738b34786e14edbef9"));
         executeTest("clipOriginalQuals", spec);
     }
 }

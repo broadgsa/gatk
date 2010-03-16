@@ -43,9 +43,6 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     @Argument(fullName="read", doc="", required=false)
     String onlyDoRead = null;
 
-    @Argument(fullName="useOriginalQualities", shortName = "OQ", doc="If set, use the original base quality scores", required=false)
-    boolean USE_ORIGINAL_QUALS = false;
-
     //@Argument(fullName = "keepCompletelyClipped", shortName = "KCC", doc = "Unfortunately, sometimes a read is completely clipped away but with SOFTCLIP_BASES this results in an invalid CIGAR string.  ", required = false)
     //boolean keepCompletelyClippedReads = false;
 
@@ -55,7 +52,6 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     @Argument(fullName = "clipRepresentation", shortName = "CR", doc = "How should we actually clip the bases?", required = false)
     ClippingRepresentation clippingRepresentation = ClippingRepresentation.WRITE_NS;
 
-    private final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
 
     /**
      * List of sequence that should be clipped from the reads
@@ -257,21 +253,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     private void clipBadQualityScores(ReadClipper clipper) {
         SAMRecord read = clipper.getRead();
         int readLen = read.getReadBases().length;
-        byte[] quals = null;
-
-        if ( USE_ORIGINAL_QUALS ) {
-            final Object attr = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
-            if ( attr != null ) {
-                if ( attr instanceof String ) {
-                    quals = QualityUtils.fastqToPhred((String)attr);
-                } else {
-                    throw new StingException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-                }
-            }
-        }
-        // if we don't want original quals or couldn't find them, use the main quals
-        if ( quals == null )
-            quals = read.getBaseQualities();
+        byte[] quals = read.getBaseQualities();
 
 
         int clipSum = 0, lastMax = -1, clipPoint = -1; // -1 means no clip
@@ -399,20 +381,30 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
          */
         public void apply(ClippingRepresentation algorithm, SAMRecord clippedRead) {
             //clippedRead.setReferenceIndex(1);
+            byte[] quals = clippedRead.getBaseQualities();
+            byte[] bases = clippedRead.getReadBases();
+
             switch (algorithm) {
+                // important note:
+                //   it's not safe to call read.getReadBases()[i] = 'N' or read.getBaseQualities()[i] = 0
+                //   because you're not guaranteed to get a pointer to the actual array of bytes in the SAMRecord
                 case WRITE_NS:
                     for (int i = start; i <= stop; i++)
-                        clippedRead.getReadBases()[i] = 'N';
+                        bases[i] = 'N';
+                    clippedRead.setReadBases(bases);
                     break;
                 case WRITE_Q0S:
                     for (int i = start; i <= stop; i++)
-                        clippedRead.getBaseQualities()[i] = 0;
+                        quals[i] = 0;
+                    clippedRead.setBaseQualities(quals);
                     break;
                 case WRITE_NS_Q0S:
                     for (int i = start; i <= stop; i++) {
-                        clippedRead.getReadBases()[i] = 'N';
-                        clippedRead.getBaseQualities()[i] = 0;
+                        bases[i] = 'N';
+                        quals[i] = 0;
                     }
+                    clippedRead.setReadBases(bases);
+                    clippedRead.setBaseQualities(quals);
                     break;
                 case SOFTCLIP_BASES:
                     if ( ! clippedRead.getReadUnmappedFlag() ) {

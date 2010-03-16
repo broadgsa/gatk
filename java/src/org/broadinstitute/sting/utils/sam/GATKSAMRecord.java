@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import net.sf.samtools.*;
+import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 /**
  * @author ebanks
@@ -40,6 +44,8 @@ public class GATKSAMRecord extends SAMRecord {
     // individual GATKSAMRecords.
     // These attributes exist in memory only, and are never written to disk.
     private Map<Object, Object> temporaryAttributes;
+
+    private final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
 
     public GATKSAMRecord(SAMRecord record) {
         super(null); // it doesn't matter - this isn't used
@@ -118,14 +124,34 @@ public class GATKSAMRecord extends SAMRecord {
     }
 
     public byte[] getBaseQualities() {
-        if ( mQualities == null )
-            mQualities = mRecord.getBaseQualities();
+        if ( mQualities == null ) {
+            if ( GenomeAnalysisEngine.instance.getArguments().useOriginalBaseQualities ) {
+                final Object attr = mRecord.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
+                if ( attr != null ) {
+                    if ( attr instanceof String ) {
+                        mQualities = QualityUtils.fastqToPhred((String)attr);
+                    } else {
+                        throw new StingException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, mRecord.getReadName()));
+                    }
+                }
+            }
+            // if we don't want original quals or couldn't find them, use the main quals
+            if ( mQualities == null )
+                mQualities = mRecord.getBaseQualities();
+
+            // sanity check that the lengths of the base and quality strings are equal
+            if ( mQualities.length  != getReadLength() )
+                throw new StingException(String.format("Error: the number of base qualities does not match the number of bases in %s (and the GATK does not currently support '*' for the quals)", mRecord.getReadName()));
+        }
         return mQualities;
     }
 
     public String getBaseQualityString() {
-        if ( mQualString == null )
-            mQualString = mRecord.getBaseQualityString();
+        if ( mQualString == null ) {
+            final byte[] quals = getBaseQualities();
+            if ( quals.length > 0 )
+                mQualString = StringUtil.bytesToString(quals);
+        }
         return mQualString;
     }
 

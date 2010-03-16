@@ -43,8 +43,6 @@ public class RecalibrationArgumentCollection {
     //////////////////////////////////
     @Argument(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the outputted covariates table recalibration file")
     public String RECAL_FILE = "output.recal_data.csv";
-    @Argument(fullName = "use_original_quals", shortName="OQ", doc="If provided, we will use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
-    public boolean USE_ORIGINAL_QUALS = false;
     @Argument(fullName="default_read_group", shortName="dRG", required=false, doc="If a read has no read group then default to the provided String.")
     public String DEFAULT_READ_GROUP = null;
     @Argument(fullName="default_platform", shortName="dP", required=false, doc="If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
