@@ -605,6 +605,8 @@ public class GenomeLocParser {
 
     /**
      * create a new genome loc from an existing loc, with a new start position
+     * Note that this function will NOT explicitly check the ending offset, in case someone wants to
+     * set the start of a new GenomeLoc pertaining to a read that goes off the end of the contig.
      *
      * @param loc   the old location
      * @param start a new start position
@@ -613,18 +615,13 @@ public class GenomeLocParser {
      */
     public static GenomeLoc setStart(GenomeLoc loc, long start) {
         checkSetup();
-        if (loc.getContigIndex() < 0 || loc.getContigIndex() >= contigInfo.getSequences().size()) {
-            throw new StingException("Genome loc passed in to setStart has a contig index outside the range of our current sequence dictionary");
-        }
-        int length = GenomeLocParser.contigInfo.getSequences().get(loc.getContigIndex()).getSequenceLength();
-        if (start > length) {
-            throw new StingException("start value of " + start + " is greater than the contig length, and is not -1. (length = " + length + ").");
-        }
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop()));
     }
 
     /**
      * create a new genome loc from an existing loc, with a new stop position
+     * Note that this function will NOT explicitly check the ending offset, in case someone wants to
+     * set the stop of a new GenomeLoc pertaining to a read that goes off the end of the contig.
      *
      * @param loc  the old location
      * @param stop a new stop position
@@ -633,12 +630,6 @@ public class GenomeLocParser {
      */
     public static GenomeLoc setStop(GenomeLoc loc, long stop) {
         checkSetup();
-        if (loc.getContigIndex() < 0 || loc.getContigIndex() >= contigInfo.getSequences().size()) {
-            throw new StingException("Genome loc passed in to setStart has a contig index outside the range of our current sequence dictionary");
-        }
-        if ((stop != -1) && (stop > GenomeLocParser.contigInfo.getSequences().get(loc.getContigIndex()).getSequenceLength())) {
-            throw new StingException("stop value of " + stop + " is greater than the contig length, and is not -1.");
-        }
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start, stop));
     }
 
