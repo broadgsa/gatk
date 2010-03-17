@@ -34,7 +34,7 @@ import net.sf.samtools.*;
  * @version 0.1
  */
 
-public class BadCigarReadFilter implements SamRecordFilter {
+public class BadCigarFilter implements SamRecordFilter {
 
     public boolean filterOut(final SAMRecord rec) {
         Cigar c = rec.getCigar();

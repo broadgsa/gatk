@@ -34,7 +34,7 @@ import net.sf.samtools.SAMRecord;
  * @version 0.1
  */
 
-public class BadMateReadFilter implements SamRecordFilter {
+public class BadMateFilter implements SamRecordFilter {
 
     public boolean filterOut(final SAMRecord rec) {
         return (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag() && rec.getMateReferenceIndex() != rec.getReferenceIndex());
