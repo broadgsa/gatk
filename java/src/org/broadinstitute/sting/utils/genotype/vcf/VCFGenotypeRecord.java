@@ -127,8 +127,20 @@ public class VCFGenotypeRecord {
         return mFields;
     }
 
+    /**
+     * @return the phred-scaled quality score
+     */
+    public double getQual() {
+        return ( mFields.containsKey(GENOTYPE_QUALITY_KEY) ? Double.valueOf(mFields.get(GENOTYPE_QUALITY_KEY)) : MISSING_GENOTYPE_QUALITY);
+    }
+
+    public boolean isMissingQual() {
+        return (int)getQual() == MISSING_GENOTYPE_QUALITY;
+    }
+
     public double getNegLog10PError() {
-        return ( mFields.containsKey(GENOTYPE_QUALITY_KEY) ? Double.valueOf(mFields.get(GENOTYPE_QUALITY_KEY)) / 10.0 : MISSING_GENOTYPE_QUALITY);
+        double qual = getQual();
+        return (qual == MISSING_GENOTYPE_QUALITY ? MISSING_GENOTYPE_QUALITY : qual / 10.0);
     }
 
     public int getReadCount() {

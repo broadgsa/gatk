@@ -39,6 +39,7 @@ public class VCFRecord {
     public static final String EMPTY_ID_FIELD = ".";
     public static final String EMPTY_ALLELE_FIELD = ".";
     public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
+    public static final int MISSING_GENOTYPE_QUALITY = -1;
 
     // the reference base
     private String mReferenceBases;
@@ -350,6 +351,10 @@ public class VCFRecord {
         return mQual;
     }
 
+    public boolean isMissingQual() {
+        return (int)mQual == MISSING_GENOTYPE_QUALITY;
+    }
+
     /**
      * @return the -log10PError
      */
@@ -448,8 +453,8 @@ public class VCFRecord {
     }
 
     public void setQual(double qual) {
-        if ( qual < 0 && MathUtils.compareDoubles(qual, -1.0) != 0 )
-            throw new IllegalArgumentException("Qual values cannot be negative unless they are -1 ('unknown')");
+        if ( qual < 0 && (int)qual != MISSING_GENOTYPE_QUALITY )
+            throw new IllegalArgumentException("Qual values cannot be negative unless they are " + MISSING_GENOTYPE_QUALITY + " ('unknown')");
         mQual = qual;
     }
 
@@ -555,8 +560,8 @@ public class VCFRecord {
             builder.append(EMPTY_ALLELE_FIELD);
         }
         builder.append(FIELD_SEPERATOR);
-        if ( MathUtils.compareDoubles(mQual, -1.0) == 0 )
-            builder.append("-1");
+        if ( (int)mQual == MISSING_GENOTYPE_QUALITY )
+            builder.append(MISSING_GENOTYPE_QUALITY);
         else
             builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, mQual));
         builder.append(FIELD_SEPERATOR);

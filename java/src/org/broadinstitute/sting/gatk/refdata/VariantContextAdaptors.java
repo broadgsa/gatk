@@ -193,11 +193,12 @@ public class VariantContextAdaptors {
                 if ( vcfG.isFiltered() ) // setup the FL genotype filter fields
                     genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFGenotypeRecord.GENOTYPE_FILTER_KEY).split(";")));
 
-                Genotype g = new Genotype(vcfG.getSampleName(), genotypeAlleles, vcfG.getNegLog10PError(), genotypeFilters, fields, vcfG.getPhaseType() == VCFGenotypeRecord.PHASE.PHASED);
+                double qual = vcfG.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
+                Genotype g = new Genotype(vcfG.getSampleName(), genotypeAlleles, qual, genotypeFilters, fields, vcfG.getPhaseType() == VCFGenotypeRecord.PHASE.PHASED);
                 genotypes.put(g.getSampleName(), g);
             }
 
-            double qual = vcf.getQual() == -1 ? VariantContext.NO_NEG_LOG_10PERROR : vcf.getNegLog10PError();
+            double qual = vcf.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcf.getNegLog10PError();
             VariantContext vc = new VariantContext(name, vcf.getLocation(), alleles, genotypes, qual, filters, attributes);
             vc.validate();
             return vc;
