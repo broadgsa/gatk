@@ -155,12 +155,14 @@ public class ArtificialSAMUtils {
         record.setCigar(new Cigar(elements));
         record.setProperPairFlag(false);
 
-        // our reads are all 'A's by default
+        // our reads and quals are all 'A's by default
         byte[] c = new byte[length];
+        byte[] q = new byte[length];
         for (int x = 0; x < length; x++)
-            c[x] = 'A';
+            c[x] = q[x] = 'A';
         record.setReadBases(c);
-        
+        record.setBaseQualities(q);
+
         if (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
             record.setReadUmappedFlag(true);
         }

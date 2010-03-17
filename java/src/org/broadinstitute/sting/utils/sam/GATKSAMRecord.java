@@ -55,7 +55,8 @@ public class GATKSAMRecord extends SAMRecord {
             setAttribute(attribute.tag, attribute.value);
 
         // if we are using original quals, set them now if t hey are present in the record
-        if ( GenomeAnalysisEngine.instance.getArguments().useOriginalBaseQualities ) {
+        if ( GenomeAnalysisEngine.instance != null &&
+                GenomeAnalysisEngine.instance.getArguments().useOriginalBaseQualities ) {
             byte[] originalQuals = mRecord.getOriginalBaseQualities();
             if ( originalQuals != null )
                 mRecord.setBaseQualities(originalQuals);
