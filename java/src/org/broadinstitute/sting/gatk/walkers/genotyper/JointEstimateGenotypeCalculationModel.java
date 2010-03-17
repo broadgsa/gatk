@@ -337,8 +337,11 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofFs[indexOfMax]);
             if ( Double.isInfinite(phredScaledConfidence) ) {
                 double sum = 0.0;
-                for (int i = 1; i < frequencyEstimationPoints; i++)
+                for (int i = 1; i < frequencyEstimationPoints; i++) {
+                    if ( log10PofDgivenAFi[indexOfMax][i] == VALUE_NOT_CALCULATED )
+                        break;
                     sum += log10PofDgivenAFi[indexOfMax][i];
+                }
                 phredScaledConfidence = -10.0 * sum;
             }
         }
