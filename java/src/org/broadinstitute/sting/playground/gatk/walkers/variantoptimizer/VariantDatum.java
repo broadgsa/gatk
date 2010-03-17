@@ -35,5 +35,5 @@ public class VariantDatum {
     public double[] annotations;
     public boolean isTransition;
     public boolean isKnown;
-    public double pTrue;
+    public double qual;
 }

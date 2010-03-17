@@ -56,7 +56,7 @@ public class QualityUtils {
     }
 
     /**
-     * Convert a probability to a quality score.  Note, this is capped at Q40.
+     * Convert a probability to a quality score.  Note, this is capped at a quality score which is determined by _eps_.
      *
      * @param prob a probability (0.0-1.0)
      * @param eps min probabilty allowed (0.0-1.0)

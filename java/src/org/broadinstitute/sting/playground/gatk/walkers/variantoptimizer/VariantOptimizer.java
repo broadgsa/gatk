@@ -53,8 +53,6 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     /////////////////////////////
     @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=true)
     private double TARGET_TITV = 2.1;
-    //@Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
-    //private int DESIRED_NUM_VARIANTS = 0;
     @Argument(fullName="ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
     private boolean IGNORE_INPUT_FILTERS = false;
     @Argument(fullName="exclude_annotation", shortName="exclude", doc="The names of the annotations which should be excluded from the calculations", required=false)
@@ -74,10 +72,6 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     //private int NUM_KNN = 2000;
     //@Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
     private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
-    //@Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-    //private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
-    //@Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
-    //private String PATH_TO_RESOURCES = "R/";
 
     /////////////////////////////
     // Private Member Variables
@@ -115,7 +109,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
 
         for( final VariantContext vc : tracker.getAllVariantContexts(null, context.getLocation(), false, false) ) {
 
-            if( vc != null && vc.isSNP() && (IGNORE_INPUT_FILTERS || !vc.isFiltered()) ) { 
+            if( vc != null && vc.isSNP() && (IGNORE_INPUT_FILTERS || !vc.isFiltered()) ) {
                 if( firstVariant ) { // This is the first variant encountered so set up the list of annotations
                     annotationKeys.addAll( vc.getAttributes().keySet() );
                     if( annotationKeys.contains("ID") ) { annotationKeys.remove("ID"); } // ID field is added to the vc's INFO field?
@@ -203,21 +197,6 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         }
         
         theModel.run( CLUSTER_FILENAME );
-
-
-        // Functionality moved to different walker
-
-        // Execute Rscript command to plot the optimization curve
-        // Print out the command line to make it clear to the user what is being executed and how one might modify it
-        //final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
-        //System.out.println( rScriptCommandLine );
-
-        // Execute the RScript command to plot the table of truth values
-        //try {
-        //    Runtime.getRuntime().exec( rScriptCommandLine );
-        //} catch ( IOException e ) {
-        //    throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
-        //}
     }
 
 }

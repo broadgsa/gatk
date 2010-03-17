@@ -3,10 +3,19 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.ExpandingArrayList;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -47,8 +56,8 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    //@Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=false)
-    //private double TARGET_TITV = 2.1;
+    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=true)
+    private double TARGET_TITV = 2.1;
     @Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
     private int DESIRED_NUM_VARIANTS = 0;
     @Argument(fullName="ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
@@ -67,7 +76,8 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    private final ExpandingArrayList<String> annotationKeys = new ExpandingArrayList<String>();
+    private VariantGaussianMixtureModel theModel = null;
+    private VCFWriter vcfWriter;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -78,7 +88,6 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     public void initialize() {
         if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
 
-        VariantOptimizationModel theModel = null;
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
                 theModel = new VariantGaussianMixtureModel( CLUSTER_FILENAME );
@@ -89,6 +98,18 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
             default:
                 throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
+
+
+        // setup the header fields
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
+        hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
+        vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
+        TreeSet<String> samples = new TreeSet<String>();
+        SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
+        VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
+        vcfWriter.writeHeader(vcfHeader);
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -99,6 +120,35 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
     public ExpandingArrayList<VariantDatum> map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         final ExpandingArrayList<VariantDatum> mapList = new ExpandingArrayList<VariantDatum>();
+
+        if( tracker == null ) { // For some reason RodWalkers get map calls with null trackers
+            return mapList;
+        }
+
+
+        for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
+            if( rod != null && rod instanceof RodVCF ) {
+                final RodVCF rodVCF = ((RodVCF) rod);
+                if( rodVCF.isSNP() && (IGNORE_INPUT_FILTERS || !rodVCF.isFiltered()) ) {
+                    final double pTrue = theModel.evaluateVariant( rodVCF.getInfoValues(), rodVCF.getQual() );
+                    final double recalQual = QualityUtils.phredScaleErrorRate( Math.max( 1.0 - pTrue, 0.000000001) );                             
+                    rodVCF.mCurrentRecord.addInfoField("OQ", ((Double)rodVCF.getQual()).toString() );                                        
+                    rodVCF.mCurrentRecord.setQual( recalQual );
+                    vcfWriter.addRecord( rodVCF.mCurrentRecord );
+                    
+                    VariantDatum variantDatum = new VariantDatum();
+                    variantDatum.isTransition = BaseUtils.isTransition((byte)rodVCF.getAlternativeBaseForSNP(), (byte)rodVCF.getReferenceForSNP()); //vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+                    variantDatum.isKnown = !rodVCF.isNovel(); //!vc.getAttribute("ID").equals(".");
+                    variantDatum.qual = recalQual;
+                    mapList.add( variantDatum );
+
+                } else { // not a SNP or is filtered so just dump it out to the VCF file
+                    vcfWriter.addRecord( rodVCF.mCurrentRecord );
+                }
+            }
+
+        }
+        
         return mapList;
     }
 
@@ -119,7 +169,22 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
 
-        final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
+        final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
+        reduceSum.clear(); // Don't need this ever again, clean up some memory
+
+        theModel.outputOptimizationCurve( dataManager.data, OUTPUT_PREFIX, DESIRED_NUM_VARIANTS );
+
+        // Execute Rscript command to plot the optimization curve
+        // Print out the command line to make it clear to the user what is being executed and how one might modify it
+        final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
+        System.out.println( rScriptCommandLine );
+
+        // Execute the RScript command to plot the table of truth values
+        try {
+            Runtime.getRuntime().exec( rScriptCommandLine );
+        } catch ( IOException e ) {
+            throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
+        }
     }
 }
 

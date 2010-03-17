@@ -4,8 +4,6 @@ import org.broadinstitute.sting.utils.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -43,9 +41,9 @@ public class VariantDataManager {
     public final int numVariants;
     public final int numAnnotations;
     public final double[] meanVector;
-    public final double[] varianceVector;
+    public final double[] varianceVector; // This is really the standard deviation
     public boolean isNormalized;
-    private final ExpandingArrayList<String> annotationKeys;
+    public final ExpandingArrayList<String> annotationKeys;
 
     public VariantDataManager( final ExpandingArrayList<VariantDatum> dataList, final ExpandingArrayList<String> _annotationKeys ) {
         numVariants = dataList.size();
@@ -53,7 +51,7 @@ public class VariantDataManager {
         if( numVariants <= 0 ) {
             throw new StingException( "There are zero variants! (or possibly a problem with integer overflow)" );
         }
-        numAnnotations = data[0].annotations.length;
+        numAnnotations = _annotationKeys.size() + 1; // +1 for QUAL
         if( numAnnotations <= 0 ) {
             throw new StingException( "There are zero annotations! (or possibly a problem with integer overflow)" );
         }
@@ -91,7 +89,7 @@ public class VariantDataManager {
                 throw new StingException("Zero variance is a problem: standard deviation = " + theSTD);
             }
             meanVector[jjj] = theMean;
-            varianceVector[jjj] = theSTD * theSTD;
+            varianceVector[jjj] = theSTD;
             for( int iii = 0; iii < numVariants; iii++ ) {
                 data[iii].annotations[jjj] = ( data[iii].annotations[jjj] - theMean ) / theSTD;
             }

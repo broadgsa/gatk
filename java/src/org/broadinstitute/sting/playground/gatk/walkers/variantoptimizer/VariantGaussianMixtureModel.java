@@ -7,7 +7,7 @@ import org.broadinstitute.sting.utils.xReadLines;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.ArrayList;
+import java.util.Map;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
 
 public final class VariantGaussianMixtureModel extends VariantOptimizationModel implements VariantClusteringModel {
 
-    private final VariantDataManager dataManager;
+    public final VariantDataManager dataManager;
     private final int numGaussians;
     private final int numIterations;
     private final long RANDOM_SEED = 91801305;
@@ -59,9 +59,9 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private final int[] numMaxClusterNovel;
     private final double[] clusterTITV;
     private final double[] clusterTruePositiveRate; // The true positive rate implied by the cluster's Ti/Tv ratio
-    //private final int desiredNumVariants;
     private final int minVarInCluster;
 
+    private static final double INFINITE_ANNOTATION_VALUE = 10000.0;
     private static final Pattern ANNOTATION_PATTERN = Pattern.compile("^@!ANNOTATION.*");
     private static final Pattern CLUSTER_PATTERN = Pattern.compile("^@!CLUSTER.*");
 
@@ -78,7 +78,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         numMaxClusterNovel = new int[numGaussians];
         clusterTITV = new double[numGaussians];
         clusterTruePositiveRate = new double[numGaussians];
-        //desiredNumVariants = _desiredNumVariants;
         minVarInCluster = _minVarInCluster;
     }
 
@@ -107,14 +106,25 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         numMaxClusterKnown = null;
         numMaxClusterNovel = null;
         clusterTITV = null;
-        clusterTruePositiveRate = null;
-        //desiredNumVariants = _desiredNumVariants;
         minVarInCluster = 0;
 
         numGaussians = clusterLines.size();
-        mu = new double[numGaussians][];
-        sigma = new double[numGaussians][];
+        mu = new double[numGaussians][dataManager.numAnnotations];
+        sigma = new double[numGaussians][dataManager.numAnnotations];
+        clusterTruePositiveRate = new double[numGaussians];
 
+        int kkk = 0;
+        for( String line : clusterLines ) {
+            String[] vals = line.split(",");
+            clusterTruePositiveRate[kkk] = Double.parseDouble(vals[4]);
+            for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
+                mu[kkk][jjj] = Double.parseDouble(vals[5+jjj]);
+                sigma[kkk][jjj] = Double.parseDouble(vals[5+dataManager.numAnnotations+jjj]);
+            }
+            kkk++;
+        }
+
+        System.out.println("Found " + numGaussians + " clusters and using " + dataManager.numAnnotations + " annotations: " + dataManager.annotationKeys);
     }
     
     public final void run( final String clusterFileName ) {
@@ -278,27 +288,45 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    /*
-    public final void applyClusters( final VariantDatum[] data, final String outputPrefix ) {
+    public final double evaluateVariant( final Map<String,String> annotationMap, final double qualityScore ) {
+        final double[] pVarInCluster = new double[numGaussians];
+        final double[] annotations = new double[dataManager.numAnnotations];
+
+        for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
+            double value = 0.0;
+            if( dataManager.annotationKeys.get(jjj).equals("QUAL") ) {
+                value = qualityScore;
+            } else {
+                try {
+                    final String stringValue = annotationMap.get( dataManager.annotationKeys.get(jjj) );
+                    if( stringValue != null ) {
+                        value = Double.parseDouble( stringValue );
+                        if( Double.isInfinite(value) ) {
+                            value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
+                        }
+                    }
+                } catch( NumberFormatException e ) {
+                    // do nothing, default value is 0.0
+                }
+            }
+
+            annotations[jjj] = (value - dataManager.meanVector[jjj]) / dataManager.varianceVector[jjj];
+        }
+
+        evaluateGaussiansForSingleVariant( annotations, pVarInCluster );
+
+        double sum = 0;
+        for( int kkk = 0; kkk < numGaussians; kkk++ ) {
+            sum += pVarInCluster[kkk] * clusterTruePositiveRate[kkk];
+        }
+
+        return sum;
+    }
+
+    public final void outputOptimizationCurve( final VariantDatum[] data, final String outputPrefix, final int desiredNumVariants ) {
 
         final int numVariants = data.length;
-
-        final double[] pTrueVariant = new double[numVariants];
         final boolean[] markedVariant = new boolean[numVariants];
-        final double[] pVarInCluster = new double[numGaussians];
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // Evaluate each variant using the probability of being in each cluster and that cluster's true positive rate
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        for( int iii = 0; iii < numVariants; iii++ ) {
-            evaluateGaussiansForSingleVariant( data[iii], pVarInCluster );
-
-            pTrueVariant[iii] = 0.0;
-            markedVariant[iii] = false;
-            for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-                pTrueVariant[iii] += pVarInCluster[kkk] * clusterTruePositiveRate[kkk];
-            }
-        }
 
         PrintStream outputFile = null;
         try {
@@ -316,10 +344,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         int numNovelTv = 0;
         boolean foundDesiredNumVariants = false;
         outputFile.println("pCut,numKnown,numNovel,knownTITV,novelTITV");
-        for( double pCut = 1.0; pCut >= 0.0; pCut -= 0.001 ) {
+        for( double pCut = 100.0; pCut >= 0.0; pCut -= 0.1 ) {
             for( int iii = 0; iii < numVariants; iii++ ) {
                 if( !markedVariant[iii] ) {
-                    if( pTrueVariant[iii] >= pCut ) {
+                    if( data[iii].qual >= pCut ) {
                         markedVariant[iii] = true;
                         if( data[iii].isKnown ) { // known
                             numKnown++;
@@ -340,7 +368,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 }
             }
             if( desiredNumVariants != 0 && !foundDesiredNumVariants && (numKnown + numNovel) >= desiredNumVariants ) {
-                System.out.println( "Keeping variants with p(true) >= " + String.format("%.3f",pCut) + " results in a filtered set with: " );
+                System.out.println( "Keeping variants with p(true) >= " + String.format("%.1f",pCut) + " results in a filtered set with: " );
                 System.out.println("\t" + numKnown + " known variants");
                 System.out.println("\t" + numNovel + " novel variants, (dbSNP rate = " + String.format("%.2f",((double) numKnown * 100.0) / ((double) numKnown + numNovel) ) + "%)");
                 System.out.println("\t" + String.format("%.4f known Ti/Tv ratio", ((double)numKnownTi) / ((double)numKnownTv)));
@@ -353,7 +381,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     ( numNovelTi ==0 || numNovelTv == 0 ? "NaN" : ( ((double)numNovelTi) / ((double)numNovelTv) )));
         }
     }
-    */
 
 
     private void evaluateGaussians( final VariantDatum[] data, final double[][] pVarInCluster ) {
@@ -386,18 +413,20 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     }
 
 
-    private void evaluateGaussiansForSingleVariant( final VariantDatum datum, final double[] pVarInCluster ) {
+    private void evaluateGaussiansForSingleVariant( final double[] annotations, final double[] pVarInCluster ) {
 
-        final int numAnnotations = datum.annotations.length;
+        final int numAnnotations = annotations.length;
 
         double sumProb = 0.0;
         for( int kkk = 0; kkk < numGaussians; kkk++ ) {
             double sum = 0.0;
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                sum += ( (datum.annotations[jjj] - mu[kkk][jjj]) * (datum.annotations[jjj] - mu[kkk][jjj]) )
+                sum += ( (annotations[jjj] - mu[kkk][jjj]) * (annotations[jjj] - mu[kkk][jjj]) )
                         / sigma[kkk][jjj];
             }
-            pVarInCluster[kkk] = pCluster[kkk] * Math.exp( -0.5 * sum );
+            //BUGBUG: removed pCluster[kkk]*, for the second pass
+            //pVarInCluster[kkk] = pCluster[kkk] * Math.exp( -0.5 * sum );
+            pVarInCluster[kkk] = Math.exp( -0.5 * sum );
 
             if( pVarInCluster[kkk] < MIN_PROB) { // Very small numbers are a very big problem
                 pVarInCluster[kkk] = MIN_PROB;
