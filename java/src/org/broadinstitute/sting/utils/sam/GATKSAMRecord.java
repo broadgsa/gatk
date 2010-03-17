@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.sam;
 import java.util.*;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
@@ -26,8 +25,6 @@ public class GATKSAMRecord extends SAMRecord {
 
     // the SAMRecord data we're caching
     private String mReadString = null;
-    private String mQualString = null;
-    private byte[] mQualities = null;
     private SAMReadGroupRecord mReadGroup = null;
     private boolean mNegativeStrandFlag;
     private boolean mUnmappedFlag;
@@ -41,8 +38,6 @@ public class GATKSAMRecord extends SAMRecord {
     // individual GATKSAMRecords.
     // These attributes exist in memory only, and are never written to disk.
     private Map<Object, Object> temporaryAttributes;
-
-    private final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
 
     public GATKSAMRecord(SAMRecord record) {
         super(null); // it doesn't matter - this isn't used
@@ -58,6 +53,17 @@ public class GATKSAMRecord extends SAMRecord {
         List<SAMTagAndValue> attributes = record.getAttributes();
         for ( SAMTagAndValue attribute : attributes )
             setAttribute(attribute.tag, attribute.value);
+
+        // if we are using original quals, set them now if t hey are present in the record
+        if ( GenomeAnalysisEngine.instance.getArguments().useOriginalBaseQualities ) {
+            byte[] originalQuals = mRecord.getOriginalBaseQualities();
+            if ( originalQuals != null )
+                mRecord.setBaseQualities(originalQuals);
+        }
+
+        // sanity check that the lengths of the base and quality strings are equal
+        if ( getBaseQualities().length  != getReadLength() )
+            throw new StingException(String.format("Error: the number of base qualities does not match the number of bases in %s (and the GATK does not currently support '*' for the quals)", mRecord.getReadName()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -118,50 +124,6 @@ public class GATKSAMRecord extends SAMRecord {
     public void setSecondOfPairFlag(boolean b) {
         mRecord.setSecondOfPairFlag(b);
         mSecondOfPairFlag = b;
-    }
-
-    public byte[] getBaseQualities() {
-        if ( mQualities == null ) {
-            if ( GenomeAnalysisEngine.instance.getArguments().useOriginalBaseQualities ) {
-                final Object attr = mRecord.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
-                if ( attr != null ) {
-                    if ( attr instanceof String ) {
-                        mQualities = QualityUtils.fastqToPhred((String)attr);
-                    } else {
-                        throw new StingException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, mRecord.getReadName()));
-                    }
-                }
-            }
-            // if we don't want original quals or couldn't find them, use the main quals
-            if ( mQualities == null )
-                mQualities = mRecord.getBaseQualities();
-
-            // sanity check that the lengths of the base and quality strings are equal
-            if ( mQualities.length  != getReadLength() )
-                throw new StingException(String.format("Error: the number of base qualities does not match the number of bases in %s (and the GATK does not currently support '*' for the quals)", mRecord.getReadName()));
-        }
-        return mQualities;
-    }
-
-    public String getBaseQualityString() {
-        if ( mQualString == null ) {
-            final byte[] quals = getBaseQualities();
-	    if ( Arrays.equals(NULL_QUALS, quals) )
-		mQualString = NULL_QUALS_STRING;
-	    else
-		mQualString = SAMUtils.phredToFastq(quals);
-        }
-        return mQualString;
-    }
-
-    public void setBaseQualities(byte[] bytes) {
-        mQualities = bytes;
-        mRecord.setBaseQualities(bytes);
-    }
-
-    public void setBaseQualityString(String s) {
-        mQualString = s;
-        mRecord.setBaseQualityString(s);
     }
 
     /**
@@ -249,6 +211,14 @@ public class GATKSAMRecord extends SAMRecord {
     public void setReadBases(byte[] bytes) { mRecord.setReadBases(bytes); }
 
     public int getReadLength() { return mRecord.getReadLength(); }
+
+    public byte[] getBaseQualities() { return mRecord.getBaseQualities(); }
+
+    public void setBaseQualities(byte[] bytes) { mRecord.setBaseQualities(bytes); }
+
+    public String getBaseQualityString() { return mRecord.getBaseQualityString(); }
+
+    public void setBaseQualityString(String s) { mRecord.setBaseQualityString(s); }
 
     public byte[] getOriginalBaseQualities() { return mRecord.getOriginalBaseQualities(); }
 

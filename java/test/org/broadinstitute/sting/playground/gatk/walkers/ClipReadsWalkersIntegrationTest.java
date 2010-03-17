@@ -47,10 +47,10 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
                         " -T ClipReads" +
                         " -I " + validationDataLocation + "originalQuals.chr1.1-1K.bam" +
                         " -L chr1:1-1,000" +
-                        " -OQ -QT 4" +
+                        " -OQ -QT 4 -CR WRITE_Q0S" +
                         " -o %s -ob %s",
                 2,
-                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "ff7c6edba61307738b34786e14edbef9"));
+                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "12eeaaa8df3d742f68cdd8838b203825"));
         executeTest("clipOriginalQuals", spec);
     }
 }
