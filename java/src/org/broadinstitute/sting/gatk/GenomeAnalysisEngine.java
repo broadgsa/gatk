@@ -161,10 +161,10 @@ public class GenomeAnalysisEngine {
         initializeIntervals();
 
         ShardStrategy shardStrategy = getShardStrategy(my_walker,
-                                                       microScheduler.getReference(),
-                                                       intervals,
-                                                       argCollection.maximumEngineIterations,
-                                                       readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
+                microScheduler.getReference(),
+                intervals,
+                argCollection.maximumEngineIterations,
+                readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
@@ -181,9 +181,14 @@ public class GenomeAnalysisEngine {
         }
 
         if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
+            List <GenomeLoc> parsedIntervals = parseIntervalRegion(argCollection.intervals);
+            intervals = (parsedIntervals == null) ? null: GenomeLocSortedSet.createSetFromList(parsedIntervals);
+        }
+        /*
+        if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
             intervals = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
         }
-
+          */
         if ( excludeIntervals != null ) {
             GenomeLocSortedSet toPrune = intervals == null ? GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) : intervals;
             long toPruneSize = toPrune.coveredSize();
@@ -246,7 +251,7 @@ public class GenomeAnalysisEngine {
      * @return A collection of available filters.
      */
     protected Collection<SamRecordFilter> createFiltersForWalker(GATKArgumentCollection args, Walker walker) {
-        Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();        
+        Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();
         filters.addAll(WalkerManager.getReadFilters(walker,filterManager));
         if (args.filterZeroMappingQualityReads != null && args.filterZeroMappingQualityReads)
             filters.add(new ZeroMappingQualityReadFilter());
@@ -342,6 +347,15 @@ public class GenomeAnalysisEngine {
     public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals, IntervalMergingRule mergingRule) {
         List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
         for (String interval : intervals) {
+            // if any interval argument is '-L all', consider all loci by returning no intervals
+            if (interval.equals("all")) {
+                if (intervals.size() != 1) {
+                    // throw error if '-L all' is not only interval - potentially conflicting commands
+                    throw new StingException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
+                }
+                return new ArrayList<GenomeLoc>();
+            }
+
             if (new File(interval).exists()) {
                 // support for the bed style interval format
                 if (interval.toUpperCase().endsWith(".BED")) {
@@ -446,7 +460,7 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * **** UNLESS YOU HAVE GOOD REASON TO, DO NOT USE THIS METHOD; USE getFileToReadGroupIdMapping() INSTEAD **** 
+     * **** UNLESS YOU HAVE GOOD REASON TO, DO NOT USE THIS METHOD; USE getFileToReadGroupIdMapping() INSTEAD ****
      *
      * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
      * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list

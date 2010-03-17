@@ -190,7 +190,9 @@ public class GenomeLocParser {
         if (contig == null)
             throw new StingException("Invalid Genome Location contig == null : " + str);
 
-
+        if (start > stop)
+		    throw new StingException("Invalid Genome Location string; start position comes after end position: " + str );
+		        
 		if (!isContigValid(contig))
             throw new StingException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
 
@@ -226,8 +228,8 @@ public class GenomeLocParser {
             locs = mergeIntervalLocations(locs, rule);            
             return locs;
         } catch (Exception e) { // TODO: fix this so that it passes the message from the exception, and doesn't print it out
-            throw new StingException(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str), e);
-        }
+            throw new StingException(String.format("Invalid locations string: %s, format is loc1;loc2; where loc1 < loc2. Each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str), e);
+        }                                                                                                                        
     }
 
     // --------------------------------------------------------------------------------------------------------------
