@@ -33,5 +33,5 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
 public interface VariantClusteringModel extends VariantOptimizationInterface {
     public void createClusters( final VariantDatum[] data );
-    public void applyClusters( final VariantDatum[] data, final String outputPrefix );
+    //public void applyClusters( final VariantDatum[] data, final String outputPrefix );
 }

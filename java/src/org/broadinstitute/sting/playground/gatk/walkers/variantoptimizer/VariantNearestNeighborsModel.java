@@ -40,7 +40,8 @@ public final class VariantNearestNeighborsModel extends VariantOptimizationModel
     private final int numKNN;
 
     public VariantNearestNeighborsModel( VariantDataManager _dataManager, final double _targetTITV, final int _numKNN ) {
-        super( _dataManager, _targetTITV );
+        super( _targetTITV );
+        //dataManager = _dataManager;
         numKNN = _numKNN;
     }
     

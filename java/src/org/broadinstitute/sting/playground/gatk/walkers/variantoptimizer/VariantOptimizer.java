@@ -38,13 +38,12 @@ import java.io.IOException;
  */
 
 /**
- * Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations producing a callset that is optimized for
- *  an expected transition / transversion ratio.
+ * Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations producing calibrated variant cluster parameters which can be applied to other datasets
  *
  * @author rpoplin
  * @since Feb 11, 2010
  *
- * @help.summary Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations producing an optimized callset
+ * @help.summary Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations producing calibrated variant cluster parameters which can be applied to other datasets
  */
 
 public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> {
@@ -54,26 +53,31 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     /////////////////////////////
     @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.2 for whole genome experiments)", required=true)
     private double TARGET_TITV = 2.1;
+    //@Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
+    //private int DESIRED_NUM_VARIANTS = 0;
     @Argument(fullName="ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
     private boolean IGNORE_INPUT_FILTERS = false;
     @Argument(fullName="exclude_annotation", shortName="exclude", doc="The names of the annotations which should be excluded from the calculations", required=false)
     private String[] EXCLUDED_ANNOTATIONS = null;
     @Argument(fullName="force_annotation", shortName="force", doc="The names of the annotations which should be forced into the calculations even if they aren't present in every variant", required=false)
     private String[] FORCED_ANNOTATIONS = null;
-    @Argument(fullName="output_prefix", shortName="output", doc="The output prefix added to output cluster file name and optimization curve pdf file name", required=false)
-    private String OUTPUT_PREFIX = "optimizer";
+    @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
+    private String CLUSTER_FILENAME = "optimizer.cluster";
     @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian Mixture model", required=false)
     private int NUM_GAUSSIANS = 32;
     @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian Mixture model", required=false)
     private int NUM_ITERATIONS = 10;
-    @Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
-    private int NUM_KNN = 2000;
-    @Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
+    @Argument(fullName="minVarInCluster", shortName="minVar", doc="The minimum number of variants in a cluster to be considered a valid cluster. Used to prevent overfitting. Default is 2000.", required=true)
+    private int MIN_VAR_IN_CLUSTER = 2000;
+
+    //@Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
+    //private int NUM_KNN = 2000;
+    //@Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
     private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-    private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
-    @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
-    private String PATH_TO_RESOURCES = "R/";
+    //@Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    //private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
+    //@Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
+    //private String PATH_TO_RESOURCES = "R/";
 
     /////////////////////////////
     // Private Member Variables
@@ -90,7 +94,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
-        if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }   
+        //if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }   
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -177,10 +181,10 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
 
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
 
-        final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys);
+        final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        logger.info( "There are " + dataManager.numVariants + " variants and " + dataManager.numAnnotations + " annotations.");
+        logger.info( "There are " + dataManager.numVariants + " variants and " + dataManager.numAnnotations + " annotations." );
         logger.info( "The annotations are: " + annotationKeys + " and QUAL." );
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
@@ -189,28 +193,31 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         VariantOptimizationModel theModel;
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( dataManager, TARGET_TITV, NUM_GAUSSIANS, NUM_ITERATIONS  );
+                theModel = new VariantGaussianMixtureModel( dataManager, TARGET_TITV, NUM_GAUSSIANS, NUM_ITERATIONS, MIN_VAR_IN_CLUSTER );
                 break;
-            case K_NEAREST_NEIGHBORS:
-                theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
-                break;
+            //case K_NEAREST_NEIGHBORS:
+            //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
+            //    break;
             default:
-                throw new StingException("Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS");
+                throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
         
-        theModel.run( OUTPUT_PREFIX );
+        theModel.run( CLUSTER_FILENAME );
+
+
+        // Functionality moved to different walker
 
         // Execute Rscript command to plot the optimization curve
         // Print out the command line to make it clear to the user what is being executed and how one might modify it
-        final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
-        System.out.println( rScriptCommandLine );
+        //final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
+        //System.out.println( rScriptCommandLine );
 
         // Execute the RScript command to plot the table of truth values
-        try {
-            Runtime.getRuntime().exec( rScriptCommandLine );
-        } catch ( IOException e ) {
-            throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
-        }
+        //try {
+        //    Runtime.getRuntime().exec( rScriptCommandLine );
+        //} catch ( IOException e ) {
+        //    throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
+        //}
     }
 
 }

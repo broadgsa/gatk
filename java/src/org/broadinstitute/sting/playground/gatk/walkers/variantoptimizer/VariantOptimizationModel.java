@@ -38,11 +38,9 @@ public abstract class VariantOptimizationModel implements VariantOptimizationInt
         K_NEAREST_NEIGHBORS
     }
 
-    protected final VariantDataManager dataManager;
     protected final double targetTITV;
 
-    public VariantOptimizationModel( VariantDataManager _dataManager, final double _targetTITV ) {
-        dataManager = _dataManager;
+    public VariantOptimizationModel( final double _targetTITV ) {
         targetTITV = _targetTITV;
     }
 

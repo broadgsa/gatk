@@ -1,7 +1,15 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broadinstitute.sting.utils.ExpandingArrayList;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.xReadLines;
+
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -36,6 +44,7 @@ import java.util.Random;
 
 public final class VariantGaussianMixtureModel extends VariantOptimizationModel implements VariantClusteringModel {
 
+    private final VariantDataManager dataManager;
     private final int numGaussians;
     private final int numIterations;
     private final long RANDOM_SEED = 91801305;
@@ -50,9 +59,15 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private final int[] numMaxClusterNovel;
     private final double[] clusterTITV;
     private final double[] clusterTruePositiveRate; // The true positive rate implied by the cluster's Ti/Tv ratio
+    //private final int desiredNumVariants;
+    private final int minVarInCluster;
 
-    public VariantGaussianMixtureModel( VariantDataManager _dataManager, final double _targetTITV, final int _numGaussians, final int _numIterations ) {
-       super( _dataManager, _targetTITV );
+    private static final Pattern ANNOTATION_PATTERN = Pattern.compile("^@!ANNOTATION.*");
+    private static final Pattern CLUSTER_PATTERN = Pattern.compile("^@!CLUSTER.*");
+
+    public VariantGaussianMixtureModel( final VariantDataManager _dataManager, final double _targetTITV, final int _numGaussians, final int _numIterations, final int _minVarInCluster ) {
+        super( _targetTITV );
+        dataManager = _dataManager;
         numGaussians = _numGaussians;
         numIterations = _numIterations;
 
@@ -63,9 +78,46 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         numMaxClusterNovel = new int[numGaussians];
         clusterTITV = new double[numGaussians];
         clusterTruePositiveRate = new double[numGaussians];
+        //desiredNumVariants = _desiredNumVariants;
+        minVarInCluster = _minVarInCluster;
+    }
+
+    public VariantGaussianMixtureModel( final String clusterFileName ) {
+        super( 0.0 );
+        ExpandingArrayList<String> annotationLines = new ExpandingArrayList<String>();
+        ExpandingArrayList<String> clusterLines = new ExpandingArrayList<String>();
+
+        try {
+            for ( String line : new xReadLines(new File( clusterFileName )) ) {
+                if( ANNOTATION_PATTERN.matcher(line).matches() ) {
+                    annotationLines.add(line);
+                } else if( CLUSTER_PATTERN.matcher(line).matches() ) {
+                    clusterLines.add(line);
+                } else {
+                    throw new StingException("Malformed input file: " + clusterFileName);
+                }
+            }
+        } catch ( FileNotFoundException e ) {
+            throw new StingException("Can not find input file: " + clusterFileName);
+        }
+
+        dataManager = new VariantDataManager( annotationLines );
+        numIterations = 0;
+        pCluster = null;
+        numMaxClusterKnown = null;
+        numMaxClusterNovel = null;
+        clusterTITV = null;
+        clusterTruePositiveRate = null;
+        //desiredNumVariants = _desiredNumVariants;
+        minVarInCluster = 0;
+
+        numGaussians = clusterLines.size();
+        mu = new double[numGaussians][];
+        sigma = new double[numGaussians][];
+
     }
     
-    public final void run( final String outputPrefix ) {
+    public final void run( final String clusterFileName ) {
 
         // Create the subset of the data to cluster with
         int numNovel = 0;
@@ -78,6 +130,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         // Grab a set of data that is all of the novel variants plus 1.5x as many known variants drawn at random
         // If there are almost as many novels as known, simply use all the variants
+        // BUGBUG: allow downsampling and arbitrary mixtures of knowns and novels
         final int numSubset = (int)Math.floor(numNovel*2.5);
         if( numSubset * 1.3 < dataManager.numVariants ) {
             data = new VariantDatum[numSubset];
@@ -100,10 +153,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         System.out.println("Clustering with " + numNovel + " novel variants and " + (data.length - numNovel) + " known variants...");
         if( data.length == dataManager.numVariants ) { System.out.println(" (used all variants since 2.5*numNovel is so large compared to the full set) "); }
         createClusters( data ); // Using a subset of the data
-        System.out.println("Printing out cluster parameters...");
-        printClusters( outputPrefix );
-        System.out.println("Applying clusters to all variants...");
-        applyClusters( dataManager.data, outputPrefix ); // Using all the data
+        System.out.println("Outputting cluster parameters...");
+        printClusters( clusterFileName );
+        //System.out.println("Applying clusters to all variants...");
+        //applyClusters( dataManager.data, outputPrefix ); // Using all the data
     }
 
     public final void createClusters( final VariantDatum[] data ) {
@@ -198,15 +251,14 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    private void printClusters( final String outputPrefix ) {
+    private void printClusters( final String clusterFileName ) {
         try {
-            final PrintStream outputFile = new PrintStream( outputPrefix + ".clusters" );
-            int clusterNumber = 0;
+            final PrintStream outputFile = new PrintStream( clusterFileName );
+            dataManager.printClusterFileHeader( outputFile );
             final int numAnnotations = mu[0].length;
             for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-                //BUGBUG: only output the good clusters here to protect against over-fitting?
-                //if( numMaxClusterKnown[kkk] + numMaxClusterNovel[kkk] >= 2000 ) {
-                    outputFile.print(clusterNumber + ",");
+                if( numMaxClusterKnown[kkk] + numMaxClusterNovel[kkk] >= minVarInCluster ) {
+                    outputFile.print("@!CLUSTER,");
                     outputFile.print(numMaxClusterKnown[kkk] + ",");
                     outputFile.print(numMaxClusterNovel[kkk] + ",");
                     outputFile.print(clusterTITV[kkk] + ",");
@@ -218,8 +270,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                         outputFile.print(sigma[kkk][jjj] + ",");
                     }
                     outputFile.println(-1);
-                    clusterNumber++;
-                //}
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -227,6 +278,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
+    /*
     public final void applyClusters( final VariantDatum[] data, final String outputPrefix ) {
 
         final int numVariants = data.length;
@@ -262,6 +314,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         int numKnownTv = 0;
         int numNovelTi = 0;
         int numNovelTv = 0;
+        boolean foundDesiredNumVariants = false;
         outputFile.println("pCut,numKnown,numNovel,knownTITV,novelTITV");
         for( double pCut = 1.0; pCut >= 0.0; pCut -= 0.001 ) {
             for( int iii = 0; iii < numVariants; iii++ ) {
@@ -286,9 +339,21 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     }
                 }
             }
-            outputFile.println( pCut + "," + numKnown + "," + numNovel + "," + ( ((double)numKnownTi) / ((double)numKnownTv) ) + "," + ( ((double)numNovelTi) / ((double)numNovelTv) ));
+            if( desiredNumVariants != 0 && !foundDesiredNumVariants && (numKnown + numNovel) >= desiredNumVariants ) {
+                System.out.println( "Keeping variants with p(true) >= " + String.format("%.3f",pCut) + " results in a filtered set with: " );
+                System.out.println("\t" + numKnown + " known variants");
+                System.out.println("\t" + numNovel + " novel variants, (dbSNP rate = " + String.format("%.2f",((double) numKnown * 100.0) / ((double) numKnown + numNovel) ) + "%)");
+                System.out.println("\t" + String.format("%.4f known Ti/Tv ratio", ((double)numKnownTi) / ((double)numKnownTv)));
+                System.out.println("\t" + String.format("%.4f novel Ti/Tv ratio", ((double)numNovelTi) / ((double)numNovelTv)));
+                System.out.println();
+                foundDesiredNumVariants = true;
+            }
+            outputFile.println( pCut + "," + numKnown + "," + numNovel + "," +
+                    ( numKnownTi ==0 || numKnownTv == 0 ? "NaN" : ( ((double)numKnownTi) / ((double)numKnownTv) ) ) + "," +
+                    ( numNovelTi ==0 || numNovelTv == 0 ? "NaN" : ( ((double)numNovelTi) / ((double)numNovelTv) )));
         }
     }
+    */
 
 
     private void evaluateGaussians( final VariantDatum[] data, final double[][] pVarInCluster ) {
@@ -327,7 +392,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         double sumProb = 0.0;
         for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-            //BUGBUG: only use the good clusters here to protect against over-fitting?
             double sum = 0.0;
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 sum += ( (datum.annotations[jjj] - mu[kkk][jjj]) * (datum.annotations[jjj] - mu[kkk][jjj]) )
@@ -400,6 +464,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
 
         // Clean up extra big or extra small clusters
+        //BUGBUG: Is this a good idea?
         for( int kkk = 0; kkk < numGaussians; kkk++ ) {
             if( pCluster[kkk] > 0.45 ) { // This is a very large cluster compared to all the others
                 final int numToReplace = 4;

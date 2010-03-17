@@ -4,6 +4,8 @@ import org.broadinstitute.sting.utils.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -40,8 +42,8 @@ public class VariantDataManager {
     public final VariantDatum[] data;
     public final int numVariants;
     public final int numAnnotations;
-    public final double[] varianceVector;
     public final double[] meanVector;
+    public final double[] varianceVector;
     public boolean isNormalized;
     private final ExpandingArrayList<String> annotationKeys;
 
@@ -61,10 +63,26 @@ public class VariantDataManager {
         annotationKeys = _annotationKeys;
     }
 
-    public void normalizeData() {
-        for( int iii = 0; iii < numVariants; iii++ ) {
-            data[iii].originalAnnotations = data[iii].annotations.clone();
+    public VariantDataManager( final ExpandingArrayList<String> annotationLines ) {
+        data = null;
+        numVariants = 0;
+        numAnnotations = annotationLines.size();
+        meanVector = new double[numAnnotations];
+        varianceVector = new double[numAnnotations];
+        isNormalized = true;
+        annotationKeys = new ExpandingArrayList<String>();
+
+        int jjj = 0;
+        for( String line : annotationLines ) {
+            String[] vals = line.split(",");
+            annotationKeys.add(vals[1]);
+            meanVector[jjj] = Double.parseDouble(vals[2]);
+            varianceVector[jjj] = Double.parseDouble(vals[3]);
+            jjj++;
         }
+    }
+
+    public void normalizeData() {
         for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
             final double theMean = mean(data, jjj);
             final double theSTD = standardDeviation(data, theMean, jjj);
@@ -99,10 +117,9 @@ public class VariantDataManager {
         return Math.sqrt( sum );
     }
 
-//    public void printClusterFileHeader( PrintStream outputFile ) {
-//        for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-//            outputFile.println("@ANNOTATION," + (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)) + "," + meanVector[jjj] + "," + varianceVector[jjj]);
-//        }
-//    }
-
+    public void printClusterFileHeader( PrintStream outputFile ) {
+        for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+            outputFile.println("@!ANNOTATION," + (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)) + "," + meanVector[jjj] + "," + varianceVector[jjj]);
+        }
+    }
 }
