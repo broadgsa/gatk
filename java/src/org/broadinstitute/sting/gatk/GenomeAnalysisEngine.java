@@ -681,19 +681,19 @@ public class GenomeAnalysisEngine {
                         ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource,
-                        argCollection.experimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : shardType,
+                        !argCollection.disableExperimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource,
-                        argCollection.experimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                        !argCollection.disableExperimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
         } else if (walker instanceof ReadWalker ||
                 walker instanceof DuplicateWalker) {
-            if(argCollection.experimentalSharding)
+            if(!argCollection.disableExperimentalSharding)
                 shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL;
             else
                 shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
@@ -740,7 +740,7 @@ public class GenomeAnalysisEngine {
             return null;
 
         SAMDataSource dataSource = null;
-        if(argCollection.experimentalSharding)
+        if(!argCollection.disableExperimentalSharding)
             dataSource = new BlockDrivenSAMDataSource(reads);
         else
             dataSource = new IndexDrivenSAMDataSource(reads);
