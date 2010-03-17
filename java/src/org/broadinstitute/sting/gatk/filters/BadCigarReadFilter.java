@@ -25,18 +25,30 @@
 package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 
 /**
- * Filter out reads with low mapping qualities.
+ * Filter out reads with wonky cigar strings.
  *
  * @author ebanks
  * @version 0.1
  */
 
-public class BadMateReadFilter implements SamRecordFilter {
+public class BadCigarReadFilter implements SamRecordFilter {
 
     public boolean filterOut(final SAMRecord rec) {
-        return (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag() && rec.getMateReferenceIndex() != rec.getReferenceIndex());
+        Cigar c = rec.getCigar();
+        boolean lastElementWasIndel = false;
+        for ( CigarElement ce : c.getCigarElements() ) {
+            if ( ce.getOperator() == CigarOperator.D || ce.getOperator() == CigarOperator.I ) {
+                if ( lastElementWasIndel )
+                    return true;
+                lastElementWasIndel = true;
+            } else {
+                lastElementWasIndel = false;
+            }
+        }
+
+        return false;
     }
 }
