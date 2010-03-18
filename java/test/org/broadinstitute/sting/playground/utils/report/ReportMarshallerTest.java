@@ -24,35 +24,39 @@
 package org.broadinstitute.sting.playground.utils.report;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.playground.utils.report.formats.SimpleTextOutputer;
 import org.junit.Test;
-
-import java.io.File;
 
 
 /**
- * 
- * @author aaron 
- * 
- * Class MarshallerTest
- *
- * test out the marshaller
+ * @author aaron
+ *         <p/>
+ *         Class ReportMarshallerTest
+ *         <p/>
+ *         test out the marshaller
  */
-public class MarshallerTest extends BaseTest {
+public class ReportMarshallerTest extends BaseTest {
     @Test
     public void testMarshalling() {
-        // output file
-        /*File fl = new File("testfile.txt");
-        fl.deleteOnExit();
-        Marshaller m = new Marshaller();
-        SimpleTextOutputer format = new SimpleTextOutputer(fl);
+        /*Configuration cfg = new Configuration();
+        try {
+            cfg.setDirectoryForTemplateLoading(new File("templates"));
+        } catch (IOException e) {
+            e.printStackTrace(); 
+        }
+        cfg.setObjectWrapper(new DefaultObjectWrapper());
+        Template temp = null;
+        try {
+            temp = cfg.getTemplate("myTestTemp.ftl");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         FakeAnalysis fa = new FakeAnalysis();
-        
-        // start the marshall
-        m.createReport("Fake Report",format);
-        m.write(fa);
-        m.write(fa);
-        m.write(fa);
-        m.endReport();*/
+        File fl = new File("testFile.out");
+        fl.deleteOnExit();
+        ReportMarshaller marsh = new ReportMarshaller("report",fl,temp);
+        marsh.write(fa);
+        marsh.write(fa);
+        marsh.write(fa);
+        marsh.close();*/
     }
 }

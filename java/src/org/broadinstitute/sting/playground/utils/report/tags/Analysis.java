@@ -12,7 +12,7 @@ import java.lang.annotation.RetentionPolicy;
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Analysis {
-    String name();                          // the name of the analysis
+    String name() default "";               // the name of the analysis
     String description();                   // its description, required
-    String version() default "unversioned"; // the version, not always used
+    String version() default "";            // the version, not always used
 }

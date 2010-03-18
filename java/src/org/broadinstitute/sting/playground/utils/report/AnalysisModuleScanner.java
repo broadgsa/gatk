@@ -1,7 +1,30 @@
+/*
+ * Copyright (c) 2010.  The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.playground.utils.report;
 
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
-import org.broadinstitute.sting.playground.utils.report.tags.Datum;
+import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.tags.Param;
 import org.broadinstitute.sting.playground.utils.report.tags.Table;
 import org.broadinstitute.sting.utils.StingException;
@@ -23,9 +46,9 @@ import java.util.Map;
 public class AnalysisModuleScanner {
 
     // what we extracted from the class
-    private Map<Param, Field> parameters = new HashMap<Param, Field>(); // the parameter annotations
-    private Map<Table, Field> tables = new HashMap<Table, Field>();     // the table annotations
-    private Map<Datum, Field> datums = new HashMap<Datum, Field>();     // the data we've discovered
+    private Map<Field, Param> parameters = new HashMap<Field, Param>(); // the parameter annotations
+    private Map<Field, Table> tables = new HashMap<Field, Table>();     // the table annotations
+    private Map<Field, DataPoint> datums = new HashMap<Field, DataPoint>();     // the data we've discovered
     private Analysis analysis;                               // the analysis annotation
 
     // private storage of the class type
@@ -68,11 +91,11 @@ public class AnalysisModuleScanner {
         for (Field f : cls.getDeclaredFields())
             for (Annotation annotation : f.getAnnotations()) {
                 if (annotation.annotationType().equals(Param.class))
-                    parameters.put((Param) annotation, f);
+                    parameters.put(f, (Param) annotation);
                 if (annotation.annotationType().equals(Table.class))
-                    tables.put((Table) annotation, f);
-                if (annotation.annotationType().equals(Datum.class))
-                    datums.put((Datum) annotation, f);
+                    tables.put(f,(Table) annotation);
+                if (annotation.annotationType().equals(DataPoint.class))
+                    datums.put(f,(DataPoint) annotation);
             }
     }
 
@@ -80,7 +103,7 @@ public class AnalysisModuleScanner {
      *
      * @return get the list of parameters we found
      */
-    public Map<Param, Field> getParameters() {
+    public Map<Field, Param> getParameters() {
         return parameters;
     }
 
@@ -88,7 +111,7 @@ public class AnalysisModuleScanner {
      *
      * @return a list of table annotations found
      */
-    public Map<Table, Field> getTables() {
+    public Map<Field,Table> getTables() {
         return tables;
     }
 
@@ -96,7 +119,7 @@ public class AnalysisModuleScanner {
      *
      * @return a map of the datum annotations found
      */
-    public Map<Datum, Field> getData() {
+    public Map<Field, DataPoint> getData() {
         return datums;
     }
 
@@ -106,5 +129,9 @@ public class AnalysisModuleScanner {
      */
     public Analysis getAnalysis() {
         return analysis;
+    }
+
+    public Class getModuleClass() {
+        return cls;
     }
 }

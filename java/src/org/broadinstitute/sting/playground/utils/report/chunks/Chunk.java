@@ -21,21 +21,21 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.utils.report.tags;
-
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+package org.broadinstitute.sting.playground.utils.report.chunks;
 
 /**
  * @author aaron
  *         <p/>
- *         Annotation Datum
+ *         Interface Chunk
  *         <p/>
- *         The basic Datum annotation, for fields in an analysis that
- *         are to be output as data.
+ *         the basics of what a report data chunk needs to have
  */
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Datum {
-    String name();          // the name, required
-    String description();   // a description
+public interface Chunk {
+    /**
+     * is the chunk we've created valid?  Invalid chunk would contain null data, or various other
+     * factors that eliminate a chunk from being outputted.
+     *  
+     * @return true if it's valid, false if not.
+     */
+    public boolean isValid();
 }
