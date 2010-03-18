@@ -10,7 +10,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
         return "-T CallsetConcordance -R " + oneKGLocation + "reference/human_b36_both.fasta -L 1:1-8000 -CO %s";
     }
 
-    @Test
+    //@Test
     public void testSimpleVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -CT SimpleVenn", 1,
@@ -18,7 +18,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
         executeTest("testSimpleVenn", spec);
     }
 
-    @Test
+    //@Test
     public void testSNPConcordance() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -CT SNPGenotypeConcordance:qscore=5", 1,
@@ -26,7 +26,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
         executeTest("testSNPConcordance", spec);
     }
 
-    @Test
+    //@Test
     public void testNWayVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -B set3,VCF," + validationDataLocation + "CEU.sample.vcf -CT NWayVenn", 1,
@@ -34,7 +34,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
         executeTest("testNWayVenn", spec);
     }
 
-    @Test
+    //@Test
     public void testMulti() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF," + validationDataLocation + "NA12878.example1.vcf -B set2,VCF," + validationDataLocation + "NA12878.example2.vcf -CT SimpleVenn -CT NWayVenn -CT SNPGenotypeConcordance:qscore=5", 1,
