@@ -328,6 +328,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         final int numVariants = data.length;
         final boolean[] markedVariant = new boolean[numVariants];
 
+        for( int iii = 0; iii < numVariants; iii++ ) {
+            markedVariant[iii] = false;
+        }
+
         PrintStream outputFile = null;
         try {
             outputFile = new PrintStream( outputPrefix + ".dat" );
@@ -368,7 +372,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 }
             }
             if( desiredNumVariants != 0 && !foundDesiredNumVariants && (numKnown + numNovel) >= desiredNumVariants ) {
-                System.out.println( "Keeping variants with p(true) >= " + String.format("%.1f",pCut) + " results in a filtered set with: " );
+                System.out.println( "Keeping variants with QUAL >= " + String.format("%.1f",pCut) + " results in a filtered set with: " );
                 System.out.println("\t" + numKnown + " known variants");
                 System.out.println("\t" + numNovel + " novel variants, (dbSNP rate = " + String.format("%.2f",((double) numKnown * 100.0) / ((double) numKnown + numNovel) ) + "%)");
                 System.out.println("\t" + String.format("%.4f known Ti/Tv ratio", ((double)numKnownTi) / ((double)numKnownTv)));

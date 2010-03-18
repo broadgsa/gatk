@@ -10,6 +10,7 @@ targetTITV = as.numeric(args[2])
 data = read.table(input,sep=",",head=T)
 maxVars = max(data$numKnown, data$numNovel)
 maxTITV = max(data$knownTITV[is.finite(data$knownTITV) & data$numKnown>2000], data$novelTITV[is.finite(data$novelTITV) & data$numNovel > 2000], targetTITV)
+maxTITV = min(maxTITV, targetTITV + 1)
 minTITV = min(data$knownTITV[length(data$knownTITV)], data$novelTITV[length(data$novelTITV)], targetTITV)
 maxPCut = max(data$pCut[data$numKnown>0 | data$numNovel>0])
 
