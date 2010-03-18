@@ -9,18 +9,12 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 
 import java.util.Map;
 
 
-/**
- * Created by IntelliJ IDEA.
- * User: chartl
- * Date: Nov 16, 2009
- * Time: 11:25:51 AM
- * To change this template use File | Settings | File Templates.
- */
-public class SecondBaseSkew implements VariantAnnotation {
+public class SecondBaseSkew implements InfoFieldAnnotation, ExperimentalAnnotation {
     private final static double epsilon = Math.pow(10.0,-12.0);
     private final static String KEY_NAME = "2b_Chi";
     private final static double[] UNIFORM_ON_OFF_RATIO = {1.0/3.0, 2.0/3.0};

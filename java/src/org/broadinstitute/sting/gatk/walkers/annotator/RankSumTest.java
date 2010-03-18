@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -12,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 
-public abstract class RankSumTest implements VariantAnnotation {
+public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgressAnnotation {
     private final static boolean DEBUG = false;
     private static final double minPValue = 1e-10;
 

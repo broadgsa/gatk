@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -19,7 +19,7 @@ import java.util.Map;
  * Time: 2:48:15 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ProportionOfNonrefBasesSupportingSNP implements VariantAnnotation {
+public class ProportionOfNonrefBasesSupportingSNP implements InfoFieldAnnotation {
     private String KEY_NAME = "prop_nonref_that_are_snp";
 
     public String getKeyName() { return KEY_NAME; }

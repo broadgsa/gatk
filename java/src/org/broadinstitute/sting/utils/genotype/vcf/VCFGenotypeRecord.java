@@ -85,9 +85,6 @@ public class VCFGenotypeRecord {
         // make sure the GT field isn't being set
         if ( key.equals(GENOTYPE_KEY) )
             throw new IllegalArgumentException("Setting the GT field is not allowed as that's done internally");
-        // we need to be backwards compatible
-        if ( key.equals(OLD_DEPTH_KEY) )
-             key = DEPTH_KEY;
         mFields.put(key, value);
     }
 

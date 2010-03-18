@@ -172,6 +172,8 @@ public class VCFRecord {
                 case INFO:
                     String vals[] = columnValues.get(val).split(";");
                     for (String alt : vals) {
+                        if ( alt.equals(EMPTY_INFO_FIELD) )
+                            continue;
                         String keyVal[] = alt.split("=");
                         if ( keyVal.length == 1 )
                             addInfoField(keyVal[0], "");
@@ -391,11 +393,6 @@ public class VCFRecord {
      * @return a map, of the info key-value pairs
      */
     public final Map<String, String> getInfoValues() {
-        if (mInfoFields.size() < 1) {
-            Map<String, String> map = new HashMap<String, String>();
-            map.put(".", "");
-            return map;
-        }
         return mInfoFields;
     }
 
@@ -497,10 +494,6 @@ public class VCFRecord {
     public void addInfoField(String key, String value) {
         //System.out.printf("Adding info field %s=%s%n", key, value);
         mInfoFields.put(key, value);
-
-        // remove the empty token if it's present
-        if ( mInfoFields.containsKey(".") )
-            mInfoFields.remove(".");
     }
 
     public void printInfoFields() {
@@ -587,15 +580,18 @@ public class VCFRecord {
      * @return a string representing the infomation fields
      */
     protected String createInfoString() {
-        String info = "";
-        for (String str : getInfoValues().keySet()) {
-
-            if (str.equals(EMPTY_INFO_FIELD))
-                return EMPTY_INFO_FIELD;
+        StringBuffer info = new StringBuffer();
+        boolean isFirst = true;
+        for (String str : mInfoFields.keySet()) {
+            if ( isFirst )
+                isFirst = false;
             else
-                info += str + "=" + getInfoValues().get(str) + INFO_FIELD_SEPERATOR;
+                info.append(INFO_FIELD_SEPERATOR);
+            info.append(str);
+            info.append("=");
+            info.append(mInfoFields.get(str));
         }
-        return (info.contains(INFO_FIELD_SEPERATOR)) ? info.substring(0, info.lastIndexOf(INFO_FIELD_SEPERATOR)) : info;
+        return info.length() == 0 ? EMPTY_INFO_FIELD : info.toString();
     }
 
     /**

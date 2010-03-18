@@ -29,7 +29,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
+import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
@@ -59,8 +59,17 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = false)
     public PrintStream beagleWriter = null;
 
+    @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
+    protected String[] annotationsToUse = {};
+
+    @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
+    protected String[] annotationClassesToUse = { "Standard" };
+
     // the calculation arguments
     private UnifiedGenotyperEngine UG_engine = null;
+
+    // the annotation engine
+    private VariantAnnotatorEngine annotationEngine;
 
     // enable deletions in the pileup
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -95,7 +104,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      **/
     public void initialize() {
 
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, beagleWriter);
+        annotationEngine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, beagleWriter, annotationEngine);
 
         // initialize the writers
         if ( verboseWriter != null ) {
@@ -129,11 +139,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         headerInfo.add(new VCFHeaderLine("source", "UnifiedGenotyper"));
         headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
-        // annotation (INFO) fields from VariantAnnotator
-        if ( UAC.ALL_ANNOTATIONS )
-            headerInfo.addAll(VariantAnnotator.getAllVCFAnnotationDescriptions());
-        else
-            headerInfo.addAll(VariantAnnotator.getVCFAnnotationDescriptions());
+        // all annotation fields from VariantAnnotatorEngine
+        headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
         headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));

@@ -198,7 +198,8 @@ public class VariantContext {
         this.commonInfo = new InferredGeneticContext(name, negLog10PError, filters, attributes);
 
         if ( alleles == null ) { throw new StingException("Alleles cannot be null"); }
-        this.alleles = Collections.unmodifiableSet(alleleCollectionToSet(new HashSet<Allele>(), alleles));
+        // we need to make this a LinkedHashSet in case the user prefers a given ordering of alleles
+        this.alleles = Collections.unmodifiableSet(alleleCollectionToSet(new LinkedHashSet<Allele>(), alleles));
 
         if ( genotypes == null ) { genotypes = NO_GENOTYPES; }
         this.genotypes = Collections.unmodifiableMap(genotypes);

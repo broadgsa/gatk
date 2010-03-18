@@ -52,4 +52,22 @@ public class PackageUtils {
 
         return concreteTypes;
     }
+
+    /**
+     * Return the interface classes that extend the specified interface.
+     *
+     * @param iface  the interface which returned classes should extend.
+     * @return       the list of interface classes that implement the interface.
+     */
+    public static <T> List<Class<? extends T>> getInterfacesExtendingInterface(Class<T> iface) {
+        // Load all classes extending the given interface, then filter out any class that is concrete.
+        Set<Class<? extends T>> allTypes = reflections.getSubTypesOf(iface);
+        List<Class<? extends T>> nonConcreteTypes = new ArrayList<Class<? extends T>>();
+        for( Class<? extends T> type: allTypes ) {
+            if( !JVMUtils.isConcrete(type) )
+                nonConcreteTypes.add(type);
+        }
+
+        return nonConcreteTypes;
+    }
 }

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
@@ -20,7 +20,7 @@ import java.util.Map;
  * Time: 2:18:43 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ProportionOfRefSecondBasesSupportingSNP implements VariantAnnotation {
+public class ProportionOfRefSecondBasesSupportingSNP implements InfoFieldAnnotation {
     private String KEY_NAME = "ref_2bb_snp_prop";
     private boolean USE_MAPQ0_READS = false;
 

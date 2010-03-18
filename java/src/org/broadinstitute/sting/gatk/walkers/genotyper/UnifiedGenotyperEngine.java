@@ -32,7 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantConte
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
+import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.genotype.*;
@@ -57,6 +57,9 @@ public class UnifiedGenotyperEngine {
     // the unified argument collection
     protected UnifiedArgumentCollection UAC = null;
 
+    // the annotation engine
+    protected VariantAnnotatorEngine annotationEngine;
+
     // the model used for calculating genotypes
     protected ThreadLocal<GenotypeCalculationModel> gcm = new ThreadLocal<GenotypeCalculationModel>();
 
@@ -71,20 +74,21 @@ public class UnifiedGenotyperEngine {
 
 
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        initialize(toolkit, UAC, null, null, null, null);
+        initialize(toolkit, UAC, null, null, null, null, null);
     }
 
-    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, PrintStream beagleWriter) {
-        initialize(toolkit, UAC, logger, genotypeWriter, verboseWriter, beagleWriter);
+    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, PrintStream beagleWriter, VariantAnnotatorEngine engine) {
+        initialize(toolkit, UAC, logger, genotypeWriter, verboseWriter, beagleWriter, engine);
 
     }
 
-    private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, PrintStream beagleWriter) {
+    private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, PrintStream beagleWriter, VariantAnnotatorEngine engine) {
         this.UAC = UAC;
         this.logger = logger;
         this.genotypeWriter = genotypeWriter;
         this.verboseWriter = verboseWriter;
         this.beagleWriter = beagleWriter;
+        this.annotationEngine = engine;
 
         // deal with input errors
         if ( UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS && !(genotypeWriter instanceof VCFGenotypeWriter) ) {
@@ -223,13 +227,7 @@ public class UnifiedGenotyperEngine {
             if ( call != null && call.vc != null ) {
                 // first off, we want to use the *unfiltered* context for the annotations
                 stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
-
-                Map<String, String> annotations;
-                if ( UAC.ALL_ANNOTATIONS )
-                    annotations = VariantAnnotator.getAllAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
-                else
-                    annotations = VariantAnnotator.getAnnotations(tracker, refContext, stratifiedContexts, call.vc, annotateDbsnp, annotateHapmap2, annotateHapmap3);
-                ((MutableVariantContext)call.vc).putAttributes(annotations);
+                annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, (MutableVariantContext)call.vc);
             }
         }
 

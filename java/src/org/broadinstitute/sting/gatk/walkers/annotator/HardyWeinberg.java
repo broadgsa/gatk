@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -11,7 +12,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import java.util.Map;
 
 
-public class HardyWeinberg implements VariantAnnotation {
+public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotation {
 
     private static final int MIN_SAMPLES = 10;
     private static final int MIN_GENOTYPE_QUALITY = 10;

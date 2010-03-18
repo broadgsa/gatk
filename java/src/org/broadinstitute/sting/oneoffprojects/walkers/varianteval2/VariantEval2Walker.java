@@ -27,7 +27,6 @@ import java.util.*;
 // todo -- write a simple column table system and have the evaluators return this instead of the list<list<string>> objects
 
 // todo -- site frequency spectrum eval (freq. of variants in eval as a function of their AC and AN numbers)
-// todo -- allele freqeuncy discovery tool (FREQ in true vs. discovery counts in eval).  Needs to process subset of samples in true (pools)
 // todo -- clustered SNP counter
 // todo -- HWEs
 // todo -- indel metrics [count of sizes in/del should be in CountVariants]
@@ -84,12 +83,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    // todo -- add doc string
-    @Argument(shortName="select", doc="", required=false)
+    @Argument(shortName="select", doc="One or more stratifications to use when evaluating the data", required=false)
     protected String[] SELECT_EXPS = {"QUAL > 500.0", "HARD_TO_VALIDATE==1", "GATK_STANDARD==1"};
 
-    // todo -- add doc string
-    @Argument(shortName="selectName", doc="", required=false)
+    @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
     protected String[] SELECT_NAMES = {"q500plus", "low_mapq", "gatk_std_filters"};
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)

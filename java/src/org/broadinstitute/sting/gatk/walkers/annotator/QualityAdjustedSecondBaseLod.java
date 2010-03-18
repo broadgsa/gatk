@@ -4,18 +4,12 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 
-/**
- * Created by IntelliJ IDEA.
- * User: Ghost
- * Date: Dec 19, 2009
- * Time: 1:02:09 AM
- * To change this template use File | Settings | File Templates.
- */
-public class QualityAdjustedSecondBaseLod implements VariantAnnotation {
+public class QualityAdjustedSecondBaseLod implements InfoFieldAnnotation, ExperimentalAnnotation {
     private final String KEY_NAME = "Qual_Adjusted_2blod";
     private final double CHI_LOD_MAX = -1000.0;
     private final SecondBaseSkew skewCalc = new SecondBaseSkew();

@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
@@ -17,7 +17,7 @@ import java.util.Map;
  * @author chartl
  * @date Feb 1, 2010
  */
-public class ThousandGenomesAnnotator implements VariantAnnotation {
+public class ThousandGenomesAnnotator implements InfoFieldAnnotation {
 
     public String getKeyName() {
         return "1KG";
