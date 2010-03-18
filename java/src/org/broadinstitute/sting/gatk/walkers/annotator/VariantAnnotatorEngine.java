@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
@@ -72,9 +73,10 @@ public class VariantAnnotatorEngine {
         requestedGenotypeAnnotations = new ArrayList<GenotypeAnnotation>();
 
         for ( Class c : classes ) {
+            // note that technically an annotation can work on both the INFO and FORMAT fields
             if ( InfoFieldAnnotation.class.isAssignableFrom(c) )
                 requestedInfoAnnotations.add((InfoFieldAnnotation)getInstance(c));
-            else if ( GenotypeAnnotation.class.isAssignableFrom(c) )
+            if ( GenotypeAnnotation.class.isAssignableFrom(c) )
                 requestedGenotypeAnnotations.add((GenotypeAnnotation)getInstance(c));
         }
 
@@ -134,36 +136,58 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
-    public void annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, MutableVariantContext vc) {
+    public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+
+        Map<String, Object> infoAnnotations = new HashMap<String, Object>(vc.getAttributes());
 
         // annotate dbsnp occurrence
         if ( annotateDbsnp ) {
             rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
-            vc.putAttribute(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
+            infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
             // annotate dbsnp id if available and not already there
             if ( dbsnp != null && !vc.hasAttribute("ID") )
-                vc.putAttribute("ID", dbsnp.getRS_ID());
+                infoAnnotations.put("ID", dbsnp.getRS_ID());
         }
 
         if ( annotateHapmap2 ) {
             RODRecordList hapmap2 = tracker.getTrackData("hapmap2",null);
-            vc.putAttribute(VCFRecord.HAPMAP2_KEY, hapmap2 == null? "0" : "1");
+            infoAnnotations.put(VCFRecord.HAPMAP2_KEY, hapmap2 == null? "0" : "1");
         }
 
         if ( annotateHapmap3 ) {
             RODRecordList hapmap3 = tracker.getTrackData("hapmap3",null);
-            vc.putAttribute(VCFRecord.HAPMAP3_KEY, hapmap3 == null ? "0" : "1");
+            infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3 == null ? "0" : "1");
         }
 
         for ( InfoFieldAnnotation annotation : requestedInfoAnnotations ) {
-            String annot = annotation.annotate(tracker, ref, stratifiedContexts, vc);
-            if ( annot != null ) {
-                vc.putAttribute(annotation.getKeyName(), annot);
+            Map<String, Object> result = annotation.annotate(tracker, ref, stratifiedContexts, vc);
+            if ( result != null )
+                infoAnnotations.putAll(result);
+        }
+
+        Map<String, Genotype> genotypes;
+        if ( requestedGenotypeAnnotations.size() == 0 ) {
+            genotypes = vc.getGenotypes();
+        } else {
+            genotypes = new HashMap<String, Genotype>(vc.getNSamples());
+            for ( Map.Entry<String, Genotype> g : vc.getGenotypes().entrySet() ) {
+                Genotype genotype = g.getValue();
+                StratifiedAlignmentContext context = stratifiedContexts.get(g.getKey());
+                if ( context == null ) {
+                    genotypes.put(g.getKey(), genotype);
+                    continue;
+                }
+
+                Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getAttributes());
+                for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+                    Map<String, Object> result = annotation.annotate(tracker, ref, context, vc, genotype);
+                    if ( result != null )
+                        genotypeAnnotations.putAll(result);
+                }
+                genotypes.put(g.getKey(), new Genotype(g.getKey(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.genotypesArePhased()));
             }
         }
 
-        for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-            annotation.annotateContext(tracker, ref, stratifiedContexts, vc);
-        }
+        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), infoAnnotations);
     }
 }

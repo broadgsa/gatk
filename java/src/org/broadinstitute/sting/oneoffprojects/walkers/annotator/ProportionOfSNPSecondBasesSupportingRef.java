@@ -12,6 +12,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Created by IntelliJ IDEA.
@@ -29,21 +30,23 @@ public class ProportionOfSNPSecondBasesSupportingRef implements InfoFieldAnnotat
 
     public boolean useZeroQualityReads() { return USE_MAPQ0_READS; }
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
-        if ( ! vc.isSNP() || ! vc.isBiallelic() ) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
+        if ( ! vc.isSNP() || ! vc.isBiallelic() )
             return null;
-        } else {
-            Pair<Integer,Integer> totalAndSNPSupporting = new Pair<Integer,Integer>(0,0);
-            for ( String sample : context.keySet() ) {
-                ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
-                totalAndSNPSupporting = getTotalSNPandRefSupporting(pileup, ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), totalAndSNPSupporting);
 
-            }
-            if ( totalAndSNPSupporting.equals(new Pair<Integer,Integer>(0,0)) )
-                return null;
-            double p = getProportionOfSNPSecondaryBasesSupportingRef(totalAndSNPSupporting);
-            return String.format("%f", p );
+        Pair<Integer,Integer> totalAndSNPSupporting = new Pair<Integer,Integer>(0,0);
+        for ( String sample : context.keySet() ) {
+            ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            totalAndSNPSupporting = getTotalSNPandRefSupporting(pileup, ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), totalAndSNPSupporting);
+
         }
+        if ( totalAndSNPSupporting.equals(new Pair<Integer,Integer>(0,0)) )
+            return null;
+        
+        double p = getProportionOfSNPSecondaryBasesSupportingRef(totalAndSNPSupporting);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%f", p ));
+        return map;
     }
 
     public double getProportionOfSNPSecondaryBasesSupportingRef(Pair<Integer,Integer> tSNP_refSupport) {

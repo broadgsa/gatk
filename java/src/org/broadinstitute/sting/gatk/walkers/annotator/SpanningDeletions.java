@@ -10,11 +10,12 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class SpanningDeletions implements InfoFieldAnnotation, StandardAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         int deletions = 0;
         int depth = 0;
         for ( String sample : stratifiedContexts.keySet() ) {
@@ -22,7 +23,9 @@ public class SpanningDeletions implements InfoFieldAnnotation, StandardAnnotatio
             deletions += pileup.getNumberOfDeletions();
             depth += pileup.size();
         }
-        return String.format("%.2f", depth == 0 ? 0.0 : (double)deletions/(double)depth);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.2f", depth == 0 ? 0.0 : (double)deletions/(double)depth));
+        return map;
     }
 
     public String getKeyName() { return "Dels"; }

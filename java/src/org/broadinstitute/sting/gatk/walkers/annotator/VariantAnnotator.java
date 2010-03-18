@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -135,21 +134,19 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         if ( vc == null )
             return 0;
 
-        MutableVariantContext mvc = new MutableVariantContext(vc);
-
         // if the reference base is not ambiguous, we can annotate
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null ) {
-                engine.annotateContext(tracker, ref, stratifiedContexts, mvc);
+                vc = engine.annotateContext(tracker, ref, stratifiedContexts, vc);
             }
         }
 
         if ( variant instanceof RodVCF ) {
             RodVCF vcf = (RodVCF)variant;
-            vcfWriter.addRecord(VariantContextAdaptors.toVCF(mvc, ref.getBase(), Arrays.asList(vcf.getRecord().getGenotypeFormatString().split(VCFRecord.GENOTYPE_FIELD_SEPERATOR)), vcf.getFilterString() != null));
+            vcfWriter.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase(), Arrays.asList(vcf.getRecord().getGenotypeFormatString().split(VCFRecord.GENOTYPE_FIELD_SEPERATOR)), vcf.getFilterString() != null));
         } else {
-            vcfWriter.addRecord(VariantContextAdaptors.toVCF(mvc, ref.getBase()));
+            vcfWriter.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase()));
         }
 
         return 1;

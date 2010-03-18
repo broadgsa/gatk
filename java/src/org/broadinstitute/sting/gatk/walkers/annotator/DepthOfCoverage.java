@@ -9,15 +9,18 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class DepthOfCoverage implements InfoFieldAnnotation, StandardAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         int depth = 0;
         for ( String sample : stratifiedContexts.keySet() )
             depth += stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
-        return String.format("%d", depth);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%d", depth));
+        return map;
     }
 
     public String getKeyName() { return VCFRecord.DEPTH_KEY; }

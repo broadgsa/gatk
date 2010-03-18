@@ -9,13 +9,16 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class GCContent implements InfoFieldAnnotation, ExperimentalAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         double content = computeGCContent(ref);
-        return String.format("%.2f", content);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.2f", content));
+        return map;
     }
 
     public String getKeyName() { return "GC"; }

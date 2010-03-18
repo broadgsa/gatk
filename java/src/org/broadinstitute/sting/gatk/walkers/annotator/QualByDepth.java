@@ -10,11 +10,12 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 
 public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
@@ -25,7 +26,9 @@ public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
             return null;
 
         double QbyD = 10.0 * vc.getNegLog10PError() / (double)qDepth;
-        return String.format("%.2f", QbyD);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.2f", QbyD));
+        return map;
     }
 
     public String getKeyName() { return "QD"; }

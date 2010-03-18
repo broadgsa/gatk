@@ -4,14 +4,15 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFFormatHeaderLine;
 
 import java.util.Map;
 
 public interface GenotypeAnnotation {
 
-    // annotate the given record for the given variation and context split by sample
-    public void annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc);
+    // return annotations for the given contexts/genotype split by sample
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g);
 
     // return the FORMAT key
     public String getKeyName();

@@ -10,6 +10,7 @@ import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -28,25 +29,29 @@ public class ThousandGenomesAnnotator implements InfoFieldAnnotation {
                 1,VCFInfoHeaderLine.INFO_TYPE.String,"Is this site seen in Pilot1 or Pilot2 of 1KG?");
     }
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
-        if ( tracker == null ) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
+        if ( tracker == null )
             return null;
-        }
 
         RODRecordList pilot1 = tracker.getTrackData("pilot1",null);
         RODRecordList pilot2 = tracker.getTrackData("pilot2",null);
 
+        String result;
+
         if ( pilot1 == null && pilot2 == null) {
-            return "0";
+            result = "0";
         } else {
             if ( pilot1 != null && ! ( (HapmapVCFROD) pilot1.get(0)).getRecord().isFiltered() ) {
-                return "1";
+                result = "1";
             } else if ( pilot2 != null && ! ( (HapmapVCFROD) pilot2.get(0)).getRecord().isFiltered() ) {
-                return "1";
+                result = "1";
             } else {
-                return "0";
+                result = "0";
             }
         }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), result);
+        return map;
     }
 }
 

@@ -14,11 +14,12 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 
 public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         ArrayList<Integer> qualities = new ArrayList<Integer>();
         for ( String sample : stratifiedContexts.keySet() ) {
             ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
@@ -30,7 +31,9 @@ public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotatio
         for ( Integer i : qualities )
             quals[index++] = i;
         double rms = MathUtils.rms(quals);
-        return String.format("%.2f", rms);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.2f", rms));
+        return map;
     }
 
     public String getKeyName() { return VCFRecord.RMS_MAPPING_QUALITY_KEY; }

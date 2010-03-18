@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
@@ -227,7 +226,7 @@ public class UnifiedGenotyperEngine {
             if ( call != null && call.vc != null ) {
                 // first off, we want to use the *unfiltered* context for the annotations
                 stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
-                annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, (MutableVariantContext)call.vc);
+                call.vc = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, call.vc);
             }
         }
 

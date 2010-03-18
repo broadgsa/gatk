@@ -10,17 +10,20 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
         if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
 
         int run = computeHomopolymerRun(vc.getAlternateAllele(0).toString().charAt(0), ref);
-        return String.format("%d", run);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%d", run));
+        return map;
     }
 
     public String getKeyName() { return "HRun"; }

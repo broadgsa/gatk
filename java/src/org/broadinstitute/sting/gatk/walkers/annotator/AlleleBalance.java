@@ -9,11 +9,12 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
         if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
@@ -55,7 +56,9 @@ public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
         if ( MathUtils.compareDoubles(totalWeights, 0.0) == 0 )
             return null;
 
-        return String.format("%.2f", (ratio / totalWeights));
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.2f", (ratio / totalWeights)));
+        return map;
     }
 
     public String getKeyName() { return "AB"; }

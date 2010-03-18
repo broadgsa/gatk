@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Created by IntelliJ IDEA.
@@ -29,21 +30,22 @@ public class ProportionOfNonrefBasesSupportingSNP implements InfoFieldAnnotation
                         1,VCFInfoHeaderLine.INFO_TYPE.Float,"Simple proportion of non-reference bases that are the SNP base");
     }
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
-        if ( ! vc.isSNP() || ! vc.isBiallelic() ) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
+        if ( ! vc.isSNP() || ! vc.isBiallelic() )
             return null;
-        } else {
-            Pair<Integer,Integer> totalNonref_totalSNP = new Pair<Integer,Integer>(0,0);
-            for ( String sample : context.keySet() ) {
-                ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
-                totalNonref_totalSNP = getNonrefAndSNP(pileup, ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), totalNonref_totalSNP);
 
-            }
-            if ( totalNonref_totalSNP.equals(new Pair<Integer,Integer>(0,0)) )
-                return null;
-            double p = getProportionOfNonrefBasesThatAreSNP(totalNonref_totalSNP);
-            return String.format("%f", p );
+        Pair<Integer,Integer> totalNonref_totalSNP = new Pair<Integer,Integer>(0,0);
+        for ( String sample : context.keySet() ) {
+            ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            totalNonref_totalSNP = getNonrefAndSNP(pileup, ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), totalNonref_totalSNP);
+
         }
+        if ( totalNonref_totalSNP.equals(new Pair<Integer,Integer>(0,0)) )
+            return null;
+        double p = getProportionOfNonrefBasesThatAreSNP(totalNonref_totalSNP);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%f", p ));
+        return map;
     }
 
     private Pair<Integer,Integer> getNonrefAndSNP(ReadBackedPileup p, char ref, char snp, Pair<Integer,Integer> totals) {

@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class SecondBaseSkew implements InfoFieldAnnotation, ExperimentalAnnotation {
@@ -24,7 +25,16 @@ public class SecondBaseSkew implements InfoFieldAnnotation, ExperimentalAnnotati
 
     public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Chi-square Secondary Base Skew"); }
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        String annotation = getAnnotation(ref, stratifiedContexts, vc);
+        if ( annotation == null )
+            return null;
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), annotation);            
+        return map;
+    }
+
+    public String getAnnotation(ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
 

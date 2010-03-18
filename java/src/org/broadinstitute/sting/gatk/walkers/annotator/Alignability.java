@@ -9,11 +9,12 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnot
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class Alignability implements InfoFieldAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, 
+    public Map<String, Object> annotate(RefMetaDataTracker tracker,
 						   ReferenceContext ref, 
 						   Map<String, StratifiedAlignmentContext> stratifiedContexts, 
 						   VariantContext vc)
@@ -29,7 +30,10 @@ public class Alignability implements InfoFieldAnnotation {
 			}
 			value = Integer.parseInt(record.get("alignability")); 
 		}
-		return String.format("%d", value);
+        
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%d", value));
+        return map;
     }
 
     public String getKeyName() { return "Alignability"; }

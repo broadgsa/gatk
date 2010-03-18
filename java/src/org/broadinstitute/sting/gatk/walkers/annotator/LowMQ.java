@@ -10,11 +10,12 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class LowMQ implements InfoFieldAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         double mq0 = 0;
 		double mq10 = 0;
 		double total = 0;
@@ -28,7 +29,9 @@ public class LowMQ implements InfoFieldAnnotation {
 				total += 1; 
             }
         }
-        return String.format("%.04f,%.04f,%.00f", mq0/total, mq10/total, total);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.04f,%.04f,%.00f", mq0/total, mq10/total, total));
+        return map;
     }
 
     public String getKeyName() { return "LowMQ"; }

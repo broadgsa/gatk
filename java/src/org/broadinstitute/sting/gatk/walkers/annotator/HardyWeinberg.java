@@ -10,6 +10,7 @@ import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotation {
@@ -18,7 +19,7 @@ public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotat
     private static final int MIN_GENOTYPE_QUALITY = 10;
     private static final int MIN_NEG_LOG10_PERROR = MIN_GENOTYPE_QUALITY / 10;
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
         final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
@@ -53,7 +54,9 @@ public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotat
 
         double pvalue = HardyWeinbergCalculation.hwCalculate(refCount, hetCount, homCount);
         //System.out.println(refCount + " " + hetCount + " " + homCount + " " + pvalue);
-        return String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue));
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue)));
+        return map;
     }
 
     public String getKeyName() { return "HW"; }

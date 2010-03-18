@@ -10,8 +10,8 @@ import java.util.Map;
 
 public interface InfoFieldAnnotation {
 
-    // return the annotation for the given variation and context split by sample (return null for no annotation)
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc);
+    // return annotations for the given contexts split by sample
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc);
 
     // return the INFO key
     public String getKeyName();

@@ -417,7 +417,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             attributes.put("SB", new Double(strandScore));
         }
 
-        VariantContext vc = new MutableVariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, null, attributes);
+        VariantContext vc = new VariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, null, attributes);
 
         return new VariantCallContext(vc, phredScaledConfidence >= CONFIDENCE_THRESHOLD);
     }

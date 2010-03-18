@@ -11,13 +11,14 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.HashMap;
 
 
 public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgressAnnotation {
     private final static boolean DEBUG = false;
     private static final double minPValue = 1e-10;
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
         if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
@@ -63,7 +64,9 @@ public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgress
         if ( pvalue < minPValue )
             pvalue = minPValue;
 
-        return String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue));
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue)));
+        return map;
     }
 
     protected abstract void fillQualsFromPileup(char ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals);

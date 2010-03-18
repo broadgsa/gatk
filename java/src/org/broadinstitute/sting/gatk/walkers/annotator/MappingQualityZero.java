@@ -11,11 +11,12 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.Map;
+import java.util.HashMap;
 
 
 public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotation {
 
-    public String annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         int mq0 = 0;
         for ( String sample : stratifiedContexts.keySet() ) {
             ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
@@ -24,7 +25,9 @@ public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotati
                     mq0++;
             }
         }
-        return String.format("%d", mq0);
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyName(), String.format("%d", mq0));
+        return map;
     }
 
     public String getKeyName() { return "MQ0"; }
