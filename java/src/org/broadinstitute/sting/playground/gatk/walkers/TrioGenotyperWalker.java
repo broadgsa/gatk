@@ -122,7 +122,7 @@ public class TrioGenotyperWalker extends RefWalker<VariantContext, Integer>{
                 }
             }
 
-            double[] posteriors = MathUtils.log10posteriorsFromLog10L(L);
+            double[] posteriors = MathUtils.normalizeFromLog10(L, true);
             log10POfGenotype = posteriors[bestIndex];
         }
         //log10POfViolation = Math.min(log10POfViolation, 0);

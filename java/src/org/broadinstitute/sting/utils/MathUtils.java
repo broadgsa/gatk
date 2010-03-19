@@ -277,9 +277,13 @@ public class MathUtils {
 
     /**
      * normalizes the log10-based array
+     *
      * @param array  the array to be normalized
+     * @param takeLog10OfOutput if true, the output will be transformed back into log10 units
+     *
+     * @return a newly allocated array corresponding the normalized values in array, maybe log10 transformed
     */
-    public static double[] normalizeFromLog10(double[] array) {
+    public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput) {
         double[] normalized = new double[array.length];
 
         // for precision purposes, we need to add (or really subtract, since they're
@@ -292,9 +296,16 @@ public class MathUtils {
         double sum = 0.0;
         for (int i = 0; i < array.length; i++)
             sum += normalized[i];
-        for (int i = 0; i < array.length; i++)
-            normalized[i] /= sum;
+        for (int i = 0; i < array.length; i++) {
+            double x = normalized[i] / sum;
+            if ( takeLog10OfOutput ) x = Math.log10(x);
+            normalized[i] = x;
+        }
 
         return normalized;
+    }
+
+    public static double[] normalizeFromLog10(double[] array) {
+        return normalizeFromLog10(array, false);
     }
 }
