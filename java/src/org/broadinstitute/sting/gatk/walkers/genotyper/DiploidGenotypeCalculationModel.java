@@ -12,8 +12,14 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import java.util.*;
 
 public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalculationModel {
+    /**
+     * Should we enable the experimental genotype likelihood calculations?
+     */
+    protected boolean useExptGenotypeLikelihoods = false;
 
-    protected DiploidGenotypeCalculationModel() {}
+    protected DiploidGenotypeCalculationModel(boolean useExptGenotypeLikelihoods) {
+        this.useExptGenotypeLikelihoods = useExptGenotypeLikelihoods;
+    }
 
     // the GenotypeLikelihoods map
     private HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();
@@ -21,7 +27,9 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
     private enum GenotypeType { REF, HET, HOM }
 
-    protected void initialize(char ref, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
+    protected void initialize(char ref,
+                              Map<String, StratifiedAlignmentContext> contexts,
+                              StratifiedAlignmentContext.StratifiedContextType contextType) {
         // initialize the GenotypeLikelihoods
         GLs.clear();
         AFMatrixMap.clear();
@@ -40,7 +48,13 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             ReadBackedPileup pileup = context.getContext(contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
-            GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
+            GenotypeLikelihoods GL;
+            if ( useExptGenotypeLikelihoods ) {
+                GL = new SamplingGenotypeLikelihoods(baseModel, priors, defaultPlatform);
+            } else {
+                GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
+            }
+
             GL.add(pileup, true);
             GLs.put(sample, GL);
 
