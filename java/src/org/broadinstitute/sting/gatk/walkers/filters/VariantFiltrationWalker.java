@@ -55,7 +55,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     }
 
     // the structures necessary to initialize and maintain a windowed context
-    private VariantContextWindow variantContextWindow;
+    private FiltrationContextWindow variantContextWindow;
     private static final int windowSize = 10;  // 10 variants on either end of the current one
     private ArrayList<FiltrationContext> windowInitializer = new ArrayList<FiltrationContext>();
 
@@ -119,7 +119,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( windowInitializer != null ) {
             windowInitializer.add(varContext);
             if ( windowInitializer.size() == windowSize ) {
-                variantContextWindow = new VariantContextWindow(windowInitializer);
+                variantContextWindow = new FiltrationContextWindow(windowInitializer);
                 windowInitializer = null;
             }
         } else {
@@ -194,7 +194,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( windowInitializer != null ) {
             while ( windowInitializer.size() < windowSize )
                 windowInitializer.add(null);
-            variantContextWindow = new VariantContextWindow(windowInitializer);
+            variantContextWindow = new FiltrationContextWindow(windowInitializer);
         }
         for (int i=0; i < windowSize; i++) {
             variantContextWindow.moveWindow(null);

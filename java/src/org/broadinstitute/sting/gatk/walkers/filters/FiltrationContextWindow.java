@@ -36,7 +36,7 @@ import java.util.*;
  * @version 0.1
  */
 
-public class VariantContextWindow {
+public class FiltrationContextWindow {
 
     /**
      * The variants.
@@ -48,7 +48,7 @@ public class VariantContextWindow {
      * Contructor for a variant context.
      * @param firstVariants  the first set of variants, comprising the right half of the window
      */
-    public VariantContextWindow(List<FiltrationContext> firstVariants) {
+    public FiltrationContextWindow(List<FiltrationContext> firstVariants) {
         int windowSize = (firstVariants == null ? 1 : 2 * firstVariants.size() + 1);
         currentContext = (firstVariants == null ? 0 : firstVariants.size());
         window.addAll(firstVariants);

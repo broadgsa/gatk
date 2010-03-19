@@ -13,7 +13,7 @@ public class ClusteredSnps {
             throw new IllegalArgumentException("Window and threshold values need to be positive values");
     }
 
-    public boolean filter(VariantContextWindow contextWindow) {
+    public boolean filter(FiltrationContextWindow contextWindow) {
 
         FiltrationContext[] variants = contextWindow.getWindow(snpThreshold-1, snpThreshold-1);
         for (int i = 0; i < snpThreshold; i++) {
