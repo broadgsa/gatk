@@ -142,12 +142,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             }
         }
 
-        if ( variant instanceof RodVCF ) {
-            RodVCF vcf = (RodVCF)variant;
-            vcfWriter.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase(), Arrays.asList(vcf.getRecord().getGenotypeFormatString().split(VCFRecord.GENOTYPE_FIELD_SEPERATOR)), vcf.getFilterString() != null));
-        } else {
-            vcfWriter.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase()));
-        }
+        vcfWriter.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase()));
 
         return 1;
     }
