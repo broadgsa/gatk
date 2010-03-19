@@ -220,7 +220,7 @@ public class VariantContextAdaptors {
         return toVCF(vc, vcfRefBase, null, true);
     }
 
-    public static VCFRecord toVCF(VariantContext vc, char vcfRefBase, List<String> vcfGenotypeAttributeKeys, boolean filtersWereAppliedToContext) {
+    public static VCFRecord toVCF(VariantContext vc, char vcfRefBase, List<String> allowedGenotypeAttributeKeys, boolean filtersWereAppliedToContext) {
         // deal with the reference
         String referenceBases = new String(vc.getReference().getBases());
 
@@ -277,11 +277,12 @@ public class VariantContextAdaptors {
             alleleMap.put(a, encoding);
         }
 
-        if ( vcfGenotypeAttributeKeys == null ) {
-            vcfGenotypeAttributeKeys = new ArrayList<String>();
-            if ( vc.hasGenotypes() ) {
-                vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_KEY);
-                vcfGenotypeAttributeKeys.addAll(calcVCFGenotypeKeys(vc));
+        List<String> vcfGenotypeAttributeKeys = new ArrayList<String>();
+        if ( vc.hasGenotypes() ) {
+            vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_KEY);
+            for ( String key : calcVCFGenotypeKeys(vc) ) {
+                if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
+                    vcfGenotypeAttributeKeys.add(key);
             }
         }
         String genotypeFormatString = Utils.join(VCFRecord.GENOTYPE_FIELD_SEPERATOR, vcfGenotypeAttributeKeys);

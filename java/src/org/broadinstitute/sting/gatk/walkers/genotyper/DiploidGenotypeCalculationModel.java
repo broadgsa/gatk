@@ -119,6 +119,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             CalledGenotype cg = new CalledGenotype(sample, myAlleles, AFbasedGenotype.second);
             cg.setLikelihoods(GLs.get(sample).getLikelihoods());
             cg.setReadBackedPileup(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup());
+            cg.putAttribute(VCFGenotypeRecord.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
 
             double[] posteriors = GLs.get(sample).getPosteriors();
             cg.setPosteriors(posteriors);

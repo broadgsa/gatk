@@ -49,5 +49,5 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, ExperimentalA
 
     public String getKeyName() { return "AD"; }
 
-    public VCFFormatHeaderLine getDescription() { return new VCFFormatHeaderLine(getKeyName(), 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Depth in genotypes for each ALT allele, in the same order as listed"); }
+    public VCFFormatHeaderLine getDescription() { return new VCFFormatHeaderLine(getKeyName(), 1, VCFFormatHeaderLine.FORMAT_TYPE.Integer, "Depth in genotypes for each ALT allele, in the same order as listed"); }
 }

@@ -12,15 +12,15 @@ import org.broadinstitute.sting.utils.Utils;
  */
 public class VCFFormatHeaderLine extends VCFHeaderLine {
 
-    // the info field types
-    public enum INFO_TYPE {
+    // the format field types
+    public enum FORMAT_TYPE {
         Integer, Float, String
     }
 
     private String mName;
     private int mCount;
     private String mDescription;
-    private INFO_TYPE mType;
+    private FORMAT_TYPE mType;
 
 
     /**
@@ -31,7 +31,7 @@ public class VCFFormatHeaderLine extends VCFHeaderLine {
      * @param type         the type for this header line
      * @param description  the description for this header line
      */
-    public VCFFormatHeaderLine(String name, int count, INFO_TYPE type, String description) {
+    public VCFFormatHeaderLine(String name, int count, FORMAT_TYPE type, String description) {
         super("FORMAT", "");
         mName = name;
         mCount = count;
@@ -52,7 +52,7 @@ public class VCFFormatHeaderLine extends VCFHeaderLine {
 
         mName = pieces[0];
         mCount = Integer.valueOf(pieces[1]);
-        mType = INFO_TYPE.valueOf(pieces[2]);
+        mType = FORMAT_TYPE.valueOf(pieces[2]);
         mDescription = Utils.trim(pieces[3], '"');
         // just in case there were some commas in the description
         for (int i = 4; i < pieces.length; i++)
@@ -62,6 +62,11 @@ public class VCFFormatHeaderLine extends VCFHeaderLine {
     protected String makeStringRep() {
         return String.format("FORMAT=%s,%d,%s,\"%s\"", mName, mCount, mType.toString(), mDescription);
     }
+
+    public String getName() { return mName; }
+    public int getCount() { return mCount; }
+    public String getDescription() { return mDescription; }
+    public FORMAT_TYPE getType() { return mType; }
 
     public boolean equals(Object o) {
         if ( !(o instanceof VCFFormatHeaderLine) )

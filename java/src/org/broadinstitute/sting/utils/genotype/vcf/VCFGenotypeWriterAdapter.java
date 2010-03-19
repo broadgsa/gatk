@@ -30,11 +30,8 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     // validation stringency
     private VALIDATION_STRINGENCY validationStringency = VALIDATION_STRINGENCY.STRICT;
 
-    // standard genotype format strings
-    private static String[] standardGenotypeFormatStrings = { VCFGenotypeRecord.GENOTYPE_KEY,
-                                                              VCFGenotypeRecord.DEPTH_KEY,
-                                                              VCFGenotypeRecord.GENOTYPE_QUALITY_KEY,
-                                                              VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY };
+    // allowed genotype format strings
+    private List<String> allowedGenotypeFormatStrings;
 
     public VCFGenotypeWriterAdapter(File writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output file must not be null");
@@ -55,14 +52,21 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     public void writeHeader(Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
         mSampleNames.addAll(sampleNames);
 
-        // setup the header fields
+        // set up the header fields
         Set<VCFHeaderLine> hInfo = new TreeSet<VCFHeaderLine>();
         hInfo.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
         hInfo.addAll(headerInfo);
         
-        // setup the sample names
+        // set up the sample names
         mHeader = new VCFHeader(hInfo, mSampleNames);
         mWriter.writeHeader(mHeader);
+
+        // set up the allowed genotype format fields
+        allowedGenotypeFormatStrings = new ArrayList<String>();
+        for ( VCFHeaderLine field : headerInfo ) {
+            if ( field instanceof VCFFormatHeaderLine )
+                allowedGenotypeFormatStrings.add(((VCFFormatHeaderLine)field).getName());
+        }
     }
 
     /** finish writing, closing any open files. */
@@ -79,12 +83,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
-        List<String> formatStrings;
-        if ( vc.getChromosomeCount() > 0 )
-            formatStrings = Arrays.asList(standardGenotypeFormatStrings);
-        else
-            formatStrings = new ArrayList<String>();
-        VCFRecord call = VariantContextAdaptors.toVCF(vc, vc.getReference().toString().charAt(0), formatStrings, false);
+        VCFRecord call = VariantContextAdaptors.toVCF(vc, vc.getReference().toString().charAt(0), allowedGenotypeFormatStrings, false);
 
         Set<Allele> altAlleles = vc.getAlternateAlleles();
         StringBuffer altAlleleCountString = new StringBuffer();
