@@ -6,7 +6,12 @@
     <dependencies>
       <!-- Variant annotator -->
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator" />
-      <!-- And the annotations -->
+      <!-- The interfacess -->
+      <class name="org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType" />
+      <class name="org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation" />
+      <class name="org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation" />
+      <class name="org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation" />
+      <!-- The annotations -->
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.DepthOfCoverage" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.HomopolymerRun" />
