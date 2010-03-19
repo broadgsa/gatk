@@ -352,9 +352,7 @@ public class VariantContextAdaptors {
         Set<String> keys = new HashSet<String>();
 
         for ( Genotype g : vc.getGenotypes().values() ) {
-            for ( String key : g.getAttributes().keySet() ) {
-                keys.add(key);
-            }
+            keys.addAll(g.getAttributes().keySet());
         }
 
         keys.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);

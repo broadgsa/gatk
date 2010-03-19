@@ -316,7 +316,7 @@ public class VCFGenotypeRecord {
     }
 
     public static String getMissingFieldValue(String field) {
-        String result;
+        String result = "";
         if ( field.equals(GENOTYPE_QUALITY_KEY) )
             result = String.valueOf(MISSING_GENOTYPE_QUALITY);
         else if ( field.equals(DEPTH_KEY) || field.equals(OLD_DEPTH_KEY) )
@@ -328,8 +328,6 @@ public class VCFGenotypeRecord {
         // TODO -- support haplotype quality
         //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
         //    result = String.valueOf(MISSING_HAPLOTYPE_QUALITY);
-        else
-            result = "-1";
         return result;
     }
 
