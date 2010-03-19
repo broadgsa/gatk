@@ -753,6 +753,10 @@ public class GenomeAnalysisEngine {
         if (reads.getReadsFiles().size() == 0)
             return null;
 
+        // Force dynamic merging to use original sharding method until memory usage is under control.
+        if (reads.getReadsFiles().size() > 1)
+            argCollection.disableExperimentalSharding = true;
+
         SAMDataSource dataSource = null;
         if(!argCollection.disableExperimentalSharding)
             dataSource = new BlockDrivenSAMDataSource(reads);
