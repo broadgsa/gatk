@@ -1,10 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
-
 
 public class ClusteredSnps {
     private int window = 10;
@@ -19,13 +15,13 @@ public class ClusteredSnps {
 
     public boolean filter(VariantContextWindow contextWindow) {
 
-        Pair<RefMetaDataTracker, RodVCF>[] variants = contextWindow.getWindow(snpThreshold-1, snpThreshold-1);
+        FiltrationContext[] variants = contextWindow.getWindow(snpThreshold-1, snpThreshold-1);
         for (int i = 0; i < snpThreshold; i++) {
             if ( variants[i] == null || variants[i+snpThreshold-1] == null )
                 continue;
 
-            GenomeLoc left = variants[i].second.getLocation();
-            GenomeLoc right = variants[i+snpThreshold-1].second.getLocation();
+            GenomeLoc left = variants[i].getVariantContext().getLocation();
+            GenomeLoc right = variants[i+snpThreshold-1].getVariantContext().getLocation();
             if ( left.getContigIndex() == right.getContigIndex() &&
                  Math.abs(right.getStart() - left.getStart()) <= window )
                 return true;

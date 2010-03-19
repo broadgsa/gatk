@@ -1,11 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -16,12 +17,13 @@ import org.apache.commons.jexl.*;
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type= RodVCF.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant",type= ReferenceOrderedDatum.class))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
-    @Argument(fullName="filterExpression", shortName="filter", doc="Expression used with INFO fields to filter (see wiki docs for more info)", required=false)
-    protected String[] FILTER_STRINGS = new String[]{null};
-    @Argument(fullName="filterName", shortName="filterName", doc="The text to put in the FILTER field if a filter expression is provided and a variant call matches", required=false)
-    protected String[] FILTER_NAMES = new String[]{"GATK_filter"};
+
+    @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
+    protected String[] FILTER_EXPS = new String[]{};
+    @Argument(fullName="filterName", shortName="filterName", doc="Names to use for the list of filters (must be a 1-to-1 mapping); this name is put in the FILTER field for variants that get filtered", required=false)
+    protected String[] FILTER_NAMES = new String[]{};
 
     @Argument(fullName="clusterSize", shortName="cluster", doc="The number of SNPs which make up a cluster (see also --clusterWindowSize)", required=false)
     protected Integer clusterSize = 3;
@@ -30,6 +32,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call", required=false)
     protected String MASK_NAME = "Mask";
+
+    // JEXL expressions for the filters
+    List<VariantContextUtils.JexlVCMatchExp> filterExps;
 
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
 
@@ -49,15 +54,13 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         }
     }
 
-    private List<FilterExp> filterExpressions = new ArrayList<FilterExp>();
-
     // the structures necessary to initialize and maintain a windowed context
     private VariantContextWindow variantContextWindow;
     private static final int windowSize = 10;  // 10 variants on either end of the current one
-    private ArrayList<Pair<RefMetaDataTracker, RodVCF>> windowInitializer = new ArrayList<Pair<RefMetaDataTracker, RodVCF>>();
+    private ArrayList<FiltrationContext> windowInitializer = new ArrayList<FiltrationContext>();
 
 
-    private void initializeVcfWriter(RodVCF rod) {
+    private void initializeVcfWriter(VCFRecord rec) {
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
@@ -67,8 +70,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
 
-        for ( FilterExp exp : filterExpressions ) {
-            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.expStr));
+        for ( VariantContextUtils.JexlVCMatchExp exp : filterExps ) {
+            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
         }
 
         List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
@@ -80,26 +83,14 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         }
 
         writer = new VCFWriter(out);
-        writer.writeHeader(new VCFHeader(hInfo, rod.getHeader().getGenotypeSamples()));
+        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(Arrays.asList(rec.getSampleNames()))));
     }
 
     public void initialize() {
         if ( clusterWindow > 0 )
             clusteredSNPs = new ClusteredSnps(clusterSize, clusterWindow);
 
-        if ( FILTER_NAMES.length != FILTER_STRINGS.length )
-            throw new StingException("Inconsistent number of provided filter names and expressions.");
-
-        for ( int i = 0; i < FILTER_NAMES.length; i++ ) {
-            if ( FILTER_STRINGS[i] != null )  {
-                try {
-                    Expression filterExpression = ExpressionFactory.createExpression(FILTER_STRINGS[i]);
-                    filterExpressions.add(new FilterExp(FILTER_NAMES[i], FILTER_STRINGS[i], filterExpression));
-                } catch (Exception e) {
-                    throw new StingException("Invalid expression used (" + FILTER_STRINGS[i] + "). Please see the JEXL docs for correct syntax.");
-                }
-            }
-        }
+        filterExps = VariantContextUtils.initializeMatchExps(FILTER_NAMES, FILTER_EXPS);
     }
 
     public Integer reduceInit() { return 0; }
@@ -121,8 +112,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( rods == null || rods.size() == 0 )
             return 0;
 
-        RodVCF variant = (RodVCF)rods.get(0);
-        Pair<RefMetaDataTracker, RodVCF> varContext = new Pair<RefMetaDataTracker, RodVCF>(tracker, variant);
+        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", rods.get(0));
+        FiltrationContext varContext = new FiltrationContext(tracker, ref, vc);
 
         // if we're still initializing the context, do so
         if ( windowInitializer != null ) {
@@ -141,14 +132,14 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     private void filter() {
         // get the current context
-        Pair<RefMetaDataTracker, RodVCF> context = variantContextWindow.getContext();
+        FiltrationContext context = variantContextWindow.getContext();
         if ( context == null )
             return;
 
         StringBuilder filterString = new StringBuilder();
 
         // test for SNP mask, if present
-        RODRecordList mask = context.first.getTrackData("mask", null);
+        RODRecordList mask = context.getTracker().getTrackData("mask", null);
         if ( mask != null && mask.size() > 0 )
             addFilter(filterString, MASK_NAME);
 
@@ -156,22 +147,13 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( clusteredSNPs != null && clusteredSNPs.filter(variantContextWindow) )
             addFilter(filterString, CLUSTERED_SNP_FILTER_NAME);
 
-        for ( FilterExp exp : filterExpressions ) {
-            Map<String, String> infoMap = new HashMap<String, String>(context.second.mCurrentRecord.getInfoValues());
-            infoMap.put("QUAL", String.valueOf(context.second.mCurrentRecord.getQual()));
-
-            JexlContext jContext = JexlHelper.createContext();
-            jContext.setVars(infoMap);
-
-            try {
-                if ( (Boolean)exp.exp.evaluate(jContext) )
-                    addFilter(filterString, exp.name);
-            } catch (Exception e) {
-                throw new StingException("Error evaluating filter expression for given input. Most often this is caused by a malformatted expression string, such as using an integral comparison for floating-point values. Observed value was: "+e.getMessage());
-            }
+        VariantContext vc = context.getVariantContext();
+        for ( VariantContextUtils.JexlVCMatchExp exp : filterExps ) {
+            if ( VariantContextUtils.match(vc, exp) )
+                addFilter(filterString, exp.name);
         }
 
-        writeVCF(context.second, filterString);
+        writeVCF(VariantContextAdaptors.toVCF(vc, context.getReferenceContext().getBase(), null, true), filterString);
     }
 
     private static void addFilter(StringBuilder sb, String filter) {
@@ -180,8 +162,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         sb.append(filter);
     }
 
-    private void writeVCF(RodVCF variant, StringBuilder filterString) {
-        VCFRecord rec = variant.mCurrentRecord;
+    private void writeVCF(VCFRecord rec, StringBuilder filterString) {
 
         if ( filterString.length() != 0 ) {
             // if the record is already filtered, don't destroy those filters
@@ -195,7 +176,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         }
 
         if ( writer == null )
-            initializeVcfWriter(variant);
+            initializeVcfWriter(rec);
         writer.addRecord(rec);
     }
 

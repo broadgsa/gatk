@@ -25,8 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 
@@ -38,17 +37,18 @@ import java.util.*;
  */
 
 public class VariantContextWindow {
+
     /**
      * The variants.
      */
-    private LinkedList<Pair<RefMetaDataTracker, RodVCF>> window = new LinkedList<Pair<RefMetaDataTracker, RodVCF>>();
+    private LinkedList<FiltrationContext> window = new LinkedList<FiltrationContext>();
     private int currentContext;
 
     /**
      * Contructor for a variant context.
      * @param firstVariants  the first set of variants, comprising the right half of the window
      */
-    public VariantContextWindow(List<Pair<RefMetaDataTracker, RodVCF>> firstVariants) {
+    public VariantContextWindow(List<FiltrationContext> firstVariants) {
         int windowSize = (firstVariants == null ? 1 : 2 * firstVariants.size() + 1);
         currentContext = (firstVariants == null ? 0 : firstVariants.size());
         window.addAll(firstVariants);
@@ -60,7 +60,7 @@ public class VariantContextWindow {
      * The context currently being examined.
      * @return The current context.
      */
-    public Pair<RefMetaDataTracker, RodVCF> getContext() {
+    public FiltrationContext getContext() {
         return window.get(currentContext);
     }
 
@@ -78,14 +78,14 @@ public class VariantContextWindow {
      * @param elementsToRight number of later contexts to return   ()
      * @return The current context window.
      */
-    public Pair<RefMetaDataTracker, RodVCF>[] getWindow(int elementsToLeft, int elementsToRight) {
+    public FiltrationContext[] getWindow(int elementsToLeft, int elementsToRight) {
         if ( elementsToLeft > maxWindowElements() || elementsToRight > maxWindowElements() )
             throw new StingException("Too large a window requested");
         if ( elementsToLeft < 0 || elementsToRight < 0 )
             throw new StingException("Window size cannot be negative");        
 
-        Pair[] array = new Pair[elementsToLeft + elementsToRight + 1];
-        ListIterator<Pair<RefMetaDataTracker, RodVCF>> iter = window.listIterator(currentContext - elementsToLeft);
+        FiltrationContext[] array = new FiltrationContext[elementsToLeft + elementsToRight + 1];
+        ListIterator<FiltrationContext> iter = window.listIterator(currentContext - elementsToLeft);
         for (int i = 0; i < elementsToLeft + elementsToRight + 1; i++)
             array[i] = iter.next();
         return array;
@@ -95,7 +95,7 @@ public class VariantContextWindow {
      * Move the window along to the next context
      * @param context The new rightmost context
      */
-    public void moveWindow(Pair<RefMetaDataTracker, RodVCF> context) {
+    public void moveWindow(FiltrationContext context) {
         window.removeFirst();
         window.addLast(context);
     }
