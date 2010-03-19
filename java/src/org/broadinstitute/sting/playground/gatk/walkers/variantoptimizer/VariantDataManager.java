@@ -47,17 +47,23 @@ public class VariantDataManager {
 
     public VariantDataManager( final ExpandingArrayList<VariantDatum> dataList, final ExpandingArrayList<String> _annotationKeys ) {
         numVariants = dataList.size();
-        data = dataList.toArray( new VariantDatum[numVariants]);
+        data = dataList.toArray( new VariantDatum[numVariants] );
         if( numVariants <= 0 ) {
             throw new StingException( "There are zero variants! (or possibly a problem with integer overflow)" );
         }
-        numAnnotations = _annotationKeys.size() + 1; // +1 for QUAL
-        if( numAnnotations <= 0 ) {
-            throw new StingException( "There are zero annotations! (or possibly a problem with integer overflow)" );
+        if( _annotationKeys == null ) {
+            numAnnotations = 0;
+            meanVector = null;
+            varianceVector = null;
+        } else {
+            numAnnotations = _annotationKeys.size() + 1; // +1 for QUAL
+            if( numAnnotations <= 0 ) {
+                throw new StingException( "There are zero annotations! (or possibly a problem with integer overflow)" );
+            }
+            meanVector = new double[numAnnotations];
+            varianceVector = new double[numAnnotations];
+            isNormalized = false;            
         }
-        meanVector = new double[numAnnotations];
-        varianceVector = new double[numAnnotations];
-        isNormalized = false;
         annotationKeys = _annotationKeys;
     }
 

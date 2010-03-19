@@ -282,6 +282,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     outputFile.println(-1);
                 }
             }
+            outputFile.close();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
@@ -384,6 +385,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     ( numKnownTi ==0 || numKnownTv == 0 ? "NaN" : ( ((double)numKnownTi) / ((double)numKnownTv) ) ) + "," +
                     ( numNovelTi ==0 || numNovelTv == 0 ? "NaN" : ( ((double)numNovelTi) / ((double)numNovelTv) )));
         }
+
+        outputFile.close();
     }
 
 
