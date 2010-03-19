@@ -74,7 +74,7 @@ public class BAMFileStat extends CommandLineProgram {
         inspector.inspect(System.out,null,null);
     }
 
-    private class BAMFileIndexContentInspector extends BAMFileIndex2 {
+    private class BAMFileIndexContentInspector extends PreloadedBAMFileIndex {
         public BAMFileIndexContentInspector(File bamFileIndex) {
             super(bamFileIndex);    
         }

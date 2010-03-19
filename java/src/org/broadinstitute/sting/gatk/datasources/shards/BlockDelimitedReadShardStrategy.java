@@ -60,7 +60,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
         this.dataSource = (BlockDrivenSAMDataSource)dataSource;
         this.position = this.dataSource.getCurrentPosition();
         if(locations != null)
-            filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList(),this.dataSource.getNumIndexLevels()-1));
+            filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList()));
 
         filePointerIterator = filePointers.iterator();
         if(filePointerIterator.hasNext())
@@ -91,15 +91,14 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     }
 
     public void advance() {
-        Map<SAMReaderID,List<Chunk>> shardPosition = null;
+        Map<SAMReaderID,List<Chunk>> shardPosition = new HashMap<SAMReaderID,List<Chunk>>();
         nextShard = null;
         SamRecordFilter filter = null;
 
         if(!filePointers.isEmpty()) {
             Map<SAMReaderID,List<Chunk>> selectedReaders = new HashMap<SAMReaderID,List<Chunk>>();
             while(selectedReaders.size() == 0 && currentFilePointer != null) {
-                shardPosition = dataSource.getFilePointersBounding(currentFilePointer.bin);
-
+                shardPosition = currentFilePointer.chunks;
                 for(SAMReaderID id: shardPosition.keySet()) {
                     List<Chunk> chunks = shardPosition.get(id);
                     List<Chunk> selectedChunks = new ArrayList<Chunk>();

@@ -92,7 +92,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
 
 
             this.reads = (BlockDrivenSAMDataSource)reads;
-            filePointers.addAll(IntervalSharder.shardIntervals(this.reads,intervals,this.reads.getNumIndexLevels()-1));
+            filePointers.addAll(IntervalSharder.shardIntervals(this.reads,intervals));
         }
         else {
             final int maxShardSize = 100000;
@@ -130,7 +130,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        Map<SAMReaderID,List<Chunk>> chunksBounding = reads!=null ? reads.getFilePointersBounding(nextFilePointer.bin) : null;
+        Map<SAMReaderID,List<Chunk>> chunksBounding = nextFilePointer.chunks != null ? nextFilePointer.chunks : null;
         return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 

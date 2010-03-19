@@ -96,36 +96,13 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     }
 
     /**
-     * Gets a list of the bins in each BAM file that overlap with the given interval list.
-     * @param location Location for which to determine the bin.
-     * @return A map of reader back to bin.
+     * Gets the index for a particular reader.  Always preloaded.
+     * @param id Id of the reader.
+     * @return The index.  Will preload the index if necessary.
      */
-    public List<Bin> getOverlappingBins(final GenomeLoc location) {
+    public PreloadedBAMFileIndex getIndex(final SAMReaderID id) {
         SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        if(readers.isEmpty())
-            return Collections.emptyList();
-
-        // All readers will have the same bin structure, so just use the first bin as an example.
-        SAMFileReader2 reader = (SAMFileReader2)readers.iterator().next();
-        return reader.getOverlappingBins(location.getContig(),(int)location.getStart(),(int)location.getStop());
-    }
-
-    /**
-     * Gets the file pointers bounded by this bin, grouped by the reader of origination.
-     * @param bin The bin for which to load data.
-     * @return A map of the file pointers bounding the bin.
-     */
-    public Map<SAMReaderID,List<Chunk>> getFilePointersBounding(Bin bin) {
-        SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        Map<SAMReaderID,List<Chunk>> filePointers = new HashMap<SAMReaderID,List<Chunk>>();
-        for(SAMReaderID id: getReaderIDs()) {
-            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
-            if(bin != null)
-                filePointers.put(id,reader2.getFilePointersBounding(bin));
-            else
-                filePointers.put(id,Collections.<Chunk>emptyList());
-        }
-        return filePointers;
+        return ((SAMFileReader2)readers.getReader(id)).getIndex(PreloadedBAMFileIndex.class);
     }
 
     /**
@@ -134,65 +111,6 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      */
     public Map<SAMReaderID,Chunk> getCurrentPosition() {
         return readerPositions;
-    }
-
-    /**
-     * Get the number of levels employed by this index.
-     * @return Number of levels in this index.
-     */
-    public int getNumIndexLevels() {
-        SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        if(readers.isEmpty())
-            throw new StingException("Unable to determine number of index levels; no BAMs are present.");
-        if(!hasIndex())
-            throw new SAMException("Unable to determine number of index levels; BAM file index is not present.");
-        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-        return firstReader.getNumIndexLevels();
-    }
-
-    /**
-     * Gets the level associated with the given bin number.
-     * @param bin The bin for which to determine the level.
-     * @return the level associated with the given bin number.
-     */
-    public int getLevelForBin(final Bin bin) {
-        SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        if(readers.isEmpty())
-            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
-        if(!hasIndex())
-            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
-        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-        return firstReader.getLevelForBin(bin);
-    }
-
-    /**
-     * Gets the first locus that this bin can index into.
-     * @param bin The bin to test.
-     * @return The last position that the given bin can represent.
-     */
-    public int getFirstLocusInBin(final Bin bin) {
-        SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        if(readers.isEmpty())
-            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
-        if(!hasIndex())
-            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
-        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-        return firstReader.getFirstLocusInBin(bin);
-    }
-
-    /**
-     * Gets the last locus that this bin can index into.
-     * @param bin The bin to test.
-     * @return The last position that the given bin can represent.
-     */
-    public int getLastLocusInBin(final Bin bin) {
-        SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        if(readers.isEmpty())
-            throw new StingException("Unable to determine number of level for bin; no BAMs are present.");
-        if(!hasIndex())
-            throw new SAMException("Unable to determine number of level for bin; BAM file index is not present.");
-        SAMFileReader2 firstReader = (SAMFileReader2)readers.iterator().next();
-        return firstReader.getLastLocusInBin(bin);
     }
 
     /**
@@ -264,6 +182,8 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(SAMReaderID id: getReaderIDs()) {
             SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
+            if(shard.getChunks().get(id) == null)
+                continue;
             CloseableIterator<SAMRecord> iterator = reader2.iterator(shard.getChunks().get(id));
             if(shard.getFilter() != null)
                 iterator = new FilteringIterator(iterator,shard.getFilter());
