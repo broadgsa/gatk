@@ -69,14 +69,10 @@ public class VCFUtils {
         VCFParameters params = new VCFParameters();
         params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
 
-        // keep track of the locus specific data so we can merge them intelligently
-        int totalReadDepth = 0;
+        // keep track of the data so we can merge them intelligently
         double maxConfidence = 0.0;
-        double totalSLOD = 0.0;
-        int SLODsSeen = 0;
-        double totalFreq = 0.0;
-        int freqsSeen = 0;
         String id = null;
+        Map<String, String> infoFields = new HashMap<String, String>();
         List<String> filters = new ArrayList<String>();
 
         for ( RodVCF rod : rods ) {
@@ -87,9 +83,6 @@ public class VCFUtils {
                 if ( params.getPosition() < 1 )
                     params.setLocations(rod.getLocation(), call.getReference());
                 params.addGenotypeRecord(createVCFGenotypeRecord(params, call, rod.mCurrentRecord));
-                int depth = call.getReadCount();
-                if ( depth > 0 )
-                    totalReadDepth += call.getReadCount();
             }
 
             // set the overall confidence to be the max entry we see
@@ -97,32 +90,16 @@ public class VCFUtils {
             if ( confidence > maxConfidence )
                 maxConfidence = confidence;
 
-            if ( !rod.isReference() && rod.hasNonRefAlleleFrequency() ) {
-                totalFreq += rod.getNonRefAlleleFrequency();
-                freqsSeen++;
-            }
-
-            if ( rod.hasStrandBias() ) {
-                totalSLOD += rod.getStrandBias();
-                SLODsSeen++;
-            }
-
             if ( rod.getID() != null )
                 id = rod.getID();
 
             if ( rod.isFiltered() )
                 filters.add(rod.getFilterString());
+
+            // just take the last value we see for a given key
+            infoFields.putAll(rod.getInfoValues());
         }
 
-        Map<String, String> infoFields = new HashMap<String, String>();
-        infoFields.put(VCFRecord.DEPTH_KEY, String.format("%d", totalReadDepth));
-
-        // set the overall strand bias and allele frequency to be the average of all entries we've seen
-        if ( SLODsSeen > 0 )
-            infoFields.put(VCFRecord.STRAND_BIAS_KEY, String.format("%.2f", (totalSLOD/(double)SLODsSeen)));
-        if ( freqsSeen > 0 )
-            infoFields.put(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%.2f", (totalFreq/(double)freqsSeen)));
-                
         return new VCFRecord(params.getReferenceBases(),
                 params.getContig(),
                 params.getPosition(),
@@ -152,16 +129,10 @@ public class VCFUtils {
         }
 
         VCFGenotypeRecord record = new VCFGenotypeRecord(gtype.getSampleName(), alleles, VCFGenotypeRecord.PHASE.UNPHASED);
-
-        // calculate the genotype quality and the read depth
-        record.setField(VCFGenotypeRecord.DEPTH_KEY, String.valueOf(gtype.getReadCount()));
-        params.addFormatItem(VCFGenotypeRecord.DEPTH_KEY);
-        double qual = Math.min(10.0 * gtype.getNegLog10PError(), VCFGenotypeRecord.MAX_QUAL_VALUE);
-        if ( qual >= 0 )
-            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
-        else
-            record.setField(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%d", VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY));
-        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
+        for ( Map.Entry<String, String> entry : gtype.getFields().entrySet() ) {
+            record.setField(entry.getKey(), entry.getValue());
+            params.addFormatItem(entry.getKey());
+        }
 
         record.setVCFRecord(vcfrecord);
         return record;

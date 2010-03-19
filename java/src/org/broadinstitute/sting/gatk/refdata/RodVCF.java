@@ -90,20 +90,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Ite
         return mCurrentRecord.getNonRefAlleleFrequency();
     }
 
-    public boolean hasStrandBias() {
-        assertNotNull();
-        return this.mCurrentRecord.getInfoValues().containsKey(VCFRecord.STRAND_BIAS_KEY);
-    }
-
-    /**
-     * get the strand bias of this variant
-     *
-     * @return StrandBias with the stored slod
-     */
-    public double getStrandBias() {
-        return hasStrandBias() ? Double.valueOf(this.mCurrentRecord.getInfoValues().get(VCFRecord.STRAND_BIAS_KEY)) : 0.0;
-    }
-
     /** @return the VARIANT_TYPE of the current variant */
     public Variation.VARIANT_TYPE getType() {
         assertNotNull();
