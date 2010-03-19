@@ -139,11 +139,16 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     }
 
     public static boolean isViolation(VariantContext vc, Genotype momG, Genotype dadG, Genotype childG ) {
+        return isViolation(vc, momG.getAlleles(), dadG.getAlleles(), childG.getAlleles());
+    }
+
+    public static boolean isViolation(VariantContext vc, List<Allele> momA, List<Allele> dadA, List<Allele> childA ) {
         //VariantContext momVC = vc.subContextFromGenotypes(momG);
         //VariantContext dadVC = vc.subContextFromGenotypes(dadG);
         int i = 0;
-        for ( Allele momAllele : momG.getAlleles() ) {
-            for ( Allele dadAllele : dadG.getAlleles() ) {
+        Genotype childG = new Genotype("kidG", childA);
+        for ( Allele momAllele : momA ) {
+            for ( Allele dadAllele : dadA ) {
                 if ( momAllele.isCalled() && dadAllele.isCalled() ) {
                     Genotype possibleChild = new Genotype("possibleGenotype" + i, Arrays.asList(momAllele, dadAllele));
                     if ( childG.sameGenotype(possibleChild, false) ) {
