@@ -83,8 +83,8 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * @param read Add a read to the internal shard buffer.
      */
     public void addRead(SAMRecord read) {
-        if(isBufferFull())
-            throw new StingException("Cannot store more reads in buffer: out of space");
+        // DO NOT validate that the buffer is full.  Paired read sharding will occasionally have to stuff another
+        // read or two into the buffer.
         reads.add(read);
     }
 

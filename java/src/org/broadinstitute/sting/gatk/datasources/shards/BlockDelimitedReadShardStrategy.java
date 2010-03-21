@@ -29,6 +29,9 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
      */
     protected final BlockDrivenSAMDataSource dataSource;
 
+    /**
+     * The cached shard to be returned next.  Prefetched in the peekable iterator style.
+     */
     private Shard nextShard = null;
 
     /** our storage of the genomic locations they'd like to shard over */
@@ -52,6 +55,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     /**
      * Create a new read shard strategy, loading read shards from the given BAM file.
      * @param dataSource Data source from which to load shards.
+     * @param locations intervals to use for sharding.
      */
     public BlockDelimitedReadShardStrategy(SAMDataSource dataSource, GenomeLocSortedSet locations) {
         if(!(dataSource instanceof BlockDrivenSAMDataSource))

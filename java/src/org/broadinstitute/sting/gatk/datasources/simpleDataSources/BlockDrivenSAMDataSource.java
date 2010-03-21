@@ -16,6 +16,8 @@ import net.sf.picard.filter.FilteringIterator;
 import java.util.*;
 import java.io.File;
 
+import static net.sf.samtools.SAMFileHeader.SortOrder;
+
 /**
  * An iterator that's aware of how data is stored on disk in SAM format.
  *
@@ -27,6 +29,12 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * A collection of readers driving the merging process.
      */
     private final SAMResourcePool resourcePool;
+
+    /**
+     * The sort order of the BAM files.  Files without a sort order tag are assumed to be
+     * in coordinate order.
+     */
+    private SAMFileHeader.SortOrder sortOrder = null;
 
     /**
      * The merged header.
@@ -57,6 +65,20 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
         SAMReaders readers = resourcePool.getAvailableReaders();
+
+        // Determine the sort order.
+        for(SAMFileReader reader: readers.values()) {
+            // Get the sort order, forcing it to coordinate if unsorted.
+            SAMFileHeader header = reader.getFileHeader();
+            SortOrder sortOrder = header.getSortOrder() != SortOrder.unsorted ? header.getSortOrder() : SortOrder.coordinate;
+
+            // Validate that all input files are sorted in the same order.
+            if(this.sortOrder != null && this.sortOrder != sortOrder)
+                throw new StingException(String.format("Attempted to process mixed of files sorted as %s and %s.",this.sortOrder,sortOrder));
+
+            // Update the sort order.
+            this.sortOrder = sortOrder;
+        }
 
         initializeReaderPositions(readers);
         
@@ -96,6 +118,14 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     }
 
     /**
+     * Retrieves the sort order of the readers.
+     * @return Sort order.  Can be unsorted, coordinate order, or query name order.
+     */
+    public SortOrder getSortOrder() {
+        return sortOrder;    
+    }
+
+    /**
      * Gets the index for a particular reader.  Always preloaded.
      * @param id Id of the reader.
      * @return The index.  Will preload the index if necessary.
@@ -122,21 +152,40 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         if(!shard.buffersReads())
             throw new StingException("Attempting to fill a non-buffering shard.");
 
-        // Since the beginning of time for the GATK, enableVerification has been true only for ReadShards.  I don't
-        // know why this is.  Please add a comment here if you do.
-        boolean enableVerification = shard instanceof ReadShard;
-
         SAMReaders readers = resourcePool.getAvailableReaders();
+        // Cache the most recently viewed read so that we can check whether we've reached the end of a pair. 
+        SAMRecord read = null;
 
-        CloseableIterator<SAMRecord> iterator = getIterator(readers,shard,enableVerification);
+        CloseableIterator<SAMRecord> iterator = getIterator(readers,shard,sortOrder == SortOrder.coordinate);
         while(!shard.isBufferFull() && iterator.hasNext()) {
-            SAMRecord read = iterator.next();
-            Chunk endChunk = new Chunk(read.getCoordinates().getChunkEnd(),Long.MAX_VALUE);
-            shard.addRead(read);
-            readerPositions.put(getReaderID(readers,read),endChunk);
+            read = iterator.next();
+            addReadToBufferingShard(shard,getReaderID(readers,read),read);
+        }
+
+        // If the reads are sorted in queryname order, ensure that all reads
+        // having the same queryname become part of the same shard.
+        if(sortOrder == SortOrder.queryname) {
+            while(iterator.hasNext()) {
+                SAMRecord nextRead = iterator.next();
+                if(read == null || !read.getReadName().equals(nextRead.getReadName()))
+                    break;    
+                addReadToBufferingShard(shard,getReaderID(readers,nextRead),nextRead);
+            }
         }
 
         iterator.close();
+    }
+
+    /**
+     * Adds this read to the given shard.
+     * @param shard The shard to which to add the read.
+     * @param id The id of the given reader.
+     * @param read The read to add to the shard.
+     */
+    private void addReadToBufferingShard(BAMFormatAwareShard shard,SAMReaderID id,SAMRecord read) {
+        Chunk endChunk = new Chunk(read.getCoordinates().getChunkEnd(),Long.MAX_VALUE);
+        shard.addRead(read);
+        readerPositions.put(id,endChunk);
     }
 
     /**
@@ -178,6 +227,14 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         }
     }
 
+    /**
+     * Get an iterator over the data types specified in the shard.
+     * @param readers Readers from which to load data.
+     * @param shard The shard specifying the data limits.
+     * @param enableVerification True to verify.  For compatibility with old sharding strategy.
+     *        TODO: Collapse this flag when the two sharding systems are merged.
+     * @return An iterator over the selected data.
+     */
     private StingSAMIterator getIterator(SAMReaders readers, BAMFormatAwareShard shard, boolean enableVerification) {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(SAMReaderID id: getReaderIDs()) {

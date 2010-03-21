@@ -312,19 +312,13 @@ public class GenomeAnalysisEngine {
         // the mircoscheduler to return
         MicroScheduler microScheduler = null;
 
-        // we need to verify different parameter based on the walker type
-        if (my_walker instanceof LocusWalker || my_walker instanceof LocusWindowWalker) {
-            // create the MicroScheduler
-            microScheduler = MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource,rodDataSources,argCollection.numberOfThreads);
-        } else if (my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
-            if (argCollection.referenceFile == null)
-                Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
-            microScheduler = MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource,rodDataSources,argCollection.numberOfThreads);
-        } else {
-            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type %s", walkerManager.getName(my_walker.getClass())));
+        // Temporarily require all walkers to have a reference, even if that reference is not conceptually necessary.
+        if ((my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker || my_walker instanceof ReadPairWalker) && 
+                argCollection.referenceFile == null) {
+            Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
         }
 
-        return microScheduler;
+        return MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource,rodDataSources,argCollection.numberOfThreads);
     }
 
     /**
@@ -666,14 +660,16 @@ public class GenomeAnalysisEngine {
                                              GenomeLocSortedSet intervals,
                                              Integer maxIterations,
                                              ValidationExclusion exclusions) {
-        if(readsDataSource != null && !readsDataSource.hasIndex()) {
+        // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
+        // sharding system; it's required with the new sharding system only for locus walkers.
+        if(readsDataSource != null && !readsDataSource.hasIndex() && (argCollection.disableExperimentalSharding || walker instanceof LocusWalker)) {
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM) || intervals != null)
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker)
                 shardType = Shard.ShardType.LOCUS;
-            else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker)
+            else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker || walker instanceof ReadPairWalker)
                 shardType = Shard.ShardType.READ;
             else
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
@@ -690,6 +686,9 @@ public class GenomeAnalysisEngine {
             if (walker instanceof RodWalker) SHARD_SIZE *= 1000;
 
             if (intervals != null && !intervals.isEmpty()) {
+                if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
+                    Utils.scareUser("Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file.");
+
                 shardType = (walker.isReduceByInterval()) ?
                         ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
                         ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
@@ -726,6 +725,20 @@ public class GenomeAnalysisEngine {
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
             }
+        } else if (walker instanceof ReadPairWalker) {
+            if(argCollection.disableExperimentalSharding)
+                Utils.scareUser("Pairs traversal cannot be used in conjunction with the old sharding system.");
+            if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
+                Utils.scareUser("Read pair walkers can only walk over query name-sorted data.  Please resort your input BAM file.");            
+            if(intervals != null && !intervals.isEmpty())
+                Utils.scareUser("Pairs traversal cannot be used in conjunction with intervals.");
+
+            shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
+                    referenceDataSource,
+                    ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
+                    drivingDataSource.getSequenceDictionary(),
+                    SHARD_SIZE, maxIterations);
+
         } else if (walker instanceof LocusWindowWalker) {
             if ((intervals == null || intervals.isEmpty()) && !exclusions.contains(ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST))
                 Utils.warnUser("walker is of type LocusWindow (which operates over intervals), but no intervals were provided." +

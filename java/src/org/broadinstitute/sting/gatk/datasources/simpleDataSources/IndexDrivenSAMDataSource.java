@@ -100,6 +100,14 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
     }
 
     /**
+     * Retrieves the sort order of the readers.
+     * @return Sort order.  For this datasource, MUST be coordinate.
+     */
+    public SAMFileHeader.SortOrder getSortOrder() {
+        return SAMFileHeader.SortOrder.coordinate;
+    }
+
+    /**
      * Gets the (potentially merged) SAM file header.
      *
      * @return SAM file header.

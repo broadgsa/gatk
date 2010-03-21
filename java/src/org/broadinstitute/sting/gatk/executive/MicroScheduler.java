@@ -111,6 +111,8 @@ public abstract class MicroScheduler {
             traversalEngine = new TraverseLocusWindows();
         } else if (walker instanceof DuplicateWalker) {
             traversalEngine = new TraverseDuplicates();
+        } else if (walker instanceof ReadPairWalker) {
+            traversalEngine = new TraverseReadPairs();
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }        

@@ -103,6 +103,12 @@ public abstract class SAMDataSource implements SimpleDataSource {
     public abstract boolean hasIndex();
 
     /**
+     * Retrieves the sort order of the readers.
+     * @return Sort order.  Can be unsorted, coordinate order, or query name order.
+     */
+    public abstract SAMFileHeader.SortOrder getSortOrder();    
+
+    /**
      * Gets the (potentially merged) SAM file header.
      *
      * @return SAM file header.
