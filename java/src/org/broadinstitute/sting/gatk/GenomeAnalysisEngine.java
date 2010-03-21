@@ -667,8 +667,11 @@ public class GenomeAnalysisEngine {
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
             Shard.ShardType shardType;
-            if(walker instanceof LocusWalker)
+            if(walker instanceof LocusWalker) {
+                if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
+                    Utils.scareUser("Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file.");                
                 shardType = Shard.ShardType.LOCUS;
+            }
             else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker || walker instanceof ReadPairWalker)
                 shardType = Shard.ShardType.READ;
             else
