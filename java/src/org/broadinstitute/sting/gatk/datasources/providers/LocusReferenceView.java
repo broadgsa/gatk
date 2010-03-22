@@ -157,9 +157,15 @@ public class LocusReferenceView extends ReferenceView {
         this.referenceSequence = reference.getSubsequenceAt( locus.getContig(), locus.getStart(), locus.getStop() );
     }
 
+    protected GenomeLoc trimToBounds(GenomeLoc l) {
+        if ( l.getStart() < bounds.getStart() ) l = GenomeLocParser.setStart(l, bounds.getStart());
+        if ( l.getStop() > bounds.getStop() ) l = GenomeLocParser.setStop(l, bounds.getStop());
+        return l;
+    }
+
     /**
-     * Gets the reference context associated with this particular point on the genome.
-     * @param genomeLoc Region for which to retrieve the base.  GenomeLoc must represent a 1-base region.
+     * Gets the reference context associated with this particular point or extended interval on the genome.
+     * @param genomeLoc Region for which to retrieve the base(s). If region spans beyond contig end or beoynd current bounds, it will be trimmed down.
      * @return The base at the position represented by this genomeLoc.
      */
     public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
@@ -169,6 +175,7 @@ public class LocusReferenceView extends ReferenceView {
         char[] bases = null;
 
         if(bounds != null) {
+            window = trimToBounds(window);
             bases = StringUtil.bytesToString( referenceSequence.getBases(), (int)(window.getStart() - getWindowStart(bounds)), (int)window.size() ).toCharArray();
         }
         else {
