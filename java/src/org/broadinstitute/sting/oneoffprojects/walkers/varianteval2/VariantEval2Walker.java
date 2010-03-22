@@ -108,6 +108,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     @Argument(shortName="outputVCF", fullName="InterestingSitesVCF", doc="If provided, interesting sites emitted to this vcf and the INFO field annotated as to why they are interesting", required=false)
     protected String outputVCF = null;
 
+    private static double NO_MIN_QUAL_SCORE = -1.0;
+    @Argument(shortName = "Q", fullName="minPhredConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
+    public double minQualScore = NO_MIN_QUAL_SCORE;
+
     /** Right now we will only be looking at SNPS */
     EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION);
 
@@ -433,6 +437,11 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     private boolean applyVCtoEvaluation(VariantContext vc, Map<String, VariantContext> vcs, EvaluationContext group) {
         if ( vc == null )
             return true;
+
+        if ( minQualScore != NO_MIN_QUAL_SCORE && vc.getNegLog10PError() < (minQualScore / 10.0)) {
+            //System.out.printf("exclude %s%n", vc);
+            return false;
+        }
 
         if ( group.requiresFiltered() && vc.isNotFiltered() )
             return false;

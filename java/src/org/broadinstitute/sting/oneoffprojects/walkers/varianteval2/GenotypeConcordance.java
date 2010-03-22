@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.utils.StingException;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -17,6 +18,9 @@ import java.util.*;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 public class GenotypeConcordance extends VariantEvaluator {
+    protected static Logger logger = Logger.getLogger(GenotypeConcordance.class);
+
+    private static final int MAX_MISSED_VALIDATION_DATA = 10000;
 
     private static final int nGenotypeTypes = Genotype.Type.values().length;
 
@@ -118,6 +122,7 @@ public class GenotypeConcordance extends VariantEvaluator {
         return rows;
     }
 
+    private boolean warnedAboutValidationData = false;
     public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         String interesting = null;
 
@@ -133,7 +138,17 @@ public class GenotypeConcordance extends VariantEvaluator {
                     determineStats(null, vc);
                 missedValidationData = null;
             } else {
-                missedValidationData.add(validation);
+                // todo -- Eric, this results in a memory problem when eval is WEx data but you are using CG calls genome-wide
+                // todo -- perhaps you need should extend the evaluators with an initialize
+                // todo -- method that gets the header (or samples) for the first eval sites?
+                if ( missedValidationData.size() > MAX_MISSED_VALIDATION_DATA) {
+                    if ( ! warnedAboutValidationData ) {
+                        logger.warn("Too many genotype sites missed before eval site appeared; ignoring");
+                        warnedAboutValidationData = true;
+                    }
+                } else {
+                    missedValidationData.add(validation);
+                }
                 return interesting;
             }
         }

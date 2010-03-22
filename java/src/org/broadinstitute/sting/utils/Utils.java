@@ -123,14 +123,27 @@ public class Utils {
         return new String(basesAsbytes);
     }
 
-    public static boolean is454Read(SAMRecord read) {
+    public static boolean isPlatformRead(SAMRecord read, String name) {
         SAMReadGroupRecord readGroup = read.getReadGroup();
         if (readGroup != null) {
             Object readPlatformAttr = readGroup.getAttribute("PL");
             if (readPlatformAttr != null)
-                return readPlatformAttr.toString().toUpperCase().contains("454");
+                return readPlatformAttr.toString().toUpperCase().contains(name);
         }
         return false;
+    }
+
+
+    public static boolean is454Read(SAMRecord read) {
+        return isPlatformRead(read, "454");
+    }
+
+    public static boolean isSOLiDRead(SAMRecord read) {
+        return isPlatformRead(read, "SOLID");
+    }
+
+    public static boolean isSLXRead(SAMRecord read) {
+        return isPlatformRead(read, "ILLUMINA");
     }
 
     private static final Map<Integer, String> readFlagNames
