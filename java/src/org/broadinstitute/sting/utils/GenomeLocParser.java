@@ -252,7 +252,6 @@ public class GenomeLocParser {
      * @return the list of merged locations
      */
     public static List<GenomeLoc> mergeIntervalLocations(final List<GenomeLoc> raw, IntervalMergingRule rule) {
-        logger.debug("  Raw locations are: " + Utils.join(", ", raw));
         if (raw.size() <= 1 || rule == IntervalMergingRule.NONE)
             return raw;
         else {
@@ -355,11 +354,18 @@ public class GenomeLocParser {
 
         } catch (Exception e) {
             try {
+                ret = new ArrayList<GenomeLoc>();
                 xReadLines reader = new xReadLines(new File(file_name));
-                List<String> lines = reader.readLines();
+                for(String line: reader) {
+                    List<GenomeLoc> loci = parseGenomeLocs(line, rule);
+                    if(loci != null)
+                        ret.addAll(loci);
+                }
                 reader.close();
-                String locStr = Utils.join(";", lines);
-                ret = parseGenomeLocs(locStr, rule);
+
+                if(ret.isEmpty())
+                    return null;
+
                 for(GenomeLoc locus: ret)
                     exceptionOnInvalidGenomeLocBounds(locus);
                 return ret;
