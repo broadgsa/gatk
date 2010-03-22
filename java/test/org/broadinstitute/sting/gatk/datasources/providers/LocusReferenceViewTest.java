@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.LocusShard;
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
@@ -57,7 +58,6 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
     @Test
     public void testOverlappingReferenceBases() {
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length())));
-
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
@@ -70,15 +70,20 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
     }
 
 
-    /** Queries outside the bounds of the shard should generate an error. */
-    @Test(expected = InvalidPositionException.class)
+    /** Queries outside the bounds of the shard should result in reference context window trimmed at the shard boundary. */
+    @Test
     public void testBoundsFailure() {
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, 1, 50)));
 
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
-        view.getReferenceContext(GenomeLocParser.createGenomeLoc(0, 51)).getBase();
+        GenomeLoc locus = GenomeLocParser.createGenomeLoc(0, 50, 51);
+
+        ReferenceContext rc = view.getReferenceContext(locus);
+        Assert.assertTrue(rc.getLocus().equals(locus));
+        Assert.assertTrue(rc.getWindow().equals(GenomeLocParser.createGenomeLoc(0,50)));
+        Assert.assertTrue(rc.getBases().length == 1);
     }
 
 
