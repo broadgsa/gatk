@@ -496,7 +496,7 @@ public class VariantContext {
         return ref;
     }
 
-    /** Private helper routine that grabs the reference allele but doesn't through an error if there's no such allele */
+    /** Private helper routine that grabs the reference allele but doesn't throw an error if there's no such allele */
     private Allele getReferenceWithoutError() {
         for ( Allele allele : getAlleles() )
             if ( allele.isReference() )

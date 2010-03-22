@@ -50,12 +50,14 @@ class VariantJEXLContext implements JexlContext {
         map = new JEXLMap(jexl, vc);
     }
 
-    @Override
+    public VariantJEXLContext(Collection<VariantContextUtils.JexlVCMatchExp> jexl, Genotype g) {
+        map = new JEXLMap(jexl, g);
+    }
+
     public void setVars(Map map) {
         throw new UnsupportedOperationException("this operation is unsupported");
     }
 
-    @Override
     public Map getVars() {
         return map;
     }
@@ -72,18 +74,32 @@ class VariantJEXLContext implements JexlContext {
  */
 
 class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
-    // our variant context
+    // our variant context and/or Genotype
     private final VariantContext vc;
+    private final Genotype g;
 
     // our context
     private JexlContext jContext = null;
 
     // our mapping from JEXLVCMatchExp to Booleans, which will be set to NULL for previously uncached JexlVCMatchExp
-    private final Map<VariantContextUtils.JexlVCMatchExp,Boolean> jexl;
+    private Map<VariantContextUtils.JexlVCMatchExp,Boolean> jexl;
 
+
+    public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, VariantContext vc, Genotype g) {
+        this.vc = vc;
+        this.g = g;
+        initialize(jexlCollection);
+    }
 
     public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, VariantContext vc) {
-        this.vc = vc;
+        this(jexlCollection, vc, null);
+    }
+
+    public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, Genotype g) {
+        this(jexlCollection, null, g);
+    }
+
+    private void initialize(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection) {
         jexl = new HashMap<VariantContextUtils.JexlVCMatchExp,Boolean>();
         for (VariantContextUtils.JexlVCMatchExp exp: jexlCollection) {
             jexl.put(exp, null);
@@ -94,38 +110,49 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * create the internal JexlContext, only when required.  This code is where new JEXL context variables
      * should get added.
      *
-     * @param vc the VariantContext
-     *
      */
-    private void createContext(VariantContext vc) {
-        // create a mapping of what we know about the variant context, its Chromosome, positions, etc.
+    private void createContext() {
+
         Map<String, String> infoMap = new HashMap<String, String>();
-        infoMap.put("CHROM", vc.getLocation().getContig());
-        infoMap.put("POS", String.valueOf(vc.getLocation().getStart()));
-        infoMap.put("TYPE", vc.getType().toString());
-        infoMap.put("QUAL", String.valueOf(10 * vc.getNegLog10PError()));
 
-        // add alleles
-        infoMap.put("ALLELES", Utils.join(";", vc.getAlleles()));
-        infoMap.put("N_ALLELES", String.valueOf(vc.getNAlleles()));
+        if ( vc != null ) {
+            // create a mapping of what we know about the variant context, its Chromosome, positions, etc.
+            infoMap.put("CHROM", vc.getLocation().getContig());
+            infoMap.put("POS", String.valueOf(vc.getLocation().getStart()));
+            infoMap.put("TYPE", vc.getType().toString());
+            infoMap.put("QUAL", String.valueOf(10 * vc.getNegLog10PError()));
 
-        // add attributes
-        addAttributesToMap(infoMap, vc.getAttributes());
+            // add alleles
+            infoMap.put("ALLELES", Utils.join(";", vc.getAlleles()));
+            infoMap.put("N_ALLELES", String.valueOf(vc.getNAlleles()));
 
-        // add filter fields
-        infoMap.put("FILTER", String.valueOf(vc.isFiltered() ? "1" : "0"));
-        for ( Object filterCode : vc.getFilters() ) {
-            infoMap.put(String.valueOf(filterCode), "1");
+            // add attributes
+            addAttributesToMap(infoMap, vc.getAttributes());
+
+            // add filter fields
+            infoMap.put("FILTER", vc.isFiltered() ? "1" : "0");
+            for ( Object filterCode : vc.getFilters() ) {
+                infoMap.put(String.valueOf(filterCode), "1");
+            }
+
+            // add genotype-specific fields
+            // TODO -- implement me when we figure out a good way to represent this
+            //    for ( Genotype g : vc.getGenotypes().values() ) {
+            //        String prefix = g.getSampleName() + ".";
+            //        addAttributesToMap(infoMap, g.getAttributes(), prefix);
+            //        infoMap.put(prefix + "GT", g.getGenotypeString());
+            //    }
         }
-
-        // add genotypes
-        // todo -- comment this back in when we figure out how to represent it nicely
-//        for ( Genotype g : vc.getGenotypes().values() ) {
-//            String prefix = g.getSampleName() + ".";
-//            addAttributesToMap(infoMap, g.getAttributes(), prefix);
-//            infoMap.put(prefix + "GT", g.getGenotypeString());
-//        }
-
+        
+        // add specific genotype if one is provided
+        if ( g != null ) {
+            infoMap.put("GT", g.getGenotypeString());
+            infoMap.put("isHomRef", g.isHomRef() ? "1" : "0");
+            infoMap.put("isHet", g.isHet() ? "1" : "0");
+            infoMap.put("isHomVar", g.isHomVar() ? "1" : "0");
+            for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() )
+                infoMap.put(e.getKey(), String.valueOf(e.getValue()));
+        }
 
         // create the internal context that we can evaluate expressions against
         jContext = JexlHelper.createContext();
@@ -135,7 +162,6 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
     /**
      * @return the size of the internal data structure
      */
-    @Override
     public int size() {
         return jexl.size();
     }
@@ -143,7 +169,6 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
     /**
      * @return true if we're empty
      */
-    @Override
     public boolean isEmpty() { return this.jexl.isEmpty(); }
 
     /**
@@ -151,10 +176,8 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * @param o the key
      * @return true if we have a value for that key
      */
-    @Override
     public boolean containsKey(Object o) { return jexl.containsKey(o); }
 
-    @Override
     public Boolean get(Object o) {
         // if we've already determined the value, return it
         if (jexl.containsKey(o) && jexl.get(o) != null) return jexl.get(o);
@@ -169,7 +192,6 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * get the keyset of map
      * @return a set of keys of type JexlVCMatchExp
      */
-    @Override
     public Set<VariantContextUtils.JexlVCMatchExp> keySet() {
         return jexl.keySet();
     }
@@ -180,7 +202,6 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * the keys you want, you would be better off using get() to get them by name.
      * @return a collection of boolean values, representing the results of all the variants evaluated
      */
-    @Override
     public Collection<Boolean> values() {
         // this is an expensive call
         for (VariantContextUtils.JexlVCMatchExp exp : jexl.keySet())
@@ -195,7 +216,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      */
     private void evaulateExpression(VariantContextUtils.JexlVCMatchExp exp) {
         // if the context is null, we need to create it to evaluate the JEXL expression
-        if (this.jContext == null) createContext(vc);
+        if (this.jContext == null) createContext();
         try {
             jexl.put (exp, (Boolean) exp.exp.evaluate(jContext));
         } catch (Exception e) {
@@ -210,16 +231,14 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      */
     private static void addAttributesToMap(Map<String, String> infoMap, Map<String, ?> attributes ) {
         for (Map.Entry<String, ?> e : attributes.entrySet()) {
-            infoMap.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
+            infoMap.put(e.getKey(), String.valueOf(e.getValue()));
         }
     }
 
-    @Override
     public Boolean put(VariantContextUtils.JexlVCMatchExp jexlVCMatchExp, Boolean aBoolean) {
         return jexl.put(jexlVCMatchExp,aBoolean);
     }
 
-    @Override
     public void putAll(Map<? extends VariantContextUtils.JexlVCMatchExp, ? extends Boolean> map) {
         jexl.putAll(map);
     }
@@ -230,25 +249,21 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
 
     // this doesn't make much sense to implement, boolean doesn't offer too much variety to deal
     // with evaluating every key in the internal map.
-    @Override
     public boolean containsValue(Object o) {
         throw new UnsupportedOperationException("containsValue() not supported on a JEXLMap");
     }
 
     // this doesn't make much sense
-    @Override
     public Boolean remove(Object o) {
         throw new UnsupportedOperationException("remove() not supported on a JEXLMap");
     }
 
 
-    @Override
     public Set<Entry<VariantContextUtils.JexlVCMatchExp, Boolean>> entrySet() {
         throw new UnsupportedOperationException("clear() not supported on a JEXLMap");
     }
 
     // nope
-    @Override
     public void clear() {
         throw new UnsupportedOperationException("clear() not supported on a JEXLMap");
     }

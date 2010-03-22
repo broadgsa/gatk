@@ -83,7 +83,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
-        VCFRecord call = VariantContextAdaptors.toVCF(vc, vc.getReference().toString().charAt(0), allowedGenotypeFormatStrings, false);
+        VCFRecord call = VariantContextAdaptors.toVCF(vc, vc.getReference().toString().charAt(0), allowedGenotypeFormatStrings, false, false);
 
         Set<Allele> altAlleles = vc.getAlternateAlleles();
         StringBuffer altAlleleCountString = new StringBuffer();

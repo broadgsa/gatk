@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -25,16 +26,22 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="filterName", shortName="filterName", doc="Names to use for the list of filters (must be a 1-to-1 mapping); this name is put in the FILTER field for variants that get filtered", required=false)
     protected String[] FILTER_NAMES = new String[]{};
 
-    @Argument(fullName="clusterSize", shortName="cluster", doc="The number of SNPs which make up a cluster (see also --clusterWindowSize)", required=false)
+    @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see wiki docs for more info)", required=false)
+    protected String[] GENOTYPE_FILTER_EXPS = new String[]{};
+    @Argument(fullName="genotypeFilterName", shortName="G_filterName", doc="Names to use for the list of sample/genotype filters (must be a 1-to-1 mapping); this name is put in the FILTER field for variants that get filtered", required=false)
+    protected String[] GENOTYPE_FILTER_NAMES = new String[]{};
+
+    @Argument(fullName="clusterSize", shortName="cluster", doc="The number of SNPs which make up a cluster (see also --clusterWindowSize); [default:3]", required=false)
     protected Integer clusterSize = 3;
-    @Argument(fullName="clusterWindowSize", shortName="window", doc="The window size (in bases) in which to evaluate clustered SNPs (to disable the clustered SNP filter, set this value to less than 1)", required=false)
+    @Argument(fullName="clusterWindowSize", shortName="window", doc="The window size (in bases) in which to evaluate clustered SNPs (to disable the clustered SNP filter, set this value to less than 1); [default:0]", required=false)
     protected Integer clusterWindow = 0;
 
-    @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call", required=false)
+    @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
 
     // JEXL expressions for the filters
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
+    List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
 
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
 
@@ -70,9 +77,13 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
 
-        for ( VariantContextUtils.JexlVCMatchExp exp : filterExps ) {
+        for ( VariantContextUtils.JexlVCMatchExp exp : filterExps )
             hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
-        }
+        for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps )
+            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
+
+        if ( genotypeFilterExps.size() > 0 )
+            hInfo.add(new VCFFormatHeaderLine(VCFGenotypeRecord.GENOTYPE_FILTER_KEY, 1, VCFFormatHeaderLine.FORMAT_TYPE.String, "Genotype-level filter"));
 
         List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
@@ -91,6 +102,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             clusteredSNPs = new ClusteredSnps(clusterSize, clusterWindow);
 
         filterExps = VariantContextUtils.initializeMatchExps(FILTER_NAMES, FILTER_EXPS);
+        genotypeFilterExps = VariantContextUtils.initializeMatchExps(GENOTYPE_FILTER_NAMES, GENOTYPE_FILTER_EXPS);
     }
 
     public Integer reduceInit() { return 0; }
@@ -136,45 +148,53 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( context == null )
             return;
 
-        StringBuilder filterString = new StringBuilder();
+        VariantContext vc = context.getVariantContext();
+
+        // make new Genotypes based on filters
+        Map<String, Genotype> genotypes;
+        if ( genotypeFilterExps.size() == 0 ) {
+            genotypes = vc.getGenotypes();
+        } else {
+            genotypes = new HashMap<String, Genotype>(vc.getGenotypes().size());
+
+            // for each genotype, check filters then create a new object
+            for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+
+                Genotype g = genotype.getValue();
+                Set<String> filters = new LinkedHashSet<String>(g.getFilters());
+
+                for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps ) {
+                    if ( VariantContextUtils.match(g, exp) )
+                        filters.add(exp.name);
+                }
+
+                genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.genotypesArePhased()));
+            }
+        }
+
+        // make a new variant context based on filters
+        Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
 
         // test for SNP mask, if present
         RODRecordList mask = context.getTracker().getTrackData("mask", null);
         if ( mask != null && mask.size() > 0 )
-            addFilter(filterString, MASK_NAME);
+            filters.add(MASK_NAME);
 
         // test for clustered SNPs if requested
         if ( clusteredSNPs != null && clusteredSNPs.filter(variantContextWindow) )
-            addFilter(filterString, CLUSTERED_SNP_FILTER_NAME);
+            filters.add(CLUSTERED_SNP_FILTER_NAME);
 
-        VariantContext vc = context.getVariantContext();
         for ( VariantContextUtils.JexlVCMatchExp exp : filterExps ) {
             if ( VariantContextUtils.match(vc, exp) )
-                addFilter(filterString, exp.name);
+                filters.add(exp.name);
         }
 
-        writeVCF(VariantContextAdaptors.toVCF(vc, context.getReferenceContext().getBase(), null, true), filterString);
+        VariantContext filteredVC = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
+
+        writeVCF(VariantContextAdaptors.toVCF(filteredVC, context.getReferenceContext().getBase(), null, true, genotypeFilterExps.size() > 0));
     }
 
-    private static void addFilter(StringBuilder sb, String filter) {
-        if ( sb.length() > 0 )
-            sb.append(";");
-        sb.append(filter);
-    }
-
-    private void writeVCF(VCFRecord rec, StringBuilder filterString) {
-
-        if ( filterString.length() != 0 ) {
-            // if the record is already filtered, don't destroy those filters
-            if ( rec.isFiltered() )
-                filterString.append(";" + rec.getFilterString());
-            rec.setFilterString(filterString.toString());
-        }
-        // otherwise, if it's not already filtered, set it to "passing filters"
-        else if ( !rec.isFiltered() ) {
-            rec.setFilterString(VCFRecord.PASSES_FILTERS);    
-        }
-
+    private void writeVCF(VCFRecord rec) {
         if ( writer == null )
             initializeVcfWriter(rec);
         writer.addRecord(rec);

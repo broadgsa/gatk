@@ -217,10 +217,10 @@ public class VariantContextAdaptors {
     }
 
     public static VCFRecord toVCF(VariantContext vc, char vcfRefBase) {
-        return toVCF(vc, vcfRefBase, null, true);
+        return toVCF(vc, vcfRefBase, null, true, false);
     }
 
-    public static VCFRecord toVCF(VariantContext vc, char vcfRefBase, List<String> allowedGenotypeAttributeKeys, boolean filtersWereAppliedToContext) {
+    public static VCFRecord toVCF(VariantContext vc, char vcfRefBase, List<String> allowedGenotypeAttributeKeys, boolean filtersWereAppliedToContext, boolean filtersWereAppliedToGenotypes) {
         // deal with the reference
         String referenceBases = new String(vc.getReference().getBases());
 
@@ -284,6 +284,8 @@ public class VariantContextAdaptors {
                 if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
                     vcfGenotypeAttributeKeys.add(key);
             }
+            if ( filtersWereAppliedToGenotypes )
+                vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_FILTER_KEY);
         }
         String genotypeFormatString = Utils.join(VCFRecord.GENOTYPE_FIELD_SEPERATOR, vcfGenotypeAttributeKeys);
 
@@ -313,6 +315,8 @@ public class VariantContextAdaptors {
                     ReadBackedPileup pileup = (ReadBackedPileup)g.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
                     if ( pileup != null )
                         val = pileup.size();
+                } else if ( key.equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) ) {
+                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : VCFRecord.PASSES_FILTERS;
                 }
 
                 String outputValue = formatVCFField(key, val);

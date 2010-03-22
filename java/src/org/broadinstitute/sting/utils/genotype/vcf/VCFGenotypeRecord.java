@@ -28,6 +28,7 @@ public class VCFGenotypeRecord {
     public static final int MISSING_GENOTYPE_QUALITY = -1;
     public static final int MISSING_DEPTH = -1;
     public static final int MISSING_HAPLOTYPE_QUALITY = -1;
+    public static final String PASSES_FILTERS = "0";
     public static final String UNFILTERED = ".";
 
     public static final double MAX_QUAL_VALUE = 99.0;
@@ -199,7 +200,9 @@ public class VCFGenotypeRecord {
     }
 
     public boolean isFiltered() {
-        return ( mFields.get(GENOTYPE_FILTER_KEY) != null && ! mFields.get(GENOTYPE_FILTER_KEY).equals("0"));
+        return ( mFields.get(GENOTYPE_FILTER_KEY) != null &&
+                 !mFields.get(GENOTYPE_FILTER_KEY).equals(UNFILTERED) &&
+                 !mFields.get(GENOTYPE_FILTER_KEY).equals(PASSES_FILTERS));
     }
 
     public int getPloidy() {

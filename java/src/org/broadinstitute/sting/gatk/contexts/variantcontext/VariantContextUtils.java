@@ -123,6 +123,31 @@ public class VariantContextUtils {
 
     }
 
+    /**
+     * Returns true if exp match VC.  See collection<> version for full docs.
+     * @param g    genotype
+     * @param exp   expression
+     * @return true if there is a match
+     */
+    public static boolean match(Genotype g, JexlVCMatchExp exp) {
+        return match(g,Arrays.asList(exp)).get(exp);
+    }
+
+    /**
+     * Matches each JexlVCMatchExp exp against the data contained in vc, and returns a map from these
+     * expressions to true (if they matched) or false (if they didn't).  This the best way to apply JEXL
+     * expressions to VariantContext records.  Use initializeMatchExps() to create the list of JexlVCMatchExp
+     * expressions.
+     *
+     * @param g    genotype
+     * @param exps expressions
+     * @return true if there is a match
+     */
+    public static Map<JexlVCMatchExp, Boolean> match(Genotype g, Collection<JexlVCMatchExp> exps) {
+        return new VariantJEXLContext(exps,g).getVars();
+
+    }
+
     private static void addAttributesToMap(Map<String, String> infoMap, Map<String, ?> attributes, String prefix ) {
         for (Map.Entry<String, ?> e : attributes.entrySet()) {
             infoMap.put(prefix + String.valueOf(e.getKey()), String.valueOf(e.getValue()));
