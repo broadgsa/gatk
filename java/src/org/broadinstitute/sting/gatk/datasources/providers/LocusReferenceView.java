@@ -158,8 +158,10 @@ public class LocusReferenceView extends ReferenceView {
     }
 
     protected GenomeLoc trimToBounds(GenomeLoc l) {
-        if ( l.getStart() < bounds.getStart() ) l = GenomeLocParser.setStart(l, bounds.getStart());
-        if ( l.getStop() > bounds.getStop() ) l = GenomeLocParser.setStop(l, bounds.getStop());
+        long expandedStart = getWindowStart( bounds );
+        long expandedStop  = getWindowStop( bounds );
+        if ( l.getStart() < expandedStart ) l = GenomeLocParser.setStart(l, expandedStart);
+        if ( l.getStop() > expandedStop  ) l = GenomeLocParser.setStop(l, expandedStop);
         return l;
     }
 
