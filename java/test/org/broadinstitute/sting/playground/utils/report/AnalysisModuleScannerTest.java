@@ -4,12 +4,8 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.tags.Param;
-import org.broadinstitute.sting.playground.utils.report.tags.Table;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -28,10 +24,6 @@ public class AnalysisModuleScannerTest extends BaseTest {
         // check we found one param, and check its description
         Assert.assertEquals(3, scanner.getParameters().size());
         Assert.assertTrue("basic description".equals(scanner.getParameters().values().iterator().next().description()));
-
-        // check that we've found a table, and check its description
-        Assert.assertEquals(1, scanner.getTables().size());
-        Assert.assertTrue("Generate a table from this data".equals(scanner.getTables().values().iterator().next().description()));
 
         // check that the analysis name and description were set
         Assert.assertTrue("testAnalysis".equals(scanner.getAnalysis().name()));
@@ -64,17 +56,7 @@ class FakeAnalysis {
     @DataPoint(description = "basic description")
     public String text6 = "GRRR";
 
-    @Table(name="FakeTable", description = "Generate a table from this data",columns=3)
-    public List<Integer> values = new ArrayList<Integer>();
-
-    public FakeAnalysis() {
-        values.add(1);
-        values.add(2);
-        values.add(3);
-        values.add(4);
-        values.add(5);
-        values.add(6);
-
+    public FakeAnalysis() {       
     }
 
 }

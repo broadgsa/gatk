@@ -27,17 +27,15 @@ import freemarker.template.Configuration;
 import freemarker.template.DefaultObjectWrapper;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
-import org.broadinstitute.sting.playground.utils.report.chunks.AnalysisChunk;
-import org.broadinstitute.sting.playground.utils.report.chunks.DataPointChunk;
-import org.broadinstitute.sting.playground.utils.report.chunks.ParameterChunk;
-import org.broadinstitute.sting.playground.utils.report.chunks.TableChunk;
-import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.playground.utils.report.utils.ComplexDataUtils;
+import org.broadinstitute.sting.playground.utils.report.utils.Node;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -52,9 +50,8 @@ public class ReportMarshaller {
     private Template temp;
 
     // the aggregation of all our analyses
-    private HashMap map;
-    private List<Map> analysisObjects;
-    private final File writeLocation;
+    private Node root;
+    private File writeLocation;
     /**
      * create a marshaled object
      *
@@ -62,10 +59,15 @@ public class ReportMarshaller {
      * @param template   the template to use
      */
     public ReportMarshaller(String reportName, File filename, Template template) {
-        map = new HashMap();
-        analysisObjects = new ArrayList<Map>();
-        map.put("title",reportName);
+        init(reportName, filename);
         temp = template;
+    }
+
+    private void init(String reportName, File filename) {
+        root = new Node(reportName);
+        Node title= new Node("title");
+        title.addChild(new Node(reportName));
+        root.addChild(title);
         this.writeLocation = filename;
     }
 
@@ -75,11 +77,8 @@ public class ReportMarshaller {
      * @param reportName the report name
      */
     public ReportMarshaller(String reportName, File filename) {
-        map = new HashMap();
-        analysisObjects = new ArrayList<Map>();
-        map.put("title",reportName);
+        init(reportName,filename);
         temp = createTemplate();
-        this.writeLocation = filename;
     }
 
 
@@ -93,28 +92,21 @@ public class ReportMarshaller {
         HashMap analysisMap = new HashMap();
         AnalysisModuleScanner moduleScanner = new AnalysisModuleScanner(toMarshall);
 
-        Pair<String,Object> pair;
+        Node analysis = addAnalysis(moduleScanner);
 
-        pair = addAnalysis(moduleScanner);
-        analysisMap.put(pair.first,pair.second);
+        analysis.addAllChildren(getParameterNodes(toMarshall, moduleScanner));
+        analysis.addAllChildren(getDataPointNodes(toMarshall, moduleScanner));
 
-        pair = addParameters(toMarshall, moduleScanner);
-        analysisMap.put(pair.first,pair.second);
-
-        pair = addDataPoints(toMarshall, moduleScanner);
-        analysisMap.put(pair.first,pair.second);
-
-        pair = addTables(toMarshall, moduleScanner);
-        analysisMap.put(pair.first,pair.second);
-
-        // add it to the list of analysis maps we have
-        analysisObjects.add(analysisMap);
-
+        // add this analysis to the root node
+        root.addChild(analysis);
     }
 
-    private Pair<String, Object> addAnalysis(AnalysisModuleScanner moduleScanner) {
-        AnalysisChunk chunk = new AnalysisChunk(moduleScanner);
-        return new Pair<String, Object>("analysis",chunk);
+    private Node addAnalysis(AnalysisModuleScanner moduleScanner) {
+        Node analysis = new Node(moduleScanner.getAnalysis().name());
+        Node description = new Node("description");
+        description.createSubNode(moduleScanner.getAnalysis().description());
+        analysis.addChild(description);
+        return analysis;
     }
 
     /**
@@ -124,29 +116,14 @@ public class ReportMarshaller {
      * @param moduleScanner our scanner, which stores the annotated field information
      * @return a pair of a string and the list of Chunk objects
      */
-    private Pair<String, Object> addParameters(Object toMarshall, AnalysisModuleScanner moduleScanner) {
-        List<ParameterChunk> chunks = new ArrayList<ParameterChunk>();
+    private Collection<Node> getParameterNodes(Object toMarshall, AnalysisModuleScanner moduleScanner) {
+        Collection<Node> nodes = new ArrayList<Node>();
         for (Field f : moduleScanner.getParameters().keySet()) {
-            ParameterChunk chunk = new ParameterChunk(f, moduleScanner.getParameters(), toMarshall);
-            if (chunk.isValid()) chunks.add(chunk);
+            Node node = new Node(moduleScanner.getParameters().get(f).name().equals("") ? f.getName() : moduleScanner.getParameters().get(f).name());
+            addChildNodeFromField(toMarshall, f, node);
+            nodes.add(node);
         }
-        return new Pair<String, Object>("parameters",chunks);
-    }
-
-    /**
-     * output the Table objects we find
-     *
-     * @param toMarshall    the object to output
-     * @param moduleScanner our scanner, which stores the annotated field information
-     * @return a pair of a string and the list of Chunk objects
-     */
-    private Pair<String, Object> addTables(Object toMarshall, AnalysisModuleScanner moduleScanner) {
-        List<TableChunk> chunks = new ArrayList<TableChunk>();
-        for (Field f : moduleScanner.getTables().keySet()) {
-            TableChunk chunk = new TableChunk(f, moduleScanner.getTables(), toMarshall);
-            if (chunk.isValid()) chunks.add(chunk);
-        }
-        return new Pair<String, Object>("tables",chunks);
+        return nodes;
     }
 
     /**
@@ -156,18 +133,18 @@ public class ReportMarshaller {
      * @param moduleScanner our scanner, which stores the annotated field information
      * @return a pair of a string and the list of Chunk objects
      */
-    private Pair<String, Object> addDataPoints(Object toMarshall, AnalysisModuleScanner moduleScanner) {
-        List<DataPointChunk> chunks = new ArrayList<DataPointChunk>();
+    private Collection<Node> getDataPointNodes(Object toMarshall, AnalysisModuleScanner moduleScanner) {
+        Collection<Node> nodes = new ArrayList<Node>();
         for (Field f : moduleScanner.getData().keySet()) {
-            DataPointChunk chunk = new DataPointChunk(f, moduleScanner.getData(), toMarshall);
-            if (chunk.isValid()) chunks.add(chunk);
+            Node node = new Node(moduleScanner.getData().get(f).name().equals("") ? f.getName() : moduleScanner.getData().get(f).name());
+            addChildNodeFromField(toMarshall, f, node);
+            nodes.add(node);
         }
-        return new Pair<String, Object>("datapoints",chunks);
+        return nodes;
     }
 
     /** call the method to finalize the report */
     public void close() {
-        map.put("analyses",this.analysisObjects);
         Writer out = null;
         try {
             out = new OutputStreamWriter(new FileOutputStream(this.writeLocation));
@@ -175,6 +152,9 @@ public class ReportMarshaller {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         try {
+            // add the data to a map
+            Map map = new HashMap();
+            map.put("root",root);
             temp.process(map, out);
             out.flush();
         } catch (TemplateException e) {
@@ -194,11 +174,26 @@ public class ReportMarshaller {
         cfg.setObjectWrapper(new DefaultObjectWrapper());
         Template temp = null;
         try {
-            temp = cfg.getTemplate("myTestTemp.ftl");
+            temp = cfg.getTemplate("machineReadable.ftl");
         } catch (IOException e) {
             e.printStackTrace();
         }
         return temp;
+    }
+
+    /**
+     * helper method for adding a Node to the specified node, given the field
+     * @param toMarshall the object which contains the specified field
+     * @param f the field
+     * @param node the node to add a child node to
+     */
+    private static void addChildNodeFromField(Object toMarshall, Field f, Node node) {
+        f.setAccessible(true);
+        try {
+            node.addAllChildren(ComplexDataUtils.resolveObjects(f.get(toMarshall)));
+        } catch (IllegalAccessException e) {
+            throw new StingException("Unable to access field " + f);
+        }
     }
 }
 

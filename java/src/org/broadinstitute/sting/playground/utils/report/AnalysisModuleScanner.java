@@ -26,7 +26,6 @@ package org.broadinstitute.sting.playground.utils.report;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.tags.Param;
-import org.broadinstitute.sting.playground.utils.report.tags.Table;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.lang.annotation.Annotation;
@@ -46,10 +45,9 @@ import java.util.Map;
 public class AnalysisModuleScanner {
 
     // what we extracted from the class
-    private Map<Field, Param> parameters = new HashMap<Field, Param>(); // the parameter annotations
-    private Map<Field, Table> tables = new HashMap<Field, Table>();     // the table annotations
-    private Map<Field, DataPoint> datums = new HashMap<Field, DataPoint>();     // the data we've discovered
-    private Analysis analysis;                               // the analysis annotation
+    private Map<Field, Param> parameters = new HashMap<Field, Param>();     // the parameter annotations
+    private Map<Field, DataPoint> datums = new HashMap<Field, DataPoint>();                // the data we've discovered
+    private Analysis analysis;                                              // the analysis annotation
 
     // private storage of the class type
     private final Class cls;
@@ -92,8 +90,6 @@ public class AnalysisModuleScanner {
             for (Annotation annotation : f.getAnnotations()) {
                 if (annotation.annotationType().equals(Param.class))
                     parameters.put(f, (Param) annotation);
-                if (annotation.annotationType().equals(Table.class))
-                    tables.put(f,(Table) annotation);
                 if (annotation.annotationType().equals(DataPoint.class))
                     datums.put(f,(DataPoint) annotation);
             }
@@ -105,14 +101,6 @@ public class AnalysisModuleScanner {
      */
     public Map<Field, Param> getParameters() {
         return parameters;
-    }
-
-    /**
-     *
-     * @return a list of table annotations found
-     */
-    public Map<Field,Table> getTables() {
-        return tables;
     }
 
     /**
