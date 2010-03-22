@@ -63,8 +63,8 @@ public class ReferenceContext {
     }
 
     public ReferenceContext( GenomeLoc locus, GenomeLoc window, char[] bases ) {
-        if( !window.containsP(locus) )
-            throw new StingException("Invalid locus or window; window does not contain locus");
+  //      if( !window.containsP(locus) )
+  //          throw new StingException("Invalid locus or window; window does not contain locus");
 
         this.locus = locus;
         this.window = window;

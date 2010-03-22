@@ -116,7 +116,8 @@ public class LocusReferenceView extends ReferenceView {
     /** Ensures that specified location is within the bounds of the reference window loaded into this
      * LocusReferenceView object. If the location loc is within the current bounds (or if it is null), then nothing is done.
      * Otherwise, the bounds are expanded on either side, as needed, to accomodate the location, and the reference seuqence for the
-     * new bounds is reloaded (can be costly!).
+     * new bounds is reloaded (can be costly!). If loc spans beyond the current contig, the expansion is performed
+     * to the start/stop of that contig only.
      * @param loc
      */
     public void expandBoundsToAccomodateLoc(GenomeLoc loc) {
@@ -162,7 +163,7 @@ public class LocusReferenceView extends ReferenceView {
      * @return The base at the position represented by this genomeLoc.
      */
     public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
-        validateLocation( genomeLoc );
+        //validateLocation( genomeLoc );
 
         GenomeLoc window = GenomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
         char[] bases = null;
@@ -204,8 +205,9 @@ public class LocusReferenceView extends ReferenceView {
      * @return The expanded window.
      */
     private long getWindowStart( GenomeLoc locus ) {
-        // If the locus is not within the bounds of the contig it allegedly maps to, don't expand the locus at all. 
-        if(locus.getStart() < 1) return locus.getStart();
+        // If the locus is not within the bounds of the contig it allegedly maps to, expand only as much as we can.
+        if(locus.getStart() < 1) return 1;
+//        if(locus.getStart() < 1) return locus.getStart();
         return Math.max( locus.getStart() + windowStart, 1 );
     }
 
@@ -215,9 +217,9 @@ public class LocusReferenceView extends ReferenceView {
      * @return The expanded window.
      */    
     private long getWindowStop( GenomeLoc locus ) {
-        // If the locus is not within the bounds of the contig it allegedly maps to, don't expand the locus at all.
+        // If the locus is not within the bounds of the contig it allegedly maps to, expand only as much as we can.
         long sequenceLength = reference.getSequenceDictionary().getSequence(locus.getContig()).getSequenceLength();
-        if(locus.getStop() > sequenceLength) return locus.getStop();
+        if(locus.getStop() > sequenceLength) return sequenceLength;
         return Math.min( locus.getStop() + windowStop, sequenceLength );
     }
 }
