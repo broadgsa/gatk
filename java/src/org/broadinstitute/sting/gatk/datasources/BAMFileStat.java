@@ -80,6 +80,7 @@ public class BAMFileStat extends CommandLineProgram {
         }
 
         public void inspect(PrintStream outputStream, Integer startPosition, Integer stopPosition) {
+            /*
             outputStream.printf("Number of reference sequences: %d%n", this.referenceToBins.size());
             for(int referenceSequence: referenceToBins.keySet()) {
                 Bin[] bins = referenceToBins.get(referenceSequence);
@@ -97,6 +98,7 @@ public class BAMFileStat extends CommandLineProgram {
                     outputStream.printf("%d,",indexEntry);
                 outputStream.printf("%n");
             }
+            */
         }
     }
 }
