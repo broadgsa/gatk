@@ -116,6 +116,16 @@ public class GLFSingleCall extends GLFRecord {
         return toCappedShort(minLikelihood);
     }
 
+    @Override
+    public boolean equals(GLFRecord rec) {
+        if (!super.equals(rec)) return false;
+        if (!(rec instanceof GLFSingleCall)) return false;
+        if (((GLFSingleCall) rec).getLikelihoods().length != this.likelihoods.length) return false;
+        for (int x = 0; x < likelihoods.length; x++)
+            if (Double.compare(likelihoods[x],((GLFSingleCall) rec).getLikelihoods()[x]) != 0) return false;
+        return this.getMinimumLikelihood() == rec.getMinimumLikelihood();
+    }
+
     public double[] getLikelihoods() {
         return likelihoods;
     }

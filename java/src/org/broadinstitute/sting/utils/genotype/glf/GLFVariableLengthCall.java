@@ -56,8 +56,6 @@ public class GLFVariableLengthCall extends GLFRecord {
      * @param contig    the contig this record is on
      * @param refBase   the reference base
      * @param offset    the location, as an offset from the previous glf record
-     * @param offset    the location, as an offset from the previous glf record
-                                                           s
      * @param readDepth the read depth at the specified postion
      * @param rmsMapQ   the root mean square of the mapping quality
      * @param lkHom1    the negitive log likelihood of the first homozygous indel allele, from 0 to 255
@@ -157,5 +155,20 @@ public class GLFVariableLengthCall extends GLFRecord {
 
     public int getIndelLen1() {
         return indelLen1;
+    }
+
+    public boolean equals(GLFRecord rec) {
+        if (!super.equals(rec)) return false;
+        if (!(rec instanceof GLFVariableLengthCall)) return false;
+        if (lkHom1 != ((GLFVariableLengthCall) rec).getLkHom1()) return false;
+        if (lkHom2 != ((GLFVariableLengthCall) rec).getLkHom2()) return false;
+        if (lkHet != ((GLFVariableLengthCall) rec).getLkHet()) return false;
+        if (indelLen1 != ((GLFVariableLengthCall) rec).getIndelLen1()) return false;
+        if (indelLen2 != ((GLFVariableLengthCall) rec).getIndelLen2()) return false;
+        for (int x = 0; x < indelSeq1.length; x++)
+            if (indelSeq1[x] != ((GLFVariableLengthCall) rec).getIndelSeq1()[x]) return false;
+        for (int x = 0; x < indelSeq2.length; x++)
+            if (indelSeq2[x] != ((GLFVariableLengthCall) rec).getIndelSeq2()[x]) return false;
+        return minlikelihood == rec.getMinimumLikelihood() && size == rec.getByteSize();
     }
 }

@@ -3,14 +3,16 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
+import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -66,6 +68,9 @@ public class GLFWriter implements GLFGenotypeWriter {
     // the last position written
     private int lastPos = 1;
 
+    // a field for storing the RMS of the mapping qualities in a mutable variant context
+    public static final String RMS_MAPPING_QUAL = "RMS_MAPPING_QUAL";
+
     /**
      * The public constructor for creating a GLF object
      *
@@ -96,8 +101,8 @@ public class GLFWriter implements GLFGenotypeWriter {
      */
     public void writeHeader(String headerText) {
         this.headerText = headerText;
-        for (int x = 0; x < glfMagic.length; x++) {
-            outputBinaryCodec.writeUByte(glfMagic[x]);
+        for (short aGlfMagic : glfMagic) {
+            outputBinaryCodec.writeUByte(aGlfMagic);
         }
         if (!(headerText.equals(""))) {
             outputBinaryCodec.writeString(headerText, true, true);
@@ -175,10 +180,19 @@ public class GLFWriter implements GLFGenotypeWriter {
         // calculate the RMS mapping qualities and the read depth
         double rms = 0.0;
         int readCount = 0;
-        if ( pileup != null ) {
+
+        if ( pileup != null) {
             rms = calculateRMS(pileup);
             readCount = pileup.size();
         }
+        // if we can't get the rms from the read pile-up (preferred), check the tags, the VC might have it
+        if (genotype.hasAttribute(RMS_MAPPING_QUAL) && new Double(0.0).equals(rms))
+            rms = (Double)((MutableGenotype)genotype).getAttribute(RMS_MAPPING_QUAL);
+
+        // if we can't get the depth from the read pile-up (preferred), check the tags, the VC might have it
+        if (genotype.hasAttribute(VCFGenotypeRecord.DEPTH_KEY) && 0 == readCount)
+            readCount = (Integer)((MutableGenotype)genotype).getAttribute(VCFGenotypeRecord.DEPTH_KEY);
+
         addCall(GenomeLocParser.getContigInfo(vc.getLocation().getContig()), (int)vc.getLocation().getStart(), (float) rms, ref, readCount, obj);
     }
 

@@ -50,9 +50,6 @@ public abstract class GLFRecord {
     protected int readDepth = 0;
     protected short rmsMapQ = 0;
 
-    // the size of this base structure
-    protected final int baseSize = 10;
-
     /** the reference base enumeration, with their short (type) values for GLF */
     public enum REF_BASE {
         X((short) 0x00),
@@ -204,19 +201,19 @@ public abstract class GLFRecord {
      * write the this record to a binary codec output.
      *
      * @param out the binary codec to write to
+     * @param lastRecord the record to write
      */
     void write(BinaryCodec out, GLFRecord lastRecord) {
-        long offset = 0;
-        if (lastRecord != null && lastRecord.getContig() == this.getContig())
+        long offset;
+        if (lastRecord != null && lastRecord.getContig().equals(this.getContig()))
             offset = this.position - lastRecord.getPosition();
         else
             offset = this.position - 1; // we start at one, we need to subtract that off
-        short bite = ((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUByte((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUInt(((Long) (offset)).intValue()); // we have to subtract one, we're an offset
-        long write = (long) ((long) (readDepth & 0xffffff) | (long) (this.getMinimumLikelihood() & 0xff) << 24);
+        long write = ((long) (readDepth & 0xffffff) | (long) (this.getMinimumLikelihood() & 0xff) << 24);
         out.writeUInt(write);
-        out.writeUByte((short) rmsMapQ);
+        out.writeUByte(rmsMapQ);
     }
 
     /**
@@ -249,9 +246,9 @@ public abstract class GLFRecord {
     /**
      * find the minimum value in a set of doubles
      *
-     * @param vals
+     * @param vals the array of values
      *
-     * @return
+     * @return the minimum value
      */
     protected static double findMin(double vals[]) {
         if (vals.length < 1) throw new StingException("findMin: an array of size < 1 was passed in");
@@ -293,5 +290,16 @@ public abstract class GLFRecord {
      * @return a short of the minimum likelihood.
      */
     protected abstract short calculateMinLikelihood();
+
+    public boolean equals(GLFRecord rec) {
+        return (rec != null) &&
+                contig.equals(rec.getContig()) &&
+                (refBase == rec.getRefBase()) &&
+                (position == rec.getPosition()) &&
+                (readDepth == rec.getReadDepth()) &&
+                (rmsMapQ == rec.getRmsMapQ());
+    }
+
+
 }
 
