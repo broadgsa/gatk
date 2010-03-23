@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.Chunk;
-import net.sf.samtools.SAMFileReader2;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.filter.SamRecordFilter;
 

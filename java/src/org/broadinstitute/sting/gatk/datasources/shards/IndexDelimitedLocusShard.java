@@ -5,7 +5,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import net.sf.samtools.Chunk;
-import net.sf.samtools.SAMFileReader2;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.filter.SamRecordFilter;
 

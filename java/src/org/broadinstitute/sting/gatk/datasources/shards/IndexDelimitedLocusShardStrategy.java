@@ -12,7 +12,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import java.util.*;
 
 import net.sf.samtools.Chunk;
-import net.sf.samtools.SAMFileReader2;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
 

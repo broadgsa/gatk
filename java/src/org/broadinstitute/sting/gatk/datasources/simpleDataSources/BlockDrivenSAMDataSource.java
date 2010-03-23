@@ -132,7 +132,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      */
     public PreloadedBAMFileIndex getIndex(final SAMReaderID id) {
         SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        return ((SAMFileReader2)readers.getReader(id)).getIndex(PreloadedBAMFileIndex.class);
+        return readers.getReader(id).getIndex(PreloadedBAMFileIndex.class);
     }
 
     /**
@@ -203,10 +203,8 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     }
 
     private void initializeReaderPositions(SAMReaders readers) {
-        for(SAMReaderID id: getReaderIDs()) {
-            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
-            readerPositions.put(id,reader2.getCurrentPosition());
-        }
+        for(SAMReaderID id: getReaderIDs())
+            readerPositions.put(id,readers.getReader(id).getCurrentPosition());
     }
     
     public StingSAMIterator seek(Shard shard) {
@@ -238,13 +236,12 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     private StingSAMIterator getIterator(SAMReaders readers, BAMFormatAwareShard shard, boolean enableVerification) {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(SAMReaderID id: getReaderIDs()) {
-            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
             if(shard.getChunks().get(id) == null)
                 continue;
-            CloseableIterator<SAMRecord> iterator = reader2.iterator(shard.getChunks().get(id));
+            CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getChunks().get(id));
             if(shard.getFilter() != null)
                 iterator = new FilteringIterator(iterator,shard.getFilter());
-            readerToIteratorMap.put(reader2,iterator);
+            readerToIteratorMap.put(readers.getReader(id),iterator);
         }
 
         SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
@@ -268,10 +265,8 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         SAMReaders readers = resourcePool.getAvailableReaders();
 
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
-        for(SAMReaderID id: getReaderIDs()) {
-            SAMFileReader2 reader2 = (SAMFileReader2)readers.getReader(id);
-            readerToIteratorMap.put(reader2,reader2.iterator());
-        }
+        for(SAMReaderID id: getReaderIDs())
+            readerToIteratorMap.put(readers.getReader(id),readers.getReader(id).iterator());
 
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
         SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
@@ -388,7 +383,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
          */
         public SAMReaders(Reads sourceInfo) {
             for(File readsFile: sourceInfo.getReadsFiles()) {
-                SAMFileReader2 reader = new SAMFileReader2(readsFile,true);
+                SAMFileReader reader = new SAMFileReader(readsFile,true);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
 
                 // If no read group is present, hallucinate one.
