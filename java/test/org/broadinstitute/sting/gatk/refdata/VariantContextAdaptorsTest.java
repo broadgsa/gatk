@@ -113,16 +113,14 @@ public class VariantContextAdaptorsTest extends BaseTest {
      * and creates VariantContext records.  These VC records are then outputted through a genotype writer,
      * and then read back in off of disk and compared to the original records.  This way we are positive all
      * the information that encodes a Geli makes it into the VC and then out to disk.
-     *
-     * // TODO: this is a mess, clean it up
      */
     @Test
     public void testVariantContextGeliToGeli() {
 
         // our input and output files
-        File knownFile = new File(validationDataLocation + "/well_formed.geli");       // our known good GLF
-        File tempFile = new File("temp.geli");                   // our temporary GLF output -> input file
-        tempFile.deleteOnExit();                                // delete when we're done
+        File knownFile = new File(validationDataLocation + "/well_formed.geli");        // our known good geli
+        File tempFile = new File("temp.geli");                                          // our temporary geli output -> input file
+        tempFile.deleteOnExit();                                                        // delete when we're done
 
         // create our genotype writer for GLFs
         GenotypeWriter gw = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.GELI,tempFile);
@@ -133,28 +131,15 @@ public class VariantContextAdaptorsTest extends BaseTest {
         // buffer the records we see
         List<RodGeliText> records = new ArrayList<RodGeliText>();
 
-        // a little more complicated than the above example, we have to read the file in
-        AsciiLineReader reader = null;
-        try {
-            reader = new AsciiLineReader(new FileInputStream(knownFile));
-        } catch (FileNotFoundException e) {
-            Assert.fail("File not found: " + knownFile);
-        }
+        // a little more complicated than the GLF example, we have to read the file in
+        AsciiLineReader reader = createReader(knownFile);
 
-        String line = "#";
-        while (line != null && line.startsWith("#"))
-            line = readLine(reader);
-
+        // get the first real line (non-header)
+        String line = cleanHeaderFromFile(reader);
 
         // while we have records, make a Variant Context and output it to a GLF file
         while (line != null && line != "") {
-            boolean parsed = false;
-            try {
-                parsed = geliText.parseLine(null,line.split(TabularROD.DEFAULT_DELIMITER_REGEX));
-            } catch (IOException e) {
-                Assert.fail("IOException: " + e.getMessage());
-            }
-            if (!parsed) Assert.fail("Unable to parse line" + line);
+            parseGeli(geliText, line);
             records.add(geliText); // we know they're all single calls in the reference file
             VariantContext vc = VariantContextAdaptors.toVariantContext("Geli",geliText);
             gw.addCall(vc);
@@ -165,30 +150,17 @@ public class VariantContextAdaptorsTest extends BaseTest {
 
         // now reopen the file with the temp GLF file and read it back in, compare against what we first stored
         geliText = new RodGeliText("myROD");
-        try {
-            geliText.initialize(tempFile);
-        } catch (FileNotFoundException e) {
-            Assert.fail("Unable to open GLF file" + tempFile);
-        }
+
         // buffer the new records we see
         List<RodGeliText> records2 = new ArrayList<RodGeliText>();
 
-        try {
-            reader = new AsciiLineReader(new FileInputStream(tempFile));
-        } catch (FileNotFoundException e) {
-            Assert.fail("File not found: " + tempFile);
-        }
-        line = "#";
-        while (line != null && line.startsWith("#"))
-            line = readLine(reader);
+        reader = createReader(tempFile);
+        // get the first real line (non-header)
+        line = cleanHeaderFromFile(reader);
 
         // while we have records, make a Variant Context and output it to a GLF file
         while (line != null && line != "") {
-            try {
-                geliText.parseLine(null,line.split(TabularROD.DEFAULT_DELIMITER_REGEX));
-            } catch (IOException e) {
-                Assert.fail("IOException: " + e.getMessage());
-            }
+            parseGeli(geliText,line);
             records2.add(geliText); // we know they're all single calls in the reference file
             line = readLine(reader);
             
@@ -198,11 +170,58 @@ public class VariantContextAdaptorsTest extends BaseTest {
         // compare sizes
         Assert.assertEquals("The input GLF file doesn't contain the same number of records as we saw in the first file", records.size(),records2.size());
         // now compare each record TODO: uncomment out next two lines, fix equals so that rounding doesn't ruin our comparison
-        //for (int x = 0; x < records.size(); x++)
-        //    Assert.assertTrue("GLF Records were not preserved when cycling them to and from disc", records.get(x).equals(records2.get(x)));
+        for (int x = 0; x < records.size(); x++)
+            Assert.assertTrue("GLF Records were not preserved when cycling them to and from disc", records.get(x).equals(records2.get(x)));
     }
 
 
+    /**
+     * parse the geli given a line representation
+     * @param geliText the object to parse into
+     * @param line the line to parse with
+     */
+    private void parseGeli(RodGeliText geliText, String line) {
+        boolean parsed = false;
+        try {
+            parsed = geliText.parseLine(null,line.split(TabularROD.DEFAULT_DELIMITER_REGEX));
+        } catch (IOException e) {
+            Assert.fail("IOException: " + e.getMessage());
+        }
+        if (!parsed) Assert.fail("Unable to parse line" + line);
+    }
+
+    /**
+     * clean header lines form a geli file
+     * @param reader the reader
+     * @return the first line that's not a header
+     */
+    private String cleanHeaderFromFile(AsciiLineReader reader) {
+        String line = "#";
+        while (line != null && line.startsWith("#"))
+            line = readLine(reader);
+        return line;
+    }
+
+    /**
+     * create a reader, given a file and the reader object
+     * @param knownFile the file to read in
+     * @return AsciiLineReader the ascii line reader
+     */
+    private AsciiLineReader createReader(File knownFile) {
+        AsciiLineReader reader = null;
+        try {
+            reader = new AsciiLineReader(new FileInputStream(knownFile));
+        } catch (FileNotFoundException e) {
+            Assert.fail("File not found: " + knownFile);
+        }
+        return reader;
+    }
+
+    /**
+     * read a line from the specified reader.  A method to make the above code look cleaner
+     * @param reader the ascii line reader
+     * @return a line of text
+     */
     public String readLine(AsciiLineReader reader) {
         try {
             String line = reader.readLine();

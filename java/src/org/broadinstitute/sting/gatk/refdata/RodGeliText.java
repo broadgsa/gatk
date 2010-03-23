@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
@@ -350,13 +351,15 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     public boolean equals(RodGeliText other) {
         if (genotypePosteriors.length != genotypePosteriors.length) return false;
         for (int x = 0; x < genotypePosteriors.length; x++)
-            if (Double.compare(genotypePosteriors[x],other.genotypePosteriors[x])!=0) return false;
-        return (loc.equals(other) && 
+            if (MathUtils.compareDoubles(genotypePosteriors[x],other.genotypePosteriors[x],1e-4)!=0) return false;
+        return (loc.equals(other.getLocation()) &&
                 refBase == other.refBase &&
                 depth == other.depth &&
                 maxMappingQuality == other.maxMappingQuality &&
                 bestGenotype.equals(other.bestGenotype) &&
-                Double.compare(lodBtr,other.lodBtr) == 0&&
-                Double.compare(lodBtnb,other.lodBtr) == 0);
+                MathUtils.compareDoubles(lodBtr,other.lodBtr,1e-4) == 0&&  // 1e-4 is about the precision the
+                MathUtils.compareDoubles(lodBtnb,other.lodBtnb,1e-4) == 0); // output file seems to cooperate with
     }
+
+
 }
