@@ -1,21 +1,22 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
+import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.genotype.CalledGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-
-import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 
 
 /**
@@ -28,6 +29,11 @@ import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 public class GeliTextWriter implements GeliGenotypeWriter {
     // where we write to
     PrintWriter mWriter;
+
+    // used to store the max mapping quality as a field in variant contexts
+    public static final String MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY = "MAXIMUM_MAPPING_QUALITY";
+    // used to store the max mapping quality as a field in variant contexts
+    public static final String READ_COUNT_ATTRIBUTE_KEY = "READ_COUNT";
 
     /**
      * create a geli text writer
@@ -105,6 +111,12 @@ public class GeliTextWriter implements GeliGenotypeWriter {
                     maxMappingQual = p.getMappingQual();
             }
         }
+        // if we've stored the max mapping qual value in the genotype get it there
+        if (maxMappingQual == 0 && genotype.hasAttribute(MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY))
+            maxMappingQual = (double)genotype.getAttributeAsInt(MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY);
+        //  if we've stored the read count value in the genotype get it there
+        if (readCount == 0 && genotype.hasAttribute(READ_COUNT_ATTRIBUTE_KEY))
+            readCount = genotype.getAttributeAsInt(READ_COUNT_ATTRIBUTE_KEY);
 
         ArrayList<Character> alleles = new ArrayList<Character>();
         for ( Allele a : genotype.getAlleles() )

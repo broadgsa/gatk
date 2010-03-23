@@ -39,7 +39,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     public enum Genotype_Strings {
         AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
     }
-
+    
     public GenomeLoc loc;
     public char refBase = 'N';
     public int depth;
@@ -47,7 +47,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     public String bestGenotype = "NN";
     public double lodBtr;
     public double lodBtnb;
-    public double[] genotypeLikelihoods = new double[10];
+    public double[] genotypePosteriors = new double[10];
 
     public RodGeliText(final String name) {
         super(name);
@@ -75,7 +75,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
             lodBtnb = Double.valueOf(parts[7]);
 
             for (int pieceIndex = 8, offset = 0; pieceIndex < 18; pieceIndex++, offset++) {
-                genotypeLikelihoods[offset] = Double.valueOf(parts[pieceIndex]);
+                genotypePosteriors[offset] = Double.valueOf(parts[pieceIndex]);
             }
 
             return true;
@@ -94,16 +94,16 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
                              bestGenotype,
                              lodBtr,
                              lodBtnb,
-                             genotypeLikelihoods[0],
-                             genotypeLikelihoods[1],
-                             genotypeLikelihoods[2],
-                             genotypeLikelihoods[3],
-                             genotypeLikelihoods[4],
-                             genotypeLikelihoods[5],
-                             genotypeLikelihoods[6],
-                             genotypeLikelihoods[7],
-                             genotypeLikelihoods[8],
-                             genotypeLikelihoods[9]
+                             genotypePosteriors[0],
+                             genotypePosteriors[1],
+                             genotypePosteriors[2],
+                             genotypePosteriors[3],
+                             genotypePosteriors[4],
+                             genotypePosteriors[5],
+                             genotypePosteriors[6],
+                             genotypePosteriors[7],
+                             genotypePosteriors[8],
+                             genotypePosteriors[9]
         );
     }
 
@@ -307,13 +307,13 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
         return lodBtnb;
     }
 
-    public double[] getGenotypeLikelihoods() {
-        return genotypeLikelihoods;
+    public double[] getGenotypePosteriors() {
+        return genotypePosteriors;
     }
 
     public void adjustLikelihoods(double[] likelihoods) {
         for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
-            genotypeLikelihoods[likelihoodIndex] += likelihoods[likelihoodIndex];
+            genotypePosteriors[likelihoodIndex] += likelihoods[likelihoodIndex];
         }
 
         String bestGenotype = "NN";
@@ -322,28 +322,41 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
         double refLikelihood = Double.NEGATIVE_INFINITY;
 
         for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
-            if (genotypeLikelihoods[likelihoodIndex] > bestLikelihood) {
-                bestLikelihood = genotypeLikelihoods[likelihoodIndex];
+            if (genotypePosteriors[likelihoodIndex] > bestLikelihood) {
+                bestLikelihood = genotypePosteriors[likelihoodIndex];
 
                 bestGenotype = Genotype_Strings.values()[likelihoodIndex].toString();
             }
         }
 
         for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
-            if (genotypeLikelihoods[likelihoodIndex] > nextBestLikelihood && genotypeLikelihoods[likelihoodIndex] < bestLikelihood) {
-                nextBestLikelihood = genotypeLikelihoods[likelihoodIndex];
+            if (genotypePosteriors[likelihoodIndex] > nextBestLikelihood && genotypePosteriors[likelihoodIndex] < bestLikelihood) {
+                nextBestLikelihood = genotypePosteriors[likelihoodIndex];
             }
         }
 
         for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
             if (refBase == Genotype_Strings.values()[likelihoodIndex].toString().charAt(0) &&
                     refBase == Genotype_Strings.values()[likelihoodIndex].toString().charAt(1)) {
-                refLikelihood = genotypeLikelihoods[likelihoodIndex];
+                refLikelihood = genotypePosteriors[likelihoodIndex];
             }
         }
 
         this.bestGenotype = bestGenotype;
         this.lodBtr = (bestLikelihood - refLikelihood);
         this.lodBtnb = (bestLikelihood - nextBestLikelihood);
+    }
+
+    public boolean equals(RodGeliText other) {
+        if (genotypePosteriors.length != genotypePosteriors.length) return false;
+        for (int x = 0; x < genotypePosteriors.length; x++)
+            if (Double.compare(genotypePosteriors[x],other.genotypePosteriors[x])!=0) return false;
+        return (loc.equals(other) && 
+                refBase == other.refBase &&
+                depth == other.depth &&
+                maxMappingQuality == other.maxMappingQuality &&
+                bestGenotype.equals(other.bestGenotype) &&
+                Double.compare(lodBtr,other.lodBtr) == 0&&
+                Double.compare(lodBtnb,other.lodBtr) == 0);
     }
 }
