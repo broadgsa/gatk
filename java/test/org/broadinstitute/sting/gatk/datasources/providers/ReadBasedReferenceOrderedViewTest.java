@@ -43,12 +43,11 @@ import java.util.*;
 
 
 /**
- * 
- * @author aaron 
- * 
- * Class ReadBasedReferenceOrderedViewTest
- *
- * test out the ReadBasedReferenceOrderedView class
+ * @author aaron
+ *         <p/>
+ *         Class ReadBasedReferenceOrderedViewTest
+ *         <p/>
+ *         test out the ReadBasedReferenceOrderedView class
  */
 public class ReadBasedReferenceOrderedViewTest extends BaseTest {
 
@@ -73,20 +72,20 @@ public class ReadBasedReferenceOrderedViewTest extends BaseTest {
         // make ten reads,
         List<SAMRecord> records = new ArrayList<SAMRecord>();
         for (int x = 1; x < 11; x++) {
-            SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "name", 0, x, 10);          
+            SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "name", 0, x, 10);
         }
-        GenomeLoc start = GenomeLocParser.createGenomeLoc(0,0,0);
+        GenomeLoc start = GenomeLocParser.createGenomeLoc(0, 0, 0);
         List<RMDDataState> list = new ArrayList<RMDDataState>();
-        list.add(new RMDDataState(null, new FakePeekingRODIterator(start,"fakeName")));
+        list.add(new RMDDataState(null, new FakePeekingRODIterator(start, "fakeName")));
         ReadBasedReferenceOrderedView view = new ReadBasedReferenceOrderedView(new WindowedData(list));
 
         for (SAMRecord rec : records) {
             ReadMetaDataTracker tracker = view.getReferenceOrderedDataForRead(rec);
-            Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping();
+            Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping();
             for (Long i : map.keySet()) {
-                Assert.assertEquals(1,map.get(i).size());
+                Assert.assertEquals(1, map.get(i).size());
             }
-            Assert.assertEquals(10,map.keySet().size());
+            Assert.assertEquals(10, map.keySet().size());
         }
 
     }
@@ -100,9 +99,11 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
     private GenomeLoc location;
     private ReadMetaDataTrackerTest.FakeRODatum curROD;
     private final String name;
+
     public FakePeekingRODIterator(GenomeLoc startingLoc, String name) {
         this.name = name;
-        this.location = GenomeLocParser.createGenomeLoc(startingLoc.getContigIndex(),startingLoc.getStart()+1,startingLoc.getStop()+1);;
+        this.location = GenomeLocParser.createGenomeLoc(startingLoc.getContigIndex(), startingLoc.getStart() + 1, startingLoc.getStop() + 1);
+        ;
     }
 
     @Override
@@ -131,8 +132,8 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
     @Override
     public RODRecordList next() {
         System.err.println("Next -> " + location);
-        curROD = new ReadMetaDataTrackerTest.FakeRODatum(location,name);
-        location = GenomeLocParser.createGenomeLoc(location.getContigIndex(),location.getStart()+1,location.getStop()+1);
+        curROD = new ReadMetaDataTrackerTest.FakeRODatum(location, name);
+        location = GenomeLocParser.createGenomeLoc(location.getContigIndex(), location.getStart() + 1, location.getStop() + 1);
         FakeRODRecordList list = new FakeRODRecordList();
         list.add(curROD);
         return list;

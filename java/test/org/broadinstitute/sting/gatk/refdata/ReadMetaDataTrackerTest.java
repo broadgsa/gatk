@@ -75,9 +75,9 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getPositionMapping().keySet()) {
+        for (Long x : tracker.getReadOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(2, tracker.getPositionMapping().get(x).size());
+            Assert.assertEquals(2, tracker.getReadOffsetMapping().get(x).size());
         }
         Assert.assertEquals(10, count);
     }
@@ -89,9 +89,9 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getPositionMapping().keySet()) {
+        for (Long x : tracker.getReadOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(1, tracker.getPositionMapping().get(x).size());
+            Assert.assertEquals(1, tracker.getReadOffsetMapping().get(x).size());
         }
         Assert.assertEquals(10, count);
     }
@@ -103,7 +103,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping("default");
+        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping("default");
         for (Long x : map.keySet()) {
             count++;
             Assert.assertEquals(1, map.get(x).size());
@@ -117,7 +117,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
         ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
         // count the positions
         int count = 0;
-        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping(FakeRODatum.class);
+        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
         for (Long x : map.keySet()) {
             count++;
             Assert.assertEquals(2, map.get(x).size());
@@ -126,6 +126,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
     }
 
     // @Test this test can be uncommented to determine the speed impacts of any changes to the RODs for reads system
+
     public void filterByMassiveDupType() {
 
         for (int y = 0; y < 20; y++) {
@@ -135,7 +136,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
                 ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
                 // count the positions
                 int count = 0;
-                Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping(FakeRODatum.class);
+                Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
                 for (Long x : map.keySet()) {
                     count++;
                     Assert.assertEquals(y + 2, map.get(x).size());
@@ -154,7 +155,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getPositionMapping(Fake2RODatum.class);
+        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping(Fake2RODatum.class);
         for (long x : map.keySet()) {
             count++;
             Assert.assertEquals(1, map.get(x).size());
@@ -168,9 +169,9 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getPositionMapping().keySet()) {
+        for (Long x : tracker.getReadOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(1, tracker.getPositionMapping().get(x).size());
+            Assert.assertEquals(1, tracker.getReadOffsetMapping().get(x).size());
         }
         Assert.assertEquals(2, count);
     }
@@ -181,9 +182,9 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getGenomeLocMapping().keySet()) {
+        for (Long x : tracker.getContigOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(1, tracker.getGenomeLocMapping().get(x).size());
+            Assert.assertEquals(1, tracker.getContigOffsetMapping().get(x).size());
         }
         Assert.assertEquals(10, count);
     }
@@ -219,9 +220,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
     }
 
 
-    /**
-     * for testing, we want a fake rod with a different classname, for the get-by-class-name functions
-     */
+    /** for testing, we want a fake rod with a different classname, for the get-by-class-name functions */
     static public class Fake2RODatum extends FakeRODatum {
 
         public Fake2RODatum(GenomeLoc location, String name) {
