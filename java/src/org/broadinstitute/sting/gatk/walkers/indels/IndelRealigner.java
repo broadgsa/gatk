@@ -390,9 +390,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                   // reads that perfectly match ref
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
         final LinkedList<AlignedRead> altAlignmentsToTest = new LinkedList<AlignedRead>();  // should we try to make an alt consensus from the read?
-        final ArrayList<AlignedRead> leftMovedIndels = new ArrayList<AlignedRead>();
         final Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();                 // list of alt consenses
-        int totalMismatchSum = 0;
+        long totalAlignerMismatchSum = 0, totalRawMismatchSum = 0;
 
         // if there are any known indels for this region, get them
         for ( VariationRod knownIndel : knownIndelsToTry ) {
@@ -419,29 +418,27 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             final AlignedRead aRead = new AlignedRead(read);
 
-
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
             if ( numBlocks == 2 ) {
-
                 Cigar newCigar = indelRealignment(read.getCigar(), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
-                if ( aRead.setCigar(newCigar) ) {
-                    leftMovedIndels.add(aRead);
-                }
+                aRead.setCigar(newCigar);
             }
 
-            final int mismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex, Integer.MAX_VALUE);
+            final int startOnRef = read.getAlignmentStart()-(int)leftmostIndex;
+            totalAlignerMismatchSum += AlignmentUtils.mismatchingQualities(aRead.getRead(), reference, startOnRef);
+            final int rawMismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, startOnRef, Integer.MAX_VALUE);
             //            if ( debugOn ) System.out.println("mismatchScore="+mismatchScore);
 
             // if this doesn't match perfectly to the reference, let's try to clean it
-            if ( mismatchScore > 0 ) {
+            if ( rawMismatchScore > 0 ) {
                 altReads.add(aRead);
                 if ( !read.getDuplicateReadFlag() )
-                    totalMismatchSum += mismatchScore;
-                aRead.setMismatchScoreToReference(mismatchScore);
+                    totalRawMismatchSum += rawMismatchScore;
+                aRead.setMismatchScoreToReference(rawMismatchScore);
                 // if it has an indel, let's see if that's the best consensus
                 if ( numBlocks == 2 )  {
-                    Consensus c = createAlternateConsensus(aRead.getAlignmentStart() - (int)leftmostIndex, aRead.getCigar(), reference, aRead.getRead().getReadBases());
+                    Consensus c = createAlternateConsensus(startOnRef, aRead.getCigar(), reference, aRead.getRead().getReadBases());
                     if ( c == null ) {} //System.out.println("ERROR: Failed to create alt consensus for read "+aRead.getRead().getReadName());
                     else
                         altConsenses.add(c);
@@ -543,10 +540,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
         }
 
-        // if the best alternate consensus has a smaller sum of quality score mismatches (more than
-        // the LOD threshold), and it didn't just move around the mismatching columns, then clean!
-        final double improvement = (bestConsensus == null ? -1 : ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0);
-        if ( improvement >= LOD_THRESHOLD ) {
+        // if:
+        // 1) the best alternate consensus has a smaller sum of quality score mismatches than the aligned version of the reads,
+        // 2) beats the LOD threshold for the sum of quality score mismatches of the raw version of the reads,
+        // 3) didn't just move around the mismatching columns (i.e. it actually reduces entropy), 
+        // then clean!
+        final double improvement = (bestConsensus == null ? -1 : ((double)(totalRawMismatchSum - bestConsensus.mismatchSum))/10.0);
+        if ( improvement >= LOD_THRESHOLD && bestConsensus.mismatchSum <= totalAlignerMismatchSum ) {
 
             bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, bestConsensus.positionOnReference);
 
@@ -584,7 +584,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         for ( int i = 0; i < length; i++)
                             str.append((char)bestConsensus.str[position+i]);
                     }
-                    str.append("\t" + (((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0) + "\n");
+                    str.append("\t" + (((double)(totalRawMismatchSum - bestConsensus.mismatchSum))/10.0) + "\n");
                     try {
                         indelOutput.write(str.toString());
                         indelOutput.flush();
@@ -623,10 +623,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         } else if ( statsOutput != null ) {
             try {
-                statsOutput.write(readsToClean.getLocation().toString());
-                statsOutput.write("\tFAIL\t"); // if improvement < LOD_THRESHOLD
-                statsOutput.write(Double.toString(improvement));
-                statsOutput.write("\n");
+                statsOutput.write(String.format("%s\tFAIL\t%.1f\t%d%n",
+                        readsToClean.getLocation().toString(), improvement, bestConsensus.mismatchSum - totalAlignerMismatchSum));
                 statsOutput.flush();
             } catch (Exception e) {}
         }

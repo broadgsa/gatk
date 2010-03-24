@@ -5,121 +5,16 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.util.StringUtil;
-import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.pileup.*;
 
 
-/**
- * Created by IntelliJ IDEA.
- * User: asivache
- * Date: Mar 25, 2009
- * Time: 12:15:38 AM
- * To change this template use File | Settings | File Templates.
- */
 public class AlignmentUtils {
 
-
-    /** Returns number of mismatches in the alignment <code>r</code> to the reference sequence
-     * <code>refSeq</code>. It is assumed that
-     * the alignment starts at (1-based) position r.getAlignmentStart() on the specified, and all single-base mismatches
-     * are counted in the alignment segments where both sequences are present. Insertions/deletions are skipped and do
-     * not contribute to the error count returned by this method. 
-     * @param r aligned read
-     * @param refSeq reference sequence
-     * @return number of single-base mismatches in the aligned segments (gaps on either of the sequences are skipped)
-     */
-    public static int numMismatches(SAMRecord r, ReferenceSequence refSeq) {
-        byte[] ref = refSeq.getBases();
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        int i_ref = r.getAlignmentStart()-1; // position on the ref
-        int i_read = 0;                    // position on the read
-        int mm_count = 0; // number of mismatches
-        Cigar c = r.getCigar();
-        for ( int k = 0 ; k < c.numCigarElements() ; k++ ) {
-            CigarElement ce = c.getCigarElement(k);
-            switch( ce.getOperator() ) {
-                case M:
-                    for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
-                        char refChr = (char)ref[i_ref];
-                        char readChr = (char)r.getReadBases()[i_read];
-                        if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
-                             BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
-                            continue; // do not count Ns/Xs/etc ?
-                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
-                            mm_count++;
-                    }
-                    break;
-                case I:
-                case S:
-                    i_read += ce.getLength();
-                    break;
-                case D:
-                case N:
-                    i_ref += ce.getLength();
-                    break;
-                default: throw new RuntimeException("Unrecognized cigar element");
-            }
-
-        }
-        return mm_count;
+    private static class MismatchCount {
+        public int numMismatches = 0;
+        public long mismatchQualities = 0;
     }
-
-    /**
-     * mhanna - 11 May 2009 - stubbed out competing method that works with partial references. 
-     * Computes number of mismatches in the read alignment to the refence <code>ref</code>
-     * specified in the record <code>r</code>. Indels are completely <i>ignored</i> by this method:
-     * only base mismatches in the alignment segments where both sequences are present are counted.
-     * @param r
-     * @return
-     */
-    public static int numMismatches(SAMRecord r, char[] ref) {
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        int i_ref = 0; // position on the ref
-        int i_read = 0;                    // position on the read
-        int mm_count = 0; // number of mismatches
-        Cigar c = r.getCigar();
-        for ( int k = 0 ; k < c.numCigarElements() ; k++ ) {
-            CigarElement ce = c.getCigarElement(k);
-            switch( ce.getOperator() ) {
-                case M:
-                    for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
-                        char refChr = ref[i_ref];
-                        char readChr = (char)r.getReadBases()[i_read];
-                        if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
-                             BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
-                            continue; // do not count Ns/Xs/etc ?
-                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
-                             mm_count++;
-                    }
-                    break;
-                case I:
-                case S:
-                    i_read += ce.getLength();
-                    break;
-                case D:
-                case N:
-                    i_ref += ce.getLength();
-                    break;
-                default: throw new RuntimeException("Unrecognized cigar element: " + ce.getOperator());
-            }
-
-        }
-        return mm_count;
-    }
-
-    // IMPORTANT NOTE: ALTHOUGH THIS METHOD IS EXTREMELY SIMILAR TO THE ONE ABOVE, WE NEED
-    // TWO SEPARATE IMPLEMENTATIONS IN ORDER TO PREVENT JAVA STRINGS FROM FORCING US TO
-    // PERFORM EXPENSIVE ARRAY COPYING WHEN TRYING TO GET A BYTE ARRAY...
-    /** See {@link #numMismatches(SAMRecord, ReferenceSequence)}. This method implements same functionality
-     * for reference sequence specified as conventional java string (of bases). By default, it is assumed that
-     * the alignment starts at (1-based) position r.getAlignmentStart() on the reference <code>refSeq</code>.
-     * See {@link #numMismatches(SAMRecord, byte[], int)} if this is not the case.
-     */
-    public static int numMismatches(SAMRecord r, String refSeq ) {
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        return numMismatches(r, StringUtil.stringToBytes(refSeq), r.getAlignmentStart()-1);
-     }
 
     /** Returns number of mismatches in the alignment <code>r</code> to the reference sequence
      * <code>refSeq</code> assuming the alignment starts at (ZERO-based) position <code>refIndex</code> on the
@@ -136,8 +31,27 @@ public class AlignmentUtils {
      * @return the number of mismatches
      */
     public static int numMismatches(SAMRecord r, byte[] refSeq, int refIndex) {
+        return getMismatchCount(r, refSeq, refIndex).numMismatches;
+    }
+
+    public static int numMismatches(SAMRecord r, String refSeq, int refIndex ) {
+        if ( r.getReadUnmappedFlag() ) return 1000000;
+        return numMismatches(r, StringUtil.stringToBytes(refSeq), refIndex);
+     }
+
+    public static long mismatchingQualities(SAMRecord r, byte[] refSeq, int refIndex) {
+        return getMismatchCount(r, refSeq, refIndex).mismatchQualities;
+    }
+
+    public static long mismatchingQualities(SAMRecord r, String refSeq, int refIndex ) {
+        if ( r.getReadUnmappedFlag() ) return 1000000;
+        return numMismatches(r, StringUtil.stringToBytes(refSeq), refIndex);
+     }
+
+    private static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
+        MismatchCount mc = new MismatchCount();
+
         int readIdx = 0;
-        int mismatches = 0;
         byte[] readSeq = r.getReadBases();
         Cigar c = r.getCigar();
         for (int i = 0 ; i < c.numCigarElements() ; i++) {
@@ -153,8 +67,10 @@ public class AlignmentUtils {
                         //if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
                         //     BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
                         //    continue; // do not count Ns/Xs/etc ?
-                        if ( readChr != refChr )
-                            mismatches++;
+                        if ( readChr != refChr ) {
+                            mc.numMismatches++;
+                            mc.mismatchQualities += r.getBaseQualities()[readIdx];
+                        }
                     }
                     break;
                 case I:
@@ -169,7 +85,7 @@ public class AlignmentUtils {
             }
 
         }
-        return mismatches;
+        return mc;
     }
 
     /** Returns the number of mismatches in the pileup within the given reference context.
@@ -406,8 +322,8 @@ public class AlignmentUtils {
      * Due to (unfortunate) multiple ways to indicate that read is unmapped allowed by SAM format
      * specification, one may need this convenience shortcut. Checks both 'read unmapped' flag and
      * alignment reference index/start.
-     * @param r
-     * @return
+     * @param r record
+     * @return true if read is unmapped
      */
     public static boolean isReadUnmapped(final SAMRecord r) {
         if ( r.getReadUnmappedFlag() ) return true;
