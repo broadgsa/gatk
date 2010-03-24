@@ -20,17 +20,14 @@ public class Alignability implements InfoFieldAnnotation {
 						   VariantContext vc)
 	{
 		TabularROD record = (TabularROD)(tracker.lookup("alignability", null));
-		int value;
-		if (record == null) { value = 3; }
-		else 
-		{ 
-			if (record.get("alignability") == null) 
-			{ 
-				throw new RuntimeException("ERROR: alignability column not defined in alignability input.\n");
-			}
-			value = Integer.parseInt(record.get("alignability")); 
-		}
-        
+		if (record == null)
+            return null;
+
+        if (record.get("alignability") == null)
+            throw new RuntimeException("ERROR: alignability column not defined in alignability input.\n");
+
+        int value = Integer.parseInt(record.get("alignability"));
+
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyName(), String.format("%d", value));
         return map;

@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
@@ -53,6 +52,10 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         out.println("\nAvailable annotations for the VCF FORMAT field:");
         for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
             out.println("\t" + genotypeAnnotationClasses.get(i).getSimpleName());
+        out.println();
+        out.println("\nAvailable classes/groups of annotations:");
+        for ( Class c : PackageUtils.getInterfacesExtendingInterface(AnnotationType.class) )
+            out.println("\t" + c.getSimpleName());
         out.println();
         System.exit(0);
     }
@@ -167,13 +170,5 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         out.printf("Processed %d loci.\n", result);
 
         vcfWriter.close();
-    }
-
-    public static Genotype getFirstVariant(char ref, List<Genotype> genotypes) {
-        for ( Genotype g : genotypes ) {
-            if ( g.isVariant(ref) )
-                return g;
-        }
-        return null;
     }
 }
