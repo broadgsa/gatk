@@ -425,6 +425,12 @@ public class Utils {
         return new String(chars);
     }
 
+    public static byte[] dupBytes(byte b, int nCopies) {
+        byte[] bytes = new byte[nCopies];
+        Arrays.fill(bytes, b);
+        return bytes;
+    }
+
     public static int countOccurrences(char c, String s) {
         int count = 0;
         for (int i = 0; i < s.length(); i++) {

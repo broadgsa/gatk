@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
 import org.broadinstitute.sting.gatk.refdata.*;
@@ -92,7 +93,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     // the reads and known indels that fall into the current interval
     private final ReadBin readsToClean = new ReadBin();
     private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
-    private final ArrayList<VariationRod> knownIndelsToTry = new ArrayList<VariationRod>();
+    private final IdentityHashMap<ReferenceOrderedDatum, VariantContext> knownIndelsToTry = new IdentityHashMap<ReferenceOrderedDatum, VariantContext>();
 
     // the wrapper around the SAM writer
     private Map<String, SAMFileWriter> writers = null;
@@ -261,6 +262,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 readsNotToClean.add(read);
             } else {
                 readsToClean.add(read, ref);
+                // add the rods to the list of known variants
+                populateKnownIndels(metaDataTracker);
             }
 
             if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
@@ -344,6 +347,21 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
+    private void populateKnownIndels(ReadMetaDataTracker metaDataTracker) {
+        for ( Collection<ReferenceOrderedDatum> rods : metaDataTracker.getContigOffsetMapping().values() ) {
+            Iterator<ReferenceOrderedDatum> rodIter = rods.iterator();
+            while ( rodIter.hasNext() ) {
+                ReferenceOrderedDatum rod = rodIter.next();
+                if ( knownIndelsToTry.containsKey(rod) )
+                    continue;
+                if ( VariantContextAdaptors.canBeConvertedToVariantContext(rod))
+                    knownIndelsToTry.put(rod, VariantContextAdaptors.toVariantContext("", rod));
+                else
+                    knownIndelsToTry.put(rod, null);
+            }
+        }
+    }
+
     private static int mismatchQualitySumIgnoreCigar(final AlignedRead aRead, final byte[] refSeq, int refIndex, int quitAboveThisValue) {
         final byte[] readSeq = aRead.getRead().getReadBases();
         final byte[] quals = aRead.getRead().getBaseQualities();
@@ -394,8 +412,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         long totalAlignerMismatchSum = 0, totalRawMismatchSum = 0;
 
         // if there are any known indels for this region, get them
-        for ( VariationRod knownIndel : knownIndelsToTry ) {
-            String indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAlleleList().get(0) : Utils.dupString('-', knownIndel.getAlleleList().get(0).length());
+        for ( VariantContext knownIndel : knownIndelsToTry.values() ) {
+            if ( knownIndel == null || !knownIndel.isIndel() )
+                continue;
+            byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
             Consensus c = createAlternateConsensus((int)(knownIndel.getLocation().getStart() - leftmostIndex), reference, indelStr, knownIndel.isDeletion());
             if ( c != null )
                 altConsenses.add(c);
@@ -410,7 +430,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             //                System.out.println(read.getReadString());
             //            }
 
-            // we currently can not deal with clipped reads correctly (or screwy record)
+            // we currently can not deal with clipped reads correctly (or a screwy record)
             if ( read.getCigar().numCigarElements() == 0 || readIsClipped(read) ) {
                 refReads.add(read);
                 continue;
@@ -630,6 +650,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
+    // create a Consensus from cigar/read strings which originate somewhere on the reference
     private Consensus createAlternateConsensus(final int indexOnRef, final Cigar c, final byte[] reference, final byte[] readStr) {
         if ( indexOnRef < 0 )
             return null;
@@ -687,7 +708,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return new Consensus(altConsensus, c, indexOnRef);
     }
 
-    private Consensus createAlternateConsensus(final int indexOnRef, final byte[] reference, final String indelStr, final boolean isDeletion) {
+    // create a Consensus from just the indel string that falls on the reference
+    private Consensus createAlternateConsensus(final int indexOnRef, final byte[] reference, final byte[] indelStr, final boolean isDeletion) {
         if ( indexOnRef < 0 )
             return null;
 
@@ -702,12 +724,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             cigar.add(new CigarElement(indexOnRef, CigarOperator.M));
 
         if ( isDeletion ) {
-            refIdx += indelStr.length();
-            cigar.add(new CigarElement(indelStr.length(), CigarOperator.D));
+            refIdx += indelStr.length;
+            cigar.add(new CigarElement(indelStr.length, CigarOperator.D));
         }
         else {
             sb.append(indelStr);
-            cigar.add(new CigarElement(indelStr.length(), CigarOperator.I));
+            cigar.add(new CigarElement(indelStr.length, CigarOperator.I));
         }
 
         if ( reference.length - refIdx > 0 )
@@ -716,7 +738,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             sb.append((char)reference[refIdx]);
         byte[] altConsensus =  StringUtil.stringToBytes(sb.toString()); // alternative consensus sequence we just built from the current read
 
-        return new Consensus(altConsensus, cigar, indexOnRef);
+        return new Consensus(altConsensus, cigar, 0);
     }
 
     private Pair<Integer, Integer> findBestOffset(final byte[] ref, final AlignedRead read, final int leftmostIndex) {
