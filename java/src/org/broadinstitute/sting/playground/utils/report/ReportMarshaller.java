@@ -33,10 +33,7 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -52,6 +49,7 @@ public class ReportMarshaller {
     // the aggregation of all our analyses
     private Node root;
     private File writeLocation;
+
     /**
      * create a marshaled object
      *
@@ -64,10 +62,8 @@ public class ReportMarshaller {
     }
 
     private void init(String reportName, File filename) {
-        root = new Node(reportName);
-        Node title= new Node("title");
-        title.addChild(new Node(reportName));
-        root.addChild(title);
+        root = new Node("report", reportName, "the overarching report object");
+        root.addChild(new Node("title", reportName, "title of the report"));
         this.writeLocation = filename;
     }
 
@@ -77,7 +73,7 @@ public class ReportMarshaller {
      * @param reportName the report name
      */
     public ReportMarshaller(String reportName, File filename) {
-        init(reportName,filename);
+        init(reportName, filename);
         temp = createTemplate();
     }
 
@@ -101,12 +97,40 @@ public class ReportMarshaller {
         root.addChild(analysis);
     }
 
+    /**
+     * add an analysis module to the output source
+     *
+     * @param toMarshall the object to marshall
+     */
+    public void write(List<Node> prependNodes, Object toMarshall) {
+        // Create a context to add data to
+        HashMap analysisMap = new HashMap();
+        AnalysisModuleScanner moduleScanner = new AnalysisModuleScanner(toMarshall);
+
+        Node analysis = addAnalysis(moduleScanner);
+
+        analysis.addAllChildren(getParameterNodes(toMarshall, moduleScanner));
+        analysis.addAllChildren(getDataPointNodes(toMarshall, moduleScanner));
+
+        // prepend the list of nodes passed in
+        Node currChild = null;
+        for (Node n : prependNodes) {
+            if (currChild == null) {
+                root.addChild(n);
+                currChild = n;
+            } else {
+                currChild.addChild(n);
+                currChild = n;
+            }
+        }
+        // add this analysis to the root node
+        if (currChild == null) root.addChild(analysis);
+        else currChild.addChild(analysis);
+    }
+
+
     private Node addAnalysis(AnalysisModuleScanner moduleScanner) {
-        Node analysis = new Node(moduleScanner.getAnalysis().name());
-        Node description = new Node("description");
-        description.createSubNode(moduleScanner.getAnalysis().description());
-        analysis.addChild(description);
-        return analysis;
+        return new Node("analysis", moduleScanner.getAnalysis().name(), moduleScanner.getAnalysis().description());
     }
 
     /**
@@ -119,7 +143,9 @@ public class ReportMarshaller {
     private Collection<Node> getParameterNodes(Object toMarshall, AnalysisModuleScanner moduleScanner) {
         Collection<Node> nodes = new ArrayList<Node>();
         for (Field f : moduleScanner.getParameters().keySet()) {
-            Node node = new Node(moduleScanner.getParameters().get(f).name().equals("") ? f.getName() : moduleScanner.getParameters().get(f).name());
+            Node node = new Node("parameter",
+                    moduleScanner.getParameters().get(f).name().equals("") ? f.getName() : moduleScanner.getParameters().get(f).name(),
+                    moduleScanner.getParameters().get(f).description());
             addChildNodeFromField(toMarshall, f, node);
             nodes.add(node);
         }
@@ -136,14 +162,18 @@ public class ReportMarshaller {
     private Collection<Node> getDataPointNodes(Object toMarshall, AnalysisModuleScanner moduleScanner) {
         Collection<Node> nodes = new ArrayList<Node>();
         for (Field f : moduleScanner.getData().keySet()) {
-            Node node = new Node(moduleScanner.getData().get(f).name().equals("") ? f.getName() : moduleScanner.getData().get(f).name());
+            Node node = new Node("data_point",
+                    moduleScanner.getData().get(f).name().equals("") ? f.getName() : moduleScanner.getData().get(f).name(),
+                    moduleScanner.getData().get(f).description());
             addChildNodeFromField(toMarshall, f, node);
             nodes.add(node);
         }
         return nodes;
     }
 
-    /** call the method to finalize the report */
+    /**
+     * call the method to finalize the report
+     */
     public void close() {
         Writer out = null;
         try {
@@ -154,7 +184,7 @@ public class ReportMarshaller {
         try {
             // add the data to a map
             Map map = new HashMap();
-            map.put("root",root);
+            map.put("root", root);
             temp.process(map, out);
             out.flush();
         } catch (TemplateException e) {
@@ -174,7 +204,7 @@ public class ReportMarshaller {
         cfg.setObjectWrapper(new DefaultObjectWrapper());
         Template temp = null;
         try {
-            temp = cfg.getTemplate("machineReadable.ftl");
+            temp = cfg.getTemplate("myTestTemp.ftl");  // TODO: obviously this has to be changed to a factory or something like that
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -183,9 +213,10 @@ public class ReportMarshaller {
 
     /**
      * helper method for adding a Node to the specified node, given the field
+     *
      * @param toMarshall the object which contains the specified field
-     * @param f the field
-     * @param node the node to add a child node to
+     * @param f          the field
+     * @param node       the node to add a child node to
      */
     private static void addChildNodeFromField(Object toMarshall, Field f, Node node) {
         f.setAccessible(true);

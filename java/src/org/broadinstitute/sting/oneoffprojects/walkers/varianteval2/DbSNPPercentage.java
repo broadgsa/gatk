@@ -5,6 +5,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
+import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 
 import java.util.List;
 import java.util.Arrays;
@@ -18,11 +20,16 @@ import java.util.Arrays;
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
+@Analysis(name = "dbOverlap", description = "the overlap between DbSNP sites and other SNP tracks")
 public class DbSNPPercentage extends VariantEvaluator {
-    private long nDBSNPs       = 0;
-    private long nEvalSNPs     = 0;
+    @DataPoint(name = "DbSNP_count", description = "number of DPSNP sites")
+    private long nDBSNPs = 0;
+    @DataPoint(name = "total_count", description = "number of total snp sites")
+    private long nEvalSNPs = 0;
+    @DataPoint(name = "number_snps_at_dbsnp", description = "number of SNP sites at DPSNP sites")
     private long nSNPsAtdbSNPs = 0;
-    private long nConcordant   = 0;
+    @DataPoint(name = "number_concordant", description = "number of concordant sites")
+    private long nConcordant = 0;
 
     public DbSNPPercentage(VariantEval2Walker parent) {
         // don't do anything
@@ -36,11 +43,25 @@ public class DbSNPPercentage extends VariantEvaluator {
         return 2;   // we need to see each eval track and each comp track
     }
 
-    public long nDBSNPs()        { return nDBSNPs; }
-    public long nEvalSNPs()      { return nEvalSNPs; }
-    public long nSNPsAtdbSNPs()  { return nSNPsAtdbSNPs; }
-    public long nConcordant()    { return nConcordant; }
-    public long nNovelSites()    { return Math.abs(nEvalSNPs() - nSNPsAtdbSNPs()); }
+    public long nDBSNPs() {
+        return nDBSNPs;
+    }
+
+    public long nEvalSNPs() {
+        return nEvalSNPs;
+    }
+
+    public long nSNPsAtdbSNPs() {
+        return nSNPsAtdbSNPs;
+    }
+
+    public long nConcordant() {
+        return nConcordant;
+    }
+
+    public long nNovelSites() {
+        return Math.abs(nEvalSNPs() - nSNPsAtdbSNPs());
+    }
 
 
     /**
@@ -48,9 +69,14 @@ public class DbSNPPercentage extends VariantEvaluator {
      *
      * @return db rate
      */
-    public double dbSNPRate()           { return rate(nSNPsAtdbSNPs(), nEvalSNPs()); }
-    public double concordanceRate()     { return rate(nConcordant(), nSNPsAtdbSNPs()); }
-    
+    public double dbSNPRate() {
+        return rate(nSNPsAtdbSNPs(), nEvalSNPs());
+    }
+
+    public double concordanceRate() {
+        return rate(nConcordant(), nSNPsAtdbSNPs());
+    }
+
     public String toString() {
         return getName() + ": " + summaryLine();
     }
@@ -65,12 +91,15 @@ public class DbSNPPercentage extends VariantEvaluator {
                     "n_novel_snps", "percent_eval_in_comp", "concordance_rate");
 
     // making it a table
+
     public List<String> getTableHeader() {
         return HEADER;
     }
 
-    public boolean enabled() { return true; }
-    
+    public boolean enabled() {
+        return true;
+    }
+
     public List<List<String>> getTableRows() {
         return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
     }
@@ -78,13 +107,13 @@ public class DbSNPPercentage extends VariantEvaluator {
     /**
      * Returns true if every allele in eval is also in dbsnp
      *
-     * @param eval   eval context
-     * @param dbsnp  db context
+     * @param eval  eval context
+     * @param dbsnp db context
      * @return true if eval and db are discordant
      */
-    public boolean discordantP(VariantContext eval, VariantContext dbsnp ) {
-        for ( Allele a : eval.getAlleles() ) {
-            if ( ! dbsnp.hasAllele(a, true) )
+    public boolean discordantP(VariantContext eval, VariantContext dbsnp) {
+        for (Allele a : eval.getAlleles()) {
+            if (!dbsnp.hasAllele(a, true))
                 return true;
         }
 
@@ -95,13 +124,13 @@ public class DbSNPPercentage extends VariantEvaluator {
         boolean dbSNPIsGood = dbsnp != null && dbsnp.isSNP() && dbsnp.isNotFiltered();
         boolean evalIsGood = eval != null && eval.isSNP();
 
-        if ( dbSNPIsGood ) nDBSNPs++;             // count the number of dbSNP events
-        if ( evalIsGood )  nEvalSNPs++;           // count the number of dbSNP events
+        if (dbSNPIsGood) nDBSNPs++;             // count the number of dbSNP events
+        if (evalIsGood) nEvalSNPs++;           // count the number of dbSNP events
 
-        if ( dbSNPIsGood && evalIsGood )  {
+        if (dbSNPIsGood && evalIsGood) {
             nSNPsAtdbSNPs++;
 
-            if ( ! discordantP(eval, dbsnp) )     // count whether we're concordant or not with the dbSNP value
+            if (!discordantP(eval, dbsnp))     // count whether we're concordant or not with the dbSNP value
                 nConcordant++;
         }
 

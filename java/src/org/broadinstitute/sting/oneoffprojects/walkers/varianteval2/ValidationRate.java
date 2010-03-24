@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 
 import java.util.List;
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import java.util.Arrays;
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
+@Analysis(name = "Validation Rate", description = "Validation Rate")
 public class ValidationRate extends VariantEvaluator {
 
     // todo -- subset validation data by list of samples, if provided
@@ -26,7 +28,9 @@ public class ValidationRate extends VariantEvaluator {
     class SiteStats {
         long nPoly = 0, nMono = 0, nNoCall = 0;
 
-        double polyPercent() { return 100 * rate(nPoly, nPoly + nMono + nNoCall); }
+        double polyPercent() {
+            return 100 * rate(nPoly, nPoly + nMono + nNoCall);
+        }
     }
 
     private SiteStats validationStats = new SiteStats();
@@ -68,11 +72,14 @@ public class ValidationRate extends VariantEvaluator {
                     "PPV", "Sensitivity");
 
     // making it a table
+
     public List<String> getTableHeader() {
         return HEADER;
     }
 
-    public boolean enabled() { return true; }
+    public boolean enabled() {
+        return true;
+    }
 
     public List<List<String>> getTableRows() {
         return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
@@ -81,26 +88,25 @@ public class ValidationRate extends VariantEvaluator {
     public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         String interesting = null;
 
-        if ( validation != null && validation.hasGenotypes() && validation.isNotFiltered() ) {
+        if (validation != null && validation.hasGenotypes() && validation.isNotFiltered()) {
             SiteStats overlap;
 
-            if ( validation.isPolymorphic() ) {
+            if (validation.isPolymorphic()) {
                 validationStats.nPoly++;
                 overlap = evalOverlapAtPoly;
-                if ( eval == null || eval.isMonomorphic() )
+                if (eval == null || eval.isMonomorphic())
                     interesting = "ValidationStatus=FN";
-            }
-            else {
+            } else {
                 validationStats.nMono++;
                 overlap = evalOverlapAtMono;
 
-                if ( eval != null && eval.isPolymorphic() )
+                if (eval != null && eval.isPolymorphic())
                     interesting = "ValidationStatus=FP";
             }
 
-            if ( eval == null )
+            if (eval == null)
                 overlap.nNoCall++;
-            else if ( eval.isPolymorphic() )
+            else if (eval.isPolymorphic())
                 overlap.nPoly++;
             else
                 overlap.nMono++;
