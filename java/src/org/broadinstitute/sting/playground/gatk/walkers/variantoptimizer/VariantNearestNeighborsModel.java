@@ -62,12 +62,11 @@ public final class VariantNearestNeighborsModel extends VariantOptimizationModel
             pTrueVariant[iii] = calcTruePositiveRateFromTITV( vTree.calcNeighborhoodTITV( dataManager.data[iii] ) );
         }
 
-        PrintStream outputFile = null;
+        PrintStream outputFile;
         try {
             outputFile = new PrintStream( outputPrefix + ".knn.optimize" );
         } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(-1);
+            throw new StingException( "Unable to create output file: " + outputPrefix + ".knn.optimize" );
         }
         for(int iii = 0; iii < numVariants; iii++) {
             outputFile.print(String.format("%.4f",pTrueVariant[iii]) + ",");

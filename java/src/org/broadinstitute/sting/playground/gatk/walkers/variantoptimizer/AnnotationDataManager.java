@@ -63,7 +63,7 @@ public class AnnotationDataManager {
         // Loop over each annotation in the vcf record
         final Map<String,String> infoField = variant.getInfoValues();
         infoField.put("QUAL", ((Double)variant.getQual()).toString() ); // add QUAL field to annotations
-        for( String annotationKey : infoField.keySet() ) {
+        for( final String annotationKey : infoField.keySet() ) {
 
             float value;
             try {
@@ -102,7 +102,7 @@ public class AnnotationDataManager {
         System.out.println( "\nFinished reading variants into memory. Executing RScript commands:" );
 
         // For each annotation we've seen
-        for( String annotationKey : data.keySet() ) {
+        for( final String annotationKey : data.keySet() ) {
 
             PrintStream output;
             try {
@@ -117,7 +117,7 @@ public class AnnotationDataManager {
 
             // Bin SNPs and calculate truth metrics for each bin
             thisAnnotationBin.clearBin();
-            for( AnnotationDatum datum : data.get( annotationKey ) ) {
+            for( final AnnotationDatum datum : data.get( annotationKey ) ) {
                 thisAnnotationBin.combine( datum );
                 if( thisAnnotationBin.numVariants( AnnotationDatum.FULL_SET ) >= MAX_VARIANTS_PER_BIN ) { // This annotation bin is full
                     output.println( thisAnnotationBin.value + "\t" + thisAnnotationBin.calcTiTv( AnnotationDatum.FULL_SET ) + "\t" + thisAnnotationBin.calcDBsnpRate() + "\t" + thisAnnotationBin.calcTPrate() +

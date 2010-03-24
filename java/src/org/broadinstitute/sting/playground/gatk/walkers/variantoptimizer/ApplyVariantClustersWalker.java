@@ -12,10 +12,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -60,8 +57,12 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     private double TARGET_TITV = 2.1;
     @Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
     private int DESIRED_NUM_VARIANTS = 0;
-    @Argument(fullName="ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
-    private boolean IGNORE_INPUT_FILTERS = false;
+    @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
+    private boolean IGNORE_ALL_INPUT_FILTERS = false;
+    @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
+    private String[] IGNORE_INPUT_FILTERS = null;
+    @Argument(fullName="known_prior", shortName="knownPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true. Default is 30.0", required=false)
+    private double KNOWN_VAR_QUAL_PRIOR = 30.0;
     @Argument(fullName="output_prefix", shortName="output", doc="The prefix added to output VCF file name and optimization curve pdf file name", required=false)
     private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
@@ -78,6 +79,8 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     /////////////////////////////
     private VariantGaussianMixtureModel theModel = null;
     private VCFWriter vcfWriter;
+    private Set<String> ignoreInputFilterSet = null;
+
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -87,6 +90,10 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
     public void initialize() {
         if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
+
+        if( IGNORE_INPUT_FILTERS != null ) {
+            ignoreInputFilterSet = new TreeSet<String>(Arrays.asList(IGNORE_INPUT_FILTERS));
+        }
 
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
@@ -101,14 +108,14 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
 
         // setup the header fields
-        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
         vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
-        TreeSet<String> samples = new TreeSet<String>();
+        final TreeSet<String> samples = new TreeSet<String>();
         SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
-        VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
+        final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }
 
@@ -126,21 +133,40 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         }
 
 
-        for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
+        for( final ReferenceOrderedDatum rod : tracker.getAllRods() ) {
             if( rod != null && rod instanceof RodVCF ) {
                 final RodVCF rodVCF = ((RodVCF) rod);
-                if( rodVCF.isSNP() && (IGNORE_INPUT_FILTERS || !rodVCF.isFiltered()) ) {
-                    final double pTrue = theModel.evaluateVariant( rodVCF.getInfoValues(), rodVCF.getQual() );
-                    final double recalQual = QualityUtils.phredScaleErrorRate( Math.max( 1.0 - pTrue, 0.000000001) );                             
-                    rodVCF.mCurrentRecord.addInfoField("OQ", ((Double)rodVCF.getQual()).toString() );                                        
-                    rodVCF.mCurrentRecord.setQual( recalQual );
-                    vcfWriter.addRecord( rodVCF.mCurrentRecord );
-                    
-                    VariantDatum variantDatum = new VariantDatum();
+                //BUGBUG: figure out how to make this use VariantContext to be consistent with other VariantOptimizer walkers
+                //          need to convert vc into VCFRecord to write it out?
+                if( rodVCF.isSNP() &&
+                        (!rodVCF.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(Arrays.asList(rodVCF.getFilteringCodes())))) ) {
+
+                    final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.isTransition = BaseUtils.isTransition((byte)rodVCF.getAlternativeBaseForSNP(), (byte)rodVCF.getReferenceForSNP()); //vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
                     variantDatum.isKnown = !rodVCF.isNovel(); //!vc.getAttribute("ID").equals(".");
-                    variantDatum.qual = recalQual;
+                    int numHet = 0;
+                    int numHom = 0;
+                    for( final VCFGenotypeRecord rec : rodVCF.getVCFGenotypeRecords() ) {
+                        if( rec.isHet() ) { numHet++; }
+                        else if( rec.isHom() ) { numHom++; }
+                    }
+                    variantDatum.isHet = numHet > numHom; //vc.getHetCount() > vc.getHomVarCount(); // BUGBUG: what to do here for multi sample calls?
+
+                    final double pTrue = theModel.evaluateVariant( rodVCF.getInfoValues(), rodVCF.getQual(), variantDatum.isHet );
+                    final double recalQual = QualityUtils.phredScaleErrorRate( Math.max( 1.0 - pTrue, 0.000000001) );                             
+
+                    if( variantDatum.isKnown ) {
+                        variantDatum.qual = 0.5 * recalQual + 0.5 * KNOWN_VAR_QUAL_PRIOR;
+                    } else {
+                        variantDatum.qual = recalQual;
+                    }
                     mapList.add( variantDatum );
+
+                    rodVCF.mCurrentRecord.addInfoField("OQ", ((Double)rodVCF.getQual()).toString() );
+                    rodVCF.mCurrentRecord.setQual( variantDatum.qual );
+                    rodVCF.mCurrentRecord.setFilterString(VCFRecord.UNFILTERED);
+                    vcfWriter.addRecord( rodVCF.mCurrentRecord );
+
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
                     vcfWriter.addRecord( rodVCF.mCurrentRecord );
@@ -169,6 +195,8 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
 
+        vcfWriter.close();
+        
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 

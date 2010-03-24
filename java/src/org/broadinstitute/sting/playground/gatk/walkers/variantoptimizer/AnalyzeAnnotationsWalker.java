@@ -108,7 +108,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
             // First find out if this variant is in the truth sets
             boolean isInTruthSet = false;
             boolean isTrueVariant = false;
-            for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
+            for( final ReferenceOrderedDatum rod : tracker.getAllRods() ) {
                 if( rod != null && rod.getName().toUpperCase().startsWith("TRUTH") ) {
                     isInTruthSet = true;
 
@@ -132,7 +132,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
             }
             
             // Add each annotation in this VCF Record to the dataManager
-            for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
+            for( final ReferenceOrderedDatum rod : tracker.getAllRods() ) {
                 if( rod != null && rod instanceof RodVCF && !rod.getName().toUpperCase().startsWith("TRUTH") ) {
                     final RodVCF variant = (RodVCF) rod;
                     if( variant.isSNP() ) {

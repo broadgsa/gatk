@@ -77,8 +77,8 @@ public class VariantDataManager {
         annotationKeys = new ExpandingArrayList<String>();
 
         int jjj = 0;
-        for( String line : annotationLines ) {
-            String[] vals = line.split(",");
+        for( final String line : annotationLines ) {
+            final String[] vals = line.split(",");
             annotationKeys.add(vals[1]);
             meanVector[jjj] = Double.parseDouble(vals[2]);
             varianceVector[jjj] = Double.parseDouble(vals[3]);
@@ -87,12 +87,15 @@ public class VariantDataManager {
     }
 
     public void normalizeData() {
+        boolean foundZeroVarianceAnnotation = false;
         for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
             final double theMean = mean(data, jjj);
             final double theSTD = standardDeviation(data, theMean, jjj);
             System.out.println( (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
             if( theSTD < 1E-8 ) {
-                throw new StingException("Zero variance is a problem: standard deviation = " + theSTD);
+                foundZeroVarianceAnnotation = true;
+                System.out.println("Zero variance is a problem: standard deviation = " + theSTD);
+                System.out.println("User must -exclude annotations with zero variance. Annotation = " + (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)));
             }
             meanVector[jjj] = theMean;
             varianceVector[jjj] = theSTD;
@@ -101,6 +104,9 @@ public class VariantDataManager {
             }
         }
         isNormalized = true; // Each data point is now [ (x - mean) / standard deviation ]
+        if( foundZeroVarianceAnnotation ) {
+            throw new StingException("Found annotations with zero variance. They must be excluded before proceeding.");
+        }
     }
 
     private static double mean( final VariantDatum[] data, final int index ) {

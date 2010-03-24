@@ -59,7 +59,7 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
         }
     }
 
-    public AnnotationDatum( float _value ) {
+    public AnnotationDatum( final float _value ) {
 
         value = _value;
         ti = new int[NUM_SETS];

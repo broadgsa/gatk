@@ -10,7 +10,9 @@ import org.broadinstitute.sting.utils.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -53,8 +55,10 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     /////////////////////////////
     @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.1 for whole genome experiments)", required=true)
     private double TARGET_TITV = 2.1;
-    @Argument(fullName="ignore_input_filters", shortName="ignoreFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
-    private boolean IGNORE_INPUT_FILTERS = false;
+    @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
+    private boolean IGNORE_ALL_INPUT_FILTERS = false;
+    @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
+    private String[] IGNORE_INPUT_FILTERS = null;
     @Argument(fullName="exclude_annotation", shortName="exclude", doc="The names of the annotations which should be excluded from the calculations", required=false)
     private String[] EXCLUDED_ANNOTATIONS = null;
     @Argument(fullName="force_annotation", shortName="force", doc="The names of the annotations which should be forced into the calculations even if they aren't present in every variant", required=false)
@@ -62,11 +66,11 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
     private String CLUSTER_FILENAME = "optimizer.cluster";
     @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian Mixture model", required=false)
-    private int NUM_GAUSSIANS = 32;
+    private int NUM_GAUSSIANS = 100;
     @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian Mixture model", required=false)
-    private int NUM_ITERATIONS = 10;
-    @Argument(fullName="minVarInCluster", shortName="minVar", doc="The minimum number of variants in a cluster to be considered a valid cluster. Used to prevent overfitting. Default is 2000.", required=true)
-    private int MIN_VAR_IN_CLUSTER = 2000;
+    private int NUM_ITERATIONS = 7;
+    @Argument(fullName="minVarInCluster", shortName="minVar", doc="The minimum number of variants in a cluster to be considered a valid cluster. It can be used to prevent overfitting.", required=false)
+    private int MIN_VAR_IN_CLUSTER = 0;
 
     //@Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
     //private int NUM_KNN = 2000;
@@ -80,6 +84,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private boolean firstVariant = true;
     private int numAnnotations = 0;
     private static final double INFINITE_ANNOTATION_VALUE = 10000.0;
+    private Set<String> ignoreInputFilterSet = null;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -88,7 +93,9 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
-        //if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }   
+        if( IGNORE_INPUT_FILTERS != null ) {
+            ignoreInputFilterSet = new TreeSet<String>(Arrays.asList(IGNORE_INPUT_FILTERS));
+        }
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -109,49 +116,52 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
 
         for( final VariantContext vc : tracker.getAllVariantContexts(null, context.getLocation(), false, false) ) {
 
-            if( vc != null && vc.isSNP() && (IGNORE_INPUT_FILTERS || !vc.isFiltered()) ) {
-                if( firstVariant ) { // This is the first variant encountered so set up the list of annotations
-                    annotationKeys.addAll( vc.getAttributes().keySet() );
-                    if( annotationKeys.contains("ID") ) { annotationKeys.remove("ID"); } // ID field is added to the vc's INFO field?
-                    if( annotationKeys.contains("DB") ) { annotationKeys.remove("DB"); }
-                    if( EXCLUDED_ANNOTATIONS != null ) {
-                        for( final String excludedAnnotation : EXCLUDED_ANNOTATIONS ) {
-                            if( annotationKeys.contains( excludedAnnotation ) ) { annotationKeys.remove( excludedAnnotation ); }
+            if( vc != null && vc.isSNP() ) {
+                if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
+                    if( firstVariant ) { // This is the first variant encountered so set up the list of annotations
+                        annotationKeys.addAll( vc.getAttributes().keySet() );
+                        if( annotationKeys.contains("ID") ) { annotationKeys.remove("ID"); } // ID field is added to the vc's INFO field?
+                        if( annotationKeys.contains("DB") ) { annotationKeys.remove("DB"); }
+                        if( EXCLUDED_ANNOTATIONS != null ) {
+                            for( final String excludedAnnotation : EXCLUDED_ANNOTATIONS ) {
+                                if( annotationKeys.contains( excludedAnnotation ) ) { annotationKeys.remove( excludedAnnotation ); }
+                            }
                         }
-                    }
-                    if( FORCED_ANNOTATIONS != null ) {
-                        for( final String forcedAnnotation : FORCED_ANNOTATIONS ) {
-                            if( !annotationKeys.contains( forcedAnnotation ) ) { annotationKeys.add( forcedAnnotation ); }
+                        if( FORCED_ANNOTATIONS != null ) {
+                            for( final String forcedAnnotation : FORCED_ANNOTATIONS ) {
+                                if( !annotationKeys.contains( forcedAnnotation ) ) { annotationKeys.add( forcedAnnotation ); }
+                            }
                         }
+                        numAnnotations = annotationKeys.size() + 1; // +1 for variant quality ("QUAL")
+                        annotationValues = new double[numAnnotations];
+                        firstVariant = false;
                     }
-                    numAnnotations = annotationKeys.size() + 1; // +1 for variant quality ("QUAL")
-                    annotationValues = new double[numAnnotations];
-                    firstVariant = false;
+
+                    int iii = 0;
+                    for( final String key : annotationKeys ) {
+
+                        double value = 0.0;
+                        try {
+                            value = Double.parseDouble( (String)vc.getAttribute( key, "0.0" ) );
+                            if( Double.isInfinite(value) ) {
+                                value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
+                            }
+                        } catch( NumberFormatException e ) {
+                            // do nothing, default value is 0.0
+                        }
+                        annotationValues[iii++] = value;
+                    }
+
+                    // Variant quality ("QUAL") is not in the list of annotations, but is useful so add it here.
+                    annotationValues[iii] = vc.getPhredScaledQual();
+
+                    final VariantDatum variantDatum = new VariantDatum();
+                    variantDatum.annotations = annotationValues;
+                    variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+                    variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
+                    variantDatum.isHet = vc.getHetCount() > vc.getHomVarCount(); // BUGBUG: what to do here for multi sample calls?
+                    mapList.add( variantDatum );
                 }
-
-                int iii = 0;
-                for( final String key : annotationKeys ) {
-
-                    double value = 0.0;
-                    try {
-                        value = Double.parseDouble( (String)vc.getAttribute( key, "0.0" ) );
-                        if( Double.isInfinite(value) ) {
-                            value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
-                        }
-                    } catch( NumberFormatException e ) {
-                        // do nothing, default value is 0.0
-                    }
-                    annotationValues[iii++] = value;
-                }
-
-                // Variant quality ("QUAL") is not in the list of annotations, but is useful so add it here.
-                annotationValues[iii] = vc.getPhredScaledQual();
-
-                VariantDatum variantDatum = new VariantDatum();
-                variantDatum.annotations = annotationValues;
-                variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
-                variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
-                mapList.add( variantDatum );
             }
         }
 
