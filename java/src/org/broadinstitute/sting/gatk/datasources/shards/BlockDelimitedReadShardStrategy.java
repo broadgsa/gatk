@@ -27,7 +27,12 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     /**
      * The data source used to shard.
      */
-    protected final BlockDrivenSAMDataSource dataSource;
+    private final BlockDrivenSAMDataSource dataSource;
+
+    /**
+     * The intervals to be processed.
+     */
+    private final GenomeLocSortedSet locations;
 
     /**
      * The cached shard to be returned next.  Prefetched in the peekable iterator style.
@@ -63,10 +68,13 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
 
         this.dataSource = (BlockDrivenSAMDataSource)dataSource;
         this.position = this.dataSource.getCurrentPosition();
-        if(locations != null)
-            filePointers.addAll(IntervalSharder.shardIntervals(this.dataSource,locations.toList()));
+        this.locations = locations;
 
-        filePointerIterator = filePointers.iterator();
+        if(locations != null)
+            filePointerIterator = IntervalSharder.shardIntervals(this.dataSource,locations.toList());
+        else
+            filePointerIterator = filePointers.iterator();
+
         if(filePointerIterator.hasNext())
             currentFilePointer = filePointerIterator.next();
 
@@ -99,7 +107,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
         nextShard = null;
         SamRecordFilter filter = null;
 
-        if(!filePointers.isEmpty()) {
+        if(locations != null) {
             Map<SAMReaderID,List<Chunk>> selectedReaders = new HashMap<SAMReaderID,List<Chunk>>();
             while(selectedReaders.size() == 0 && currentFilePointer != null) {
                 shardPosition = currentFilePointer.chunks;

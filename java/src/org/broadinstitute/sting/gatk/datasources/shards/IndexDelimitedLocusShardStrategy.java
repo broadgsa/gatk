@@ -12,7 +12,6 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import java.util.*;
 
 import net.sf.samtools.Chunk;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
 
@@ -51,9 +50,6 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     private final BlockDrivenSAMDataSource reads;
 
-    /** our storage of the genomic locations they'd like to shard over */
-    private final List<FilePointer> filePointers = new ArrayList<FilePointer>();
-
     /**
      * An iterator through the available file pointers.
      */
@@ -90,13 +86,13 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
             else
                 intervals = locations.toList();
 
-
             this.reads = (BlockDrivenSAMDataSource)reads;
-            filePointers.addAll(IntervalSharder.shardIntervals(this.reads,intervals));
+            this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);
         }
         else {
             final int maxShardSize = 100000;
             this.reads = null;
+            List<FilePointer> filePointers = new ArrayList<FilePointer>();
             if(locations == null) {
                 for(SAMSequenceRecord refSequenceRecord: reference.getSequenceDictionary().getSequences()) {
                     for(int shardStart = 1; shardStart <= refSequenceRecord.getSequenceLength(); shardStart += maxShardSize) {
@@ -109,9 +105,9 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
                 for(GenomeLoc interval: locations)
                     filePointers.add(new FilePointer(interval));
             }
+            filePointerIterator = filePointers.iterator();
         }
 
-        filePointerIterator = filePointers.iterator();        
     }
 
     /**

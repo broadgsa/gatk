@@ -1,9 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
@@ -19,192 +16,113 @@ import net.sf.picard.util.PeekableIterator;
  * @version 0.1
  */
 public class IntervalSharder {
-    protected static List<FilePointer> shardIntervals(final BlockDrivenSAMDataSource dataSource, final List<GenomeLoc> loci) {
-        Map<SAMReaderID,List<FilePointer>> filePointersByReader = new HashMap<SAMReaderID,List<FilePointer>>();
-        for(SAMReaderID id: dataSource.getReaderIDs()) {
-            PreloadedBAMFileIndex index = dataSource.getIndex(id);
-            // Gather bins for the given loci, splitting loci as necessary so that each falls into exactly one lowest-level bin.\
-            filePointersByReader.put(id,shardIntervalsOverIndex(dataSource,id,index,loci,index.getNumIndexLevels()-1));
-            index.close();
-        }
-        return combineFilePointers(filePointersByReader);
+    public static Iterator<FilePointer> shardIntervals(final BlockDrivenSAMDataSource dataSource, final List<GenomeLoc> loci) {
+        return new FilePointerIterator(dataSource,loci);
     }
 
     /**
-     * Combine adjacent file pointers into a structure that can be streamed in.
-     * @param filePointersByReader File pointers broken down by reader.
-     * @return A large structure of file pointers.
+     * A lazy-loading iterator over file pointers.
      */
-    private static List<FilePointer> combineFilePointers(Map<SAMReaderID,List<FilePointer>> filePointersByReader) {
-        PeekableIterator<FilePointer> mergingIterator = new PeekableIterator<FilePointer>(new FilePointerMergingIterator(filePointersByReader));
+    private static class FilePointerIterator implements Iterator<FilePointer> {
+        final BlockDrivenSAMDataSource dataSource;
+        final PeekableIterator<GenomeLoc> locusIterator;
+        final Queue<FilePointer> cachedFilePointers = new LinkedList<FilePointer>();
 
-        List<FilePointer> overlappingFilePointers = new ArrayList<FilePointer>();
-        List<FilePointer> mergedFilePointers = new ArrayList<FilePointer>();
-
-        while(mergingIterator.hasNext()) {
-            GenomeLoc bounds = null;
-
-            // Load up a segment where file pointers overlap
-            while(mergingIterator.hasNext() && (overlappingFilePointers.size() == 0 || mergingIterator.peek().getBounds().overlapsP(bounds))) {
-                FilePointer filePointer = mergingIterator.next();
-                if(bounds != null)
-                    bounds = GenomeLocParser.createGenomeLoc(bounds.getContig(),
-                            Math.min(bounds.getStart(),filePointer.getBounds().getStart()),
-                            Math.max(bounds.getStop(),filePointer.getBounds().getStop()));
-                else
-                    bounds = filePointer.getBounds();
-                overlappingFilePointers.add(filePointer);
-            }
-
-            // determine the complete set of unique locations defining this set.
-            List<GenomeLoc> overlappingLocations = new ArrayList<GenomeLoc>();
-            for(FilePointer filePointer: overlappingFilePointers)
-                overlappingLocations.addAll(filePointer.locations);
-            Collections.sort(overlappingLocations);
-            overlappingLocations = GenomeLocSortedSet.mergeOverlappingLocations(overlappingLocations);
-
-            while(!overlappingLocations.isEmpty()) {
-                long overlapStart = overlappingLocations.get(0).getStart();
-                long overlapStop = overlappingLocations.get(overlappingLocations.size()-1).getStop();
-
-                for(FilePointer overlappingFilePointer: overlappingFilePointers) {
-                    if(overlappingFilePointer.getBounds().getStop() < overlapStart)
-                        continue;
-                    if(overlappingFilePointer.getBounds().getStart() > overlapStart) overlapStop = Math.min(overlapStop,overlappingFilePointer.getBounds().getStart()-1);
-                    if(overlappingFilePointer.getBounds().getStop() < overlapStop) overlapStop = Math.min(overlapStop,overlappingFilePointer.getBounds().getStop());
-                }
-
-                // Find the overlapping genome locs.
-                List<GenomeLoc> segmentOverlap = new ArrayList<GenomeLoc>();
-                for(GenomeLoc overlappingLocation: overlappingLocations) {
-                    if(overlappingLocation.getStop() <= overlapStop) {
-                        // segment is completely before end of overlap.
-                        segmentOverlap.add(overlappingLocation);
-                    }
-                    else if(overlappingLocation.getStart() <= overlapStop) {
-                        // segment is partially before end of overlap.
-                        segmentOverlap.add(GenomeLocParser.setStop(overlappingLocation,overlapStop));
-                        break;
-                    }
-                    else {
-                        // segment starts after overlap ends.
-                        break;
-                    }
-                }
-
-                // Trim the overlapping genome locs of the overlapping locations list.
-                while(!overlappingLocations.isEmpty() && overlappingLocations.get(0).getStart() <= overlapStop) {
-                    GenomeLoc location = overlappingLocations.remove(0);
-                    if(location.getStop() > overlapStop)
-                        overlappingLocations.add(0,GenomeLocParser.setStart(location,overlapStop+1));
-                }
-
-                // Merge together all file pointers that overlap with these bounds.
-                GenomeLoc overlapBounds = GenomeLocParser.createGenomeLoc(segmentOverlap.get(0).getContigIndex(),overlapStart,overlapStop);
-                FilePointer mergedFilePointer = null;
-                for(FilePointer overlappingFilePointer: overlappingFilePointers) {
-                    if(overlappingFilePointer.getBounds().overlapsP(overlapBounds))
-                        mergedFilePointer = overlappingFilePointer.merge(mergedFilePointer,segmentOverlap);
-                }
-
-                // Add the resulting file pointer and clear state.
-                mergedFilePointers.add(mergedFilePointer);
-            }
-
-            // reset
-            overlappingFilePointers.clear();
-        }
-
-        return mergedFilePointers;
-    }
-
-    private static class FilePointerMergingIterator implements Iterator<FilePointer> {
-        private PriorityQueue<PeekableIterator<FilePointer>> filePointerQueue;
-
-        public FilePointerMergingIterator(Map<SAMReaderID,List<FilePointer>> filePointers) {
-            filePointerQueue = new PriorityQueue<PeekableIterator<FilePointer>>(filePointers.size(),new FilePointerMergingComparator());
-            for(List<FilePointer> filePointersByReader: filePointers.values())
-                filePointerQueue.add(new PeekableIterator<FilePointer>(filePointersByReader.iterator()));
+        public FilePointerIterator(final BlockDrivenSAMDataSource dataSource, final List<GenomeLoc> loci) {
+            this.dataSource = dataSource;
+            locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
+            advance();
         }
 
         public boolean hasNext() {
-            return !filePointerQueue.isEmpty();
+            return !cachedFilePointers.isEmpty();
         }
 
         public FilePointer next() {
-            if(!hasNext()) throw new NoSuchElementException("FilePointerMergingIterator is out of elements");
-            PeekableIterator<FilePointer> nextIterator = filePointerQueue.remove();
-            FilePointer nextFilePointer = nextIterator.next();
-            if(nextIterator.hasNext())
-                filePointerQueue.add(nextIterator);
-            return nextFilePointer;
+            if(!hasNext())
+                throw new NoSuchElementException("FilePointerIterator iteration is complete");
+            FilePointer filePointer = cachedFilePointers.remove();
+            if(cachedFilePointers.isEmpty())
+                advance();
+            return filePointer;
         }
 
-        public void remove() { throw new UnsupportedOperationException("Cannot remove from a merging iterator."); }
+        public void remove() {
+            throw new UnsupportedOperationException("Cannot remove from a FilePointerIterator");
+        }
 
-        private class FilePointerMergingComparator implements Comparator<PeekableIterator<FilePointer>> {
-            public int compare(PeekableIterator<FilePointer> lhs, PeekableIterator<FilePointer> rhs) {
-                if(!lhs.hasNext() && !rhs.hasNext()) return 0;
-                if(!rhs.hasNext()) return -1;
-                if(!lhs.hasNext()) return 1;
-                return lhs.peek().getBounds().compareTo(rhs.peek().getBounds());
+        private void advance() {
+            List<GenomeLoc> nextBatch = new ArrayList<GenomeLoc>();
+            String contig = null;
+
+            while(locusIterator.hasNext() && nextBatch.isEmpty()) {
+                contig = null;
+                while(locusIterator.hasNext() && (contig == null || locusIterator.peek().getContig().equals(contig))) {
+                    GenomeLoc nextLocus = locusIterator.next();
+                    contig = nextLocus.getContig();
+                    nextBatch.add(nextLocus);
+                }
             }
+
+            if(nextBatch.size() > 0)
+                cachedFilePointers.addAll(shardIntervalsOnContig(dataSource,contig,nextBatch));
         }
     }
-
-    private static List<FilePointer> shardIntervalsOverIndex(final BlockDrivenSAMDataSource dataSource, final SAMReaderID id, final PreloadedBAMFileIndex index, final List<GenomeLoc> loci, final int binsDeeperThan) {
+    
+    private static List<FilePointer> shardIntervalsOnContig(final BlockDrivenSAMDataSource dataSource, final String contig, final List<GenomeLoc> loci) {
         // Gather bins for the given loci, splitting loci as necessary so that each falls into exactly one lowest-level bin.
         List<FilePointer> filePointers = new ArrayList<FilePointer>();
         FilePointer lastFilePointer = null;
-        Bin lastBin = null;
+        BAMOverlap lastBAMOverlap = null;
+
+        Map<SAMReaderID,PreloadedBAMFileIndex> readerToIndexMap = new HashMap<SAMReaderID,PreloadedBAMFileIndex>();
+        BinMergingIterator binMerger = new BinMergingIterator();
+        for(SAMReaderID id: dataSource.getReaderIDs()) {
+            final SAMSequenceRecord referenceSequence = dataSource.getHeader(id).getSequence(contig);
+            final PreloadedBAMFileIndex index = dataSource.getIndex(id);
+            binMerger.addReader(id,
+                                index,
+                                referenceSequence.getSequenceIndex(),
+                                index.getBinsOverlapping(referenceSequence.getSequenceIndex(),1,referenceSequence.getSequenceLength()).iterator());
+            // Cache the reader for later data lookup.
+            readerToIndexMap.put(id,index);
+        }
+        PeekableIterator<BAMOverlap> binIterator = new PeekableIterator<BAMOverlap>(binMerger);
 
         for(GenomeLoc location: loci) {
-            // If crossing contigs, be sure to reset the filepointer that's been accumulating shard data.
-            if(lastFilePointer != null && lastFilePointer.referenceSequence != location.getContigIndex()) {
-                filePointers.add(lastFilePointer);
-                lastFilePointer = null;
-                lastBin = null;
-            }
+            if(!location.getContig().equals(contig))
+                throw new StingException("Location outside bounds of contig");
 
             int locationStart = (int)location.getStart();
             final int locationStop = (int)location.getStop();
 
-            List<Bin> bins = findBinsAtLeastAsDeepAs(index,getOverlappingBins(dataSource,id,index,location),binsDeeperThan);
+            // Advance to first bin.
+            while(binIterator.peek().stop < locationStart) 
+                binIterator.next();
 
-            // Recursive stopping condition -- algorithm is at the zero point and no bins have been found.
-            if(binsDeeperThan == 0 && bins.size() == 0) {
-                filePointers.add(new FilePointer(location));
-                continue;
-            }
-
-            // No bins found; step up a level and search again.
-            if(bins.size() == 0) {
-                if(lastFilePointer != null && lastFilePointer.locations.size() > 0) {
-                    filePointers.add(lastFilePointer);
-                    lastFilePointer = null;
-                    lastBin = null;
-                }
-
-                filePointers.addAll(shardIntervalsOverIndex(dataSource,id,index,Collections.singletonList(location),binsDeeperThan-1));
-                continue;
-            }
+            // Add all relevant bins to a list.  If the given bin extends beyond the end of the current interval, make
+            // sure the extending bin is not pruned from the list.
+            List<BAMOverlap> bamOverlaps = new ArrayList<BAMOverlap>();
+            while(binIterator.hasNext() && binIterator.peek().stop <= locationStop)
+                bamOverlaps.add(binIterator.next());
+            if(binIterator.hasNext() && binIterator.peek().start <= locationStop)
+                bamOverlaps.add(binIterator.peek());
 
             // Bins found; try to match bins with locations.
-            Collections.sort(bins);
-            Iterator<Bin> binIterator = bins.iterator();
+            Iterator<BAMOverlap> bamOverlapIterator = bamOverlaps.iterator();
 
             while(locationStop >= locationStart) {
-                int binStart = lastFilePointer!=null ? index.getFirstLocusInBin(lastBin) : 0;
-                int binStop = lastFilePointer!=null ? index.getLastLocusInBin(lastBin) : 0;
+                int binStart = lastFilePointer!=null ? lastFilePointer.overlap.start : 0;
+                int binStop =  lastFilePointer!=null ? lastFilePointer.overlap.stop : 0;
 
-                while(binStop < locationStart && binIterator.hasNext()) {
+                while(binStop < locationStart && bamOverlapIterator.hasNext()) {
                     if(lastFilePointer != null && lastFilePointer.locations.size() > 0)
                         filePointers.add(lastFilePointer);
 
-                    lastBin = binIterator.next();
-                    lastFilePointer = new FilePointer(id,lastBin.referenceSequence,getFilePointersBounding(index,lastBin));
-                    binStart = index.getFirstLocusInBin(lastBin);
-                    binStop = index.getLastLocusInBin(lastBin);
+                    lastBAMOverlap = bamOverlapIterator.next();
+                    lastFilePointer = new FilePointer(contig,lastBAMOverlap);
+                    binStart = lastFilePointer.overlap.start;
+                    binStop = lastFilePointer.overlap.stop;
                 }
 
                 if(locationStart < binStart) {
@@ -212,13 +130,13 @@ public class IntervalSharder {
                     if(lastFilePointer != null && lastFilePointer.locations.size() > 0) {
                         filePointers.add(lastFilePointer);
                         lastFilePointer = null;
-                        lastBin = null;
+                        lastBAMOverlap = null;
                     }
 
                     final int regionStop = Math.min(locationStop,binStart-1);
 
                     GenomeLoc subset = GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,regionStop);
-                    filePointers.addAll(shardIntervalsOverIndex(dataSource,id,index,Collections.singletonList(subset),binsDeeperThan-1));
+                    lastFilePointer = new FilePointer(subset);
 
                     locationStart = regionStop + 1;
                 }
@@ -227,20 +145,21 @@ public class IntervalSharder {
                     if(lastFilePointer != null && lastFilePointer.locations.size() > 0) {
                         filePointers.add(lastFilePointer);
                         lastFilePointer = null;
-                        lastBin = null;
+                        lastBAMOverlap = null;
                     }
 
                     GenomeLoc subset = GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,locationStop);
-                    filePointers.addAll(shardIntervalsOverIndex(dataSource,id,index,Collections.singletonList(subset),binsDeeperThan-1));
+                    filePointers.add(new FilePointer(subset));
 
                     locationStart = locationStop + 1;
                 }
                 else {
+                    if(lastFilePointer == null)
+                        throw new StingException("Illegal state: initializer failed to create cached file pointer.");
+
                     // The start of the region overlaps the bin.  Add the overlapping subset.
                     final int regionStop = Math.min(locationStop,binStop);
-                    lastFilePointer.addLocation(GenomeLocParser.createGenomeLoc(location.getContig(),
-                            locationStart,
-                            regionStop));
+                    lastFilePointer.addLocation(GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,regionStop));
                     locationStart = regionStop + 1;
                 }
             }
@@ -249,48 +168,204 @@ public class IntervalSharder {
         if(lastFilePointer != null && lastFilePointer.locations.size() > 0)
             filePointers.add(lastFilePointer);
 
+        // Lookup the locations for every file pointer in the index.
+        for(SAMReaderID id: dataSource.getReaderIDs()) {
+            PreloadedBAMFileIndex index = readerToIndexMap.get(id);
+            for(FilePointer filePointer: filePointers)
+                filePointer.addChunks(id,index.getChunksOverlapping(filePointer.overlap.getBin(id)));
+            index.close();
+        }
+        
         return filePointers;
     }
 
-    private static List<Bin> findBinsAtLeastAsDeepAs(final PreloadedBAMFileIndex index, final List<Bin> bins, final int deepestBinLevel) {
-        List<Bin> deepestBins = new ArrayList<Bin>();
-        for(Bin bin: bins) {
-            if(index.getLevelForBin(bin) >= deepestBinLevel)
-                deepestBins.add(bin);
+    private static class BinMergingIterator implements Iterator<BAMOverlap> {
+        private PriorityQueue<BinQueueState> binQueue = new PriorityQueue<BinQueueState>();
+        private Queue<BAMOverlap> pendingOverlaps = new LinkedList<BAMOverlap>();
+
+        public void addReader(final SAMReaderID id, final PreloadedBAMFileIndex index, final int referenceSequence, Iterator<Bin> bins) {
+            binQueue.add(new BinQueueState(id,index,referenceSequence,new LowestLevelBinFilteringIterator(index,bins)));
         }
-        return deepestBins;
+
+        public boolean hasNext() {
+            return pendingOverlaps.size() > 0 || !binQueue.isEmpty();
+        }
+
+        public BAMOverlap next() {
+            if(!hasNext())
+                throw new NoSuchElementException("No elements left in merging iterator");
+            if(pendingOverlaps.isEmpty())
+                advance();
+            return pendingOverlaps.remove();
+        }
+
+        public void advance() {
+            List<ReaderBin> bins = new ArrayList<ReaderBin>();
+            int boundsStart, boundsStop;
+
+            // Prime the pump
+            if(binQueue.isEmpty())
+                return;
+            bins.add(getNextBin());
+            boundsStart = bins.get(0).getStart();
+            boundsStop  = bins.get(0).getStop();
+
+            // Accumulate all the bins that overlap the current bin, in sorted order.
+            while(!binQueue.isEmpty() && peekNextBin().getStart() <= boundsStop) {
+                ReaderBin bin = getNextBin();
+                bins.add(bin);
+                boundsStart = Math.min(boundsStart,bin.getStart());
+                boundsStop = Math.max(boundsStop,bin.getStop());
+            }
+
+            List<Pair<Integer,Integer>> range = new ArrayList<Pair<Integer,Integer>>();
+            int start = bins.get(0).getStart();
+            int stop = bins.get(0).getStop();
+            while(start <= boundsStop) {
+                // Find the next stopping point.
+                for(ReaderBin bin: bins) {
+                    stop = Math.min(stop,bin.getStop());
+                    if(start < bin.getStart())
+                        stop = Math.min(stop,bin.getStart()-1);
+                }
+
+                range.add(new Pair<Integer,Integer>(start,stop));
+                // If the last entry added included the last element, stop.
+                if(stop >= boundsStop)
+                    break;
+
+                // Find the next start.
+                start = stop + 1;
+                for(ReaderBin bin: bins) {
+                    if(start >= bin.getStart() && start <= bin.getStop())
+                        break;
+                    else if(start < bin.getStart()) {
+                        start = bin.getStart();
+                        break;
+                    }
+                }
+            }
+
+            // Add the next series of BAM overlaps to the window.
+            for(Pair<Integer,Integer> window: range) {
+                BAMOverlap bamOverlap = new BAMOverlap(window.first,window.second);
+                for(ReaderBin bin: bins)
+                    bamOverlap.addBin(bin.id,bin.bin);
+                pendingOverlaps.add(bamOverlap);
+            }
+        }
+
+        public void remove() { throw new UnsupportedOperationException("Cannot remove from a merging iterator."); }
+
+        private ReaderBin peekNextBin() {
+            if(binQueue.isEmpty())
+                throw new NoSuchElementException("No more bins are available");
+            BinQueueState current = binQueue.peek();
+            return new ReaderBin(current.id,current.index,current.referenceSequence,current.bins.peek());
+        }
+
+        private ReaderBin getNextBin() {
+            if(binQueue.isEmpty())
+                throw new NoSuchElementException("No more bins are available");
+            BinQueueState current = binQueue.remove();
+            ReaderBin readerBin = new ReaderBin(current.id,current.index,current.referenceSequence,current.bins.next());
+            if(current.bins.hasNext())
+                binQueue.add(current);
+            return readerBin;
+        }
+
+        private class ReaderBin {
+            public final SAMReaderID id;
+            public final PreloadedBAMFileIndex index;
+            public final int referenceSequence;
+            public final Bin bin;
+
+            public ReaderBin(final SAMReaderID id, final PreloadedBAMFileIndex index, final int referenceSequence, final Bin bin) {
+                this.id = id;
+                this.index = index;
+                this.referenceSequence = referenceSequence;
+                this.bin = bin;
+            }
+
+            public int getStart() {
+                return index.getFirstLocusInBin(bin);
+            }
+
+            public int getStop() {
+                return index.getLastLocusInBin(bin);
+            }
+        }
+
+        private class BinQueueState implements Comparable<BinQueueState> {
+            public final SAMReaderID id;
+            public final PreloadedBAMFileIndex index;
+            public final int referenceSequence;
+            public final PeekableIterator<Bin> bins;
+
+            public BinQueueState(final SAMReaderID id, final PreloadedBAMFileIndex index, final int referenceSequence, final Iterator<Bin> bins) {
+                this.id = id;
+                this.index = index;
+                this.referenceSequence = referenceSequence;
+                this.bins = new PeekableIterator<Bin>(bins);
+            }
+
+            public int compareTo(BinQueueState other) {
+                if(!this.bins.hasNext() && !other.bins.hasNext()) return 0;
+                if(!this.bins.hasNext()) return -1;
+                if(!this.bins.hasNext()) return 1;
+
+                int thisStart = this.index.getFirstLocusInBin(this.bins.peek());
+                int otherStart = other.index.getFirstLocusInBin(other.bins.peek());
+
+                // Straight integer subtraction works here because lhsStart, rhsStart always positive.
+                if(thisStart != otherStart)
+                    return thisStart - otherStart;
+
+                int thisStop = this.index.getLastLocusInBin(this.bins.peek());
+                int otherStop = other.index.getLastLocusInBin(other.bins.peek());
+
+                // Straight integer subtraction works here because lhsStop, rhsStop always positive.
+                return thisStop - otherStop;
+            }
+        }
     }
 
     /**
-     * Gets a list of the bins in each BAM file that overlap with the given interval list.
-     * @param location Location for which to determine the bin.
-     * @return A map of reader back to bin.
+     * Filters out bins not at the lowest level in the tree.
      */
-    private static List<Bin> getOverlappingBins(final BlockDrivenSAMDataSource dataSource, final SAMReaderID id, final PreloadedBAMFileIndex index, final GenomeLoc location) {
-        // All readers will have the same bin structure, so just use the first bin as an example.
-        final SAMFileHeader fileHeader = dataSource.getHeader(id);
-        int referenceIndex = fileHeader.getSequenceIndex(location.getContig());
-        if (referenceIndex != -1) {
-            return index.getBinsContaining(referenceIndex,(int)location.getStart(),(int)location.getStop());
+    private static class LowestLevelBinFilteringIterator implements Iterator<Bin> {
+        private PreloadedBAMFileIndex index;
+        private Iterator<Bin> wrappedIterator;
+
+        private Bin nextBin;
+
+        public LowestLevelBinFilteringIterator(final PreloadedBAMFileIndex index, Iterator<Bin> iterator) {
+            this.index = index;
+            this.wrappedIterator = iterator;
+            advance();
         }
-        return Collections.emptyList();
-    }
 
-    /**
-     * Gets the file pointers bounded by this bin, grouped by the reader of origination.
-     * @param bin The bin for which to load data.
-     * @return A map of the file pointers bounding the bin.
-     */
-    private static List<Chunk> getFilePointersBounding(final PreloadedBAMFileIndex index, final Bin bin) {
-        if(bin != null) {
-            List<Chunk> chunks = index.getSearchBins(bin);
-            return chunks != null ? chunks : Collections.<Chunk>emptyList();
+        public boolean hasNext() {
+            return nextBin != null;
         }
-        else
-            return Collections.emptyList();
-    }
 
+        public Bin next() {
+            Bin bin = nextBin;
+            advance();
+            return bin;
+        }
 
+        public void remove() { throw new UnsupportedOperationException("Remove operation is not supported"); }
+
+        private void advance() {
+            nextBin = null;
+            while(wrappedIterator.hasNext() && nextBin == null) {
+                Bin bin = wrappedIterator.next();
+                if(index.getLevelForBin(bin) == index.getNumIndexLevels()-1)
+                    nextBin = bin;
+            }
+        }
+    }    
 }
 
 /**
@@ -298,47 +373,53 @@ public class IntervalSharder {
  */
 class FilePointer {
     protected final Map<SAMReaderID,List<Chunk>> chunks = new HashMap<SAMReaderID,List<Chunk>>();
-    protected final int referenceSequence;
+    protected final String referenceSequence;
+    protected final BAMOverlap overlap;
     protected final List<GenomeLoc> locations;
 
-    public FilePointer(SAMReaderID id, int referenceSequence, List<Chunk> chunks) {
-        this.referenceSequence = referenceSequence;
-        this.chunks.put(id,chunks);
-        this.locations = new ArrayList<GenomeLoc>();
-    }
-
-    public FilePointer(GenomeLoc location) {
-        referenceSequence = location.getContigIndex();
+    public FilePointer(final GenomeLoc location) {
+        referenceSequence = location.getContig();
+        overlap = null;
         locations = Collections.singletonList(location);
     }
 
-    /**
-     * Private constructor for merge operation.
-     * @param referenceSequence Sequence to merge.
-     * @param locations Merged locations.
-     */
-    private FilePointer(final int referenceSequence, final List<GenomeLoc> locations) {
+    public FilePointer(final String referenceSequence,final BAMOverlap overlap) {
         this.referenceSequence = referenceSequence;
-        this.locations = locations;
-    }
-
-    public FilePointer merge(FilePointer other, List<GenomeLoc> locations) {
-        FilePointer merged = new FilePointer(referenceSequence,locations);
-        merged.chunks.putAll(this.chunks);
-        if(other != null)
-            merged.chunks.putAll(other.chunks);
-        return merged;
+        this.overlap = overlap;
+        this.locations = new ArrayList<GenomeLoc>();
     }
 
     public void addLocation(GenomeLoc location) {
         locations.add(location);
     }
 
-    public GenomeLoc getBounds() {
-        final long boundaryStart = locations.get(0).getStart();
-        final long boundaryStop = locations.get(locations.size()-1).getStop();
-        return GenomeLocParser.createGenomeLoc(locations.get(0).getContigIndex(),boundaryStart,boundaryStop);    
+    public void addChunks(SAMReaderID id, List<Chunk> chunks) {
+        this.chunks.put(id,chunks);
     }
 }
+
+/**
+ * Models a bin at which all BAM files in the merged input stream overlap.
+ */
+class BAMOverlap {
+    public final int start;
+    public final int stop;
+
+    private final Map<SAMReaderID,Bin> bins = new HashMap<SAMReaderID,Bin>();
+
+    public BAMOverlap(final int start, final int stop) {
+        this.start = start;
+        this.stop = stop;
+    }
+
+    public void addBin(final SAMReaderID id, final Bin bin) {
+        bins.put(id,bin);
+    }
+
+    public Bin getBin(final SAMReaderID id) {
+        return bins.get(id);
+    }
+}
+
 
 
