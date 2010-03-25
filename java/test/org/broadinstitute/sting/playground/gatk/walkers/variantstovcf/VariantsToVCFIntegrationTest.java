@@ -5,7 +5,6 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.io.File;
 
 
 /**
@@ -18,62 +17,38 @@ import java.io.File;
 public class VariantsToVCFIntegrationTest extends WalkerTest {
 
 
-    //@Test
+    @Test
     public void testVariantsToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("a94c15f2e8905fd3e98301375cf0f42a");
+        md5.add("8f32f0efed5d0233cf9292198f4f01d8");
 
-        /**
-         * the above MD5 was calculated from running the following command:
-         *
-         * java -jar ./dist/GenomeAnalysisTK.jar \
-         * -R /broad/1KG/reference/human_b36_both.fasta \
-         * -T VariantEval \
-         * --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod \
-         * -L 1:10,000,000-11,000,000 \
-         * --outerr myVariantEval \
-         * --supressDateInformation \
-         * --rodBind eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls
-         *
-         */
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " --rodBind NA123AB,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
+                        " -B variant,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
-                        " --vcfout %s",
+                        " -sample NA123AB" +
+                        " -o %s",
                 1, // just one output file
                 md5);
-        List<File> result = executeTest("testVariantsToVCFUsingGeliInput", spec).getFirst();
+        executeTest("testVariantsToVCFUsingGeliInput #1", spec).getFirst();
     }
 
-    //@Test
+    @Test
     public void testGenotypesToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("6b18f33e25edbd2154c17a949656644b");
+        md5.add("40cc4d04d9a50043ce1322ea2650c453");
 
-        /**
-         * the above MD5 was calculated from running the following command:
-         *
-         * java -jar ./dist/GenomeAnalysisTK.jar \
-         * -R /broad/1KG/reference/human_b36_both.fasta \
-         * -T VariantEval \
-         * --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod \
-         * -L 1:10,000,000-11,000,000 \
-         * --outerr myVariantEval \
-         * --supressDateInformation \
-         * --rodBind eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls
-         *
-         */
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " --rodBind NA123AB,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
+                        " -B variant,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
-                        " --vcfout %s",
+                        " -sample NA123AB" +
+                        " -o %s",
                 1, // just one output file
                 md5);
-        List<File> result = executeTest("testVariantsToVCFUsingGeliInput", spec).getFirst();
+        executeTest("testVariantsToVCFUsingGeliInput #2", spec).getFirst();
     }
 
 }
