@@ -493,7 +493,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                                      RefMetaDataTracker tracker, AlignmentContext context, boolean allowExcludes ) {
         for ( String name : names ) {
             Collection<VariantContext> contexts = tracker.getVariantContexts(name, ALLOW_VARIANT_CONTEXT_TYPES, context.getLocation(), true, true);
-            if ( context.size() > 1 )
+            if ( contexts.size() > 1 )
                 throw new StingException("Found multiple variant contexts at " + context.getLocation());
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
