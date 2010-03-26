@@ -223,9 +223,10 @@ public class UnifiedGenotyperEngine {
             call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
             // annotate the call, if possible
-            if ( call != null && call.vc != null ) {
+            if ( call != null && call.vc != null && annotationEngine != null ) {
                 // first off, we want to use the *unfiltered* context for the annotations
                 stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
+
                 call.vc = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, call.vc);
             }
         }
