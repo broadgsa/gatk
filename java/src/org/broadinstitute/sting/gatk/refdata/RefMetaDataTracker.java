@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -219,17 +220,17 @@ public class RefMetaDataTracker {
      *
      * The name of each VariantContext corresponds to the ROD name.
      *
-     * @param curLocation
-     * @param allowedTypes
-     * @param requireStartHere
-     * @param takeFirstOnly
-     * @return
+     * @param curLocation        location
+     * @param allowedTypes       allowed types
+     * @param requireStartHere   do we require the rod to start at this location?
+     * @param takeFirstOnly      do we take the first rod only?
+     * @return variant context
      */
     public Collection<VariantContext> getAllVariantContexts(EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         List<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( RODRecordList rodList : getBoundRodTracks() ) {
-            addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly);
+            addVariantContexts(contexts, rodList, allowedTypes, curLocation, null, requireStartHere, takeFirstOnly);
         }
 
         return contexts;
@@ -240,25 +241,33 @@ public class RefMetaDataTracker {
      *
      * see getVariantContexts for more information.
      *
-     * @param name
-     * @param curLocation
-     * @param allowedTypes
-     * @param requireStartHere
-     * @param takeFirstOnly
-     * @return
+     * @param name               name
+     * @param curLocation        location
+     * @param allowedTypes       allowed types
+     * @param requireStartHere   do we require the rod to start at this location?
+     * @param takeFirstOnly      do we take the first rod only?
+     * @return variant context
      */
     public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        return getVariantContexts(Arrays.asList(name), allowedTypes, curLocation, requireStartHere, takeFirstOnly);
+        return getVariantContexts(Arrays.asList(name), allowedTypes, curLocation, null, requireStartHere, takeFirstOnly);
+    }
+
+    public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, Allele ref, boolean requireStartHere, boolean takeFirstOnly ) {
+        return getVariantContexts(Arrays.asList(name), allowedTypes, curLocation, ref, requireStartHere, takeFirstOnly);
     }
 
     public Collection<VariantContext> getVariantContexts(Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+        return getVariantContexts(names, allowedTypes, curLocation, null, requireStartHere, takeFirstOnly);
+    }
+
+    public Collection<VariantContext> getVariantContexts(Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, Allele ref, boolean requireStartHere, boolean takeFirstOnly ) {
         Collection<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( String name : names ) {
             RODRecordList rodList = getTrackData(name, null);
 
             if ( rodList != null )
-                addVariantContexts(contexts, rodList, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
+                addVariantContexts(contexts, rodList, allowedTypes, curLocation, ref, requireStartHere, takeFirstOnly );
         }
 
         return contexts;
@@ -268,11 +277,11 @@ public class RefMetaDataTracker {
      * Gets the variant context associated with name, and assumes the system only has a single bound track at this location.  Throws an exception if not.
      * see getVariantContexts for more information.
      *
-     * @param name
-     * @param curLocation
-     * @param allowedTypes
-     * @param requireStartHere
-     * @return
+     * @param name               name
+     * @param curLocation        location
+     * @param allowedTypes       allowed types
+     * @param requireStartHere   do we require the rod to start at this location?
+     * @return variant context
      */
     public VariantContext getVariantContext(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere ) {
         Collection<VariantContext> contexts = getVariantContexts(name, allowedTypes, curLocation, requireStartHere, false );
@@ -285,11 +294,15 @@ public class RefMetaDataTracker {
             return contexts.iterator().next();
     }
 
-    private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+    private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, Allele ref, boolean requireStartHere, boolean takeFirstOnly ) {
         for ( ReferenceOrderedDatum rec : rodList ) {
             if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec) ) {
                 // ok, we might actually be able to turn this record in a variant context
-                VariantContext vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec);
+                VariantContext vc;
+                if ( ref == null )
+                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec);
+                else
+                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec, ref);
 
                 if ( vc == null ) // sometimes the track has odd stuff in it that can't be converted 
                     continue;

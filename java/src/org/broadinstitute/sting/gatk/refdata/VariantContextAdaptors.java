@@ -43,6 +43,7 @@ public class VariantContextAdaptors {
         adaptors.put(RodVCF.class, new RodVCFAdaptor());
         adaptors.put(VCFRecord.class, new VCFRecordAdaptor());
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
+        adaptors.put(HapMapGenotypeROD.class, new HapMapAdaptor());
         adaptors.put(RodGLF.class, new GLFAdaptor());
         adaptors.put(RodGeliText.class, new GeliAdaptor());
     }
@@ -567,5 +568,68 @@ public class VariantContextAdaptors {
             } else
                 return null; // can't handle anything else
         }
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // HapMap to VariantContext
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    private static class HapMapAdaptor extends VCAdaptor {
+          /**
+         * convert to a Variant Context, given:
+         * @param name the name of the ROD
+         * @param input the Rod object, in this case a RodGeliText
+         * @return a VariantContext object
+         */
+        VariantContext convert(String name, Object input) {
+            throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires knowledge of the reference allele");
+        }
+
+        /**
+         * convert to a Variant Context, given:
+         * @param name the name of the ROD
+         * @param input the Rod object, in this case a RodGeliText
+         * @param refAllele the reference base as an Allele object
+         * @return a VariantContext object
+         */
+        VariantContext convert(String name, Object input, Allele refAllele) {
+            HapMapGenotypeROD hapmap = (HapMapGenotypeROD)input;
+
+            // add the reference allele
+            HashSet<Allele> alleles = new HashSet<Allele>();
+            alleles.add(refAllele);
+
+            // make a mapping from sample to genotype
+            String[] samples = hapmap.getSampleIDs();
+            String[] genotypeStrings = hapmap.getGenotypes();
+
+            Map<String, Genotype> genotypes = new HashMap<String, Genotype>(samples.length);
+            for ( int i = 0; i < samples.length; i++ ) {
+                // ignore bad genotypes
+                if ( genotypeStrings[i].contains("N") )
+                    continue;
+
+                String a1 = genotypeStrings[i].substring(0,1);
+                String a2 = genotypeStrings[i].substring(1);
+
+                Allele allele1 = new Allele(a1, refAllele.basesMatch(a1));
+                Allele allele2 = new Allele(a2, refAllele.basesMatch(a2));
+
+                ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
+                myAlleles.add(allele1);
+                myAlleles.add(allele2);
+                alleles.add(allele1);
+                alleles.add(allele2);
+
+                Genotype g = new Genotype(samples[i], myAlleles);
+                genotypes.put(samples[i], g);
+            }
+
+            VariantContext vc = new VariantContext(name, hapmap.getLocation(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, new HashMap<String, String>());
+            vc.validate();
+            return vc;
+       }
     }
 }
