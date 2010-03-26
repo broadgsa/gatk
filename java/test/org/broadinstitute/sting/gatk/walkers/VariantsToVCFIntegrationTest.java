@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.variantstovcf;
+package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.junit.Test;
