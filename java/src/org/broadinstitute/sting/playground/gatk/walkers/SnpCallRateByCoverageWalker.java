@@ -4,89 +4,122 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ListUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Collection;
+
 
 /**
- * Given a set of reads and truth data from a HapMap chip, this walker downsamples the reads at variant
- * positions to empirically assess the rate at which variants would be confidently and correctly called given different levels of coverage. 
+ * Given a set of reads and variant data from an external source, this walker downsamples the reads at variant
+ * positions to empirically assess the rate at which variants would be confidently and correctly called given different levels of coverage.
  */
 public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, String> {
-
     // Control what goes into the variants file and what format that file should have
-    @Argument(fullName="lod_threshold", shortName="lod", doc="The lod threshold on which variants should be filtered", required=false) public Double LOD_THRESHOLD = 5.0;
-    @Argument(fullName="format_geli", shortName="geli", doc="Output variant calls in Geli/Picard format", required=false) public boolean GELI_OUTPUT_FORMAT = false;
-
+    @Argument(fullName="min_confidence_threshold", shortName="confidence", doc="The phred-scaled confidence threshold by which variants should be filtered", required=false) public int confidence = 50;
     @Argument(fullName="min_coverage", shortName="mincov", doc="Mininum coverage to downsample to", required=false) public int min_coverage=1;
     @Argument(fullName="max_coverage", shortName="maxcov", doc="Maximum coverage to downsample to", required=false) public int max_coverage=Integer.MAX_VALUE;
     @Argument(fullName="downsampling_repeats", shortName="repeat", doc="Number of times to repeat downsampling at each coverage level", required=false) public int downsampling_repeats=1;
+    @Argument(fullName="coverage_step_size", shortName="step", doc="Coverage step size", required=false) public int step=1;
 
-    UnifiedGenotyper UG;
+    UnifiedGenotyperEngine UG;
 
     public void initialize() {
-        UG = new UnifiedGenotyper();
-        UG.initialize();
+        UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
+        uac.CONFIDENCE_THRESHOLD = confidence;
+        uac.ALL_BASES = true;
+        UG = new UnifiedGenotyperEngine(getToolkit(), uac);
 
-        String header = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
-        out.println("DownsampledCoverage\tAvailableCoverage\tHapmapChipGenotype\tGenotypeCallType\t"+header.substring(1));
+        out.println("#locus\tid\tdownsampled_coverage\tpct_coverage\titeration\tref\teval_call\tcomp_call\tvariant_concordance\tgenotype_concordance");
     }
 
     public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 && context.getBasePileup().size() != 0);
+        return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 &&
+                context.getBasePileup().size() != 0 &&
+                tracker != null &&
+                tracker.getAllVariantContexts() != null
+        );
     }
 
     public List<String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        Collection<VariantContext> contexts = tracker.getAllVariantContexts();
 
-        RodGenotypeChipAsGFF hapmap_chip = (RodGenotypeChipAsGFF)tracker.lookup("hapmap-chip", null);
-        String hc_genotype;
+        for (VariantContext vc : contexts) {
+            if (vc.isVariant() && !vc.isFiltered()) {
+                //out.println(vc.toString());
 
-        if (hapmap_chip != null) {
-            hc_genotype = hapmap_chip.getFeature();
+                ArrayList<String> GenotypeCalls = new ArrayList<String>();
 
-            ArrayList<String> GenotypeCalls = new ArrayList<String>();
+                List<SAMRecord> reads = context.getReads();
+                List<Integer> offsets = context.getOffsets();
 
-            List<SAMRecord> reads = context.getReads();
-            List<Integer> offsets = context.getOffsets();
-
-            int coverage_available = reads.size();
-            List<Integer> coverage_levels = new ArrayList<Integer>();// = {4, 7, 10, 20, Integer.MAX_VALUE};
-            Integer this_max_coverage = Math.min(max_coverage, coverage_available); 
-            for (int coverage = min_coverage; coverage <= this_max_coverage; coverage++) {
-                coverage_levels.add(coverage);
-            }
-            //coverage_levels.add(coverage_available); // Run on all available reads
-
-            // Iterate over coverage levels
-            for (int coverage : coverage_levels) {
-                coverage = Math.min(coverage_available, coverage); // don't exceed max available coverage
-                for (int r=0; r<downsampling_repeats; r++) {
-                    List<Integer> subset_indices = ListUtils.sampleIndicesWithReplacement(coverage_available, coverage);
-                    List<SAMRecord> sub_reads = ListUtils.sliceListByIndices(subset_indices, reads);
-                    List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
-
-                    AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
-                    VariantCallContext calls = UG.map(tracker, ref, subContext);
-                    if (calls != null && calls.vc != null && calls.vc.getNSamples() > 0) {
-                        Genotype call = calls.vc.getGenotype(0);
-                        String callType = (!call.isHomRef()) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
-                        // TODO -- fixme: the old way of doing things isn't being supported anymore
-                        GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+call.toString());
-                    }
+                int coverage_available = reads.size();
+                List<Integer> coverage_levels = new ArrayList<Integer>();
+                //Integer this_max_coverage = Math.min(max_coverage, coverage_available);
+                Integer this_max_coverage = 100;
+                //for (int coverage = min_coverage; coverage <= this_max_coverage; coverage++) {
+                for (int coverage = min_coverage; coverage <= this_max_coverage; coverage += step) {
+                    coverage_levels.add(coverage);
                 }
+
+                // Iterate over coverage levels
+                for (int coverage : coverage_levels) {
+                    int usableCoverage = Math.min(coverage_available, coverage); // don't exceed max available coverage
+
+                    Genotype vcCall = vc.getGenotype(0);
+                    Genotype call = null;
+                    int goodIterations = 0;
+
+                    for (int r=0; r < downsampling_repeats; r++) {
+                        List<Integer> subset_indices = ListUtils.sampleIndicesWithReplacement(coverage_available, usableCoverage);
+                        List<SAMRecord> sub_reads = ListUtils.sliceListByIndices(subset_indices, reads);
+                        List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
+
+                        AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
+
+                        VariantCallContext calls = UG.runGenotyper(tracker, ref, subContext);
+
+                        if (calls != null && calls.vc != null && calls.vc.getNSamples() > 0 && calls.confidentlyCalled) {
+                            Genotype evCall = calls.vc.getGenotype(0);
+                            vcCall = vc.getGenotype(evCall.getSampleName());
+
+                            if ((evCall.isHet() || evCall.isHomVar()) && (vcCall.isHet() || vcCall.isHomVar())) {
+                                call = evCall;
+                                goodIterations++;
+                            }
+
+                        }
+                    }
+
+                    out.printf("%s\t%s\t\t%d\t%f\t%d\t%c\t%s\t%s\t%d\t%d%n",
+                               context.getLocation(),
+                               vc.hasAttribute("ID") ? vc.getAttribute("ID") : "?",
+                               coverage,
+                               ((float) coverage)/((float) reads.size()),
+                               goodIterations,
+                               BaseUtils.baseIndexToSimpleBase(ref.getBaseIndex()),
+                               call == null ? "./." : call.getGenotypeString(),
+                               vcCall.getGenotypeString(),
+                               call == null ? 0 : call.getType() == vcCall.getType() ? 1 : 0,
+                               call == null ? 0 : (call.isHet() || call.isHomVar()) && (vcCall.isHet() || vcCall.isHomVar()) ? 1 : 0);
+                }
+                return GenotypeCalls;
             }
-            return GenotypeCalls;
-        }else{
-            return new ArrayList<String>();
         }
+        
+        return null;
     }
 
     public String reduceInit() {
@@ -96,15 +129,12 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
     public void onTraversalDone(String result) {} // Don't print the reduce result
 
     public String reduce(List<String> alleleFreqLines, String sum) {
+        /*
         for (String line : alleleFreqLines) {
             out.println(line);
         }
 
+        */
         return "";
 	}
 }
-
-
-
-
-
