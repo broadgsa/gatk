@@ -44,6 +44,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
+import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.bed.BedParser;
@@ -255,6 +256,8 @@ public class GenomeAnalysisEngine {
         filters.addAll(WalkerManager.getReadFilters(walker,filterManager));
         if (args.filterZeroMappingQualityReads != null && args.filterZeroMappingQualityReads)
             filters.add(new ZeroMappingQualityReadFilter());
+        if (args.readGroupBlackList != null && args.readGroupBlackList.size() > 0)
+            filters.add(new ReadGroupBlackListFilter(args.readGroupBlackList));
         for(String filterName: args.readFilters)
             filters.add(filterManager.createByName(filterName));
         return Collections.unmodifiableSet(filters);
