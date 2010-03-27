@@ -53,7 +53,7 @@ public class ReadGroupBlackListFilter implements SamRecordFilter {
     }
 
     private void addFilter(Map<String, Collection<String>> filters, String filter, File parentFile, int parentLineNum) {
-        if (filter.toLowerCase().endsWith(".txt")) {
+        if (filter.toLowerCase().endsWith(".list") || filter.toLowerCase().endsWith(".txt")) {
             File file = new File(filter);
             try {
                 int lineNum = 0;
