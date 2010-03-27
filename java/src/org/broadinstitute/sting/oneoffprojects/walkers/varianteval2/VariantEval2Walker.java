@@ -8,6 +8,9 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
+import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
+import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -120,6 +123,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="maxRsIDBuild", fullName="maxRsIDBuild", doc="If provided, only variants with rsIDs <= maxRsIDBuild will be included in the set of known snps", required=false)
     protected int maxRsIDBuild = Integer.MAX_VALUE;
+
+    @Argument(shortName="reportType", fullName="reportType", doc="If provided, set the template type", required=false)
+    protected VE2ReportFactory.VE2TemplateType reportType = VE2ReportFactory.defaultReportFormat;
+
 
     Set<String> rsIDsToExclude = null;
 
@@ -555,35 +562,49 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        // todo -- this really needs to be pretty printed; use some kind of table organization
-        // todo -- so that we can load up all of the data in one place, analyze the widths of the columns
-        // todo -- and pretty print it
+        ReportMarshaller marshaller = VE2ReportFactory.getTemplate(out,reportType,createExtraOutputTags());
         for ( String evalName : variantEvaluationNames ) {
-            boolean first = true;
-            out.printf("%n%n");
-
-            // todo -- show that comp is dbsnp, etc. is columns
-            String lastEvalTrack = null;
             for ( EvaluationContext group : contexts ) {
-                if ( lastEvalTrack == null || ! lastEvalTrack.equals(group.evalTrackName) ) {
-                    out.printf("%s%n", Utils.dupString('-', 80));
-                    lastEvalTrack = group.evalTrackName;
-                }
-
                 VariantEvaluator eval = getEvalByName(evalName, group.evaluations);
-                String keyWord = group.getDisplayName();
+                // finalize the evaluation
+                eval.finalizeEvaluation();
 
-                if ( eval.enabled() ) {
-                    if ( first ) {
-                        out.printf("%20s %s %s%n", evalName, formatKeyword(CONTEXT_HEADER), Utils.join("\t", eval.getTableHeader()));
-                        first = false;
-                    }
-
-                    for ( List<String> row : eval.getTableRows() )
-                        out.printf("%20s %s %s%n", evalName, formatKeyword(keyWord), Utils.join("\t", row));
-                }
+                if ( eval.enabled() )
+                    marshaller.write(createPrependNodeList(group),eval);
             }
         }
+        marshaller.close();
+    }
+
+    /**
+     * create some additional output lines about the analysis
+     * @return a list of nodes to attach to the report as tags
+     */
+    private List<Node> createExtraOutputTags() {
+        List<Node> list = new ArrayList();
+        list.add(new Node("reference file",getToolkit().getArguments().referenceFile.getName(),"The reference sequence file"));
+        for (String binding : getToolkit().getArguments().RODBindings)
+            list.add(new Node("ROD binding",binding,"The reference sequence file"));
+        return list;
+    }
+
+
+    /**
+     * given the evaluation name, and the context, create the list of pre-pended nodes for the output system.
+     * Currently it expects the the following list: jexl_expression, evaluation_name, comparison_name, filter_name,
+     * novelty_name
+     * @param group the evaluation context
+     * @return a list of Nodes to prepend the analysis module output with
+     */
+    private List<Node> createPrependNodeList(EvaluationContext group) {
+        // add the branching nodes: jexl expression, comparison track, eval track etc
+        Node jexlNode = new Node("jexl_expression",(group.selectExp != null) ? group.selectExp.exp.toString() : "none","The jexl filtering expression");
+        Node compNode = new Node("comparison_name",group.compTrackName,"The comparison track name");
+        Node evalNode = new Node("evaluation_name",group.evalTrackName,"The evaluation name");
+        Node filterNode = new Node("filter_name",group.filtered,"The filter name");
+        Node noveltyNode = new Node("novelty_name",group.novelty,"The novelty name");
+        // the ordering is important below, this is the order the columns will appear in any output format
+        return Arrays.asList(evalNode,compNode,jexlNode,filterNode,noveltyNode);
     }
 
     protected Logger getLogger() { return logger; }

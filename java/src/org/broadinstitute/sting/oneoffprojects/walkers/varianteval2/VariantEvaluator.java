@@ -55,13 +55,10 @@ abstract class VariantEvaluator {
         return null;
     }
 
-    public void finalize() {}
-
-    public abstract String toString();
-
-    // making it a table
-    public abstract List<String> getTableHeader();
-    public abstract List<List<String>> getTableRows();
+    /**
+     * override this method for any finalization of calculations after the analysis is completed
+     */
+    public void finalizeEvaluation() {}
 
     //
     // useful common utility routines

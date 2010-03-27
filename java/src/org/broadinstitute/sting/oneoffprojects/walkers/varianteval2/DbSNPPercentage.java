@@ -20,16 +20,29 @@ import java.util.Arrays;
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
-@Analysis(name = "dbOverlap", description = "the overlap between DbSNP sites and other SNP tracks")
+@Analysis(name = "DbSNP Overlap", description = "the overlap between DbSNP sites and other SNP tracks")
 public class DbSNPPercentage extends VariantEvaluator {
-    @DataPoint(name = "DbSNP_count", description = "number of DPSNP sites")
+
+    @DataPoint(name = "DbSNP count", description = "number of DPSNP sites")
     private long nDBSNPs = 0;
-    @DataPoint(name = "total_count", description = "number of total snp sites")
+
+    @DataPoint(name = "total count", description = "number of total snp sites")
     private long nEvalSNPs = 0;
-    @DataPoint(name = "number_snps_at_dbsnp", description = "number of SNP sites at DPSNP sites")
+
+    @DataPoint(name = "novel snps", description = "number of total snp sites")
+    private long novelSites = 0;
+
+    @DataPoint(name = "snps at dbsnp", description = "number of SNP sites at DPSNP sites")
     private long nSNPsAtdbSNPs = 0;
-    @DataPoint(name = "number_concordant", description = "number of concordant sites")
+
+    @DataPoint(name = "% eval in comp", description = "percentage of SNP sites at DPSNP sites")
+    private double dbSNPRate = 0.0;
+
+    @DataPoint(name = "concordant", description = "number of concordant sites")
     private long nConcordant = 0;
+
+    @DataPoint(name = "% concordant", description = "the concordance rate")
+    private double concordantRate = 0.0;
 
     public DbSNPPercentage(VariantEval2Walker parent) {
         // don't do anything
@@ -43,65 +56,18 @@ public class DbSNPPercentage extends VariantEvaluator {
         return 2;   // we need to see each eval track and each comp track
     }
 
-    public long nDBSNPs() {
-        return nDBSNPs;
-    }
+    public long nNovelSites() { return Math.abs(nEvalSNPs - nSNPsAtdbSNPs); }
+    public double dbSNPRate() { return rate(nSNPsAtdbSNPs, nEvalSNPs); }
+    public double concordanceRate() { return rate(nConcordant, nSNPsAtdbSNPs); }
 
-    public long nEvalSNPs() {
-        return nEvalSNPs;
-    }
-
-    public long nSNPsAtdbSNPs() {
-        return nSNPsAtdbSNPs;
-    }
-
-    public long nConcordant() {
-        return nConcordant;
-    }
-
-    public long nNovelSites() {
-        return Math.abs(nEvalSNPs() - nSNPsAtdbSNPs());
-    }
-
-
-    /**
-     * What fraction of the evaluated site variants were also found in the db?
-     *
-     * @return db rate
-     */
-    public double dbSNPRate() {
-        return rate(nSNPsAtdbSNPs(), nEvalSNPs());
-    }
-
-    public double concordanceRate() {
-        return rate(nConcordant(), nSNPsAtdbSNPs());
-    }
-
-    public String toString() {
-        return getName() + ": " + summaryLine();
-    }
-
-    private String summaryLine() {
-        return String.format("%d %d %d %d %d %.2f %.2f",
-                nDBSNPs(), nEvalSNPs(), nSNPsAtdbSNPs(), nConcordant(), nNovelSites(), 100 * dbSNPRate(), 100 * concordanceRate());
-    }
-
-    private static List<String> HEADER =
-            Arrays.asList("n_dbsnps", "n_eval_snps", "n_overlapping_snps", "n_concordant",
-                    "n_novel_snps", "percent_eval_in_comp", "concordance_rate");
-
-    // making it a table
-
-    public List<String> getTableHeader() {
-        return HEADER;
+    public void finalizeEvaluation() {
+        dbSNPRate = 100 * dbSNPRate();
+        concordantRate = 100 * concordanceRate();
+        novelSites = nNovelSites();
     }
 
     public boolean enabled() {
         return true;
-    }
-
-    public List<List<String>> getTableRows() {
-        return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
     }
 
     /**

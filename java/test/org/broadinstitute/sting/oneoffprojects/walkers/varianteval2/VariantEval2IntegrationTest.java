@@ -6,12 +6,10 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
-import java.util.List;
-import java.io.File;
 
 public class VariantEval2IntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T VariantEval2" +
-            " -R " + oneKGLocation + "reference/human_b36_both.fasta";
+            " -R " + oneKGLocation + "reference/human_b36_both.fasta -reportType Grep";
 
     private static String root = cmdRoot +
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
@@ -20,8 +18,8 @@ public class VariantEval2IntegrationTest extends WalkerTest {
     @Test
     public void testVE2Simple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "78e4cd917ddef84cdb3c6e95299483b4");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "a15be04ebe52fd0775695b016e016975");
+        expectations.put("-L 1:1-10,000,000", "ae10d06b5d30ee227c0e1e18661a18f5");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "a9a682734dbb9a574383a6e7ab385dcc");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -41,10 +39,10 @@ public class VariantEval2IntegrationTest extends WalkerTest {
                 " -B dbsnp_130,dbSNP," + GATKDataLocation + "dbsnp_130_b36.rod" +
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
-        String eqMD5s = "d21d1dcbebcfade3d056af5f907e6f56"; // next two examples should be the same!
+        String eqMD5s = "0fc336da6b77cd7bf1b9c2568a57e94a"; // next two examples should be the same!
         expectations.put("", eqMD5s);
         expectations.put(" -known comp_hapmap -known dbsnp", eqMD5s);
-        expectations.put(" -known comp_hapmap", "573a50b1f4ae338ef6937720a7ca5f34");
+        expectations.put(" -known comp_hapmap", "b6072559ce2d01309639ebb2f6133fa9");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs2 = entry.getKey();
@@ -62,7 +60,7 @@ public class VariantEval2IntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("00a38a8e7da6c1880c49749563eb0dcf", "a3ce1d70d8ae3874807e9d61994d42af"));
+                Arrays.asList("b42a8974ebb4354bf172ae5f81922f9e", "a3ce1d70d8ae3874807e9d61994d42af"));
         executeTest("testVE2WriteVCF", spec);
     }
 }

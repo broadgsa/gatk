@@ -44,19 +44,19 @@ import java.util.regex.Matcher;
 @Analysis(name = "Mendelian Violation Evaluator", description = "Mendelian Violation Evaluator")
 public class MendelianViolationEvaluator extends VariantEvaluator {
 
-    @DataPoint(name = "number_variants", description = "Number of mendelian variants found")
+    @DataPoint(name = "variants", description = "Number of mendelian variants found")
     long nVariants;
 
-    @DataPoint(name = "number_violations", description = "Number of mendelian violations found")
+    @DataPoint(name = "violations", description = "Number of mendelian violations found")
     long nViolations;
 
-    @DataPoint(description = "number of child hom ref calls where the parent was hom variant")
+    @DataPoint(name="KHR->PHV",description = "number of child hom ref calls where the parent was hom variant")
     long KidHomRef_ParentHomVar;
-    @DataPoint(description = "number of child het calls where the parent was hom ref")
+    @DataPoint(name="KHET->PHR",description = "number of child het calls where the parent was hom ref")
     long KidHet_ParentsHomRef;
-    @DataPoint(description = "number of child het calls where the parent was hom variant")
+    @DataPoint(name="KHET->PHV",description = "number of child het calls where the parent was hom variant")
     long KidHet_ParentsHomVar;
-    @DataPoint(description = "number of child hom variant calls where the parent was hom ref")
+    @DataPoint(name="KHV->PHR",description = "number of child hom variant calls where the parent was hom ref")
     long KidHomVar_ParentHomRef;
 
     VariantEval2Walker parent;
@@ -176,26 +176,5 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         }
 
         return true;
-    }
-
-    public String toString() {
-        return getName() + ": " + summaryLine();
-    }
-
-    private String summaryLine() {
-        return String.format("%d %d %d %d %d %d", nVariants, nViolations, KidHomRef_ParentHomVar, KidHet_ParentsHomRef, KidHet_ParentsHomVar, KidHomVar_ParentHomRef);
-    }
-
-    private static List<String> HEADER =
-            Arrays.asList("nVariants", "nViolations", "KidHomRef_ParentHomVar", "KidHet_ParentsHomRef", "KidHet_ParentsHomVar", "KidHomVar_ParentHomRef");
-
-    // making it a table
-
-    public List<String> getTableHeader() {
-        return HEADER;
-    }
-
-    public List<List<String>> getTableRows() {
-        return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
     }
 }

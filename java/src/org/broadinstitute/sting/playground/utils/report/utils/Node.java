@@ -1,16 +1,19 @@
 package org.broadinstitute.sting.playground.utils.report.utils;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
+import org.broadinstitute.sting.utils.StingException;
+
+import java.util.*;
 
 /**
  * a node, extracted using the new report output system.
  */
 public class Node {
-    public final String name;
-    public final String value;
-    public final String description;
-    public final boolean display; // is this node an output node, or a node for tracking internal data? true if output node
+    public String name;
+    public String value;
+    public String description;
+    public boolean display; // is this node an output node, or a node for tracking internal data? true if output node
+    public boolean table;   // this is a hack, but I needed a way to indicate that a node was a row root node
+    public boolean tag;
     public Collection<Node> children;
 
     public Node(String name, String value, String description) {
@@ -18,6 +21,8 @@ public class Node {
         this.name = name;
         this.description = description;
         display = true;
+        table = false;
+        tag = false;
     }
 
     public Node(String name, String value, String description, boolean display) {
@@ -25,7 +30,11 @@ public class Node {
         this.name = name;
         this.description = description;
         this.display = display;
+        table = false;
+        tag = false;
     }
+
+    public void setTable() {table = true;}
 
     public void addChild(Node child) {
         if (children == null) children = new LinkedHashSet<Node>();
@@ -63,10 +72,42 @@ public class Node {
     }
 
     public Collection<Node> getChildren() {
-        return children;
+         return (children == null) ?  new ArrayList<Node>() : children;
     }
 
     public boolean getDisplay() {
         return display;
+    }
+
+    public boolean getTable() {
+        return table;
+    }
+
+    public boolean getTag() {
+        return tag;
+    }
+
+    public void setTag() {
+        this.tag = true;
+    }
+
+    public void clone(Node n) {
+        this.name = n.name;
+        this.value = n.value;
+        this.description = n.description;
+        this.display = n.display;
+        this.table = n.table;
+        this.tag = n.tag;
+        this.children = new LinkedHashSet<Node>();
+        if (n.children != null) this.children.addAll(n.getChildren());
+    }
+
+    public List<List<Node>> getTableRows() {
+        List<List<Node>> ret =  NodeUtils.flattenToRow(this);
+        return ret;
+    }
+
+    public int getRowCount() {
+        return NodeUtils.flattenToRowCount(this);
     }
 }

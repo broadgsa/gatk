@@ -17,10 +17,14 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
     long nTi = 0;
     @DataPoint(name = "tv_count", description = "number of transversion loci")
     long nTv = 0;
-    @DataPoint(name = "ti_count_std", description = "number of transition sites in the std")
+    @DataPoint(name = "ti/tv ratio", description = "the transition to transversion ratio")
+    double tiTvRatio = 0.0;    
+    @DataPoint(name = "ti_count_std", description = "number of standard transition sites")
     long nTiInStd = 0;
-    @DataPoint(name = "tv_count_std", description = "number of transversion sites in the std")
+    @DataPoint(name = "tv_count_std", description = "number of standard transversion sites")
     long nTvInStd = 0;
+    @DataPoint(name = "ti/tv ratio standard", description = "the transition to transversion ratio")
+    double TiTvRatioStandard = 0.0;
 
     public TiTvVariantEvaluator(VariantEval2Walker parent) {
         // don't do anything
@@ -43,7 +47,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
             if (vc.isTransition()) {
                 if (updateStandard) nTiInStd++;
                 else nTi++;
-            } else {
+            } else {                                
                 if (updateStandard) nTvInStd++;
                 else nTv++;
             }
@@ -61,25 +65,10 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
         return null; // we don't capture any intersting sites
     }
 
-    public String toString() {
-        return getName() + ": " + summaryLine();
-    }
-
-    private String summaryLine() {
-        return String.format("%d %d %.2f %d %d %.2f",
-                nTi, nTv, ratio(nTi, nTv),
-                nTiInStd, nTvInStd, ratio(nTiInStd, nTvInStd));
-    }
-
-    private static List<String> HEADER =
-            Arrays.asList("nTi", "nTv", "TiTvRatio", "nTiStandard", "nTvStandard", "TiTvRatioStandard");
-
-    // making it a table
-    public List<String> getTableHeader() {
-        return HEADER;
-    }
-
-    public List<List<String>> getTableRows() {
-        return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
+    @Override
+    public void finalizeEvaluation() {
+        // the ti/tv ratio needs to be set (it's not calculated per-variant).
+        this.tiTvRatio = rate(nTi,nTv);
+        this.TiTvRatioStandard = rate(nTiInStd,nTvInStd);
     }
 }

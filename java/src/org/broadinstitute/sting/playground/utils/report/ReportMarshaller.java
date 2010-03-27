@@ -27,12 +27,14 @@ import freemarker.template.Configuration;
 import freemarker.template.DefaultObjectWrapper;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
+import org.broadinstitute.sting.oneoffprojects.walkers.varianteval2.CountVariants;
 import org.broadinstitute.sting.playground.utils.report.utils.ComplexDataUtils;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.text.DateFormat;
 import java.util.*;
 
 
@@ -48,7 +50,7 @@ public class ReportMarshaller {
 
     // the aggregation of all our analyses
     private Node root;
-    private File writeLocation;
+    private Writer writeLocation;
 
     /**
      * create a marshaled object
@@ -57,14 +59,12 @@ public class ReportMarshaller {
      * @param template   the template to use
      */
     public ReportMarshaller(String reportName, File filename, Template template) {
-        init(reportName, filename);
+        try {
+            init(reportName, new OutputStreamWriter(new FileOutputStream(filename)));
+        } catch (FileNotFoundException e) {
+            throw new StingException("Unable to create Writer from file " + filename,e);
+        }
         temp = template;
-    }
-
-    private void init(String reportName, File filename) {
-        root = new Node("report", reportName, "the overarching report object");
-        root.addChild(new Node("title", reportName, "title of the report"));
-        this.writeLocation = filename;
     }
 
     /**
@@ -72,11 +72,39 @@ public class ReportMarshaller {
      *
      * @param reportName the report name
      */
-    public ReportMarshaller(String reportName, File filename) {
-        init(reportName, filename);
-        temp = createTemplate();
+    public ReportMarshaller(String reportName, Writer writer, Template template, List<Node> reportTags) {
+        init(reportName, writer);
+        temp = template;
+        for (Node n : reportTags) {
+            n.setTag();
+            root.addChild(n);
+        }
     }
 
+    /**
+     * create a marshaled object
+     *
+     * @param reportName the report name
+     */
+    public ReportMarshaller(String reportName, OutputStream writer, Template template, List<Node> reportTags) {
+        init(reportName, new PrintWriter(writer));
+        temp = template;
+        for (Node n : reportTags) {
+            n.setTag();
+            root.addChild(n);
+        }
+    }
+
+    /**
+     * initialize the ReportMarshaller
+     * @param reportName the report name
+     * @param writer the output writer
+     */
+    private void init(String reportName, Writer writer) {
+        root = new Node("report", reportName, DateFormat.getDateTimeInstance().format(new Date()));
+        root.addChild(new Node("title", reportName, "title of the report"));
+        this.writeLocation = writer;
+    }
 
     /**
      * add an analysis module to the output source
@@ -102,30 +130,20 @@ public class ReportMarshaller {
      *
      * @param toMarshall the object to marshall
      */
-    public void write(List<Node> prependNodes, Object toMarshall) {
-        // Create a context to add data to
-        HashMap analysisMap = new HashMap();
+    public void write(List<Node> tags, Object toMarshall) {
         AnalysisModuleScanner moduleScanner = new AnalysisModuleScanner(toMarshall);
-
         Node analysis = addAnalysis(moduleScanner);
 
-        analysis.addAllChildren(getParameterNodes(toMarshall, moduleScanner));
-        analysis.addAllChildren(getDataPointNodes(toMarshall, moduleScanner));
-
         // prepend the list of nodes passed in
-        Node currChild = null;
-        for (Node n : prependNodes) {
-            if (currChild == null) {
-                root.addChild(n);
-                currChild = n;
-            } else {
-                currChild.addChild(n);
-                currChild = n;
-            }
+        Node currChild = analysis;
+        for (Node n : tags) {
+            n.setTag();
+            currChild.addChild(n);
         }
-        // add this analysis to the root node
-        if (currChild == null) root.addChild(analysis);
-        else currChild.addChild(analysis);
+
+        root.addChild(analysis);
+        currChild.addAllChildren(getDataPointNodes(toMarshall, moduleScanner));
+        currChild.addAllChildren(getParameterNodes(toMarshall, moduleScanner));        
     }
 
 
@@ -175,40 +193,17 @@ public class ReportMarshaller {
      * call the method to finalize the report
      */
     public void close() {
-        Writer out = null;
-        try {
-            out = new OutputStreamWriter(new FileOutputStream(this.writeLocation));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
         try {
             // add the data to a map
             Map map = new HashMap();
             map.put("root", root);
-            temp.process(map, out);
-            out.flush();
+            temp.process(map, writeLocation);
+            writeLocation.flush();
         } catch (TemplateException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-    }
-
-    private Template createTemplate() {
-        Configuration cfg = new Configuration();
-        try {
-            cfg.setDirectoryForTemplateLoading(new File("templates"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        cfg.setObjectWrapper(new DefaultObjectWrapper());
-        Template temp = null;
-        try {
-            temp = cfg.getTemplate("myTestTemp.ftl");  // TODO: obviously this has to be changed to a factory or something like that
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return temp;
     }
 
     /**
@@ -221,7 +216,12 @@ public class ReportMarshaller {
     private static void addChildNodeFromField(Object toMarshall, Field f, Node node) {
         f.setAccessible(true);
         try {
-            node.addAllChildren(ComplexDataUtils.resolveObjects(f.get(toMarshall)));
+            Collection<Node> nodes = ComplexDataUtils.resolveObjects(f.get(toMarshall));
+            // we want to eliminate any data nodes that are there just to incorporate an underlying table
+            if (nodes.size() == 1 && nodes.iterator().next().table==true)
+                node.clone(nodes.iterator().next());
+            else
+                node.addAllChildren(nodes);
         } catch (IllegalAccessException e) {
             throw new StingException("Unable to access field " + f);
         }

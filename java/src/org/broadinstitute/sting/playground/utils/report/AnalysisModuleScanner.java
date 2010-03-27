@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.StingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 
@@ -45,9 +46,9 @@ import java.util.Map;
 public class AnalysisModuleScanner {
 
     // what we extracted from the class
-    private Map<Field, Param> parameters = new HashMap<Field, Param>();     // the parameter annotations
-    private Map<Field, DataPoint> datums = new HashMap<Field, DataPoint>();                // the data we've discovered
-    private Analysis analysis;                                              // the analysis annotation
+    private Map<Field, Param> parameters = new LinkedHashMap<Field, Param>();   // the parameter annotations
+    private Map<Field, DataPoint> datums = new LinkedHashMap<Field, DataPoint>();   // the data we've discovered
+    private Analysis analysis;  // the analysis annotation
 
     // private storage of the class type
     private final Class cls;

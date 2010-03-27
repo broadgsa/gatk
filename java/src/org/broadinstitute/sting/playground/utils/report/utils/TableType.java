@@ -12,6 +12,6 @@ package org.broadinstitute.sting.playground.utils.report.utils;
 public interface TableType {
     public Object[] getRowKeys();
     public Object[] getColumnKeys();
-    public String getCell(int x, int y);
+    public Object getCell(int x, int y);
     public String getName();
 }

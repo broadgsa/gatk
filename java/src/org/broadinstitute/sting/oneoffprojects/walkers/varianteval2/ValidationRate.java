@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
+import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 
 import java.util.List;
 import java.util.Arrays;
@@ -20,13 +21,38 @@ import java.util.Arrays;
  */
 @Analysis(name = "Validation Rate", description = "Validation Rate")
 public class ValidationRate extends VariantEvaluator {
+    @DataPoint(name="# mono in comp",description = "Number of mono calls in the comparison ROD")
+    long n_mono_in_comp;
+    @DataPoint(name="# poly in comp",description = "Number of poly calls in the comparison ROD")
+    long n_poly_in_comp;
+    @DataPoint(name="% poly in comp",description = "Percent of poly calls in the comparison ROD")
+    double percent_poly_in_comp;
+    @DataPoint(name="# mono calls at mono sites",description = "Number of mono calls at mono sites")
+    long n_mono_calls_at_mono_sites;
+    @DataPoint(name="# poly calls at poly sites",description = "Number of poly calls at mono sites")
+    long n_poly_calls_at_mono_sites;
+    @DataPoint(name="# nocalls at mono sites",description = "Number of no calls at mono sites")
+    long n_nocalls_at_mono_sites;
+    @DataPoint(name="# mono sites called poly",description = "Percentage of mono sites called poly")
+    double percent_mono_sites_called_poly;
+    @DataPoint(name="# mono calls at poly sites",description = "Number of mono calls at poly sites")
+    long n_mono_calls_at_poly_sites;
+    @DataPoint(name="# poly calls at poly sites",description = "Number of poly calls at poly sites")
+    long n_poly_calls_at_poly_sites;
+    @DataPoint(name="# nocalls at poly sites",description = "Number of no calls at poly sites")
+    long n_nocalls_at_poly_sites;
+    @DataPoint(name="% poly sites called poly",description = "Number of poly sites called poly")
+    double percent_poly_sites_called_poly;
+    @DataPoint(description = "The PPV")
+    double PPV;
+    @DataPoint(description = "The sensitivity")
+    double sensitivity;
 
     // todo -- subset validation data by list of samples, if provided
-
-    // todo -- print out PPV and sensitivity numbers
-
     class SiteStats {
-        long nPoly = 0, nMono = 0, nNoCall = 0;
+        long nPoly = 0;
+        long nMono = 0;
+        long nNoCall = 0;
 
         double polyPercent() {
             return 100 * rate(nPoly, nPoly + nMono + nNoCall);
@@ -49,40 +75,31 @@ public class ValidationRate extends VariantEvaluator {
         return 2;   // we need to see each eval track and each comp track
     }
 
-    public String toString() {
-        return getName() + ": " + summaryLine();
-    }
-
-    private String summaryLine() {
+    @Override
+    public void finalizeEvaluation() {
         long TP = evalOverlapAtPoly.nPoly + evalOverlapAtMono.nMono;
         long FP = evalOverlapAtMono.nPoly + evalOverlapAtPoly.nMono;
         long FN = evalOverlapAtPoly.nMono + evalOverlapAtPoly.nNoCall;
 
-        return String.format("%d %d %.2f %d %d %d %.2f %d %d %d %.2f %.2f %.2f",
-                validationStats.nMono, validationStats.nPoly, validationStats.polyPercent(),
-                evalOverlapAtMono.nMono, evalOverlapAtMono.nPoly, evalOverlapAtMono.nNoCall, evalOverlapAtMono.polyPercent(),
-                evalOverlapAtPoly.nMono, evalOverlapAtPoly.nPoly, evalOverlapAtPoly.nNoCall, evalOverlapAtPoly.polyPercent(),
-                100 * rate(TP, TP + FP), 100 * rate(TP, TP + FN));
-    }
+        // fill in the output fields
+        n_mono_in_comp = validationStats.nMono;
+        n_poly_in_comp = validationStats.nPoly;
+        percent_poly_in_comp = validationStats.polyPercent();
+        n_mono_calls_at_mono_sites = evalOverlapAtMono.nMono;
+        n_poly_calls_at_mono_sites = evalOverlapAtMono.nPoly;
+        n_nocalls_at_mono_sites = evalOverlapAtMono.nNoCall;
+        percent_mono_sites_called_poly = evalOverlapAtMono.polyPercent();
+        n_mono_calls_at_poly_sites = evalOverlapAtPoly.nMono;
+        n_poly_calls_at_poly_sites = evalOverlapAtPoly.nMono;
+        n_nocalls_at_poly_sites = evalOverlapAtPoly.nNoCall;
+        percent_poly_sites_called_poly = evalOverlapAtPoly.polyPercent();
+        PPV = 100 * rate(TP, TP + FP);
+        sensitivity = 100 * rate(TP, TP + FN);
 
-    private static List<String> HEADER =
-            Arrays.asList("n_mono_in_comp", "n_poly_in_comp", "percent_poly_in_comp",
-                    "n_mono_calls_at_mono_sites", "n_poly_calls_at_mono_sites", "n_nocalls_at_mono_sites", "percent_mono_sites_called_poly",
-                    "n_mono_calls_at_poly_sites", "n_poly_calls_at_poly_sites", "n_nocalls_at_poly_sites", "percent_poly_sites_called_poly",
-                    "PPV", "Sensitivity");
-
-    // making it a table
-
-    public List<String> getTableHeader() {
-        return HEADER;
     }
 
     public boolean enabled() {
         return true;
-    }
-
-    public List<List<String>> getTableRows() {
-        return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
     }
 
     public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

@@ -14,14 +14,25 @@ import java.util.Arrays;
 
 @Analysis(name = "Count Variants", description = "Counts different classes of variants in the sample")
 public class CountVariants extends VariantEvaluator {
+
+    // the following fields are in output order:
+
+    // basic counts on various rates found
     @DataPoint(description = "Number of processed loci")
     long nProcessedLoci = 0;
     @DataPoint(description = "Number of called loci")
     long nCalledLoci = 0;
-    @DataPoint(description = "Number of variant loci")
-    long nVariantLoci = 0;
     @DataPoint(description = "Number of reference loci")
     long nRefLoci = 0;
+    @DataPoint(description = "Number of variant loci")
+    long nVariantLoci = 0;
+
+    // the following two calculations get set in the finalizeEvaluation
+    @DataPoint(description = "Variants per loci rate")
+    double variantRate = 0;
+    @DataPoint(description = "Number of variants per base")
+    double variantRatePerBp = 0;
+
 
     @DataPoint(description = "Number of snp loci")
     long nSNPs = 0;
@@ -41,6 +52,20 @@ public class CountVariants extends VariantEvaluator {
     @DataPoint(description = "Number of hom var loci")
     long nHomVar = 0;
 
+    // calculations that get set in the finalizeEvaluation method
+    @DataPoint(description = "heterozygosity per locus rate")
+    double heterozygosity = 0;
+    @DataPoint(description = "heterozygosity per base pair")
+    double heterozygosityPerBp = 0;
+    @DataPoint(description = "heterozygosity to homozygosity ratio")
+    double hetHomRatio = 0;
+    @DataPoint(description = "indel rate (insertion count + deletion count)")
+    double indelRate = 0;
+    @DataPoint(description = "indel rate per base pair")
+    double indelRatePerBp = 0;
+    @DataPoint(description = "deletion to insertion ratio")
+    double deletionInsertionRatio = 0;
+    
     public CountVariants(VariantEval2Walker parent) {
         // don't do anything
     }
@@ -112,39 +137,14 @@ public class CountVariants extends VariantEvaluator {
         return null; // we don't capture any interesting sites
     }
 
-    public String toString() {
-        return getName() + ": " + summaryLine();
-    }
-
-    private String summaryLine() {
-        return String.format("%d %d %d %d " +
-                "%.2e %d " +
-                "%d %d %d %d " +
-                "%d %d %d " +
-                "%.2e %d %.2f " +
-                "%.2f %d %.2f",
-                nProcessedLoci, nCalledLoci, nRefLoci, nVariantLoci,
-                perLocusRate(nVariantLoci), perLocusRInverseRate(nVariantLoci),
-                nSNPs, nDeletions, nInsertions, nComplex,
-                nHomRef, nHets, nHomVar,
-                perLocusRate(nHets), perLocusRInverseRate(nHets), ratio(nHets, nHomVar),
-                perLocusRate(nDeletions + nInsertions), perLocusRInverseRate(nDeletions + nInsertions), ratio(nDeletions, nInsertions));
-    }
-
-    private static List<String> HEADER =
-            Arrays.asList("nProcessedLoci", "nCalledLoci", "nRefLoci", "nVariantLoci",
-                    "variantRate", "variantRatePerBp",
-                    "nSNPs", "nDeletions", "nInsertions", "nComplex",
-                    "nHomRefGenotypes", "nHetGenotypes", "nHomVarGenotypes",
-                    "heterozygosity", "heterozygosityPerBp", "hetHomRatio",
-                    "indelRate", "indelRatePerBp", "deletionInsertionRatio");
-
-    // making it a table
-    public List<String> getTableHeader() {
-        return HEADER;
-    }
-
-    public List<List<String>> getTableRows() {
-        return Arrays.asList(Arrays.asList(summaryLine().split(" ")));
+    public void finalizeEvaluation() {
+        variantRate = perLocusRate(nVariantLoci);
+        variantRatePerBp = perLocusRInverseRate(nVariantLoci);
+        heterozygosity = perLocusRate(nHets);
+        heterozygosityPerBp = perLocusRInverseRate(nHets);
+        hetHomRatio = ratio(nHets, nHomVar);
+        indelRate = perLocusRate(nDeletions + nInsertions);
+        indelRatePerBp = perLocusRInverseRate(nDeletions + nInsertions);
+        deletionInsertionRatio = ratio(nDeletions, nInsertions);
     }
 }

@@ -30,54 +30,11 @@ public class GenotypeConcordance extends VariantEvaluator {
     private HashMap<Integer, FrequencyStats> alleleCountStats = new HashMap<Integer, FrequencyStats>();
 
     // a mapping from sample to stats
-    @DataPoint(description = "the concordance statistics for each sample")
-    private HashMap<String, SampleStats> concordanceStats = null;
+    @DataPoint(name="samples", description = "the concordance statistics for each sample")
+    SampleStats sampleStats = null;
 
     private static final int MAX_MISSED_VALIDATION_DATA = 10000;
 
-    private static final int nGenotypeTypes = Genotype.Type.values().length;
-
-    class SampleStats implements TableType {
-
-        long[][] concordance = new long[nGenotypeTypes][nGenotypeTypes];
-
-        // TableType methods
-
-        public Object[] getRowKeys() {
-            return Genotype.Type.values();
-        }
-
-        public Object[] getColumnKeys() {
-            return Genotype.Type.values();
-        }
-
-        public String getCell(int x, int y) {
-            return String.valueOf(concordance[x][y]);
-        }
-
-        public String getName() {
-            return "SampleStats";
-        }
-
-        public String toString() {
-            StringBuffer sb = new StringBuffer();
-            for (int truth = 0; truth < nGenotypeTypes; truth++) {
-                // don't print out when truth = no-call
-                if (truth == Genotype.Type.NO_CALL.ordinal())
-                    continue;
-                long total = 0;
-                for (int called = 0; called < nGenotypeTypes; called++)
-                    total += concordance[truth][called];
-                sb.append(String.format("%d %d %.2f ", total, concordance[truth][truth], total == 0 ? 0.0 : (100.0 * (double) concordance[truth][truth] / (double) total)));
-                for (int called = 0; called < nGenotypeTypes; called++) {
-                    if (called != truth)
-                        sb.append(String.format("%d ", concordance[truth][called]));
-                }
-            }
-
-            return sb.toString();
-        }
-    }
 
     class FrequencyStats implements TableType {
         long nFound = 0;
@@ -152,19 +109,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     }
 
     public List<List<String>> getTableRows() {
-        ArrayList<List<String>> rows = new ArrayList<List<String>>();
-
-        if (concordanceStats != null) {
-            for (Map.Entry<String, SampleStats> sample : concordanceStats.entrySet())
-                rows.add(Arrays.asList(String.format("%s %s", sample.getKey(), sample.getValue().toString()).split(" ")));
-        }
-
-        if (alleleCountStats != null) {
-            for (Map.Entry<Integer, FrequencyStats> alleleCount : alleleCountStats.entrySet())
-                rows.add(Arrays.asList(String.format("%d %s", alleleCount.getKey(), alleleCount.getValue().toString()).split(" ")));
-        }
-
-        return rows;
+        return null;
     }
 
     private boolean warnedAboutValidationData = false;
@@ -176,10 +121,10 @@ public class GenotypeConcordance extends VariantEvaluator {
         if (eval == null && !isValidVC(validation))
             return interesting;
 
-        if (concordanceStats == null) {
+        if (sampleStats == null) {
             if (eval != null) {
                 // initialize the concordance table
-                createConcordanceTable(eval);
+                sampleStats = new SampleStats(eval,Genotype.Type.values().length);
                 for (VariantContext vc : missedValidationData)
                     determineStats(null, vc);
                 missedValidationData = null;
@@ -208,8 +153,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
         // determine concordance for eval data
         if (eval != null) {
-
-            for (String sample : eval.getSampleNames()) {
+           for (String sample : eval.getSampleNames()) {
                 Genotype.Type called = eval.getGenotype(sample).getType();
                 Genotype.Type truth;
 
@@ -218,24 +162,16 @@ public class GenotypeConcordance extends VariantEvaluator {
                 else
                     truth = validation.getGenotype(sample).getType();
 
-                SampleStats stats = concordanceStats.get(sample);
-                if (stats == null)
-                    throw new StingException("Sample " + sample + " has not been seen in a previous eval; this analysis module assumes that all samples are present in each variant context");
-                stats.concordance[truth.ordinal()][called.ordinal()]++;
+                sampleStats.incrValue(sample, truth, called);
             }
         }
         // otherwise, mark no-calls for all samples
         else {
-
             Genotype.Type called = Genotype.Type.NO_CALL;
 
             for (String sample : validation.getSampleNames()) {
-                SampleStats stats = concordanceStats.get(sample);
-                if (stats == null)
-                    continue;
-
                 Genotype.Type truth = validation.getGenotype(sample).getType();
-                stats.concordance[truth.ordinal()][called.ordinal()]++;
+                sampleStats.incrValue(sample, truth, called);
             }
         }
 
@@ -258,11 +194,78 @@ public class GenotypeConcordance extends VariantEvaluator {
     private static boolean isValidVC(VariantContext vc) {
         return (vc != null && !vc.isFiltered());
     }
+}
 
-    private void createConcordanceTable(VariantContext vc) {
-        concordanceStats = new HashMap<String, SampleStats>();
-        for (String sample : vc.getSampleNames())
-            concordanceStats.put(sample, new SampleStats());
+/**
+ * a table of sample names to genotype concordance figures
+ */
+class SampleStats implements TableType {
+    private final int nGenotypeTypes;
+
+    // sample to concordance stats object
+    private HashMap<String, long[][]> concordanceStats = new HashMap<String, long[][]>();
+
+    /**
+     *
+     * @return one row per sample
+     */
+    public Object[] getRowKeys() {
+        return concordanceStats.keySet().toArray(new String[concordanceStats.size()]);
     }
 
+    /**
+     * increment the specified value
+     * @param sample the sample name
+     * @param truth the truth type
+     * @param called the called type
+     */
+    public void incrValue(String sample, Genotype.Type truth, Genotype.Type called) {
+        if (!concordanceStats.containsKey(sample))
+            throw new StingException("Sample " + sample + " has not been seen in a previous eval; this analysis module assumes that all samples are present in each variant context");
+        concordanceStats.get(sample)[truth.ordinal()][called.ordinal()]++;
+    }
+
+    /**
+     * get the column keys
+     * @return a list of objects, in this case strings, that are the column names
+     */
+    public Object[] getColumnKeys() {
+        return new String[]{"total_true_ref","n_ref/ref","%_ref/ref",
+                            "n_ref/no-call","n_ref/het","n_ref/hom",
+                            "total_true_het","n_het/het","%_het/het",
+                            "n_het/no-call","n_het/ref","n_het/hom",
+                            "total_true_hom","n_hom/hom","%_hom/hom",
+                            "n_hom/no-call","n_hom/ref","n_hom/het"};
+    }
+
+    public SampleStats(VariantContext vc, int nGenotypeTypes) {
+        this.nGenotypeTypes = nGenotypeTypes;
+        for (String sample : vc.getSampleNames())
+            concordanceStats.put(sample, new long[nGenotypeTypes][nGenotypeTypes]);
+    }
+
+    public Object getCell(int x, int y) {
+        // we have three rows of 6 right now for output (rows: ref, het, hom)
+        Genotype.Type type = Genotype.Type.values()[(y/6)+1]; // get the row type
+        // save some repeat work, get the total every time
+        long total = 0;
+        for (int called = 0; called < nGenotypeTypes; called++)
+            total += concordanceStats.get((String) getRowKeys()[x])[type.ordinal()][called];
+
+        // now get the cell they're interested in
+        switch (y % 6) {
+            case (0): // get the total_true for this type
+                return total;
+            case (1):
+                return concordanceStats.get((String)getRowKeys()[x])[type.ordinal()][type.ordinal()];
+            case (2):
+                return total == 0 ? 0.0 : (100.0 * (double) concordanceStats.get((String)getRowKeys()[x])[type.ordinal()][type.ordinal()] / (double) total);
+            default:
+                return concordanceStats.get((String)getRowKeys()[x])[type.ordinal()][(y % 6) - 3];
+        }
+    }
+
+    public String getName() {
+        return "Sample Statistics";
+    }
 }
