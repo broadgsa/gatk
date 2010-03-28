@@ -19,9 +19,10 @@ import net.sf.samtools.SAMRecord;
 
 
 public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnotation {
+    private final static boolean DEBUG = false;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( !vc.isBiallelic() || !vc.isSNP() )
+        if ( !vc.isBiallelic() || !vc.isSNP() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
             return null;
 
         AlignmentContext context = StratifiedAlignmentContext.joinContexts(stratifiedContexts.values(), StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
@@ -50,25 +51,25 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
 
     // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
     private double scoreReadsAgainstHaplotypes(List<Consensus> haplotypes, ReadBackedPileup pileup, int contextSize) {
-        System.out.printf("REF: %s%n", haplotypes.get(0));
-        System.out.printf("ALT: %s%n", haplotypes.get(1));
+        if ( DEBUG ) System.out.printf("REF: %s%n", haplotypes.get(0));
+        if ( DEBUG ) System.out.printf("ALT: %s%n", haplotypes.get(1));
 
         double[][] haplotypeScores = new double[pileup.size()][haplotypes.size()];
         for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
             SAMRecord read = p.getRead();
             int readOffsetFromPileup = p.getOffset();
 
-            System.out.printf("--------------------------------------------- Read %s%n", read.getReadName());
+            if ( DEBUG ) System.out.printf("--------------------------------------------- Read %s%n", read.getReadName());
             double m = 10000000;
             for ( int i = 0; i < haplotypes.size(); i++ ) {
                 Consensus haplotype = haplotypes.get(i);
                 int start = readOffsetFromPileup - (contextSize - 1)/2;
                 double score = scoreReadAgainstHaplotype(read, start, contextSize, haplotype);
                 haplotypeScores[p.getPileupOffset()][i] = score;
-                System.out.printf("  vs. haplotype %d = %f%n", i, score);
+                if ( DEBUG ) System.out.printf("  vs. haplotype %d = %f%n", i, score);
                 m = Math.min(score, m);
             }
-            System.out.printf("  => best score was %f%n", m);
+            if ( DEBUG ) System.out.printf("  => best score was %f%n", m);
         }
 
         double overallScore = 0.0;
@@ -136,11 +137,11 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
             for ( int i = 0; i < contextSize; i++ ) {
                 int offsetFromPileup = i - pileupOffset;
                 ReadBackedPileup offsetPileup = pileupAtOffset(pileup, offsetFromPileup);
-                System.out.printf("pileup is %s%n", offsetPileup);
+                if ( DEBUG ) System.out.printf("pileup is %s%n", offsetPileup);
                 BaseQual bq = calcConsensusAtLocus(offsetPileup, FLAT_BASE_PRIORS);
                 this.bases[i] = bq.getBase();
                 this.quals[i] = bq.getQual();
-                System.out.printf("  At %d: offset %d bq = %c / %d%n", i, offsetFromPileup, (char)bq.getBase(), bq.getQual());
+                if ( DEBUG ) System.out.printf("  At %d: offset %d bq = %c / %d%n", i, offsetFromPileup, (char)bq.getBase(), bq.getQual());
             }
         }
 
