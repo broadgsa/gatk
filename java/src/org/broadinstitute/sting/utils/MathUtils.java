@@ -308,4 +308,36 @@ public class MathUtils {
     public static double[] normalizeFromLog10(double[] array) {
         return normalizeFromLog10(array, false);
     }
+
+    public static int maxElementIndex(double[] array) {
+        if ( array == null ) throw new IllegalArgumentException("Array cannot be null!");
+
+        int maxI = -1;
+        for ( int i = 0; i < array.length; i++ ) {
+            if ( maxI == -1 || array[i] > array[maxI] )
+                maxI = i;
+        }
+
+        return maxI;
+    }
+
+    public static double arrayMax(double[] array) {
+        return array[maxElementIndex(array)];
+    }
+
+    public static double arrayMin(double[] array) {
+        return array[minElementIndex(array)];
+    }
+
+    public static int minElementIndex(double[] array) {
+        if ( array == null ) throw new IllegalArgumentException("Array cannot be null!");
+
+        int minI = -1;
+        for ( int i = 0; i < array.length; i++ ) {
+            if ( minI == -1 || array[i] < array[minI] )
+                minI = i;
+        }
+
+        return minI;
+    }
 }

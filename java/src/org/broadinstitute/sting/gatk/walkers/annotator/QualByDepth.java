@@ -51,26 +51,26 @@ public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
         return depth;
     }
 
-    private double genotypeQualByDepth(final Map<String, Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
-        ArrayList<Double> qualsByDepth = new ArrayList<Double>();
-        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
-
-            // we care only about variant calls
-            if ( genotype.getValue().isHomRef() )
-                continue;
-
-            StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
-            if ( context == null )
-                continue;
-
-            qualsByDepth.add(genotype.getValue().getNegLog10PError() / context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
-        }
-
-        double mean = 0.0;
-        for ( Double value : qualsByDepth )
-            mean += value;
-        mean /= qualsByDepth.size();
-
-        return mean;
-    }
+//    private double genotypeQualByDepth(final Map<String, Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
+//        ArrayList<Double> qualsByDepth = new ArrayList<Double>();
+//        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
+//
+//            // we care only about variant calls
+//            if ( genotype.getValue().isHomRef() )
+//                continue;
+//
+//            StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
+//            if ( context == null )
+//                continue;
+//
+//            qualsByDepth.add(genotype.getValue().getNegLog10PError() / context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+//        }
+//
+//        double mean = 0.0;
+//        for ( Double value : qualsByDepth )
+//            mean += value;
+//        mean /= qualsByDepth.size();
+//
+//        return mean;
+//    }
 }

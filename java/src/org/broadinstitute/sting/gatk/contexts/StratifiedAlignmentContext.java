@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Collection;
 
 /**
  * Useful class for storing different AlignmentContexts
@@ -53,9 +54,17 @@ public class StratifiedAlignmentContext {
 
     private GenomeLoc loc;
     private AlignmentContext[] contexts = new AlignmentContext[StratifiedContextType.values().length];
+
+    // todo -- why are you storing reads separately each time?  There's a ReadBackedPileup object that's supposed to handle this
     private ArrayList<SAMRecord>[] reads = new ArrayList[StratifiedContextType.values().length];
     private ArrayList<Integer>[] offsets = new ArrayList[StratifiedContextType.values().length];
 
+    //
+    // accessors
+    //
+    public GenomeLoc getLocation() { return loc; }
+    public ArrayList<SAMRecord> getReads(StratifiedContextType type) { return reads[type.ordinal()]; }
+    public ArrayList<Integer> getOffsets(StratifiedContextType type) { return offsets[type.ordinal()]; }
 
     public StratifiedAlignmentContext(GenomeLoc loc) {
         this.loc = loc;
@@ -65,10 +74,10 @@ public class StratifiedAlignmentContext {
         }
     }
 
-    public AlignmentContext getContext(StratifiedContextType context) {
-        int index = context.ordinal();
+    public AlignmentContext getContext(StratifiedContextType type) {
+        int index = type.ordinal();
         if ( contexts[index] == null )
-            contexts[index] = new AlignmentContext(loc, new ReadBackedPileup(loc, reads[index], offsets[index]));
+            contexts[index] = new AlignmentContext(loc, new ReadBackedPileup(loc, getReads(type), getOffsets(type)));
         return contexts[index];
     }
 
@@ -213,5 +222,21 @@ public class StratifiedAlignmentContext {
         }
 
         return contexts;
+    }
+
+    public static AlignmentContext joinContexts(Collection<StratifiedAlignmentContext> contexts, StratifiedContextType type) {
+        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
+        ArrayList<Integer> offsets = new ArrayList<Integer>();
+
+        GenomeLoc loc = null;
+        for ( StratifiedAlignmentContext context : contexts ) {
+            loc = context.getLocation();
+            reads.addAll(context.getReads(type));
+            offsets.addAll(context.getOffsets(type));
+        }
+
+        if ( loc == null  )
+            throw new StingException("BUG: joinContexts requires at least one context to join");
+        return new AlignmentContext(loc, new ReadBackedPileup(loc, reads, offsets));
     }
 }

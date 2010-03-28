@@ -10,6 +10,30 @@ import java.util.Random;
 public class BaseUtils {
     public final static char[] BASES = { 'A', 'C', 'G', 'T' };
     public final static char[] EXTENDED_BASES = { 'A', 'C', 'G', 'T', 'N', 'D' };
+
+    public enum Base {
+        A ( 'A', 0 ),
+        C ( 'C', 1 ),
+        G ( 'G', 2 ),
+        T ( 'T', 3 );
+
+        byte b;
+        int index;
+        private Base(char base, int index) {
+            this.b = (byte)base;
+            this.index = index;
+        }
+
+        public byte getBase() { return b; }
+        public char getBaseAsChar() { return (char)b; }
+        public int getIndex() { return index; }
+
+        public boolean sameBase(byte o) { return b == o; }
+        public boolean sameBase(char o) { return b == (byte)o; }
+        public boolean sameBase(int i)  { return index == i; }
+    }
+
+
     // todo -- fix me (enums?)
     public static final byte DELETION_INDEX = 4;
     public static final byte NO_CALL_INDEX = 5; // (this is 'N')

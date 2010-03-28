@@ -507,4 +507,16 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     private String getQualsString() {
         return quals2String(getQuals());
     }
+
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        s.append(getLocation());
+        s.append(": ");
+
+        for ( PileupElement p : this ) {
+            s.append((char)p.getBase());
+        }
+
+        return s.toString();
+    }
 }
