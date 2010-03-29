@@ -17,12 +17,32 @@ public class ClusteredSnps {
 
         FiltrationContext[] variants = contextWindow.getWindow(snpThreshold-1, snpThreshold-1);
         for (int i = 0; i < snpThreshold; i++) {
+            // ignore positions at the beginning or end of the overall interval (where there aren't enough records)
             if ( variants[i] == null || variants[i+snpThreshold-1] == null )
                 continue;
 
+            // note: not all calls are variant, so we need to be careful.
+            // if we don't start with a variant, skip to the next one
+            if ( !variants[i].getVariantContext().isVariant() )
+                continue;
+
+            // find the nth variant
             GenomeLoc left = variants[i].getVariantContext().getLocation();
-            GenomeLoc right = variants[i+snpThreshold-1].getVariantContext().getLocation();
-            if ( left.getContigIndex() == right.getContigIndex() &&
+            GenomeLoc right = null;
+            int snpsSeen = 1;
+
+            int currentIndex = i;
+            while ( ++currentIndex < variants.length ) {
+                if ( variants[currentIndex].getVariantContext().isVariant() ) {
+                    if ( ++snpsSeen == snpThreshold ) {
+                        right = variants[currentIndex].getVariantContext().getLocation();
+                        break;
+                    }
+                }
+            }
+
+            if ( right != null &&
+                 left.getContigIndex() == right.getContigIndex() &&
                  Math.abs(right.getStart() - left.getStart()) <= window )
                 return true;
         }
