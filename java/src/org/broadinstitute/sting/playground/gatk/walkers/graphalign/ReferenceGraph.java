@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.util.IntervalTree;
 import net.sf.samtools.util.StringUtil;
 
 import java.util.*;
@@ -13,8 +14,6 @@ import java.io.Serializable;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
-
-import edu.mit.broad.picard.util.IntervalTree;
 
 /**
  * Created by IntelliJ IDEA.

@@ -7,7 +7,6 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import edu.mit.broad.picard.util.Interval;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;

@@ -4,9 +4,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
-import net.sf.samtools.Chunk;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.BAMFileSpan;
 import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.List;
@@ -45,7 +44,7 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
     /**
      * A list of the chunks associated with this shard.
      */
-    private final Map<SAMReaderID,List<Chunk>> chunks;
+    private final Map<SAMReaderID, BAMFileSpan> fileSpans;
 
     /**
      * An IndexDelimitedLocusShard can be used either for LOCUS or LOCUS_INTERVAL shard types.
@@ -56,23 +55,24 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
     /**
      * Create a new locus shard, divided by index.
      * @param intervals List of intervals to process.
-     * @param chunks Chunks associated with that interval.
+     * @param fileSpans File spans associated with that interval.
      * @param shardType Type of the shard; must be either LOCUS or LOCUS_INTERVAL.
      */
-    IndexDelimitedLocusShard(List<GenomeLoc> intervals, Map<SAMReaderID,List<Chunk>> chunks, ShardType shardType) {
+    IndexDelimitedLocusShard(List<GenomeLoc> intervals, Map<SAMReaderID,BAMFileSpan> fileSpans, ShardType shardType) {
         super(intervals);
-        this.chunks = chunks;
+        this.fileSpans = fileSpans;
         if(shardType != ShardType.LOCUS && shardType != ShardType.LOCUS_INTERVAL)
             throw new StingException("Attempted to create an IndexDelimitedLocusShard with invalid shard type: " + shardType);
         this.shardType = shardType;
     }
 
     /**
-     * Gets the chunks associated with this locus shard.
-     * @return A list of the chunks to use when retrieving locus data.
+     * Gets the file spans associated with this locus shard.
+     * @return A list of the file spans to use when retrieving locus data.
      */
-    public Map<SAMReaderID,List<Chunk>> getChunks() {
-        return chunks;
+    @Override
+    public Map<SAMReaderID,BAMFileSpan> getFileSpans() {
+        return fileSpans;
     }
 
     /**
@@ -80,36 +80,42 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      * than just holding pointers to their locations.
      * @return True if this shard can buffer reads.  False otherwise.
      */
+    @Override
     public boolean buffersReads() { return false; }
 
     /**
      * Returns true if the read buffer is currently full.
      * @return True if this shard's buffer is full (and the shard can buffer reads).
      */
+    @Override
     public boolean isBufferEmpty() { throw new UnsupportedOperationException("This shard does not buffer reads."); }    
 
     /**
      * Returns true if the read buffer is currently full.
      * @return True if this shard's buffer is full (and the shard can buffer reads).
      */
+    @Override
     public boolean isBufferFull() { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
     /**
      * Adds a read to the read buffer.
      * @param read Add a read to the internal shard buffer.
      */
+    @Override
     public void addRead(SAMRecord read) { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
     /**
      * Gets the iterator over the elements cached in the shard.
      * @return
      */
+    @Override
     public StingSAMIterator iterator() { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
     /**
      * Gets a filter testing for overlap of this read with the given shard.
      * @return A filter capable of filtering out reads outside a given shard.
      */
+    @Override
     public SamRecordFilter getFilter() {
         return new ReadOverlapFilter(loci);    
     }

@@ -11,9 +11,9 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
 import java.util.*;
 
-import net.sf.samtools.Chunk;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.BAMFileSpan;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -126,8 +126,8 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      */
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
-        Map<SAMReaderID,List<Chunk>> chunksBounding = nextFilePointer.chunks != null ? nextFilePointer.chunks : null;
-        return new IndexDelimitedLocusShard(nextFilePointer.locations,chunksBounding,Shard.ShardType.LOCUS_INTERVAL);
+        Map<SAMReaderID, BAMFileSpan> fileSpansBounding = nextFilePointer.fileSpans != null ? nextFilePointer.fileSpans : null;
+        return new IndexDelimitedLocusShard(nextFilePointer.locations,fileSpansBounding,Shard.ShardType.LOCUS_INTERVAL);
     }
 
     /** we don't support the remove command */

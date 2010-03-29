@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils;
 
-import edu.mit.broad.picard.directed.IntervalList;
-import edu.mit.broad.picard.util.Interval;
+import net.sf.picard.util.IntervalList;
+import net.sf.picard.util.Interval;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;

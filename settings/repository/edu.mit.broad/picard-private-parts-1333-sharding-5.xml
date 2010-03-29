@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="edu.mit.broad" module="picard-private-parts" revision="1333-sharding-5" status="integration" publication="20100326102100" />
+</ivy-module>

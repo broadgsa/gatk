@@ -22,9 +22,9 @@ import java.io.File;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
-import edu.mit.broad.picard.util.Interval;
-import edu.mit.broad.picard.util.OverlapDetector;
-import edu.mit.broad.picard.directed.IntervalList;
+import net.sf.picard.util.Interval;
+import net.sf.picard.util.OverlapDetector;
+import net.sf.picard.util.IntervalList;
 
 /**
  * Given intervals corresponding to targets or baits in a hybrid selection experiment, this walker gives the following interval-by-interval data:

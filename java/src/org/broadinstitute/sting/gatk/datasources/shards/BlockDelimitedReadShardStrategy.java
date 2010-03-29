@@ -55,7 +55,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     /**
      * Ending position of the last shard in the file.
      */
-    private Map<SAMReaderID,Chunk> position;
+    private Map<SAMReaderID,BAMFileSpan> position;
 
     /**
      * Create a new read shard strategy, loading read shards from the given BAM file.
@@ -103,26 +103,18 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     }
 
     public void advance() {
-        Map<SAMReaderID,List<Chunk>> shardPosition = new HashMap<SAMReaderID,List<Chunk>>();
+        Map<SAMReaderID,BAMFileSpan> shardPosition = new HashMap<SAMReaderID,BAMFileSpan>();
         nextShard = null;
         SamRecordFilter filter = null;
 
         if(locations != null) {
-            Map<SAMReaderID,List<Chunk>> selectedReaders = new HashMap<SAMReaderID,List<Chunk>>();
+            Map<SAMReaderID,BAMFileSpan> selectedReaders = new HashMap<SAMReaderID,BAMFileSpan>();
             while(selectedReaders.size() == 0 && currentFilePointer != null) {
-                shardPosition = currentFilePointer.chunks;
+                shardPosition = currentFilePointer.fileSpans;
                 for(SAMReaderID id: shardPosition.keySet()) {
-                    List<Chunk> chunks = shardPosition.get(id);
-                    List<Chunk> selectedChunks = new ArrayList<Chunk>();
-                    Chunk filePosition = position.get(id);
-                    for(Chunk chunk: chunks)
-                        if(filePosition.getChunkStart() <= chunk.getChunkStart())
-                            selectedChunks.add(chunk);
-                        else if(filePosition.getChunkStart() > chunk.getChunkStart() && filePosition.getChunkStart() < chunk.getChunkEnd()) {
-                            selectedChunks.add(new Chunk(filePosition.getChunkStart(),chunk.getChunkEnd()));
-                    }
-                    if(selectedChunks.size() > 0)
-                        selectedReaders.put(id,selectedChunks);
+                    BAMFileSpan fileSpans = shardPosition.get(id).removeBefore(position.get(id));
+                    if(!fileSpans.isEmpty())
+                        selectedReaders.put(id,fileSpans);
                 }
 
                 if(selectedReaders.size() > 0) {
@@ -141,13 +133,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
             }
         }
         else {
-            // TODO: This level of processing should not be necessary.
-            shardPosition = new HashMap<SAMReaderID,List<Chunk>>();
-            for(Map.Entry<SAMReaderID,Chunk> entry: position.entrySet())
-                shardPosition.put(entry.getKey(),Collections.singletonList(entry.getValue()));
-            filter = null;
-
-            BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),shardPosition,filter,Shard.ShardType.READ);
+            BAMFormatAwareShard shard = new BlockDelimitedReadShard(dataSource.getReadsInfo(),position,filter,Shard.ShardType.READ);
             dataSource.fillShard(shard);
             nextShard = !shard.isBufferEmpty() ? shard : null;
         }

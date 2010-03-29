@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
-import net.sf.samtools.Chunk;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.List;
@@ -22,7 +20,7 @@ public interface BAMFormatAwareShard extends Shard {
      * Get the list of chunks delimiting this shard.
      * @return a list of chunks that contain data for this shard.
      */
-    public Map<SAMReaderID,List<Chunk>> getChunks();
+    public Map<SAMReaderID, BAMFileSpan> getFileSpans();
 
     /**
      * Returns true if this shard is meant to buffer reads, rather

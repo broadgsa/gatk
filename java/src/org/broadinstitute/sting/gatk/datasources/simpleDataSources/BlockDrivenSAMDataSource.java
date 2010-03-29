@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.sam.SamFileHeaderMerger;
@@ -54,7 +53,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     /**
      * How far along is each reader?
      */
-    private final Map<SAMReaderID,Chunk> readerPositions = new HashMap<SAMReaderID,Chunk>();
+    private final Map<SAMReaderID,BAMFileSpan> readerPositions = new HashMap<SAMReaderID,BAMFileSpan>();
 
     /**
      * Create a new block-aware SAM data source given the supplied read metadata.
@@ -81,7 +80,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         }
 
         initializeReaderPositions(readers);
-        
+
         SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
         mergedHeader = headerMerger.getMergedHeader();
         hasReadGroupCollisions = headerMerger.hasReadGroupCollisions();
@@ -139,7 +138,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * Retrieves the current position within the BAM file.
      * @return A mapping of reader to current position.
      */
-    public Map<SAMReaderID,Chunk> getCurrentPosition() {
+    public Map<SAMReaderID,BAMFileSpan> getCurrentPosition() {
         return readerPositions;
     }
 
@@ -183,7 +182,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @param read The read to add to the shard.
      */
     private void addReadToBufferingShard(BAMFormatAwareShard shard,SAMReaderID id,SAMRecord read) {
-        Chunk endChunk = new Chunk(read.getCoordinates().getChunkEnd(),Long.MAX_VALUE);
+        BAMFileSpan endChunk = read.getFilePointer().getFilePointerFollowing();
         shard.addRead(read);
         readerPositions.put(id,endChunk);
     }
@@ -202,11 +201,15 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
         throw new StingException("Unable to find id for reader associated with read " + read.getReadName());
     }
 
+    /**
+     * Initialize the current reader positions 
+     * @param readers
+     */
     private void initializeReaderPositions(SAMReaders readers) {
         for(SAMReaderID id: getReaderIDs())
-            readerPositions.put(id,readers.getReader(id).getCurrentPosition());
+            readerPositions.put(id,readers.getReader(id).getStartOfDataSegment());
     }
-    
+
     public StingSAMIterator seek(Shard shard) {
         // todo: refresh monolithic sharding implementation
         if(shard instanceof MonolithicShard)
@@ -236,9 +239,9 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     private StingSAMIterator getIterator(SAMReaders readers, BAMFormatAwareShard shard, boolean enableVerification) {
         Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
         for(SAMReaderID id: getReaderIDs()) {
-            if(shard.getChunks().get(id) == null)
+            if(shard.getFileSpans().get(id) == null)
                 continue;
-            CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getChunks().get(id));
+            CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
             if(shard.getFilter() != null)
                 iterator = new FilteringIterator(iterator,shard.getFilter());
             readerToIteratorMap.put(readers.getReader(id),iterator);

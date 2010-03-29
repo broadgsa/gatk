@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
-import net.sf.samtools.Chunk;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.*;
@@ -28,7 +26,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     /**
      * The data backing the next chunks to deliver to the traversal engine.
      */
-    private final Map<SAMReaderID,List<Chunk>> chunks;
+    private final Map<SAMReaderID,BAMFileSpan> fileSpans;
 
     /**
      * The reads making up this shard.
@@ -46,9 +44,9 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      */
     private final Shard.ShardType shardType;        
 
-    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMReaderID,List<Chunk>> chunks, SamRecordFilter filter, Shard.ShardType shardType) {
+    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMReaderID,BAMFileSpan> fileSpans, SamRecordFilter filter, Shard.ShardType shardType) {
         this.sourceInfo = sourceInfo;
-        this.chunks = chunks;
+        this.fileSpans = fileSpans;
         this.filter = filter;
         this.shardType = shardType;
     }
@@ -58,6 +56,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * than just holding pointers to their locations.
      * @return True if this shard can buffer reads.  False otherwise.
      */
+    @Override
     public boolean buffersReads() {
         return true;
     }
@@ -66,6 +65,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * Returns true if the read buffer is currently full.
      * @return True if this shard's buffer is full (and the shard can buffer reads).
      */
+    @Override
     public boolean isBufferEmpty() {
         return reads.size() == 0;
     }    
@@ -74,6 +74,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * Returns true if the read buffer is currently full.
      * @return True if this shard's buffer is full (and the shard can buffer reads).
      */
+    @Override
     public boolean isBufferFull() {
         return reads.size() > BlockDelimitedReadShardStrategy.MAX_READS; 
     }
@@ -82,6 +83,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * Adds a read to the read buffer.
      * @param read Add a read to the internal shard buffer.
      */
+    @Override
     public void addRead(SAMRecord read) {
         // DO NOT validate that the buffer is full.  Paired read sharding will occasionally have to stuff another
         // read or two into the buffer.
@@ -92,10 +94,12 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * Creates an iterator over reads stored in this shard's read cache.
      * @return
      */
+    @Override
     public StingSAMIterator iterator() {
         return StingSAMIteratorAdapter.adapt(sourceInfo,reads.iterator());
     }
 
+    @Override
     public SamRecordFilter getFilter() {
         return filter;
     }
@@ -104,8 +108,9 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * Get the list of chunks delimiting this shard.
      * @return a list of chunks that contain data for this shard.
      */
-    public Map<SAMReaderID,List<Chunk>> getChunks() {
-        return Collections.unmodifiableMap(chunks);
+    @Override
+    public Map<SAMReaderID,BAMFileSpan> getFileSpans() {
+        return Collections.unmodifiableMap(fileSpans);
     }
 
     /**
@@ -123,14 +128,11 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for(Map.Entry<SAMReaderID,List<Chunk>> entry: chunks.entrySet()) {
+        for(Map.Entry<SAMReaderID,BAMFileSpan> entry: fileSpans.entrySet()) {
             sb.append(entry.getKey());
             sb.append(": ");
-            for(Chunk chunk : entry.getValue()) {
-                sb.append(chunk);
-                sb.append(' ');
-            }
-            sb.append(';');
+            sb.append(entry.getValue());
+            sb.append(' ');
         }
         return sb.toString();
     }

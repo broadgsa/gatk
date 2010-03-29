@@ -4,13 +4,11 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import edu.mit.broad.picard.util.Interval;
-
-
 import java.io.*;
 import java.util.*;
 
 import net.sf.picard.PicardException;
+import net.sf.picard.util.Interval;
 import net.sf.picard.io.IoUtil;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;

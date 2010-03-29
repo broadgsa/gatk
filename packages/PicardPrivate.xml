@@ -2,16 +2,12 @@
 <package name="picard-private-parts">
   <executable name="picard-private-parts">
     <dependencies>
-      <class name="edu.mit.broad.picard.directed.IntervalList" />
       <class name="edu.mit.broad.picard.genotype.DiploidGenotype" />
       <class name="edu.mit.broad.picard.genotype.geli.GeliFileReader" />
       <class name="edu.mit.broad.picard.genotype.geli.GeliFileWriter" />
       <class name="edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods" />
       <class name="edu.mit.broad.picard.util.BasicTextFileParser" />
       <class name="edu.mit.broad.picard.illumina.parser.IlluminaUtil" />
-      <class name="edu.mit.broad.picard.util.Interval" />
-      <class name="edu.mit.broad.picard.util.IntervalTree" />
-      <class name="edu.mit.broad.picard.util.OverlapDetector" />
       <class name="edu.mit.broad.picard.util.PasteParser" />
       <class name="edu.mit.broad.picard.variation.KnownVariantCodecV2" />
       <class name="edu.mit.broad.picard.variation.KnownVariantCodec" />

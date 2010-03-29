@@ -172,7 +172,7 @@ public class IntervalSharder {
         for(SAMReaderID id: dataSource.getReaderIDs()) {
             PreloadedBAMFileIndex index = readerToIndexMap.get(id);
             for(FilePointer filePointer: filePointers)
-                filePointer.addChunks(id,index.getChunksOverlapping(filePointer.overlap.getBin(id)));
+                filePointer.addFileSpans(id,index.getChunksOverlapping(filePointer.overlap.getBin(id)));
             index.close();
         }
         
@@ -372,7 +372,7 @@ public class IntervalSharder {
  * Represents a small section of a BAM file, and every associated interval.
  */
 class FilePointer {
-    protected final Map<SAMReaderID,List<Chunk>> chunks = new HashMap<SAMReaderID,List<Chunk>>();
+    protected final Map<SAMReaderID,BAMFileSpan> fileSpans = new HashMap<SAMReaderID,BAMFileSpan>();
     protected final String referenceSequence;
     protected final BAMOverlap overlap;
     protected final List<GenomeLoc> locations;
@@ -393,8 +393,8 @@ class FilePointer {
         locations.add(location);
     }
 
-    public void addChunks(SAMReaderID id, List<Chunk> chunks) {
-        this.chunks.put(id,chunks);
+    public void addFileSpans(SAMReaderID id, BAMFileSpan fileSpan) {
+        this.fileSpans.put(id,fileSpan);
     }
 }
 

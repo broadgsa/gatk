@@ -4,9 +4,6 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import edu.mit.broad.picard.util.Interval;
-
-
 import java.io.*;
 import java.util.*;
 
