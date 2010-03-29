@@ -18,6 +18,7 @@
       <package name="org.broadinstitute.sting.gatk.filters" />
       <!-- Basic qc walkers -->
       <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.coverage.CoverageStatistics" />
       <class name="org.broadinstitute.sting.gatk.walkers.PileupWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.PrintReadsWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker" />
