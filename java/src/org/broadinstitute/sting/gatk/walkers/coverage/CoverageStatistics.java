@@ -1,9 +1,8 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.coverage;
+package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -14,13 +13,13 @@ import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker;
+import org.broadinstitute.sting.oneoffprojects.walkers.coverage.CoverageUtils;
+import org.broadinstitute.sting.oneoffprojects.walkers.coverage.DepthOfCoverageStats;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.io.File;
 import java.io.IOException;
@@ -127,7 +126,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
             out.printf("Per-Locus Depth of Coverage output was omitted");
         }
     }
-    
+
     private HashSet<String> getSamplesFromToolKit( boolean getReadGroupsInstead ) {
         HashSet<String> partitions = new HashSet<String>(); // since the DOCS object uses a HashMap, this will be in the same order
 
@@ -151,8 +150,13 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
     }
 
     public CoverageAggregator reduceInit() {
-        CoverageAggregator.AggregationType agType = useBoth ? CoverageAggregator.AggregationType.BOTH :
-                ( useReadGroup ? CoverageAggregator.AggregationType.READ : CoverageAggregator.AggregationType.SAMPLE ) ;
+
+        CoverageAggregator.AggregationType agType;
+        if ( useBoth ) {
+            agType = CoverageAggregator.AggregationType.BOTH;
+        } else {
+            agType = useReadGroup ? CoverageAggregator.AggregationType.READ : CoverageAggregator.AggregationType.SAMPLE;
+        }
 
         CoverageAggregator aggro = new CoverageAggregator(agType,start,stop,nBins);
 
@@ -170,7 +174,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
     }
 
     public Map<String,int[]> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        
+
         if ( ! omitDepthOutput ) {
             out.printf("%s",ref.getLocus()); // yes: print locus in map, and the rest of the info in reduce (for eventual cumulatives)
             //System.out.printf("\t[log]\t%s",ref.getLocus());
@@ -327,7 +331,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         if ( ! getToolkit().getArguments().outFileName.contains("stdout")) {
             geneSummaryOut.close();
         }
-        
+
     }
 
     //blatantly stolen from Andrew Kernytsky
@@ -450,7 +454,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         ///////////////////
         // OPTIONAL OUTPUTS
         //////////////////
-        
+
         if ( ! omitSampleSummary ) {
             logger.info("Printing summary info");
             if ( ! useReadGroup || useBoth ) {
@@ -561,7 +565,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
                 output = out;
             }
         }
-        
+
         return output;
     }
 
@@ -606,7 +610,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
 
         return bin;
     }
-    
+
     private void printDepths(PrintStream stream, Map<String,int[]> countsBySample, Set<String> allSamples) {
         // get the depths per sample and build up the output string while tabulating total and average coverage
         // todo -- update me to deal with base counts/indels
@@ -625,7 +629,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         // remember -- genome locus was printed in map()
         stream.printf("\t%d\t%.2f\t%s%n",tDepth,( (double) tDepth/ (double) allSamples.size()), perSampleOutput);
         //System.out.printf("\t%d\t%.2f\t%s%n",tDepth,( (double) tDepth/ (double) allSamples.size()), perSampleOutput);
-        
+
     }
 
     private long sumArray(int[] array) {
@@ -657,7 +661,6 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         return s.toString();
     }
 }
-
 
 class CoverageAggregator {
     private DepthOfCoverageStats coverageByRead;

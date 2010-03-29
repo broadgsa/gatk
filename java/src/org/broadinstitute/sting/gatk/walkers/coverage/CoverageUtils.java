@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.coverage;
+package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;

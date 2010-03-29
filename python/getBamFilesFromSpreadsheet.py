@@ -10,7 +10,7 @@ hg18_dbsnp = "/humgen/gsa-hpprojects/GATK/data/dbsnp_130_hg18.rod"
 b36_dbsnp = "/humgen/gsa-hpprojects/GATK/data/dbsnp_130_b36.rod"
 b36_reference = "/broad/1KG/reference/human_b36_both.fasta"
 hg18_intervals = "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list"
-#hg18_intervals = "/humgen/gsa-hpprojects/FHS/indexed/interval_lists/fhs_jhs_pilot.targets.interval_list"
+hg18_intervals = "/humgen/gsa-hpprojects/FHS/indexed/interval_lists/fhs_jhs_pilot.targets.interval_list"
 b36_intervals = ""
 
 min_base_q = "10"
@@ -37,8 +37,8 @@ else:
     fpref = "human_b36"
 
 outputFile = projectName+"_bam_files.txt"
-OUTPUT_HEADER = ["sample_id","recalibrated_bam_file","individual_id","fingerprint_file","reference_file","dbsnp_file","interval_list","max_reads_at_locus","min_confidence","min_mapping_quality","min_base_quality","variant_filter_expression","variant_filter_name"]
-OUTPUT_HEADER_INDIVIDUAL = ["reference_file","dbsnp_file","interval_list","max_reads_at_locus","min_confidence","min_mapping_quality","min_base_quality","variant_filter_expression","variant_filter_name"]
+OUTPUT_HEADER = ["sample_id","recalibrated_bam_file","individual_id","fingerprint_file","reference_file","interval_list","max_reads_at_locus","min_confidence","min_mapping_quality","min_base_quality","variant_filter_expression","variant_filter_name"]
+OUTPUT_HEADER_INDIVIDUAL = ["reference_file","interval_list","max_reads_at_locus","min_confidence","min_mapping_quality","min_base_quality","variant_filter_expression","variant_filter_name"]
 
 if ( spreadsheetPath.find("/") > -1 ):
     newSpreadsheet = spreadsheetPath.rsplit("/",1)[1].rsplit(".",1)[0]+"_proper_format.tsv"
@@ -81,7 +81,7 @@ for line in project_info.readlines():
         else:
             fingerprint_file = ""
         if ( spline[status_index] == "Complete" ):
-            outputFile.write(projectName+"_"+spline[sample_index]+"\t"+bamfile+"\t"+groupName+"\t"+fingerprint_file+"\t"+reference+"\t"+dbsnp+"\t"+intervals+"\t"+max_reads+"\t"+min_conf+"\t"+min_map_q+"\t"+min_base_q+"\t"+variant_expression+"\t"+filter_name+"\n")
+            outputFile.write(projectName+"_"+spline[sample_index]+"\t"+bamfile+"\t"+groupName+"\t"+fingerprint_file+"\t"+reference+"\t"+intervals+"\t"+max_reads+"\t"+min_conf+"\t"+min_map_q+"\t"+min_base_q+"\t"+variant_expression+"\t"+filter_name+"\n")
 
 outputFile.close()
 outputFile = open(projectName+"_Project_Entry.txt",'w')
@@ -90,4 +90,4 @@ outputFile.write(projectName)
 outputFile.close()
 outputFile = open(projectName+"_Population_Entry.txt",'w')
 outputFile.write("individual_id\tindividual_set_id\t"+"\t".join(OUTPUT_HEADER_INDIVIDUAL)+"\n")
-outputFile.write(groupName+"\t"+projectName+"\t"+reference+"\t"+dbsnp+"\t"+intervals+"\t"+max_reads+"\t"+min_conf+"\t"+min_base_q+"\t"+variant_expression+"\t"+filter_name+"\n")
+outputFile.write(groupName+"\t"+projectName+"\t"+reference+"\t"+intervals+"\t"+max_reads+"\t"+min_conf+"\t"+min_base_q+"\t"+variant_expression+"\t"+filter_name+"\n")

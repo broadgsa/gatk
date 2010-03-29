@@ -43,11 +43,11 @@ PlotLocusQuantiles <- function(X) {
 	medians = matrix(nrow=1,ncol=ncol(Z))
 	quan90 = matrix(nrow=1,ncol=ncol(Z))
 	for ( cc in 1:ncol(Z) ) {
-		medians[cc] = median(Z[,cc])
-		quan90[cc] = quantile(Z[,cc],0.9)
+		medians[cc] = quantile(Z[,cc],0.75)
+		quan90[cc] = quantile(Z[,cc],1)
 	}
 	
-	plot(t(medians),xlab="",xaxt="n",ylab="Proportion of loci with >X coverage",type="b",col="blue")
+	plot(t(medians),xlab="",xaxt="n",ylab="Proportion of loci with >X coverage",type="b",col="blue",yaxp=c(0,1,10))
 	axis(1,labels=FALSE)
 	parseColNames <- function(K) {
 		M = matrix(nrow=1,ncol=length(K))
@@ -63,7 +63,7 @@ PlotLocusQuantiles <- function(X) {
 	labels <- parseColNames(colnames(X))
 	text(1:length(labels),par("usr")[3]-0.025,srt=90,adj=1,labels=labels,xpd=TRUE,cex=(0.8/32)*length(labels),lheight=(0.8/32)*length(labels))
 	points(t(quan90),type="b",col="red")
-	legend(x=floor(0.6*length(labels)),y=1,c("50% of samples","90% of samples"),col=c("red","blue"),lty=c(1,1))
+	legend(x=floor(0.6*length(labels)),y=1,c("75% of samples","100% of samples"),col=c("red","blue"),lty=c(1,1))
 	dev.off()
 }
 
