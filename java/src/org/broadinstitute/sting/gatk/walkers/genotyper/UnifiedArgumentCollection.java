@@ -31,7 +31,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- JOINT_ESTIMATE is currently the default, while POOLED is also available.", required = false)
+    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- JOINT_ESTIMATE is currently the default.", required = false)
     public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.JOINT_ESTIMATE;
 
     @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
@@ -40,7 +40,7 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
 
-    @Argument(fullName = "poolSize", shortName = "ps", doc = "Number of individuals in the pool (for POOLED model only)", required = false)
+    @Argument(fullName = "poolSize", shortName = "ps", doc = "Number of individuals in the pool -- no longer in use", required = false)
     public int POOLSIZE = 0;
 
     // control the output

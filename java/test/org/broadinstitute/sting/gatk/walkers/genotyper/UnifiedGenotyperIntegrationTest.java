@@ -18,13 +18,13 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     // testing pooled model
     //
     // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void testPooled1() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,000-10,024,000 -bm empirical -gm POOLED -ps 60 -confidence 30", 1,
-                Arrays.asList("c91f44a198cd7222520118726ea806ca"));
-        executeTest("testPooled1", spec);
-    }
+//    @Test
+//    public void testPooled1() {
+//        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+//                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,000-10,024,000 -bm empirical -gm POOLED -ps 60 -confidence 30", 1,
+//                Arrays.asList("c91f44a198cd7222520118726ea806ca"));
+//        executeTest("testPooled1", spec);
+//    }
 
     // --------------------------------------------------------------------------------------------------------------
     //

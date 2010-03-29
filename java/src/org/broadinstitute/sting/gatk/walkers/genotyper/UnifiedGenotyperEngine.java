@@ -93,32 +93,20 @@ public class UnifiedGenotyperEngine {
         if ( UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS && !(genotypeWriter instanceof VCFGenotypeWriter) ) {
             throw new IllegalArgumentException("Attempting to use an output format other than VCF with indels. Please set the output format to VCF.");
         }
-        if ( UAC.POOLSIZE > 0 && UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
-            throw new IllegalArgumentException("Attempting to use a model other than POOLED with pooled data. Please set the model to POOLED.");
-        }
-        if ( UAC.POOLSIZE < 1 && UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ) {
-            throw new IllegalArgumentException("Attempting to use the POOLED model with a pool size less than 1. Please set the pool size to an appropriate value.");
+        if ( UAC.POOLSIZE > 0 ) {
+            throw new IllegalArgumentException("Attempting to provide depreciated POOLSIZE parameter for retired POOLED model");
         }
         if ( toolkit.getArguments().numberOfThreads > 1 && UAC.ASSUME_SINGLE_SAMPLE != null ) {
             // the ASSUME_SINGLE_SAMPLE argument can't be handled (at least for now) while we are multi-threaded because the IO system doesn't know how to get the sample name
             throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
         }
 
-        // get all of the unique sample names - unless we're in POOLED mode, in which case we ignore the sample names
-        if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
-            // if we're supposed to assume a single sample, do so
-            if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-                this.samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-            else
-                this.samples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader());
-        }
-
-        // in pooled mode we need to check that the format is acceptable
-        if ( UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED && genotypeWriter != null ) {
-            // when using VCF with multiple threads, we need to turn down the validation stringency so that writing temporary files will work
-            if ( toolkit.getArguments().numberOfThreads > 1 && genotypeWriter instanceof VCFGenotypeWriter )
-                ((VCFGenotypeWriter)genotypeWriter).setValidationStringency(VCFGenotypeWriterAdapter.VALIDATION_STRINGENCY.SILENT);
-        }
+        // get all of the unique sample names
+        // if we're supposed to assume a single sample, do so
+        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
+            this.samples.add(UAC.ASSUME_SINGLE_SAMPLE);
+        else
+            this.samples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader());
 
         // check to see whether a dbsnp rod was included
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
@@ -215,7 +203,7 @@ public class UnifiedGenotyperEngine {
 
             // stratify the AlignmentContext and cut by sample
             // Note that for testing purposes, we may want to throw multi-samples at pooled mode
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, null);
             if ( stratifiedContexts == null )
                 return null;
 

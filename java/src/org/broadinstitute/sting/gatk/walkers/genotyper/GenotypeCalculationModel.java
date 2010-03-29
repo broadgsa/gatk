@@ -20,7 +20,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     public enum Model {
         JOINT_ESTIMATE,
         JOINT_ESTIMATE_EXPT_GL,
-        POOLED,
         INDELS
     }
 

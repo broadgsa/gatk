@@ -69,9 +69,9 @@ public class GenotypeCalculationModelFactory {
                 boolean useExptGenotypeLikelihoods = UAC.genotypeModel == JOINT_ESTIMATE_EXPT_GL;
                 gcm = new DiploidGenotypeCalculationModel(useExptGenotypeLikelihoods);
                 break;
-            case POOLED:
-                gcm = new PooledCalculationModel();
-                break;
+//            case POOLED:
+//                gcm = new PooledCalculationModel();
+//                break;
             case INDELS:
                 gcm = new SimpleIndelCalculationModel();
                 break;
