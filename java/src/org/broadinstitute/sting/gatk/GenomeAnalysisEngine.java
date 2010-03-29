@@ -744,17 +744,6 @@ public class GenomeAnalysisEngine {
                     ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                     drivingDataSource.getSequenceDictionary(),
                     SHARD_SIZE, maxIterations);
-
-        } else if (walker instanceof LocusWindowWalker) {
-            if ((intervals == null || intervals.isEmpty()) && !exclusions.contains(ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST))
-                Utils.warnUser("walker is of type LocusWindow (which operates over intervals), but no intervals were provided." +
-                               "This may be unintentional, check your command-line arguments.");
-            shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                    referenceDataSource,
-                    ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
-                    drivingDataSource.getSequenceDictionary(),
-                    SHARD_SIZE,
-                    intervals, maxIterations);
         } else
             throw new StingException("Unable to support walker of type" + walker.getClass().getName());
 

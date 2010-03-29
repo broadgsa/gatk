@@ -38,7 +38,6 @@ import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.*;
 import java.io.File;
@@ -107,8 +106,6 @@ public abstract class MicroScheduler {
             traversalEngine = new TraverseReads();
         } else if (walker instanceof LocusWalker) {
             traversalEngine = new TraverseLoci();
-        } else if (walker instanceof LocusWindowWalker) {
-            traversalEngine = new TraverseLocusWindows();
         } else if (walker instanceof DuplicateWalker) {
             traversalEngine = new TraverseDuplicates();
         } else if (walker instanceof ReadPairWalker) {
