@@ -22,7 +22,7 @@ import java.util.Map;
  */
 public class VE2ReportFactory {
     // where templates are stored
-    public static final String ve2templateDir = "templates/VE2";
+    public static final String ve2templateDir = "templates/";
 
     // our default output type
     public static final VE2TemplateType defaultReportFormat = VE2TemplateType.Table;
@@ -71,11 +71,8 @@ public class VE2ReportFactory {
      */
     private static Template createTemplate(VE2TemplateType template) {
            Configuration cfg = new Configuration();
-           try {
-               cfg.setDirectoryForTemplateLoading(new File(ve2templateDir));
-           } catch (IOException e) {
-               throw new StingException("Unable to find template directory " + ve2templateDir,e);
-           }
+           cfg.setClassForTemplateLoading(VE2ReportFactory.class,ve2templateDir);
+
            cfg.setObjectWrapper(new DefaultObjectWrapper());
            Template temp = null;
            try {

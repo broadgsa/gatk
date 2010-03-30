@@ -35,7 +35,15 @@
 	<exclude name="**/oneoffprojects/**" unless="include.oneoffs" />
       </patternset>
     </dirset>
-    
+
+    <!-- the path for resources that need to go into the GATK jar;
+         any additional resources should go into this set. -->
+    <path id="gatk.resources">
+        <fileset dir="${source.dir}">
+            <include name="**/**/templates/*" />
+        </fileset>
+    </path>
+
     <patternset id="dependency.mask" includes="*.jar">
       <exclude name="junit*.jar" />
       <exclude name="bcel*.jar" />
@@ -138,8 +146,9 @@
         </jar>
 
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
+            <path refid="gatk.resources"/>
             <fileset dir="build">
-	      <include name="${resource.file}" />
+	          <include name="${resource.file}" />
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
               <include name="**/oneoffprojects/**/*.class" />
