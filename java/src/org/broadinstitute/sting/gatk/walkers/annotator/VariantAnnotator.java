@@ -24,14 +24,19 @@ import java.io.*;
 public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
+
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
+
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected String[] annotationsToUse = {};
+
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected String[] annotationClassesToUse = { };
+
     @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
+
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
     protected Boolean LIST = false;
 

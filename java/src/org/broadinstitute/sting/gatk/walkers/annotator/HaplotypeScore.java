@@ -6,20 +6,22 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ExtendedPileupElement;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
-
 import java.util.*;
-
 import net.sf.samtools.SAMRecord;
 
-
+// todo -- rename to haplotype penalty
 public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnotation {
     private final static boolean DEBUG = false;
+    private final static int MIN_CONTEXT_WING_SIZE = 10;
+
+    // if true, we compute a second haplotype from the reads, instead of constraining ourselves to the reference
+    // as a haplotype itself
+    private final static boolean USE_NON_REFERENCE_SECOND_HAPLOTYPE = true;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isBiallelic() || !vc.isSNP() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
@@ -27,21 +29,16 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
 
         AlignmentContext context = StratifiedAlignmentContext.joinContexts(stratifiedContexts.values(), StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
 
-        int contextWingSize = Math.min(((int)ref.getWindow().size() - 1)/2, 10);
+        int contextWingSize = Math.min(((int)ref.getWindow().size() - 1)/2, MIN_CONTEXT_WING_SIZE);
         int contextSize = contextWingSize * 2 + 1;
 
-        int refMiddle = (int)(ref.getWindow().size() - 1) / 2;
-        int refStart = refMiddle - contextWingSize;
-        int refStop = refMiddle + contextWingSize + 1;
-        String refString = new String(ref.getBases()).substring(refStart, refStop);
-        Consensus refConsensus = new Consensus(refString.getBytes(), 60);
-
-        ReadBackedPileup altPileup = getPileupOfAllele(vc.getAlternateAllele(0), context.getBasePileup());
-        Consensus altConsensus = new Consensus(altPileup, contextSize);
+        // calculate
+        Haplotype refHaplotype = calcRefHaplotype(vc, ref, context, contextSize);
+        Haplotype altHaplotype = new Haplotype(getPileupOfAllele(vc.getAlternateAllele(0), context.getBasePileup()), contextSize);
 
         //System.exit(1);
         // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
-        double score = scoreReadsAgainstHaplotypes(Arrays.asList(refConsensus, altConsensus), context.getBasePileup(), contextSize);
+        double score = scoreReadsAgainstHaplotypes(Arrays.asList(refHaplotype, altHaplotype), context.getBasePileup(), contextSize);
 
         // return the score
         Map<String, Object> map = new HashMap<String, Object>();
@@ -49,10 +46,31 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
         return map;
     }
 
+    // todo -- note that the refPileup.size() won't deal correctly with the situation where the current site is hom-var
+    // todo -- but there's nearby het size.  In order to really handle this we need to group reads into two clusters,
+    // todo -- but if we are going to do this we might as well just assemble the whole region
+    public Haplotype calcRefHaplotype(VariantContext vc, ReferenceContext ref, AlignmentContext context, int contextSize) {
+        ReadBackedPileup refPileup = getPileupOfAllele(vc.getReference(), context.getBasePileup());
+        if ( USE_NON_REFERENCE_SECOND_HAPLOTYPE && refPileup.size() > 0 ) {
+            // we are calculating the reference haplotype from the reads itself -- effectively allows us to
+            // have het haplotypes that are hom-var in the surrounding context, indicating that the individual
+            // as two alt haplotypes
+            return new Haplotype(refPileup, contextSize);
+        } else {
+            // we are constraining the reference haplotype to really be the reference itself
+            int contextWingSize = (contextSize - 1) / 2;
+            int refMiddle = (int)(ref.getWindow().size() - 1) / 2;
+            int refStart = refMiddle - contextWingSize;
+            int refStop = refMiddle + contextWingSize + 1;
+            String refString = new String(ref.getBases()).substring(refStart, refStop);
+            return new Haplotype(refString.getBytes(), 60);
+        }
+    }
+
     // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
-    private double scoreReadsAgainstHaplotypes(List<Consensus> haplotypes, ReadBackedPileup pileup, int contextSize) {
-        if ( DEBUG ) System.out.printf("REF: %s%n", haplotypes.get(0));
-        if ( DEBUG ) System.out.printf("ALT: %s%n", haplotypes.get(1));
+    private double scoreReadsAgainstHaplotypes(List<Haplotype> haplotypes, ReadBackedPileup pileup, int contextSize) {
+        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(0));
+        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(1));
 
         double[][] haplotypeScores = new double[pileup.size()][haplotypes.size()];
         for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
@@ -62,7 +80,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
             if ( DEBUG ) System.out.printf("--------------------------------------------- Read %s%n", read.getReadName());
             double m = 10000000;
             for ( int i = 0; i < haplotypes.size(); i++ ) {
-                Consensus haplotype = haplotypes.get(i);
+                Haplotype haplotype = haplotypes.get(i);
                 int start = readOffsetFromPileup - (contextSize - 1)/2;
                 double score = scoreReadAgainstHaplotype(read, start, contextSize, haplotype);
                 haplotypeScores[p.getPileupOffset()][i] = score;
@@ -80,10 +98,20 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
         return overallScore;
     }
 
-    private double scoreReadAgainstHaplotype(SAMRecord read, int baseOffsetStart, int contextSize, Consensus haplotype ) {
-        double log10LExpected = 0.0;
-        double log10LMismatches = 0.0;
+    private double scoreReadAgainstHaplotype(SAMRecord read, int baseOffsetStart, int contextSize, Haplotype haplotype ) {
+        double expected = 0.0;
+        double mismatches = 0.0;
 
+        // What's the expected mismatch rate under the model that this read is actually sampled from
+        // this haplotype?  Let's assume the consensus base c is a random choice one of A, C, G, or T, and that
+        // the observed base is actually from a c with an error rate e.  Since e is the rate at which we'd
+        // see a miscalled c, the expected mismatch rate is really e.  So the expected number of mismatches
+        // is just sum_i e_i for i from 1..n for n sites
+        //
+        // Now, what's the probabilistic sum of mismatches?  Suppose that the base b is equal to c.  Well, it could
+        // actually be a miscall in a matching direction, which would happen at a e / 3 rate.  If b != c, then
+        // the chance that it is actually a mismatch is 1 - e, since any of the other 3 options would be a mismatch.
+        // so the probability-weighted mismatch rate is sum_i ( matched ? e_i / 3 : 1 - e_i ) for i = 1 ... n
         for ( int i = 0; i < contextSize; i++ ) {
             int baseOffset = i + baseOffsetStart;
             if ( baseOffset < 0 )
@@ -93,14 +121,20 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
 
             byte haplotypeBase = haplotype.bases[i];
             byte readBase = read.getReadBases()[baseOffset];
-            if ( ! BaseUtils.basesAreEqual(readBase, haplotypeBase ) ) {
-                log10LMismatches += read.getBaseQualities()[baseOffset];
-            }
 
-            //System.out.printf("Read %s: scoring %c vs. %c => %f%n", read.getReadName(), (char)haplotypeBase, (char)readBase, log10LMismatches);
+            boolean matched = BaseUtils.basesAreEqual(readBase, haplotypeBase );
+            double e = QualityUtils.qualToErrorProb(read.getBaseQualities()[baseOffset]);
+            expected += e;
+            mismatches += matched ? e : 1 - e / 3;
+
+            // a more sophisticated calculation would include the reference quality, but it's nice to actually penalize
+            // the mismatching of poorly determined regions of the consensus
+
+            if ( DEBUG ) System.out.printf("Read %s: scoring %c vs. %c => e = %f Q%d esum %f vs. msum %f%n",
+                    read.getReadName(), (char)haplotypeBase, (char)readBase, e, read.getBaseQualities()[baseOffset], expected, mismatches);
         }
 
-        return log10LMismatches; //  - log10LExpected;
+        return mismatches - expected;
     }
 
 
@@ -110,7 +144,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
             FLAT_BASE_PRIORS[i] = Math.log10(1.0 / BaseUtils.Base.values().length);
     }
 
-    private class Consensus {
+    private class Haplotype {
         byte[] bases = null;
         byte[] quals = null;
 
@@ -120,13 +154,13 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
          * @param bases
          * @param qual
          */
-        Consensus(byte[] bases, int qual) {
+        Haplotype(byte[] bases, int qual) {
             this.bases = bases;
             quals = new byte[bases.length];
             Arrays.fill(quals, (byte)qual);
         }
 
-        Consensus(ReadBackedPileup pileup, int contextSize ) {
+        Haplotype(ReadBackedPileup pileup, int contextSize ) {
             this.bases = new byte[contextSize];
             this.quals = new byte[contextSize];
             calculateConsensusOverWindow(pileup, contextSize, (contextSize - 1) / 2);
@@ -153,9 +187,14 @@ public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnota
                 double log10L = log10priors[base.getIndex()];
 
                 for ( PileupElement p : pileup ) {
-                    double baseP = QualityUtils.qualToProb(p.getQual());
-                    double L = base.sameBase(p.getBase()) ? baseP : 1 - baseP;
-                    log10L += Math.log10(L);
+                    byte qual = p.getQual();
+                    if ( qual > 5 ) {
+                        double baseP = QualityUtils.qualToProb(qual);
+                        double L = base.sameBase(p.getBase()) ? baseP : 1 - baseP;
+                        if ( Double.isInfinite(Math.log10(L)) )
+                            throw new StingException("BUG -- base likelihood is infinity!");
+                        log10L += Math.log10(L);
+                    }
                 }
 
                 log10BaseLikelihoods[base.getIndex()] = log10L;
