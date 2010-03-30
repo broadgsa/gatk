@@ -20,7 +20,7 @@ public interface BAMFormatAwareShard extends Shard {
      * Get the list of chunks delimiting this shard.
      * @return a list of chunks that contain data for this shard.
      */
-    public Map<SAMReaderID, BAMFileSpan> getFileSpans();
+    public Map<SAMReaderID,SAMFileSpan> getFileSpans();
 
     /**
      * Returns true if this shard is meant to buffer reads, rather

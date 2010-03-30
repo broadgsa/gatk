@@ -75,11 +75,11 @@ public class IntervalSharder {
         FilePointer lastFilePointer = null;
         BAMOverlap lastBAMOverlap = null;
 
-        Map<SAMReaderID,PreloadedBAMFileIndex> readerToIndexMap = new HashMap<SAMReaderID,PreloadedBAMFileIndex>();
+        Map<SAMReaderID,CachingBAMFileIndex> readerToIndexMap = new HashMap<SAMReaderID,CachingBAMFileIndex>();
         BinMergingIterator binMerger = new BinMergingIterator();
         for(SAMReaderID id: dataSource.getReaderIDs()) {
             final SAMSequenceRecord referenceSequence = dataSource.getHeader(id).getSequence(contig);
-            final PreloadedBAMFileIndex index = dataSource.getIndex(id);
+            final CachingBAMFileIndex index = dataSource.getIndex(id);
             binMerger.addReader(id,
                                 index,
                                 referenceSequence.getSequenceIndex(),
@@ -170,7 +170,7 @@ public class IntervalSharder {
 
         // Lookup the locations for every file pointer in the index.
         for(SAMReaderID id: dataSource.getReaderIDs()) {
-            PreloadedBAMFileIndex index = readerToIndexMap.get(id);
+            CachingBAMFileIndex index = readerToIndexMap.get(id);
             for(FilePointer filePointer: filePointers)
                 filePointer.addFileSpans(id,index.getChunksOverlapping(filePointer.overlap.getBin(id)));
             index.close();
@@ -183,7 +183,7 @@ public class IntervalSharder {
         private PriorityQueue<BinQueueState> binQueue = new PriorityQueue<BinQueueState>();
         private Queue<BAMOverlap> pendingOverlaps = new LinkedList<BAMOverlap>();
 
-        public void addReader(final SAMReaderID id, final PreloadedBAMFileIndex index, final int referenceSequence, Iterator<Bin> bins) {
+        public void addReader(final SAMReaderID id, final CachingBAMFileIndex index, final int referenceSequence, Iterator<Bin> bins) {
             binQueue.add(new BinQueueState(id,index,referenceSequence,new LowestLevelBinFilteringIterator(index,bins)));
         }
 
@@ -276,11 +276,11 @@ public class IntervalSharder {
 
         private class ReaderBin {
             public final SAMReaderID id;
-            public final PreloadedBAMFileIndex index;
+            public final CachingBAMFileIndex index;
             public final int referenceSequence;
             public final Bin bin;
 
-            public ReaderBin(final SAMReaderID id, final PreloadedBAMFileIndex index, final int referenceSequence, final Bin bin) {
+            public ReaderBin(final SAMReaderID id, final CachingBAMFileIndex index, final int referenceSequence, final Bin bin) {
                 this.id = id;
                 this.index = index;
                 this.referenceSequence = referenceSequence;
@@ -298,11 +298,11 @@ public class IntervalSharder {
 
         private class BinQueueState implements Comparable<BinQueueState> {
             public final SAMReaderID id;
-            public final PreloadedBAMFileIndex index;
+            public final CachingBAMFileIndex index;
             public final int referenceSequence;
             public final PeekableIterator<Bin> bins;
 
-            public BinQueueState(final SAMReaderID id, final PreloadedBAMFileIndex index, final int referenceSequence, final Iterator<Bin> bins) {
+            public BinQueueState(final SAMReaderID id, final CachingBAMFileIndex index, final int referenceSequence, final Iterator<Bin> bins) {
                 this.id = id;
                 this.index = index;
                 this.referenceSequence = referenceSequence;
@@ -334,12 +334,12 @@ public class IntervalSharder {
      * Filters out bins not at the lowest level in the tree.
      */
     private static class LowestLevelBinFilteringIterator implements Iterator<Bin> {
-        private PreloadedBAMFileIndex index;
+        private CachingBAMFileIndex index;
         private Iterator<Bin> wrappedIterator;
 
         private Bin nextBin;
 
-        public LowestLevelBinFilteringIterator(final PreloadedBAMFileIndex index, Iterator<Bin> iterator) {
+        public LowestLevelBinFilteringIterator(final CachingBAMFileIndex index, Iterator<Bin> iterator) {
             this.index = index;
             this.wrappedIterator = iterator;
             advance();
@@ -372,7 +372,7 @@ public class IntervalSharder {
  * Represents a small section of a BAM file, and every associated interval.
  */
 class FilePointer {
-    protected final Map<SAMReaderID,BAMFileSpan> fileSpans = new HashMap<SAMReaderID,BAMFileSpan>();
+    protected final Map<SAMReaderID,SAMFileSpan> fileSpans = new HashMap<SAMReaderID,SAMFileSpan>();
     protected final String referenceSequence;
     protected final BAMOverlap overlap;
     protected final List<GenomeLoc> locations;
@@ -393,7 +393,7 @@ class FilePointer {
         locations.add(location);
     }
 
-    public void addFileSpans(SAMReaderID id, BAMFileSpan fileSpan) {
+    public void addFileSpans(SAMReaderID id, SAMFileSpan fileSpan) {
         this.fileSpans.put(id,fileSpan);
     }
 }

@@ -26,7 +26,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     /**
      * The data backing the next chunks to deliver to the traversal engine.
      */
-    private final Map<SAMReaderID,BAMFileSpan> fileSpans;
+    private final Map<SAMReaderID,SAMFileSpan> fileSpans;
 
     /**
      * The reads making up this shard.
@@ -44,7 +44,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      */
     private final Shard.ShardType shardType;        
 
-    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMReaderID,BAMFileSpan> fileSpans, SamRecordFilter filter, Shard.ShardType shardType) {
+    public BlockDelimitedReadShard(Reads sourceInfo, Map<SAMReaderID,SAMFileSpan> fileSpans, SamRecordFilter filter, Shard.ShardType shardType) {
         this.sourceInfo = sourceInfo;
         this.fileSpans = fileSpans;
         this.filter = filter;
@@ -109,7 +109,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
      * @return a list of chunks that contain data for this shard.
      */
     @Override
-    public Map<SAMReaderID,BAMFileSpan> getFileSpans() {
+    public Map<SAMReaderID,SAMFileSpan> getFileSpans() {
         return Collections.unmodifiableMap(fileSpans);
     }
 
@@ -128,7 +128,7 @@ public class BlockDelimitedReadShard extends ReadShard implements BAMFormatAware
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for(Map.Entry<SAMReaderID,BAMFileSpan> entry: fileSpans.entrySet()) {
+        for(Map.Entry<SAMReaderID,SAMFileSpan> entry: fileSpans.entrySet()) {
             sb.append(entry.getKey());
             sb.append(": ");
             sb.append(entry.getValue());

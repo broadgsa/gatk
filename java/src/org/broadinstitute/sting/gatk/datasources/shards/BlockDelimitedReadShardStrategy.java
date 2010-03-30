@@ -55,7 +55,7 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     /**
      * Ending position of the last shard in the file.
      */
-    private Map<SAMReaderID,BAMFileSpan> position;
+    private Map<SAMReaderID,SAMFileSpan> position;
 
     /**
      * Create a new read shard strategy, loading read shards from the given BAM file.
@@ -103,18 +103,18 @@ public class BlockDelimitedReadShardStrategy extends ReadShardStrategy {
     }
 
     public void advance() {
-        Map<SAMReaderID,BAMFileSpan> shardPosition = new HashMap<SAMReaderID,BAMFileSpan>();
+        Map<SAMReaderID,SAMFileSpan> shardPosition = new HashMap<SAMReaderID,SAMFileSpan>();
         nextShard = null;
         SamRecordFilter filter = null;
 
         if(locations != null) {
-            Map<SAMReaderID,BAMFileSpan> selectedReaders = new HashMap<SAMReaderID,BAMFileSpan>();
+            Map<SAMReaderID,SAMFileSpan> selectedReaders = new HashMap<SAMReaderID,SAMFileSpan>();
             while(selectedReaders.size() == 0 && currentFilePointer != null) {
                 shardPosition = currentFilePointer.fileSpans;
                 for(SAMReaderID id: shardPosition.keySet()) {
-                    BAMFileSpan fileSpans = shardPosition.get(id).removeBefore(position.get(id));
-                    if(!fileSpans.isEmpty())
-                        selectedReaders.put(id,fileSpans);
+                    SAMFileSpan fileSpan = shardPosition.get(id).removeContentsBefore(position.get(id));
+                    if(!fileSpan.isEmpty())
+                        selectedReaders.put(id,fileSpan);
                 }
 
                 if(selectedReaders.size() > 0) {

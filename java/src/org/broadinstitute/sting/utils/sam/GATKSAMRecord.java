@@ -341,5 +341,5 @@ public class GATKSAMRecord extends SAMRecord {
 
     public String toString() { return mRecord.toString(); }
 
-    public BAMFileSpan getFilePointer() { return mRecord.getFilePointer(); }
+    public SAMFileSpan getFilePointer() { return mRecord.getFilePointer(); }
 }

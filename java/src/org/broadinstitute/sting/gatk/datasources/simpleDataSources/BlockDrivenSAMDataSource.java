@@ -53,7 +53,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     /**
      * How far along is each reader?
      */
-    private final Map<SAMReaderID,BAMFileSpan> readerPositions = new HashMap<SAMReaderID,BAMFileSpan>();
+    private final Map<SAMReaderID,SAMFileSpan> readerPositions = new HashMap<SAMReaderID,SAMFileSpan>();
 
     /**
      * Create a new block-aware SAM data source given the supplied read metadata.
@@ -129,16 +129,16 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @param id Id of the reader.
      * @return The index.  Will preload the index if necessary.
      */
-    public PreloadedBAMFileIndex getIndex(final SAMReaderID id) {
+    public CachingBAMFileIndex getIndex(final SAMReaderID id) {
         SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        return readers.getReader(id).getIndex(PreloadedBAMFileIndex.class);
+        return readers.getReader(id).getIndex(CachingBAMFileIndex.class);
     }
 
     /**
      * Retrieves the current position within the BAM file.
      * @return A mapping of reader to current position.
      */
-    public Map<SAMReaderID,BAMFileSpan> getCurrentPosition() {
+    public Map<SAMReaderID,SAMFileSpan> getCurrentPosition() {
         return readerPositions;
     }
 
@@ -182,7 +182,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @param read The read to add to the shard.
      */
     private void addReadToBufferingShard(BAMFormatAwareShard shard,SAMReaderID id,SAMRecord read) {
-        BAMFileSpan endChunk = read.getFilePointer().getFilePointerFollowing();
+        SAMFileSpan endChunk = read.getFilePointer().getContentsFollowing();
         shard.addRead(read);
         readerPositions.put(id,endChunk);
     }
@@ -207,7 +207,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      */
     private void initializeReaderPositions(SAMReaders readers) {
         for(SAMReaderID id: getReaderIDs())
-            readerPositions.put(id,readers.getReader(id).getStartOfDataSegment());
+            readerPositions.put(id,readers.getReader(id).getFilePointerSpanningReads());
     }
 
     public StingSAMIterator seek(Shard shard) {
@@ -386,7 +386,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
          */
         public SAMReaders(Reads sourceInfo) {
             for(File readsFile: sourceInfo.getReadsFiles()) {
-                SAMFileReader reader = new SAMFileReader(readsFile,true);
+                SAMFileReader reader = new SAMFileReader(readsFile,CachingBAMFileIndex.class,true);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
 
                 // If no read group is present, hallucinate one.
