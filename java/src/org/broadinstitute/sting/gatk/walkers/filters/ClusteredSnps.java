@@ -33,7 +33,7 @@ public class ClusteredSnps {
 
             int currentIndex = i;
             while ( ++currentIndex < variants.length ) {
-                if ( variants[currentIndex].getVariantContext().isVariant() ) {
+                if ( variants[currentIndex] != null && variants[currentIndex].getVariantContext() != null && variants[currentIndex].getVariantContext().isVariant() ) {
                     if ( ++snpsSeen == snpThreshold ) {
                         right = variants[currentIndex].getVariantContext().getLocation();
                         break;
