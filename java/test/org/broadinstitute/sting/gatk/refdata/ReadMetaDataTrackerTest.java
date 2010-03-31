@@ -27,6 +27,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.providers.RODMetaDataContainer;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -35,9 +36,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.*;
 
 
@@ -103,7 +101,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping("default");
+        Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping("default");
         for (Long x : map.keySet()) {
             count++;
             Assert.assertEquals(1, map.get(x).size());
@@ -117,7 +115,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
         ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
         // count the positions
         int count = 0;
-        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
+        Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
         for (Long x : map.keySet()) {
             count++;
             Assert.assertEquals(2, map.get(x).size());
@@ -136,7 +134,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
                 ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
                 // count the positions
                 int count = 0;
-                Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
+                Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
                 for (Long x : map.keySet()) {
                     count++;
                     Assert.assertEquals(y + 2, map.get(x).size());
@@ -155,7 +153,7 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping(Fake2RODatum.class);
+        Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(Fake2RODatum.class);
         for (long x : map.keySet()) {
             count++;
             Assert.assertEquals(1, map.get(x).size());
@@ -230,12 +228,13 @@ public class ReadMetaDataTrackerTest extends BaseTest {
 
 
     /** for testing only */
-    static public class FakeRODatum implements ReferenceOrderedDatum {
+    static public class FakeRODatum extends GATKFeature {
 
         final GenomeLoc location;
         final String name;
 
         public FakeRODatum(GenomeLoc location, String name) {
+            super(name);
             this.location = location;
             this.name = name;
         }
@@ -246,51 +245,28 @@ public class ReadMetaDataTrackerTest extends BaseTest {
         }
 
         @Override
-        public boolean parseLine(Object header, String[] parts) throws IOException {
-            return false;
-        }
-
-        @Override
-        public String toSimpleString() {
-            return "";
-        }
-
-        @Override
-        public String repl() {
-            return "";
-        }
-
-        /**
-         * Used by the ROD system to determine how to split input lines
-         *
-         * @return Regex string delimiter separating fields
-         */
-        @Override
-        public String delimiterRegex() {
-            return "";
-        }
-
-        @Override
         public GenomeLoc getLocation() {
-            return location;
+            return this.location;
         }
 
         @Override
-        public int compareTo(ReferenceOrderedDatum that) {
-            return location.compareTo(that.getLocation());
+        public Object getUnderlyingObject() {
+            return null;  //To change body of implemented methods use File | Settings | File Templates.
         }
 
-        /**
-         * Backdoor hook to read header, meta-data, etc. associated with the file.  Will be
-         * called by the ROD system before streaming starts
-         *
-         * @param source source data file on disk from which this rod stream will be pulled
-         *
-         * @return a header object that will be passed to parseLine command
-         */
         @Override
-        public Object initialize(File source) throws FileNotFoundException {
-            return null;
+        public String getChr() {
+            return location.getContig();
+        }
+
+        @Override
+        public int getStart() {
+            return (int)this.location.getStart();
+        }
+
+        @Override
+        public int getEnd() {
+            return (int)this.location.getStop();
         }
     }
 }

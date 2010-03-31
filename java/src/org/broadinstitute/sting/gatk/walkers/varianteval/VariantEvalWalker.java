@@ -2,27 +2,24 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import java.util.regex.Pattern;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * A robust and general purpose tool for characterizing the quality of SNPs, Indels, and other variants that includes basic
@@ -273,10 +270,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
         int nBoundGoodRods = tracker.getNBoundRodTracks("interval");
         if (nBoundGoodRods > 0) {
-            //System.out.printf("%s: n = %d%n", context.getLocation(), nBoundGoodRods );
+            // System.out.printf("%s: n = %d%n", context.getLocation(), nBoundGoodRods );
 
             // Iterate over each analysis, and update it
-            Variation eval = (Variation) tracker.lookup("eval", null);
+            Variation eval = tracker.lookup("eval",Variation.class);
             Variation evalForFilter = null;
 
             // ensure that the variation we're looking at is bi-allelic
@@ -360,12 +357,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     }
 
     private ANALYSIS_TYPE getNovelAnalysisType(RefMetaDataTracker tracker) {
-        RODRecordList dbsnpList = tracker.getTrackData("dbsnp", null);
+        List<Object> dbsnpList = tracker.getReferenceMetaData("dbsnp");
 
-        if (dbsnpList == null)
+        if (dbsnpList.size() == 0)
             return ANALYSIS_TYPE.NOVEL_SNPS;
 
-        for (ReferenceOrderedDatum d : dbsnpList) {
+        for (Object d : dbsnpList) {
             if (((rodDbSNP) d).isSNP()) {
                 return ANALYSIS_TYPE.KNOWN_SNPS;
             }

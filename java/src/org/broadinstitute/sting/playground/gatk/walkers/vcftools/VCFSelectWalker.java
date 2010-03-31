@@ -1,16 +1,21 @@
 package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
-import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.apache.commons.jexl.Expression;
+import org.apache.commons.jexl.ExpressionFactory;
+import org.apache.commons.jexl.JexlContext;
+import org.apache.commons.jexl.JexlHelper;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
-import org.apache.commons.jexl.*;
 
 /**
  * Selects variant calls for output from a user-supplied VCF file using a number of user-selectable, parameterizable criteria.
@@ -78,12 +83,11 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        RODRecordList rods = tracker.getTrackData("variant", null);
+        RodVCF variant = tracker.lookup("variant",RodVCF.class);
         // ignore places where we don't have a variant
-        if ( rods == null || rods.size() == 0 )
+        if ( variant == null )
             return 0;
 
-        RodVCF variant = (RodVCF)rods.get(0);
         boolean someoneMatched = false;
         for ( MatchExp exp : matchExpressions ) {
             Map<String, String> infoMap = new HashMap<String, String>(variant.mCurrentRecord.getInfoValues());

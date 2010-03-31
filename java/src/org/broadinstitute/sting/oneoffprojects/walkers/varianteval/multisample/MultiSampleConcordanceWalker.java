@@ -3,7 +3,6 @@ package org.broadinstitute.sting.oneoffprojects.walkers.varianteval.multisample;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
@@ -48,15 +47,14 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
         if ( tracker == null ) {
             return null;
         }
-
+        RodVCF variantData = tracker.lookup("variants",RodVCF.class);
         if ( ignoreKnownSites ) { // ignoreKnownSites && tracker.lookup("variants",null) != null && ! ( (RodVCF) tracker.lookup("variants",null)).isNovel() ) )
-            if ( tracker.lookup("variants",null) != null && ! ( (RodVCF) tracker.lookup("variants",null)).isNovel() ) {
+            if ( variantData != null && ! variantData.isNovel() ) {
                 //logger.info("Not novel: "+( (RodVCF) tracker.lookup("variants",null)).getID());
                 return null;
             }
         }
-        ReferenceOrderedDatum truthData = tracker.lookup("truth", null);
-        ReferenceOrderedDatum variantData = tracker.lookup("variants",null);
+        RodVCF truthData = tracker.lookup("truth",RodVCF.class);
         LocusConcordanceInfo concordance;
 
         if ( truthData == null && variantData == null) {

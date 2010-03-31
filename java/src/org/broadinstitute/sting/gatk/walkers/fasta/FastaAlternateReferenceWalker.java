@@ -2,13 +2,19 @@ package org.broadinstitute.sting.gatk.walkers.fasta;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Iterator;
 
 /**
@@ -46,13 +52,13 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
             return new Pair<GenomeLoc, String>(context.getLocation(), "");
         }
 
-        Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
+        Iterator<GATKFeature> rods = rodData.getAllRods().iterator();
         while (rods.hasNext()) {
-            ReferenceOrderedDatum rod = rods.next();
-            if (!(rod instanceof Variation))
+            GATKFeature rod = rods.next();
+            if (!(rod.getUnderlyingObject() instanceof Variation))
                 continue;
             // if we have multiple variants at a locus, just take the first damn one we see for now
-            Variation variant = (Variation) rod;
+            Variation variant = (Variation) rod.getUnderlyingObject();
             if (!rod.getName().startsWith("snpmask") && variant.isDeletion()) {
                 deletionBasesRemaining = variant.getAlleleList().get(0).length();
                 basesSeen++;

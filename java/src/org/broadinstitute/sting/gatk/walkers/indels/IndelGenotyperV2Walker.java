@@ -1,24 +1,24 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.filters.Platform454Filter;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.*;
 import java.io.IOException;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.CigarElement;
+import java.util.*;
 
 /**
  * This is a simple, counts-and-cutoffs based tool for calling indels from aligned (preferrably MSA cleaned) sequencing
@@ -110,7 +110,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 			ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
 					new java.io.File(RefseqFileName), rodRefSeq.class);
 
-			refseqIterator = refseq.iterator();
+			refseqIterator = new SeekableRODIterator(new GATKFeatureIterator(refseq.iterator()));
 			logger.info("Using RefSeq annotations from "+RefseqFileName);
 		}
 

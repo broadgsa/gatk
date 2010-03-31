@@ -3,13 +3,13 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
 import org.broadinstitute.sting.gatk.refdata.SAMPileupRecord;
+import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Arrays;
 
@@ -99,9 +99,9 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
      * @return True pileup data.
      */
     private SAMPileupRecord getTruePileup( RefMetaDataTracker tracker ) {
-        rodSAMPileup pileup = (rodSAMPileup)tracker.lookup("pileup", null);
+        rodSAMPileup pileup = tracker.lookup("pileup",rodSAMPileup.class);
 
-        if( pileup == null )
+        if( pileup == null)
             return null;
 
         if( pileup.hasPointGenotype() )

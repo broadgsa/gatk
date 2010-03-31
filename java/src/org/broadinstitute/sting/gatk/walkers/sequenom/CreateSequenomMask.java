@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.sequenom;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
@@ -21,9 +21,9 @@ public class CreateSequenomMask extends RodWalker<Integer, Integer> {
         if ( rodData == null ) // apparently, RodWalkers make funky map calls
             return 0;
 
-        Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
+        Iterator<GATKFeature> rods = rodData.getAllRods().iterator();
         while (rods.hasNext()) {
-            ReferenceOrderedDatum rod = rods.next();
+            Object rod = rods.next().getUnderlyingObject();
             if ( rod instanceof Variation && ((Variation)rod).isSNP() ) {
                 out.println(context.getLocation());
                 result = 1;

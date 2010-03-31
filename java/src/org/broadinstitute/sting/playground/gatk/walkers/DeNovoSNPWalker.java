@@ -44,8 +44,9 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
      }
 
     public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        VariationRod child = (VariationRod)tracker.lookup("child", null);
-        VariationRod dbsnp = (VariationRod)tracker.lookup("dbSNP", null);
+        VariationRod child = tracker.lookup("child",VariationRod.class);
+        VariationRod dbsnp = tracker.lookup("dbSNP",VariationRod.class);
+
         if (child != null) {
             if (child.isSNP() && child.getNegLog10PError() > 5) { // BTR > 5
 

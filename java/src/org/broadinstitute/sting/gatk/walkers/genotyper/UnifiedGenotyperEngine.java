@@ -25,23 +25,32 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.pileup.*;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.AlignmentUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
+import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import java.util.*;
 import java.io.PrintStream;
+import java.util.*;
 
 
 public class UnifiedGenotyperEngine {
@@ -111,7 +120,7 @@ public class UnifiedGenotyperEngine {
         // check to see whether a dbsnp rod was included
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(rodDbSNP.class) ) {
                 this.annotateDbsnp = true;
             }

@@ -25,8 +25,7 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 
 import java.io.File;
 import java.util.Iterator;
@@ -66,7 +65,7 @@ public class RODRMDTrack extends RMDTrack {
      */
     @Override
     public Iterator<GATKFeature> getIterator() {
-        return new RODIteratorToRMDIterator(data.iterator());
+        return new GATKFeatureIterator(data.iterator());
     }
 
     /**
@@ -80,36 +79,3 @@ public class RODRMDTrack extends RMDTrack {
     }
 }
 
-/**
- * this class wraps a ROD iterator, so that it produces GATKFeatures (basicly features that can generate a GenomeLoc
- * for its position).  
- */
-class RODIteratorToRMDIterator implements Iterator<GATKFeature> {
-    private RODRecordList list = null;
-    private LocationAwareSeekableRODIterator iterator = null;
-
-    RODIteratorToRMDIterator(LocationAwareSeekableRODIterator iter) {
-            iterator = iter;
-    }
-
-    public boolean hasNext() {
-        if (this.list != null && list.size() > 0) return true;
-        return iterator.hasNext();
-    }
-
-    public GATKFeature next() {
-        if (this.list != null && list.size() > 0) {
-            GATKFeature f = new GATKFeature.RODGATKFeature(list.get(0));
-            list.remove(0);
-            return f;
-        }
-        else {
-            list = iterator.next();
-            return next();
-        }
-    }
-
-    public void remove() {
-        throw new UnsupportedOperationException("not supported");
-    }
-}

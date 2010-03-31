@@ -1,18 +1,26 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.VariationRod;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 and MQ0 reads.
@@ -67,9 +75,9 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
 
         // look at the rods for indels or SNPs
         if ( tracker != null ) {
-             Iterator<ReferenceOrderedDatum> rods = tracker.getAllRods().iterator();
+             Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
              while ( rods.hasNext() ) {
-                 ReferenceOrderedDatum rod = rods.next();
+                 Object rod = rods.next().getUnderlyingObject();
                  if ( rod instanceof VariationRod ) {
                      if ( ((VariationRod)rod).isIndel() ) {
                          hasIndel = true;

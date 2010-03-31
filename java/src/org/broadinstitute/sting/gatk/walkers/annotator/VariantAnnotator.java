@@ -1,17 +1,28 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
+import java.io.File;
 import java.util.*;
-import java.io.*;
 
 
 /**
@@ -132,12 +143,12 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        RODRecordList rods = tracker.getTrackData("variant", null);
+        List<Object> rods = tracker.getReferenceMetaData("variant");
         // ignore places where we don't have a variant
-        if ( rods == null || rods.size() == 0 )
+        if ( rods.size() == 0 )
             return 0;
 
-        ReferenceOrderedDatum variant = rods.get(0);
+        Object variant = rods.get(0);
         VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant);
         if ( vc == null )
             return 0;
@@ -150,8 +161,9 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             }
         }
 
-        vcfWriter.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase()));
-
+        if ( variant instanceof RodVCF )
+            vcfWriter.addRecord(VariantContextAdaptors.toVCF(vc, ref.getBase()));
+        
         return 1;
     }
 

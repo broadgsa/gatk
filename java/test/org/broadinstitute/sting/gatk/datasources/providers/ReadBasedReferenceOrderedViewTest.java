@@ -28,7 +28,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTrackerTest;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -81,7 +81,7 @@ public class ReadBasedReferenceOrderedViewTest extends BaseTest {
 
         for (SAMRecord rec : records) {
             ReadMetaDataTracker tracker = view.getReferenceOrderedDataForRead(rec);
-            Map<Long, Collection<ReferenceOrderedDatum>> map = tracker.getReadOffsetMapping();
+            Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping();
             for (Long i : map.keySet()) {
                 Assert.assertEquals(1, map.get(i).size());
             }
@@ -97,13 +97,12 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
 
     // current location
     private GenomeLoc location;
-    private ReadMetaDataTrackerTest.FakeRODatum curROD;
+    private GATKFeature curROD;
     private final String name;
 
     public FakePeekingRODIterator(GenomeLoc startingLoc, String name) {
         this.name = name;
         this.location = GenomeLocParser.createGenomeLoc(startingLoc.getContigIndex(), startingLoc.getStart() + 1, startingLoc.getStop() + 1);
-        ;
     }
 
     @Override
@@ -145,15 +144,15 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
     }
 }
 
-class FakeRODRecordList extends AbstractList<ReferenceOrderedDatum> implements RODRecordList {
-    private final List<ReferenceOrderedDatum> list = new ArrayList<ReferenceOrderedDatum>();
+class FakeRODRecordList extends AbstractList<GATKFeature> implements RODRecordList {
+    private final List<GATKFeature> list = new ArrayList<GATKFeature>();
 
-    public boolean add(ReferenceOrderedDatum data) {
+    public boolean add(GATKFeature data) {
         return list.add(data);
     }
 
     @Override
-    public ReferenceOrderedDatum get(int i) {
+    public GATKFeature get(int i) {
         return list.get(i);
     }
 

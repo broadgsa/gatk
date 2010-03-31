@@ -1,15 +1,22 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.util.*;
 
@@ -105,7 +112,7 @@ public class VariantAnnotatorEngine {
         // check to see whether a dbsnp rod was included
         List<ReferenceOrderedDataSource> dataSources = engine.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(rodDbSNP.class) ) {
                 annotateDbsnp = true;
             }
@@ -142,7 +149,7 @@ public class VariantAnnotatorEngine {
 
         // annotate dbsnp occurrence
         if ( annotateDbsnp ) {
-            rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+            rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData("dbsnp"));
             infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
             // annotate dbsnp id if available and not already there
             if ( dbsnp != null && !vc.hasAttribute("ID") )
@@ -150,13 +157,13 @@ public class VariantAnnotatorEngine {
         }
 
         if ( annotateHapmap2 ) {
-            RODRecordList hapmap2 = tracker.getTrackData("hapmap2",null);
-            infoAnnotations.put(VCFRecord.HAPMAP2_KEY, hapmap2 == null? "0" : "1");
+            List<Object> hapmap2 = tracker.getReferenceMetaData("hapmap2");
+            infoAnnotations.put(VCFRecord.HAPMAP2_KEY, hapmap2.size() == 0 ? "0" : "1");
         }
 
         if ( annotateHapmap3 ) {
-            RODRecordList hapmap3 = tracker.getTrackData("hapmap3",null);
-            infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3 == null ? "0" : "1");
+            List<Object> hapmap3 = tracker.getReferenceMetaData("hapmap3");
+            infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3.size() == 0 ? "0" : "1");
         }
 
         for ( InfoFieldAnnotation annotation : requestedInfoAnnotations ) {

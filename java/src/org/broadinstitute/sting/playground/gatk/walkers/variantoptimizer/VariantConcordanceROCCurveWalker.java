@@ -82,10 +82,10 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
         
         for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
             if( rod != null && !rod.getName().toUpperCase().startsWith("TRUTH") ) {
-                if( rod.getReferenceOrderedData().iterator().next().get(0) instanceof RodVCF ) {
+                if( rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject() instanceof RodVCF ) {
                     inputRodNames.add(rod.getName());
                     if( sampleName == null ) {
-                        sampleName = ((RodVCF)rod.getReferenceOrderedData().iterator().next().get(0)).getSampleNames()[0]; // BUGBUG: single sample calls only for now
+                        sampleName = ((RodVCF)rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject()).getSampleNames()[0]; // BUGBUG: single sample calls only for now
                     }
                 }
             }

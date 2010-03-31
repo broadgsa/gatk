@@ -175,7 +175,7 @@ class FakeSeekableRODIterator implements LocationAwareSeekableRODIterator {
     @Override
     public RODRecordList next() {
         RODRecordList list = new FakeRODRecordList();
-        curROD = new FakeRODatum(location);
+        curROD = new FakeRODatum("STUPIDNAME", location);
         location = GenomeLocParser.createGenomeLoc(location.getContigIndex(), location.getStart() + 1, location.getStop() + 1);
         list.add(curROD);
         recordCount--;
@@ -190,11 +190,12 @@ class FakeSeekableRODIterator implements LocationAwareSeekableRODIterator {
 
 
 /** for testing only */
-class FakeRODatum implements ReferenceOrderedDatum {
+class FakeRODatum extends GATKFeature implements ReferenceOrderedDatum {
 
     final GenomeLoc location;
 
-    public FakeRODatum(GenomeLoc location) {
+    public FakeRODatum(String name, GenomeLoc location) {
+        super(name);
         this.location = location;
     }
 
@@ -234,6 +235,11 @@ class FakeRODatum implements ReferenceOrderedDatum {
     }
 
     @Override
+    public Object getUnderlyingObject() {
+        return this;
+    }
+
+    @Override
     public int compareTo(ReferenceOrderedDatum that) {
         return location.compareTo(that.getLocation());
     }
@@ -250,17 +256,32 @@ class FakeRODatum implements ReferenceOrderedDatum {
     public Object initialize(File source) throws FileNotFoundException {
         return null;
     }
+
+    @Override
+    public String getChr() {
+        return location.getContig();
+    }
+
+    @Override
+    public int getStart() {
+        return (int)location.getStart();
+    }
+
+    @Override
+    public int getEnd() {
+        return (int)location.getStop();
+    }
 }
 
-class FakeRODRecordList extends AbstractList<ReferenceOrderedDatum> implements RODRecordList {
-    private final List<ReferenceOrderedDatum> list = new ArrayList<ReferenceOrderedDatum>();
+class FakeRODRecordList extends AbstractList<GATKFeature> implements RODRecordList {
+    private final List<GATKFeature> list = new ArrayList<GATKFeature>();
 
-    public boolean add(ReferenceOrderedDatum data) {
+    public boolean add(GATKFeature data) {
         return list.add(data);
     }
 
     @Override
-    public ReferenceOrderedDatum get(int i) {
+    public GATKFeature get(int i) {
         return list.get(i);
     }
 

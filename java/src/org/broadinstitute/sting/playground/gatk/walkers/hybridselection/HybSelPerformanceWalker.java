@@ -1,30 +1,34 @@
 package org.broadinstitute.sting.playground.gatk.walkers.hybridselection;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.By;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-                                       
-import java.util.List;
-import java.util.Collection;
-import java.io.IOException;
-import java.io.File;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.Interval;
-import net.sf.picard.util.OverlapDetector;
 import net.sf.picard.util.IntervalList;
+import net.sf.picard.util.OverlapDetector;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Given intervals corresponding to targets or baits in a hybrid selection experiment, this walker gives the following interval-by-interval data:
@@ -82,7 +86,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
                     new java.io.File(REFSEQ_FILE), rodRefSeq.class);
 
-            refseqIterator = refseq.iterator();
+            refseqIterator = new SeekableRODIterator(new GATKFeatureIterator(refseq.iterator()));
             logger.info("Using RefSeq annotations from "+REFSEQ_FILE);
         }
 
@@ -252,9 +256,9 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
         RODRecordList annotationList = refseqIterator.seekForward(target);
         if (annotationList == null) { return "UNKNOWN"; }
         
-        for(ReferenceOrderedDatum rec : annotationList) {
-            if ( ((rodRefSeq)rec).overlapsExonP(target) ) {
-                return ((rodRefSeq)rec).getGeneName();
+        for(GATKFeature rec : annotationList) {
+            if ( ((rodRefSeq)rec.getUnderlyingObject()).overlapsExonP(target) ) {
+                return ((rodRefSeq)rec.getUnderlyingObject()).getGeneName();
             }
         }
 

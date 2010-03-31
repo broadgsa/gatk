@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -8,8 +9,8 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Wrapper class for iterators over ROD objects. It is assumed that the underlying iterator can only
@@ -35,8 +36,8 @@ import java.util.LinkedList;
  * To change this template use File | Settings | File Templates.
  */
 public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
-    private PushbackIterator<ReferenceOrderedDatum> it;
-    List<ReferenceOrderedDatum> records = null;  // here we will keep a pile of records overlaping with current position; when we iterate
+    private PushbackIterator<GATKFeature> it;
+    List<GATKFeature> records = null;  // here we will keep a pile of records overlaping with current position; when we iterate
                                // and step out of record's scope, we purge it from the list
     String name = null; // name of the ROD track wrapped by this iterator. Will be pulled from underlying iterator.
 
@@ -77,15 +78,15 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     // This implementation tracks the query history and makes next() illegal after a seekforward query of length > 1,
     // but re-enables next() again after a length-1 query.
 
-    public SeekableRODIterator(Iterator<ReferenceOrderedDatum> it) {
-        this.it = new PushbackIterator<ReferenceOrderedDatum>(it);
-        records = new LinkedList<ReferenceOrderedDatum>();
+    public SeekableRODIterator(Iterator<GATKFeature> it) {
+        this.it = new PushbackIterator<GATKFeature>(it);
+        records = new LinkedList<GATKFeature>();
         // the following is a trick: we would like the iterator to know the actual name assigned to
         // the ROD implementing object we are working with. But the only way to do that is to
         // get an instance of that ROD and query it for its name. Now, the only generic way we have at this point to instantiate
         // the ROD is to make the underlying stream iterator to do it for us. So we are reading (or rather peeking into)
         // the first line of the track data file just to get the ROD object created.
-        ReferenceOrderedDatum r = null;
+        GATKFeature r = null;
         if (this.it.hasNext()) r = this.it.element();
         name = (r==null?null:r.getName());
     }
@@ -114,7 +115,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
         // the location we will jump to upon next call to next() is the start of the next ROD record that we did
         // not read yet:
         if ( it.hasNext() ) {
-            ReferenceOrderedDatum r = it.element(); // peek, do not load!
+            GATKFeature r = it.element(); // peek, do not load!
             return GenomeLocParser.createGenomeLoc(r.getLocation().getContigIndex(),r.getLocation().getStart());
         }
         return null; // underlying iterator has no more records, there is no next location!
@@ -142,7 +143,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
              // ooops, we are past the end of all loaded records - kill them all at once,
              // load next record and reinitialize by fastforwarding current position to the start of next record
              records.clear();
-             ReferenceOrderedDatum r = it.next(); // if hasNext() previously returned true, we are guaranteed that this call to reader.next() is safe
+             GATKFeature r = it.next(); // if hasNext() previously returned true, we are guaranteed that this call to reader.next() is safe
              records.add( r );
              curr_contig = r.getLocation().getContigIndex();
              curr_position = r.getLocation().getStart();
@@ -155,7 +156,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
          // covered by new records, so we need to load them too:
 
          while ( it.hasNext() ) {
-             ReferenceOrderedDatum r = it.element();
+             GATKFeature r = it.element();
              if ( r == null ) {
                  it.next();
                  continue;
@@ -284,7 +285,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
         // curr_contig and curr_position are set to where we asked to scroll to
 
         while ( it.hasNext() ) {
-            ReferenceOrderedDatum r = it.next();
+            GATKFeature r = it.next();
             if ( r == null ) continue;
             int that_contig = r.getLocation().getContigIndex();
 
@@ -323,9 +324,9 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
      * curr_position <= max_position, as well as that we are still on the same contig.
      */
     private void purgeOutOfScopeRecords() {
-        Iterator<ReferenceOrderedDatum> i = records.iterator();
+        Iterator<GATKFeature> i = records.iterator();
         while ( i.hasNext() ) {
-            ReferenceOrderedDatum r = i.next();
+            GATKFeature r = i.next();
             if ( r.getLocation().getStop() < curr_position ) {
                 i.remove(); // we moved past the end of interval the record r is associated with, purge the record forever
             }

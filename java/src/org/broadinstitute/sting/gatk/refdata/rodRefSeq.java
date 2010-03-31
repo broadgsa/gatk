@@ -1,12 +1,13 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -135,7 +136,7 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
      * rodRefSeq though: takes list of rods (transcripts) overlapping with a given position and determines whether
      * this position is fully whithin an exon of <i>any</i> of those transcripts. Passing null is safe (will return false).
      * NOTE: position can be still within a UTR, see #isCoding
-     * @return
+     * @return true if it's an exon
      */
     public static boolean isExon(RODRecordList l) {
 
@@ -143,8 +144,8 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
 
         GenomeLoc loc = l.getLocation();
 
-        for ( ReferenceOrderedDatum t : l ) {
-            if ( ((rodRefSeq)t).overlapsExonP(loc) ) return true;
+        for ( GATKFeature t : l ) {
+            if ( ((rodRefSeq)t.getUnderlyingObject()).overlapsExonP(loc) ) return true;
         }
         return false;
 
@@ -166,8 +167,8 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
 
         GenomeLoc loc = l.getLocation();
 
-        for ( ReferenceOrderedDatum t : l ) {
-            if ( ((rodRefSeq)t).overlapsCodingP(loc) ) return true;
+        for ( GATKFeature t : l ) {
+            if ( ((rodRefSeq)t.getUnderlyingObject()).overlapsCodingP(loc) ) return true;
         }
         return false;
 
@@ -186,8 +187,8 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
 
         GenomeLoc loc = l.getLocation();
 
-        for ( ReferenceOrderedDatum t : l ) {
-            if ( ((rodRefSeq)t).overlapsCodingP(loc) && ((rodRefSeq)t).overlapsExonP(loc) ) return true;
+        for ( GATKFeature t : l ) {
+            if ( ((rodRefSeq)t.getUnderlyingObject()).overlapsCodingP(loc) && ((rodRefSeq)t.getUnderlyingObject()).overlapsExonP(loc) ) return true;
         }
         return false;
 

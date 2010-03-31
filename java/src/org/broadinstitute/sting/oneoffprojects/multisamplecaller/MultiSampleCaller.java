@@ -9,12 +9,17 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.*;
-import java.util.zip.*;
-import java.io.*;
+import java.util.zip.GZIPOutputStream;
 
 // Beta iterative multi-sample caller
 // j.maguire 6-11-2009
@@ -876,7 +881,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	MultiSampleCallResult MultiSampleCall(RefMetaDataTracker tracker, char ref, AlignmentContext context, List<String> sample_names) 
 	{
 		String in_dbsnp;
-		if (tracker.lookup("DBSNP", null) != null) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
+        if (tracker.getReferenceMetaData("DBSNP").size() > 0) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
 
 		AlignmentContext[] contexts = filterAlignmentContext(context, sample_names, 0);
 		glCache.clear(); // reset the cache

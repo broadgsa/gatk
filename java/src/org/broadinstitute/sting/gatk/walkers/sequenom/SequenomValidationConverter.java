@@ -2,16 +2,18 @@ package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.PlinkRod;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
@@ -74,9 +76,9 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
 
         // get the Plink rod at this locus if there is one
         PlinkRod plinkRod = null;
-        Iterator<ReferenceOrderedDatum> rods = tracker.getAllRods().iterator();
+        Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
         while (rods.hasNext()) {
-            ReferenceOrderedDatum rod = rods.next();
+            Object rod = rods.next().getUnderlyingObject();
             if ( rod instanceof PlinkRod ) {
                 plinkRod = (PlinkRod)rod;
                 break;

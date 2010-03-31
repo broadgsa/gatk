@@ -2,12 +2,11 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
 
@@ -33,7 +32,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));        
+        rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData("dbsnp"));
 
         Allele refAllele = new Allele(Character.toString(ref.getBase()), true);
         Collection<VariantContext> contexts = tracker.getVariantContexts(INPUT_ROD_NAME, ALLOWED_VARIANT_CONTEXT_TYPES, context.getLocation(), refAllele, true, false);
@@ -64,11 +63,11 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 samples.add(sampleName);
             } else {
 
-                RODRecordList rods = tracker.getTrackData(INPUT_ROD_NAME, null);
+                List<Object> rods = tracker.getReferenceMetaData(INPUT_ROD_NAME);
                 if ( rods.size() == 0 )
                     throw new IllegalStateException("VCF record was created, but no rod data is present");
 
-                ReferenceOrderedDatum rod = rods.get(0);
+                Object rod = rods.get(0);
                 if ( rod instanceof RodVCF )
                     samples.addAll(Arrays.asList(((RodVCF)rod).getSampleNames()));
                 else if ( rod instanceof HapMapGenotypeROD )

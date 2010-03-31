@@ -47,41 +47,35 @@ public class RODTrackBuilder implements RMDTrackBuilder {
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(ReferenceOrderedData.class);
 
-    public static HashMap<String, ReferenceOrderedData.RODBinding> Types = new HashMap<String, ReferenceOrderedData.RODBinding>();
-
-    public static void addModule(final String name, final Class<? extends ReferenceOrderedDatum> rodType) {
-        final String boundName = name.toLowerCase();
-        if (Types.containsKey(boundName)) {
-            throw new RuntimeException(String.format("GATK BUG: adding ROD module %s that is already bound", boundName));
-        }
-        logger.info(String.format("* Adding rod class %s", name));
-        Types.put(boundName, new ReferenceOrderedData.RODBinding(name, rodType));
-    }
+    /**
+     * the bindings from track name to the ROD class we use
+     */
+    private static HashMap<String, Class<? extends ReferenceOrderedDatum>> Types = new HashMap<String, Class<? extends ReferenceOrderedDatum>>();
 
     static {
         // All known ROD types
-        addModule("GFF", RodGenotypeChipAsGFF.class);
-        //addModule("dbSNP", rodDbSNP.class);
-        addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
-        addModule("SAMPileup", rodSAMPileup.class);
-        addModule("GELI", rodGELI.class);
-        addModule("RefSeq", rodRefSeq.class);
-        addModule("Table", TabularROD.class);
-        addModule("PooledEM", PooledEMSNPROD.class);
-        addModule("CleanedOutSNP", CleanedOutSNPROD.class);
-        addModule("Sequenom", SequenomROD.class);
-        addModule("SangerSNP", SangerSNPROD.class);
-        addModule("SimpleIndel", SimpleIndelROD.class);
-        addModule("PointIndel", PointIndelROD.class);
-        addModule("HapMapGenotype", HapMapGenotypeROD.class);
-        addModule("Intervals", IntervalRod.class);
-        addModule("Variants", RodGeliText.class);
-        addModule("GLF", RodGLF.class);
-        addModule("VCF", RodVCF.class);
-        addModule("PicardDbSNP", rodPicardDbSNP.class);
-        addModule("HapmapVCF", HapmapVCFROD.class);
-        addModule("Beagle", BeagleROD.class);
-        addModule("Plink", PlinkRod.class);
+        Types.put("GFF", RodGenotypeChipAsGFF.class);
+        Types.put("dbSNP", rodDbSNP.class);
+        Types.put("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
+        Types.put("SAMPileup", rodSAMPileup.class);
+        Types.put("GELI", rodGELI.class);
+        Types.put("RefSeq", rodRefSeq.class);
+        Types.put("Table", TabularROD.class);
+        Types.put("PooledEM", PooledEMSNPROD.class);
+        Types.put("CleanedOutSNP", CleanedOutSNPROD.class);
+        Types.put("Sequenom", SequenomROD.class);
+        Types.put("SangerSNP", SangerSNPROD.class);
+        Types.put("SimpleIndel", SimpleIndelROD.class);
+        Types.put("PointIndel", PointIndelROD.class);
+        Types.put("HapMapGenotype", HapMapGenotypeROD.class);
+        Types.put("Intervals", IntervalRod.class);
+        Types.put("Variants", RodGeliText.class);
+        Types.put("GLF", RodGLF.class);
+        Types.put("VCF", RodVCF.class);
+        Types.put("PicardDbSNP", rodPicardDbSNP.class);
+        Types.put("HapmapVCF", HapmapVCFROD.class);
+        Types.put("Beagle", BeagleROD.class);
+        Types.put("Plink", PlinkRod.class);
     }
 
     /**
@@ -97,15 +91,32 @@ public class RODTrackBuilder implements RMDTrackBuilder {
         */
        //@Override
        public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
-           return new RODRMDTrack(targetClass, name, inputFile, ReferenceOrderedData.parse1Binding(name,targetClass.getName(),inputFile.getAbsolutePath()));
+           return new RODRMDTrack(targetClass, name, inputFile, createROD(name,targetClass,inputFile));
        }
 
-/** @return a map of all available tracks we currently have access to create */
-    //@Override
+    /** @return a map of all available tracks we currently have access to create */
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
         Map<String, Class> ret = new HashMap<String, Class>();
-        for (ReferenceOrderedData.RODBinding binding: Types.values())
-            ret.put(binding.name, binding.type);
+        for (String name : Types.keySet())
+            ret.put(name, Types.get(name));
         return ret;
-    }    
+    }
+
+/**
+     * Helpful function that parses a single triplet of <name> <type> <file> and returns the corresponding ROD with
+     * <name>, of type <type> that reads its input from <file>.
+     *
+     * @param trackName the name of the track to create
+     * @param type the type of the track to create
+     * @param fileName the filename to create the track from
+     * @return a reference ordered data track
+     */
+    public ReferenceOrderedData createROD(final String trackName, Class type, File fileName) {
+
+        // Create the ROD
+        ReferenceOrderedData<?> rod = new ReferenceOrderedData<ReferenceOrderedDatum>(trackName.toLowerCase(), fileName, type );
+        logger.info(String.format("Created binding from %s to %s of type %s", trackName.toLowerCase(), fileName, type));
+        return rod;
+    }
+
 }

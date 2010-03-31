@@ -1,11 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.diagnostics;
 
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 /**
@@ -19,13 +18,13 @@ public class AlleleBalanceInspector extends LocusWalker<Integer, Integer> {
     }
 
     public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        RodGenotypeChipAsGFF hc = (RodGenotypeChipAsGFF) tracker.lookup("hapmap-chip", null);
+        RodGenotypeChipAsGFF hc = tracker.lookup("child",RodGenotypeChipAsGFF.class);
 
         return hc != null && hc.getCalledGenotype().isVariant(ref.getBase());
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        RodGenotypeChipAsGFF hc = (RodGenotypeChipAsGFF) tracker.lookup("hapmap-chip", null);
+        RodGenotypeChipAsGFF hc = tracker.lookup("child",RodGenotypeChipAsGFF.class);
 
         String state;
         if (hc.getCalledGenotype().isHet()) {

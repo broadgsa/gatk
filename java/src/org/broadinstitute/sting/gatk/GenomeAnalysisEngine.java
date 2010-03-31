@@ -25,33 +25,32 @@
 
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
-
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.*;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.*;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.io.stubs.Stub;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.bed.BedParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -281,9 +280,6 @@ public class GenomeAnalysisEngine {
 
         validateReadsAndReferenceAreCompatible(readsDataSource, referenceDataSource);
 
-        // our reference ordered data collection
-        List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
-
         //
         // please don't use these in the future, use the new syntax <- if we're not using these please remove them
         //
@@ -297,12 +293,11 @@ public class GenomeAnalysisEngine {
             bindConvenienceRods("interval", "Intervals", argCollection.intervals.get(0).replaceAll(",", ""));
         }
 
-        // parse out the rod bindings
-        ReferenceOrderedData.parseBindings(argCollection.RODBindings, rods);
+        RMDTrackManager manager = new RMDTrackManager();
+        List<RMDTrack> tracks = manager.getReferenceMetaDataSources(argCollection.RODBindings);
+        validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, tracks);
 
-        validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, rods);
-
-        rodDataSources = getReferenceOrderedDataSources(my_walker, rods);
+        rodDataSources = getReferenceOrderedDataSources(my_walker, tracks);
     }
 
     /**
@@ -571,12 +566,12 @@ public class GenomeAnalysisEngine {
      * @param walker Walker to test.
      * @param rods   Reference-ordered data to load.
      */
-    private void validateSuppliedReferenceOrderedDataAgainstWalker(Walker walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    private void validateSuppliedReferenceOrderedDataAgainstWalker(Walker walker, List<RMDTrack> rods) {
         // Check to make sure that all required metadata is present.
         List<RMD> allRequired = WalkerManager.getRequiredMetaData(walker);
         for (RMD required : allRequired) {
             boolean found = false;
-            for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods) {
+            for (RMDTrack rod : rods) {
                 if (rod.matches(required.name(), required.type()))
                     found = true;
             }
@@ -585,7 +580,7 @@ public class GenomeAnalysisEngine {
         }
 
         // Check to see that no forbidden rods are present.
-        for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods) {
+        for (RMDTrack rod : rods) {
             if (!WalkerManager.isAllowed(walker, rod))
                 throw new ArgumentException(String.format("Walker of type %s does not allow access to metadata: %s.  If this is incorrect, change the @Allows metadata", walker.getClass(), rod.getName()));
         }
@@ -812,9 +807,9 @@ public class GenomeAnalysisEngine {
      * @param rods the reference order data to execute using
      * @return A list of reference-ordered data sources.
      */
-    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(Walker walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(Walker walker, List<RMDTrack> rods) {
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
-        for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods)
+        for (RMDTrack rod : rods)
             dataSources.add(new ReferenceOrderedDataSource(walker, rod));
         return dataSources;
     }

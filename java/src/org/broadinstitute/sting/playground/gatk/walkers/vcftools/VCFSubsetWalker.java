@@ -1,16 +1,18 @@
 package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import java.util.*;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Extracts subsets of a VCF file like one or more samples, all or only variant loci, all or filtered loci.
@@ -51,7 +53,8 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
         ArrayList<VCFRecord> records = new ArrayList<VCFRecord>();
 
         if (tracker != null) {
-            for (ReferenceOrderedDatum rod : tracker.getAllRods()) {
+            for (GATKFeature feature : tracker.getAllRods()) {
+                Object rod = feature.getUnderlyingObject();
                 if (rod instanceof RodVCF) {
                     RodVCF vcfrod = (RodVCF) rod;
                     VCFRecord record = vcfrod.mCurrentRecord;

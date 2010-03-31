@@ -1,14 +1,15 @@
 package org.broadinstitute.sting.playground.gatk.walkers.diagnostics;
 
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 /**
  * Computes the density of SNPs passing and failing filters in intervals on the genome and emits a table for display
@@ -38,15 +39,9 @@ public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDe
     public Pair<VariantContext, GenomeLoc> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         VariantContext vc = null;
 
-        RODRecordList vcfList = tracker.getTrackData("eval", null);
-        if (vcfList != null) {
-            for (ReferenceOrderedDatum d : vcfList) {
-                RodVCF vcfRecord = (RodVCF)d;
-                vc = VariantContextAdaptors.toVariantContext("eval", vcfRecord);
-                break;
-            }
-        }
-
+        RodVCF vcf = tracker.lookup("eval",RodVCF.class);
+        if (vcf != null)
+            vc = VariantContextAdaptors.toVariantContext("eval", vcf);
         return new Pair<VariantContext, GenomeLoc>(vc, context.getLocation());
     }
 

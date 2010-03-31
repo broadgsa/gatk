@@ -2,19 +2,21 @@ package org.broadinstitute.sting.oneoffprojects.walkers.vcftools;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.oneoffprojects.walkers.varianteval2.MendelianViolationEvaluator;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Test routine for new VariantContext object
@@ -46,11 +48,11 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
 
         if ( ref != null ) {
             vc = tracker.getVariantContext(TRACK_NAME, null, context.getLocation(), false);
-            BeagleROD beagle = (BeagleROD)tracker.lookup(BEAGLE_NAME, null);
+            BeagleROD beagle = tracker.lookup(BEAGLE_NAME,BeagleROD.class);
 
             if ( vc != null ) {
                 if ( ! headerWritten ) {
-                    RodVCF vcfrod = (RodVCF)tracker.lookup(TRACK_NAME, null);
+                    RodVCF vcfrod = tracker.lookup(TRACK_NAME,RodVCF.class);
                     writer.writeHeader(vcfrod.getHeader());
                     headerWritten = true;
                 }

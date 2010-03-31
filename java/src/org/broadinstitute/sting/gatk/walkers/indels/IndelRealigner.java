@@ -1,20 +1,21 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
-import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.*;
 import java.io.File;
 import java.io.FileWriter;
+import java.util.*;
 
 /**
  * Performs local realignment of reads based on misalignments due to the presence of indels.
@@ -93,7 +94,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     // the reads and known indels that fall into the current interval
     private final ReadBin readsToClean = new ReadBin();
     private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
-    private final IdentityHashMap<ReferenceOrderedDatum, VariantContext> knownIndelsToTry = new IdentityHashMap<ReferenceOrderedDatum, VariantContext>();
+    private final IdentityHashMap<Object, VariantContext> knownIndelsToTry = new IdentityHashMap<Object, VariantContext>();
 
     // the wrapper around the SAM writer
     private Map<String, SAMFileWriter> writers = null;
@@ -348,10 +349,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void populateKnownIndels(ReadMetaDataTracker metaDataTracker) {
-        for ( Collection<ReferenceOrderedDatum> rods : metaDataTracker.getContigOffsetMapping().values() ) {
-            Iterator<ReferenceOrderedDatum> rodIter = rods.iterator();
+        for ( Collection<GATKFeature> rods : metaDataTracker.getContigOffsetMapping().values() ) {
+            Iterator<GATKFeature> rodIter = rods.iterator();
             while ( rodIter.hasNext() ) {
-                ReferenceOrderedDatum rod = rodIter.next();
+                Object rod = rodIter.next().getUnderlyingObject();
                 if ( knownIndelsToTry.containsKey(rod) )
                     continue;
                 if ( VariantContextAdaptors.canBeConvertedToVariantContext(rod))

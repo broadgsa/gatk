@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -18,11 +18,11 @@ public class VCFUtils {
      */
     private VCFUtils() { }
 
-    public static Set<ReferenceOrderedData> getRodVCFs(GenomeAnalysisEngine toolkit) {
-        Set<ReferenceOrderedData> vcfs = new HashSet<ReferenceOrderedData>();
+    public static Set<RMDTrack> getRodVCFs(GenomeAnalysisEngine toolkit) {
+        Set<RMDTrack> vcfs = new HashSet<RMDTrack>();
 
         for ( ReferenceOrderedDataSource source : toolkit.getRodDataSources() ) {
-            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(RodVCF.class) ) {
                 vcfs.add(rod);
             }
@@ -46,7 +46,7 @@ public class VCFUtils {
         // iterate to get all of the sample names
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(RodVCF.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 fields.addAll(reader.getHeader().getMetaData());

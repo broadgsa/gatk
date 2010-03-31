@@ -24,7 +24,8 @@ public class VariantMatcher extends BasicVariantAnalysis implements GenotypeAnal
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         String r = null;
-        Variation db = (Variation)tracker.lookup(dbName, null);
+
+        Variation db = tracker.lookup(dbName,Variation.class);
         
         if ( eval != null || db != null ) {
             String matchFlag = "    ";

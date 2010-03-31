@@ -27,7 +27,6 @@ import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -52,7 +51,7 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
     Map<String, Class> availableTrackClasses;
 
     /** Create a new track plugin manager. */
-    protected RMDTrackManager() {
+    public RMDTrackManager() {
         super(RMDTrackBuilder.class, "TrackBuilders", null);
     }
 
@@ -66,17 +65,18 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
     public List<RMDTrack> getReferenceMetaDataSources(List<String> triplets) {
         if (availableTracks == null || availableTrackClasses == null) initialize(triplets);
         // try and make the tracks given their requests
-        return createTracksRequestedTrackObjects(availableTracks, availableTrackClasses);
+        return createRequestedTrackObjects(availableTracks, availableTrackClasses);
     }
 
     /**
      * initialize our lists of tracks and builders
      * @param triplets the input to the GATK, as a list of strings passed in through the -B options
      */
-    private void initialize(List<String> triplets) {
-        if (triplets.size() % 3 != 0) throw new StingException("Incorect ROD line " + Utils.join(" ", triplets));
-        for (int x = 0; x < triplets.size(); x = x + 3) {
-            inputs.add(new RMDTriplet(triplets.get(x), triplets.get(x + 1), triplets.get(x + 2)));
+    private void initialize(List<String> triplets) {        
+        for (String value: triplets) {
+            String[] split = value.split(",");
+            if (split.length != 3) throw new IllegalArgumentException(value + " is not a valid reference metadata track description");
+            inputs.add(new RMDTriplet(split[0], split[1], split[2]));
         }
 
         // create an active mapping of builder instances, and a map of the name -> class for convenience
@@ -97,7 +97,6 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
             for (String name : builder.getAvailableTrackNamesAndTypes().keySet()) {
                 availableTracks.put(name.toUpperCase(), builder);
                 availableTrackClasses.put(name.toUpperCase(), builder.getAvailableTrackNamesAndTypes().get(name));
-                System.err.println("Adding track " + name.toUpperCase());
             }
         }
     }
@@ -110,15 +109,15 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
      *
      * @return a list of the tracks, one for each of the requested input tracks
      */
-    private List<RMDTrack> createTracksRequestedTrackObjects(Map<String, RMDTrackBuilder> availableTracks, Map<String, Class> availableTrackClasses) {
+    private List<RMDTrack> createRequestedTrackObjects(Map<String, RMDTrackBuilder> availableTracks, Map<String, Class> availableTrackClasses) {
         // create of live instances of the tracks
         List<RMDTrack> tracks = new ArrayList<RMDTrack>();
 
         // create instances of each of the requested types
         for (RMDTriplet trip : inputs) {
-            RMDTrackBuilder b = availableTracks.get(trip.getType());
+            RMDTrackBuilder b = availableTracks.get(trip.getType().toUpperCase());
             if (b == null) throw new StingException("Unable to find track for " + trip.getType());
-            tracks.add(b.createInstanceOfTrack(availableTrackClasses.get(trip.getType()), trip.getName(), new File(trip.getFile())));
+            tracks.add(b.createInstanceOfTrack(availableTrackClasses.get(trip.getType().toUpperCase()), trip.getName(), new File(trip.getFile())));
         }
         return tracks;
     }

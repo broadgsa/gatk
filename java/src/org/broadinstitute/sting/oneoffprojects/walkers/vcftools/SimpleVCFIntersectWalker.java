@@ -5,12 +5,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.ListUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import java.lang.Long;
 import java.util.*;
 
 /**
@@ -48,8 +45,8 @@ public class SimpleVCFIntersectWalker extends RodWalker<VCFRecordMerger,Long>{
             return null;
         }
 
-        RodVCF priorityCall = ( RodVCF ) tracker.lookup("priority",null);
-        RodVCF otherCall = ( RodVCF ) tracker.lookup("other",null);
+        RodVCF priorityCall = tracker.lookup("priority",RodVCF.class);
+        RodVCF otherCall = tracker.lookup("other",RodVCF.class);
 
         if ( priorityCall == null && otherCall == null ) {
             return null;

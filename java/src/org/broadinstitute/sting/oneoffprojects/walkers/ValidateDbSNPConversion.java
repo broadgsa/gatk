@@ -21,7 +21,7 @@ public class ValidateDbSNPConversion extends RefWalker<Pair<Matrix.BASE, Matrix.
     @Override
     public Pair<Matrix.BASE, Matrix.BASE> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (!tracker.hasROD("dbsnp")) return null;
-        rodDbSNP rod = (rodDbSNP) tracker.lookup("dbSNP", null);
+        rodDbSNP rod =  tracker.lookup("dbSNP",rodDbSNP.class);
         if (rod != null && rod.isSNP() && rod.isBiallelic()) {
             return new Pair<Matrix.BASE, Matrix.BASE>(Matrix.BASE.toBase((byte) ref.getBase()), Matrix.BASE.toBase((byte) rod.getAlternativeBaseForSNP()));
         }

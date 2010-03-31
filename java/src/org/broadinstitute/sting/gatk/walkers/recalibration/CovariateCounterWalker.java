@@ -1,35 +1,25 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
+import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.walkers.By;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadFilters;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.NestedHashMap;
-import org.broadinstitute.sting.utils.PackageUtils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -259,8 +249,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         // Pull out data for this locus for all the input RODs and check if this is a known variant site in any of them
         boolean isSNP = false;
-        for( ReferenceOrderedDatum rod : tracker.getAllRods() ) {
-            if( rod != null && rod instanceof Variation && ((Variation)rod).isSNP() ) {
+        for( GATKFeature rod : tracker.getAllRods() ) {
+            if( rod != null && rod.getUnderlyingObject() instanceof Variation && ((Variation)rod.getUnderlyingObject()).isSNP() ) {
                 isSNP = true; // At least one of the rods says this is a snp site
                 break;
             }

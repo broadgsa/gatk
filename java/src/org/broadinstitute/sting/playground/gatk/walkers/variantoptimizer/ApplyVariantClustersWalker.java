@@ -3,8 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -133,7 +133,8 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         }
 
 
-        for( final ReferenceOrderedDatum rod : tracker.getAllRods() ) {
+        for( final GATKFeature feature : tracker.getAllRods() ) {
+            Object rod = feature.getUnderlyingObject();
             if( rod != null && rod instanceof RodVCF ) {
                 final RodVCF rodVCF = ((RodVCF) rod);
                 //BUGBUG: figure out how to make this use VariantContext to be consistent with other VariantOptimizer walkers

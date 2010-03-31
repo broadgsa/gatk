@@ -1,11 +1,17 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
-import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
 import java.util.*;
@@ -127,11 +133,11 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         ArrayList<RodVCF> vcfRods = new ArrayList<RodVCF>();        
-        Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
+        Iterator<GATKFeature> rods = rodData.getAllRods().iterator();
         while (rods.hasNext()) {
-            ReferenceOrderedDatum rod = rods.next();
-            if ( rod instanceof RodVCF )
-                vcfRods.add((RodVCF)rod);
+            GATKFeature rod = rods.next();
+            if ( rod.getUnderlyingObject() instanceof RodVCF )
+                vcfRods.add((RodVCF)rod.getUnderlyingObject());
         }
 
         if ( vcfRods.size() == 0 )

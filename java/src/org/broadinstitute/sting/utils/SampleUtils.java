@@ -1,15 +1,14 @@
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 import java.util.*;
-
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 
 
 /**
@@ -53,7 +52,7 @@ public class SampleUtils {
         // iterate to get all of the sample names
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(RodVCF.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 samples.addAll(reader.getHeader().getGenotypeSamples());
@@ -82,7 +81,7 @@ public class SampleUtils {
         // iterate to get all of the sample names
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(RodVCF.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();

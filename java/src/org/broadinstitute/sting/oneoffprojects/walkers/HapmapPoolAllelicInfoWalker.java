@@ -1,23 +1,25 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.playground.gatk.walkers.poolseq.PowerBelowFrequencyWalker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.ConcordanceTruthTable;
+import org.broadinstitute.sting.playground.gatk.walkers.poolseq.PowerBelowFrequencyWalker;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -81,7 +83,8 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         int depth = context.size();
         double power = powerWalker.calculatePowerAtFrequency(context,numVariantAllele);
         int called;
-        Variation call = (Variation) tracker.lookup("calls",null);
+
+        Variation call = tracker.lookup("calls",Variation.class);
         if ( call == null ) {
             called = 0;
         } else if ( call.isReference() || call.getNegLog10PError() < minCallQ-EPSILON ) {
@@ -134,8 +137,8 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
     private List<Pair<Genotype,Genotype>> getChips(String[] rodNames, RefMetaDataTracker tracker) {
         List<Pair<Genotype, Genotype>> chips = new ArrayList <Pair<Genotype,Genotype>>(rodNames.length);
         for ( String name : rodNames ) {
-            RODRecordList rods = tracker.getTrackData(name, null);
-            Variation chip = (rods == null ? null : (Variation)rods.get(0));
+            List<Object> rods = tracker.getReferenceMetaData(name);
+            Variation chip = (rods.size() == 0 ? null : (Variation)rods.get(0));
             if ( chip != null ) {
                 // chips must be Genotypes
                 if ( !(chip instanceof VariantBackedByGenotype) )

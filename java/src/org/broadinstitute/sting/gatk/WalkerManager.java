@@ -25,20 +25,19 @@
 
 package org.broadinstitute.sting.gatk;
 
-import java.util.*;
-
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.filters.FilterManager;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.PluginManager;
-import org.broadinstitute.sting.utils.TextFormattingUtils;
-import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
-import org.broadinstitute.sting.utils.help.DescriptionTaglet;
-import org.broadinstitute.sting.utils.help.SummaryTaglet;
-import org.apache.log4j.Logger;
 import net.sf.picard.filter.SamRecordFilter;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.filters.FilterManager;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.PluginManager;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.TextFormattingUtils;
+import org.broadinstitute.sting.utils.help.DescriptionTaglet;
+import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
+import org.broadinstitute.sting.utils.help.SummaryTaglet;
+
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -184,7 +183,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param rod Source to check.
      * @return True if the walker forbids this data type.  False otherwise.
      */
-    public static boolean isAllowed(Walker walker, ReferenceOrderedData<? extends ReferenceOrderedDatum> rod) {
+    public static boolean isAllowed(Walker walker, RMDTrack rod) {
         Allows allowsDataSource = getWalkerAllowed(walker);
 
         // Allows is less restrictive than requires.  If an allows

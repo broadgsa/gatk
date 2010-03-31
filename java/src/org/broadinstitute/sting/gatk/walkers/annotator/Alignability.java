@@ -8,8 +8,8 @@ import org.broadinstitute.sting.gatk.refdata.TabularROD;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 
 public class Alignability implements InfoFieldAnnotation {
@@ -19,8 +19,8 @@ public class Alignability implements InfoFieldAnnotation {
 						   Map<String, StratifiedAlignmentContext> stratifiedContexts, 
 						   VariantContext vc)
 	{
-		TabularROD record = (TabularROD)(tracker.lookup("alignability", null));
-		if (record == null)
+		TabularROD record = tracker.lookup("alignability",TabularROD.class);
+        if (record == null)
             return null;
 
         if (record.get("alignability") == null)

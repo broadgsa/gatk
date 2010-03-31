@@ -1,10 +1,8 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import org.broadinstitute.sting.gatk.refdata.IntervalRod;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -12,7 +10,6 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
-import java.util.Iterator;
 import java.util.List;
 /**
  * User: hanna
@@ -34,7 +31,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     /**
      * The reference-ordered data itself.
      */
-    private final ReferenceOrderedData rod;
+    private final RMDTrack rod;
 
     /**
      * A pool of iterators for navigating through the genome.
@@ -45,8 +42,9 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Create a new reference-ordered data source.
      * @param rod
      */
-    public ReferenceOrderedDataSource( Walker walker, ReferenceOrderedData rod) {
+    public ReferenceOrderedDataSource( Walker walker, RMDTrack rod) {
         this.rod = rod;
+        // if (!rod.supportsQuery()) // TODO: Aaron turn on to enable Tribble searches
         this.iteratorPool = new ReferenceOrderedDataPool( walker, rod );
     }
 
@@ -55,14 +53,14 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Name of the underlying rod.
      */
     public String getName() {
-        return this.rod.getName();
+        return this.rod.getName().toLowerCase(); // TODO: Aaron fix this.  this is a hack, because RODs always lowercased their names, but in for consistency for now
     }
 
     /**
      * Return the underlying reference-ordered data.
      * @return the underlying rod.
      */
-    public ReferenceOrderedData getReferenceOrderedData() {
+    public RMDTrack getReferenceOrderedData() {
         return this.rod;
     }
 
@@ -105,9 +103,9 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
  * A pool of reference-ordered data iterators.
  */
 class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIterator, LocationAwareSeekableRODIterator> {
-    private final ReferenceOrderedData<? extends ReferenceOrderedDatum> rod;
+    private final RMDTrack rod;
     boolean flashbackData = false;
-    public ReferenceOrderedDataPool( Walker walker, ReferenceOrderedData<? extends ReferenceOrderedDatum> rod ) {
+    public ReferenceOrderedDataPool( Walker walker, RMDTrack rod ) {
         if (walker instanceof ReadWalker) flashbackData = true; // && (rod.getType() != IntervalRod.class)
         this.rod = rod;
     }
@@ -118,7 +116,8 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      * @return The newly created resource.
      */
     public LocationAwareSeekableRODIterator createNewResource() {
-        return (flashbackData) ? new FlashBackIterator(rod.iterator()) : rod.iterator();
+        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(rod.getIterator());
+        return (flashbackData) ? new FlashBackIterator(iter) : iter;
     }
 
     /**

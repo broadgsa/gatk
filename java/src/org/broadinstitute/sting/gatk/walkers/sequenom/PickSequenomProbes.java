@@ -1,17 +1,21 @@
 package org.broadinstitute.sting.gatk.walkers.sequenom;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
 
 
 /**
@@ -45,7 +49,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
                 snp_mask = new ReferenceOrderedData<TabularROD>("snp_mask",
                         new java.io.File(SNP_MASK), TabularROD.class);
             }
-            snpMaskIterator = snp_mask.iterator();
+            snpMaskIterator = new SeekableRODIterator(new GATKFeatureIterator(snp_mask.iterator()));
 		}
     }
 
@@ -55,10 +59,10 @@ public class PickSequenomProbes extends RefWalker<String, String> {
 
         String refBase = String.valueOf(ref.getBase());
 
-        Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
+        Iterator<GATKFeature> rods = rodData.getAllRods().iterator();
 		Variation variant = null;
         while (rods.hasNext()) {
-            ReferenceOrderedDatum rod = rods.next();
+            Object rod = rods.next().getUnderlyingObject();
 
             // if we have multiple variants at a locus, just take the first one we see
             if ( rod instanceof Variation ) {
@@ -79,7 +83,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
         if ( snpMaskIterator != null ) {
             RODRecordList snpList =  snpMaskIterator.seekForward(GenomeLocParser.createGenomeLoc(contig,offset-200,offset+200));
             if ( snpList != null && snpList.size() != 0 ) {
-                Iterator<ReferenceOrderedDatum>  snpsInWindow = snpList.iterator();
+                Iterator<GATKFeature>  snpsInWindow = snpList.iterator();
                 int i = 0;
                 while ( snpsInWindow.hasNext() ) {
                     GenomeLoc snp = snpsInWindow.next().getLocation();

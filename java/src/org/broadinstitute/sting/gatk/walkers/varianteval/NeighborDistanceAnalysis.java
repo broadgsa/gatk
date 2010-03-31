@@ -39,7 +39,8 @@ public class NeighborDistanceAnalysis extends BasicVariantAnalysis implements Ge
         String r = null;
 
         if ( eval != null && eval.isSNP() ) {
-            IntervalRod intervalROD = (IntervalRod)tracker.lookup("interval", null);
+            IntervalRod intervalROD = tracker.lookup("interval",IntervalRod.class);
+
             GenomeLoc interval = intervalROD == null ? null : intervalROD.getLocation();
 
             if (lastVariation != null) {

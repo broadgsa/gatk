@@ -5,9 +5,11 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
@@ -45,7 +47,8 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
     }
 
     public Map<String,Double> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        RodVCF vcfRod = (RodVCF) tracker.lookup("variants",null);
+        RodVCF vcfRod = tracker.lookup("variants",RodVCF.class);
+
         if ( vcfRod == null ) {
             return null;
         }

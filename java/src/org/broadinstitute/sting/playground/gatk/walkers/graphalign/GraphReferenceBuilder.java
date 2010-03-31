@@ -1,29 +1,27 @@
 package org.broadinstitute.sting.playground.gatk.walkers.graphalign;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.fasta.FastaReferenceWalker;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.jgrapht.Graph;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleGraph;
-import org.jgrapht.graph.SimpleDirectedGraph;
-import org.apache.log4j.Logger;
-
-import java.util.*;
-import java.io.ObjectOutputStream;
-import java.io.FileOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.RefWalker;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Variation;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A completely experimental walker that constructs a graphical reference that incorporates variation from provided
@@ -86,10 +84,10 @@ public class GraphReferenceBuilder extends RefWalker<Integer, Integer> {
 //        }
 
         boolean alreadyAddedAtThisLoc = false;
-        for ( ReferenceOrderedDatum rod : rodData.getAllRods() ) {
-            if ( rod instanceof Variation && ! alreadyAddedAtThisLoc ) {
+        for ( GATKFeature rod : rodData.getAllRods() ) {
+            if ( rod.getUnderlyingObject() instanceof Variation && ! alreadyAddedAtThisLoc ) {
                 // if we have multiple variants at a locus, just take the first damn one we see for now
-                Variation variant = (Variation) rod;
+                Variation variant = (Variation) rod.getUnderlyingObject();
                 // todo -- getAlternativeBases should be getAlleles()
                 GenomeLoc loc = variant.getLocation();
                 String[] allAllelesList = null; // variant.getAlternateBases().split(""); // todo fixme

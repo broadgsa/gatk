@@ -26,14 +26,15 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -140,15 +141,16 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
      */
     private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
         ArrayList<String> rodStrings = new ArrayList<String>();
-        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
-            if ( datum != null && ! (datum instanceof rodDbSNP)) {
-                rodStrings.add(datum.toSimpleString());
+        for ( GATKFeature datum : tracker.getAllRods() ) {
+            if ( datum != null && ! (datum.getUnderlyingObject() instanceof rodDbSNP)) {
+                rodStrings.add(((ReferenceOrderedDatum)datum.getUnderlyingObject()).toSimpleString()); // TODO: Aaron figure out what to do with this line, it's bad form
             }
         }
         String rodString = Utils.join(", ", rodStrings);
 
-        rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
-        if ( dbsnp != null )
+        rodDbSNP dbsnp = tracker.lookup("dbSNP",rodDbSNP.class);
+
+        if ( dbsnp != null)
             rodString += dbsnp.toMediumString();
 
         if ( !rodString.equals("") )

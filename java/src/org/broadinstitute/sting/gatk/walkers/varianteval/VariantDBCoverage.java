@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
@@ -59,14 +59,14 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         return nConcordant() / (1.0 * nSNPsAtdbSNPs());
     }
 
-    public static Variation getFirstRealSNP(RODRecordList dbsnpList) {
+    public static Variation getFirstRealSNP(List<Object> dbsnpList) {
         if (dbsnpList == null)
             return null;
 
         Variation dbsnp = null;
-        for (ReferenceOrderedDatum d : dbsnpList) {
-            if (((Variation) d).isSNP() && (! (d instanceof RodVCF) || ! ((RodVCF)d).isFiltered())) {
-                dbsnp = (Variation)d;
+        for (Object d : dbsnpList) {
+            if (((Variation) d).isSNP() && (!(d instanceof RodVCF) || !((RodVCF) d).isFiltered())) {
+                dbsnp = (Variation) d;
                 break;
             }
         }
@@ -75,7 +75,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     }
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        Variation dbSNP = getFirstRealSNP(tracker.getTrackData( dbName, null, false ));
+        Variation dbSNP = getFirstRealSNP(tracker.getReferenceMetaData( dbName, false ));
         String result = null;
 
         if ( dbSNP != null ) nDBSNPs++;               // count the number of real dbSNP events

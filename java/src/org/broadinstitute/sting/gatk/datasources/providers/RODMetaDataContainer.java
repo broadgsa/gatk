@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.Pair;
 
 import java.util.*;
@@ -23,26 +23,26 @@ import java.util.*;
  */
 public class RODMetaDataContainer {
     // we only allow non-dupplicate ROD names, a HashMap is fine
-    private final HashMap<String, ReferenceOrderedDatum> nameMap = new HashMap<String, ReferenceOrderedDatum>();
+    private final HashMap<String, GATKFeature> nameMap = new HashMap<String, GATKFeature>();
 
     // we do allow duplicate class entries, so we need to store pairs of data
-    private final List<Pair<Class, ReferenceOrderedDatum>> classMap = new ArrayList<Pair<Class, ReferenceOrderedDatum>>();
+    private final List<Pair<Class, GATKFeature>> classMap = new ArrayList<Pair<Class, GATKFeature>>();
 
-    public void addEntry(ReferenceOrderedDatum data) {
+    public void addEntry(GATKFeature data) {
         nameMap.put(data.getName(),data);
-        classMap.add(new Pair<Class, ReferenceOrderedDatum>(data.getClass(),data));
+        classMap.add(new Pair<Class, GATKFeature>(data.getClass(),data));
     }
 
-    public Collection<ReferenceOrderedDatum> getSet(String name) {
+    public Collection<GATKFeature> getSet(String name) {
         if (name == null) return nameMap.values();
-        Set<ReferenceOrderedDatum> set = new HashSet<ReferenceOrderedDatum>();
+        Set<GATKFeature> set = new HashSet<GATKFeature>();
         if (nameMap.containsKey(name)) set.add(nameMap.get(name));
         return set;
     }
     // the brute force (n) search ended up being faster than sorting and binary search in all but the most extreme cases (thousands of RODs at a location).
-    public Collection<ReferenceOrderedDatum> getSet(Class cls) {
-        Collection<ReferenceOrderedDatum> ret = new ArrayList<ReferenceOrderedDatum>();
-        for (Pair<Class, ReferenceOrderedDatum> pair: classMap)
+    public Collection<GATKFeature> getSet(Class cls) {
+        Collection<GATKFeature> ret = new ArrayList<GATKFeature>();
+        for (Pair<Class, GATKFeature> pair: classMap)
             if (pair.first.equals(cls)) ret.add(pair.second);
         return ret;
     }

@@ -23,20 +23,37 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 
-import java.util.List;
+import java.util.Iterator;
 
 
 /**
- * @author aaron
- *         <p/>
- *         Class RODRecordList
- *         <p/>
- *         make the RODRecord list an interface, so we can stub in other implementations
- *         during testing.
+ * 
+ * @author aaron 
+ * 
+ * Class GATKFeatureIterator
+ *
+ * Takes a RODatum iterator and makes it an iterator of GATKFeatures.  Shazam!
  */
-public interface RODRecordList extends List<GATKFeature>, Comparable<RODRecordList> {
-    public GenomeLoc getLocation();
-    public String getName();
+public class GATKFeatureIterator implements Iterator<GATKFeature> {
+    private final Iterator<ReferenceOrderedDatum> iter;
+    public GATKFeatureIterator(Iterator<ReferenceOrderedDatum> iter) {
+        this.iter = iter;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return iter.hasNext();
+    }
+
+    @Override
+    public GATKFeature next() {
+        return new GATKFeature.RODGATKFeature(iter.next());
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("Remove not supported");
+    }
 }

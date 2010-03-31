@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -29,8 +29,8 @@ public class ValidationDataAnalysis extends BasicVariantAnalysis implements Geno
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
 
         validated_sites++;
-        Variation val_data = (Variation) tracker.lookup("validation", null);
-        Variation dbsnp = (Variation) tracker.lookup("dbsnp",null);
+        List<Object> objects = tracker.getReferenceMetaData("validation");
+        Object val_data = (objects.size() > 0) ? objects.get(0) : null;
 
         if (eval != null) {
             calls_at_sites_validated_true++;

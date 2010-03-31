@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -11,14 +12,14 @@ import java.util.*;
 
 /**
  * This class represents the Reference Metadata available at a particular site in the genome.  It can be
- * used to conveniently lookup the RODs at this site, as well just getting a list of all of the RODs
+ * used to conveniently lookup the RMDs at this site, as well just getting a list of all of the RMDs
  *
  * The standard interaction model is:
  *
- * Traversal system arrives at a site, which has a bunch of rods covering it
-Genotype * Traversal calls tracker.bind(name, rod) for each rod in rods
+ * Traversal system arrives at a site, which has a bunch of RMDs covering it
+Genotype * Traversal calls tracker.bind(name, RMD) for each RMDs in RMDs
  * Traversal passes tracker to the walker
- * walker calls lookup(name, default) to obtain the rod values at this site, or default if none was
+ * walker calls lookup(name, default) to obtain the RMDs values at this site, or default if none was
  *   bound at this site.
  *
  * User: mdepristo
@@ -29,101 +30,72 @@ public class RefMetaDataTracker {
     final HashMap<String, RODRecordList> map = new HashMap<String, RODRecordList>();
     protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
 
+
     /**
-     * Finds the reference meta data named name, if it exists, otherwise returns the defaultValue.
-     * This is a legacy method that works with "singleton" tracks, in which a single ROD record can be associated
-     * with any given site. If track provides multiple records associated with a site, this method will return
-     * the first one.
-     * @param name
-     * @param defaultValue
-     * @return
+     * get all the reference meta data associated with a track name.
+     * @param name the name of the track we're looking for
+     * @return a list of objects, representing the underlying objects that the tracks produce.  I.e. for a
+     *         dbSNP RMD this will be a RodDbSNP, etc.
+     *
+     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
+     */
+    public List<Object> getReferenceMetaData(final String name) {
+        RODRecordList list = getTrackDataByName(name, true);
+        List<Object> objects = new ArrayList<Object>();
+        if (list == null) return objects;
+        for (GATKFeature feature : list)
+            objects.add(feature.getUnderlyingObject());
+        return objects;
+    }
+
+    /**
+     * get all the reference meta data associated with a track name.
+     * @param name the name of the track we're looking for
+     * @param requireExactMatch do we require an exact match for the name (true) or do we require only that the name starts with
+     *        the passed in parameter (false).
+     * @return a list of objects, representing the underlying objects that the tracks produce.  I.e. for a
+     *         dbSNP rod this will be a RodDbSNP, etc.
+     *
+     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
+     */
+    public List<Object> getReferenceMetaData(final String name, boolean requireExactMatch) {
+        RODRecordList list = getTrackDataByName(name, requireExactMatch);
+        List<Object> objects = new ArrayList<Object>();
+        if (list == null) return objects;
+        for (GATKFeature feature : list)
+            objects.add(feature.getUnderlyingObject());
+        return objects;
+    }
+
+    /**
+     * get a singleton record, given the name and a type.  This function will return the first record at the current position seen,
+     * and emit a logger warning if there were more than one option.
+     *
+     * WARNING: this method is deprecated, since we now suppport more than one RMD at a single position for all tracks.  If there are
+     * are multiple RMD objects at this location, there is no contract for which object this method will pick, and which object gets
+     * picked may change from time to time!  BE WARNED!
+     * 
+     * @param name the name of the track
+     * @param clazz the underlying type to return
+     * @param <T> the type to parameterize on, matching the clazz argument
+     * @return a record of type T, or null if no record is present.
      */
     @Deprecated
-    public ReferenceOrderedDatum lookup(final String name, ReferenceOrderedDatum defaultValue) {
-        //logger.debug(String.format("Lookup %s%n", name));
-        final String luName = canonicalName(name);
-        if ( map.containsKey(luName) ) {
-            RODRecordList value = map.get(luName) ;
-            if ( value != null ) {
-                List<ReferenceOrderedDatum> l = value;
-                if ( l != null & l.size() > 0 ) return value.get(0);
-            }
-        } 
-        return defaultValue;
-    }
+    public <T> T lookup(final String name, Class<T> clazz) {
+        RODRecordList objects = getTrackDataByName(name, true);
 
-    /**
-     * Finds the reference metadata track named 'name' and returns all ROD records from that track associated
-     * with the current site as a RODRecordList collection object. If no data track with specified name is available,
-     * returns defaultValue wrapped as RODRecordList object. NOTE: if defaultValue is null, it will be wrapped up
-     * with track name set to 'name' and location set to null; otherwise the wrapper object will have name and
-     * location set to defaultValue.getName() and defaultValue.getLocation(), respectively (use caution,
-     * defaultValue.getLocation() may be not equal to what RODRecordList's location would be expected to be otherwise:
-     * for instance, on locus traversal, location is usually expected to be a single base we are currently looking at,
-     * regardless of the presence of "extended" RODs overlapping with that location).
-     * @param name
-     * @param defaultValue
-     * @return
-     */
-    public RODRecordList getTrackData(final String name, ReferenceOrderedDatum defaultValue, boolean requireExactMatch) {
-        //logger.debug(String.format("Lookup %s%n", name));
+        // if emtpy or null return null;
+        if (objects == null || objects.size() < 1) return null;
 
-        final String luName = canonicalName(name);
-        RODRecordList trackData = null;
+        if (objects.size() > 1)
+            logger.info("lookup is choosing the first record from " + (objects.size() - 1) + " options");
 
-        if ( requireExactMatch ) {
-            if ( map.containsKey(luName) )
-                trackData = map.get(luName);
-        } else {
-            for ( Map.Entry<String, RODRecordList> datum : map.entrySet() ) {
-                final String rodName = datum.getKey();
-                if ( rodName.startsWith(luName) ) {
-                    if ( trackData == null ) trackData = new RODRecordListImpl(name);
-                    //System.out.printf("Adding bindings from %s to %s at %s%n", rodName, name, datum.getValue().getLocation());
-                    ((RODRecordListImpl)trackData).add(datum.getValue(), true);
-                }
-            }
-        }
+        Object obj = objects.get(0).getUnderlyingObject();
+        if (!(clazz.isAssignableFrom(obj.getClass())))
+            throw new StingException("Unable to case track named " + name + " to type of " + clazz.toString()
+                                     + " it's of type " + obj.getClass());
 
-        if ( trackData != null )
-            return trackData;
-        else if ( defaultValue == null )
-            return null;
-        else
-            return new RODRecordListImpl(defaultValue.getName(),
-                    Collections.singletonList(defaultValue),
-                    defaultValue.getLocation());
-    }
-
-    public RODRecordList getTrackData(final String name, ReferenceOrderedDatum defaultValue) {
-        return getTrackData(name, defaultValue, true);
-    }
-
-
-    /**
-     * @see this.lookup
-     * @param name
-     * @param defaultValue
-     * @return
-     */
-    @Deprecated
-    public Object lookup(final String name, Object defaultValue) {
-        final String luName = canonicalName(name);
-        if ( map.containsKey(luName) )
-            return map.get(luName);
-        else
-            return defaultValue;
-    }
-
-    /**
-     * Returns the canonical name of the rod name
-     * @param name
-     * @return
-     */
-    private final String canonicalName(final String name)
-    {
-        //return name; // .toLowerCase();
-        return name.toLowerCase();
+        return (T)obj;
     }
 
     /**
@@ -133,17 +105,18 @@ public class RefMetaDataTracker {
      * @return true if it has the rod
      */
     public boolean hasROD(final String name) {
-       return map.containsKey(canonicalName(name));
+        return map.containsKey(canonicalName(name));
     }
 
+
     /**
-     * Get all of the RODs at the current site. The collection is "flattened": for any track that has multiple records
+     * Get all of the RMDs at the current site. The collection is "flattened": for any track that has multiple records
      * at the current site, they all will be added to the list as separate elements.
-     * 
+     *
      * @return
      */
-    public Collection<ReferenceOrderedDatum> getAllRods() {
-        List<ReferenceOrderedDatum> l = new ArrayList<ReferenceOrderedDatum>();
+    public Collection<GATKFeature> getAllRods() {
+        List<GATKFeature> l = new ArrayList<GATKFeature>();
         for ( RODRecordList rl : map.values() ) {
             if ( rl == null ) continue; // how do we get null value stored for a track? shouldn't the track be missing from the map alltogether?
             l.addAll(rl);
@@ -153,16 +126,16 @@ public class RefMetaDataTracker {
     }
 
     /**
-     * Get all of the ROD tracks at the current site. Each track is returned as a single compound
-     * object (RODRecordList) that may contain multiple ROD records associated with the current site.
+     * Get all of the RMD tracks at the current site. Each track is returned as a single compound
+     * object (RODRecordList) that may contain multiple RMD records associated with the current site.
      *
      * @return
      */
     public Collection<RODRecordList> getBoundRodTracks() {
         LinkedList<RODRecordList> bound = new LinkedList<RODRecordList>();
-        
+
         for ( RODRecordList value : map.values() ) {
-             if ( value != null && value.size() != 0 ) bound.add(value);
+            if ( value != null && value.size() != 0 ) bound.add(value);
         }
 
         return bound;
@@ -177,26 +150,26 @@ public class RefMetaDataTracker {
 
         int n = 0;
         for ( RODRecordList value : map.values() ) {
-             if ( value != null && ! value.isEmpty() ) {
-                 if ( exclude == null || ! value.getName().equals(exclude) )
+            if ( value != null && ! value.isEmpty() ) {
+                if ( exclude == null || ! value.getName().equals(exclude) )
                     n++;
-             }
+            }
         }
 
         return n;
     }
 
-    public Collection<ReferenceOrderedDatum> getBoundRodRecords() {
-        LinkedList<ReferenceOrderedDatum> bound = new LinkedList<ReferenceOrderedDatum>();
 
-        for ( RODRecordList valueList : map.values() ) {
-            for ( ReferenceOrderedDatum value : valueList ) {
-                if ( value != null )
-                bound.add(value);
-            }
-        }
-
-        return bound;
+    /**
+     * Binds the list of reference ordered data records (RMDs) to track name at this site.  Should be used only by the traversal
+     * system to provide access to RMDs in a structured way to the walkers.
+     *
+     * @param name the name of the track
+     * @param rod the collection of RMD data
+     */
+    public void bind(final String name, RODRecordList rod) {
+        //logger.debug(String.format("Binding %s to %s", name, rod));
+        map.put(canonicalName(name), rod);
     }
 
 
@@ -207,7 +180,6 @@ public class RefMetaDataTracker {
     public Collection<VariantContext> getAllVariantContexts() {
         return getAllVariantContexts(null, null, false, false);
     }
-
 
     /**
      * Converts all possible ROD tracks to VariantContexts objects.  If allowedTypes != null, then only
@@ -264,7 +236,7 @@ public class RefMetaDataTracker {
         Collection<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( String name : names ) {
-            RODRecordList rodList = getTrackData(name, null);
+            RODRecordList rodList = getTrackDataByName(name,true); // require that the name is an exact match
 
             if ( rodList != null )
                 addVariantContexts(contexts, rodList, allowedTypes, curLocation, ref, requireStartHere, takeFirstOnly );
@@ -294,17 +266,18 @@ public class RefMetaDataTracker {
             return contexts.iterator().next();
     }
 
+
     private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, Allele ref, boolean requireStartHere, boolean takeFirstOnly ) {
-        for ( ReferenceOrderedDatum rec : rodList ) {
-            if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec) ) {
+        for ( GATKFeature rec : rodList ) {
+            if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec.getUnderlyingObject()) ) {
                 // ok, we might actually be able to turn this record in a variant context
                 VariantContext vc;
                 if ( ref == null )
-                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec);
+                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec.getUnderlyingObject());
                 else
-                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec, ref);
+                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec.getUnderlyingObject(), ref);
 
-                if ( vc == null ) // sometimes the track has odd stuff in it that can't be converted 
+                if ( vc == null ) // sometimes the track has odd stuff in it that can't be converted
                     continue;
 
                 // now, let's decide if we want to keep it
@@ -322,16 +295,49 @@ public class RefMetaDataTracker {
         }
     }
 
+    /**
+     * Finds the reference metadata track named 'name' and returns all ROD records from that track associated
+     * with the current site as a RODRecordList collection object. If no data track with specified name is available,
+     * returns defaultValue wrapped as RODRecordList object. NOTE: if defaultValue is null, it will be wrapped up
+     * with track name set to 'name' and location set to null; otherwise the wrapper object will have name and
+     * location set to defaultValue.getName() and defaultValue.getLocation(), respectively (use caution,
+     * defaultValue.getLocation() may be not equal to what RODRecordList's location would be expected to be otherwise:
+     * for instance, on locus traversal, location is usually expected to be a single base we are currently looking at,
+     * regardless of the presence of "extended" RODs overlapping with that location).
+     * @param name
+     * @return
+     */
+    private RODRecordList getTrackDataByName(final String name, boolean requireExactMatch) {
+        //logger.debug(String.format("Lookup %s%n", name));
+
+        final String luName = canonicalName(name);
+        RODRecordList trackData = null;
+
+        if ( requireExactMatch ) {
+            if ( map.containsKey(luName) )
+                trackData = map.get(luName);
+        } else {
+            for ( Map.Entry<String, RODRecordList> datum : map.entrySet() ) {
+                final String rodName = datum.getKey();
+                if ( rodName.startsWith(luName) ) {
+                    if ( trackData == null ) trackData = new RODRecordListImpl(name);
+                    //System.out.printf("Adding bindings from %s to %s at %s%n", rodName, name, datum.getValue().getLocation());
+                    ((RODRecordListImpl)trackData).add(datum.getValue(), true);
+                }
+            }
+        }
+        if ( trackData != null )
+            return trackData;
+        else
+            return null;
+    }
 
     /**
-     * Binds the list of reference ordered data records (RODs) to track name at this site.  Should be used only by the traversal
-     * system to provide access to RODs in a structured way to the walkers.
-     *
-     * @param name
-     * @param rod
+     * Returns the canonical name of the rod name (lowercases it)
+     * @param name the name of the rod
+     * @return
      */
-    public void bind(final String name, RODRecordList rod) {
-        //logger.debug(String.format("Binding %s to %s", name, rod));
-        map.put(canonicalName(name), rod);
+    private final String canonicalName(final String name) {
+        return name.toLowerCase();
     }
 }

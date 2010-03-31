@@ -26,14 +26,17 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.TreeMap;
 
 /** a ROD view for reads. This provides the Read traversals a way of getting a ReadMetaDataTracker */
 public class ReadBasedReferenceOrderedView implements View {
@@ -71,7 +74,7 @@ public class ReadBasedReferenceOrderedView implements View {
 
 /** stores a window of data, dropping RODs if we've passed the new reads start point. */
 class WindowedData {
-    // the queue of possibly in-frame RODs; RODs are dropped removed as soon as they are out of scope
+    // the queue of possibly in-frame RODs; RODs are removed as soon as they are out of scope
     private final TreeMap<Long, RODMetaDataContainer> mapping = new TreeMap<Long, RODMetaDataContainer>();
 
     // our current location from the last read we processed
@@ -102,7 +105,7 @@ class WindowedData {
         states = new ArrayList<RMDDataState>();
         if (provider != null && provider.getReferenceOrderedData() != null)
             for (ReferenceOrderedDataSource dataSource : provider.getReferenceOrderedData())
-                states.add(new RMDDataState(dataSource, (LocationAwareSeekableRODIterator)dataSource.seek(GenomeLocParser.createGenomeLoc(rec.getReferenceIndex(), rec.getAlignmentStart()))));
+                states.add(new RMDDataState(dataSource, dataSource.seek(GenomeLocParser.createGenomeLoc(rec.getReferenceIndex(), rec.getAlignmentStart()))));
     }
 
     /**
@@ -147,7 +150,7 @@ class WindowedData {
                 state.iterator.next();
             while (state.iterator.hasNext() && state.iterator.peekNextLocation().overlapsP(currentLoc)) {
                 RODRecordList list = state.iterator.next();
-                for (ReferenceOrderedDatum datum : list) {
+                for (GATKFeature datum : list) {
                     if (!mapping.containsKey(list.getLocation().getStart()))
                         mapping.put(list.getLocation().getStart(), new RODMetaDataContainer());
                     mapping.get(list.getLocation().getStart()).addEntry(datum);

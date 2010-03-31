@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.util.Iterator;
 
 
@@ -82,8 +83,8 @@ public abstract class RMDTrack {
      *
      * @return true on a match, false if the name or type is different
      */
-    public boolean matches(String name, String type) {
-        return (name.equals(this.name) && type.equals(this.type.getSimpleName()));
+    public boolean matches(String name, Type type) {
+        return (name.equals(this.name) && (type.getClass().isAssignableFrom(this.type.getClass())));
     }
 
     /**

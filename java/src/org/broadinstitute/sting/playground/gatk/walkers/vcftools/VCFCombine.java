@@ -1,15 +1,21 @@
 package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import java.util.*;
 import java.io.File;
+import java.util.*;
 
 /**
  * Combines VCF records from different sources; supports both full merges and set unions.
@@ -82,7 +88,7 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
     }
 
     private void validateAnnotateUnionArguments(String[] priority) {
-        Set<ReferenceOrderedData> rods = VCFUtils.getRodVCFs(getToolkit());
+        Set<RMDTrack> rods = VCFUtils.getRodVCFs(getToolkit());
         if ( rods.size() != priority.length ) {
             throw new StingException("A complete priority list must be provided when annotateUnion is provided");
         }
@@ -92,7 +98,7 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
 
         for ( String p : priority ) {
             boolean good = false;
-            for ( ReferenceOrderedData data : rods ) {
+            for ( RMDTrack data : rods ) {
                 if ( p.equals(data.getName()) )
                     good = true;
             }
@@ -106,9 +112,9 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
 
         // get all of the vcf rods at this locus
         ArrayList<RodVCF> vcfRods = new ArrayList<RodVCF>();
-        Iterator<ReferenceOrderedDatum> rods = tracker.getAllRods().iterator();
+        Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
         while (rods.hasNext()) {
-            ReferenceOrderedDatum rod = rods.next();
+            Object rod = rods.next().getUnderlyingObject();
             if ( rod instanceof RodVCF )
                 vcfRods.add((RodVCF)rod);
         }

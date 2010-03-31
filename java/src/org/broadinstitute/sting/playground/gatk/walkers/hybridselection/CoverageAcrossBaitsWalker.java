@@ -1,19 +1,21 @@
 package org.broadinstitute.sting.playground.gatk.walkers.hybridselection;
 
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.IntervalRod;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.IntervalRod;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import net.sf.samtools.SAMRecord;
 
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Accumulates coverage across hybrid selection bait intervals to assess effect of bait adjacency and overlap on coverage
@@ -55,8 +57,8 @@ public class CoverageAcrossBaitsWalker extends LocusWalker<Pair<Integer, Integer
 
     public Pair<Integer, Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         List<SAMRecord> reads = context.getReads();
+        IntervalRod intervalROD = tracker.lookup("interval",IntervalRod.class);
 
-        IntervalRod intervalROD = (IntervalRod)tracker.lookup("interval", null);
         GenomeLoc interval = intervalROD == null ? null : intervalROD.getLocation();
         if (interval == null) { throw new StingException("No intervals at locus; should not happen"); }
         int offset = (int)(context.getPosition() - interval.getStart());

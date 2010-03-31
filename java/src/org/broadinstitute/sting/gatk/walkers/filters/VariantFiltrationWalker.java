@@ -1,18 +1,22 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-import org.broadinstitute.sting.gatk.contexts.*;
+import org.apache.commons.jexl.Expression;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
-import org.apache.commons.jexl.*;
 
 
 /**
@@ -119,9 +123,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        RODRecordList rods = tracker.getTrackData("variant", null);
+        List<Object> rods = tracker.getReferenceMetaData("variant");
         // ignore places where we don't have a variant
-        if ( rods == null || rods.size() == 0 )
+        if ( rods.size() == 0 )
             return 0;
 
         VariantContext vc = VariantContextAdaptors.toVariantContext("variant", rods.get(0));
@@ -176,8 +180,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
 
         // test for SNP mask, if present
-        RODRecordList mask = context.getTracker().getTrackData("mask", null);
-        if ( mask != null && mask.size() > 0 )
+        List<Object> mask = context.getTracker().getReferenceMetaData("mask");
+        if ( mask.size() > 0 )
             filters.add(MASK_NAME);
 
         // test for clustered SNPs if requested

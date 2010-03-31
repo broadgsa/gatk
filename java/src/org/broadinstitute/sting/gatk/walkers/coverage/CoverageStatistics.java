@@ -5,8 +5,10 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.By;
@@ -339,9 +341,9 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
         RODRecordList annotationList = refseqIterator.seekForward(target);
         if (annotationList == null) { return "UNKNOWN"; }
 
-        for(ReferenceOrderedDatum rec : annotationList) {
-            if ( ((rodRefSeq)rec).overlapsExonP(target) ) {
-                return ((rodRefSeq)rec).getGeneName();
+        for(GATKFeature rec : annotationList) {
+            if ( ((rodRefSeq)rec.getUnderlyingObject()).overlapsExonP(target) ) {
+                return ((rodRefSeq)rec.getUnderlyingObject()).getGeneName();
             }
         }
 
@@ -352,7 +354,7 @@ public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageA
     private LocationAwareSeekableRODIterator initializeRefSeq() {
         ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
                 refSeqGeneList, rodRefSeq.class);
-        return refseq.iterator();
+        return new SeekableRODIterator(new GATKFeatureIterator(refseq.iterator()));
     }
 
     private void printTargetSummary(PrintStream output, Pair<?,DepthOfCoverageStats> intervalStats) {

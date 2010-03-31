@@ -4,13 +4,12 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -33,17 +32,17 @@ public class ThousandGenomesAnnotator implements InfoFieldAnnotation {
         if ( tracker == null )
             return null;
 
-        RODRecordList pilot1 = tracker.getTrackData("pilot1",null);
-        RODRecordList pilot2 = tracker.getTrackData("pilot2",null);
+        HapmapVCFROD pilot1 = tracker.lookup("pilot1",HapmapVCFROD.class);
+        HapmapVCFROD pilot2 = tracker.lookup("pilot2",HapmapVCFROD.class);
 
         String result;
 
         if ( pilot1 == null && pilot2 == null) {
             result = "0";
         } else {
-            if ( pilot1 != null && ! ( (HapmapVCFROD) pilot1.get(0)).getRecord().isFiltered() ) {
+            if ( pilot1 != null && ! pilot1.getRecord().isFiltered() ) {
                 result = "1";
-            } else if ( pilot2 != null && ! ( (HapmapVCFROD) pilot2.get(0)).getRecord().isFiltered() ) {
+            } else if ( pilot2 != null && !pilot2.getRecord().isFiltered() ) {
                 result = "1";
             } else {
                 result = "0";

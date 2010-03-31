@@ -1,18 +1,22 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.*;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The Broad Institute
@@ -79,8 +83,7 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
         // get all of the chip rods at this locus
         HashMap<String, Genotype> chips = new HashMap<String, Genotype>();
         for ( String name : rodNames ) {
-            RODRecordList rods = tracker.getTrackData(name, null);
-            Variation chip = (rods == null ? null : (Variation)rods.get(0));
+            Variation chip = tracker.lookup(name,Variation.class);
             if ( chip != null ) {
                 // chips must be Genotypes
                 if ( !(chip instanceof VariantBackedByGenotype) )

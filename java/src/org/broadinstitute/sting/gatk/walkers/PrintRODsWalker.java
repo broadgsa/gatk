@@ -25,8 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.Iterator;
@@ -56,9 +58,9 @@ public class PrintRODsWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Iterator<ReferenceOrderedDatum> rods = tracker.getAllRods().iterator();
+        Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
         while ( rods.hasNext() ) {
-            ReferenceOrderedDatum rod = rods.next();
+            Object rod = rods.next().getUnderlyingObject();
             if ( rod instanceof Variation )
                 out.println(rod.toString());
         }

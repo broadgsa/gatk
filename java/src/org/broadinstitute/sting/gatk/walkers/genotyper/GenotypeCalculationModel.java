@@ -1,14 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.gatk.contexts.*;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.*;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 
-import java.io.*;
-import java.util.*;
+import java.io.PrintStream;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 
 /**
@@ -110,6 +112,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @return the dbsnp rod if there is one at this position
      */
     public static rodDbSNP getDbSNP(RefMetaDataTracker tracker) {
-        return rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+        return rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData("dbsnp"));
     }
 }

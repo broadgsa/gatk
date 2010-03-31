@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
-import org.broadinstitute.sting.gatk.refdata.RodGLF;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodGLF;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
@@ -108,8 +108,9 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
             // First find out if this variant is in the truth sets
             boolean isInTruthSet = false;
             boolean isTrueVariant = false;
-            for( final ReferenceOrderedDatum rod : tracker.getAllRods() ) {
-                if( rod != null && rod.getName().toUpperCase().startsWith("TRUTH") ) {
+            for( final GATKFeature feature : tracker.getAllRods() ) {
+                Object rod = feature.getUnderlyingObject();
+                if( rod != null && feature.getName().toUpperCase().startsWith("TRUTH") ) {
                     isInTruthSet = true;
 
                     // Next see if the truth sets say this site is variant or reference
@@ -126,14 +127,15 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
                             isTrueVariant = true;
                         }
                     } else {
-                        throw new StingException( "Truth ROD is of unknown ROD type: " + rod.getName() );
+                        throw new StingException( "Truth ROD is of unknown ROD type: " + feature.getName() );
                     }
                 }
             }
             
             // Add each annotation in this VCF Record to the dataManager
-            for( final ReferenceOrderedDatum rod : tracker.getAllRods() ) {
-                if( rod != null && rod instanceof RodVCF && !rod.getName().toUpperCase().startsWith("TRUTH") ) {
+            for( final GATKFeature feature : tracker.getAllRods() ) {
+                Object rod = feature.getUnderlyingObject();
+                if( rod != null && rod instanceof RodVCF && !feature.getName().toUpperCase().startsWith("TRUTH") ) {
                     final RodVCF variant = (RodVCF) rod;
                     if( variant.isSNP() ) {
                         dataManager.addAnnotations( variant, SAMPLE_NAME, isInTruthSet, isTrueVariant );

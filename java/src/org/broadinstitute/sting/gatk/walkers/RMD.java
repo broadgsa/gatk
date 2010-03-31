@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 /**
  * User: hanna
  * Date: May 19, 2009
@@ -24,5 +25,5 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RMD {
     String name();    
-    Class<? extends ReferenceOrderedDatum> type();
+    Class type();
 }

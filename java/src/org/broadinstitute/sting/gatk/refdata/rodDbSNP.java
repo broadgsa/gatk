@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.samtools.util.SequenceUtil;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.*;
 
 import java.util.ArrayList;
@@ -281,13 +280,13 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
         return getAlternateAlleleList().size() == 1;
     }
 
-    public static rodDbSNP getFirstRealSNP(RODRecordList dbsnpList) {
+    public static rodDbSNP getFirstRealSNP(List<Object> dbsnpList) {
         if (dbsnpList == null)
             return null;
 
         rodDbSNP dbsnp = null;
-        for (ReferenceOrderedDatum d : dbsnpList) {
-            if (((rodDbSNP) d).isSNP()) {
+        for (Object d : dbsnpList) {
+            if (d instanceof rodDbSNP && ((rodDbSNP) d).isSNP()) {
                 dbsnp = (rodDbSNP) d;
                 break;
             }
