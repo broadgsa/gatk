@@ -237,23 +237,21 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return An iterator over the selected data.
      */
     private StingSAMIterator getIterator(SAMReaders readers, BAMFormatAwareShard shard, boolean enableVerification) {
-        Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
+
+        // Set up merging to dynamically merge together multiple BAMs.
+        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,true);
         for(SAMReaderID id: getReaderIDs()) {
             if(shard.getFileSpans().get(id) == null)
                 continue;
             CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
             if(shard.getFilter() != null)
                 iterator = new FilteringIterator(iterator,shard.getFilter());
-            readerToIteratorMap.put(readers.getReader(id),iterator);
+            mergingIterator.addIterator(readers.getReader(id),iterator);
         }
 
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
-
-        // Set up merging to dynamically merge together multiple BAMs.
-        CloseableIterator<SAMRecord> iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
-
         return applyDecoratingIterators(enableVerification,
-                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,iterator)),
+                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,mergingIterator)),
                 reads.getDownsamplingFraction(),
                 reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 reads.getSupplementalFilters());        
@@ -267,16 +265,14 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     private StingSAMIterator seekMonolithic(Shard shard) {
         SAMReaders readers = resourcePool.getAvailableReaders();
 
-        Map<SAMFileReader,CloseableIterator<SAMRecord>> readerToIteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
-        for(SAMReaderID id: getReaderIDs())
-            readerToIteratorMap.put(readers.getReader(id),readers.getReader(id).iterator());
-
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
         SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
-        CloseableIterator<SAMRecord> iterator = new MergingSamRecordIterator(headerMerger,readerToIteratorMap,true);
+        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,true);
+        for(SAMReaderID id: getReaderIDs())
+            mergingIterator.addIterator(readers.getReader(id),readers.getReader(id).iterator());
 
         return applyDecoratingIterators(shard instanceof ReadShard,
-                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,iterator)),
+                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,mergingIterator)),
                 reads.getDownsamplingFraction(),
                 reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 reads.getSupplementalFilters());
