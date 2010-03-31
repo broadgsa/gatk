@@ -54,6 +54,7 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
     protected Reads reads;
     protected SamFileHeaderMerger headerMerger;
     protected Map<File, SAMFileReader> fileToReaderMap;
+    protected Map<SAMFileReader, SAMReaderID> readerToIDMap;
 
     /**
      * Do all the constituent BAM files have indices?  We support some very limited
@@ -76,6 +77,7 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
         this.headerMerger = streamResource.getHeaderMerger();
         this.hasIndex = streamResource.hasIndex();
         this.fileToReaderMap = streamResource.getFileToReaderMapping();
+        this.readerToIDMap = streamResource.getReaderToIDMapping();
 
         // Add this resource to the pool.
         this.addNewResource(streamResource);

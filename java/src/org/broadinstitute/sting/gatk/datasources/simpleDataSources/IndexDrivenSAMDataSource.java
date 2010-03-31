@@ -121,6 +121,17 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
     }
 
     /**
+     * Retrieves the id of the reader which built the given read.
+     * @param read The read to test.
+     * @return ID of the reader.
+     */
+    public SAMReaderID getReaderID(SAMRecord read) {
+        if(resourcePool.readerToIDMap.containsKey(read.getReader()))
+            return resourcePool.readerToIDMap.get(read.getReader());
+        throw new StingException("Unable to find reader id for record.");
+    }
+
+    /**
      * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
      * information about how they are downsampled, sorted, and filtered
      * @return

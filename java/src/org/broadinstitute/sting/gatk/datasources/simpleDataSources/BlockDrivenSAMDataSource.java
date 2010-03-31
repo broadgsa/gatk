@@ -176,6 +176,15 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
     }
 
     /**
+     * Retrieves the id of the reader which built the given read.
+     * @param read The read to test.
+     * @return ID of the reader.
+     */
+    public SAMReaderID getReaderID(SAMRecord read) {
+        return resourcePool.getReaderID(read.getReader());
+    }    
+
+    /**
      * Adds this read to the given shard.
      * @param shard The shard to which to add the read.
      * @param id The id of the given reader.
@@ -357,6 +366,20 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             availableResources.add(readers);
         }
 
+        /**
+         * Gets the reader id for the given reader.
+         * @param reader Reader for which to determine the id.
+         * @return id of the given reader.
+         */
+        protected synchronized SAMReaderID getReaderID(SAMFileReader reader) {
+            for(SAMReaders readers: allResources) {
+                SAMReaderID id = readers.getReaderID(reader);
+                if(id != null)
+                    return id;
+            }
+            throw new StingException("No such reader id is available");
+        }
+
         private synchronized void createNewResource() {
             if(allResources.size() > maxEntries)
                 throw new StingException("Cannot create a new resource pool.  All resources are in use.");
@@ -411,6 +434,20 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
             if(!readers.containsKey(id))
                 throw new NoSuchElementException("No reader is associated with id " + id);
             return readers.get(id);
+        }
+
+        /**
+         * Searches for the reader id of this reader.
+         * @param reader Reader for which to search.
+         * @return The id associated the given reader, or null if the reader is not present in this collection.
+         */
+        protected SAMReaderID getReaderID(SAMFileReader reader) {
+            for(Map.Entry<SAMReaderID,SAMFileReader> entry: readers.entrySet()) {
+                if(reader == entry.getValue())
+                    return entry.getKey();
+            }
+            // Not found? return null.
+            return null;
         }
 
         /**

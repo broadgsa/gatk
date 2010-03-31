@@ -372,6 +372,24 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Gets a unique identifier for the reader sourcing this read.
+     * @param read Read to examine.
+     * @return A unique identifier for the source file of this read.  Exception if not found.
+     */
+    public SAMReaderID getReaderIDForRead(final SAMRecord read) {
+        return getDataSource().getReaderID(read);       
+    }
+
+    /**
+     * Gets the source file for this read.
+     * @param id Unique identifier determining which input file to use.
+     * @return The source filename for this read.
+     */
+    public File getSourceFileForReaderID(final SAMReaderID id) {
+        return getDataSource().getSAMFile(id);    
+    }
+
+    /**
      * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
      * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
      * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names

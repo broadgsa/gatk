@@ -79,6 +79,11 @@ class ReadStreamResource {
      */
     private Map<File, SAMFileReader> fileToReaderMap = null;
 
+    /**
+     * A mapping from reader back to the ID uniquely identifying this input file.
+     */
+    private Map<SAMFileReader, SAMReaderID> readerToIDMap = null;
+
     public ReadStreamResource( Reads sourceInfo ) {
         SamFileHeaderMerger headerMerger = createHeaderMerger(sourceInfo, SAMFileHeader.SortOrder.coordinate);
 
@@ -146,6 +151,10 @@ class ReadStreamResource {
         return fileToReaderMap;
     }
 
+    public Map<SAMFileReader,SAMReaderID> getReaderToIDMapping() {
+        return readerToIDMap;
+    }
+
     /**
      * A private function that, given the internal file list, generates a merging construct for
      * all available files.
@@ -160,9 +169,11 @@ class ReadStreamResource {
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
         List<SAMFileReader> lst = new ArrayList<SAMFileReader>();
         fileToReaderMap = new HashMap<File, SAMFileReader>();
+        readerToIDMap = new HashMap<SAMFileReader,SAMReaderID>();
         for (File f : reads.getReadsFiles()) {
             SAMFileReader reader = new SAMFileReader(f, eagerDecode);
             fileToReaderMap.put(f, reader);
+            readerToIDMap.put(reader,new SAMReaderID(f));
             reader.setValidationStringency(reads.getValidationStringency());
 
             final SAMFileHeader header = reader.getFileHeader();

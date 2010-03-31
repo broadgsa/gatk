@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
 import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 
@@ -123,6 +124,13 @@ public abstract class SAMDataSource implements SimpleDataSource {
     public abstract SAMFileHeader getHeader(SAMReaderID reader);    
 
     /**
+     * Retrieves the id of the reader which built the given read.
+     * @param read The read to test.
+     * @return ID of the reader.
+     */
+    public abstract SAMReaderID getReaderID(SAMRecord read);    
+
+    /**
      * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
      * information about how they are downsampled, sorted, and filtered
      * @return
@@ -143,7 +151,7 @@ public abstract class SAMDataSource implements SimpleDataSource {
      */
     public File getSAMFile(SAMReaderID id) {
         return id.samFile;
-    }    
+    }
 
     /** Returns true if there are read group duplicates within the merged headers. */
     public abstract boolean hasReadGroupCollisions();
