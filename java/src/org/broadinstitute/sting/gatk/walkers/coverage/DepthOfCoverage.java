@@ -49,7 +49,7 @@ import java.util.*;
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
 @By(DataSource.REFERENCE)
-public class CoverageStatistics extends LocusWalker<Map<String,int[]>, CoverageAggregator> implements TreeReducible<CoverageAggregator> {
+public class DepthOfCoverage extends LocusWalker<Map<String,int[]>, CoverageAggregator> implements TreeReducible<CoverageAggregator> {
     @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
     int start = 1;
     @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
