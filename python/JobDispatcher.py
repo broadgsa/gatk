@@ -197,6 +197,15 @@ class JobDispatcher:
         else:
             self.maxJobs = -1
         self.print_only = print_only
+        self.startDays = 0
+        self.startHours = 0
+        self.startMins = 0
+
+    def setInitialDelay(self,delay):
+        dhm = delay.split(":")
+        self.startDays = int(dhm[0])
+        self.startHours = int(dhm[1])
+        self.startMins = int(dhm[2])
 
     # external accessor, sorts by dependency and ensures user hasn't exceeded the set limits
     def dispatchAll(self,farmJobs):
@@ -234,9 +243,9 @@ class JobDispatcher:
     # spaces jobs out by using the delay command to LSF
     def _dispatchWithSpacing(self,farmJobs):
         dayHrMin = self.action_string.split(":")
-        days = 0
-        hours = 0
-        mins = 0
+        days = self.startDays
+        hours = self.startHours
+        mins = self.startMins
         dispatchBuffer = list()
         while ( len(farmJobs) > 0 ):
             nextJob = farmJobs.pop(0)
