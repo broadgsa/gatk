@@ -118,11 +118,13 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
 
         for( final VariantContext vc : tracker.getAllVariantContexts(null, context.getLocation(), false, false) ) {
             if( vc != null && vc.getName().toUpperCase().startsWith("TRUTH") ) {
-                if( !vc.getGenotype(sampleName).isNoCall() ) {
-                    isInTruthSet = true;
+                if( vc.isSNP() && !vc.isFiltered() ) {
+                    if( !vc.getGenotype(sampleName).isNoCall() ) {
+                        isInTruthSet = true;
 
-                    if( !vc.getGenotype(sampleName).isHomRef() ) {
-                        isTrueVariant = true;
+                        if( !vc.getGenotype(sampleName).isHomRef() ) {
+                            isTrueVariant = true;
+                        }
                     }
                 }
                 //if( vc.isPolymorphic() ) { //BUGBUG: I don't think this is the right thing to do here, there are many polymorphic sites in the truth data because there are many samples
@@ -257,7 +259,7 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
                 final double sensitivity = ((double) truePos[curveIndex]) / ((double) truePos[curveIndex] + falseNegGlobal[curveIndex] + falseNeg[curveIndex]);
                 final double specificity = ((double) trueNegGlobal[curveIndex] + trueNeg[curveIndex]) /
                                                 ((double) falsePos[curveIndex] + trueNegGlobal[curveIndex] + trueNeg[curveIndex]);
-                outputFile.print( String.format("%.4f,%.4f,%.4f,", qualCut[curveIndex], sensitivity, 1.0 - specificity) );
+                outputFile.print( String.format("%.8f,%.8f,%.8f,", qualCut[curveIndex], sensitivity, 1.0 - specificity) );
                 qualCut[curveIndex] += incrementQual[curveIndex];
                 curveIndex++;
             }
