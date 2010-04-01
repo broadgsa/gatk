@@ -14,7 +14,7 @@ public class VCFInfoHeaderLine extends VCFHeaderLine {
 
     // the info field types
     public enum INFO_TYPE {
-        Integer, Float, String
+        Integer, Float, String, Character, Flag
     }
 
     private String mName;
