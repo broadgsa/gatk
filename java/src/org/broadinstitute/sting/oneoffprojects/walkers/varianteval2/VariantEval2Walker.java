@@ -3,7 +3,9 @@ package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableVariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
@@ -598,7 +600,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
      */
     private List<Node> createPrependNodeList(EvaluationContext group) {
         // add the branching nodes: jexl expression, comparison track, eval track etc
-        Node jexlNode = new Node("jexl_expression",(group.selectExp != null) ? group.selectExp.exp.toString() : "none","The jexl filtering expression");
+        Node jexlNode = new Node("jexl_expression",(group.selectExp != null) ? group.selectExp.name : "none","The jexl filtering expression");
         Node compNode = new Node("comparison_name",group.compTrackName,"The comparison track name");
         Node evalNode = new Node("evaluation_name",group.evalTrackName,"The evaluation name");
         Node filterNode = new Node("filter_name",group.filtered,"The filter name");

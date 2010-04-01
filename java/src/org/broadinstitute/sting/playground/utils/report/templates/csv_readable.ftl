@@ -9,17 +9,15 @@ Description,${root.description}
 <#list root.children as analysis>
 	<#if analysis.complex>
 		<#if analysis.value!=currentAnalysis>
-		<#assign currentAnalysis=analysis.value>
+		    <#assign currentAnalysis=analysis.value>
 
 Analysis,${analysis.value} 
 
 			<@emit_tags analysis=analysis/>
 			<@emit_column_names analysis=analysis/>
-					
 
-		<#else>
-			<@emit_row_values analysis=analysis/>
 		</#if>
+	    <@emit_row_values analysis=analysis/>
 	</#if>
 </#list>
 <#-- -------------------- -->
