@@ -373,4 +373,31 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
         return s.toString();
     }
+
+     /**
+     * Check to see whether two genomeLocSortedSets are equal.
+     * Note that this implementation ignores the contigInfo object.
+     *
+     */  /*
+    @Override
+    public boolean equals(Object other) {
+        if(other == null)
+            return false;
+        if(other instanceof GenomeLocSortedSet) {
+            // send to a list, so we can ensure order correct
+            List otherList = ((GenomeLocSortedSet)other).toList();
+            List thisList = this.toList();
+            if (otherList.size() != this.size())
+                return false;
+
+            for (Integer i=0;i<thisList.size();i++) {
+                if (otherList.get(i).equals(thisList.get(i)))
+                    return false;
+            }
+            return true;
+        }
+        return false;
+
+    }   */
+
 }

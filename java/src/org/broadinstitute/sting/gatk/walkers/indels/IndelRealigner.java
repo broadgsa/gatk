@@ -126,8 +126,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
         // read in the intervals for cleaning
-        List<GenomeLoc> locs = GenomeAnalysisEngine.parseIntervalRegion(Arrays.asList(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY);
-        intervals = GenomeLocSortedSet.createSetFromList(locs).iterator();
+        GenomeLocSortedSet locs = GenomeAnalysisEngine.parseIntervalArguments(Arrays.asList(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY);
+        intervals = locs.iterator();
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
         // set up the output writer(s)

@@ -48,7 +48,7 @@ public class GenomeLocParserTest extends BaseTest {
     @Test(expected = RuntimeException.class)
     public void testGetContigIndex() {
         assertEquals(-1, GenomeLocParser.getContigIndex("blah",true)); // should not be in the reference
-    }
+    }                
 
     @Test
     public void testGetContigIndexValid() {
@@ -80,39 +80,7 @@ public class GenomeLocParserTest extends BaseTest {
         assertEquals(100, loc.getStop());
         assertEquals(1, loc.getStart());
     }
-
-    @Test(expected = RuntimeException.class)
-    public void testParseBadLocations() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;badChr:1-0", IntervalMergingRule.ALL);
-    }
-
-    @Test
-    public void testParseGoodLocations() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;chr1:5-9", IntervalMergingRule.ALL);
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testParseGoodLocationsTooManySemiColons() {
-        GenomeLocParser.parseGenomeLocs("chr1:1-1;;chr1:5-9;", IntervalMergingRule.ALL);
-    }
-
-    @Test
-    public void testOverlappingGoodLocationsWithAbuttingFlag() {
-        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", IntervalMergingRule.OVERLAPPING_ONLY);
-        assertEquals(1, locs.size());
-    }
-
-    @Test
-    public void testAbuttingGoodLocationsWithAbuttingOffFlag() {
-        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-4;chr1:5-9", IntervalMergingRule.OVERLAPPING_ONLY);
-        assertEquals(2, locs.size());
-    }
-    @Test
-    public void testAbuttingGoodLocationsWithNoneFlag() {
-        List<GenomeLoc> locs = GenomeLocParser.parseGenomeLocs("chr1:1-8;chr1:5-9", IntervalMergingRule.NONE);
-        assertEquals(2, locs.size());
-    }
-
+    
     @Test
     public void testCreateGenomeLoc1() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc("chr1", 1, 100);
@@ -161,16 +129,6 @@ public class GenomeLocParserTest extends BaseTest {
         assertEquals(100, copy.getStop());
         assertEquals(1, copy.getStart());
     }
-
-    /*@Test // - uncomment if you want to test speed
-    public void testGenomeLocParserList() {
-        long start = System.currentTimeMillis();
-        List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(Arrays.asList(new String[]{"/humgen/gsa-scr1/GATK_Data/Validation_Data/bigChr1IntervalList.list"}));
-        Collections.sort(parsedIntervals);
-        LinkedList<GenomeLoc> loc = new LinkedList<GenomeLoc>(GenomeLocParser.mergeIntervalLocations(parsedIntervals));
-        long stop = System.currentTimeMillis();
-        logger.warn("Elapsed time = " + (stop - start));
-    }*/
 
     @Test
     public void testGenomeLocPlusSign() {

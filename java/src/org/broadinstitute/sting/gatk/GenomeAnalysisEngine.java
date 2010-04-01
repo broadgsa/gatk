@@ -141,7 +141,7 @@ public class GenomeAnalysisEngine {
             throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
-        // validate our parameters
+        // validate our parameters              
         if (my_walker == null)
             throw new StingException("The walker passed to GenomeAnalysisEngine can not be null.");
 
@@ -174,35 +174,105 @@ public class GenomeAnalysisEngine {
      * Setup the intervals to be processed
      */
     private void initializeIntervals() {
-        GenomeLocSortedSet excludeIntervals = null;
-        if (argCollection.excludeIntervals != null && argCollection.intervalMerging.check()) {
-            List<GenomeLoc> rawExcludeIntervals = parseIntervalRegion(argCollection.excludeIntervals, IntervalMergingRule.ALL);
-            excludeIntervals = GenomeLocSortedSet.createSetFromList(rawExcludeIntervals);
-        }
 
-        if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
-            List <GenomeLoc> parsedIntervals = parseIntervalRegion(argCollection.intervals);
-            intervals = (parsedIntervals == null) ? null: GenomeLocSortedSet.createSetFromList(parsedIntervals);
-        }
-        /*
-        if (argCollection.intervals != null && argCollection.intervalMerging.check()) {
-            intervals = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
-        }
-          */
-        if ( excludeIntervals != null ) {
-            GenomeLocSortedSet toPrune = intervals == null ? GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) : intervals;
-            long toPruneSize = toPrune.coveredSize();
-            long toExcludeSize = excludeIntervals.coveredSize();
-            logger.info(String.format("Initial include intervals cover %d bases", toPruneSize));
-            logger.info(String.format("Initial exclude intervals cover %d bases", toExcludeSize));
-            intervals = toPrune.substractRegions( excludeIntervals );
-            long intervalSize = intervals.coveredSize();
-            logger.info(String.format("Excluding %d bases from original intervals (%.2f%% reduction)",
-                    toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
-        }
+        // return null if no interval arguments at all
+        if ((argCollection.intervals == null) && (argCollection.excludeIntervals == null))
+            return;
 
-        if ( intervals != null )
-            logger.info(String.format("Processing %d bases in intervals", intervals.coveredSize()));
+        else {
+            // if include argument isn't given, create new set of all possible intervals
+            GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null ?
+                    GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) :
+                    parseIntervalArguments(argCollection.intervals, argCollection.intervalMerging));
+
+            // if no exclude arguments, can return parseIntervalArguments directly
+            if (argCollection.excludeIntervals == null)
+                intervals = includeSortedSet;
+
+            // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
+            else {
+                GenomeLocSortedSet excludeSortedSet = parseIntervalArguments(argCollection.excludeIntervals, argCollection.intervalMerging);
+                intervals = includeSortedSet.substractRegions(excludeSortedSet);
+
+                // logging messages only printed when exclude (-XL) arguments are given
+                long toPruneSize = includeSortedSet.coveredSize();
+                long toExcludeSize = excludeSortedSet.coveredSize();
+                long intervalSize = intervals.coveredSize();
+                logger.info(String.format("Initial include intervals cover %d bases", toPruneSize));
+                logger.info(String.format("Excluding %d bases from original intervals (%.2f%% reduction)",
+                        toExcludeSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
+            }
+
+        }
+    }
+
+    /**
+     * Creates a GenomeLocSortedSet from a set of LIKE arguments - either -L or -XL
+     * Set is sorted and merged
+     */
+
+    public static GenomeLocSortedSet parseIntervalArguments(final List<String> intervals) {
+        return parseIntervalArguments(intervals, GenomeAnalysisEngine.instance.getArguments().intervalMerging);
+    }
+
+    /**
+     * Creates a GenomeLocSortedSet from a set of LIKE arguments - either -L or -XL
+     * Set is sorted and merged
+     */
+    public static GenomeLocSortedSet parseIntervalArguments(List <String> argList, IntervalMergingRule mergingRule) {
+
+        List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
+
+        for (String argument : argList) {
+
+            // if any interval argument is '-L all', consider all loci by returning no intervals
+            if (argument.equals("all")) {
+                if (argList.size() != 1) {
+                    // throw error if '-L all' is not only interval - potentially conflicting commands
+                    throw new StingException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
+                }
+                return null;
+            }                         
+
+            // separate argument on semicolon first
+            for (String fileOrInterval : argument.split(";")) {
+
+                // if it's a file, add items to raw interval list
+                if (isFile(fileOrInterval))
+                    rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval, mergingRule));
+
+                    // otherwise treat as an interval -> parse and add to raw interval list
+                else {
+                    rawIntervals.add(GenomeLocParser.parseGenomeInterval(fileOrInterval));
+                }
+            }
+        }
+        // redundant check => default no arguments is null, not empty list
+        if (rawIntervals.size() == 0)
+            return null;
+
+        // sort raw interval list
+        Collections.sort(rawIntervals);
+
+        // now merge raw interval list
+        rawIntervals = GenomeLocParser.mergeIntervalLocations(rawIntervals, mergingRule);
+
+        return GenomeLocSortedSet.createSetFromList(rawIntervals);
+
+    }
+
+    /**
+     * Check if string argument was intented as a file
+     * Accepted file extensions: .list, .interval_list, .bed, .picard
+     */
+    private static boolean isFile(String str) {
+        // should we define list of file extensions as a public array somewhere?
+        // is regex or endsiwth better?
+        if (str.toUpperCase().endsWith(".BED") || str.toUpperCase().endsWith(".LIST") ||
+                str.toUpperCase().endsWith(".PICARD") || str.toUpperCase().endsWith(".INTERVAL_LIST")
+                || str.toUpperCase().endsWith(".INTERVALS"))
+            return true;
+        else return false;
     }
 
     /**
@@ -317,53 +387,6 @@ public class GenomeAnalysisEngine {
         }
 
         return MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource,rodDataSources,argCollection.numberOfThreads);
-    }
-
-    /**
-     * setup the interval regions, from either the interval file of the genome region string
-     *
-     * @param intervals the list of intervals to parse
-     * @return a list of genomeLoc representing the interval file
-     */
-    public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals) {
-        return parseIntervalRegion(intervals, GenomeAnalysisEngine.instance.getArguments().intervalMerging);
-    }
-
-    /**
-     * setup the interval regions, from either the interval file of the genome region string
-     *
-     * @param intervals the list of intervals to parse
-     * @param mergingRule the rule for merging intervals
-     * @return a list of genomeLoc representing the interval file
-     */
-    public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals, IntervalMergingRule mergingRule) {
-        List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
-        for (String interval : intervals) {
-            // if any interval argument is '-L all', consider all loci by returning no intervals
-            if (interval.equals("all")) {
-                if (intervals.size() != 1) {
-                    // throw error if '-L all' is not only interval - potentially conflicting commands
-                    throw new StingException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
-                }
-                return new ArrayList<GenomeLoc>();
-            }
-
-            if (new File(interval).exists()) {
-                // support for the bed style interval format
-                if (interval.toUpperCase().endsWith(".BED")) {
-                    Utils.warnUser("Bed files are 0 based half-open intervals, which are converted to 1-based closed intervals in the GATK.  " +
-                            "Be aware that all output information and intervals are 1-based closed intervals.");
-                    BedParser parser = new BedParser(new File(interval));
-                    locs.addAll(parser.getSortedAndMergedLocations(mergingRule));
-                } else {
-                    locs.addAll(GenomeLocParser.intervalFileToList(interval,mergingRule));
-                }
-            } else {
-                locs.addAll(GenomeLocParser.parseGenomeLocs(interval,mergingRule));
-            }
-
-        }
-        return locs;
     }
 
     /**
