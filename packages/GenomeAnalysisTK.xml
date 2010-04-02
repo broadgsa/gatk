@@ -24,6 +24,9 @@
       <class name="org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker" />
+      <!-- Other misc walkers -->
+      <class name="org.broadinstitute.sting.gatk.walkers.sequenom.SequenomValidationConverter" />
+      <class name="org.broadinstitute.sting.gatk.walkers.VariantsToVCF" />
     </dependencies>
   </executable>
   <modules>
