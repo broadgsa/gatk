@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
@@ -224,7 +225,8 @@ public class UnifiedGenotyperEngine {
                 // first off, we want to use the *unfiltered* context for the annotations
                 stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup());
 
-                call.vc = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, call.vc);
+                Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, call.vc);
+                call.vc = variantContexts.iterator().next(); //We know the collection will always have exactly 1 element.
             }
         }
 

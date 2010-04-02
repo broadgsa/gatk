@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.playground.gatk.walkers.annotator.GenomicAnnotation;
 import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
@@ -32,6 +33,12 @@ public class VariantAnnotatorEngine {
     private boolean annotateHapmap2 = false;
     // how about hapmap3?
     private boolean annotateHapmap3 = false;
+
+    // command-line option used for GenomicAnnotation.
+    private Map<String, Set<String>> requestedColumnsMap;
+
+    // command-line option used for GenomicAnnotation.
+    private boolean explode;
 
 
     // use this constructor if you want all possible annotations
@@ -143,7 +150,7 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
-    public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Collection<VariantContext> annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
         Map<String, Object> infoAnnotations = new HashMap<String, Object>(vc.getAttributes());
 
@@ -166,12 +173,50 @@ public class VariantAnnotatorEngine {
             infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3.size() == 0 ? "0" : "1");
         }
 
-        for ( InfoFieldAnnotation annotation : requestedInfoAnnotations ) {
-            Map<String, Object> result = annotation.annotate(tracker, ref, stratifiedContexts, vc);
-            if ( result != null )
-                infoAnnotations.putAll(result);
+
+        //Process the info field
+        List<Map<String, Object>> infoAnnotationOutputsList = new LinkedList<Map<String, Object>>(); //each element in infoAnnotationOutputs corresponds to a single line in the output VCF file
+        infoAnnotationOutputsList.add(new HashMap<String, Object>(vc.getAttributes())); //keep the existing info-field annotations. After this infoAnnotationOutputsList.size() == 1, which means the output VCF file gains 1 line.
+
+        //go through all the requested info annotationTypes
+        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations )
+        {
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, ref, stratifiedContexts, vc);
+            if ( annotationsFromCurrentType == null ) {
+                continue;
+            }
+
+            if(annotationType instanceof GenomicAnnotation)
+            {
+                //go through the annotations returned by GenericAnnotation for each -B input file.
+                for( Map.Entry<String, Object> annotationsFromInputFile : annotationsFromCurrentType.entrySet() )
+                {
+                    final String inputFileBindingName = annotationsFromInputFile.getKey();
+                    final List<Map<String, String>> matchingRecords = (List<Map<String, String>>) annotationsFromInputFile.getValue();
+
+                    if( matchingRecords.size() > 1 && explode)
+                    {
+                        //More than one record matched in this file. After this, infoAnnotationOutputsList.size() will be infoAnnotationOutputsList.size()*matchingRecords.size().
+                        infoAnnotationOutputsList = explodeInfoAnnotationOutputsList( infoAnnotationOutputsList, matchingRecords, inputFileBindingName);
+                    }
+                    else
+                    {
+                        //This doesn't change infoAnnotationOutputsList.size(). If more than one record matched, their annotations will
+                        //all be added to the same output line, with keys disambiguated by appending _i .
+                        addToExistingAnnotationOutputs( infoAnnotationOutputsList, matchingRecords, inputFileBindingName);
+                    }
+                }
+            }
+            else
+            {
+                //add the annotations to each output line.
+                for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
+                    infoAnnotationOutput.putAll(annotationsFromCurrentType);
+                }
+            }
         }
 
+        //Process genotypes
         Map<String, Genotype> genotypes;
         if ( requestedGenotypeAnnotations.size() == 0 ) {
             genotypes = vc.getGenotypes();
@@ -195,6 +240,161 @@ public class VariantAnnotatorEngine {
             }
         }
 
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), infoAnnotations);
+      //Create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
+        Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
+        for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
+            returnValue.add( new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), infoAnnotationOutput) );
+        }
+
+        return returnValue;
+    }
+
+
+    /**
+     * Implements non-explode mode, where the output lines have a one-to-one relationship
+     * with the input variants, and all multiple-match records are collapsed into the single info field.
+     * The collapsing is done by appending an _i to each key name (where 'i' is a record counter).
+     *
+     * @param infoAnnotationOutputsList
+     * @param matchingRecords
+     * @param bindingName
+     */
+    private void addToExistingAnnotationOutputs(
+            final List<Map<String, Object>> infoAnnotationOutputsList,
+            final List<Map<String, String>> matchingRecords,
+            final String bindingName) {
+        //For each matching record, just add its annotations to all existing output lines.
+        final boolean renameKeys = matchingRecords.size() > 1;
+        for(int i = 0; i < matchingRecords.size(); i++) {
+            Map<String,String> annotationsForRecord = matchingRecords.get(i);
+            annotationsForRecord = selectColumnsFromRecord(bindingName, annotationsForRecord); //use only those columns that the user specifically requested.
+
+            if(renameKeys) {
+                //Rename keys to avoid naming conflicts (eg. if you have multiple dbsnp matches,
+                // dbSNP.avHet=value1 from record 1 and dbSNP.avHet=value2 from record 2 will become dbSNP.avHet_1=value1 and dbSNP.avHet_2=value2 )
+                Map<String,String> annotationsForRecordWithRenamedKeys = new HashMap<String, String>();
+                for(Map.Entry<String, String> annotation : annotationsForRecord.entrySet()) {
+                    annotationsForRecordWithRenamedKeys.put(annotation.getKey() + "_" + i, annotation.getValue());
+                }
+
+                annotationsForRecord = annotationsForRecordWithRenamedKeys;
+            }
+
+            //Add the annotations from this record to each output line.
+            for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
+                infoAnnotationOutput.putAll(annotationsForRecord);
+            }
+        }
+    }
+
+    /**
+     * Implements "explode" mode. Takes the current list of
+     * infoAnnotationOutputs (each element of will end up in a different line
+     * of the output VCF file), and generates/returns a new list of infoAnnotationOutputs
+     * which contain one copy of the current infoAnnotationOutputs for each record
+     * in matching records. The returned list will have size:
+     *
+     * infoAnnotationOutputsList.size() * matchingRecords.size()
+     *
+     * See class-level comments for more details.
+     *
+     * @param infoAnnotationOutputsList
+     * @param matchingRecords
+     * @param bindingName
+     * @return
+     */
+    private List<Map<String, Object>> explodeInfoAnnotationOutputsList(
+            final List<Map<String, Object>> infoAnnotationOutputsList,
+            final List<Map<String, String>> matchingRecords,
+            final String bindingName) {
+
+
+        //This is the return value. It represents the new list of lines in the output VCF file.
+        final List<Map<String, Object>> newInfoAnnotationOutputsList = new LinkedList<Map<String, Object>>();
+
+        //For each matching record, generate a new output line
+        for(int i = 0; i < matchingRecords.size(); i++) {
+            Map<String,String> annotationsForRecord = matchingRecords.get(i);
+            annotationsForRecord = selectColumnsFromRecord(bindingName, annotationsForRecord); //use only those columns that the user specifically requested.
+
+            //Add the annotations from this record to each output line.
+            for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
+                Map<String, Object> infoAnnotationOutputCopy = new HashMap<String, Object>(infoAnnotationOutput); //create a new copy of this line.
+                infoAnnotationOutputCopy.putAll(annotationsForRecord); //Adds the column-value pairs from this record to this line.
+
+                newInfoAnnotationOutputsList.add(infoAnnotationOutputCopy); //Add the line to the new list of lines.
+            }
+        }
+
+        return newInfoAnnotationOutputsList;
+    }
+
+
+
+    /**
+     * Takes a list of key-value pairs and returns a new Map containing only the columns which were requested by the user
+     * via the -s arg. If there was no -s arg that referenced the given bindingName, all annotationsForRecord returned untouched.
+     *
+     * @param bindingName The binding name for a particular ROD input file.
+     * @param annotationsForRecord The list of column_name -> value pairs for a particular record from the given input file.
+     *
+     * @return Map - see above.
+     */
+    private Map<String, String> selectColumnsFromRecord( String bindingName, Map<String, String> annotationsForRecord) {
+        if(requestedColumnsMap == null || !requestedColumnsMap.containsKey(bindingName)) {
+            return annotationsForRecord;
+        }
+
+        Set<String> requestedColumns = requestedColumnsMap.get(bindingName);
+        Map<String, String> subsettedAnnotations = new HashMap<String, String>();
+        for(Map.Entry<String, String> e : annotationsForRecord.entrySet() ) {
+            if(requestedColumns.contains(e.getKey())) {
+                subsettedAnnotations.put(e.getKey(), e.getValue());
+            }
+        }
+
+        if(subsettedAnnotations.isEmpty()) {
+            throw new StingException("Invalid -s argument for the '" + bindingName + "' input file. " +
+                    "It caused all columns in the file to be rejected. Please check to make sure the -s column " +
+                    "names match the column names in the '" + bindingName + "' file's HEADER line.");
+        }
+
+        return subsettedAnnotations;
+    }
+
+
+
+    /**
+     * Determines how the engine will handle the case where multiple records in a ROD file
+     * overlap a particular single locus. If explode is set to true, the output will be
+     * one-to-many, so that each locus in the input VCF file could result in multiple
+     * entries in the output VCF file. Otherwise, the output will be one-to-one, and
+     * all multiple-match records will be collapsed into the single info field.
+     * The collapsing is done by appending an _i to each key name (where 'i' is a
+     * record counter).
+     *
+     * See class-level comments for more details.
+     *
+     * @param explode
+     */
+    public void setExplode(boolean explode) {
+        this.explode = explode;
+    }
+
+    /**
+     * Sets the columns that will be used for the info annotation field.
+     * Column names should be of the form bindingName.columnName (eg. dbsnp.avHet).
+     *
+     * @param columns An array of strings where each string is a comma-separated list
+     * of columnNames (eg ["dbsnp.avHet,dbsnp.valid", "file2.col1,file3.col1"] ).
+     */
+    public void setRequestedColumns(String[] columns) {
+        if(columns == null) {
+            throw new IllegalArgumentException("columns arg is null. Please check the -s command-line arg.");
+        }
+
+        //System.err.println("COLUMNS:  "+Arrays.asList(columns).toString());
+
+        this.requestedColumnsMap = GenomicAnnotation.parseColumnsArg(columns);
     }
 }

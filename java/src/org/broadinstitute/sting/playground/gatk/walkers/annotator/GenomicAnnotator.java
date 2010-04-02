@@ -1,18 +1,28 @@
-package org.broadinstitute.sting.gatk.walkers.annotator;
+    package org.broadinstitute.sting.playground.gatk.walkers.annotator;
+
+import java.io.File;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.Allows;
+import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -20,9 +30,6 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-
-import java.io.File;
-import java.util.*;
 
 
 /**
@@ -32,24 +39,17 @@ import java.util.*;
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
-public class VariantAnnotator extends LocusWalker<Integer, Integer> {
+public class GenomicAnnotator extends RodWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
-
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
 
-    @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
-    protected String[] annotationsToUse = {};
+    @Argument(fullName="select", shortName="s", doc="Select which columns to use for each ROD file. Column #s are 0-based. (eg. The following will select columns 5,6,2 from file1.txt and columns 3,7 from file2.txt: -B my-rod,table,/path/file1.txt -B my-rod2,table,/path/file2.txt -S my-rod={5,6,2} -S my-rod2={3,7})", required=false)
+    protected String[] COLUMNS = {};
 
-    @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
-    protected String[] annotationClassesToUse = { };
-
-    @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
-    protected Boolean USE_ALL_ANNOTATIONS = false;
-
-    @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
-    protected Boolean LIST = false;
+    @Argument(fullName="explode", shortName="exp", doc="If more than one record from the same file matches a particular locus, create multiple entries in the ouptut file - one for each match. WARNING: This could lead to combinatorial explotion if more than one file have more than one match at a particular locus.", required=false)
+    protected Boolean EXPLODE = false;
 
     private VCFWriter vcfWriter;
 
@@ -58,31 +58,10 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     private VariantAnnotatorEngine engine;
 
 
-    private void listAnnotationsAndExit() {
-        List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class);
-        out.println("\nAvailable annotations for the VCF INFO field:");
-        for (int i = 0; i < infoAnnotationClasses.size(); i++)
-            out.println("\t" + infoAnnotationClasses.get(i).getSimpleName());
-        out.println();
-        List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = PackageUtils.getClassesImplementingInterface(GenotypeAnnotation.class);
-        out.println("\nAvailable annotations for the VCF FORMAT field:");
-        for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
-            out.println("\t" + genotypeAnnotationClasses.get(i).getSimpleName());
-        out.println();
-        out.println("\nAvailable classes/groups of annotations:");
-        for ( Class c : PackageUtils.getInterfacesExtendingInterface(AnnotationType.class) )
-            out.println("\t" + c.getSimpleName());
-        out.println();
-        System.exit(0);
-    }
-
     /**
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
-
-        if ( LIST )
-            listAnnotationsAndExit();
 
         // get the list of all sample names from the various VCF input rods
         TreeSet<String> samples = new TreeSet<String>();
@@ -99,15 +78,15 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
         }
 
-        if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(getToolkit());
-        else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
+        engine = new VariantAnnotatorEngine(getToolkit(), new String[] { }, new String[] { "GenomicAnnotation" });
+
+        engine.setExplode( Boolean.TRUE.equals( EXPLODE ) );
+        engine.setRequestedColumns(COLUMNS);
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
+        hInfo.add(new VCFHeaderLine("source", "Annotator"));
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
@@ -143,6 +122,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
+
         List<Object> rods = tracker.getReferenceMetaData("variant");
         // ignore places where we don't have a variant
         if ( rods.size() == 0 )
@@ -154,7 +134,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             return 0;
 
         // if the reference base is not ambiguous, we can annotate
-        Collection<VariantContext> annotatedVCs = Arrays.asList( new VariantContext[] { vc } );
+        Collection<VariantContext> annotatedVCs = null;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null ) {
@@ -162,10 +142,8 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             }
         }
 
-        if ( variant instanceof RodVCF ) {
-            for(VariantContext annotatedVC : annotatedVCs ) {
-                    vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
-            }
+        for(VariantContext annotatedVC : annotatedVCs) {
+            vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
         }
 
         return 1;
@@ -193,3 +171,4 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         vcfWriter.close();
     }
 }
+
