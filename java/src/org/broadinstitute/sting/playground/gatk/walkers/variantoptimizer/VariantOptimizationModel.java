@@ -44,7 +44,8 @@ public abstract class VariantOptimizationModel implements VariantOptimizationInt
         targetTITV = _targetTITV;
     }
 
-    public final double calcTruePositiveRateFromTITV( double titv ) {
+    public final double calcTruePositiveRateFromTITV( final double _titv ) {
+        double titv = _titv;
         if( titv > targetTITV ) { titv -= 2.0f*(titv-targetTITV); }
         if( titv < 0.5 ) { titv = 0.5; }
         return ( (titv - 0.5) / (targetTITV - 0.5) );
@@ -52,9 +53,14 @@ public abstract class VariantOptimizationModel implements VariantOptimizationInt
         //return ( titv / targetTITV );
     }
 
-    public final double calcTruePositiveRateFromKnownTITV( final double knownTITV, double novelTITV ) {
+    public final double calcTruePositiveRateFromKnownTITV( final double knownTITV, final double _novelTITV, final double overallTITV, final double knownAlphaFactor ) {
+
+        final double tprTarget = calcTruePositiveRateFromTITV( overallTITV );
+        double novelTITV = _novelTITV;
         if( novelTITV > knownTITV ) { novelTITV -= 2.0f*(novelTITV-knownTITV); }
         if( novelTITV < 0.5 ) { novelTITV = 0.5; }
-        return ( (novelTITV - 0.5) / (knownTITV - 0.5) );
+        final double tprKnown = ( (novelTITV - 0.5) / (knownTITV - 0.5) );
+
+        return ( knownAlphaFactor * tprKnown ) + ( (1.0 - knownAlphaFactor) * tprTarget );
     }
 }

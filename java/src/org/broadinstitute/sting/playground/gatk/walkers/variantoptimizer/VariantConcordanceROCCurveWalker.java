@@ -70,6 +70,7 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
     private int[] trueNegGlobal;
     private int[] falseNegGlobal;
     private String sampleName = null;
+    private boolean multiSampleCalls = false;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -82,10 +83,19 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
         
         for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
             if( rod != null && !rod.getName().toUpperCase().startsWith("TRUTH") ) {
-                if( rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject() instanceof RodVCF ) {
+                if( rod.getReferenceOrderedData().getIterator().hasNext() && rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject() instanceof RodVCF ) {
                     inputRodNames.add(rod.getName());
-                    if( sampleName == null ) {
-                        sampleName = ((RodVCF)rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject()).getSampleNames()[0]; // BUGBUG: single sample calls only for now
+                    System.out.println("Adding " + rod.getName() + " to input RodVCF list.");
+                    if( sampleName == null && !multiSampleCalls ) {
+                        final String[] samples = ((RodVCF)rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject()).getSampleNames();
+
+                        if( samples.length > 1 ) {
+                            multiSampleCalls = true;
+                            System.out.println("Found multi sample calls.");
+                        } else {
+                            sampleName = samples[0];
+                            System.out.println("Found single sample calls.");
+                        }
                     }
                 }
             }
@@ -119,17 +129,21 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
         for( final VariantContext vc : tracker.getAllVariantContexts(null, context.getLocation(), false, false) ) {
             if( vc != null && vc.getName().toUpperCase().startsWith("TRUTH") ) {
                 if( vc.isSNP() && !vc.isFiltered() ) {
-                    if( !vc.getGenotype(sampleName).isNoCall() ) {
+                    if( multiSampleCalls ) {
                         isInTruthSet = true;
-
-                        if( !vc.getGenotype(sampleName).isHomRef() ) {
+                        if( vc.isPolymorphic() ) {
                             isTrueVariant = true;
                         }
+                    } else {
+                        if( !vc.getGenotype(sampleName).isNoCall() ) {
+                            isInTruthSet = true;
+
+                            if( !vc.getGenotype(sampleName).isHomRef() ) {
+                                isTrueVariant = true;
+                            }
+                        }
                     }
-                }
-                //if( vc.isPolymorphic() ) { //BUGBUG: I don't think this is the right thing to do here, there are many polymorphic sites in the truth data because there are many samples
-                //    isTrueVariant = true;
-                //}
+                }                
             }
         }
 
@@ -146,7 +160,11 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
                 variantDatum.qual = vc.getPhredScaledQual();
                 variantDatum.isTrueVariant = isTrueVariant;
                 mapList.add( new Pair<String,VariantDatum>(inputName, variantDatum) );
-            } else { // Either not in the call set at all, is a monomorphic call, or was filtered out
+            }
+            else if ( vc != null && vc.isFiltered() && vc.getFilters().contains("HARD_TO_VALIDATE") ) { // hard to validate sites are hard to validate so don't count them
+                
+            } 
+            else { // Either not in the call set at all, is a monomorphic call, or was filtered out
                 if( isTrueVariant ) { // ... but it is a true variant so this is a false negative call
                     falseNegGlobal[curveIndex]++;
                 } else { // ... and it is not a variant site so this is a true negative call

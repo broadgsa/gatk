@@ -53,16 +53,18 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.1 for whole genome experiments)", required=true)
+    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.1 for whole genome experiments)", required=false)
     private double TARGET_TITV = 2.1;
+    @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by spreading out the Gaussians.", required=false)
+    private double BACKOFF_FACTOR = 1.0;
     @Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
     private int DESIRED_NUM_VARIANTS = 0;
     @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
-    @Argument(fullName="known_prior", shortName="knownPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true. Default is 30.0", required=false)
-    private double KNOWN_VAR_QUAL_PRIOR = 30.0;
+    @Argument(fullName="known_prior", shortName="knownPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true. Setting to 0.0 means unused.", required=false)
+    private double KNOWN_VAR_QUAL_PRIOR = 0.0;
     @Argument(fullName="output_prefix", shortName="output", doc="The prefix added to output VCF file name and optimization curve pdf file name", required=false)
     private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
@@ -97,7 +99,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( CLUSTER_FILENAME );
+                theModel = new VariantGaussianMixtureModel( CLUSTER_FILENAME, BACKOFF_FACTOR );
                 break;
             //case K_NEAREST_NEIGHBORS:
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
@@ -156,7 +158,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
                     final double pTrue = theModel.evaluateVariant( rodVCF.getInfoValues(), rodVCF.getQual(), variantDatum.isHet );
                     final double recalQual = QualityUtils.phredScaleErrorRate( Math.max( 1.0 - pTrue, 0.000000001) );                             
 
-                    if( variantDatum.isKnown ) {
+                    if( variantDatum.isKnown && KNOWN_VAR_QUAL_PRIOR > 0.1 ) {
                         variantDatum.qual = 0.5 * recalQual + 0.5 * KNOWN_VAR_QUAL_PRIOR;
                     } else {
                         variantDatum.qual = recalQual;
