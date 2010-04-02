@@ -10,18 +10,26 @@ import java.util.Map.Entry;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
+
+
+
 
 /**
  * TODO comment
  */
 public class GenomicAnnotation implements InfoFieldAnnotation {
+
+    private static final String HAP_REF = "hap_ref";
+    private static final String HAP_ALT = "hap_alt";
 
 
     /**
@@ -54,19 +62,50 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
         for(final GATKFeature gatkFeature : tracker.getAllRods())
         {
             final ReferenceOrderedDatum rod = (ReferenceOrderedDatum) gatkFeature.getUnderlyingObject();
-            if(! (rod instanceof TabularROD) ) {
-                continue; //GenericAnnotation only works with TabularRODs so that it can select individual columns
-            }
-
             final String name = rod.getName();
-            if(name.equals("variant") || name.equals("interval")) {
+            if( name.equals("variant") || name.equals("interval") ) {
                 continue;
             }
 
+            if( ! (rod instanceof TabularROD) ) {
+                continue; //GenericAnnotation only works with TabularRODs so that it can select individual columns
+            }
 
-            final Map<String, String> annotationsForRecord = convertRecordToAnnotations( (TabularROD) rod );
+            TabularROD tabularRod = (TabularROD) rod;
+            final Map<String, String> annotationsForRecord = convertRecordToAnnotations( tabularRod );
 
-            List<Map<String, String>> listOfMatchingRecords = (List<Map<String, String>>) annotations.get(name);
+            //filter by matching the vc's reference allele and alternate allele to the record's HAP_REF and HAP_ALT columns.
+            final String hapAltValue = annotationsForRecord.get( generateInfoFieldKey(name, HAP_ALT) );
+            if(hapAltValue != null && !hapAltValue.equals("*")) {
+                Set<Allele> alternateAlleles = vc.getAlternateAlleles();
+                if(alternateAlleles.isEmpty()) {
+                    //TODO If this site is monomorphic in the VC, and the current record specifies a particular alternate allele, skip this record. Right?
+                    continue;
+                } else if(alternateAlleles.size() > 1) {
+                    throw new StingException("Record (" + rod + ") in " + name + " contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
+                }
+
+                //TODO handle strand somehow?
+
+                //decide whether to skip this record.
+                Allele vcAlt = alternateAlleles.iterator().next();
+                if(!vcAlt.basesMatch(hapAltValue)) {
+                    //TODO check the intersection of vcAlt and hapAltValue
+                    continue; //skip record
+                }
+            }
+
+            final String hapRefValue = annotationsForRecord.get( generateInfoFieldKey(name, HAP_REF) );
+            if(hapRefValue != null && !hapRefValue.equals("*")) {
+                //match against hapRef
+                Allele vcRef = vc.getReference();
+                if(!vcRef.basesMatch(hapRefValue)) {
+                    //TODO check the intersection of vcRef and hapRefValue
+                    continue; //skip record
+                }
+            }
+
+            List<Map<String, String>> listOfMatchingRecords = (List<Map<String, String>>) annotations.get( name );
             if(listOfMatchingRecords == null) {
                 listOfMatchingRecords = new LinkedList<Map<String,String>>();
                 listOfMatchingRecords.add( annotationsForRecord );
