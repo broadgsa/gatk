@@ -1,4 +1,14 @@
 import math
+def chrFormat(chr):
+    if ( chr == "chr0"):
+        return "chrM"
+    if ( chr == "chr23" ):
+        return "chrX"
+    if ( chr == "chr24" ):
+        return "chrY"
+    else:
+        return chr
+
 def chr2int(chr):
     try:
         chr = chr.split("chr")[1]
@@ -123,7 +133,7 @@ class Exon:
         return self.interval.size()
 
     def getBedEntry(self):
-        return "\t".join([self.interval.chromosome,str(self.interval.start),str(self.interval.stop),self.gene,self.id,str(self.getCoverageProportion())])
+        return "\t".join([chrFormat(self.interval.chromosome),str(self.interval.start),str(self.interval.stop),self.gene,self.id,str(self.getCoverageProportion())])
 
     def getCoverageProportion(self):
         if ( self.size() > 0 ):
