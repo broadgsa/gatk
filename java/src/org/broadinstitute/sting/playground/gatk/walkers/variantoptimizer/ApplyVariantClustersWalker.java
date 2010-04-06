@@ -53,7 +53,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.1 for whole genome experiments)", required=false)
+    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.1 for whole genome experiments)", required=true)
     private double TARGET_TITV = 2.1;
     @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by spreading out the Gaussians.", required=false)
     private double BACKOFF_FACTOR = 1.0;
@@ -99,7 +99,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( CLUSTER_FILENAME, BACKOFF_FACTOR );
+                theModel = new VariantGaussianMixtureModel( TARGET_TITV, CLUSTER_FILENAME, BACKOFF_FACTOR );
                 break;
             //case K_NEAREST_NEIGHBORS:
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );

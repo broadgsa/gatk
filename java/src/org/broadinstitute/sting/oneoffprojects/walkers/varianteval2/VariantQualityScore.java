@@ -9,6 +9,7 @@ import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -46,6 +47,9 @@ public class VariantQualityScore extends VariantEvaluator {
     // a mapping from quality score histogram bin to Ti/Tv ratio
     @DataPoint(name="TiTv by Quality", description = "the Ti/Tv ratio broken out by variant quality")
     TiTvStats titvStats = null;
+
+    //@DataPoint(name="Quality by Allele Count", description = "average variant quality for each allele count")
+    //AlleleCountStats alleleCountStats = null;
 
     class TiTvStats implements TableType {
         final int NUM_BINS = 20;
@@ -129,6 +133,90 @@ public class VariantQualityScore extends VariantEvaluator {
 
         }
     }
+
+    /*
+    class AlleleCountStats implements TableType {
+        final HashMap<Integer, ArrayList<Double>> qualityListMap = new HashMap<Integer, ArrayList<Double>>();
+        final HashMap<Integer, Double> qualityMap = new HashMap<Integer, Double>();
+
+        public Object[] getRowKeys() {            
+            return new String[]{"sample"};
+        }
+
+        public Object[] getColumnKeys() {
+            final int NUM_BINS = qualityListMap.keySet().size();
+            final String columnKeys[] = new String[NUM_BINS];
+            int iii = 0;
+            for( final Integer key : qualityListMap.keySet() ) {
+                columnKeys[iii] = "AC" + key;
+                iii++;
+            }
+            return columnKeys;
+        }
+
+        public String getName() {
+            return "TiTvStats";
+        }
+
+        public String getCell(int x, int y) {
+            return String.valueOf(titvByQuality[y]);
+        }
+
+        public String toString() {
+            String returnString = "";
+            // output the ti/tv array
+            returnString += "titvByQuality: ";
+            for( int iii = 0; iii < NUM_BINS; iii++ ) {
+                returnString += titvByQuality[iii] + " ";
+            }
+            return returnString;
+        }
+
+        public void incrValue( final double qual, final boolean _isTransition ) {
+            qualities.add(qual);
+            isTransition.add(_isTransition);
+        }
+
+        public void organizeTiTvTables() {
+            for( int iii = 0; iii < NUM_BINS; iii++ ) {
+                transitionByQuality[iii] = 0L;
+                transversionByQuality[iii] = 0L;
+                titvByQuality[iii] = 0.0;
+            }
+
+            double maxQual = 0.0;
+
+            // Calculate the maximum quality score in order to normalize and histogram
+            for( final Double qual : qualities ) {
+                if( qual > maxQual ) {
+                    maxQual = qual;
+                }
+            }
+
+            final double binSize = maxQual / ((double) (NUM_BINS-1));
+
+            int jjj = 0;
+            for( final Double qual : qualities ) {
+                final int index = (int)Math.floor( qual / binSize );
+                if(isTransition.get(jjj)) {
+                    transitionByQuality[index]++;
+                } else {
+                    transversionByQuality[index]++;
+                }
+                jjj++;
+            }
+
+            for( int iii = 0; iii < NUM_BINS; iii++ ) {
+                if( transitionByQuality[iii] + transversionByQuality[iii] > 800L ) { // need to have a sufficient number of variants to get a useful Ti/Tv ratio
+                    titvByQuality[iii] = ((double) transitionByQuality[iii]) / ((double) transversionByQuality[iii]);
+                } else {
+                    titvByQuality[iii] = 0.0;
+                }
+            }
+
+        }
+    }
+    */
 
     public VariantQualityScore(VariantEval2Walker parent) {
         // don't do anything

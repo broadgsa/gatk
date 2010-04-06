@@ -85,8 +85,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         knownAlphaFactor = _knownAlphaFactor;
     }
 
-    public VariantGaussianMixtureModel( final String clusterFileName, final double backOffGaussianFactor ) {
-        super( 0.0 );
+    public VariantGaussianMixtureModel( final double _targetTITV, final String clusterFileName, final double backOffGaussianFactor ) {
+        super( _targetTITV );
         final ExpandingArrayList<String> annotationLines = new ExpandingArrayList<String>();
         final ExpandingArrayList<String> clusterLines = new ExpandingArrayList<String>();
 
@@ -583,6 +583,16 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         final int numVariants = data.length;
         final boolean[] markedVariant = new boolean[numVariants];
 
+        final double MAX_QUAL = 100.0;
+        final double QUAL_STEP = 0.1;
+        final int NUM_BINS = (int) ((MAX_QUAL / QUAL_STEP) + 1);
+
+        final int numKnownAtCut[] = new int[NUM_BINS];
+        final int numNovelAtCut[] = new int[NUM_BINS];
+        final double knownTiTvAtCut[] = new double[NUM_BINS];
+        final double novelTiTvAtCut[] = new double[NUM_BINS];
+        final double theCut[] = new double[NUM_BINS];
+
         for( int iii = 0; iii < numVariants; iii++ ) {
             markedVariant[iii] = false;
         }
@@ -601,11 +611,12 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         int numNovelTi = 0;
         int numNovelTv = 0;
         boolean foundDesiredNumVariants = false;
+        int jjj = 0;
         outputFile.println("pCut,numKnown,numNovel,knownTITV,novelTITV");
-        for( double pCut = 100.0; pCut >= 0.0; pCut -= 0.1 ) {
+        for( double qCut = MAX_QUAL; qCut >= 0.0; qCut -= QUAL_STEP ) {
             for( int iii = 0; iii < numVariants; iii++ ) {
                 if( !markedVariant[iii] ) {
-                    if( data[iii].qual >= pCut ) {
+                    if( data[iii].qual >= qCut ) {
                         markedVariant[iii] = true;
                         if( data[iii].isKnown ) { // known
                             numKnown++;
@@ -626,7 +637,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 }
             }
             if( desiredNumVariants != 0 && !foundDesiredNumVariants && (numKnown + numNovel) >= desiredNumVariants ) {
-                System.out.println( "Keeping variants with QUAL >= " + String.format("%.1f",pCut) + " results in a filtered set with: " );
+                System.out.println( "Keeping variants with QUAL >= " + String.format("%.1f",qCut) + " results in a filtered set with: " );
                 System.out.println("\t" + numKnown + " known variants");
                 System.out.println("\t" + numNovel + " novel variants, (dbSNP rate = " + String.format("%.2f",((double) numKnown * 100.0) / ((double) numKnown + numNovel) ) + "%)");
                 System.out.println("\t" + String.format("%.4f known Ti/Tv ratio", ((double)numKnownTi) / ((double)numKnownTv)));
@@ -634,9 +645,55 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 System.out.println();
                 foundDesiredNumVariants = true;
             }
-            outputFile.println( pCut + "," + numKnown + "," + numNovel + "," +
+            outputFile.println( qCut + "," + numKnown + "," + numNovel + "," +
                     ( numKnownTi == 0 || numKnownTv == 0 ? "NaN" : ( ((double)numKnownTi) / ((double)numKnownTv) ) ) + "," +
-                    ( numNovelTi == 0 || numNovelTv == 0 ? "NaN" : ( ((double)numNovelTi) / ((double)numNovelTv) )));
+                    ( numNovelTi == 0 || numNovelTv == 0 ? "NaN" : ( ((double)numNovelTi) / ((double)numNovelTv) ) ));
+
+            numKnownAtCut[jjj] = numKnown;
+            numNovelAtCut[jjj] = numNovel;
+            knownTiTvAtCut[jjj] = ( numKnownTi == 0 || numKnownTv == 0 ? 0.0 : ( ((double)numKnownTi) / ((double)numKnownTv) ) );
+            novelTiTvAtCut[jjj] = ( numNovelTi == 0 || numNovelTv == 0 ? 0.0 : ( ((double)numNovelTi) / ((double)numNovelTv) ) );
+            theCut[jjj] = qCut;
+            jjj++;
+        }
+
+        // loop back through the data points looking for appropriate places to cut the data to get the target novel titv ratio
+        int checkQuantile = 0;
+        for( jjj = NUM_BINS-1; jjj >= 0; jjj-- ) {
+            boolean foundCut = false;
+            if( checkQuantile == 0 ) {
+                if( novelTiTvAtCut[jjj] >= 0.9 * targetTITV ) {
+                    foundCut = true;
+                    checkQuantile++;
+                }
+            } else if( checkQuantile == 1 ) {
+                if( novelTiTvAtCut[jjj] >= 0.95 * targetTITV ) {
+                    foundCut = true;
+                    checkQuantile++;
+                }
+            } else if( checkQuantile == 2 ) {
+                if( novelTiTvAtCut[jjj] >= 0.98 * targetTITV ) {
+                    foundCut = true;
+                    checkQuantile++;
+                }
+            } else if( checkQuantile == 3 ) {
+                if( novelTiTvAtCut[jjj] >= targetTITV ) {
+                    foundCut = true;
+                    checkQuantile++;
+                }
+            } else if( checkQuantile == 4 ) {
+                break; // break out
+            }
+
+            if( foundCut ) {
+                System.out.println( "Keeping variants with QUAL >= " + String.format("%.1f",theCut[jjj]) + " results in a filtered set with: " );
+                System.out.println("\t" + numKnownAtCut[jjj] + " known variants");
+                System.out.println("\t" + numNovelAtCut[jjj] + " novel variants, (dbSNP rate = " +
+                                    String.format("%.2f",((double) numKnownAtCut[jjj] * 100.0) / ((double) numKnownAtCut[jjj] + numNovelAtCut[jjj]) ) + "%)");
+                System.out.println("\t" + String.format("%.4f known Ti/Tv ratio", knownTiTvAtCut[jjj]));
+                System.out.println("\t" + String.format("%.4f novel Ti/Tv ratio", novelTiTvAtCut[jjj]));
+                System.out.println();
+            }
         }
 
         outputFile.close();
