@@ -604,7 +604,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 else b.append(annUnknown); // we have no idea what this is. this may actually happen when we have a fully non-coding exon...
             }
             b.append('\t');
-            b.append(((Transcript)ann.get(0)).getGeneName()); // there is at least one transcript in the list, guaranteed
+            b.append(((Transcript)ann.get(0).getUnderlyingObject()).getGeneName()); // there is at least one transcript in the list, guaranteed
 //			while ( it.hasNext() ) { //
 //				t.getGeneName()
 //			}
