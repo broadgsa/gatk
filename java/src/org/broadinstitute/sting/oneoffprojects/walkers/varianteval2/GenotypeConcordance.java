@@ -33,6 +33,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     @DataPoint(name="samples", description = "the concordance statistics for each sample")
     SampleStats sampleStats = null;
 
+    // two histograms of variant quality scores, for true positive and false positive calls
     @DataPoint(description = "the variant quality score histograms for true positive and false positive calls")
     QualityScoreHistograms qualityScoreHistograms = null;
 
@@ -314,7 +315,9 @@ public class GenotypeConcordance extends VariantEvaluator {
     }
 
     public void finalizeEvaluation() {
-        qualityScoreHistograms.organizeHistogramTables();
+        if( qualityScoreHistograms!=null ) {
+            qualityScoreHistograms.organizeHistogramTables();
+        }
     }
 }
 
