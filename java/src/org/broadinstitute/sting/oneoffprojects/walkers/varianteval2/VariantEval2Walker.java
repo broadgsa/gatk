@@ -565,7 +565,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        ReportMarshaller marshaller = VE2ReportFactory.getTemplate(out,reportType,createExtraOutputTags());
+        ReportMarshaller marshaller = VE2ReportFactory.createMarhsaller(out,reportType,createExtraOutputTags());
         for ( String evalName : variantEvaluationNames ) {
             for ( EvaluationContext group : contexts ) {
                 VariantEvaluator eval = getEvalByName(evalName, group.evaluations);
