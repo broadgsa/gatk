@@ -216,8 +216,8 @@ public class DiploidGenotypePriors {
         double pHet    = heterozygosity2HetProbability(heterozyosity);
         double pHomVar = heterozygosity2HomVarProbability(heterozyosity);
 
-        if ((pHomRef + pHet + pHomVar) != 1) {
-            throw new RuntimeException(String.format("Prior probabilities don't sum to one => %f, %f, %f", pHomRef, pHet, pHomVar));
+        if (MathUtils.compareDoubles(pHomRef + pHet + pHomVar, 1.0) != 0) {
+            throw new RuntimeException(String.format("BUG: Prior probabilities don't sum to one => %f, %f, %f", pHomRef, pHet, pHomVar));
         }
 
         double[] priors = new double[DiploidGenotype.values().length];
