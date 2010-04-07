@@ -410,7 +410,8 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     }
 
     private void writeInterestingSite(List<String> interestingReasons, VariantContext vc, char ref) {
-        if ( writer != null && interestingReasons.size() > 0 ) {
+        if ( vc != null && writer != null && interestingReasons.size() > 0 ) {
+            // todo -- the vc == null check is because you can be interesting because you are a FN, and so VC == null
             MutableVariantContext mvc = new MutableVariantContext(vc);
 
             for ( String why : interestingReasons ) {
