@@ -141,11 +141,11 @@ public class VariantAnnotatorEngine {
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.add(annotation.getDescription());
         if ( annotateDbsnp )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP membership"));
+            descriptions.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP Membership"));
         if ( annotateHapmap2 )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 2 membership"));
+            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 2 Membership"));
         if ( annotateHapmap3 )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 3 membership"));
+            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 3 Membership"));
 
         return descriptions;
     }

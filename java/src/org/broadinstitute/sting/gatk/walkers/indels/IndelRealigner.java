@@ -587,6 +587,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     } catch (Exception e) {}
                 }
             } else {
+                //System.out.println("CLEAN: " + AlignmentUtils.cigarToString(bestConsensus.cigar) + " " + bestConsensus.str.toString() + " " + bestConsensus.cigar.numCigarElements() );
                 //logger.debug("CLEAN: " + AlignmentUtils.cigarToString(bestConsensus.cigar) + " " + bestConsensus.str );
                 if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                     // NOTE: indels are printed out in the format specified for the low-coverage pilot1
