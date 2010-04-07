@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.playground.utils.report;
 
-import freemarker.template.Configuration;
-import freemarker.template.DefaultObjectWrapper;
-import freemarker.template.Template;
+import org.broadinstitute.sting.playground.utils.report.templates.CSVFormat;
+import org.broadinstitute.sting.playground.utils.report.templates.GrepFormat;
+import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
+import org.broadinstitute.sting.playground.utils.report.templates.TableFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -29,28 +30,15 @@ public class VE2ReportFactory {
 
     /** the types of templates we're aware of for VariantEval2 */
     public enum VE2TemplateType {
-        Table("human_readable.ftl"),
-        Grep("grep_readable.ftl"),
-        CSV("csv_readable.ftl");
+        Table(TableFormat.class),
+        Grep(GrepFormat.class),
+        CSV(CSVFormat.class);
         
-        public String filename;
+        public Class underlyingReportType;
 
-        VE2TemplateType(String file) {
-            filename = file;
+        VE2TemplateType(Class<? extends ReportFormat> type) {
+            underlyingReportType = type;
         }
-    }
-
-    /**
-     * create a list of RM from an mapping of writer to template type
-     * @param fileset the mapping of files to types
-     * @param reportTags the tags to append to each report root node
-     * @return a list of ReportMarshallers to write data to
-     */
-    public static List<ReportMarshaller> getTemplate(Map<Writer,VE2TemplateType> fileset, List<Node> reportTags) {
-        List<ReportMarshaller> list = new ArrayList<ReportMarshaller>();
-        for (Writer writer : fileset.keySet())
-            list.add(new ReportMarshaller("Variant Eval 2 Report",writer,createTemplate(fileset.get(writer)),reportTags));
-        return list;
     }
 
     /**
@@ -60,27 +48,27 @@ public class VE2ReportFactory {
      * @param reportTags the tags to append to each report root node
      * @return a list of ReportMarshallers to write data to
      */
-    public static ReportMarshaller getTemplate(OutputStream writer,VE2TemplateType type, List<Node> reportTags) {
-        return new ReportMarshaller("Variant Eval 2 Report",writer,createTemplate(type),reportTags);
+    public static ReportMarshaller createMarhsaller(OutputStream writer,VE2TemplateType type, List<Node> reportTags) {
+        return new ReportMarshaller("Variant Eval 2 Report",writer,createByType(type.underlyingReportType),reportTags);
     }
 
     /**
-     * create a template from the TemplateType
-     * @param template the template type
-     * @return a Template object
+     * create a report formatter with the given type
+     *
+     * @param formatType type of the reporter to create.
+     *
+     * @return The reporter object if created; null otherwise.
      */
-    private static Template createTemplate(VE2TemplateType template) {
-           Configuration cfg = new Configuration();
-           cfg.setClassForTemplateLoading(VE2ReportFactory.class,ve2templateDir);
-
-           cfg.setObjectWrapper(new DefaultObjectWrapper());
-           Template temp = null;
-           try {
-               temp = cfg.getTemplate(template.filename);
-           } catch (IOException e) {
-               throw new StingException("Unable to create template file " + template.filename + " of type " + template,e);
-           }
-           return temp;
-       }
+    public static ReportFormat createByType(Class formatType) {
+        try {
+            return ((Class<? extends ReportFormat>) formatType).newInstance();
+        }
+        catch (InstantiationException ex) {
+            throw new StingException(String.format("Unable to instantiate %s", formatType), ex);
+        }
+        catch (IllegalAccessException ex) {
+            throw new StingException(String.format("Unable to access %s", formatType), ex);
+        }
+    }
 
 }

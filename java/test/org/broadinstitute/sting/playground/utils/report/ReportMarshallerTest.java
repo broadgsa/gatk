@@ -46,7 +46,7 @@ public class ReportMarshallerTest extends BaseTest {
         cfg.setObjectWrapper(new DefaultObjectWrapper());
         Template temp = null;
         try {
-            temp = cfg.getTemplate("myTestTemp.ftl");
+            temp = cfg.createMarhsaller("myTestTemp.ftl");
         } catch (IOException e) {
             e.printStackTrace();
         }

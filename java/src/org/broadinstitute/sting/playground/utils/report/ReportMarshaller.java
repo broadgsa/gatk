@@ -23,11 +23,8 @@
 
 package org.broadinstitute.sting.playground.utils.report;
 
-import freemarker.template.Configuration;
-import freemarker.template.DefaultObjectWrapper;
-import freemarker.template.Template;
-import freemarker.template.TemplateException;
-import org.broadinstitute.sting.oneoffprojects.walkers.varianteval2.CountVariants;
+
+import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.ComplexDataUtils;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.StingException;
@@ -46,7 +43,7 @@ import java.util.*;
  *         marshall report data out of the GATK.
  */
 public class ReportMarshaller {
-    private Template temp;
+    private ReportFormat temp;
 
     // the aggregation of all our analyses
     private Node root;
@@ -58,7 +55,7 @@ public class ReportMarshaller {
      * @param reportName the report name
      * @param template   the template to use
      */
-    public ReportMarshaller(String reportName, File filename, Template template) {
+    public ReportMarshaller(String reportName, File filename, ReportFormat template) {
         try {
             init(reportName, new OutputStreamWriter(new FileOutputStream(filename)));
         } catch (FileNotFoundException e) {
@@ -72,7 +69,7 @@ public class ReportMarshaller {
      *
      * @param reportName the report name
      */
-    public ReportMarshaller(String reportName, Writer writer, Template template, List<Node> reportTags) {
+    public ReportMarshaller(String reportName, Writer writer, ReportFormat template, List<Node> reportTags) {
         init(reportName, writer);
         temp = template;
         for (Node n : reportTags) {
@@ -86,7 +83,7 @@ public class ReportMarshaller {
      *
      * @param reportName the report name
      */
-    public ReportMarshaller(String reportName, OutputStream writer, Template template, List<Node> reportTags) {
+    public ReportMarshaller(String reportName, OutputStream writer, ReportFormat template, List<Node> reportTags) {
         init(reportName, new PrintWriter(writer));
         temp = template;
         for (Node n : reportTags) {
@@ -152,7 +149,7 @@ public class ReportMarshaller {
     }
 
     /**
-     * output the Params objects we find
+     * collect the Params objects annotated on the target object
      *
      * @param toMarshall    the object to output
      * @param moduleScanner our scanner, which stores the annotated field information
@@ -171,7 +168,7 @@ public class ReportMarshaller {
     }
 
     /**
-     * output the DataPoint objects we find
+     * collect the DataPoint objects annotated on the target object
      *
      * @param toMarshall    the object to output
      * @param moduleScanner our scanner, which stores the annotated field information
@@ -194,15 +191,11 @@ public class ReportMarshaller {
      */
     public void close() {
         try {
-            // add the data to a map
-            Map map = new HashMap();
-            map.put("root", root);
-            temp.process(map, writeLocation);
+            temp.write(writeLocation, root);
             writeLocation.flush();
-        } catch (TemplateException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            writeLocation.close();
         } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            throw new StingException("IO exception", e);
         }
     }
 

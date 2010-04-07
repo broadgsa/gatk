@@ -103,7 +103,12 @@ public class Node {
     }
 
     public List<List<Node>> getTableRows() {
-        List<List<Node>> ret =  NodeUtils.flattenToRow(this);
+        List<List<Node>> ret =  NodeUtils.flattenToRow(this,false);
+        return ret;
+    }
+
+    public List<List<Node>> getTableRowsNoTables() {
+        List<List<Node>> ret =  NodeUtils.flattenToRow(this,true);
         return ret;
     }
 

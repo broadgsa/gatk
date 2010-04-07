@@ -31,7 +31,7 @@ public class ComplexDataUtils {
 
         // try to handle maps
         else if (obj instanceof Map) {
-            extractMap(obj, nodes);
+            throw new UnsupportedOperationException("The report generation system is currently unable to output Maps, due to their ambiguity");
 
         // handle collections
         } else if (obj instanceof Collection)
@@ -47,21 +47,6 @@ public class ComplexDataUtils {
 
         // return the collection of nodes we've parsed out
         return nodes;
-    }
-
-    /**
-     * extract a map object
-     * @param obj the object (instance of Map)
-     * @param nodes the node list to add our key->values to
-     */
-    private static void extractMap(Object obj, Collection<Node> nodes) {
-        for (Object key : ((Map) obj).keySet()) {
-            Node keyNode = new Node("key", key.toString(), "map key");
-            nodes.add(keyNode);
-            keyNode.addAllChildren(resolveObjects(((Map) obj).get(key)));
-        }
-        // special case: if the map is empty, add a null node
-        if (nodes.isEmpty()) nodes.add(new Node("<null>", "<null>", "<null>"));
     }
 
     /**

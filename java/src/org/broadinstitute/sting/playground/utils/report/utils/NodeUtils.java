@@ -42,7 +42,7 @@ public class NodeUtils {
             return list;
         }
 
-        public List<List<Node>> toRow(List<List<Node>> oldList) {
+        public List<List<Node>> toRow(List<List<Node>> oldList, boolean excludeTables) {
             // if we're a leaf node that isn't a tag, add it to each list
             if (validLeafNode())
                 addToEachList(oldList);
@@ -50,10 +50,10 @@ public class NodeUtils {
             // special case: if we've just got a single node, traverse into it
             else if (node.getChildren().size() > 0 && !node.table)
                 for (Node n : node.children) {
-                    oldList = new NodeMarker(n).toRow(oldList);
+                    oldList = new NodeMarker(n).toRow(oldList, excludeTables);
                 }
             // when we encounter a table we want to branch into multiple rows
-            else if (node.table) {
+            else if (node.table && !excludeTables) {
                 List<List<Node>> newList = new ArrayList<List<Node>>();
                 for (Node child : node.children) {
                     if (child.display && !child.tag) {
@@ -61,7 +61,7 @@ public class NodeUtils {
                         tempList.add(new ArrayList<Node>());
                         tempList.get(0).add(child);
                         NodeMarker marker = new NodeMarker(child);
-                        List<List<Node>> carry = marker.toRow(tempList);
+                        List<List<Node>> carry = marker.toRow(tempList, excludeTables);
                         newList.addAll(carry);
                     }
                 }
@@ -90,10 +90,10 @@ public class NodeUtils {
     }
 
     // given a node, generate rows (flattening tables)
-    public static List<List<Node>> flattenToRow(Node n) {
+    public static List<List<Node>> flattenToRow(Node n, boolean excludeTables) {
         NodeMarker fn = new NodeMarker(n);
         List<List<Node>> nodesList = new ArrayList<List<Node>>();
         nodesList.add(new ArrayList<Node>());
-        return fn.toRow(nodesList);
+        return fn.toRow(nodesList, excludeTables);
     }
 }
