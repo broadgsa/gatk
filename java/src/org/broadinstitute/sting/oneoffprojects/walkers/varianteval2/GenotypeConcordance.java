@@ -27,7 +27,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     // a mapping from allele count to stats
     @DataPoint(description = "the frequency statistics for each allele")
-    private HashMap<Integer, FrequencyStats> alleleCountStats = new HashMap<Integer, FrequencyStats>();
+    FrequencyStats alleleFreqStats = new FrequencyStats();
 
     // a mapping from sample to stats
     @DataPoint(name="samples", description = "the concordance statistics for each sample")
@@ -41,11 +41,18 @@ public class GenotypeConcordance extends VariantEvaluator {
 
 
     class FrequencyStats implements TableType {
-        long nFound = 0;
-        long nMissed = 0;
+        class Stats {
+            public Stats(int found, int missed) { nFound = found; nMissed = missed; }
+            public long nFound = 0;
+            public long nMissed = 0;
+        }
+        public HashMap<Integer, Stats> alleleCountStats = new HashMap<Integer, Stats>();
 
         public Object[] getRowKeys() {
-            return new String[]{"sample"};
+            String rows[] = new String[alleleCountStats.size()];
+            int index = 0;
+            for (int i : alleleCountStats.keySet()) rows[index++] = "Allele Count " + i;
+            return rows;
         }
 
         public Object[] getColumnKeys() {
@@ -57,13 +64,23 @@ public class GenotypeConcordance extends VariantEvaluator {
         }
 
         public String getCell(int x, int y) {
-            if (y == 0) return String.valueOf(nFound);
-            else return String.valueOf(nMissed);
+            if (x >= alleleCountStats.size()) throw new IllegalStateException(x + " is greater than the max index of " + (alleleCountStats.size()-1));
+            if (y == 0) return String.valueOf(alleleCountStats.get(alleleCountStats.keySet().toArray(new Integer[alleleCountStats.size()])[x]).nFound);
+            else return String.valueOf(alleleCountStats.get(alleleCountStats.keySet().toArray(new Integer[alleleCountStats.size()])[x]).nMissed);
         }
 
-        public String toString() {
-            long total = nFound + nMissed;
-            return String.format("%d %d %.2f ", nFound, nMissed, total == 0 ? 0.0 : (100.0 * rate(nFound, total)));
+        public void incrementFoundCount(int alleleFreq) {
+            if (!alleleCountStats.containsKey(alleleFreq))
+                alleleCountStats.put(alleleFreq,new Stats(1,0));
+            else
+                alleleCountStats.get(alleleFreq).nFound++;
+        }
+
+        public void incrementMissedCount(int alleleFreq) {
+            if (!alleleCountStats.containsKey(alleleFreq))
+                alleleCountStats.put(alleleFreq,new Stats(0,1));
+            else
+                alleleCountStats.get(alleleFreq).nMissed++;
         }
     }
 
@@ -281,16 +298,10 @@ public class GenotypeConcordance extends VariantEvaluator {
             for (final Allele a : validation.getAlternateAlleles()) {
                 trueAlleleCount += validation.getChromosomeCount(a);
             }
-
-            if (!alleleCountStats.containsKey(trueAlleleCount)) {
-                alleleCountStats.put(trueAlleleCount, new FrequencyStats());
-            }
-            final FrequencyStats stats = alleleCountStats.get(trueAlleleCount);
             if (eval != null) {
-                stats.nFound++;
+                alleleFreqStats.incrementFoundCount(trueAlleleCount);
             } else {
-                stats.nMissed++;
-
+                alleleFreqStats.incrementMissedCount(trueAlleleCount);
             }
         }
 
