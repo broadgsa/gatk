@@ -6,10 +6,7 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.junit.Before;
 import org.junit.Test;
-import org.apache.log4j.Appender;
-import org.apache.log4j.WriterAppender;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -202,7 +199,7 @@ public class WalkerTest extends BaseTest {
     }
 
     @Test
-    public void testWalkerTest() {
+    public void testWalkerUnitTest() {
         //System.out.println("WalkerTest is just a framework");
     }
 }
