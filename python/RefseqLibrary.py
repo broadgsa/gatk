@@ -73,6 +73,9 @@ class Interval:
                 return True
             return False
 
+    def bedFormat(self):
+        return self.chromosome+"\t"+str(self.start)+"\t"+str(self.stop)+"\t+\ttarget_x"
+
     def __str__(self):
         return self.chromosome + ":" + str(self.start) + "-" + str(self.stop)
 
@@ -161,6 +164,12 @@ class Gene:
             size = size + exon.size()
         return size
 
+    def getExonIntervals(self):
+        intervals = list()
+        for exon in self.exons:
+            intervals.append(exon.getInterval())
+        return intervals
+
     def getBaseCoverage(self):
         coverage = 0
         for exon in self.exons:
@@ -169,9 +178,15 @@ class Gene:
 
     def __str__(self):
         exonString = list()
-        for exon in exons:
+        for exon in self.exons:
             exonString.append(str(exon))
-        return name+"\t"+"\t".join(exonString)
+        return self.name+"\t"+"\t".join(exonString)
+
+    def getGeneName(self):
+        return self.name
+
+    def setGeneName(self,newName):
+        self.name = newName
 
 class ExonRecord(Exon):
     def __init__(self,geneName,exonid,chrom,start,stop,prop):
@@ -208,3 +223,64 @@ class CoverageRecord:
 
     def getInterval(self):
         return self.interval
+
+def getRefseqGenes(names):
+    names = list(names)
+    refGene = open("/humgen/gsa-hpprojects/GATK/data/refGene.sorted.txt")
+    refSeq = open("/humgen/gsa-hpprojects/GATK/data/refseq/hg18.ref_gene.cds.bed")
+    refSeqGeneNames = list()
+    refNamesToAltNames = dict()
+    for name in names:
+        if ( name.startswith("NM_") ):
+            refSeqGeneNames.append(name)
+            refNamesToAltNames[name]=name
+    
+    if ( len(names) > 0 ):
+        for line in refGene.readlines():
+            spline = line.strip().split("\t")
+            altName = spline[len(spline)-4]
+            if ( altName in names ):
+                if ( not ( altName in refNamesToAltNames.values() ) ): 
+                    refSeqGeneNames.append(spline[1])
+                    refNamesToAltNames[spline[1]]=altName
+                else:
+                    print("WARNING: multiple transcripts found for gene "+altName+" using first available transcript from refseq export")
+
+    if ( len(names) > len(refSeqGeneNames) ):
+        for g in refSeqGeneNames:
+            if ( refNamesToAltNames[g] in names ):
+                names.remove(refNamesToAltNames[g])
+
+        raise ValueError("No entry found for genes: "+str(names))
+
+    # build up the gene list
+    genes = dict()
+    for geneName in refSeqGeneNames:
+        genes[geneName] = Gene(geneName)
+
+    for line in refSeq.readlines():
+        spline = line.strip().split("\t")
+        geneName = spline[3].split("_cds")[0]
+        if ( geneName in refSeqGeneNames ):
+            chrom = spline[0]
+            start = int(spline[1])
+            stop = int(spline[2])
+            id = "cds_"+spline[3].split("_cds_")[1].split("_")[0]
+            genes[geneName].addExon(Exon(geneName,id,chrom,start,stop))
+
+    toReturn = list()
+    for gene in genes.values():
+        gene.setGeneName(refNamesToAltNames[gene.getGeneName()])
+        toReturn.append(gene)
+    return toReturn
+
+
+def getIntervalHeaderLines():
+    whole_exome_file = open("/humgen/gsa-hpprojects/GATK/data/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.hg18.interval_list")
+    header = list()
+    line = whole_exome_file.readline()
+    while ( line.startswith("@") ):
+        header.append(line)
+        line = whole_exome_file.readline()
+    whole_exome_file.close()
+    return header

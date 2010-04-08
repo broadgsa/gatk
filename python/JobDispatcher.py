@@ -5,6 +5,7 @@ import time
 import re
 import unittest
 import tempfile
+import RefseqLibrary
 
 MAX_UNNAMED_DEPENDENCIES = 0
 class FarmJob:
@@ -399,4 +400,32 @@ class GATKDispatcher(JobDispatcher):
         else:
             cmdToDispatch = command + " -o "+job_dir+"job"+str(num)+".txt"
         return cmdToDispatch
-        
+
+class GeneDispatcher(GATKDispatcher):
+
+    def __init__(self,geneNames,jarfile,memory,walker,args,output_directory,reference = None, bams = None,
+                 queues = ["long"], limits = dict([["long",500]]), print_only = False, delay = "0:1:0"):
+        JobDispatcher.GATKDispatcher.__init__(self,jarfile,memory,walker,args,output_directory,reference,bams,None,queues,
+                                              limits,print_only,"space",delay)
+        self.genes = RefseqLibrary.getRefseqGenes(geneNames)
+
+    def dispatchByInterval(self,base_limit):
+        raise JobDispatchError("Dispatch by interval not permitted from GeneDispatcher")
+
+    def dispatchByGene(self):
+        dispatchCommand = self.baseCommand + " -R "+self.reference
+        farmJobs = list()
+        jobNumber = ""
+        headerLines = RefseqLibrary.getIntervalHeaderLines()
+
+        if ( not os.path.exists(self.outputDir+"GATKDispatcher/") ):
+            os.mkdir(self.outputDir+"GATKDispatcher/")
+        if ( self.bams != None ):
+            dispatchCommand += " -I "+self.bams
+
+        for gene in self.genes:
+            jobNumber = "_"+gene.getGeneName()
+            intervals = gene.getExonIntervals()
+            farmJobs.append(self._buildIntervalJob(jobNumber,headerLines,intervals,dispatchCommand))
+            
+        self.dispatchAll_Interval(farmJobs)
