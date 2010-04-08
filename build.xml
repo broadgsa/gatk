@@ -8,9 +8,6 @@
     <property name="dist.dir" value="dist" />
     <property name="resource.file" value="StingText.properties" />
 
-    <property name="single" value="*Test" />
-    <property name="singleintegration" value="*IntegrationTest" />
-
     <!-- do we want to halt on failure of a junit test? default to yes (Bamboo uses 'no') -->
     <property name="halt" value="yes" />
     
@@ -297,7 +294,9 @@
       </jar>
     </target>
     
-
+    <!-- ***************************************************************************** -->
+    <!-- ***********               Tests and associated tasks                ********* -->
+    <!-- ***************************************************************************** -->
     <!-- where to put reports and tests-->
     <property name="report" value="${build.dir}/report"/>
     <property name="test.classes" value="${build.dir}/testclasses"/>
@@ -307,67 +306,63 @@
     <property name="test.maxmemory" value="2g"/>
 
     <!-- TEST -->
-    <target name="test" depends="test.compile,agent" description="Run unit tests">
-        <mkdir dir="${report}"/>
-        <echo message="Sting: Running test cases!"/>
-        <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
-            <jvmarg value="-javaagent:${build.dir}/TestAgent.jar"/>
-            <formatter type="${testOutput}" usefile="${usefile}" />
-            <classpath>
-                <pathelement location="build"/>
-                <path refid="runtime.dependencies"/>
-                <pathelement location="${test.classes}"/>
-                <pathelement location="lib/junit-4.4.jar"/>
-            </classpath>
+    <macrodef name="run-test">
+        <attribute name="testtype"/>
+        <sequential>
+            <mkdir dir="${report}"/>
+            <echo message="Sting: Running test cases!"/>
+            <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
+                <formatter type="${testOutput}" usefile="${usefile}" />
+                <classpath>
+                    <pathelement location="build"/>
+                    <path refid="runtime.dependencies"/>
+                    <pathelement location="${test.classes}"/>
+                    <pathelement location="lib/junit-4.4.jar"/>
+                </classpath>
 
-            <batchtest fork="yes" todir="${report}">
-                <fileset dir="${test.classes}">
-                    <include name="**/${single}.class"/>
-                    <exclude name="**/BaseTest.class"/>
-                    <exclude name="**/*IntegrationTest.class"/>
-                </fileset>
-            </batchtest>
-        </junit>
-        <fail message="test failed" if="test.failure" />
+                <batchtest fork="yes" todir="${report}">
+                    <fileset dir="${test.classes}">
+                        <include name="**/${single}@{testtype}.class"/>
+                        <exclude name="**/BaseTest.class"/>
+                    </fileset>
+                </batchtest>
+            </junit>
+            <fail message="test failed" if="test.failure" />
+        </sequential>
+    </macrodef>
+
+
+    <!-- our three different test conditions: Test, IntegrationTest, PerformanceTest -->
+    <target name="test" depends="test.compile" description="Run unit tests">
+        <condition property="ttype" value="*UnitTest" else="">
+            <not><isset property="single"/></not>
+        </condition>
+        <condition property="single" value="">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${ttype}"/>
     </target>
-    <!-- Our long tests, tests that are more software integration and test -->
-    <target name="integrationtest" depends="test.compile"
-            description="Run the long integration unit tests">
-        <mkdir dir="${report}"/>
-        <echo message="Sting: Running integration test cases!"/>
-        <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
-            <formatter type="${testOutput}" usefile="${usefile}" />
-            <classpath>
-                <pathelement location="${dist.dir}/GenomeAnalysisTK.jar"/>
-                <path refid="runtime.dependencies"/>
-                <pathelement location="${test.classes}"/>
-                <pathelement location="lib/junit-4.4.jar"/>
-            </classpath>
-
-            <batchtest fork="yes" todir="${report}">
-                <fileset dir="${test.classes}">
-                  <include name="**/${singleintegration}.class"/>
-                </fileset>
-            </batchtest>
-        </junit>
-        <fail message="test failed" if="test.failure" />
+    <target name="integrationtest" depends="test.compile" description="Run unit tests">
+        <condition property="ttype" value="*IntegrationTest" else="">
+            <not><isset property="single"/></not>
+        </condition>
+        <condition property="single" value="">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${ttype}"/>
     </target>
-
-    <!-- this builds the instrumentation library we're going to use for test cases -->
-    <target name="agent" description="build the agent">
-        <echo message="Sting: Creating test agent!"/>
-        <jar jarfile="${build.dir}/TestAgent.jar">
-            <fileset dir="build">
-            <include name="**/TrivialInstrumenter.class" />
-          </fileset>
-
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}"/>
-                <attribute name="Premain-Class" value="org.broadinstitute.sting.TrivialInstrumenter"/>
-            </manifest>
-        </jar>
+    <target name="performancetest" depends="test.compile" description="Run unit tests">
+        <condition property="ttype" value="*PerformanceTest" else="">
+            <not><isset property="single"/></not>
+        </condition>
+        <condition property="single" value="">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${ttype}"/>
     </target>
     
+    <!-- ***************************************************************************** -->
+
     <target name="javadoc" depends="init,resolve" description="generates javadoc">
       <mkdir dir="javadoc"/>
       <javadoc destdir="javadoc"
