@@ -77,6 +77,10 @@ public class GATKArgumentCollection {
     public ArrayList<String> RODBindings = new ArrayList<String>();
 
     @Element(required = false)
+    @Argument(fullName = "rodToIntervalTrackName", shortName = "BTI", doc = "Indicates that the named track should be converted into an interval list, to drive the traversal", required = false)
+    public String RODToInterval = null; 
+
+    @Element(required = false)
     @Argument(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
     public String DBSNPFile = null;
 
@@ -234,6 +238,7 @@ public class GATKArgumentCollection {
      * @return true if they're equal
      */
     public boolean equals(GATKArgumentCollection other) {
+        if (other == null) return false;
         if (other.samFiles.size() != samFiles.size()) {
             return false;
         }
@@ -316,6 +321,10 @@ public class GATKArgumentCollection {
             return false;
         }
         if (other.intervalMerging != this.intervalMerging) {
+            return false;
+        }
+        if ((other.RODToInterval == null && RODToInterval != null) ||
+            (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
             return false;
         }
 //        if (other.enableRodWalkers != this.enableRodWalkers) {

@@ -45,6 +45,7 @@ import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.bed.BedParser;
@@ -176,12 +177,12 @@ public class GenomeAnalysisEngine {
     private void initializeIntervals() {
 
         // return null if no interval arguments at all
-        if ((argCollection.intervals == null) && (argCollection.excludeIntervals == null))
+        if ((argCollection.intervals == null) && (argCollection.excludeIntervals == null) && (argCollection.RODToInterval == null))
             return;
 
         else {
             // if include argument isn't given, create new set of all possible intervals
-            GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null ?
+            GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
                     GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) :
                     parseIntervalArguments(argCollection.intervals, argCollection.intervalMerging));
 
@@ -222,28 +223,32 @@ public class GenomeAnalysisEngine {
     public static GenomeLocSortedSet parseIntervalArguments(List <String> argList, IntervalMergingRule mergingRule) {
 
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
+        rawIntervals.addAll(checkRODToIntervalArgument());            // add any RODs-to-intervals we have
 
-        for (String argument : argList) {
+        if (argList != null) { // now that we can be in this function if only the ROD-to-Intervals was provided, we need to
+                               // ensure that the arg list isn't null before looping.
+            for (String argument : argList) {
 
-            // if any interval argument is '-L all', consider all loci by returning no intervals
-            if (argument.equals("all")) {
-                if (argList.size() != 1) {
-                    // throw error if '-L all' is not only interval - potentially conflicting commands
-                    throw new StingException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
+                // if any interval argument is '-L all', consider all loci by returning no intervals
+                if (argument.equals("all")) {
+                    if (argList.size() != 1) {
+                        // throw error if '-L all' is not only interval - potentially conflicting commands
+                        throw new StingException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
+                    }
+                    return null;
                 }
-                return null;
-            }                         
 
-            // separate argument on semicolon first
-            for (String fileOrInterval : argument.split(";")) {
+                // separate argument on semicolon first
+                for (String fileOrInterval : argument.split(";")) {
 
-                // if it's a file, add items to raw interval list
-                if (isFile(fileOrInterval))
-                    rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval, mergingRule));
+                    // if it's a file, add items to raw interval list
+                    if (isFile(fileOrInterval))
+                        rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval, mergingRule));
 
-                    // otherwise treat as an interval -> parse and add to raw interval list
-                else {
-                    rawIntervals.add(GenomeLocParser.parseGenomeInterval(fileOrInterval));
+                        // otherwise treat as an interval -> parse and add to raw interval list
+                    else {
+                        rawIntervals.add(GenomeLocParser.parseGenomeInterval(fileOrInterval));
+                    }
                 }
             }
         }
@@ -259,6 +264,30 @@ public class GenomeAnalysisEngine {
 
         return GenomeLocSortedSet.createSetFromList(rawIntervals);
 
+    }
+
+    /**
+     * if we have a ROD specified as a 'rodToIntervalTrackName', convert its records to RODs
+     */
+    // TODO: this function uses toLowerCase to work with the current ROD system, fix it if we make ROD names case-sensitive
+    private static List<GenomeLoc> checkRODToIntervalArgument() {
+        Map<String, ReferenceOrderedDataSource> rodNames = RMDIntervalGenerator.getRMDTrackNames(instance.rodDataSources);
+        // Do we have any RODs that overloaded as interval lists with the 'rodToIntervalTrackName' flag?
+        List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
+        if (rodNames != null && instance.argCollection.RODToInterval != null) {
+            String rodName = GenomeAnalysisEngine.instance.argCollection.RODToInterval;
+
+            // check to make sure we have a rod of that name
+            if (!rodNames.containsKey(rodName.toLowerCase()))
+                throw new StingException("--rodToIntervalTrackName (-BTI) was pass the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
+
+            for (String str : rodNames.keySet())
+                if (str.toLowerCase().equals(rodName.toLowerCase())) {
+                    RMDIntervalGenerator intervalGenerator = new RMDIntervalGenerator(rodNames.get(str).getReferenceOrderedData());
+                    ret.addAll(intervalGenerator.toGenomeLocList());
+                }
+        }
+        return ret;
     }
 
     /**
