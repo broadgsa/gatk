@@ -10,13 +10,6 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-/**
- * Created by IntelliJ IDEA.
- * User: chartl
- * Date: Jan 27, 2010
- * Time: 10:40:44 AM
- * To change this template use File | Settings | File Templates.
- */
 /*
  * Calculates per-sample concordance metrics across two multi-sample VCF files; outputs simple counts of concordant
  * variant and genotype calls, genotyping errors, and call errors. Requires a VCF binding with the name 'truth' and

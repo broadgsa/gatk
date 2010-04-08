@@ -476,12 +476,14 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             logger.info("Printing locus summary");
             if ( ! useReadGroup || useBoth ) {
                 File perLocusStatisticsFile = deriveFromStream("sample_locus_statistics");
-                printPerLocus(perLocusStatisticsFile,coverageProfiles.getCoverageBySample());
+                File perLocusCoverageFile = deriveFromStream("sample_coverage_statistics");
+                printPerLocus(perLocusStatisticsFile,perLocusCoverageFile,coverageProfiles.getCoverageBySample());
             }
 
             if ( useReadGroup || useBoth ) {
                 File perLocusRGStats = deriveFromStream("read_group_locus_statistics");
-                printPerLocus(perLocusRGStats,coverageProfiles.getCoverageByReadGroup());
+                File perLocusRGCoverage = deriveFromStream("read_group_locus_coverage");
+                printPerLocus(perLocusRGStats,perLocusRGCoverage,coverageProfiles.getCoverageByReadGroup());
             }
         }
     }
@@ -521,8 +523,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         }
     }
 
-    private void printPerLocus(File locusFile, DepthOfCoverageStats stats) {
+    private void printPerLocus(File locusFile, File coverageFile, DepthOfCoverageStats stats) {
         PrintStream output = getCorrectStream(out,locusFile);
+        PrintStream coverageOut = getCorrectStream(out,coverageFile);
         if ( output == null ) {
             return;
         }
@@ -543,13 +546,23 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         header.append(String.format("%n"));
 
         output.print(header);
+        coverageOut.print(header);
 
         for ( int row = 0; row < samples; row ++ ) {
-            output.printf("%s_%d\t","NSamples",row+1);
+            output.printf("%s_%d","NSamples",row+1);
             for ( int depthBin = 0; depthBin < baseCoverageCumDist[0].length; depthBin ++ ) {
-                output.printf("%d\t",baseCoverageCumDist[row][depthBin]);
+                output.printf("\t%d",baseCoverageCumDist[row][depthBin]);
             }
             output.printf("%n");
+        }
+
+        for ( String sample : stats.getAllSamples() ) {
+            coverageOut.printf("%s",sample);
+            double[] coverageDistribution = stats.getCoverageProportions(sample);
+            for ( int bin = 0; bin < coverageDistribution.length; bin ++ ) {
+                coverageOut.printf("\t%.2f",coverageDistribution[bin]);
+            }
+            coverageOut.printf("%n");
         }
     }
 

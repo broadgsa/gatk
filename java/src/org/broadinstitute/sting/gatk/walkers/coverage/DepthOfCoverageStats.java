@@ -274,4 +274,16 @@ public class DepthOfCoverageStats {
         return totalDepthOfCoverage;
     }
 
+    public double[] getCoverageProportions(String sample) {
+        int[] hist = granularHistogramBySample.get(sample);
+        double[] distribution = new double[hist.length];
+        long count = 0;
+        for ( int i = hist.length-1; i >= 0; i -- ) {
+            count += hist[i];
+            distribution[i] = ( (double) count) / nLoci;
+        }
+
+        return distribution;
+    }
+
 }
