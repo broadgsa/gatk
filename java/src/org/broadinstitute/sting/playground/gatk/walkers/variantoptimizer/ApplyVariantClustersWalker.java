@@ -2,8 +2,10 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
@@ -108,7 +110,6 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
                 throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
 
-
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
@@ -116,7 +117,16 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
         vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
         final TreeSet<String> samples = new TreeSet<String>();
-        SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
+        List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            RMDTrack rod = source.getReferenceOrderedData();
+            if ( rod.getType().equals(RodVCF.class) ) {
+                VCFReader reader = new VCFReader(rod.getFile());
+                Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
+                samples.addAll(vcfSamples);
+                reader.close();
+            }
+        }
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }
