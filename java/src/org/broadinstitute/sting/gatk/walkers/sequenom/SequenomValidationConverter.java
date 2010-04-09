@@ -28,8 +28,6 @@ import java.util.*;
  */
 @Reference(window=@Window(start=0,stop=40))
 public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
-    @Argument(fullName="outputVCF", shortName="vcf", doc="The VCF file to write results", required=true)
-    protected File vcfFile = null;
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid [default:20]", required=false)
     protected double maxHardy = 20.0;
     @Argument(fullName="maxNoCall", doc="Maximum no-call rate (as a fraction) to consider an assay valid [default:0.05]", required=false)
@@ -106,7 +104,7 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         if ( sampleNames == null )
             sampleNames = new TreeSet<String>();
 
-        VCFWriter vcfWriter = new VCFWriter(vcfFile);
+        VCFWriter vcfWriter = new VCFWriter(out);
 
         // set up the info and filter headers
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

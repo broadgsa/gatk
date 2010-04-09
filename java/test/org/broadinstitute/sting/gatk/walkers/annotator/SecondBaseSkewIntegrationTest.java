@@ -33,7 +33,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
                 +"-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
                 +"-I " + validationDataLocation + "FHSP_pool3_2bannot.bam "
                 +"-B variant,Variants," + validationDataLocation + "FHS_pilot_pool3_raw_calls.geli "
-                +"-vcf %s -sample variant -L " + validationDataLocation + "FHS_test_intervals.interval_list";
+                +"-o %s -sample variant -L " + validationDataLocation + "FHS_test_intervals.interval_list";
 
         String md5_for_this_test = "c1116b3196cc9f553ae2442a4063bc5e";
 
@@ -49,7 +49,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
                 +"-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
                 +"-I " + validationDataLocation + "FHSP_pool3_test.bam "
                 +"-B variant,Variants," + validationDataLocation + "FHS_pilot_pool3_raw_calls.geli "
-                +"-vcf %s -sample variant -L " + validationDataLocation + "FHS_test_intervals.interval_list";
+                +"-o %s -sample variant -L " + validationDataLocation + "FHS_test_intervals.interval_list";
 
         String md5_for_this_test = "a297259694ac88f769a45bce96a08e51";
 
@@ -62,7 +62,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
         String test_args = "-T VariantAnnotator -I " + validationDataLocation + "FHS_Pileup_Test.bam"
                      + " -R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -A SecondBaseSkew"
                      + " -sample variant -B variant,VCF," + validationDataLocation + "FHS_pileup_test_chr15.vcf"
-                     + " -vcf %s -L chr15:46347148";
+                     + " -o %s -L chr15:46347148";
         String expected_md5 = "465f92e689110afeb308c201cb6e8c5a";
         WalkerTestSpec spec = new WalkerTestSpec(test_args,1,Arrays.asList(expected_md5));
         executeTest("Testing on locus with many indels", spec);

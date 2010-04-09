@@ -21,7 +21,6 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
-import java.io.File;
 import java.util.*;
 
 
@@ -33,8 +32,6 @@ import java.util.*;
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
-    protected File VCF_OUT;
 
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
@@ -111,7 +108,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new VCFWriter(VCF_OUT);
+        vcfWriter = new VCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }
@@ -154,7 +151,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             return 0;
 
         // if the reference base is not ambiguous, we can annotate
-        Collection<VariantContext> annotatedVCs = Arrays.asList( new VariantContext[] { vc } );
+        Collection<VariantContext> annotatedVCs = Arrays.asList(vc);
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null ) {
@@ -188,8 +185,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
      * @param result  the number of loci seen.
      */
     public void onTraversalDone(Integer result) {
-        out.printf("Processed %d loci.\n", result);
-
+        logger.info("Processed " + result + " loci.\n");
         vcfWriter.close();
     }
 }

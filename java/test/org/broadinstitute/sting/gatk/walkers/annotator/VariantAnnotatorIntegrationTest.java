@@ -41,7 +41,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
     
     public static String baseTestString() {
-        return "-T VariantAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta -vcf %s";
+        return "-T VariantAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta -o %s";
     }
 
 
