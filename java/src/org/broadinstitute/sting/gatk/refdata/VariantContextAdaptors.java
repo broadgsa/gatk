@@ -386,47 +386,54 @@ public class VariantContextAdaptors {
         VariantContext convert(String name, Object input, Allele refAllele) {
             PlinkRod plink = (PlinkRod)input;
 
-            HashSet<Allele> alleles = new HashSet<Allele>();
-            alleles.add(refAllele);
+            HashSet<Allele> VCAlleles = new HashSet<Allele>();
+            VCAlleles.add(refAllele);
+
+            // mapping from Plink Allele to VC Allele (since the PlinkRod does not annotate any of the Alleles as reference)
+            HashMap<Allele, Allele> plinkAlleleToVCAllele = new HashMap<Allele, Allele>();
 
             Set<Genotype> genotypes = new HashSet<Genotype>();
 
             Map<String, Allele[]> genotypeSets = plink.getGenotypes();
 
             // We need to iterate through this list and recreate the Alleles since the
-            //  PlinkRod does not promise to annotate any of the Alleles as reference
+            //  PlinkRod does not annotate any of the Alleles as reference.
             // for each sample...
             for ( Map.Entry<String, Allele[]> genotype : genotypeSets.entrySet() ) {
-                ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
+                ArrayList<Allele> myVCAlleles = new ArrayList<Allele>(2);
 
                 // for each allele...
-                for ( Allele myAllele : genotype.getValue() ) {
-                    Allele allele;
-                    if ( myAllele.isNoCall() ) {
-                        allele = Allele.NO_CALL;
+                for ( Allele myPlinkAllele : genotype.getValue() ) {
+                    Allele VCAllele;
+                    if ( myPlinkAllele.isNoCall() ) {
+                        VCAllele = Allele.NO_CALL;
                     } else {                    
-                        if ( !plink.isIndel() ) {
-                            allele = new Allele(myAllele.getBases(), refAllele.equals(myAllele, true));
-                        } else if ( myAllele.isNull() ) {
-                            allele = new Allele(Allele.NULL_ALLELE_STRING, plink.isInsertion());
+                        if ( plinkAlleleToVCAllele.containsKey(myPlinkAllele) ) {
+                            VCAllele = plinkAlleleToVCAllele.get(myPlinkAllele);
                         } else {
-                            allele = new Allele(myAllele.getBases(), !plink.isInsertion());
+                            if ( !plink.isIndel() ) {
+                                VCAllele = new Allele(myPlinkAllele.getBases(), refAllele.equals(myPlinkAllele, true));
+                            } else if ( myPlinkAllele.isNull() ) {
+                                VCAllele = new Allele(Allele.NULL_ALLELE_STRING, plink.isInsertion());
+                            } else {
+                                VCAllele = new Allele(myPlinkAllele.getBases(), !plink.isInsertion());
+                            }
+                            plinkAlleleToVCAllele.put(myPlinkAllele, VCAllele);
+                            VCAlleles.add(VCAllele);
                         }
-
-                        alleles.add(allele);
                     }
 
-                    myAlleles.add(allele);
+                    myVCAlleles.add(VCAllele);
                 }
 
                 // create the genotype
-                genotypes.add(new Genotype(genotype.getKey(), myAlleles));
+                genotypes.add(new Genotype(genotype.getKey(), myVCAlleles));
             }
 
             // create the variant context
             try {
                 GenomeLoc loc = GenomeLocParser.setStop(plink.getLocation(), plink.getLocation().getStop() + plink.getLength()-1);
-                VariantContext vc = new VariantContext(plink.getVariantName(), loc, alleles, genotypes);
+                VariantContext vc = new VariantContext(plink.getVariantName(), loc, VCAlleles, genotypes);
                 vc.validate();
                 return vc;
             } catch (IllegalArgumentException e) {
