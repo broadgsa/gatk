@@ -114,7 +114,13 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
     }
 
-    public Map<String, List<byte[]>> getGenotypes() {
+    /* Get the mapping from sample name to genotypes (array of Alleles).
+     * Important note: none of the Alleles returned here are annotated as reference
+     * (since the rod doesn't know offhand what the reference allele is).
+     *
+     * @return mapping from sample name to genotype
+     */
+    public Map<String, Allele[]> getGenotypes() {
         return currentVariant.getGenotypes();
     }
 
@@ -162,17 +168,15 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
     private ArrayList<PlinkVariantInfo> parseTextFormattedPlinkFile( File file ) {
         try {
             BufferedReader reader = new BufferedReader( new FileReader ( file ) );
-            String header = reader.readLine();
-            ArrayList<PlinkVariantInfo> seqVars = instantiateVariantListFromHeader(header);
-            ArrayList<Integer> snpOffsets = getSNPOffsetsFromHeader(header);
+            ArrayList<PlinkVariantInfo> seqVars = new ArrayList<PlinkVariantInfo>();
+            int headerFieldCount = instantiateVariantListFromHeader(seqVars, reader.readLine());
 
             sampleNames = new ArrayList<String>();
 
             String line;
-            long counter = 0;
             do {
                 line = reader.readLine();
-                incorporateInfo(seqVars,snpOffsets,line);
+                incorporateInfo(seqVars, line, headerFieldCount);
             } while ( line != null );
 
 
@@ -188,27 +192,27 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         }
     }
 
-    private void incorporateInfo(List<PlinkVariantInfo> vars, List<Integer> offsets, String plinkLine) {
+    private void incorporateInfo(List<PlinkVariantInfo> vars, String plinkLine, int headerFieldCount) {
         if ( plinkLine == null ) {
             return;
         }
 
-        String[] plinkInfo;
         if ( plinkFileType != PlinkFileType.STANDARD_PED )
             throw new StingException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
 
-        plinkInfo = plinkLine.split("\t");
-        String individualName = plinkInfo[1];
-        sampleNames.add(individualName);
+        StringTokenizer st = new StringTokenizer(plinkLine, "\t");
+        st.nextToken(); // family ID
+        sampleNames.add(st.nextToken());
+        for (int i = 2; i < headerFieldCount; i++)
+            st.nextToken();
 
         int snpNumber = 0;
-        for ( int i : offsets ) {
-            vars.get(snpNumber).addGenotypeEntry(plinkInfo[i].split("\\s+"), individualName);
-            snpNumber++;
+        while ( snpNumber < vars.size() ) {
+            vars.get(snpNumber++).addGenotypeEntry(st.nextToken().split("\\s+"));
         }
     }
 
-    private ArrayList<PlinkVariantInfo> instantiateVariantListFromHeader(String header) {
+    private int instantiateVariantListFromHeader(ArrayList<PlinkVariantInfo> seqVars, String header) {
         // if the first line is not a comment (what we're used to seeing),
         // then it's the raw header (comes from de-binary-ing a .bed file)
         if ( !header.startsWith("#") )
@@ -216,38 +220,18 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
         plinkFileType = PlinkFileType.STANDARD_PED;
 
-        ArrayList<PlinkVariantInfo> seqVars = new ArrayList<PlinkVariantInfo>();
         String[] headerFields = header.split("\t");
 
+        int skippedFields = 0;
         for ( String field : headerFields ) {
-            if ( ! headerEntries.contains(field) ) {
-                 // not a standard header, so a variant
-                seqVars.add(new PlinkVariantInfo(field));
-            }
+            if ( headerEntries.contains(field) )
+                skippedFields++;
+            else
+                // not a standard header, so a variant
+               seqVars.add(new PlinkVariantInfo(field));
         }
 
-        return seqVars;
-    }
-
-    private ArrayList<Integer> getSNPOffsetsFromHeader(String header) {
-        ArrayList<Integer> offsets = new ArrayList<Integer>();
-        String[] headerFields;
-        if ( plinkFileType == PlinkFileType.STANDARD_PED ) {
-            headerFields = header.split("\t+");
-        } else {
-            headerFields = header.split("\\s+");
-        }
-
-        int offset = 0;
-
-        for ( String field : headerFields ) {
-            if ( ! headerEntries.contains(field) ) {
-                offsets.add(offset);
-            }
-            offset++;
-        }
-
-        return offsets;
+        return skippedFields;
     }
 
     /* *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
@@ -396,7 +380,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         // four genotypes encoded in this byte
         int[] genotypes = parseGenotypes(genotype);
         for ( int g : genotypes ) {
-            variants.get(snpOffset).addBinaryGenotypeEntry(g,sampleNames.get(sampleOffset));
+            variants.get(snpOffset).addBinaryGenotypeEntry(g);
 
             if ( major ) {
                 sampleOffset++;
@@ -420,135 +404,159 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         genotypes[3] = ( ( genotype & 192 ) >>> 6 );
         return genotypes;
     }
-}
 
-class PlinkVariantInfo implements Comparable {
+    class PlinkVariantInfo implements Comparable {
 
-    private String variantName;
-    private GenomeLoc loc;
-    private Map<String, List<byte[]>> genotypes = new HashMap<String, List<byte[]>>();
+        private String variantName;
+        private GenomeLoc loc;
 
-    // for indels
-    private boolean isIndel = false;
-    private boolean isInsertion = false;
-    private int length = 1;
+        // the list of genotypes in the same order as in sampleNames (using a map here is inefficient)
+        private List<Allele[]> genotypes = new ArrayList<Allele[]>();
 
-    // for binary parsing
-    private String locAllele1;
-    private String locAllele2;
+        // map of Alleles seen (so that we can share Allele objects among samples)
+        HashMap<String, Allele> alleles = new HashMap<String, Allele>(4);
+
+        // for indels
+        private boolean isIndel = false;
+        private boolean isInsertion = false;
+        private int length = 1;
+
+        // for binary parsing
+        private String locAllele1;
+        private String locAllele2;
 
 
-    public PlinkVariantInfo(String variantName) {
-        this.variantName = variantName;
-        parseName();
-    }
+        public PlinkVariantInfo(String variantName) {
+            this.variantName = variantName;
+            parseName();
+        }
 
-    public GenomeLoc getLocation() {
-        return loc;
-    }
+        public GenomeLoc getLocation() {
+            return loc;
+        }
 
-    public String getName() {
-        return variantName;
-    }
+        public String getName() {
+            return variantName;
+        }
 
-    public Map<String, List<byte[]>> getGenotypes() {
-        return genotypes;
-    }
+        public Map<String, Allele[]> getGenotypes() {
+            Map<String, Allele[]> genotypeMap = new HashMap<String, Allele[]>();
+            int index = 0;
+            for ( Allele[] myAlleles : genotypes )
+                genotypeMap.put(sampleNames.get(index++), myAlleles);
+            return genotypeMap;
+        }
 
-    public boolean isIndel() {
-        return isIndel;
-    }
+        public boolean isIndel() {
+            return isIndel;
+        }
 
-    public boolean isInsertion() {
-        return isInsertion;
-    }
+        public boolean isInsertion() {
+            return isInsertion;
+        }
 
-    public int getLength() {
-        return length;
-    }
+        public int getLength() {
+            return length;
+        }
 
-    public void setGenomeLoc(GenomeLoc loc) {
-        this.loc = loc;
-    }
+        public void setGenomeLoc(GenomeLoc loc) {
+            this.loc = loc;
+        }
 
-    private void parseName() {
-        int chromIdx = variantName.indexOf("|c");
-        if ( chromIdx == -1 )
-            throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c...)");
-        String[] pieces = variantName.substring(chromIdx+2).split("_");
-        if ( pieces.length < 2 )
-            throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
+        private void parseName() {
+            int chromIdx = variantName.indexOf("|c");
+            if ( chromIdx == -1 )
+                throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c...)");
+            String[] pieces = variantName.substring(chromIdx+2).split("_");
+            if ( pieces.length < 2 )
+                throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
 
-        String chrom = pieces[0].trim();
-        if ( pieces[1].charAt(0) != 'p' )
-            throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
+            String chrom = pieces[0].trim();
+            if ( pieces[1].charAt(0) != 'p' )
+                throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p...)");
 
-        String pos = pieces[1].substring(1).trim();
-        loc = GenomeLocParser.parseGenomeLoc(chrom+":"+pos);
+            String pos = pieces[1].substring(1).trim();
+            loc = GenomeLocParser.parseGenomeLoc(chrom+":"+pos);
 
-        if ( pieces.length > 2 && (pieces[2].startsWith("gI") || pieces[2].startsWith("gD")) ) {
-            // it's an indel
-            isIndel = true;
-            isInsertion = pieces[2].startsWith("gI");
-            try {
-                // length of insertion on reference is still 1
-                if ( !isInsertion )
-                    length = Integer.parseInt(pieces[2].substring(2));
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p..._g[I/D][length])");
+            if ( pieces.length > 2 && (pieces[2].startsWith("gI") || pieces[2].startsWith("gD")) ) {
+                // it's an indel
+                isIndel = true;
+                isInsertion = pieces[2].startsWith("gI");
+                try {
+                    // length of insertion on reference is still 1
+                    if ( !isInsertion )
+                        length = Integer.parseInt(pieces[2].substring(2));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Variant name " + variantName + " does not adhere to required convention (...|c..._p..._g[I/D][length])");
+                }
             }
         }
-    }
 
-    public void setAlleles(String al1, String al2) {
-        if ( al1.equals(PlinkRod.SEQUENOM_NO_CALL) ) {
-            // encoding for a site at which no variants were detected
-            locAllele1 = al2;
-        } else {
-            locAllele1 = al1;
-        }
-        locAllele2 = al2;
-    }
-
-    public void addGenotypeEntry(String[] alleleStrings, String sampleName) {
-
-        ArrayList<byte[]> alleles = new ArrayList<byte[]>(2);
-
-        for ( String alleleString : alleleStrings ) {
-            if ( alleleString.equals(PlinkRod.SEQUENOM_NO_CALL) )
-                alleles.add(Allele.NO_CALL_STRING.getBytes());
-            else
-                alleles.add(alleleString.getBytes());
+        public void setAlleles(String al1, String al2) {
+            if ( al1.equals(PlinkRod.SEQUENOM_NO_CALL) ) {
+                // encoding for a site at which no variants were detected
+                locAllele1 = al2;
+            } else {
+                locAllele1 = al1;
+            }
+            locAllele2 = al2;
         }
 
-        genotypes.put(sampleName, alleles);
-    }
+        public void addGenotypeEntry(String[] alleleStrings) {
 
-    public void addBinaryGenotypeEntry( int genoTYPE, String sampleName ) {
-        String[] alleleStr = new String[2];
-        if ( genoTYPE == 0 ) {
-            alleleStr[0] = locAllele1;
-            alleleStr[1] = locAllele1;
-        } else if (genoTYPE == 2) {
-            alleleStr[0] = locAllele1;
-            alleleStr[1] = locAllele2;
-        } else if (genoTYPE == 3 ) {
-            alleleStr[0] = locAllele2;
-            alleleStr[1] = locAllele2;
-        } else {
-            alleleStr[0] = "0";
-            alleleStr[1] = "0";
+            Allele[] myAlleles = new Allele[2];
+
+            for (int i = 0; i < 2; i++) {
+                if ( alleleStrings.length <= i ) {
+                    myAlleles[i] = null;
+                    continue;
+                }
+
+                String alleleString = alleleStrings[i];
+
+                Allele allele;
+                if ( alleles.containsKey(alleleString) ) {
+                    allele = alleles.get(alleleString);
+                } else {
+                    if ( PlinkRod.SEQUENOM_NO_CALL.equals(alleleString) )
+                        allele = Allele.NO_CALL;
+                    else
+                        allele = new Allele(alleleString);
+                    alleles.put(alleleString, allele);
+                }
+
+                myAlleles[i] = allele;
+            }
+
+            genotypes.add(myAlleles);
         }
 
-        addGenotypeEntry(alleleStr, sampleName);
-    }
+        public void addBinaryGenotypeEntry(int genoTYPE) {
+            String[] alleleStr = new String[2];
+            if ( genoTYPE == 0 ) {
+                alleleStr[0] = locAllele1;
+                alleleStr[1] = locAllele1;
+            } else if (genoTYPE == 2) {
+                alleleStr[0] = locAllele1;
+                alleleStr[1] = locAllele2;
+            } else if (genoTYPE == 3 ) {
+                alleleStr[0] = locAllele2;
+                alleleStr[1] = locAllele2;
+            } else {
+                alleleStr[0] = "0";
+                alleleStr[1] = "0";
+            }
 
-    public int compareTo(Object obj) {
-        if ( ! ( obj instanceof PlinkVariantInfo) ) {
-            return 1;
+            addGenotypeEntry(alleleStr);
         }
 
-        return loc.compareTo(((PlinkVariantInfo) obj).getLocation());
+        public int compareTo(Object obj) {
+            if ( ! ( obj instanceof PlinkVariantInfo) ) {
+                return 1;
+            }
+
+            return loc.compareTo(((PlinkVariantInfo) obj).getLocation());
+        }
     }
 }
 

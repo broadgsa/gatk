@@ -391,23 +391,26 @@ public class VariantContextAdaptors {
 
             Set<Genotype> genotypes = new HashSet<Genotype>();
 
-            Map<String, List<byte[]>> genotypeSets = plink.getGenotypes();
-            // for each sample
-            for ( Map.Entry<String, List<byte[]>> genotype : genotypeSets.entrySet() ) {
+            Map<String, Allele[]> genotypeSets = plink.getGenotypes();
+
+            // We need to iterate through this list and recreate the Alleles since the
+            //  PlinkRod does not promise to annotate any of the Alleles as reference
+            // for each sample...
+            for ( Map.Entry<String, Allele[]> genotype : genotypeSets.entrySet() ) {
                 ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
 
-                // for each allele
-                for ( byte[] alleleString : genotype.getValue() ) {
+                // for each allele...
+                for ( Allele myAllele : genotype.getValue() ) {
                     Allele allele;
-                    if ( Allele.wouldBeNoCallAllele(alleleString) ) {
+                    if ( myAllele.isNoCall() ) {
                         allele = Allele.NO_CALL;
                     } else {                    
                         if ( !plink.isIndel() ) {
-                            allele = new Allele(alleleString, refAllele.basesMatch(alleleString));
-                        } else if ( Allele.wouldBeNullAllele(alleleString) ) {
-                            allele = new Allele(alleleString, plink.isInsertion());
+                            allele = new Allele(myAllele.getBases(), refAllele.equals(myAllele, true));
+                        } else if ( myAllele.isNull() ) {
+                            allele = new Allele(Allele.NULL_ALLELE_STRING, plink.isInsertion());
                         } else {
-                            allele = new Allele(alleleString, !plink.isInsertion());
+                            allele = new Allele(myAllele.getBases(), !plink.isInsertion());
                         }
 
                         alleles.add(allele);
