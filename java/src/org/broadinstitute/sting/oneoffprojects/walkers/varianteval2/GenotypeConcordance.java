@@ -86,8 +86,8 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     class QualityScoreHistograms implements TableType {
         final int NUM_BINS = 20;
-        final ArrayList<Double> truePositiveQualities = new ArrayList<Double>(); // An ArrayList holds all the qualities until we are able to bin them appropriately
-        final ArrayList<Double> falsePositiveQualities = new ArrayList<Double>();
+        final HashMap<Integer,Integer> truePositiveQualityScoreMap = new HashMap<Integer,Integer>(); // A HashMap holds all the quality scores until we are able to bin them appropriately
+        final HashMap<Integer,Integer> falsePositiveQualityScoreMap = new HashMap<Integer,Integer>();
         final int truePositiveHist[] = new int[NUM_BINS]; // the final histograms that get reported out
         final int falsePositiveHist[] = new int[NUM_BINS];
         final String[] rowKeys = new String[]{"true_positive_hist", "false_positive_hist"};
@@ -133,10 +133,17 @@ public class GenotypeConcordance extends VariantEvaluator {
         }
 
         public void incrValue( final double qual, final boolean isTruePositiveCall ) {
+            HashMap<Integer,Integer> qualScoreMap;
             if( isTruePositiveCall ) {
-                truePositiveQualities.add( qual );
+                qualScoreMap = truePositiveQualityScoreMap;
             } else {
-                falsePositiveQualities.add( qual );
+                qualScoreMap = falsePositiveQualityScoreMap;
+            }
+            final Integer qualKey = Math.round((float) qual);
+            if( qualScoreMap.containsKey(qualKey) ) {
+                qualScoreMap.put(qualKey, qualScoreMap.get(qualKey) + 1);
+            } else {
+                qualScoreMap.put(qualKey, 1);
             }
         }
 
@@ -146,27 +153,33 @@ public class GenotypeConcordance extends VariantEvaluator {
                 falsePositiveHist[iii] = 0;
             }
 
-            double maxQual = 0.0;
+            int maxQual = 0;
 
             // Calculate the maximum quality score for both TP and FP calls in order to normalize and histogram
-            for( final Double qual : truePositiveQualities ) {
+            for( final Integer qual : truePositiveQualityScoreMap.keySet()) {
                 if( qual > maxQual ) {
                     maxQual = qual;
                 }
             }
-            for( final Double qual : falsePositiveQualities ) {
+            for( final Integer qual : falsePositiveQualityScoreMap.keySet()) {
                 if( qual > maxQual ) {
                     maxQual = qual;
                 }
             }
 
-            final double binSize = maxQual / ((double) (NUM_BINS-1));
-            
-            for( final Double qual : truePositiveQualities ) {
-                truePositiveHist[ (int)Math.floor( qual / binSize ) ]++;
+            final double binSize = ((double)maxQual) / ((double) (NUM_BINS-1)); //BUGBUG: should be normalized max to min, not max to 0
+
+            for( final Integer qual : truePositiveQualityScoreMap.keySet()) {
+                final int index = (int)Math.floor( ((double)qual) / binSize );
+                if(index >= 0) { //BUGBUG: problem when maxQual is zero?
+                    truePositiveHist[ index ] += truePositiveQualityScoreMap.get(qual);
+                }
             }
-            for( final Double qual : falsePositiveQualities ) {
-                falsePositiveHist[ (int)Math.floor( qual / binSize ) ]++;
+            for( final Integer qual : falsePositiveQualityScoreMap.keySet()) {
+                final int index = (int)Math.floor( ((double)qual) / binSize );
+                if(index >= 0) {
+                    falsePositiveHist[ index ] += falsePositiveQualityScoreMap.get(qual);
+                }
             }
         }
     }
@@ -326,7 +339,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     }
 
     public void finalizeEvaluation() {
-        if( qualityScoreHistograms!=null ) {
+        if( qualityScoreHistograms != null ) {
             qualityScoreHistograms.organizeHistogramTables();
         }
     }
