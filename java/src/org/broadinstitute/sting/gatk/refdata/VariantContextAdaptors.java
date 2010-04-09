@@ -386,32 +386,31 @@ public class VariantContextAdaptors {
         VariantContext convert(String name, Object input, Allele refAllele) {
             PlinkRod plink = (PlinkRod)input;
 
-            HashMap<String, Allele> alleles = new HashMap<String, Allele>(); // use String keys to help maintain uniqueness
-            alleles.put(refAllele.isNull() ? Allele.NULL_ALLELE_STRING : new String(refAllele.getBases()), refAllele);
+            HashSet<Allele> alleles = new HashSet<Allele>();
+            alleles.add(refAllele);
 
             Set<Genotype> genotypes = new HashSet<Genotype>();
 
-            Map<String, List<String>> genotypeSets = plink.getGenotypes();
+            Map<String, List<byte[]>> genotypeSets = plink.getGenotypes();
             // for each sample
-            for ( Map.Entry<String, List<String>> genotype : genotypeSets.entrySet() ) {
+            for ( Map.Entry<String, List<byte[]>> genotype : genotypeSets.entrySet() ) {
                 ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
 
                 // for each allele
-                for ( String alleleString : genotype.getValue() ) {
+                for ( byte[] alleleString : genotype.getValue() ) {
                     Allele allele;
-                    if ( alleleString.equals(Allele.NO_CALL_STRING) ) {
+                    if ( Allele.wouldBeNoCallAllele(alleleString) ) {
                         allele = Allele.NO_CALL;
                     } else {                    
                         if ( !plink.isIndel() ) {
                             allele = new Allele(alleleString, refAllele.basesMatch(alleleString));
-                        } else if ( alleleString.equals(Allele.NULL_ALLELE_STRING) ) {
+                        } else if ( Allele.wouldBeNullAllele(alleleString) ) {
                             allele = new Allele(alleleString, plink.isInsertion());
                         } else {
                             allele = new Allele(alleleString, !plink.isInsertion());
                         }
 
-                        if ( !alleles.containsKey(alleleString) )
-                            alleles.put(alleleString, allele);
+                        alleles.add(allele);
                     }
 
                     myAlleles.add(allele);
@@ -424,7 +423,7 @@ public class VariantContextAdaptors {
             // create the variant context
             try {
                 GenomeLoc loc = GenomeLocParser.setStop(plink.getLocation(), plink.getLocation().getStop() + plink.getLength()-1);
-                VariantContext vc = new VariantContext(plink.getVariantName(), loc, alleles.values(), genotypes);
+                VariantContext vc = new VariantContext(plink.getVariantName(), loc, alleles, genotypes);
                 vc.validate();
                 return vc;
             } catch (IllegalArgumentException e) {

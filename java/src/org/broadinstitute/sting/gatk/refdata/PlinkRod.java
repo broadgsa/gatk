@@ -114,7 +114,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
     }
 
-    public Map<String, List<String>> getGenotypes() {
+    public Map<String, List<byte[]>> getGenotypes() {
         return currentVariant.getGenotypes();
     }
 
@@ -169,6 +169,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
             sampleNames = new ArrayList<String>();
 
             String line;
+            long counter = 0;
             do {
                 line = reader.readLine();
                 incorporateInfo(seqVars,snpOffsets,line);
@@ -425,7 +426,7 @@ class PlinkVariantInfo implements Comparable {
 
     private String variantName;
     private GenomeLoc loc;
-    private Map<String, List<String>> genotypes = new HashMap<String, List<String>>();
+    private Map<String, List<byte[]>> genotypes = new HashMap<String, List<byte[]>>();
 
     // for indels
     private boolean isIndel = false;
@@ -450,7 +451,7 @@ class PlinkVariantInfo implements Comparable {
         return variantName;
     }
 
-    public Map<String, List<String>> getGenotypes() {
+    public Map<String, List<byte[]>> getGenotypes() {
         return genotypes;
     }
 
@@ -511,13 +512,13 @@ class PlinkVariantInfo implements Comparable {
 
     public void addGenotypeEntry(String[] alleleStrings, String sampleName) {
 
-        ArrayList<String> alleles = new ArrayList<String>(2);
+        ArrayList<byte[]> alleles = new ArrayList<byte[]>(2);
 
         for ( String alleleString : alleleStrings ) {
             if ( alleleString.equals(PlinkRod.SEQUENOM_NO_CALL) )
-                alleles.add(Allele.NO_CALL_STRING);
+                alleles.add(Allele.NO_CALL_STRING.getBytes());
             else
-                alleles.add(alleleString);
+                alleles.add(alleleString.getBytes());
         }
 
         genotypes.put(sampleName, alleles);
