@@ -310,7 +310,7 @@
         <attribute name="testtype"/>
         <sequential>
             <mkdir dir="${report}"/>
-            <echo message="Sting: Running test cases!"/>
+            <echo message="Sting: Running @{testtype} test cases!"/>
             <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
                 <formatter type="${testOutput}" usefile="${usefile}" />
                 <classpath>
@@ -322,7 +322,7 @@
 
                 <batchtest fork="yes" todir="${report}">
                     <fileset dir="${test.classes}">
-                        <include name="**/${single}@{testtype}.class"/>
+                        <include name="**/@{testtype}.class"/>
                         <exclude name="**/BaseTest.class"/>
                     </fileset>
                 </batchtest>
@@ -334,31 +334,22 @@
 
     <!-- our three different test conditions: Test, IntegrationTest, PerformanceTest -->
     <target name="test" depends="test.compile" description="Run unit tests">
-        <condition property="ttype" value="*UnitTest" else="">
-            <not><isset property="single"/></not>
-        </condition>
-        <condition property="single" value="">
+        <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${ttype}"/>
     </target>
     <target name="integrationtest" depends="test.compile" description="Run unit tests">
-        <condition property="ttype" value="*IntegrationTest" else="">
+        <condition property="itype" value="*IntegrationTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <condition property="single" value="">
-            <not><isset property="single"/></not>
-        </condition>
-        <run-test testtype="${ttype}"/>
+        <run-test testtype="${itype}"/>
     </target>
     <target name="performancetest" depends="test.compile" description="Run unit tests">
-        <condition property="ttype" value="*PerformanceTest" else="">
+       <condition property="ptype" value="*PerformanceTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
-        <condition property="single" value="">
-            <not><isset property="single"/></not>
-        </condition>
-        <run-test testtype="${ttype}"/>
+        <run-test testtype="${ptype}"/>
     </target>
     
     <!-- ***************************************************************************** -->
