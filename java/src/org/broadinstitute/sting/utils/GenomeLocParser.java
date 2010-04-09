@@ -198,7 +198,7 @@ public class GenomeLocParser {
 
         // is the contig valid?
         if (!isContigValid(contig))
-            throw new StingException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
+            throw new StingException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
 
 		if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
             // lookup the actually stop position!
@@ -276,7 +276,7 @@ public class GenomeLocParser {
      */
     public static GenomeLoc parseGenomeLoc(final String contig, long start, long stop) {
         if (!isContigValid(contig))
-            throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
+            throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
         return new GenomeLoc(contig, getContigIndex(contig,true), start, stop);
     }
 
