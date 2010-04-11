@@ -43,7 +43,7 @@ public class VariantContextAdaptors {
         adaptors.put(RodVCF.class, new RodVCFAdaptor());
         adaptors.put(VCFRecord.class, new VCFRecordAdaptor());
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
-        adaptors.put(HapMapGenotypeROD.class, new HapMapAdaptor());
+        adaptors.put(HapMapROD.class, new HapMapAdaptor());
         adaptors.put(RodGLF.class, new GLFAdaptor());
         adaptors.put(RodGeliText.class, new GeliAdaptor());
     }
@@ -604,7 +604,7 @@ public class VariantContextAdaptors {
          * @return a VariantContext object
          */
         VariantContext convert(String name, Object input, Allele refAllele) {
-            HapMapGenotypeROD hapmap = (HapMapGenotypeROD)input;
+            HapMapROD hapmap = (HapMapROD)input;
 
             // add the reference allele
             HashSet<Allele> alleles = new HashSet<Allele>();

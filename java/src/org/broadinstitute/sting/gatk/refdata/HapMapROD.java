@@ -5,9 +5,9 @@ import java.util.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-public class HapMapGenotypeROD extends TabularROD 
+public class HapMapROD extends TabularROD
 {
-    public HapMapGenotypeROD(final String name) {
+    public HapMapROD(final String name) {
         super(name);
     }
 

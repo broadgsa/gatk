@@ -70,8 +70,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 Object rod = rods.get(0);
                 if ( rod instanceof RodVCF )
                     samples.addAll(Arrays.asList(((RodVCF)rod).getSampleNames()));
-                else if ( rod instanceof HapMapGenotypeROD )
-                    samples.addAll(Arrays.asList(((HapMapGenotypeROD)rod).getSampleIDs()));
+                else if ( rod instanceof HapMapROD )
+                    samples.addAll(Arrays.asList(((HapMapROD)rod).getSampleIDs()));
                 else
                     samples.addAll(Arrays.asList(rec.getSampleNames()));
             }

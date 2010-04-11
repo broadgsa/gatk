@@ -58,7 +58,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " -B variant,HapMapGenotype," + validationDataLocation + "rawHapMap.yri.chr1.txt" +
+                        " -B variant,HapMap," + validationDataLocation + "rawHapMap.yri.chr1.txt" +
                         " -T VariantsToVCF" +
                         " -L 1:1-1,000,000" +
                         " -o %s",
