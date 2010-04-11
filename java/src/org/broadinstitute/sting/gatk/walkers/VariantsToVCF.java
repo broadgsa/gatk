@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.util.*;
 
@@ -29,7 +30,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     private String[] ALLOWED_FORMAT_FIELDS = {"GT"};
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( tracker == null )
+        if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
         rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData("dbsnp"));
