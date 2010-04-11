@@ -18,7 +18,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -OQ" +
                         " -recalFile /dev/null",
                 0,
-                new ArrayList(0));
+                new ArrayList<String>(0));
         executeTest("testCountCovariatesWholeGenome", spec);
     }
 
@@ -33,7 +33,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -OQ" +
                         " -recalFile /dev/null",
                 0,
-                new ArrayList(0));
+                new ArrayList<String>(0));
         executeTest("testCountCovariatesWholeExome", spec);
     }
 
@@ -48,7 +48,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -recalFile " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.recal.csv" +
                         " -outputBam /dev/null",
                 0,
-                new ArrayList(0));
+                new ArrayList<String>(0));
         executeTest("testTableRecalibratorWholeGenome", spec);
     }
 
@@ -63,7 +63,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -recalFile " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.recal.csv" +
                         " -outputBam /dev/null",
                 0,
-                new ArrayList(0));
+                new ArrayList<String>(0));
         executeTest("testTableRecalibratorWholeExome", spec);
     }
 }

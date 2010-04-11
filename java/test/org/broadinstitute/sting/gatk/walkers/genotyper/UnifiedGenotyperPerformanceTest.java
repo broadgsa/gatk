@@ -16,7 +16,7 @@ public class UnifiedGenotyperPerformanceTest extends WalkerTest {
                         " -L chr1:1-50,000,000" +
                         " -varout /dev/null",
                 0,
-                new ArrayList(0));
+                new ArrayList<String>(0));
         executeTest("testUnifiedGenotyperWholeGenome", spec);
     }
 
@@ -29,7 +29,7 @@ public class UnifiedGenotyperPerformanceTest extends WalkerTest {
                         " -L " + evaluationDataLocation + "whole_exome_agilent_designed_120.targets.chr1.interval_list" +
                         " -varout /dev/null",
                 0,
-                new ArrayList(0));
+                new ArrayList<String>(0));
         executeTest("testUnifiedGenotyperWholeExome", spec);
     }
 }
