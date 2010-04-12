@@ -8,25 +8,19 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.refdata.PlinkRod;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 
 /**
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
 @Reference(window=@Window(start=0,stop=40))
+@Requires(value={},referenceMetaData=@RMD(name="sequenom",type= ReferenceOrderedDatum.class))
 public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid [default:20]", required=false)
     protected double maxHardy = 20.0;
@@ -35,9 +29,9 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     @Argument(fullName="maxHomVar", doc="Maximum homozygous variant rate (as a fraction) to consider an assay valid [default:1.1, disabled]", required=false)
     protected double maxHomNonref = 1.1;
 
-    @Argument(fullName="populationFile", shortName="populations", doc="A tab-delimited file relating individuals to populations,"+
-              "used for smart Hardy-Weinberg annotation",required = false)
-    public File popFile = null;
+    //@Argument(fullName="populationFile", shortName="populations", doc="A tab-delimited file relating individuals to populations,"+
+    //          "used for smart Hardy-Weinberg annotation",required = false)
+    //private File popFile = null;
 
     // max allowable indel size (based on ref window)
     private static final int MAX_INDEL_SIZE = 40;
@@ -55,12 +49,12 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     private int numHomVarViolations = 0;
     private int numTrueVariants = 0;
 
-    private HashMap<String,String> samplesToPopulation;
+    //private HashMap<String,String> samplesToPopulation;
 
     public void initialize() {
-        if ( popFile != null ) {
-            samplesToPopulation = parsePopulationFile(popFile);
-        }
+        //if ( popFile != null ) {
+        //    samplesToPopulation = parsePopulationFile(popFile);
+        //}
     }
 
     public Integer reduceInit() {
@@ -72,25 +66,50 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         if ( tracker == null )
             return null;
 
-        // get the Plink rod at this locus if there is one
-        PlinkRod plinkRod = null;
-        Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
-        while (rods.hasNext()) {
-            Object rod = rods.next().getUnderlyingObject();
-            if ( rod instanceof PlinkRod ) {
-                plinkRod = (PlinkRod)rod;
-                break;
-            }
-        }
-
-        if ( plinkRod == null )
+        // get the sequenom rod at this locus if there is one
+        List<Object> rods = tracker.getReferenceMetaData("sequenom");
+        // ignore places where we don't have a variant
+        if ( rods.size() == 0 )
             return null;
 
-        if ( sampleNames == null )
-            sampleNames = new TreeSet<String>(plinkRod.getSampleNames());
+        Object rod = rods.get(0);
 
-        return addVariantInformationToCall(ref, plinkRod);
+        // determine the reference allele
+        Allele refAllele = determineRefAllele(rod, ref);
+
+        VariantContext vc = VariantContextAdaptors.toVariantContext("sequenom", rod, refAllele);
+
+        if ( sampleNames == null )
+            sampleNames = new TreeSet<String>(vc.getSampleNames());        
+
+        return addVariantInformationToCall(ref, vc, rod);
     }
+
+    private Allele determineRefAllele(Object rod, ReferenceContext ref) {
+        Allele refAllele;
+
+        // ugly hack to get around the fact that the Plink rod needs
+        // a very specific determination of the reference allele
+        if ( rod instanceof PlinkRod ) {
+            PlinkRod plink = (PlinkRod)rod;
+            if ( !plink.isIndel() ) {
+                refAllele = new Allele(Character.toString(ref.getBase()), true);
+            } else if ( plink.isInsertion() ) {
+                refAllele = new Allele(PlinkRod.SEQUENOM_NO_BASE, true);
+            } else {
+                if ( plink.getLength() > MAX_INDEL_SIZE )
+                    throw new UnsupportedOperationException("PlinkToVCF currently can only handle indels up to length " + MAX_INDEL_SIZE);
+                char[] deletion = new char[plink.getLength()];
+                System.arraycopy(ref.getBases(), 1, deletion, 0, plink.getLength());
+                refAllele = new Allele(new String(deletion), true);
+            }
+        } else {
+            refAllele = new Allele(Character.toString(ref.getBase()), true);
+        }
+
+        return refAllele;
+    }
+
 
     public Integer reduce(VCFRecord call, Integer numVariants) {
         if ( call != null ) {
@@ -149,23 +168,8 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     }
 
 
-    private VCFRecord addVariantInformationToCall(ReferenceContext ref, PlinkRod plinkRod) {
+    private VCFRecord addVariantInformationToCall(ReferenceContext ref, VariantContext vContext, Object rod) {
 
-        // determine the reference allele
-        Allele refAllele;
-        if ( !plinkRod.isIndel() ) {
-            refAllele = new Allele(Character.toString(ref.getBase()), true);
-        } else if ( plinkRod.isInsertion() ) {
-            refAllele = new Allele(PlinkRod.SEQUENOM_NO_BASE, true);
-        } else {
-            if ( plinkRod.getLength() > MAX_INDEL_SIZE )
-                throw new UnsupportedOperationException("PlinkToVCF currently can only handle indels up to length " + MAX_INDEL_SIZE);
-            char[] deletion = new char[plinkRod.getLength()];
-            System.arraycopy(ref.getBases(), 1, deletion, 0, plinkRod.getLength());
-            refAllele = new Allele(new String(deletion), true);
-        }
-
-        VariantContext vContext = VariantContextAdaptors.toVariantContext(plinkRod.getName(), plinkRod, refAllele);
         VCFRecord record = VariantContextAdaptors.toVCF(vContext, ref.getBase());
         record.setGenotypeFormatString("GT");
 
@@ -208,18 +212,19 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         infoMap.put(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
         record.addInfoFields(infoMap);
 
-        // add the id
-        record.setID(plinkRod.getVariantName());
+        // set the id if it's a plink rod
+        if ( rod instanceof PlinkRod )
+            record.setID(((PlinkRod)rod).getVariantName());
 
         return record;
     }
 
     private double hardyWeinbergCalculation(VariantContext vc) {
-        if ( popFile != null ) {
-            throw new StingException("We still need to implement this!");
-        } else {
-            return VariantContextUtils.computeHardyWeinbergPvalue(vc);
-        }
+        //if ( popFile != null ) {
+        //    throw new StingException("We still need to implement this!");
+        //} else {
+        return VariantContextUtils.computeHardyWeinbergPvalue(vc);
+        //}
     }
 
     // TODO -- REWRITE THIS TO WORK WITH VARIANT CONTEXT
@@ -260,23 +265,4 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     }
 
     *********/
-
-    private HashMap<String,String> parsePopulationFile(File file) {
-        HashMap<String,String> samplesToPopulation = new HashMap<String,String>();
-        try {
-            BufferedReader in = new BufferedReader( new FileReader( file ));
-            String line = in.readLine();
-            while ( line != null ) {
-                String[] populationSamples = line.split("\t");
-                String population = populationSamples[0];
-                for ( int i = 1; i < populationSamples.length; i ++ ) {
-                    samplesToPopulation.put(populationSamples[i], population);
-                }
-            }
-        } catch ( IOException e) {
-            throw new StingException("Error reading population file", e);
-        }
-
-        return samplesToPopulation;
-    }
 }
