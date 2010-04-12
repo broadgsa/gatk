@@ -301,6 +301,12 @@ public class GenomeAnalysisEngine {
                 str.toUpperCase().endsWith(".PICARD") || str.toUpperCase().endsWith(".INTERVAL_LIST")
                 || str.toUpperCase().endsWith(".INTERVALS"))
             return true;
+
+        if(new File(str).exists())
+            throw new StingException("Interval argument looks like a filename, but does not have one of " +
+                                     "the supported extensions (.bed, .picard, .interval_list, or .intervals).  " +
+                                     "Please rename your file with the appropriate extension.");
+
         else return false;
     }
 
