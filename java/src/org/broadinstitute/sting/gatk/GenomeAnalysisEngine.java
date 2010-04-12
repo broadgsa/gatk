@@ -292,7 +292,7 @@ public class GenomeAnalysisEngine {
 
     /**
      * Check if string argument was intented as a file
-     * Accepted file extensions: .list, .interval_list, .bed, .picard
+     * Accepted file extensions: .bed .list, .interval_list, .bed, .picard
      */
     private static boolean isFile(String str) {
         // should we define list of file extensions as a public array somewhere?
@@ -304,7 +304,7 @@ public class GenomeAnalysisEngine {
 
         if(new File(str).exists())
             throw new StingException("Interval argument looks like a filename, but does not have one of " +
-                                     "the supported extensions (.bed, .picard, .interval_list, or .intervals).  " +
+                                     "the supported extensions (.bed, .list, .picard, .interval_list, or .intervals).  " +
                                      "Please rename your file with the appropriate extension.");
 
         else return false;
