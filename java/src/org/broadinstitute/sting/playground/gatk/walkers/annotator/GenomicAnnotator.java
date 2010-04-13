@@ -1,4 +1,4 @@
-    package org.broadinstitute.sting.playground.gatk.walkers.annotator;
+package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
 import java.io.File;
 import java.util.Collection;
@@ -31,40 +31,10 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
-/*
- General documentation - todo put this in wiki?
-
- The GenomicAnnotator
-
- Input Files:
-   - Input files are specified using the -B<name>,<type>,<file path> arg.
-
-   - One of the -B args should have the <name> "variants" and contain the genotypes to be annotated.
-
-   - Data files are also provided using the -B arg and should have <type> be "table".
-     Table format:
-        - the coordinates must be position-based rather than offset-based (eg. 1-based half-open)
-        - special rows:
-            - can contain comment lines starting with #
-            - at the top of the file, there must be a header line of the form:
-              HEADER  columnName1 columnName2 etc.   TODO finalize this
-        - special columns:
-            - first column must be of the form chr:pos or chr:start-end.
-            - alt/ref haplotypes:
-                  - if there is a column named "hap_ref", a variant will only be annotated with a given row if that row's "hap_ref" allele exactly matches the variant's reference sequence.
-                  -
-
-
-
-
-
-
-
-
- */
 
 /**
- * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
+ * Annotates variant calls with information from user-provided tabular files.
+ * See: {TODO: put wiki url} 
  */
 //@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
