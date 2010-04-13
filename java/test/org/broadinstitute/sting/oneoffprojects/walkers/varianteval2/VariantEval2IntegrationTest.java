@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class VariantEval2IntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T VariantEval2" +
-            " -R " + oneKGLocation + "reference/human_b36_both.fasta -reportType Grep";
+            " -R " + oneKGLocation + "reference/human_b36_both.fasta -reportType Grep -all";
 
     private static String root = cmdRoot +
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +

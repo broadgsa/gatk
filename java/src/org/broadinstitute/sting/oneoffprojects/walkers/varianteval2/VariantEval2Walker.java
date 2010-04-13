@@ -102,6 +102,18 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     private List<String> SAMPLES_LIST = null;
 
     //
+    // Arguments for choosing which modules to run
+    //
+    @Argument(fullName="evalModule", shortName="E", doc="One or more specific eval modules to apply to the eval track(s)", required=false)
+    protected String[] modulesToUse = {};
+
+    @Argument(fullName="useAllModules", shortName="all", doc="Use all possible eval modules", required=false)
+    protected Boolean USE_ALL_MODULES = false;
+
+    @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit")
+    protected Boolean LIST = false;
+
+    //
     // Arguments for Mendelian Violation calculations
     //
     @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations: this argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
@@ -117,7 +129,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     @Argument(shortName = "Q", fullName="minPhredConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public double minQualScore = NO_MIN_QUAL_SCORE;
 
-    /** Right now we will only be looking at SNPS */
+    // Right now we will only be looking at SNPS
     EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION);
 
     @Argument(shortName="rsID", fullName="rsID", doc="If provided, list of rsID and build number for capping known snps by their build date", required=false)
@@ -214,9 +226,13 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        if ( LIST )
+            listModulesAndExit();
+
         SAMPLES_LIST = Arrays.asList(SAMPLES);
 
-        determineAllEvalations();
+        determineEvalations();
+
         List<VariantContextUtils.JexlVCMatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
 
         for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
@@ -244,6 +260,15 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 throw new IllegalArgumentException("rsIDFile " + rsIDFile + " was given but associated max RSID build parameter wasn't available");
             rsIDsToExclude = getrsIDsToExclude(new File(rsIDFile), maxRsIDBuild);
         }
+    }
+
+    private void listModulesAndExit() {
+        List<Class<? extends VariantEvaluator>> veClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
+        out.println("\nAvailable eval modules:");
+        for (int i = 0; i < veClasses.size(); i++)
+            out.println("\t" + veClasses.get(i).getSimpleName());
+        out.println();
+        System.exit(0);
     }
 
     private static Set<String> getrsIDsToExclude(File rsIDFile, int maxRsIDBuild) {
@@ -283,8 +308,25 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         return ex;
     }
 
-    private void determineAllEvalations() {
-        evaluationClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
+    private void determineEvalations() {
+        // create a map for all eval modules for easy lookup
+        HashMap<String, Class<? extends VariantEvaluator>> classMap = new HashMap<String, Class<? extends VariantEvaluator>>();
+        for ( Class<? extends VariantEvaluator> c : PackageUtils.getClassesImplementingInterface(VariantEvaluator.class) )
+            classMap.put(c.getSimpleName(), c);
+
+        if ( USE_ALL_MODULES ) {
+            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(classMap.values());
+        } else {
+            // get the specific classes provided
+            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(modulesToUse.length);
+            for ( String module : modulesToUse ) {
+                Class<? extends VariantEvaluator> moduleClass = classMap.get(module);
+                if ( moduleClass == null )
+                    throw new StingException("Class " + module + " is not found; please check that you have specified the class name correctly");
+                evaluationClasses.add(moduleClass);
+            }
+        }
+
         for ( VariantEvaluator e : instantiateEvalationsSet() ) {
             // for collecting purposes
             variantEvaluationNames.add(e.getName());
