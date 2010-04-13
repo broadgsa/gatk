@@ -5,7 +5,6 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
-import org.broadinstitute.sting.playground.utils.report.tags.Param;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
@@ -369,9 +368,10 @@ class SampleStats implements TableType {
      * @param called the called type
      */
     public void incrValue(String sample, Genotype.Type truth, Genotype.Type called) {
-        if (!concordanceStats.containsKey(sample))
+        if ( concordanceStats.containsKey(sample) )
+            concordanceStats.get(sample)[truth.ordinal()][called.ordinal()]++;
+        else if ( called != Genotype.Type.NO_CALL )
             throw new StingException("Sample " + sample + " has not been seen in a previous eval; this analysis module assumes that all samples are present in each variant context");
-        concordanceStats.get(sample)[truth.ordinal()][called.ordinal()]++;
     }
 
     /**
@@ -398,19 +398,20 @@ class SampleStats implements TableType {
         Genotype.Type type = Genotype.Type.values()[(y/6)+1]; // get the row type
         // save some repeat work, get the total every time
         long total = 0;
+        Object[] rowKeys = getRowKeys();
         for (int called = 0; called < nGenotypeTypes; called++)
-            total += concordanceStats.get((String) getRowKeys()[x])[type.ordinal()][called];
+            total += concordanceStats.get(rowKeys[x])[type.ordinal()][called];
 
         // now get the cell they're interested in
         switch (y % 6) {
             case (0): // get the total_true for this type
                 return total;
             case (1):
-                return concordanceStats.get((String)getRowKeys()[x])[type.ordinal()][type.ordinal()];
+                return concordanceStats.get(rowKeys[x])[type.ordinal()][type.ordinal()];
             case (2):
-                return total == 0 ? 0.0 : (100.0 * (double) concordanceStats.get((String)getRowKeys()[x])[type.ordinal()][type.ordinal()] / (double) total);
+                return total == 0 ? 0.0 : (100.0 * (double) concordanceStats.get(rowKeys[x])[type.ordinal()][type.ordinal()] / (double) total);
             default:
-                return concordanceStats.get((String)getRowKeys()[x])[type.ordinal()][(y % 6) - 3];
+                return concordanceStats.get(rowKeys[x])[type.ordinal()][(y % 6) - 3];
         }
     }
 
