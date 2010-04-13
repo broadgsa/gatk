@@ -159,7 +159,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         return true;
     }
 
-    public GenomeLocSortedSet substractRegions(GenomeLocSortedSet toRemoveSet) {
+    public GenomeLocSortedSet subtractRegions(GenomeLocSortedSet toRemoveSet) {
         LinkedList<GenomeLoc> good = new LinkedList<GenomeLoc>();
         Stack<GenomeLoc> toProcess = new Stack<GenomeLoc>();
         Stack<GenomeLoc> toExclude = new Stack<GenomeLoc>();

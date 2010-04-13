@@ -3,7 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
@@ -126,7 +127,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
         // read in the intervals for cleaning
-        GenomeLocSortedSet locs = GenomeAnalysisEngine.parseIntervalArguments(Arrays.asList(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY);
+        GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile)),
+                                                                      IntervalMergingRule.OVERLAPPING_ONLY);
         intervals = locs.iterator();
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 

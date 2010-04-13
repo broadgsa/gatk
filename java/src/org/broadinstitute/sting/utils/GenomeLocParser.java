@@ -8,13 +8,12 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.bed.BedParser;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -291,7 +290,7 @@ public class GenomeLocParser {
      * @param file_name
      * @param rule also merge abutting intervals
      */
-    public static List<GenomeLoc> intervalFileToList(final String file_name, IntervalMergingRule rule) {
+    public static List<GenomeLoc> intervalFileToList(final String file_name) {
         // try to open file
         File inputFile = null;
         try {
@@ -315,7 +314,7 @@ public class GenomeLocParser {
         // case: BED file
         if (file_name.toUpperCase().endsWith(".BED")) {
             BedParser parser = new BedParser(inputFile);
-            return parser.getSortedAndMergedLocations(rule);
+            return parser.getLocations();
         }
 
         /**

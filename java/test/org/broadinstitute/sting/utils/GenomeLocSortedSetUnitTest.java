@@ -127,7 +127,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         mSortedSet.add(e);
         for (int x = 1; x < 101; x++) {
             GenomeLoc del = GenomeLocParser.createGenomeLoc(1,x,x);
-            mSortedSet = mSortedSet.substractRegions(new GenomeLocSortedSet(del));
+            mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(del));
         }
         assertTrue(mSortedSet.isEmpty());
     }
@@ -138,7 +138,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         mSortedSet.add(e);
         for (int x = 1; x < 50; x++) {
             GenomeLoc del = GenomeLocParser.createGenomeLoc(1,x,x);
-            mSortedSet = mSortedSet.substractRegions(new GenomeLocSortedSet(del));
+            mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(del));
         }
         assertTrue(!mSortedSet.isEmpty());
         assertTrue(mSortedSet.size() == 1);
@@ -157,7 +157,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         assertTrue(mSortedSet.size() == 2);
         // now delete a region
         GenomeLoc d = GenomeLocParser.createGenomeLoc(1, 15, 75);
-        mSortedSet = mSortedSet.substractRegions(new GenomeLocSortedSet(d));
+        mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(d));
         Iterator<GenomeLoc> iter = mSortedSet.iterator();
         GenomeLoc loc = iter.next();
         assertTrue(loc.getStart() == 10);
@@ -180,7 +180,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         GenomeLoc r3 = GenomeLocParser.createGenomeLoc(1, 16, 18);
         GenomeLocSortedSet toExclude = new GenomeLocSortedSet(Arrays.asList(r1, r2, r3));
 
-        GenomeLocSortedSet remaining = mSortedSet.substractRegions(toExclude);
+        GenomeLocSortedSet remaining = mSortedSet.subtractRegions(toExclude);
 //        logger.debug("Initial   " + mSortedSet);
 //        logger.debug("Exclude   " + toExclude);
 //        logger.debug("Remaining " + remaining);

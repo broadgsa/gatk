@@ -6,6 +6,7 @@ import java.util.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
 public class IntervalRodIterator implements Iterator<IntervalRod> {
     //private List<GenomeLoc> locations = null;
@@ -19,7 +20,8 @@ public class IntervalRodIterator implements Iterator<IntervalRod> {
 
     public static IntervalRodIterator IntervalRodIteratorFromLocsFile(final String trackName, final File file) {
         //System.out.printf("Parsing %s for intervals %s%n", file, trackName);
-        GenomeLocSortedSet locs = GenomeAnalysisEngine.parseIntervalArguments(Collections.singletonList(file.getPath()));
+        GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Collections.singletonList(file.getPath())),
+                                                                      GenomeAnalysisEngine.instance.getArguments().intervalMerging);
         //System.out.printf(" => got %d entries %n", locs.size());
         return new IntervalRodIterator(trackName, locs);
     }

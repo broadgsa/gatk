@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;

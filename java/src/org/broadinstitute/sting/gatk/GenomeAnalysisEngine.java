@@ -30,7 +30,8 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.arguments.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -48,7 +49,6 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
@@ -184,7 +184,7 @@ public class GenomeAnalysisEngine {
             // if include argument isn't given, create new set of all possible intervals
             GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
                     GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) :
-                    parseIntervalArguments(argCollection.intervals, argCollection.intervalMerging));
+                    loadIntervals(argCollection.intervals, argCollection.intervalMerging));
 
             // if no exclude arguments, can return parseIntervalArguments directly
             if (argCollection.excludeIntervals == null)
@@ -192,8 +192,8 @@ public class GenomeAnalysisEngine {
 
             // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
             else {
-                GenomeLocSortedSet excludeSortedSet = parseIntervalArguments(argCollection.excludeIntervals, argCollection.intervalMerging);
-                intervals = includeSortedSet.substractRegions(excludeSortedSet);
+                GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, argCollection.intervalMerging);
+                intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
                 // logging messages only printed when exclude (-XL) arguments are given
                 long toPruneSize = includeSortedSet.coveredSize();
@@ -208,62 +208,23 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Creates a GenomeLocSortedSet from a set of LIKE arguments - either -L or -XL
-     * Set is sorted and merged
+     * Loads the intervals relevant to
+     * @param argList String representation of arguments; might include 'all', filenames, intervals in samtools
+     *                notation, or a combination of the
+     * @param mergingRule Technique to use when merging interval data.
+     * @return A sorted, merged list of all intervals specified in this arg list.
      */
-
-    public static GenomeLocSortedSet parseIntervalArguments(final List<String> intervals) {
-        return parseIntervalArguments(intervals, GenomeAnalysisEngine.instance.getArguments().intervalMerging);
-    }
-
-    /**
-     * Creates a GenomeLocSortedSet from a set of LIKE arguments - either -L or -XL
-     * Set is sorted and merged
-     */
-    public static GenomeLocSortedSet parseIntervalArguments(List <String> argList, IntervalMergingRule mergingRule) {
-
+    private GenomeLocSortedSet loadIntervals(List<String> argList, IntervalMergingRule mergingRule) {
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
+        // TODO: Aaron, how do we discriminate between RODs that are for inclusion and RODs that are for exclusion?
         rawIntervals.addAll(checkRODToIntervalArgument());            // add any RODs-to-intervals we have
+        rawIntervals.addAll(IntervalUtils.parseIntervalArguments(argList));
 
-        if (argList != null) { // now that we can be in this function if only the ROD-to-Intervals was provided, we need to
-                               // ensure that the arg list isn't null before looping.
-            for (String argument : argList) {
-
-                // if any interval argument is '-L all', consider all loci by returning no intervals
-                if (argument.equals("all")) {
-                    if (argList.size() != 1) {
-                        // throw error if '-L all' is not only interval - potentially conflicting commands
-                        throw new StingException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
-                    }
-                    return null;
-                }
-
-                // separate argument on semicolon first
-                for (String fileOrInterval : argument.split(";")) {
-
-                    // if it's a file, add items to raw interval list
-                    if (isFile(fileOrInterval))
-                        rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval, mergingRule));
-
-                        // otherwise treat as an interval -> parse and add to raw interval list
-                    else {
-                        rawIntervals.add(GenomeLocParser.parseGenomeInterval(fileOrInterval));
-                    }
-                }
-            }
-        }
         // redundant check => default no arguments is null, not empty list
         if (rawIntervals.size() == 0)
             return null;
 
-        // sort raw interval list
-        Collections.sort(rawIntervals);
-
-        // now merge raw interval list
-        rawIntervals = GenomeLocParser.mergeIntervalLocations(rawIntervals, mergingRule);
-
-        return GenomeLocSortedSet.createSetFromList(rawIntervals);
-
+        return IntervalUtils.sortAndMergeIntervals(GenomeLocSortedSet.createSetFromList(rawIntervals),mergingRule);
     }
 
     /**
@@ -288,26 +249,6 @@ public class GenomeAnalysisEngine {
                 }
         }
         return ret;
-    }
-
-    /**
-     * Check if string argument was intented as a file
-     * Accepted file extensions: .bed .list, .interval_list, .bed, .picard
-     */
-    private static boolean isFile(String str) {
-        // should we define list of file extensions as a public array somewhere?
-        // is regex or endsiwth better?
-        if (str.toUpperCase().endsWith(".BED") || str.toUpperCase().endsWith(".LIST") ||
-                str.toUpperCase().endsWith(".PICARD") || str.toUpperCase().endsWith(".INTERVAL_LIST")
-                || str.toUpperCase().endsWith(".INTERVALS"))
-            return true;
-
-        if(new File(str).exists())
-            throw new StingException("Interval argument looks like a filename, but does not have one of " +
-                                     "the supported extensions (.bed, .list, .picard, .interval_list, or .intervals).  " +
-                                     "Please rename your file with the appropriate extension.");
-
-        else return false;
     }
 
     /**
