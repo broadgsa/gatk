@@ -102,7 +102,8 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         }
 
         if ( getToolkit().getArguments().outFileName == null ) {
-            throw new StingException("This walker requires that you specify an output file (-o)");
+            logger.warn("This walker creates many output files from one input file; you may wish to specify an input file rather "+
+                        "than defaulting all output to stdout.");
         }
 
         if ( ! omitDepthOutput ) { // print header
@@ -299,7 +300,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
 
         printIntervalTable(statsOut,nTargetsByAvgCvgBySample,firstStats.getEndpoints());
 
-        if ( ! getToolkit().getArguments().outFileName.contains("stdout")) {
+        if ( getToolkit().getArguments().outErrFileName != null && ! getToolkit().getArguments().outFileName.contains("stdout")) {
             summaryOut.close();
             statsOut.close();
         }
@@ -490,7 +491,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
 
     public File deriveFromStream(String append) {
         String name = getToolkit().getArguments().outFileName;
-        if ( name.contains("stdout") || name.contains("Stdout") || name.contains("STDOUT")) {
+        if ( name == null || name.contains("stdout") || name.contains("Stdout") || name.contains("STDOUT")) {
             return null;
         } else {
             return new File(name+"."+append);
