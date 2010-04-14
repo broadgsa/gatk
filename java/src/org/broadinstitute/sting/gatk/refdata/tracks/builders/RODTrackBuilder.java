@@ -61,6 +61,7 @@ public class RODTrackBuilder implements RMDTrackBuilder {
         Types.put("GELI", rodGELI.class);
         Types.put("RefSeq", rodRefSeq.class);
         Types.put("Table", TabularROD.class);
+        Types.put("AnnotatorInputTable", AnnotatorROD.class);
         Types.put("PooledEM", PooledEMSNPROD.class);
         Types.put("CleanedOutSNP", CleanedOutSNPROD.class);
         Types.put("SangerSNP", SangerSNPROD.class);
