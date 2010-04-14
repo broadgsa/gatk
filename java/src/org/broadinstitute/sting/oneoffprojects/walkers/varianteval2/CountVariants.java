@@ -9,8 +9,6 @@ import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.StingException;
 
-import java.util.List;
-import java.util.Arrays;
 
 @Analysis(name = "Count Variants", description = "Counts different classes of variants in the sample")
 public class CountVariants extends VariantEvaluator {
@@ -91,7 +89,7 @@ public class CountVariants extends VariantEvaluator {
     }
 
     public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nProcessedLoci += context.getSkippedBases() + 1;
+        nProcessedLoci += context.getSkippedBases() + (ref == null ? 0 : 1);
     }
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

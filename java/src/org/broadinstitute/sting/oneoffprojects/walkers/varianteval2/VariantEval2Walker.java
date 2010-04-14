@@ -405,9 +405,6 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         //System.out.printf("map at %s with %d skipped%n", context.getLocation(), context.getSkippedBases());
 
-        if ( ref == null )
-            return 0;
-
         Map<String, VariantContext> vcs = getVariantContexts(tracker, context);
         //Collection<VariantContext> comps = getCompVariantContexts(tracker, context);
 
@@ -424,6 +421,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 if ( evaluation.enabled() ) {
                     // we always call update0 in case the evaluation tracks things like number of bases covered
                     evaluation.update0(tracker, ref, context);
+
+                    // the other updateN methods don't see a null context
+                    if ( tracker == null )
+                        continue;
 
                     // now call the single or paired update function
                     switch ( evaluation.getComparisonOrder() ) {
@@ -444,7 +445,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
                 }
             }
 
-            if ( group.enableInterestingSiteCaptures && captureInterestingSitesOfEvalSet(group) )
+            if ( tracker != null && group.enableInterestingSiteCaptures && captureInterestingSitesOfEvalSet(group) )
                 writeInterestingSite(interestingReasons, vc, ref.getBase());
         }
 
@@ -536,8 +537,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         // todo -- we need to deal with dbSNP where there can be multiple records at the same start site.  A potential solution is to
         // todo -- allow the variant evaluation to specify the type of variants it wants to see and only take the first such record at a site
         Map<String, VariantContext> bindings = new HashMap<String, VariantContext>();
-        bindVariantContexts(bindings, evalNames, tracker, context, false);
-        bindVariantContexts(bindings, compNames, tracker, context, true);
+        if ( tracker != null ) {
+            bindVariantContexts(bindings, evalNames, tracker, context, false);
+            bindVariantContexts(bindings, compNames, tracker, context, true);
+        }
         return bindings;
     }
 
