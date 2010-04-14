@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.Allows;
 import org.broadinstitute.sting.gatk.walkers.By;
@@ -33,8 +35,9 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 
 /**
- * Annotates variant calls with information from user-provided tabular files.
- * See: {TODO: put wiki url} 
+ * Annotates variant calls with information from user-specified tabular files.
+ *
+ * For details, see:  http://www.broadinstitute.org/gsa/wiki/index.php/GenomicAnnotator
  */
 //@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
@@ -43,14 +46,15 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 public class GenomicAnnotator extends RodWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
+
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
 
-    @Argument(fullName="select", shortName="s", doc="Select which columns to use for each ROD file. Column #s are 0-based. (eg. The following will select columns 5,6,2 from file1.txt and columns 3,7 from file2.txt: -B my-rod,table,/path/file1.txt -B my-rod2,table,/path/file2.txt -S my-rod={5,6,2} -S my-rod2={3,7})", required=false)
+    @Argument(fullName="select", shortName="s", doc="Optionally specifies which subset of columns from which -B inputs should be used for annotations. For example, -B mydbsnp,AnnotatorInputTable,/path/to/mydbsnp.txt -B mytable,AnnotatorInputTable,/path/mytable.txt -s mydbsnp.avHet,mydbsnp.name,mytable.column3 will cause annotations to only be generated from the 3 columns specified using -s.", required=false)
     protected String[] COLUMNS = {};
 
-    @Argument(fullName="explode", shortName="exp", doc="If more than one record from the same file matches a particular locus, create multiple entries in the ouptut file - one for each match. WARNING: This could lead to combinatorial explotion if more than one file have more than one match at a particular locus.", required=false)
-    protected Boolean EXPLODE = false;
+    @Argument(fullName="oneToMany", shortName="m", doc="If more than one record from the same file matches a particular locus (for example, multiple dbSNP records with the same position), create multiple entries in the ouptut VCF file - one for each match. If a particular tabular file has J matches, and another tabular file has K matches for a given locus, then J*K output VCF records will be generated - one for each pair of K, J.   If this flag is not provided, the multiple records are still generated, but they are stored in the INFO field of a single output VCF record, with their annotation keys differentiated by appending '_i' with i varying from 1 to K*J. ", required=false)
+    protected Boolean ONE_TO_MANY = false;
 
     private VCFWriter vcfWriter;
 
@@ -81,7 +85,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
 
         engine = new VariantAnnotatorEngine(getToolkit(), new String[] { }, new String[] { "GenomicAnnotation" });
 
-        engine.setExplode( Boolean.TRUE.equals( EXPLODE ) );
+        engine.setOneToMany( Boolean.TRUE.equals( ONE_TO_MANY ) );
         engine.setRequestedColumns(COLUMNS);
 
         // setup the header fields
@@ -123,19 +127,22 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-
         List<Object> rods = tracker.getReferenceMetaData("variant");
         // ignore places where we don't have a variant
         if ( rods.size() == 0 )
             return 0;
 
         Object variant = rods.get(0);
+        if( ref.getBase() == 'N') {
+            return 0; //TODO Currently, VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()) fails when base is 'N'. is this right?
+        }
+
         VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant);
         if ( vc == null )
             return 0;
 
         // if the reference base is not ambiguous, we can annotate
-        Collection<VariantContext> annotatedVCs = null;
+        Collection<VariantContext> annotatedVCs = Arrays.asList(vc);
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
             if ( stratifiedContexts != null ) {
@@ -143,8 +150,10 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
             }
         }
 
-        for(VariantContext annotatedVC : annotatedVCs) {
-            vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
+        if ( variant instanceof RodVCF ) { //TODO is this if-statement necessary?
+            for(VariantContext annotatedVC : annotatedVCs ) {
+                    vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
+            }
         }
 
         return 1;
