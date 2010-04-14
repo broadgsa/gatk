@@ -19,6 +19,7 @@
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.QualByDepth" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.RMSMappingQuality" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.SpanningDeletions" />
+      <class name="org.broadinstitute.sting.gatk.walkers.annotator.HaplotypeScore" />
     </dependencies>
   </executable>
 </package>
