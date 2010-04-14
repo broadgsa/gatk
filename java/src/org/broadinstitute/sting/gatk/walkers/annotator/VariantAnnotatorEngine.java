@@ -38,7 +38,7 @@ public class VariantAnnotatorEngine {
     private Map<String, Set<String>> requestedColumnsMap;
 
     // command-line option used for GenomicAnnotation.
-    private boolean explode;
+    private boolean oneToMany;
 
 
     // use this constructor if you want all possible annotations
@@ -194,7 +194,7 @@ public class VariantAnnotatorEngine {
                     final String inputFileBindingName = annotationsFromInputFile.getKey();
                     final List<Map<String, String>> matchingRecords = (List<Map<String, String>>) annotationsFromInputFile.getValue();
 
-                    if( matchingRecords.size() > 1 && explode)
+                    if( matchingRecords.size() > 1 && oneToMany)
                     {
                         //More than one record matched in this file. After this, infoAnnotationOutputsList.size() will be infoAnnotationOutputsList.size()*matchingRecords.size().
                         infoAnnotationOutputsList = explodeInfoAnnotationOutputsList( infoAnnotationOutputsList, matchingRecords, inputFileBindingName);
@@ -375,10 +375,10 @@ public class VariantAnnotatorEngine {
      *
      * See class-level comments for more details.
      *
-     * @param explode
+     * @param oneToMany
      */
-    public void setExplode(boolean explode) {
-        this.explode = explode;
+    public void setOneToMany(boolean oneToMany) {
+        this.oneToMany = oneToMany;
     }
 
     /**
