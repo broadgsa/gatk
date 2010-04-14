@@ -48,11 +48,16 @@ def chrpos_to_n(lsplit):
 
     # Covert them to N
     a = 0
-    if chr_value.count("_random"):
+    if sequence_build == "UCSC" and chr_value.count("_random"):
         chr_value = chr_value.replace("_random", "")
-        a = 24 # Offset so that "random" chromosomes go last
+        a = 30 # Offset so that "random" chromosomes go last
 
-    chr_n = a + int(chr_value.replace("chrm", "chr0").replace("chrx", "chr23").replace("chry", "chr24").replace("chr",""))
+    if sequence_build == "UCSC":
+        chr_value = chr_value.replace("chrm", "chr0")
+    else:
+        chr_value = chr_value.replace("chrm", "chr25")
+
+    chr_n = a + int(chr_value.replace("chrx", "chr23").replace("chry", "chr24").replace("chr",""))
     start_n = int(start_value)
 
     N = (chr_n * 10**11) + start_n
@@ -94,6 +99,7 @@ parser.add_option("-t", "--coordinate-type", dest="coordinates", metavar="COORD-
   * OFFSET                same as ZERO-BASED-HALF-OPEN.\n
   * DONT-CHANGE           coordinates will be left as-is.\n
 Note: This setting is used to convert all coordinates into 1-based half-open for the output.""")
+parser.add_option("-s", "--sequence", dest="sequence_build", metavar="BUILD",           help="Sets the output file's reference build type to either UCSC or NCBI. This should be set based on what reference file will be used when running the GenomicAnnotator. UCSC builds can be specified as either 'hgXX' (eg. hg18) or 'UCSC'. NCBI builds can be specified as 'bXX' (eg. b36) or 'NCBI'. The build type determines chromosome order and naming convention (eg. 'chr1' or '1').")
 #parser.add_option("-i", "--include-columns", dest="include_fields", metavar="COLUMNS",  help="A comma-separated listing of (1-based) column numbers of all columns to include in the outptut file. Any columns not in this list will be discarded.")
 #parser.add_option("-e", "--exclude-columns", dest="exclude_fields", metavar="COLUMNS",  help="A comma-separated listing of (1-based) column numbers of the columns to include in the outptut file. Any columns not in this list will be discarded.")
 parser.add_option("-o", "--output-filename",                                           help="Output file path [Default: %default]", default="stdout")
@@ -165,6 +171,20 @@ except:
 if (chr_column and chr_column < 0) or  (start_column and start_column < 0) or (stop_column and stop_column < 0):
     error("-c COLUMNS - all elements in the comma-separated list must be >= 1")
 
+
+if not options.sequence_build:
+    error("-s arg must be specified")
+
+sequence_build = options.sequence_build.lower()
+if sequence_build.startswith("b") or sequence_build == "ncbi":
+    sequence_build = "NCBI"
+elif sequence_build.startswith("hg") or sequence_build == "ucsc":
+    sequence_build = "UCSC"
+else:
+    error("-s arg must be one of these: 'hgXX' (eg. hg18), 'UCSC', 'bXX' (eg. b36), 'NCBI'")
+   
+
+
 output_filename = options.output_filename
 if output_filename and output_filename != "stdout" and output_filename != "-" and os.access(output_filename, os.F_OK) and not os.access(output_filename, os.W_OK):
     error("Unable to write to: %s" % str(options.output_filename))
@@ -189,6 +209,9 @@ OUTPUT_FORMAT_DELIMITER = "\t"
 
 for line in open(input_filename):
     line = line.strip()
+    if counter % 1000000 == 0:
+        print("Processed %d records" % counter )
+        
     counter+=1
     if not header_line_found:
         if line.startswith("#") or line == "":
@@ -300,7 +323,16 @@ if output_filename == "stdout" or output_filename == "-":
 else:
     output_file = open(output_filename, "w+")
 
-for line in prepend_lines + [ join_fields(header_fields) ] + data_lines:
+for line in prepend_lines + [ join_fields(header_fields) ]: 
     output_file.write(line + "\n")
+
+for line in data_lines:
+    if sequence_build == "NCBI" and line.lower().startswith("chr"):
+        if line.lower().startswith("chrm"):
+            output_file.write("MT" + line[4:] + "\n")
+        else:
+            output_file.write(line[3:] + "\n")
+    else:
+        output_file.write(line + "\n")
 
 output_file.close()
