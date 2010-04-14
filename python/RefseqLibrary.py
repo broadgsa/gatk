@@ -284,3 +284,28 @@ def getIntervalHeaderLines():
         line = whole_exome_file.readline()
     whole_exome_file.close()
     return header
+
+def parseDesignFile(file):
+    designFile = open(file)
+    genes = dict()
+    for line in designFile.readlines():
+        if ( line.startswith("TARGET") ):
+            spline = line.strip().split()
+            if ( spline[1].startswith("chr") ):
+                chrom = spline[1]
+            else:
+                chrom = "chr"+spline[1]
+            start = 1 + int(spline[2])
+            stop = 1 + int(spline[3])
+            gene_name = spline[4].split("#")[1].split("_")[0]
+            try:
+                exon_id = spline[4].split(gene_name)[1]
+            except IndexError:
+                exon_id = "_".join(spline[5:len(spline)-1])
+            exon = Exon(gene_name,exon_id,chrom,start,stop)
+            if ( gene_name in genes.keys() ):
+                genes[gene_name].addExon(exon)
+            else:
+                genes[gene_name] = Gene(gene_name)
+                genes[gene_name].addExon(exon)
+    return genes.values()
