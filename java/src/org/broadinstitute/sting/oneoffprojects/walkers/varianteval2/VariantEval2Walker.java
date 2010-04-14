@@ -89,10 +89,10 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
 
     @Argument(shortName="select", doc="One or more stratifications to use when evaluating the data", required=false)
-    protected String[] SELECT_EXPS = {"QUAL > 500.0", "HARD_TO_VALIDATE==1", "GATK_STANDARD==1"};
+    protected String[] SELECT_EXPS = {};
 
     @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
-    protected String[] SELECT_NAMES = {"q500plus", "low_mapq", "gatk_std_filters"};
+    protected String[] SELECT_NAMES = {};
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {"dbsnp"};
