@@ -1,11 +1,9 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-
-import java.util.List;
 
 /**
  * The Broad Institute

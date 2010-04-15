@@ -12,7 +12,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.oneoffprojects.walkers.varianteval2.MendelianViolationEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 
 import java.util.EnumSet;
 import java.util.Arrays;

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;

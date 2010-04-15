@@ -10,7 +10,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.oneoffprojects.walkers.varianteval2.MendelianViolationEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 

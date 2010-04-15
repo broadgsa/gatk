@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.varianteval2;
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -21,25 +21,25 @@ import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 public class DbSNPPercentage extends VariantEvaluator {
 
     @DataPoint(name = "DbSNP count", description = "number of DPSNP sites")
-    private long nDBSNPs = 0;
+    long nDBSNPs = 0;
 
     @DataPoint(name = "total count", description = "number of total snp sites")
-    private long nEvalSNPs = 0;
+    long nEvalSNPs = 0;
 
     @DataPoint(name = "novel snps", description = "number of total snp sites")
-    private long novelSites = 0;
+    long novelSites = 0;
 
     @DataPoint(name = "snps at comp", description = "number of SNP sites at comp sites")
-    private long nSNPsAtComp = 0;
+    long nSNPsAtComp = 0;
 
     @DataPoint(name = "% snps at comp", description = "percentage of SNP sites at comp sites")
-    private double compRate = 0.0;
+    double compRate = 0.0;
 
     @DataPoint(name = "concordant", description = "number of concordant sites")
-    private long nConcordant = 0;
+    long nConcordant = 0;
 
     @DataPoint(name = "% concordant", description = "the concordance rate")
-    private double concordantRate = 0.0;
+    double concordantRate = 0.0;
 
     public DbSNPPercentage(VariantEval2Walker parent) {
         // don't do anything
