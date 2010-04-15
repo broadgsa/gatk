@@ -317,43 +317,6 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         return ret;
     }
 
-
-    public boolean addAllRegions(List<GenomeLoc> locations) {
-        this.mArray.addAll(locations);
-        Collections.sort(this.mArray);
-        this.mArray = GenomeLocSortedSet.mergeOverlappingLocations(this.mArray);
-        return true;
-    }
-
-/**
-     * merge a list of genome locs that may be overlapping, returning the list of unique genomic locations
-     *
-     * @param raw the unchecked genome loc list
-     *
-     * @return the list of merged locations
-     */
-    public static List<GenomeLoc> mergeOverlappingLocations(final List<GenomeLoc> raw) {
-        logger.debug("  Raw locations are: " + Utils.join(", ", raw));
-        if (raw.size() <= 1)
-            return raw;
-        else {
-            ArrayList<GenomeLoc> merged = new ArrayList<GenomeLoc>();
-            Iterator<GenomeLoc> it = raw.iterator();
-            GenomeLoc prev = it.next();
-            while (it.hasNext()) {
-                GenomeLoc curr = it.next();
-                if (prev.contiguousP(curr)) {
-                    prev = prev.merge(curr);
-                } else {
-                    merged.add(prev);
-                    prev = curr;
-                }
-            }
-            merged.add(prev);
-            return merged;
-        }
-    }
-
     /**
      * convert this object to a list
      * @return the lists

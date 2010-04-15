@@ -184,7 +184,9 @@ public class GenomeAnalysisEngine {
             // if include argument isn't given, create new set of all possible intervals
             GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
                     GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) :
-                    loadIntervals(argCollection.intervals, argCollection.intervalMerging));
+                    loadIntervals(argCollection.intervals,
+                                  argCollection.intervalMerging,
+                                  GenomeLocParser.mergeIntervalLocations(checkRODToIntervalArgument(),argCollection.intervalMerging)));
 
             // if no exclude arguments, can return parseIntervalArguments directly
             if (argCollection.excludeIntervals == null)
@@ -192,7 +194,7 @@ public class GenomeAnalysisEngine {
 
             // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
             else {
-                GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, argCollection.intervalMerging);
+                GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, argCollection.intervalMerging, null);
                 intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
                 // logging messages only printed when exclude (-XL) arguments are given
@@ -208,16 +210,16 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Loads the intervals relevant to
+     * Loads the intervals relevant to the current execution
      * @param argList String representation of arguments; might include 'all', filenames, intervals in samtools
      *                notation, or a combination of the
      * @param mergingRule Technique to use when merging interval data.
+     * @param additionalIntervals a list of additional intervals to add to the returned set.  Can be null.
      * @return A sorted, merged list of all intervals specified in this arg list.
      */
-    private GenomeLocSortedSet loadIntervals(List<String> argList, IntervalMergingRule mergingRule) {
-        List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
-        // TODO: Aaron, how do we discriminate between RODs that are for inclusion and RODs that are for exclusion?
-        rawIntervals.addAll(checkRODToIntervalArgument());            // add any RODs-to-intervals we have
+    private GenomeLocSortedSet loadIntervals(List<String> argList, IntervalMergingRule mergingRule, List<GenomeLoc> additionalIntervals) {
+        List<GenomeLoc> rawIntervals = (additionalIntervals == null) ? new ArrayList<GenomeLoc>() : additionalIntervals;  // running list of raw GenomeLocs
+
         rawIntervals.addAll(IntervalUtils.parseIntervalArguments(argList));
 
         // redundant check => default no arguments is null, not empty list
