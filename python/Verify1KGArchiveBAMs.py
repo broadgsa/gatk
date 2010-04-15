@@ -200,6 +200,7 @@ def compareAlignmentIndices(remoteAlignmentIndex, alignmentIndex):
         print '  md5s: local=%s remote=%s' % (raImd5, laImd5)
         if raImd5 <> laImd5:
             print '  [FAIL] -- alignment indices do not have the same hash!'
+            sys.exit(1)
         else:
             print '  [PASS] -- alignment indices are the same'
 
@@ -250,6 +251,9 @@ if __name__ == "__main__":
     FTPSERVER = FTP(ftpParsed[1])
     FTPSERVER.login()
 
+    displayChangeLog(OPTIONS.remoteChangeLog)
+    compareAlignmentIndices(OPTIONS.remoteAlignmentIndex, OPTIONS.alignmentIndex)
+
     results = dict()
     for file in itertools.chain(readAlignmentIndex(OPTIONS.alignmentIndex), filesInLocalPath(root, OPTIONS.scanLocal )):
         #print line
@@ -258,9 +262,6 @@ if __name__ == "__main__":
             compared = validateFile( file, root, ftpParsed[2] )
             results[file] = compared
             #localIndex
-        
-    compareAlignmentIndices(OPTIONS.remoteAlignmentIndex, OPTIONS.alignmentIndex)
-    displayChangeLog(OPTIONS.remoteChangeLog)
 
     printHeaderSep()
     print 'SUMMARY: Total files examined', len(results)
