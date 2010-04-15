@@ -18,8 +18,8 @@ public class VariantEval2IntegrationTest extends WalkerTest {
     @Test
     public void testVE2Simple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "8b93fda4a4b61c8b284063de62c84644");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "d232220a2b0d13e3a2b077310cad4540");
+        expectations.put("-L 1:1-10,000,000", "278c9c2798fed510a0cc3e65f3749b26");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "98ceb8dab20af47e724a0b47f82ba698");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -39,10 +39,10 @@ public class VariantEval2IntegrationTest extends WalkerTest {
                 " -B dbsnp_130,dbSNP," + GATKDataLocation + "dbsnp_130_b36.rod" +
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
-        String eqMD5s = "9e5a207f445febc8b432254a6cf9a182"; // next two examples should be the same!
+        String eqMD5s = "fe4b6bd3e46d956a829fa08f3594427d"; // next two examples should be the same!
         expectations.put("", eqMD5s);
         expectations.put(" -known comp_hapmap -known dbsnp", eqMD5s);
-        expectations.put(" -known comp_hapmap", "f6aedc4911c5c9ebfd4de1383bb1aafa");
+        expectations.put(" -known comp_hapmap", "cb8ce4b0f15e1b01c7aee5106dad4e95");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs2 = entry.getKey();
@@ -60,7 +60,7 @@ public class VariantEval2IntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("e11a104981a3d959458bc11d3c540355", "a3ce1d70d8ae3874807e9d61994d42af"));
+                Arrays.asList("782b569e213b494c19598d3f4dacba49", "a3ce1d70d8ae3874807e9d61994d42af"));
         executeTest("testVE2WriteVCF", spec);
     }
 }

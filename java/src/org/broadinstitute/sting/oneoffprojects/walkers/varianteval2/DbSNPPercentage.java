@@ -8,9 +8,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 
-import java.util.List;
-import java.util.Arrays;
-
 /**
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT
@@ -32,11 +29,11 @@ public class DbSNPPercentage extends VariantEvaluator {
     @DataPoint(name = "novel snps", description = "number of total snp sites")
     private long novelSites = 0;
 
-    @DataPoint(name = "snps at dbsnp", description = "number of SNP sites at DPSNP sites")
-    private long nSNPsAtdbSNPs = 0;
+    @DataPoint(name = "snps at comp", description = "number of SNP sites at comp sites")
+    private long nSNPsAtComp = 0;
 
-    @DataPoint(name = "% eval in comp", description = "percentage of SNP sites at DPSNP sites")
-    private double dbSNPRate = 0.0;
+    @DataPoint(name = "% snps at comp", description = "percentage of SNP sites at comp sites")
+    private double compRate = 0.0;
 
     @DataPoint(name = "concordant", description = "number of concordant sites")
     private long nConcordant = 0;
@@ -56,12 +53,12 @@ public class DbSNPPercentage extends VariantEvaluator {
         return 2;   // we need to see each eval track and each comp track
     }
 
-    public long nNovelSites() { return Math.abs(nEvalSNPs - nSNPsAtdbSNPs); }
-    public double dbSNPRate() { return rate(nSNPsAtdbSNPs, nEvalSNPs); }
-    public double concordanceRate() { return rate(nConcordant, nSNPsAtdbSNPs); }
+    public long nNovelSites() { return Math.abs(nEvalSNPs - nSNPsAtComp); }
+    public double dbSNPRate() { return rate(nSNPsAtComp, nEvalSNPs); }
+    public double concordanceRate() { return rate(nConcordant, nSNPsAtComp); }
 
     public void finalizeEvaluation() {
-        dbSNPRate = 100 * dbSNPRate();
+        compRate = 100 * dbSNPRate();
         concordantRate = 100 * concordanceRate();
         novelSites = nNovelSites();
     }
@@ -94,7 +91,7 @@ public class DbSNPPercentage extends VariantEvaluator {
         if (evalIsGood) nEvalSNPs++;           // count the number of dbSNP events
 
         if (dbSNPIsGood && evalIsGood) {
-            nSNPsAtdbSNPs++;
+            nSNPsAtComp++;
 
             if (!discordantP(eval, dbsnp))     // count whether we're concordant or not with the dbSNP value
                 nConcordant++;
