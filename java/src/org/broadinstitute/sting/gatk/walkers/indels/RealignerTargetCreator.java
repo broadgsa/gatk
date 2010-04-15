@@ -3,11 +3,10 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariationRod;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -20,7 +19,6 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
 /**
  * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 and MQ0 reads.
@@ -75,18 +73,23 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
 
         // look at the rods for indels or SNPs
         if ( tracker != null ) {
-             Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
-             while ( rods.hasNext() ) {
-                 Object rod = rods.next().getUnderlyingObject();
-                 if ( rod instanceof VariationRod ) {
-                     if ( ((VariationRod)rod).isIndel() ) {
-                         hasIndel = true;
-                         if ( ((VariationRod)rod).isInsertion() )
+            for ( VariantContext vc : tracker.getAllVariantContexts() ) {
+                switch ( vc.getType() ) {
+                    case INDEL:
+                        hasIndel = true;
+                        if ( vc.isInsertion() )
                             hasInsertion = true;
-                     }
-                     if ( ((VariationRod)rod).isSNP() )
-                         hasPointEvent = true;
-                 }
+                        break;
+                    case SNP:
+                        hasPointEvent = true;
+                        break;
+                    case MIXED:
+                        hasPointEvent = true;
+                        hasIndel = true;
+                        if ( vc.isInsertion() )
+                            hasInsertion = true;
+                        break;
+                }
              }
         }
 
