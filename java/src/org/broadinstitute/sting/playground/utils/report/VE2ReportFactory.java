@@ -1,9 +1,6 @@
 package org.broadinstitute.sting.playground.utils.report;
 
-import org.broadinstitute.sting.playground.utils.report.templates.CSVFormat;
-import org.broadinstitute.sting.playground.utils.report.templates.GrepFormat;
-import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
-import org.broadinstitute.sting.playground.utils.report.templates.TableFormat;
+import org.broadinstitute.sting.playground.utils.report.templates.*;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -32,8 +29,8 @@ public class VE2ReportFactory {
     public enum VE2TemplateType {
         Table(TableFormat.class),
         Grep(GrepFormat.class),
-        CSV(CSVFormat.class);
-        
+        CSV(CSVFormat.class),
+        R(RFormat.class);
         public Class underlyingReportType;
 
         VE2TemplateType(Class<? extends ReportFormat> type) {
