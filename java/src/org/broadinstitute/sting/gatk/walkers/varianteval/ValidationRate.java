@@ -62,7 +62,7 @@ public class ValidationRate extends VariantEvaluator {
     private SiteStats evalOverlapAtMono = new SiteStats();
     private SiteStats evalOverlapAtPoly = new SiteStats();
 
-    public ValidationRate(VariantEval2Walker parent) {
+    public ValidationRate(VariantEvalWalker parent) {
         // don't do anything
     }
 
@@ -108,8 +108,6 @@ public class ValidationRate extends VariantEvaluator {
 
         if (rawValidationData!= null && rawValidationData.hasGenotypes() && rawValidationData.isNotFiltered()) {
             VariantContext validation = rawValidationData;
-            //if ( eval != null )  // todo -- remove me when I can get the header from the VariantEval engine
-            //    validation = rawValidationData.subContextFromGenotypes(eval.getGenotypes().values());
 
             SiteStats overlap;
 

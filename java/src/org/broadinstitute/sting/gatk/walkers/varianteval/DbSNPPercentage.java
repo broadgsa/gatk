@@ -41,7 +41,7 @@ public class DbSNPPercentage extends VariantEvaluator {
     @DataPoint(name = "% concordant", description = "the concordance rate")
     double concordantRate = 0.0;
 
-    public DbSNPPercentage(VariantEval2Walker parent) {
+    public DbSNPPercentage(VariantEvalWalker parent) {
         // don't do anything
     }
 

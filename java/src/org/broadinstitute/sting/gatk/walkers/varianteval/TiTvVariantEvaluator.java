@@ -23,7 +23,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
     @DataPoint(name = "ti/tv ratio standard", description = "the transition to transversion ratio")
     double TiTvRatioStandard = 0.0;
 
-    public TiTvVariantEvaluator(VariantEval2Walker parent) {
+    public TiTvVariantEvaluator(VariantEvalWalker parent) {
         // don't do anything
     }
 

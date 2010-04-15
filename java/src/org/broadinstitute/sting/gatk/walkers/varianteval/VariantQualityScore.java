@@ -207,7 +207,7 @@ public class VariantQualityScore extends VariantEvaluator {
         }
     }
 
-    public VariantQualityScore(VariantEval2Walker parent) {
+    public VariantQualityScore(VariantEvalWalker parent) {
         // don't do anything
     }
 

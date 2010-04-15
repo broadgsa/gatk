@@ -59,7 +59,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     @DataPoint(name="KHV->PHR",description = "number of child hom variant calls where the parent was hom ref")
     long KidHomVar_ParentHomRef;
 
-    VariantEval2Walker parent;
+    VariantEvalWalker parent;
 
     TrioStructure trio;
 
@@ -83,7 +83,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         }
     }
 
-    public MendelianViolationEvaluator(VariantEval2Walker parent) {
+    public MendelianViolationEvaluator(VariantEvalWalker parent) {
         this.parent = parent;
 
         if (enabled()) {

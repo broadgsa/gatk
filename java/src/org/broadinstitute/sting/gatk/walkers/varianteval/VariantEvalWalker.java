@@ -82,7 +82,7 @@ import java.util.*;
 /**
  * Test routine for new VariantContext object
  */
-public class VariantEval2Walker extends RodWalker<Integer, Integer> {
+public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
     //
     // walker arguments

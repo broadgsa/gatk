@@ -187,7 +187,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     private HashSet<VariantContext> missedValidationData = new HashSet<VariantContext>();
 
 
-    public GenotypeConcordance(VariantEval2Walker parent) {
+    public GenotypeConcordance(VariantEvalWalker parent) {
         // don't do anything
     }
 

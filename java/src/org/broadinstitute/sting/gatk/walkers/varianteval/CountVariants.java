@@ -64,7 +64,7 @@ public class CountVariants extends VariantEvaluator {
     @DataPoint(description = "deletion to insertion ratio")
     double deletionInsertionRatio = 0;
     
-    public CountVariants(VariantEval2Walker parent) {
+    public CountVariants(VariantEvalWalker parent) {
         // don't do anything
     }
 
