@@ -7,9 +7,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 
-import java.util.List;
-import java.util.Arrays;
-
 @Analysis(name = "Ti/Tv Variant Evaluator", description = "Ti/Tv Variant Evaluator")
 public class TiTvVariantEvaluator extends VariantEvaluator {
 
@@ -57,10 +54,6 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
     public String update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (vc1 != null) updateTiTv(vc1, false);
         if (vc2 != null) updateTiTv(vc2, true);
-
-        //if ( vc1 == null && vc2 != null && vc2.isSNP() && vc2.isBiallelic() )
-        //    System.out.printf("VC2 = %s%n", vc2);
-        //if ( vc2 != null && vc2.getName().equals("dbsnp") )
 
         return null; // we don't capture any intersting sites
     }

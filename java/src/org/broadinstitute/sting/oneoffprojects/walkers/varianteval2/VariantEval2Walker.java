@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
@@ -95,7 +96,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
     protected String[] SELECT_NAMES = {};
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
-    protected String[] KNOWN_NAMES = {"dbsnp"};
+    protected String[] KNOWN_NAMES = {rodDbSNP.STANDARD_DBSNP_TRACK_NAME};
 
     @Argument(shortName="sample", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
     protected String[] SAMPLES = {};
@@ -238,7 +239,7 @@ public class VariantEval2Walker extends RodWalker<Integer, Integer> {
         for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if ( d.getName().startsWith("eval") ) {
                 evalNames.add(d.getName());
-            } else if ( d.getName().startsWith("dbsnp") || d.getName().startsWith("hapmap") || d.getName().startsWith("comp") ) {
+            } else if ( d.getName().startsWith(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) || d.getName().startsWith("hapmap") || d.getName().startsWith("comp") ) {
                 compNames.add(d.getName());
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());

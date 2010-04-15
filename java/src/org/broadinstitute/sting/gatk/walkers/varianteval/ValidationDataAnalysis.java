@@ -15,7 +15,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 
-//  @Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=VariationRod.class), @RMD(name="dbsnp",type= rodDbSNP.class),@RMD(name="hapmap-chip",type=RodGenotypeChipAsGFF.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
+//  @Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=VariationRod.class), @RMD(name=rodDbSNP.STANDARD_DBSNP_TRACK_NAME,type= rodDbSNP.class),@RMD(name="hapmap-chip",type=RodGenotypeChipAsGFF.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
 
 public class ValidationDataAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
     private int calls_at_validated_sites = 0;

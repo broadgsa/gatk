@@ -33,7 +33,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData("dbsnp"));
+        rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME));
 
         Allele refAllele = new Allele(Character.toString(ref.getBase()), true);
         Collection<VariantContext> contexts = tracker.getVariantContexts(INPUT_ROD_NAME, ALLOWED_VARIANT_CONTEXT_TYPES, context.getLocation(), refAllele, true, false);

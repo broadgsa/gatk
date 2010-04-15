@@ -112,6 +112,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @return the dbsnp rod if there is one at this position
      */
     public static rodDbSNP getDbSNP(RefMetaDataTracker tracker) {
-        return rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData("dbsnp"));
+        return rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME));
     }
 }

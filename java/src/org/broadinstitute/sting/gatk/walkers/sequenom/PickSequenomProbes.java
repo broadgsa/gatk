@@ -43,7 +43,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
 		if ( SNP_MASK != null ) {
             logger.info("Loading SNP mask...  ");
             ReferenceOrderedData snp_mask;
-            if ( SNP_MASK.contains("dbsnp")) {
+            if ( SNP_MASK.contains(rodDbSNP.STANDARD_DBSNP_TRACK_NAME)) {
                 snp_mask = new ReferenceOrderedData<rodDbSNP>("snp_mask",new java.io.File(SNP_MASK),rodDbSNP.class);
             } else {
                 snp_mask = new ReferenceOrderedData<TabularROD>("snp_mask",

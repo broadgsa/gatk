@@ -148,7 +148,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
         }
         String rodString = Utils.join(", ", rodStrings);
 
-        rodDbSNP dbsnp = tracker.lookup("dbSNP",rodDbSNP.class);
+        rodDbSNP dbsnp = tracker.lookup(rodDbSNP.STANDARD_DBSNP_TRACK_NAME,rodDbSNP.class);
 
         if ( dbsnp != null)
             rodString += dbsnp.toMediumString();

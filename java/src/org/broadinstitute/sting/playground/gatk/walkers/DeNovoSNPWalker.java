@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariationRod;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
@@ -45,7 +46,7 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
 
     public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         VariationRod child = tracker.lookup("child",VariationRod.class);
-        VariationRod dbsnp = tracker.lookup("dbSNP",VariationRod.class);
+        VariationRod dbsnp = tracker.lookup(rodDbSNP.STANDARD_DBSNP_TRACK_NAME,VariationRod.class);
 
         if (child != null) {
             if (child.isSNP() && child.getNegLog10PError() > 5) { // BTR > 5

@@ -19,6 +19,9 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod {
+
+    public static final String STANDARD_DBSNP_TRACK_NAME = "dbsnp";
+
     public GenomeLoc loc;       // genome location of SNP
     // Reference sequence chromosome or scaffold
     // Start and stop positions in chrom

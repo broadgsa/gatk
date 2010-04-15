@@ -156,7 +156,7 @@ public class VariantAnnotatorEngine {
 
         // annotate dbsnp occurrence
         if ( annotateDbsnp ) {
-            rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData("dbsnp"));
+            rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME));
             infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
             // annotate dbsnp id if available and not already there
             if ( dbsnp != null && !vc.hasAttribute("ID") )

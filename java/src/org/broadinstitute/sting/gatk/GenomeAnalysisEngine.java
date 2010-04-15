@@ -47,6 +47,7 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
@@ -331,7 +332,7 @@ public class GenomeAnalysisEngine {
         //
         // please don't use these in the future, use the new syntax <- if we're not using these please remove them
         //
-        if (argCollection.DBSNPFile != null) bindConvenienceRods("dbSNP", "dbsnp", argCollection.DBSNPFile);
+        if (argCollection.DBSNPFile != null) bindConvenienceRods(rodDbSNP.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile);
         if (argCollection.HAPMAPFile != null)
             bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", argCollection.HAPMAPFile);
         if (argCollection.HAPMAPChipFile != null)
