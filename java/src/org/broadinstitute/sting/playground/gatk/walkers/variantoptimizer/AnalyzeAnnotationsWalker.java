@@ -4,11 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.HashMap;
@@ -108,26 +104,19 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
             // First find out if this variant is in the truth sets
             boolean isInTruthSet = false;
             boolean isTrueVariant = false;
-            for( final GATKFeature feature : tracker.getAllRods() ) {
-                Object rod = feature.getUnderlyingObject();
-                if( rod != null && feature.getName().toUpperCase().startsWith("TRUTH") ) {
+            for ( VariantContext vc : tracker.getAllVariantContexts() ) {
+                if( vc.getName().toUpperCase().startsWith("TRUTH") ) {
                     isInTruthSet = true;
-                    VariantContext variantContext = VariantContextAdaptors.toVariantContext(feature.getName(),rod);
-                    // First check that the conversion to VC worked correctly; next see if the truth sets say this site is variant or reference
-                    if (variantContext == null)
-                        throw new StingException("Truth ROD is of type that can't be converted to a VariantContext ( type = " + feature.getName() + ")");
-                    else if (variantContext.isSNP())
+                    if (vc.isVariant())
                         isTrueVariant = true;
                 }
             }
             
             // Add each annotation in this VCF Record to the dataManager
-            for( final GATKFeature feature : tracker.getAllRods() ) {
-                Object rod = feature.getUnderlyingObject();
-                if( rod != null && rod instanceof RodVCF && !feature.getName().toUpperCase().startsWith("TRUTH") ) {
-                    final RodVCF variant = (RodVCF) rod;
-                    if( variant.isSNP() ) {
-                        dataManager.addAnnotations( variant, SAMPLE_NAME, isInTruthSet, isTrueVariant );
+            for ( VariantContext vc : tracker.getAllVariantContexts() ) {
+                if( !vc.getName().toUpperCase().startsWith("TRUTH") ) {
+                    if( vc.isVariant() ) {
+                        dataManager.addAnnotations( vc, ref.getBase(), SAMPLE_NAME, isInTruthSet, isTrueVariant );
                     }
                 }
             }

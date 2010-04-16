@@ -1,8 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.util.*;
 import java.io.IOException;
@@ -52,13 +54,15 @@ public class AnnotationDataManager {
         INDICATE_MEAN_NUM_VARS = _INDICATE_MEAN_NUM_VARS;
     }
 
-    public void addAnnotations( final RodVCF variant, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
+    public void addAnnotations( final VariantContext vc, final char ref, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
 
         if( sampleName != null ) { // Only process variants that are found in the sample with this sampleName
-            if( variant.getGenotype(sampleName).isNoCall() ) { // This variant isn't found in this sample so break out
+            if( vc.getGenotype(sampleName).isNoCall() ) { // This variant isn't found in this sample so break out
                 return;
             }
         } // else, process all samples
+
+        VCFRecord variant = VariantContextAdaptors.toVCF(vc, ref);
 
         // Loop over each annotation in the vcf record
         final Map<String,String> infoField = variant.getInfoValues();
@@ -87,10 +91,12 @@ public class AnnotationDataManager {
             final boolean isNovelVariant = variant.getID().equals(".");
 
             // Decide if the variant is a transition or transversion
-            if( BaseUtils.isTransition( (byte)variant.getReferenceForSNP(), (byte)variant.getAlternativeBaseForSNP()) ) {
-                datum.incrementTi( isNovelVariant, isInTruthSet, isTrueVariant );
-            } else {
-                datum.incrementTv( isNovelVariant, isInTruthSet, isTrueVariant );
+            if ( vc.isSNP() ) {
+                if( BaseUtils.isTransition( vc.getReference().getBases()[0], vc.getAlternateAllele(0).getBases()[0]) ) {
+                    datum.incrementTi( isNovelVariant, isInTruthSet, isTrueVariant );
+                } else {
+                    datum.incrementTv( isNovelVariant, isInTruthSet, isTrueVariant );
+                }
             }
         }
     }
