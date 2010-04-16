@@ -7,7 +7,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
@@ -23,7 +22,7 @@ import java.util.List;
  * User: chartl
  * Date: Jan 29, 2010
  */
-public class HapmapVCFROD extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, Iterator<HapmapVCFROD> {
+public class HapmapVCFROD extends BasicReferenceOrderedDatum implements VariationRod, Iterator<HapmapVCFROD> {
 // This is a (hopefully temporary) wrapper class for certain VCF files that we want to protect from
 // utilities that grab genotypes or sample names across all VCF files
 

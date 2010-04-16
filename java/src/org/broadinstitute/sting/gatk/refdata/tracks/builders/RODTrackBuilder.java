@@ -56,15 +56,12 @@ public class RODTrackBuilder implements RMDTrackBuilder {
         // All known ROD types
         Types.put("GFF", RodGenotypeChipAsGFF.class);
         Types.put("dbSNP", rodDbSNP.class);
-        Types.put("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
         Types.put("SAMPileup", rodSAMPileup.class);
         Types.put("GELI", rodGELI.class);
         Types.put("RefSeq", rodRefSeq.class);
         Types.put("Table", TabularROD.class);
         Types.put("AnnotatorInputTable", AnnotatorROD.class);
-        Types.put("PooledEM", PooledEMSNPROD.class);
         Types.put("CleanedOutSNP", CleanedOutSNPROD.class);
-        Types.put("SangerSNP", SangerSNPROD.class);
         Types.put("SimpleIndel", SimpleIndelROD.class);
         Types.put("PointIndel", PointIndelROD.class);
         Types.put("HapMap", HapMapROD.class);

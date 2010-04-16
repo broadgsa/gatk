@@ -2,14 +2,14 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodGLF;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
 import java.util.HashMap;
 
@@ -112,23 +112,12 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
                 Object rod = feature.getUnderlyingObject();
                 if( rod != null && feature.getName().toUpperCase().startsWith("TRUTH") ) {
                     isInTruthSet = true;
-
-                    // Next see if the truth sets say this site is variant or reference
-                    if( rod instanceof RodVCF ) {
-                        if( ((RodVCF) rod).isSNP() ) {
-                            isTrueVariant = true;
-                        }
-                    } else if( rod instanceof RodGLF ) {
-                        if( ((RodGLF) rod).isSNP() ) {
-                            isTrueVariant = true;
-                        }
-                    } else if( rod instanceof VariantBackedByGenotype ) {
-                        if( ((VariantBackedByGenotype) rod).getCalledGenotype().isVariant(ref.getBase()) ) {
-                            isTrueVariant = true;
-                        }
-                    } else {
-                        throw new StingException( "Truth ROD is of unknown ROD type: " + feature.getName() );
-                    }
+                    VariantContext variantContext = VariantContextAdaptors.toVariantContext(feature.getName(),rod);
+                    // First check that the conversion to VC worked correctly; next see if the truth sets say this site is variant or reference
+                    if (variantContext == null)
+                        throw new StingException("Truth ROD is of type that can't be converted to a VariantContext ( type = " + feature.getName() + ")");
+                    else if (variantContext.isSNP())
+                        isTrueVariant = true;
                 }
             }
             

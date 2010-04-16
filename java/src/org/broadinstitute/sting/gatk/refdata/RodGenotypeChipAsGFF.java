@@ -7,7 +7,6 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
 import java.util.*;
 import java.util.regex.MatchResult;
@@ -21,7 +20,7 @@ import java.util.regex.Pattern;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype {
+public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements VariationRod {
     private String contig, source, feature, strand, frame;
     private long start, stop;
     private double score;
@@ -273,7 +272,6 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return a map in lexigraphical order of the genotypes
      */
-    @Override
     public Genotype getCalledGenotype() {
         return new BasicGenotype(this.getLocation(),this.feature,Character.toString(this.getRefSnpFWD()),this.getConsensusConfidence());
     }
@@ -283,7 +281,6 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return an array in lexigraphical order of the likelihoods
      */
-    @Override
     public List<Genotype> getGenotypes() {
         List<Genotype> ret = new ArrayList<Genotype>();
         ret.add(new BasicGenotype(this.getLocation(),this.feature,Character.toString(this.getRefSnpFWD()),this.getConsensusConfidence()));
@@ -298,7 +295,6 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return true if available, false otherwise
      */
-    @Override
     public boolean hasGenotype(DiploidGenotype x) {
         if (!x.toString().equals(this.getAltBasesFWD())) return false;
         return true;
