@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
@@ -10,12 +11,11 @@ import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Collection;
 
 
 /**
@@ -25,7 +25,7 @@ import java.util.Iterator;
 @WalkerName("PickSequenomProbes")
 @Requires(value={DataSource.REFERENCE})
 @Reference(window=@Window(start=-200,stop=200))
-public class PickSequenomProbes extends RefWalker<String, String> {
+public class PickSequenomProbes extends RodWalker<String, String> {
     @Argument(required=false, shortName="snp_mask", doc="positions to be masked with N's")
     protected String SNP_MASK = null;
     @Argument(required=false, shortName="project_id",doc="If specified, all probenames will be prepended with 'project_id|'")
@@ -53,27 +53,24 @@ public class PickSequenomProbes extends RefWalker<String, String> {
 		}
     }
 
-    public String map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
+    public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( tracker == null )
+            return "";
 
         logger.debug("Probing " + ref.getLocus() + " " + ref.getWindow());
 
         String refBase = String.valueOf(ref.getBase());
 
-        Iterator<GATKFeature> rods = rodData.getAllRods().iterator();
-		Variation variant = null;
-        while (rods.hasNext()) {
-            Object rod = rods.next().getUnderlyingObject();
-
-            // if we have multiple variants at a locus, just take the first one we see
-            if ( rod instanceof Variation ) {
-                variant = (Variation)rod;
-                break;
-            }
-        }
-
-        if ( variant == null )
+        Collection<VariantContext> VCs = tracker.getAllVariantContexts();
+        if ( VCs.size() == 0 )
             return "";
 
+        // if there are multiple variants at this position, just take the first one
+        VariantContext vc = VCs.iterator().next();
+
+        // we can only deal with biallelic sites for now
+        if ( !vc.isBiallelic() )
+            return "";
 
 		String contig = context.getLocation().getContig();
 		long   offset = context.getLocation().getStart();
@@ -100,8 +97,7 @@ public class PickSequenomProbes extends RefWalker<String, String> {
 
 		char[] context_bases = ref.getBases();
 		for (int i = 0; i < 401; i++) {
-			GenomeLoc loc = GenomeLocParser.parseGenomeLoc(contig + ":" + true_offset + "-" + true_offset);
-			if ( maskFlags[i]==1 ) {
+			if ( maskFlags[i] == 1 ) {
                 context_bases[i] = 'N';
             }
             true_offset += 1;
@@ -110,12 +106,12 @@ public class PickSequenomProbes extends RefWalker<String, String> {
 		String trailing_bases = new String(Arrays.copyOfRange(context_bases, 201, 401));
 
         String assay_sequence;
-        if ( variant.isSNP() )
-            assay_sequence = leading_bases + "[" + refBase + "/" + variant.getAlternativeBaseForSNP() + "]" + trailing_bases;
-        else if ( variant.isInsertion() )
-            assay_sequence = leading_bases + refBase + "[-/" + Utils.join("",variant.getAlleleList()) + "]" + trailing_bases;
-        else if ( variant.isDeletion() )
-            assay_sequence = leading_bases + refBase + "[" + Utils.join("",variant.getAlleleList()) + "/-]" + trailing_bases.substring(variant.getAlleleList().get(0).length());
+        if ( vc.isSNP() )
+            assay_sequence = leading_bases + "[" + refBase + "/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
+        else if ( vc.isInsertion() )
+            assay_sequence = leading_bases + refBase + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
+        else if ( vc.isDeletion() )
+            assay_sequence = leading_bases + refBase + "[" + vc.getReference().toString() + "/-]" + trailing_bases.substring(vc.getReference().length());
         else
             return "";
 
@@ -130,8 +126,8 @@ public class PickSequenomProbes extends RefWalker<String, String> {
         } else {
             assay_id.append(context.getLocation().toString().replace(':','_'));
         }
-        if ( variant.isInsertion() ) assay_id.append("_gI");
-        else if ( variant.isDeletion()) assay_id.append("_gD");
+        if ( vc.isInsertion() ) assay_id.append("_gI");
+        else if ( vc.isDeletion()) assay_id.append("_gD");
 
         if ( ! omitWindow ) {
             assay_id.append("_");
