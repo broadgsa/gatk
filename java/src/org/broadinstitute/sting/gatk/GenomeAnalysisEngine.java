@@ -233,7 +233,6 @@ public class GenomeAnalysisEngine {
     /**
      * if we have a ROD specified as a 'rodToIntervalTrackName', convert its records to RODs
      */
-    // TODO: this function uses toLowerCase to work with the current ROD system, fix it if we make ROD names case-sensitive
     private static List<GenomeLoc> checkRODToIntervalArgument() {
         Map<String, ReferenceOrderedDataSource> rodNames = RMDIntervalGenerator.getRMDTrackNames(instance.rodDataSources);
         // Do we have any RODs that overloaded as interval lists with the 'rodToIntervalTrackName' flag?
@@ -242,11 +241,11 @@ public class GenomeAnalysisEngine {
             String rodName = GenomeAnalysisEngine.instance.argCollection.RODToInterval;
 
             // check to make sure we have a rod of that name
-            if (!rodNames.containsKey(rodName.toLowerCase()))
+            if (!rodNames.containsKey(rodName))
                 throw new StingException("--rodToIntervalTrackName (-BTI) was pass the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
 
             for (String str : rodNames.keySet())
-                if (str.toLowerCase().equals(rodName.toLowerCase())) {
+                if (str.equals(rodName)) {
                     RMDIntervalGenerator intervalGenerator = new RMDIntervalGenerator(rodNames.get(str).getReferenceOrderedData());
                     ret.addAll(intervalGenerator.toGenomeLocList());
                 }

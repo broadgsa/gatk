@@ -53,7 +53,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Name of the underlying rod.
      */
     public String getName() {
-        return this.rod.getName().toLowerCase(); // TODO: Aaron fix this.  this is a hack, because RODs always lowercased their names, but in for consistency for now
+        return this.rod.getName(); 
     }
 
     /**

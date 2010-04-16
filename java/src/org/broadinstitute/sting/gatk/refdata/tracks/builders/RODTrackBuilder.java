@@ -114,8 +114,8 @@ public class RODTrackBuilder implements RMDTrackBuilder {
     public ReferenceOrderedData createROD(final String trackName, Class type, File fileName) {
 
         // Create the ROD
-        ReferenceOrderedData<?> rod = new ReferenceOrderedData<ReferenceOrderedDatum>(trackName.toLowerCase(), fileName, type );
-        logger.info(String.format("Created binding from %s to %s of type %s", trackName.toLowerCase(), fileName, type));
+        ReferenceOrderedData<?> rod = new ReferenceOrderedData<ReferenceOrderedDatum>(trackName, fileName, type );
+        logger.info(String.format("Created binding from %s to %s of type %s", trackName, fileName, type));
         return rod;
     }
 
