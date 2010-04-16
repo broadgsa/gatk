@@ -339,4 +339,17 @@ public class AlignmentUtils {
           &&  r.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START ) return false  ;
         return true;
     }
+
+    /** Returns the array of base qualitites in the order the bases were read on the machine (i.e. always starting from
+     * cycle 1). In other words, if the read is unmapped or aligned in the forward direction, the read's own base
+     * qualities are returned as stored in the SAM record; if the read is aligned in the reverse direction, the array
+     * of read's base qualitites is inverted (in this case new array is allocated and returned).
+      * @param read
+     * @return
+     */
+    public static byte [] getQualsInCycleOrder(SAMRecord read) {
+        if ( isReadUnmapped(read) || ! read.getReadNegativeStrandFlag() ) return read.getBaseQualities();
+
+        return BaseUtils.reverse(read.getBaseQualities());
+    }
 }
