@@ -2,12 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.genotype.Variation;
-
-import java.util.Iterator;
 
 /**
  * Create a mask for use with the PickSequenomProbes walker.
@@ -16,15 +13,13 @@ public class CreateSequenomMask extends RodWalker<Integer, Integer> {
 
     public void initialize() {}
 
-	public Integer map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
-        int result = 0;
-        if ( rodData == null ) // apparently, RodWalkers make funky map calls
+	public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( tracker == null )
             return 0;
 
-        Iterator<GATKFeature> rods = rodData.getAllRods().iterator();
-        while (rods.hasNext()) {
-            Object rod = rods.next().getUnderlyingObject();
-            if ( rod instanceof Variation && ((Variation)rod).isSNP() ) {
+        int result = 0;
+        for ( VariantContext vc : tracker.getAllVariantContexts(ref) ) {
+            if ( vc.isSNP() ) {
                 out.println(context.getLocation());
                 result = 1;
                 break;

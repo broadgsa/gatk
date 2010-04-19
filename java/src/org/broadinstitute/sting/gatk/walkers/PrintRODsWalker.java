@@ -28,8 +28,8 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.Iterator;
 
@@ -47,7 +47,6 @@ public class PrintRODsWalker extends RodWalker<Integer, Integer> {
     public Integer reduceInit() { return 0; }
 
     /**
-     * For each site of interest, rescore the genotype likelihoods by applying the specified feature set.
      *
      * @param tracker  the meta-data tracker
      * @param ref      the reference base
@@ -61,7 +60,7 @@ public class PrintRODsWalker extends RodWalker<Integer, Integer> {
         Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
         while ( rods.hasNext() ) {
             Object rod = rods.next().getUnderlyingObject();
-            if ( rod instanceof Variation )
+            if (VariantContextAdaptors.canBeConvertedToVariantContext(rod) )
                 out.println(rod.toString());
         }
 
