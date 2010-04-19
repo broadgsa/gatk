@@ -1,8 +1,34 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils;
 
 import cern.jet.math.Arithmetic;
 
 import java.math.BigDecimal;
+import java.util.*;
+
+import net.sf.samtools.SAMRecord;
 
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.
@@ -340,4 +366,351 @@ public class MathUtils {
 
         return minI;
     }
+
+    public static double average(List<Long> vals, int maxI) {
+        long sum = 0L;
+
+        int i = 0;
+        for (long x : vals) {
+            if (i > maxI)
+                break;
+            sum += x;
+            i++;
+            //System.out.printf(" %d/%d", sum, i);
+        }
+
+        //System.out.printf("Sum = %d, n = %d, maxI = %d, avg = %f%n", sum, i, maxI, (1.0 * sum) / i);
+
+        return (1.0 * sum) / i;
+    }
+
+    public static double averageDouble(List<Double> vals, int maxI) {
+        double sum = 0.0;
+
+        int i = 0;
+        for (double x : vals) {
+            if (i > maxI)
+                break;
+            sum += x;
+            i++;
+        }
+        return (1.0 * sum) / i;
+    }
+
+    public static double average(List<Long> vals) {
+        return average(vals, vals.size());
+    }
+
+    public static double averageDouble(List<Double> vals) {
+        return averageDouble(vals, vals.size());
+    }
+
+    // Java Generics can't do primitive types, so I had to do this the simplistic way
+
+    public static Integer[] sortPermutation(final int[] A) {
+        class comparator implements Comparator<Integer> {
+            public int compare(Integer a, Integer b) {
+                if (A[a.intValue()] < A[b.intValue()]) {
+                    return -1;
+                }
+                if (A[a.intValue()] == A[b.intValue()]) {
+                    return 0;
+                }
+                if (A[a.intValue()] > A[b.intValue()]) {
+                    return 1;
+                }
+                return 0;
+            }
+        }
+        Integer[] permutation = new Integer[A.length];
+        for (int i = 0; i < A.length; i++) {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
+    }
+
+    public static Integer[] sortPermutation(final double[] A) {
+        class comparator implements Comparator<Integer> {
+            public int compare(Integer a, Integer b) {
+                if (A[a.intValue()] < A[b.intValue()]) {
+                    return -1;
+                }
+                if (A[a.intValue()] == A[b.intValue()]) {
+                    return 0;
+                }
+                if (A[a.intValue()] > A[b.intValue()]) {
+                    return 1;
+                }
+                return 0;
+            }
+        }
+        Integer[] permutation = new Integer[A.length];
+        for (int i = 0; i < A.length; i++) {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
+    }
+
+    public static <T extends Comparable> Integer[] sortPermutation(List<T> A) {
+        final Object[] data = A.toArray();
+
+        class comparator implements Comparator<Integer> {
+            public int compare(Integer a, Integer b) {
+                return ((T) data[a]).compareTo(data[b]);
+            }
+        }
+        Integer[] permutation = new Integer[A.size()];
+        for (int i = 0; i < A.size(); i++) {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
+    }
+
+
+    public static int[] permuteArray(int[] array, Integer[] permutation) {
+        int[] output = new int[array.length];
+        for (int i = 0; i < output.length; i++) {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
+    public static double[] permuteArray(double[] array, Integer[] permutation) {
+        double[] output = new double[array.length];
+        for (int i = 0; i < output.length; i++) {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
+    public static Object[] permuteArray(Object[] array, Integer[] permutation) {
+        Object[] output = new Object[array.length];
+        for (int i = 0; i < output.length; i++) {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
+    public static String[] permuteArray(String[] array, Integer[] permutation) {
+        String[] output = new String[array.length];
+        for (int i = 0; i < output.length; i++) {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
+    public static <T> List<T> permuteList(List<T> list, Integer[] permutation) {
+        List<T> output = new ArrayList<T>();
+        for (int i = 0; i < permutation.length; i++) {
+            output.add(list.get(permutation[i]));
+        }
+        return output;
+    }
+
+
+    /** Draw N random elements from list. */
+    public static <T> List<T> randomSubset(List<T> list, int N) {
+        if (list.size() <= N) {
+            return list;
+        }
+
+        java.util.Random random = new java.util.Random();
+
+        int idx[] = new int[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            idx[i] = random.nextInt();
+        }
+
+        Integer[] perm = sortPermutation(idx);
+
+        List<T> ans = new ArrayList<T>();
+        for (int i = 0; i < N; i++) {
+            ans.add(list.get(perm[i]));
+        }
+
+        return ans;
+    }
+
+    // lifted from the internet
+    // http://www.cs.princeton.edu/introcs/91float/Gamma.java.html
+    public static double logGamma(double x) {
+        double tmp = (x - 0.5) * Math.log(x + 4.5) - (x + 4.5);
+        double ser = 1.0 + 76.18009173 / (x + 0) - 86.50532033 / (x + 1)
+                + 24.01409822 / (x + 2) - 1.231739516 / (x + 3)
+                + 0.00120858003 / (x + 4) - 0.00000536382 / (x + 5);
+        return tmp + Math.log(ser * Math.sqrt(2 * Math.PI));
+    }
+
+    public static double percentage(double x, double base) {
+        return (base > 0 ? (x / base) * 100.0 : 0);
+    }
+
+    public static double percentage(int x, int base) {
+        return (base > 0 ? ((double) x / (double) base) * 100.0 : 0);
+    }
+
+    public static double percentage(long x, long base) {
+        return (base > 0 ? ((double) x / (double) base) * 100.0 : 0);
+    }
+
+    public static int countOccurrences(char c, String s) {
+        int count = 0;
+        for (int i = 0; i < s.length(); i++) {
+            count += s.charAt(i) == c ? 1 : 0;
+        }
+        return count;
+    }
+
+    public static <T> int countOccurrences(T x, List<T> l) {
+        int count = 0;
+        for (T y : l) {
+            if (x.equals(y)) count++;
+        }
+
+        return count;
+    }
+
+
+    static Random rand = new Random(12321); //System.currentTimeMillis());
+
+    /**
+     * Returns n random indices drawn with replacement from the range 0..(k-1)
+     *
+     * @param n the total number of indices sampled from
+     * @param k the number of random indices to draw (with replacement)
+     * @return a list of k random indices ranging from 0 to (n-1) with possible duplicates
+     */
+    static public ArrayList<Integer> sampleIndicesWithReplacement(int n, int k) {
+
+        ArrayList<Integer> chosen_balls = new ArrayList <Integer>(k);
+        for (int i=0; i< k; i++) {
+            //Integer chosen_ball = balls[rand.nextInt(k)];
+            chosen_balls.add(rand.nextInt(n));
+            //balls.remove(chosen_ball);
+        }
+
+        return chosen_balls;
+    }
+
+    /**
+     * Returns n random indices drawn without replacement from the range 0..(k-1)
+     *
+     * @param n the total number of indices sampled from
+     * @param k the number of random indices to draw (without replacement)
+     * @return a list of k random indices ranging from 0 to (n-1) without duplicates
+     */
+    static public ArrayList<Integer> sampleIndicesWithoutReplacement(int n, int k) {
+        ArrayList<Integer> chosen_balls = new ArrayList<Integer>(k);
+
+        for (int i = 0; i < n; i++) {
+            chosen_balls.add(i);
+        }
+
+        Collections.shuffle(chosen_balls, rand);
+
+        //return (ArrayList<Integer>) chosen_balls.subList(0, k);
+        return new ArrayList<Integer>(chosen_balls.subList(0, k));
+    }
+
+    /**
+     * Given a list of indices into a list, return those elements of the list with the possibility of drawing list elements multiple times
+
+     * @param indices  the list of indices for elements to extract
+     * @param list     the list from which the elements should be extracted
+     * @param <T>      the template type of the ArrayList
+     * @return         a new ArrayList consisting of the elements at the specified indices
+     */
+    static public <T> ArrayList<T> sliceListByIndices(List<Integer> indices, List<T> list) {
+        ArrayList<T> subset = new ArrayList<T>();
+
+        for (int i : indices) {
+            subset.add(list.get(i));
+        }
+
+        return subset;
+    }
+
+    public static Comparable orderStatisticSearch(int orderStat, List<Comparable> list) {
+        // this finds the order statistic of the list (kth largest element)
+        // the list is assumed *not* to be sorted
+
+        final Comparable x = list.get(orderStat);
+        ListIterator iterator = list.listIterator();
+        ArrayList lessThanX = new ArrayList();
+        ArrayList equalToX = new ArrayList();
+        ArrayList greaterThanX = new ArrayList();
+
+        for(Comparable y : list) {
+            if(x.compareTo(y) > 0) {
+                lessThanX.add(y);
+            } else if(x.compareTo(y) < 0) {
+                greaterThanX.add(y);
+            } else
+                equalToX.add(y);
+        }
+
+        if(lessThanX.size() > orderStat)
+            return orderStatisticSearch(orderStat, lessThanX);
+        else if(lessThanX.size() + equalToX.size() >= orderStat)
+            return orderStat;
+        else
+            return orderStatisticSearch(orderStat - lessThanX.size() - equalToX.size(), greaterThanX);
+
+    }
+
+
+    public static Object getMedian(List<Comparable> list) {
+        return orderStatisticSearch((int) Math.ceil(list.size()/2), list);
+    }
+
+    public static byte getQScoreOrderStatistic(List<SAMRecord> reads, List<Integer> offsets, int k) {
+        // version of the order statistic calculator for SAMRecord/Integer lists, where the
+        // list index maps to a q-score only through the offset index
+        // returns the kth-largest q-score.
+
+        if( reads.size() == 0) {
+            return 0;
+        }
+
+        ArrayList lessThanQReads = new ArrayList();
+        ArrayList equalToQReads = new ArrayList();
+        ArrayList greaterThanQReads = new ArrayList();
+        ArrayList lessThanQOffsets = new ArrayList();
+        ArrayList greaterThanQOffsets = new ArrayList();
+
+        final byte qk = reads.get(k).getBaseQualities()[offsets.get(k)];
+
+        for(int iter = 0; iter < reads.size(); iter ++) {
+            SAMRecord read = reads.get(iter);
+            int offset = offsets.get(iter);
+            byte quality = read.getBaseQualities()[offset];
+
+            if(quality < qk) {
+                lessThanQReads.add(read);
+                lessThanQOffsets.add(offset);
+            } else if(quality > qk) {
+                greaterThanQReads.add(read);
+                greaterThanQOffsets.add(offset);
+            } else {
+                equalToQReads.add(reads.get(iter));
+            }
+        }
+
+        if(lessThanQReads.size() > k)
+            return getQScoreOrderStatistic(lessThanQReads, lessThanQOffsets, k);
+        else if(equalToQReads.size() + lessThanQReads.size() >= k)
+            return qk;
+        else
+            return getQScoreOrderStatistic(greaterThanQReads, greaterThanQOffsets, k - lessThanQReads.size() - equalToQReads.size());
+
+    }
+
+
+    public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
+        return getQScoreOrderStatistic(reads, offsets, (int)Math.floor(reads.size()/2.));
+    }
+    
 }

@@ -1,8 +1,30 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -12,7 +34,10 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.commandline.Argument;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -251,7 +276,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( readLoc.getStop() == 0 )
             readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
 
-        if ( readLoc.isBefore(currentInterval) || Utils.is454Read(read) ) {
+        if ( readLoc.isBefore(currentInterval) || ReadUtils.is454Read(read) ) {
             // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
             emit(read);
             return 0;

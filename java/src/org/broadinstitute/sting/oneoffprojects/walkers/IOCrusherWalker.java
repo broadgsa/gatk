@@ -1,9 +1,32 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileHeader;
@@ -50,7 +73,7 @@ public class IOCrusherWalker extends ReadWalker<SAMRecord, ArrayList<SAMFileWrit
         ArrayList<SAMFileWriter> outputs = new ArrayList<SAMFileWriter>(nWaysOut);
         for ( int i = 0; i < nWaysOut; i++ ) {
             SAMFileHeader header = this.getToolkit().getSAMFileHeader();
-            outputs.add(Utils.createSAMFileWriterWithCompression(header, true, outputBase + "." + i + ".bam", BAMcompression));
+            outputs.add(ReadUtils.createSAMFileWriterWithCompression(header, true, outputBase + "." + i + ".bam", BAMcompression));
         }
         return outputs;
     }

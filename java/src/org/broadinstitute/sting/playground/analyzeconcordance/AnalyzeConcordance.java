@@ -1,8 +1,31 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.playground.analyzeconcordance;
 
-import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.commandline.CommandLineProgram;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.PathUtils;
@@ -111,7 +134,7 @@ public class AnalyzeConcordance extends CommandLineProgram {
     }
 
     private void addEvalListFile(EvalFilterType filterType, File evalListFile) throws FileNotFoundException {
-        for (String line : new xReadLines(evalListFile)) {
+        for (String line : new XReadLines(evalListFile)) {
             String[] parts = line.split("\t");
             addEvalFile(parts[0], filterType, new File(parts[1]));
         }
@@ -120,7 +143,7 @@ public class AnalyzeConcordance extends CommandLineProgram {
     private void addEvalFile(String evalID, EvalFilterType filterType, File evalFile) throws FileNotFoundException {
         SortedMap<AnalyzeConcordanceField, String> fieldValues = new TreeMap<AnalyzeConcordanceField, String>();
 
-        for (String line : new xReadLines(evalFile)) {
+        for (String line : new XReadLines(evalFile)) {
             for (AnalyzeConcordanceField field : ANALYZE_CONCORDANCE_FIELDS) {
                 String value = field.parseLine(line);
                 if (value != null) {

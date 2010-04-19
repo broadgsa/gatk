@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.apache.log4j.Logger;
@@ -14,12 +37,12 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
-import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -277,7 +300,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
         int n = 1;
         try {
-            for ( String line : new xReadLines(rsIDFile) ) {
+            for ( String line : new XReadLines(rsIDFile) ) {
                 String parts[] = line.split(" ");
                 if ( parts.length != 2 )
                     throw new StingException("Invalid rsID / build pair at " + n + " line = " + line );

@@ -1,10 +1,32 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.collections.Pair;
 
-import java.io.File;
 import java.util.*;
 
 /**
@@ -73,27 +95,6 @@ public class Utils {
         logger.warn(String.format("* %s", builder));
     }
 
-    public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
-        SAMFileHeader copy = new SAMFileHeader();
-
-        copy.setSortOrder(toCopy.getSortOrder());
-        copy.setGroupOrder(toCopy.getGroupOrder());
-        copy.setProgramRecords(toCopy.getProgramRecords());
-        copy.setReadGroups(toCopy.getReadGroups());
-        copy.setSequenceDictionary(toCopy.getSequenceDictionary());
-
-        for (Map.Entry<String, Object> e : toCopy.getAttributes())
-            copy.setAttribute(e.getKey(), e.getValue());
-
-        return copy;
-    }
-
-    public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
-        if (file.endsWith(".bam"))
-            return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
-        return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
-    }
-
     public static ArrayList<Byte> subseq(char[] fullArray) {
         byte[] fullByteArray = new byte[fullArray.length];
         StringUtil.charsToBytes(fullArray, 0, fullArray.length, fullByteArray, 0);
@@ -121,56 +122,6 @@ public class Utils {
             i++;
         }
         return new String(basesAsbytes);
-    }
-
-    public static boolean isPlatformRead(SAMRecord read, String name) {
-        SAMReadGroupRecord readGroup = read.getReadGroup();
-        if (readGroup != null) {
-            Object readPlatformAttr = readGroup.getAttribute("PL");
-            if (readPlatformAttr != null)
-                return readPlatformAttr.toString().toUpperCase().contains(name);
-        }
-        return false;
-    }
-
-
-    public static boolean is454Read(SAMRecord read) {
-        return isPlatformRead(read, "454");
-    }
-
-    public static boolean isSOLiDRead(SAMRecord read) {
-        return isPlatformRead(read, "SOLID");
-    }
-
-    public static boolean isSLXRead(SAMRecord read) {
-        return isPlatformRead(read, "ILLUMINA");
-    }
-
-    private static final Map<Integer, String> readFlagNames
-            = new HashMap<Integer, String>();
-
-    static {
-        readFlagNames.put(0x1, "Paired");
-        readFlagNames.put(0x2, "Proper");
-        readFlagNames.put(0x4, "Unmapped");
-        readFlagNames.put(0x8, "MateUnmapped");
-        readFlagNames.put(0x10, "Forward");
-        //readFlagNames.put(0x20, "MateForward");
-        readFlagNames.put(0x4, "FirstOfPair");
-        readFlagNames.put(0x8, "SecondOfPair");
-        readFlagNames.put(0x100, "NotPrimary");
-        readFlagNames.put(0x200, "NON-PF");
-        readFlagNames.put(0x400, "Duplicate");
-    }
-
-    public static String readFlagsAsString(SAMRecord rec) {
-        String flags = "";
-        for (int flag : readFlagNames.keySet()) {
-            if ((rec.getFlags() & flag) != 0) {
-                flags += readFlagNames.get(flag) + " ";
-            }
-        }
-        return flags;
     }
 
     /**
@@ -230,195 +181,6 @@ public class Utils {
         return join(separator, strs.toArray(new String[0]));
     }
 
-    public static double average(List<Long> vals, int maxI) {
-        long sum = 0L;
-
-        int i = 0;
-        for (long x : vals) {
-            if (i > maxI)
-                break;
-            sum += x;
-            i++;
-            //System.out.printf(" %d/%d", sum, i);
-        }
-
-        //System.out.printf("Sum = %d, n = %d, maxI = %d, avg = %f%n", sum, i, maxI, (1.0 * sum) / i);
-
-        return (1.0 * sum) / i;
-    }
-
-    public static double averageDouble(List<Double> vals, int maxI) {
-        double sum = 0.0;
-
-        int i = 0;
-        for (double x : vals) {
-            if (i > maxI)
-                break;
-            sum += x;
-            i++;
-        }
-        return (1.0 * sum) / i;
-    }
-
-    public static double average(List<Long> vals) {
-        return average(vals, vals.size());
-    }
-
-    public static double averageDouble(List<Double> vals) {
-        return averageDouble(vals, vals.size());
-    }
-
-    // Java Generics can't do primitive types, so I had to do this the simplistic way
-
-    public static Integer[] SortPermutation(final int[] A) {
-        class comparator implements Comparator<Integer> {
-            public int compare(Integer a, Integer b) {
-                if (A[a.intValue()] < A[b.intValue()]) {
-                    return -1;
-                }
-                if (A[a.intValue()] == A[b.intValue()]) {
-                    return 0;
-                }
-                if (A[a.intValue()] > A[b.intValue()]) {
-                    return 1;
-                }
-                return 0;
-            }
-        }
-        Integer[] permutation = new Integer[A.length];
-        for (int i = 0; i < A.length; i++) {
-            permutation[i] = i;
-        }
-        Arrays.sort(permutation, new comparator());
-        return permutation;
-    }
-
-    public static Integer[] SortPermutation(final double[] A) {
-        class comparator implements Comparator<Integer> {
-            public int compare(Integer a, Integer b) {
-                if (A[a.intValue()] < A[b.intValue()]) {
-                    return -1;
-                }
-                if (A[a.intValue()] == A[b.intValue()]) {
-                    return 0;
-                }
-                if (A[a.intValue()] > A[b.intValue()]) {
-                    return 1;
-                }
-                return 0;
-            }
-        }
-        Integer[] permutation = new Integer[A.length];
-        for (int i = 0; i < A.length; i++) {
-            permutation[i] = i;
-        }
-        Arrays.sort(permutation, new comparator());
-        return permutation;
-    }
-
-    public static <T extends Comparable> Integer[] SortPermutation(List<T> A) {
-        final Object[] data = A.toArray();
-
-        class comparator implements Comparator<Integer> {
-            public int compare(Integer a, Integer b) {
-                return ((T) data[a]).compareTo(data[b]);
-            }
-        }
-        Integer[] permutation = new Integer[A.size()];
-        for (int i = 0; i < A.size(); i++) {
-            permutation[i] = i;
-        }
-        Arrays.sort(permutation, new comparator());
-        return permutation;
-    }
-
-
-    public static int[] PermuteArray(int[] array, Integer[] permutation) {
-        int[] output = new int[array.length];
-        for (int i = 0; i < output.length; i++) {
-            output[i] = array[permutation[i]];
-        }
-        return output;
-    }
-
-    public static double[] PermuteArray(double[] array, Integer[] permutation) {
-        double[] output = new double[array.length];
-        for (int i = 0; i < output.length; i++) {
-            output[i] = array[permutation[i]];
-        }
-        return output;
-    }
-
-    public static Object[] PermuteArray(Object[] array, Integer[] permutation) {
-        Object[] output = new Object[array.length];
-        for (int i = 0; i < output.length; i++) {
-            output[i] = array[permutation[i]];
-        }
-        return output;
-    }
-
-    public static String[] PermuteArray(String[] array, Integer[] permutation) {
-        String[] output = new String[array.length];
-        for (int i = 0; i < output.length; i++) {
-            output[i] = array[permutation[i]];
-        }
-        return output;
-    }
-
-    public static <T> List<T> PermuteList(List<T> list, Integer[] permutation) {
-        List<T> output = new ArrayList<T>();
-        for (int i = 0; i < permutation.length; i++) {
-            output.add(list.get(permutation[i]));
-        }
-        return output;
-    }
-
-
-    /** Draw N random elements from list. */
-    public static <T> List<T> RandomSubset(List<T> list, int N) {
-        if (list.size() <= N) {
-            return list;
-        }
-
-        java.util.Random random = new java.util.Random();
-
-        int idx[] = new int[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            idx[i] = random.nextInt();
-        }
-
-        Integer[] perm = SortPermutation(idx);
-
-        List<T> ans = new ArrayList<T>();
-        for (int i = 0; i < N; i++) {
-            ans.add(list.get(perm[i]));
-        }
-
-        return ans;
-    }
-
-    // lifted from the internet 
-    // http://www.cs.princeton.edu/introcs/91float/Gamma.java.html
-    public static double logGamma(double x) {
-        double tmp = (x - 0.5) * Math.log(x + 4.5) - (x + 4.5);
-        double ser = 1.0 + 76.18009173 / (x + 0) - 86.50532033 / (x + 1)
-                + 24.01409822 / (x + 2) - 1.231739516 / (x + 3)
-                + 0.00120858003 / (x + 4) - 0.00000536382 / (x + 5);
-        return tmp + Math.log(ser * Math.sqrt(2 * Math.PI));
-    }
-
-    public static double percentage(double x, double base) {
-        return (base > 0 ? (x / base) * 100.0 : 0);
-    }
-
-    public static double percentage(int x, int base) {
-        return (base > 0 ? ((double) x / (double) base) * 100.0 : 0);
-    }
-
-    public static double percentage(long x, long base) {
-        return (base > 0 ? ((double) x / (double) base) * 100.0 : 0);
-    }
-
     public static String dupString(char c, int nCopies) {
         char[] chars = new char[nCopies];
         Arrays.fill(chars, c);
@@ -429,23 +191,6 @@ public class Utils {
         byte[] bytes = new byte[nCopies];
         Arrays.fill(bytes, b);
         return bytes;
-    }
-
-    public static int countOccurrences(char c, String s) {
-        int count = 0;
-        for (int i = 0; i < s.length(); i++) {
-            count += s.charAt(i) == c ? 1 : 0;
-        }
-        return count;
-    }
-
-    public static <T> int countOccurrences(T x, List<T> l) {
-        int count = 0;
-        for (T y : l) {
-            if (x.equals(y)) count++;
-        }
-
-        return count;
     }
 
     // trim a string for the given character (i.e. not just whitespace)

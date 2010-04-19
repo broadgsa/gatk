@@ -1,4 +1,27 @@
 
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.oneoffprojects.multisamplecaller;
 
 import net.sf.samtools.SAMFileHeader;
@@ -10,11 +33,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.commandline.Argument;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -818,7 +838,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 	char PickAlt(char ref, double[] allele_likelihoods)
 	{
-		Integer[] perm = Utils.SortPermutation(allele_likelihoods);
+		Integer[] perm = MathUtils.sortPermutation(allele_likelihoods);
 		if (perm[3] != BaseUtils.simpleBaseToBaseIndex(ref)) { return BaseUtils.baseIndexToSimpleBase(perm[3]); }
 		else { return BaseUtils.baseIndexToSimpleBase(perm[2]); }
 	}
@@ -1005,7 +1025,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			{
 	            List<Integer> perm = new ArrayList<Integer>(); 
 	            for (int i = 0; i < reads[j].size(); i++) { perm.add(i); }
-	            perm = Utils.RandomSubset(perm, downsample);
+	            perm = MathUtils.randomSubset(perm, downsample);
 	           
 	            ArrayList<SAMRecord> downsampled_reads = new ArrayList<SAMRecord>();
 	            ArrayList<Integer> downsampled_offsets = new ArrayList<Integer>();

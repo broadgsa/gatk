@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.playground.gatk.walkers.papergenotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -6,8 +29,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotypePriors;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.PrintStream;
@@ -65,7 +88,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
                 }
             }
 
-        Integer sortedList[] = Utils.SortPermutation(likelihoods);
+        Integer sortedList[] = MathUtils.sortPermutation(likelihoods);
 
         // create call using the best genotype (GENOTYPE.values()[sortedList[9]].toString())
         // and calculate the LOD score from best - next best (9 and 8 in the sorted list, since the best likelihoods are closest to zero)

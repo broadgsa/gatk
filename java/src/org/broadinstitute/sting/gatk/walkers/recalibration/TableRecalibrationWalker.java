@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import java.io.File;
@@ -24,45 +47,20 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.utils.JVMUtils;
-import org.broadinstitute.sting.utils.NestedHashMap;
-import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.classloader.PackageUtils;
+import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.TextFormattingUtils;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.xReadLines;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinition;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentTypeDescriptor;
+import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.ArgumentDefinition;
+import org.broadinstitute.sting.commandline.ArgumentSource;
+import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-
-/*
- * Copyright (c) 2009 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
 
 /**
  * This walker is designed to work as the second pass in a two-pass processing step, doing a by-read traversal.
@@ -165,7 +163,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         logger.info( "Reading in the data from input csv file..." );
 
         try {
-            for ( String line : new xReadLines(new File( RAC.RECAL_FILE )) ) {
+            for ( String line : new XReadLines(new File( RAC.RECAL_FILE )) ) {
                 lineNumber++;
                 if( COMMENT_PATTERN.matcher(line).matches() || OLD_RECALIBRATOR_HEADER.matcher(line).matches() )  {
                     ; // Skip over the comment lines, (which start with '#')

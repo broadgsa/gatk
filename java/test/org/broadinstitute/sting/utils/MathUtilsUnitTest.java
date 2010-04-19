@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the ”Software”), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED ”AS IS”, WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils;
 
 import org.junit.Assert;
@@ -8,6 +31,9 @@ import org.broadinstitute.sting.utils.MathUtils;
 
 
 import java.io.File;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Basic unit test for MathUtils
@@ -55,4 +81,45 @@ public class MathUtilsUnitTest extends BaseTest {
         double[] probs3 = { 0.33, 0.33, 0.34 };
         Assert.assertTrue(MathUtils.compareDoubles(MathUtils.multinomialProbability(counts3, probs3), 5.20988e-285, 1e-286) == 0);
     }
+
+    /**
+     * Tests that the random index selection is working correctly
+     */
+    @Test
+    public void testRandomIndicesWithReplacement() {
+        logger.warn("Executing testRandomIndicesWithReplacement");
+
+        // Check that the size of the list returned is correct
+        Assert.assertTrue(MathUtils.sampleIndicesWithReplacement(5, 0).size() == 0);
+        Assert.assertTrue(MathUtils.sampleIndicesWithReplacement(5, 1).size() == 1);
+        Assert.assertTrue(MathUtils.sampleIndicesWithReplacement(5, 5).size() == 5);
+        Assert.assertTrue(MathUtils.sampleIndicesWithReplacement(5, 1000).size() == 1000);
+
+        // Check that the list contains only the k element range that as asked for - no more, no less
+        List<Integer> Five = new ArrayList<Integer>();
+        Collections.addAll(Five, 0, 1, 2, 3, 4);
+        List<Integer> BigFive = MathUtils.sampleIndicesWithReplacement(5, 10000);
+        Assert.assertTrue(BigFive.containsAll(Five));
+        Assert.assertTrue(Five.containsAll(BigFive));
+    }
+
+    /**
+     * Tests that we get the right values from the multinomial distribution
+     */
+    @Test
+    public void testSliceListByIndices() {
+        logger.warn("Executing testSliceListByIndices");
+
+        // Check that the list contains only the k element range that as asked for - no more, no less but now
+        // use the index list to pull elements from another list using sliceListByIndices
+        List<Integer> Five = new ArrayList<Integer>();
+        Collections.addAll(Five, 0, 1, 2, 3, 4);
+        List<Character> FiveAlpha = new ArrayList<Character>();
+        Collections.addAll(FiveAlpha, 'a', 'b', 'c', 'd', 'e');
+        List<Integer> BigFive = MathUtils.sampleIndicesWithReplacement(5, 10000);
+        List<Character> BigFiveAlpha = MathUtils.sliceListByIndices(BigFive, FiveAlpha);
+        Assert.assertTrue(BigFiveAlpha.containsAll(FiveAlpha));
+        Assert.assertTrue(FiveAlpha.containsAll(BigFiveAlpha));
+    }
+    
 }
