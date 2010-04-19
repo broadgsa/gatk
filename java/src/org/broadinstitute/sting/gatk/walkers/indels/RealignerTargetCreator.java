@@ -73,7 +73,7 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
 
         // look at the rods for indels or SNPs
         if ( tracker != null ) {
-            for ( VariantContext vc : tracker.getAllVariantContexts() ) {
+            for ( VariantContext vc : tracker.getAllVariantContexts(ref) ) {
                 switch ( vc.getType() ) {
                     case INDEL:
                         hasIndel = true;

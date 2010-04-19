@@ -6,9 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
@@ -18,7 +16,6 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Collection;
 
 
@@ -49,12 +46,12 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
         return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 &&
                 context.getBasePileup().size() != 0 &&
                 tracker != null &&
-                tracker.getAllVariantContexts() != null
+                tracker.getAllVariantContexts(ref) != null
         );
     }
 
     public List<String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        Collection<VariantContext> contexts = tracker.getAllVariantContexts();
+        Collection<VariantContext> contexts = tracker.getAllVariantContexts(ref);
 
         for (VariantContext vc : contexts) {
             if (vc.isVariant() && !vc.isFiltered()) {

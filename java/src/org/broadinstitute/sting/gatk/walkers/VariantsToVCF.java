@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -15,6 +14,7 @@ import java.util.*;
  * Converts variants from other file formats to VCF format.
  */
 @Requires(value={},referenceMetaData=@RMD(name=VariantsToVCF.INPUT_ROD_NAME,type= ReferenceOrderedDatum.class))
+@Reference(window=@Window(start=0,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     public static final String INPUT_ROD_NAME = "variant";
@@ -27,7 +27,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     // Don't allow mixed types for now
     private EnumSet<VariantContext.Type> ALLOWED_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION, VariantContext.Type.INDEL);
 
-    private String[] ALLOWED_FORMAT_FIELDS = {"GT"};
+    private String[] ALLOWED_FORMAT_FIELDS = {VCFGenotypeRecord.GENOTYPE_KEY, VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, VCFGenotypeRecord.DEPTH_KEY, VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY };
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
@@ -35,8 +35,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
         rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME));
 
-        Allele refAllele = new Allele(Character.toString(ref.getBase()), true);
-        Collection<VariantContext> contexts = tracker.getVariantContexts(INPUT_ROD_NAME, ALLOWED_VARIANT_CONTEXT_TYPES, context.getLocation(), refAllele, true, false);
+        Collection<VariantContext> contexts = tracker.getVariantContexts(ref, INPUT_ROD_NAME, ALLOWED_VARIANT_CONTEXT_TYPES, context.getLocation(), true, false);
 
         for ( VariantContext vc : contexts ) {
             VCFRecord vcf = VariantContextAdaptors.toVCF(vc, ref.getBase(), Arrays.asList(ALLOWED_FORMAT_FIELDS), false, false);

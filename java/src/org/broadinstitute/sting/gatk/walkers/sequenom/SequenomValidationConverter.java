@@ -33,9 +33,6 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     //          "used for smart Hardy-Weinberg annotation",required = false)
     //private File popFile = null;
 
-    // max allowable indel size (based on ref window)
-    private static final int MAX_INDEL_SIZE = 40;
-
     // sample names
     private TreeSet<String> sampleNames = null;
 
@@ -74,42 +71,13 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
 
         Object rod = rods.get(0);
 
-        // determine the reference allele
-        Allele refAllele = determineRefAllele(rod, ref);
-
-        VariantContext vc = VariantContextAdaptors.toVariantContext("sequenom", rod, refAllele);
+        VariantContext vc = VariantContextAdaptors.toVariantContext("sequenom", rod, ref);
 
         if ( sampleNames == null )
             sampleNames = new TreeSet<String>(vc.getSampleNames());        
 
         return addVariantInformationToCall(ref, vc, rod);
     }
-
-    private Allele determineRefAllele(Object rod, ReferenceContext ref) {
-        Allele refAllele;
-
-        // ugly hack to get around the fact that the Plink rod needs
-        // a very specific determination of the reference allele
-        if ( rod instanceof PlinkRod ) {
-            PlinkRod plink = (PlinkRod)rod;
-            if ( !plink.isIndel() ) {
-                refAllele = new Allele(Character.toString(ref.getBase()), true);
-            } else if ( plink.isInsertion() ) {
-                refAllele = new Allele(PlinkRod.SEQUENOM_NO_BASE, true);
-            } else {
-                if ( plink.getLength() > MAX_INDEL_SIZE )
-                    throw new UnsupportedOperationException("PlinkToVCF currently can only handle indels up to length " + MAX_INDEL_SIZE);
-                char[] deletion = new char[plink.getLength()];
-                System.arraycopy(ref.getBases(), 1, deletion, 0, plink.getLength());
-                refAllele = new Allele(new String(deletion), true);
-            }
-        } else {
-            refAllele = new Allele(Character.toString(ref.getBase()), true);
-        }
-
-        return refAllele;
-    }
-
 
     public Integer reduce(VCFRecord call, Integer numVariants) {
         if ( call != null ) {

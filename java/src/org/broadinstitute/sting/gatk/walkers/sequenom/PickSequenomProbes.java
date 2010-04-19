@@ -61,7 +61,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 
         String refBase = String.valueOf(ref.getBase());
 
-        Collection<VariantContext> VCs = tracker.getAllVariantContexts();
+        Collection<VariantContext> VCs = tracker.getAllVariantContexts(ref);
         if ( VCs.size() == 0 )
             return "";
 
@@ -111,7 +111,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
         else if ( vc.isInsertion() )
             assay_sequence = leading_bases + refBase + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
         else if ( vc.isDeletion() )
-            assay_sequence = leading_bases + refBase + "[" + vc.getReference().toString() + "/-]" + trailing_bases.substring(vc.getReference().length());
+            assay_sequence = leading_bases + refBase + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length());
         else
             return "";
 

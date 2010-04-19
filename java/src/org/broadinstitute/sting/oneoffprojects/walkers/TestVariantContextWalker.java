@@ -45,7 +45,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
             EnumSet<VariantContext.Type> allowedTypes = onlyOfThisType == null ? null : EnumSet.of(onlyOfThisType);
 
             int n = 0;
-            for (VariantContext vc : tracker.getAllVariantContexts(allowedTypes, context.getLocation(), onlyContextsStartinAtCurrentPosition, takeFirstOnly) ) {
+            for (VariantContext vc : tracker.getAllVariantContexts(ref, allowedTypes, context.getLocation(), onlyContextsStartinAtCurrentPosition, takeFirstOnly) ) {
                 if ( writer != null && n == 0 ) {
                     if ( ! wroteHeader ) {
                         writer.writeHeader(VariantContextAdaptors.createVCFHeader(null, vc));

@@ -66,4 +66,19 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                 md5);
         executeTest("testVariantsToVCFUsingHapMapInput", spec).getFirst();
     }
+
+    @Test
+    public void testGenotypesToVCFUsingVCFInput() {
+        List<String> md5 = new ArrayList<String>();
+        md5.add("92d661a3789e55078197666eb9ee7020");
+
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        " -B variant,VCF," + validationDataLocation + "complexExample.vcf" +
+                        " -T VariantsToVCF" +
+                        " -o %s",
+                1, // just one output file
+                md5);
+        executeTest("testVariantsToVCFUsingVCFInput", spec).getFirst();
+    }
 }

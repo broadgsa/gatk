@@ -116,7 +116,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
 
         double annotationValues[] = new double[numAnnotations];
 
-        for( final VariantContext vc : tracker.getAllVariantContexts(null, context.getLocation(), false, false) ) {
+        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
 
             if( vc != null && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {

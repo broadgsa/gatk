@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -113,7 +113,7 @@ public class RefMetaDataTracker {
      * Get all of the RMDs at the current site. The collection is "flattened": for any track that has multiple records
      * at the current site, they all will be added to the list as separate elements.
      *
-     * @return
+     * @return collection of all rods
      */
     public Collection<GATKFeature> getAllRods() {
         List<GATKFeature> l = new ArrayList<GATKFeature>();
@@ -129,7 +129,7 @@ public class RefMetaDataTracker {
      * Get all of the RMD tracks at the current site. Each track is returned as a single compound
      * object (RODRecordList) that may contain multiple RMD records associated with the current site.
      *
-     * @return
+     * @return collection of all tracks
      */
     public Collection<RODRecordList> getBoundRodTracks() {
         LinkedList<RODRecordList> bound = new LinkedList<RODRecordList>();
@@ -176,9 +176,13 @@ public class RefMetaDataTracker {
     /**
      * Converts all possible ROD tracks to VariantContexts objects, of all types, allowing any start and any number
      * of entries per ROD.
+     * The name of each VariantContext corresponds to the ROD name.
+     *
+     * @param ref                reference context
+     * @return variant context
      */
-    public Collection<VariantContext> getAllVariantContexts() {
-        return getAllVariantContexts(null, null, false, false);
+    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref) {
+        return getAllVariantContexts(ref, null, null, false, false);
     }
 
     /**
@@ -192,17 +196,18 @@ public class RefMetaDataTracker {
      *
      * The name of each VariantContext corresponds to the ROD name.
      *
-     * @param curLocation        location
+     * @param ref                reference context
      * @param allowedTypes       allowed types
+     * @param curLocation        location
      * @param requireStartHere   do we require the rod to start at this location?
      * @param takeFirstOnly      do we take the first rod only?
      * @return variant context
      */
-    public Collection<VariantContext> getAllVariantContexts(EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         List<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( RODRecordList rodList : getBoundRodTracks() ) {
-            addVariantContexts(contexts, rodList, allowedTypes, curLocation, null, requireStartHere, takeFirstOnly);
+            addVariantContexts(contexts, rodList, ref, allowedTypes, curLocation, requireStartHere, takeFirstOnly);
         }
 
         return contexts;
@@ -221,25 +226,25 @@ public class RefMetaDataTracker {
      * @return variant context
      */
     public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        return getVariantContexts(Arrays.asList(name), allowedTypes, curLocation, null, requireStartHere, takeFirstOnly);
+        return getVariantContexts(null, Arrays.asList(name), allowedTypes, curLocation, requireStartHere, takeFirstOnly);
     }
 
-    public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, Allele ref, boolean requireStartHere, boolean takeFirstOnly ) {
-        return getVariantContexts(Arrays.asList(name), allowedTypes, curLocation, ref, requireStartHere, takeFirstOnly);
+    public Collection<VariantContext> getVariantContexts(ReferenceContext ref, String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+        return getVariantContexts(ref, Arrays.asList(name), allowedTypes, curLocation, requireStartHere, takeFirstOnly);
     }
 
     public Collection<VariantContext> getVariantContexts(Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        return getVariantContexts(names, allowedTypes, curLocation, null, requireStartHere, takeFirstOnly);
+        return getVariantContexts(null, names, allowedTypes, curLocation, requireStartHere, takeFirstOnly);
     }
 
-    public Collection<VariantContext> getVariantContexts(Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, Allele ref, boolean requireStartHere, boolean takeFirstOnly ) {
+    public Collection<VariantContext> getVariantContexts(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         Collection<VariantContext> contexts = new ArrayList<VariantContext>();
 
         for ( String name : names ) {
             RODRecordList rodList = getTrackDataByName(name,true); // require that the name is an exact match
 
             if ( rodList != null )
-                addVariantContexts(contexts, rodList, allowedTypes, curLocation, ref, requireStartHere, takeFirstOnly );
+                addVariantContexts(contexts, rodList, ref, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
         }
 
         return contexts;
@@ -267,15 +272,11 @@ public class RefMetaDataTracker {
     }
 
 
-    private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, Allele ref, boolean requireStartHere, boolean takeFirstOnly ) {
+    private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, ReferenceContext ref, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         for ( GATKFeature rec : rodList ) {
             if ( VariantContextAdaptors.canBeConvertedToVariantContext(rec.getUnderlyingObject()) ) {
                 // ok, we might actually be able to turn this record in a variant context
-                VariantContext vc;
-                if ( ref == null )
-                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec.getUnderlyingObject());
-                else
-                    vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec.getUnderlyingObject(), ref);
+                VariantContext vc = VariantContextAdaptors.toVariantContext(rodList.getName(), rec.getUnderlyingObject(), ref);
 
                 if ( vc == null ) // sometimes the track has odd stuff in it that can't be converted
                     continue;
@@ -304,8 +305,9 @@ public class RefMetaDataTracker {
      * defaultValue.getLocation() may be not equal to what RODRecordList's location would be expected to be otherwise:
      * for instance, on locus traversal, location is usually expected to be a single base we are currently looking at,
      * regardless of the presence of "extended" RODs overlapping with that location).
-     * @param name
-     * @return
+     * @param name                track name
+     * @param requireExactMatch   do we require an exact match of the rod name?
+     * @return track data for the given rod
      */
     private RODRecordList getTrackDataByName(final String name, boolean requireExactMatch) {
         //logger.debug(String.format("Lookup %s%n", name));
@@ -335,7 +337,7 @@ public class RefMetaDataTracker {
     /**
      * Returns the canonical name of the rod name (lowercases it)
      * @param name the name of the rod
-     * @return
+     * @return canonical name of the rod
      */
     private final String canonicalName(final String name) {
         return name.toLowerCase();

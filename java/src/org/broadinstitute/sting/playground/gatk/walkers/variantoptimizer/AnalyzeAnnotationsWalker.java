@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.HashMap;
+import java.util.Collection;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -100,11 +101,12 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
         if( tracker != null ) {
+            Collection<VariantContext> VCs = tracker.getAllVariantContexts(ref);
 
             // First find out if this variant is in the truth sets
             boolean isInTruthSet = false;
             boolean isTrueVariant = false;
-            for ( VariantContext vc : tracker.getAllVariantContexts() ) {
+            for ( VariantContext vc : VCs ) {
                 if( vc.getName().toUpperCase().startsWith("TRUTH") ) {
                     isInTruthSet = true;
                     if (vc.isVariant())
@@ -113,7 +115,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
             }
             
             // Add each annotation in this VCF Record to the dataManager
-            for ( VariantContext vc : tracker.getAllVariantContexts() ) {
+            for ( VariantContext vc : VCs ) {
                 if( !vc.getName().toUpperCase().startsWith("TRUTH") ) {
                     if( vc.isVariant() ) {
                         dataManager.addAnnotations( vc, ref.getBase(), SAMPLE_NAME, isInTruthSet, isTrueVariant );

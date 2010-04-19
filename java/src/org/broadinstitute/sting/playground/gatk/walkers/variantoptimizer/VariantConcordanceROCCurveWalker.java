@@ -126,7 +126,7 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
         boolean isInTruthSet = false;
         boolean isTrueVariant = false;
 
-        for( final VariantContext vc : tracker.getAllVariantContexts(null, context.getLocation(), false, false) ) {
+        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
             if( vc != null && vc.getName().toUpperCase().startsWith("TRUTH") ) {
                 if( vc.isSNP() && !vc.isFiltered() ) {
                     if( multiSampleCalls ) {

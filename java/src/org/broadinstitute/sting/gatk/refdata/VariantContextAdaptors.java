@@ -4,9 +4,11 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFSingleCall;
 import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
@@ -56,7 +58,7 @@ public class VariantContextAdaptors {
     /** generic superclass */
     private static abstract class VCAdaptor {
         abstract VariantContext convert(String name, Object input);
-        abstract VariantContext convert(String name, Object input, Allele refAllele);
+        abstract VariantContext convert(String name, Object input, ReferenceContext ref);
     }
 
     public static VariantContext toVariantContext(String name, Object variantContainingObject) {
@@ -67,11 +69,11 @@ public class VariantContextAdaptors {
         }
     }
 
-    public static VariantContext toVariantContext(String name, Object variantContainingObject, Allele refAllele) {
+    public static VariantContext toVariantContext(String name, Object variantContainingObject, ReferenceContext ref) {
         if ( ! adaptors.containsKey(variantContainingObject.getClass()) )
             return null;
         else {
-            return adaptors.get(variantContainingObject.getClass()).convert(name, variantContainingObject, refAllele);
+            return adaptors.get(variantContainingObject.getClass()).convert(name, variantContainingObject, ref);
         }
     }
 
@@ -91,14 +93,15 @@ public class VariantContextAdaptors {
 
     private static class RodDBSnpAdaptor extends VCAdaptor {
         VariantContext convert(String name, Object input) {
-            if ( ! Allele.acceptableAlleleBases(((rodDbSNP)input).getReference()) )
-                return null;
-            Allele refAllele = new Allele(((rodDbSNP)input).getReference(), true);
-            return convert(name, input, refAllele);
+            return convert(name, input, null);
         }
 
-        VariantContext convert(String name, Object input, Allele refAllele) {
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
             rodDbSNP dbsnp = (rodDbSNP)input;
+            if ( ! Allele.acceptableAlleleBases(dbsnp.getReference()) )
+                return null;
+            Allele refAllele = new Allele(dbsnp.getReference(), true);
+
             if ( dbsnp.isSNP() || dbsnp.isIndel() || dbsnp.varType.contains("mixed") ) {
                 // add the reference allele
                 List<Allele> alleles = new ArrayList<Allele>();
@@ -132,28 +135,25 @@ public class VariantContextAdaptors {
 
     private static class RodVCFAdaptor extends VCAdaptor {
         VariantContext convert(String name, Object input) {
-            Allele refAllele = new Allele(((RodVCF)input).getReference(), true);
-            return vcfToVariantContext(name, ((RodVCF)input).getRecord(), refAllele);
+            return vcfToVariantContext(name, ((RodVCF)input).getRecord(), null);
         }
 
-        VariantContext convert(String name, Object input, Allele refAllele) {
-            return vcfToVariantContext(name, ((RodVCF)input).getRecord(), refAllele);
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
+            return vcfToVariantContext(name, ((RodVCF)input).getRecord(), ref);
         }
     }
 
     private static class VCFRecordAdaptor extends VCAdaptor {
         VariantContext convert(String name, Object input) {
-            Allele refAllele = new Allele(((VCFRecord)input).getReference(), true);
-            return vcfToVariantContext(name, (VCFRecord)input, refAllele);
+            return vcfToVariantContext(name, (VCFRecord)input, null);
         }
 
-        VariantContext convert(String name, Object input, Allele refAllele) {
-            return vcfToVariantContext(name, (VCFRecord)input, refAllele);
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
+            return vcfToVariantContext(name, (VCFRecord)input, ref);
         }
     }
 
-
-    private static VariantContext vcfToVariantContext(String name, VCFRecord vcf, Allele refAllele) {
+    private static VariantContext vcfToVariantContext(String name, VCFRecord vcf, ReferenceContext ref) {
         if ( vcf.isReference() || vcf.isSNP() || vcf.isIndel() ) {
             // add the reference allele
             if ( ! Allele.acceptableAlleleBases(vcf.getReference()) ) {
@@ -167,7 +167,9 @@ public class VariantContextAdaptors {
 
             // add all of the alt alleles
             List<Allele> alleles = new ArrayList<Allele>();
+            Allele refAllele = determineRefAllele(vcf, ref);
             alleles.add(refAllele);
+
             for ( String alt : vcf.getAlternateAlleleList() ) {
                 if ( ! Allele.acceptableAlleleBases(alt) ) {
                     //System.out.printf("Excluding vcf record %s%n", vcf);
@@ -184,10 +186,14 @@ public class VariantContextAdaptors {
                 List<Allele> genotypeAlleles = new ArrayList<Allele>();
                 for ( VCFGenotypeEncoding s : vcfG.getAlleles() ) {
                     Allele a = Allele.getMatchingAllele(alleles, s.getBases());
-                    if ( a == null )
-                        throw new StingException("Invalid VCF genotype allele " + s + " in VCF " + vcf);
-
-                    genotypeAlleles.add(a);
+                    if ( a == null ) {
+                        if ( vcf.getType() == Variation.VARIANT_TYPE.INSERTION || vcf.getType() == Variation.VARIANT_TYPE.DELETION )
+                            genotypeAlleles.add(refAllele);
+                        else
+                            throw new StingException("Invalid VCF genotype allele " + s + " in VCF " + vcf);
+                    } else {
+                        genotypeAlleles.add(a);
+                    }
                 }
 
                 Map<String, String> fields = new HashMap<String, String>();
@@ -207,13 +213,45 @@ public class VariantContextAdaptors {
             }
 
             double qual = vcf.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcf.getNegLog10PError();
-            VariantContext vc = new VariantContext(name, vcf.getLocation(), alleles, genotypes, qual, filters, attributes);
+
+            GenomeLoc loc = vcf.getLocation();
+            if ( vcf.isDeletion() )
+                loc = GenomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), loc.getStart()+refAllele.length()-1);
+
+            VariantContext vc = new VariantContext(name, loc, alleles, genotypes, qual, filters, attributes);
             vc.validate();
             return vc;
         } else
             return null; // can't handle anything else
     }
 
+    private static Allele determineRefAllele(VCFRecord vcf, ReferenceContext ref) {
+        Allele refAllele;
+        if ( ref == null ) {
+            refAllele = new Allele(vcf.getReference(), true);
+        } else if ( !vcf.isIndel() ) {
+            refAllele = new Allele(Character.toString(ref.getBase()), true);
+        } else if ( vcf.isInsertion() ) {
+            refAllele = new Allele(Allele.NULL_ALLELE_STRING, true);
+        } else if ( vcf.isDeletion() ) {
+            int start = (int)(ref.getLocus().getStart() - ref.getWindow().getStart() + 1);
+            int delLength = 0;
+            for ( VCFGenotypeEncoding enc : vcf.getAlternateAlleles() ) {
+                if ( enc.getLength() > delLength )
+                    delLength = enc.getLength();
+            }
+            if ( delLength > ref.getWindow().getStop() - ref.getLocus().getStop() )
+                throw new IllegalArgumentException("Length of deletion is larger than reference context provided at " + ref.getLocus());
+
+            char[] deletion = new char[delLength];
+            System.arraycopy(ref.getBases(), start, deletion, 0, delLength);
+            refAllele = new Allele(String.valueOf(deletion), true);
+        } else {
+            throw new UnsupportedOperationException("Conversion of VCF type " + vcf.getType() + " is not supported.");
+        }
+
+        return refAllele;
+    }
 
     public static VCFHeader createVCFHeader(Set<VCFHeaderLine> hInfo, VariantContext vc) {
         HashSet<String> names = new LinkedHashSet<String>();
@@ -364,11 +402,15 @@ public class VariantContextAdaptors {
     private static List<String> calcVCFGenotypeKeys(VariantContext vc) {
         Set<String> keys = new HashSet<String>();
 
+        boolean sawGoodQual = false;
         for ( Genotype g : vc.getGenotypes().values() ) {
             keys.addAll(g.getAttributes().keySet());
+            if ( g.hasNegLog10PError() )
+                sawGoodQual = true;
         }
 
-        keys.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
+        if ( sawGoodQual )
+            keys.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
         return Utils.sorted(new ArrayList<String>(keys));
     }
 
@@ -380,13 +422,17 @@ public class VariantContextAdaptors {
 
     private static class PlinkRodAdaptor extends VCAdaptor {
         VariantContext convert(String name, Object input) {
-            throw new UnsupportedOperationException("Conversion from Plink to VC requires a reference allele");
+            return convert(name, input, null);
         }
 
-        VariantContext convert(String name, Object input, Allele refAllele) {
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
+            if ( ref == null )
+                throw new UnsupportedOperationException("Conversion from Plink to VariantContext requires a reference context");
+
             PlinkRod plink = (PlinkRod)input;
 
             HashSet<Allele> VCAlleles = new HashSet<Allele>();
+            Allele refAllele = determineRefAllele(plink, ref);
             VCAlleles.add(refAllele);
 
             // mapping from Plink Allele to VC Allele (since the PlinkRod does not annotate any of the Alleles as reference)
@@ -440,6 +486,23 @@ public class VariantContextAdaptors {
                 throw new IllegalArgumentException(e.getMessage() + "; please make sure that e.g. a sample isn't present more than one time in your ped file");
             }
         }
+
+        private Allele determineRefAllele(PlinkRod plink, ReferenceContext ref) {
+            Allele refAllele;
+            if ( !plink.isIndel() ) {
+                refAllele = new Allele(Character.toString(ref.getBase()), true);
+            } else if ( plink.isInsertion() ) {
+                refAllele = new Allele(Allele.NULL_ALLELE_STRING, true);
+            } else {
+                long maxLength = ref.getWindow().getStop() - ref.getLocus().getStop();                
+                if ( plink.getLength() > maxLength )
+                    throw new UnsupportedOperationException("Plink conversion currently can only handle indels up to length " + maxLength);
+                char[] deletion = new char[plink.getLength()];
+                System.arraycopy(ref.getBases(), 1, deletion, 0, plink.getLength());
+                refAllele = new Allele(String.valueOf(deletion), true);
+            }
+            return refAllele;
+        }
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -455,21 +518,22 @@ public class VariantContextAdaptors {
          * @return a VariantContext object
          */
         VariantContext convert(String name, Object input) {
-            if ( ! Allele.acceptableAlleleBases(((RodGLF)input).getReference()) )
-                return null;
-            Allele refAllele = new Allele(((RodGLF)input).getReference(), true);
-            return convert(name, input, refAllele);
+            return convert(name, input, null);
         }
 
         /**
          * convert to a Variant Context, given:
          * @param name the name of the ROD
          * @param input the Rod object, in this case a RodGLF
-         * @param refAllele the reference base as an Allele object
+         * @param ref the reference context
          * @return a VariantContext object
          */
-        VariantContext convert(String name, Object input, Allele refAllele) {
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
             RodGLF glf = (RodGLF)input;
+
+            if ( ! Allele.acceptableAlleleBases(glf.getReference()) )
+                return null;
+            Allele refAllele = new Allele(glf.getReference(), true);
 
             // make sure we can convert it
             if ( glf.isSNP() || glf.isIndel()) {
@@ -528,21 +592,21 @@ public class VariantContextAdaptors {
          * @return a VariantContext object
          */
         VariantContext convert(String name, Object input) {
-            if ( ! Allele.acceptableAlleleBases(((RodGeliText)input).getReference()) )
-                return null;
-            Allele refAllele = new Allele(((RodGeliText)input).getReference(), true);
-            return convert(name, input, refAllele);
+            return convert(name, input, null);
         }
 
         /**
          * convert to a Variant Context, given:
-         * @param name the name of the ROD
+         * @param name  the name of the ROD
          * @param input the Rod object, in this case a RodGeliText
-         * @param refAllele the reference base as an Allele object
+         * @param ref   the reference context
          * @return a VariantContext object
          */
-        VariantContext convert(String name, Object input, Allele refAllele) {
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
             RodGeliText geli = (RodGeliText)input;
+            if ( ! Allele.acceptableAlleleBases(geli.getReference()) )
+                return null;
+            Allele refAllele = new Allele(geli.getReference(), true);
 
             // make sure we can convert it
             if ( geli.isSNP() || geli.isIndel()) {
@@ -593,21 +657,25 @@ public class VariantContextAdaptors {
          * @return a VariantContext object
          */
         VariantContext convert(String name, Object input) {
-            throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires knowledge of the reference allele");
+            return convert(name, input, null);
         }
 
         /**
          * convert to a Variant Context, given:
-         * @param name the name of the ROD
+         * @param name  the name of the ROD
          * @param input the Rod object, in this case a RodGeliText
-         * @param refAllele the reference base as an Allele object
+         * @param ref   the reference context
          * @return a VariantContext object
          */
-        VariantContext convert(String name, Object input, Allele refAllele) {
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
+            if ( ref == null )
+                throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires a reference context");
+
             HapMapROD hapmap = (HapMapROD)input;
 
             // add the reference allele
             HashSet<Allele> alleles = new HashSet<Allele>();
+            Allele refAllele = new Allele(Character.toString(ref.getBase()), true);
             alleles.add(refAllele);
 
             // make a mapping from sample to genotype
