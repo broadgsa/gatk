@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.samtools.util.RuntimeIOException;
 import org.broadinstitute.sting.WalkerTest;
 import org.junit.Test;
 
@@ -27,7 +26,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                 new ArrayList<String>(0));
         try {
             executeTest("testRealignerTargetCreatorWholeGenome", spec1);
-        } catch (RuntimeIOException e) {
+        } catch (RuntimeException e) {
             // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it         
         }
         WalkerTestSpec spec2 = new WalkerTestSpec(
@@ -47,7 +46,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                 new ArrayList<String>(0));
         try {
             executeTest("testRealignerTargetCreatorWholeExome", spec2);
-        } catch (RuntimeIOException e) {
+        } catch (RuntimeException e) {
             // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it
         }
     }
