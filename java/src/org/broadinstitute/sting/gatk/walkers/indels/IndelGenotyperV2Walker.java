@@ -1069,7 +1069,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
         public String makeStatsString(String prefix) {
              StringBuilder message = new StringBuilder();
-             message.append(prefix+"OBS_COUNTS[C/A/R]:"+getConsensusVariantCount()+"/"+getAllVariantCount()+"/"+getCoverage());
+             message.append(prefix+"OBS_COUNTS[C/A/T]:"+getConsensusVariantCount()+"/"+getAllVariantCount()+"/"+getCoverage());
              message.append('\t');
              message.append(prefix+"AV_MM[C/R]:"+String.format("%.2f/%.2f",getAvConsensusMismatches(),
                                  getAvRefMismatches()));
