@@ -318,19 +318,19 @@ public class VCFReaderUnitTest extends BaseTest {
         rec = reader.next();
         Assert.assertTrue(!rec.isFiltered());
         Assert.assertTrue(rec.getFilterString().equals("."));
-        // TODO: Aaron fix me Assert.assertEquals(Variation.VARIANT_TYPE.SNP, rec.getType());
+        Assert.assertEquals(VCFGenotypeEncoding.TYPE.SINGLE_BASE, rec.getType());
         
         // record #9: deletion
         if (!reader.hasNext()) Assert.fail("The reader should have a record");
         rec = reader.next();
-        // TODO: Aaron fix me  Assert.assertEquals(Variation.VARIANT_TYPE.DELETION, rec.getType());
+        Assert.assertEquals(VCFGenotypeEncoding.TYPE.DELETION, rec.getType());
         Assert.assertEquals(1, rec.getAlternateAlleleList().size());
         Assert.assertTrue(rec.getAlternateAlleleList().get(0).equals(""));
 
         // record #10: insertion
         if (!reader.hasNext()) Assert.fail("The reader should have a record");
         rec = reader.next();
-        // TODO: Aaron fix me Assert.assertEquals(Variation.VARIANT_TYPE.INSERTION, rec.getType());     
+        Assert.assertEquals(VCFGenotypeEncoding.TYPE.INSERTION, rec.getType());
         Assert.assertEquals(rec.getAlternateAlleleList().size(), 1);
         Assert.assertTrue(rec.getAlternateAlleleList().get(0).equals("CAT"));
 
