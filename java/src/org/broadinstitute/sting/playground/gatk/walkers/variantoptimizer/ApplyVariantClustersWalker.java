@@ -27,11 +27,12 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
@@ -85,6 +86,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     private VariantGaussianMixtureModel theModel = null;
     private VCFWriter vcfWriter;
     private Set<String> ignoreInputFilterSet = null;
+    private final ArrayList<String> ALLOWED_FORMAT_FIELDS = new ArrayList<String>();
 
 
     //---------------------------------------------------------------------------------------------------------------
@@ -110,6 +112,11 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
             default:
                 throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
+
+        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_KEY); // copied from VariantsToVCF
+        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.DEPTH_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY);
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -145,29 +152,17 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
             return mapList;
         }
 
-
-        for( final GATKFeature feature : tracker.getAllRods() ) {
-            Object rod = feature.getUnderlyingObject();
-            if( rod != null && rod instanceof RodVCF ) {
-                final RodVCF rodVCF = ((RodVCF) rod);
-                //BUGBUG: figure out how to make this use VariantContext to be consistent with other VariantOptimizer walkers
-                //          need to convert vc into VCFRecord to write it out?
-                if( rodVCF.isSNP() &&
-                        (!rodVCF.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(Arrays.asList(rodVCF.getFilteringCodes())))) ) {
-
+        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
+            final VCFRecord vcf = VariantContextAdaptors.toVCF(vc, ref.getBase(), ALLOWED_FORMAT_FIELDS, false, false);
+            if( vc != null && vc.isSNP() ) {
+                if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     final VariantDatum variantDatum = new VariantDatum();
-                    variantDatum.isTransition = BaseUtils.isTransition((byte)rodVCF.getAlternativeBaseForSNP(), (byte)rodVCF.getReferenceForSNP()); //vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
-                    variantDatum.isKnown = !rodVCF.isNovel(); //!vc.getAttribute("ID").equals(".");
-                    int numHet = 0;
-                    int numHom = 0;
-                    for( final VCFGenotypeRecord rec : rodVCF.getVCFGenotypeRecords() ) {
-                        if( rec.isHet() ) { numHet++; }
-                        else if( rec.isHom() ) { numHom++; }
-                    }
-                    variantDatum.isHet = numHet > numHom; //vc.getHetCount() > vc.getHomVarCount(); // BUGBUG: what to do here for multi sample calls?
+                    variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+                    variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
+                    variantDatum.isHet = vc.getHetCount() > vc.getHomVarCount(); // BUGBUG: what to do here for multi sample calls?
 
-                    final double pTrue = theModel.evaluateVariant( rodVCF.getInfoValues(), rodVCF.getQual(), variantDatum.isHet );
-                    final double recalQual = QualityUtils.phredScaleErrorRate( Math.max( 1.0 - pTrue, 0.000000001) );                             
+                    final double pTrue = theModel.evaluateVariant( vc.getAttributes(), vc.getPhredScaledQual(), variantDatum.isHet );
+                    final double recalQual = QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) );                             
 
                     if( variantDatum.isKnown && KNOWN_VAR_QUAL_PRIOR > 0.1 ) {
                         variantDatum.qual = 0.5 * recalQual + 0.5 * KNOWN_VAR_QUAL_PRIOR;
@@ -176,14 +171,17 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
                     }
                     mapList.add( variantDatum );
 
-                    rodVCF.mCurrentRecord.addInfoField("OQ", ((Double)rodVCF.getQual()).toString() );
-                    rodVCF.mCurrentRecord.setQual( variantDatum.qual );
-                    rodVCF.mCurrentRecord.setFilterString(VCFRecord.UNFILTERED);
-                    vcfWriter.addRecord( rodVCF.mCurrentRecord );
 
+                    vcf.addInfoField("OQ", ((Double)vc.getPhredScaledQual()).toString() );
+                    vcf.setQual( variantDatum.qual );
+                    vcf.setFilterString(VCFRecord.UNFILTERED);
+                    vcfWriter.addRecord( vcf );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
-                    vcfWriter.addRecord( rodVCF.mCurrentRecord );
+                    System.out.println(vc.getGenotype("NA12878").getAttributes());
+                    System.out.println(vcf.getGenotype("NA12878").getFields());
+                    System.out.println();
+                    vcfWriter.addRecord( vcf );
                 }
             }
 

@@ -541,19 +541,20 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    public final double evaluateVariant( final Map<String,String> annotationMap, final double qualityScore, final boolean isHet ) {
+    public final double evaluateVariant( final Map<String,Object> annotationMap, final double qualityScore, final boolean isHet ) {
         final double[] pVarInCluster = new double[numGaussians];
         final double[] annotations = new double[dataManager.numAnnotations];
 
         for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
             double value = 0.0;
-            if( dataManager.annotationKeys.get(jjj).equals("QUAL") ) {
+            final String annotationKey = dataManager.annotationKeys.get(jjj);
+            if( annotationKey.equals("QUAL") ) {
                 value = qualityScore;
             } else {
                 try {
-                    final String stringValue = annotationMap.get( dataManager.annotationKeys.get(jjj) );
+                    final Object stringValue = annotationMap.get( annotationKey );
                     if( stringValue != null ) {
-                        value = Double.parseDouble( stringValue );
+                        value = Double.parseDouble( stringValue.toString() );
                         if( Double.isInfinite(value) ) {
                             value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
                         }

@@ -5,7 +5,7 @@ import org.broadinstitute.sting.utils.Utils;
 import java.util.*;
 
 /**
- * This class emcompasses all the basic information about a genotype.  It is immutable.
+ * This class encompasses all the basic information about a genotype.  It is immutable.
  *
  * @author Mark DePristo
  */
