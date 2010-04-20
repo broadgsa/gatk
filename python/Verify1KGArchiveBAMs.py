@@ -232,6 +232,9 @@ if __name__ == "__main__":
     parser.add_option("-m", "--maxLocal", dest="maxLocalFiles",
                         type='int', default=None,
                         help="If provided, maximum number of files in the local archive to examine")
+    parser.add_option("-M", "--maxFiles", dest="maxFiles",
+                        type='int', default=None,
+                        help="If provided, maximum number of files in the local archive to examine")
     parser.add_option("-q", "--quiet", dest="quiet",
                         action='store_true', default=False,
                         help="If provided, prints out the individual status of all files")
@@ -262,6 +265,8 @@ if __name__ == "__main__":
             compared = validateFile( file, root, ftpParsed[2] )
             results[file] = compared
             #localIndex
+        if OPTIONS.maxFiles != None and len(results) > OPTIONS.maxFiles:
+            break
 
     printHeaderSep()
     print 'SUMMARY: Total files examined', len(results)
@@ -272,8 +277,8 @@ if __name__ == "__main__":
         print 'SUMMARY: %s' % ( status )
         print 'SUMMARY: Files                    %d (%.2f%% of total)' % ( n, n * 100.0 / len(results))
         
-        statusForFileListing = ['size-mismatch', 'local-file-missing']
-        maxFilesToList = 10
+        statusForFileListing = ['size-mismatch', 'local-file-missing', 'orphaned-file']
+        maxFilesToList = 20
         if status in statusForFileListing:
             print 'SUMMARY: listing the first', min(maxFilesToList, n), 'of', n
             for file in itertools.islice(filesOfStatus, maxFilesToList):
@@ -287,3 +292,6 @@ if __name__ == "__main__":
                 
             print 'SUMMARY: total size               %s' % ( fileSizes )
             print 'SUMMARY: last modification time   %s' % ( mostRecentMod )
+
+    totalSize = MergeBAMsUtils.greek(reduce(operator.__add__, map( ComparedFiles.size, results.itervalues() )))
+    print '#### TOTAL PROJECT SIZE:          %s' % ( totalSize )
