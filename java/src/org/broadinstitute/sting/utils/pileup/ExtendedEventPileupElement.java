@@ -57,7 +57,7 @@ public class ExtendedEventPileupElement extends PileupElement {
         if ( length <= 0 ) type = Type.NOEVENT;
         else {
             if ( eventBases != null ) {
-                this.eventBases = new String(eventBases);
+                this.eventBases = new String(eventBases).toUpperCase();
                 type = Type.INSERTION;
             } else {
                 type = Type.DELETION;
