@@ -178,9 +178,6 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
                     vcfWriter.addRecord( vcf );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
-                    System.out.println(vc.getGenotype("NA12878").getAttributes());
-                    System.out.println(vcf.getGenotype("NA12878").getFields());
-                    System.out.println();
                     vcfWriter.addRecord( vcf );
                 }
             }
