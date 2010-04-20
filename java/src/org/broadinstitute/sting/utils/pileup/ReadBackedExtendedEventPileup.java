@@ -389,7 +389,7 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
         if ( refBases == null ) {
             return  Integer.toString(length)+"D"; // if we do not have reference bases, we can only report something like "5D"
         } else {
-            return "-"+new String(refBases,1,length);
+            return "-"+new String(refBases,1,length).toUpperCase();
         }
     }
 
