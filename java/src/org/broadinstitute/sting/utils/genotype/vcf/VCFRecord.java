@@ -277,37 +277,21 @@ public class VCFRecord {
         return 0.0;
     }
     
-    public Variation.VARIANT_TYPE getType() {
-        if ( ! hasAlternateAllele() )
-            return Variation.VARIANT_TYPE.REFERENCE;
-
+    public VCFGenotypeEncoding.TYPE getType() {
         VCFGenotypeEncoding.TYPE type = mAlts.get(0).getType();
         for (int i = 1; i < mAlts.size(); i++) {
             if ( mAlts.get(i).getType() != type )
-                throw new IllegalStateException("The record contains multiple encoding types");
+                return VCFGenotypeEncoding.TYPE.MIXED;  // if we have more than one type, return mixed
         }
-
-        switch ( type ) {
-            case SINGLE_BASE:
-                return Variation.VARIANT_TYPE.SNP;
-            case UNCALLED:
-                // If there are no alt alleles, all of the genotypes are reference or no calls, so we're a reference site
-                return Variation.VARIANT_TYPE.REFERENCE;
-            case DELETION:
-                return Variation.VARIANT_TYPE.DELETION;
-            case INSERTION:
-                return Variation.VARIANT_TYPE.INSERTION;
-        }
-
-        throw new IllegalStateException("The record contains unknown genotype encodings");
+        return type;
     }
 
     public boolean isDeletion() {
-        return getType() == Variation.VARIANT_TYPE.DELETION;
+        return getType() == VCFGenotypeEncoding.TYPE.DELETION;
     }
 
     public boolean isInsertion() {
-        return getType() == Variation.VARIANT_TYPE.INSERTION;
+        return getType() == VCFGenotypeEncoding.TYPE.INSERTION;
     }
 
     public boolean isIndel() {
@@ -315,7 +299,7 @@ public class VCFRecord {
     }
 
     public boolean isSNP() {
-        return getType() == Variation.VARIANT_TYPE.SNP;
+        return getType() == VCFGenotypeEncoding.TYPE.SINGLE_BASE;
     }
 
     public boolean isNovel() {

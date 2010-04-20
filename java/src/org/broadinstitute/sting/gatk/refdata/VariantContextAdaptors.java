@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFSingleCall;
 import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
@@ -187,7 +186,7 @@ public class VariantContextAdaptors {
                 for ( VCFGenotypeEncoding s : vcfG.getAlleles() ) {
                     Allele a = Allele.getMatchingAllele(alleles, s.getBases());
                     if ( a == null ) {
-                        if ( vcf.getType() == Variation.VARIANT_TYPE.INSERTION || vcf.getType() == Variation.VARIANT_TYPE.DELETION )
+                        if ( vcf.isIndel() )
                             genotypeAlleles.add(refAllele);
                         else
                             throw new StingException("Invalid VCF genotype allele " + s + " in VCF " + vcf);

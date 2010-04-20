@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;

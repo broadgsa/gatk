@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
 import java.util.Arrays;

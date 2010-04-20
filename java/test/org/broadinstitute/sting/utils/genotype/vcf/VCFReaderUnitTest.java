@@ -15,7 +15,6 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.Assert;
 import org.junit.BeforeClass;

@@ -29,7 +29,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.IOException;
 import java.util.ArrayList;

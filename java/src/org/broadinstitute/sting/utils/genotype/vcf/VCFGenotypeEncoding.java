@@ -13,7 +13,8 @@ public class VCFGenotypeEncoding {
         SINGLE_BASE,
         INSERTION,
         DELETION,
-        UNCALLED
+        UNCALLED,
+        MIXED // this type is only valid in aggregate, not for a single VCFGenotypeEncoding
     }
 
     // our length (0 for SINGLE_BASE), our bases, and our type
