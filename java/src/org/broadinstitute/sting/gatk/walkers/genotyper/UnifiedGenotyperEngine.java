@@ -189,7 +189,7 @@ public class UnifiedGenotyperEngine {
             if ( stratifiedContexts == null )
                 return null;
 
-            call = gcm.get().callExtendedLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts);
+            call = gcm.get().callExtendedLocus(tracker, refContext.getBasesAtLocus(-1), rawContext.getLocation(), stratifiedContexts);
 
         } else {
 
