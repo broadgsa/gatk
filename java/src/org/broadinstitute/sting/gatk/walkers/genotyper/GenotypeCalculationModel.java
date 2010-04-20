@@ -102,7 +102,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @return call
      */
     public abstract VariantCallContext callExtendedLocus(RefMetaDataTracker tracker,
-                                                         char ref,
+                                                         char[] ref,
                                                          GenomeLoc loc,
                                                          Map<String, StratifiedAlignmentContext> stratifiedContexts);
 

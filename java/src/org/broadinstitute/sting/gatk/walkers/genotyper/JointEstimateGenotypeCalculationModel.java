@@ -40,7 +40,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     protected JointEstimateGenotypeCalculationModel() {}
 
-    public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
+    public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, char[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
         return null;
     }
     
