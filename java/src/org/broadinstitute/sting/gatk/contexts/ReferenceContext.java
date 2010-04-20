@@ -107,4 +107,26 @@ public class ReferenceContext {
     public char[] getBases() {
         return bases;
     }
+
+    /** Extracts from the current window and returns n bases starting at this context's locus (NOT
+     * from the window start!). The returned array of chars is newly allocated. If n is too large (runs beyond
+     * the right boundary of this context's window), an exception will be thrown. If n==(-1), all bases starting
+     * from this context's locus through the end of the window will be returned.
+     * @param n number of requested bases including and starting from the current locus
+     * @return
+     */
+    public char[] getBasesAtLocus(int n) {
+
+        int start = (int)(locus.getStart()-window.getStart());
+        int stop = ( n==(-1) ? bases.length : start+n );
+
+        char[] b = new char[stop-start];
+
+        if ( stop > bases.length )
+            throw new StingException("Bases beyond the current window requested: window="+window+", requested="+n);
+
+        int i = 0;
+        for ( int j = start ;  j < stop ; j++) b[i++]=bases[j];
+        return b;
+    }
 }
