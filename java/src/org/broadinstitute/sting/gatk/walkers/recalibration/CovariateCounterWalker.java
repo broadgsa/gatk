@@ -25,10 +25,10 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
@@ -36,7 +36,6 @@ import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -250,13 +249,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         // Pull out data for this locus for all the input RODs and check if this is a known variant site in any of them
         boolean isSNP = false;
-        for( GATKFeature rod : tracker.getAllRods() ) {
-            if( rod != null && rod.getUnderlyingObject() instanceof Variation && ((Variation)rod.getUnderlyingObject()).isSNP() ) {
-                isSNP = true; // At least one of the rods says this is a snp site
+        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
+            if( vc != null && vc.isSNP() ) {
+                isSNP = true;
                 break;
             }
         }
-
+        
         // Only use data from non-dbsnp sites
         // Assume every mismatch at a non-dbsnp site is indicative of poor quality
         if( !isSNP && ( ++numUnprocessed >= PROCESS_EVERY_NTH_LOCUS ) ) {
