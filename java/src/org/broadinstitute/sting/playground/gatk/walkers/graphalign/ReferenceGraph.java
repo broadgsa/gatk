@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.graphalign;
 
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleDirectedGraph;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.util.IntervalTree;
 import net.sf.samtools.util.StringUtil;
@@ -105,7 +105,7 @@ class ReferenceGraph extends SimpleDirectedGraph<Fragment, DefaultEdge> implemen
         return foundRef;
     }
 
-    public void addVariation(Variation variant, GenomeLoc loc, List<String> alleles) {
+    public void addVariation(VariantContext variant, GenomeLoc loc, List<String> alleles) {
         if ( DEBUG ) System.out.printf("addVariation(%s, %s)%n", loc, alleles);
         //validateGraph();
 

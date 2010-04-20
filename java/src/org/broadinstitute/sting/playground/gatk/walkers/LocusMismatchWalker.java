@@ -26,8 +26,8 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -43,6 +43,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
+import java.util.Collection;
 
 /**
  * Walker to calculate the number of mismatches, their base counts, and their quality sums at confidence ref sites" 
@@ -165,18 +166,17 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     private boolean locusIsUsable( RefMetaDataTracker tracker, ReferenceContext ref, ReadBackedPileup pileup, AlignmentContext context ) {
         return BaseUtils.isRegularBase(ref.getBase()) &&
                 pileup.size() >= minDepth && pileup.size() < maxDepth &&
-                notCoveredByVariations(tracker) &&
+                notCoveredByVariations(tracker, ref) &&
                 pileupContainsNoNs(pileup);
 //        pileupContainsNoNs(pileup) &&
 //        baseIsConfidentRef(tracker,ref,context);
     }
 
-    private boolean notCoveredByVariations( RefMetaDataTracker tracker ) {
-        for ( GATKFeature datum : tracker.getAllRods() ) {
-            if ( datum.getUnderlyingObject() instanceof VariationRod || datum.getUnderlyingObject() instanceof Genotype ) {
-                //System.out.printf("Ignoring site because of %s%n", datum);
+    private boolean notCoveredByVariations( RefMetaDataTracker tracker, ReferenceContext ref ) {
+        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref);
+        // TODO: check this logic. I think it's the best approximation of what was here before, but it's a different system
+        if (vcs != null && vcs.size() > 0 ) {
                 return false;
-            }
         }
 
         return true;

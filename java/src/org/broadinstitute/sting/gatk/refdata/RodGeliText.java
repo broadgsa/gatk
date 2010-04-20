@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class RodGeliText extends BasicReferenceOrderedDatum implements Variation {
+public class RodGeliText extends BasicReferenceOrderedDatum {
     public enum Genotype_Strings {
         AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
     }
@@ -193,11 +193,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      */
     public double getNonRefAlleleFrequency() {
         return 1.0;
-    }
-
-    /** @return the VARIANT_TYPE of the current variant */
-    public Variation.VARIANT_TYPE getType() {
-        return Variation.VARIANT_TYPE.SNP;
     }
 
     public boolean isSNP() {

@@ -18,7 +18,7 @@ import java.util.*;
  *         <p/>
  *         An implementation of the ROD for VCF.
  */
-public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Iterator<RodVCF> {
+public class RodVCF extends BasicReferenceOrderedDatum implements Iterator<RodVCF> {
     public VCFReader getReader() {
         return mReader;
     }
@@ -88,12 +88,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Ite
     public double getNonRefAlleleFrequency() {
         assertNotNull();
         return mCurrentRecord.getNonRefAlleleFrequency();
-    }
-
-    /** @return the VARIANT_TYPE of the current variant */
-    public Variation.VARIANT_TYPE getType() {
-        assertNotNull();
-        return mCurrentRecord.getType();
     }
 
     public String getID() {

@@ -46,7 +46,7 @@ import java.util.NoSuchElementException;
  *         <p/>
  *         the rod class for GLF data.
  */
-public class RodGLF implements VariationRod, Iterator<RodGLF> {
+public class RodGLF implements Iterator<RodGLF>, ReferenceOrderedDatum {
     public GLFReader mReader;
     private final String mName;
     private GenomeLoc mLoc;
@@ -61,7 +61,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return the name
      */
-    @Override
     public String getName() {
         return mName;
     }
@@ -74,13 +73,11 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return a header object that will be passed to parseLine command
      */
-    @Override
     public Object initialize(File source) throws FileNotFoundException {
         mReader = new GLFReader(source);
         return null;
     }
 
-    @Override
     public String toSimpleString() {
         return toString();
     }
@@ -109,7 +106,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
         );
     }
 
-    @Override
     public String repl() {
         return this.toString();
     }
@@ -119,7 +115,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return Regex string delimiter separating fields
      */
-    @Override
     public String delimiterRegex() {
         return "";
     }
@@ -129,7 +124,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return the geonome loc
      */
-    @Override
     public GenomeLoc getLocation() {
         return mLoc;
     }
@@ -139,13 +133,11 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return the reference base or bases, as a string
      */
-    @Override
     public String getReference() {
         return mRecord.getRefBase().toString();
     }
 
     /** are we bi-allelic? */
-    @Override
     public boolean isBiallelic() {
         return true;
     }
@@ -157,7 +149,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return
      */
-    @Override
     public boolean isReference() {
         return (!isSNP());
     }
@@ -167,7 +158,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return true if we're an insertion or deletion
      */
-    @Override
     public boolean isIndel() {
         return (isDeletion() || isInsertion());
     }
@@ -178,7 +168,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
         List<String> alleles = this.getAlternateAlleleList();
@@ -191,7 +180,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getReferenceForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
         return Utils.stringToChar(getReference());
@@ -202,7 +190,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return true or false
      */
-    @Override
     public boolean isSNP() {
         return ((mRecord.getRecordType() == GLFRecord.RECORD_TYPE.SINGLE) &&
                 (!getBestGenotype(1).toString().equals(refString(mRecord.getRefBase().toChar()))));
@@ -251,7 +238,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return true or false
      */
-    @Override
     public boolean isInsertion() {
         return ((mRecord.getRecordType() == GLFRecord.RECORD_TYPE.VARIABLE) &&
                 ((GLFVariableLengthCall) mRecord).getIndelLen1() > 0);
@@ -263,7 +249,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return true or false
      */
-    @Override
     public boolean isDeletion() {
         return ((mRecord.getRecordType() == GLFRecord.RECORD_TYPE.VARIABLE) &&
                 ((GLFVariableLengthCall) mRecord).getIndelLen1() < 0);
@@ -274,27 +259,15 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return
      */
-    @Override
     public double getNonRefAlleleFrequency() {
         return 0;
     }
-
-    /** @return the VARIANT_TYPE of the current variant */
-    @Override
-    public VARIANT_TYPE getType() {
-        if (this.isSNP()) return VARIANT_TYPE.SNP;
-        else if (this.isInsertion()) return VARIANT_TYPE.INSERTION;
-        else if (this.isDeletion()) return VARIANT_TYPE.DELETION;
-        else return VARIANT_TYPE.REFERENCE;
-    }
-
 
     /**
      * Returns phred-mapped confidence in variation event (e.g. MAQ's SNP confidence, or AlleleCaller's best vs. ref).
      *
      * @return
      */
-    @Override
     public double getNegLog10PError() {
         String ref = new String() + mRecord.getRefBase() + mRecord.getRefBase();
         int index = 0;
@@ -313,7 +286,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return an alternate allele list
      */
-    @Override
     public List<String> getAlternateAlleleList() {
         LikelihoodObject.GENOTYPE genotype = getBestGenotype(1);
         List<String> ret = new ArrayList<String>();
@@ -330,7 +302,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      *
      * @return an alternate allele list
      */
-    @Override
     public List<String> getAlleleList() {
         LikelihoodObject.GENOTYPE genotype = getBestGenotype(1);
         List<String> list = new ArrayList<String>();
@@ -345,7 +316,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
         return 1;
     }
 
-    @Override
     public int compareTo(ReferenceOrderedDatum that) {
         return this.mLoc.compareTo(that.getLocation());
     }
@@ -359,7 +329,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      * @return false, alwayss
      * @throws java.io.IOException
      */
-    @Override
     public boolean parseLine(Object header, String[] parts) throws IOException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }

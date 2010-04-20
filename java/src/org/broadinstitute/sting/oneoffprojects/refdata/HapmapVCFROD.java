@@ -2,12 +2,9 @@ package org.broadinstitute.sting.oneoffprojects.refdata;
 
 import org.broadinstitute.sting.gatk.refdata.BasicReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
@@ -22,7 +19,7 @@ import java.util.List;
  * User: chartl
  * Date: Jan 29, 2010
  */
-public class HapmapVCFROD extends BasicReferenceOrderedDatum implements VariationRod, Iterator<HapmapVCFROD> {
+public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Iterator<HapmapVCFROD> {
 // This is a (hopefully temporary) wrapper class for certain VCF files that we want to protect from
 // utilities that grab genotypes or sample names across all VCF files
 
@@ -67,12 +64,6 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Variatio
     public double getNegLog10PError() {
         return rod.getNegLog10PError();
     }
-
-    public List<Genotype> getGenotypes() {
-        return null;
-        //return rod.getGenotypes();
-    }
-
     public String getReference() {
         return rod.getReference();
     }
@@ -101,10 +92,6 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Variatio
         return rod.isIndel();
     }
 
-    public Variation.VARIANT_TYPE getType() {
-        return rod.getType();
-    }
-
     public boolean isSNP() {
         return rod.isSNP();
     }
@@ -127,11 +114,6 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Variatio
 
     public List<String> getAlleleList() {
         return rod.getAlleleList();
-    }
-
-    public Genotype getCalledGenotype() {
-        return null;
-        //return rod.getCalledGenotype();
     }
 
     public char getReferenceForSNP() {

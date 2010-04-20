@@ -4,9 +4,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.*;
 import java.util.regex.MatchResult;
@@ -20,7 +19,7 @@ import java.util.regex.Pattern;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements VariationRod {
+public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum {
     private String contig, source, feature, strand, frame;
     private long start, stop;
     private double score;
@@ -83,7 +82,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return the reference base or bases, as a string
      */
-    @Override
+    
     public String getReference() {
         throw new IllegalStateException("Chip data is unable to determine the reference");
     }
@@ -93,7 +92,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return the log based error estimate
      */
-    @Override
+    
     public double getNegLog10PError() {
         return 4; // 1/10000 error
     }
@@ -106,7 +105,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return an alternate allele list
      */
-    @Override
+    
     public List<String> getAlternateAlleleList() {
         throw new StingException("Hapmap is unable to provide an alternate allele list; the reference is unknown");
     }
@@ -118,7 +117,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return an alternate allele list
      */
-    @Override
+    
     public List<String> getAlleleList() {
         List<String> ret = new ArrayList<String>();
         for (char c : feature.toCharArray())
@@ -216,15 +215,9 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return VariantFrequency with the stored frequency
      */
-    @Override
+    
     public double getNonRefAlleleFrequency() {
         return this.getMAF();
-    }
-
-    /** @return the VARIANT_TYPE of the current variant */
-    @Override
-    public VARIANT_TYPE getType() {
-        return VARIANT_TYPE.SNP;
     }
 
     public boolean isSNP() { return false; }
@@ -238,7 +231,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return a char, representing the alternate base
      */
-    @Override
+    
     public char getAlternativeBaseForSNP() {
         return this.getAltSnpFWD();
     }
@@ -248,7 +241,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      *
      * @return a char, representing the alternate base
      */
-    @Override
+    
     public char getReferenceForSNP() {
         return this.getRefSnpFWD();
     }
@@ -267,25 +260,6 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
     public boolean isBiallelic() { return true; }
     public int length() { return 1; }
 
-    /**
-     * get the genotype
-     *
-     * @return a map in lexigraphical order of the genotypes
-     */
-    public Genotype getCalledGenotype() {
-        return new BasicGenotype(this.getLocation(),this.feature,Character.toString(this.getRefSnpFWD()),this.getConsensusConfidence());
-    }
-
-    /**
-     * get the likelihoods
-     *
-     * @return an array in lexigraphical order of the likelihoods
-     */
-    public List<Genotype> getGenotypes() {
-        List<Genotype> ret = new ArrayList<Genotype>();
-        ret.add(new BasicGenotype(this.getLocation(),this.feature,Character.toString(this.getRefSnpFWD()),this.getConsensusConfidence()));
-        return ret;
-    }
     
     /**
      * do we have the specified genotype?  not all backedByGenotypes

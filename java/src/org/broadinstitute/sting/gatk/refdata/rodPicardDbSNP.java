@@ -36,7 +36,7 @@ import java.util.*;
 /**
  * @author alecw@broadinstitute.org
  */
-public class rodPicardDbSNP implements VariationRod {
+public class rodPicardDbSNP implements ReferenceOrderedDatum {
 
     private final KnownVariant knownVariant;
     private final MyGenomeLoc loc;
@@ -69,50 +69,6 @@ public class rodPicardDbSNP implements VariationRod {
         return knownVariant.getMinorAlleleFrequency();
     }
 
-    /**
-     * A convenience method, for switching over the variation type
-     *
-     * @return the VARIANT_TYPE of the current variant
-     */
-    public VARIANT_TYPE getType() {
-        switch (knownVariant.getType()) {
-            case SNP:
-                return VARIANT_TYPE.SNP;
-            case insertion:
-                return VARIANT_TYPE.INSERTION;
-            case deletion:
-                return VARIANT_TYPE.DELETION;
-        }
-        return null;
-    }
-
-    /**
-     * are we a SNP? If not we're a Indel/deletion or the reference.  This method must be call before you use
-     * the convenience methods getAlternativeBaseForSNP or getReferenceForSNP, to ensure that you're working with a SNP
-     *
-     * @return true if we're a SNP
-     */
-    public boolean isSNP() {
-        return knownVariant.getType() == VariantType.SNP;
-    }
-
-    /**
-     * are we an insertion?
-     *
-     * @return true if we are, false otherwise
-     */
-    public boolean isInsertion() {
-        return knownVariant.getType() == VariantType.insertion;
-    }
-
-    /**
-     * are we an deletion?
-     *
-     * @return true if we are, false otherwise
-     */
-    public boolean isDeletion() {
-        return knownVariant.getType() == VariantType.deletion;
-    }
 
     /**
      * are we a variant that represents the reference allele?
@@ -121,15 +77,6 @@ public class rodPicardDbSNP implements VariationRod {
      */
     public boolean isReference() {
         return false;  // snp locations are never "reference", there's always a variant
-    }
-
-    /**
-     * are we an insertion or a deletion? yes, then return true.  No? false.
-     *
-     * @return true if we're an insertion or deletion
-     */
-    public boolean isIndel() {
-        return getType() == VARIANT_TYPE.INSERTION || getType() == VARIANT_TYPE.DELETION;
     }
 
     public String getName() {

@@ -28,6 +28,7 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -107,17 +108,16 @@ public class GraphReferenceBuilder extends RefWalker<Integer, Integer> {
 //        }
 
         boolean alreadyAddedAtThisLoc = false;
-        for ( GATKFeature rod : rodData.getAllRods() ) {
-            if ( rod.getUnderlyingObject() instanceof Variation && ! alreadyAddedAtThisLoc ) {
+        for ( VariantContext vc : rodData.getAllVariantContexts(ref)) {
+            if ( ! alreadyAddedAtThisLoc ) {
                 // if we have multiple variants at a locus, just take the first damn one we see for now
-                Variation variant = (Variation) rod.getUnderlyingObject();
                 // todo -- getAlternativeBases should be getAlleles()
-                GenomeLoc loc = variant.getLocation();
+                GenomeLoc loc = vc.getLocation();
                 String[] allAllelesList = null; // variant.getAlternateBases().split(""); // todo fixme
                 if ( allAllelesList.length >= 3 ) { // bad dbSNP format :-(
                     List<String> alleles = Arrays.asList(allAllelesList).subList(1,3);
                     //logger.info(String.format("Adding %s %s", loc, alleles));
-                    graphRef.addVariation(variant, loc, alleles);
+                    graphRef.addVariation(vc, loc, alleles);
                     //logger.info(String.format("  Added %s %s", loc, alleles));
                     alreadyAddedAtThisLoc = true;
                     if ( counter-- == 0 ) {

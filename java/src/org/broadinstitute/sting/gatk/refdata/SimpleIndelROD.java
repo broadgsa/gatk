@@ -2,11 +2,12 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class SimpleIndelROD extends TabularROD implements VariationRod {
+public class SimpleIndelROD extends TabularROD {
 
     private boolean KGENOMES_FORMAT = false, checkedFormat = false;
 
@@ -58,11 +59,6 @@ public class SimpleIndelROD extends TabularROD implements VariationRod {
      */
     public double getNonRefAlleleFrequency() {
         return 0.0;
-    }
-
-    /** @return the VARIANT_TYPE of the current variant */
-    public VARIANT_TYPE getType() {
-        return isInsertion() ? VARIANT_TYPE.INSERTION : VARIANT_TYPE.DELETION;
     }
 
     public boolean isSNP() { return false; }

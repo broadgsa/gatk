@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +19,7 @@ import java.util.List;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod {
+public class rodDbSNP extends BasicReferenceOrderedDatum {
 
     public static final String STANDARD_DBSNP_TRACK_NAME = "dbsnp";
 
@@ -137,11 +138,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     public double getNonRefAlleleFrequency() {
         return 0;  // dbSNP doesn't know the allele frequency
     }
-
-    /** @return the VARIANT_TYPE of the current variant */
-    public VARIANT_TYPE getType() {
-        return VARIANT_TYPE.SNP;
-    }// ----------------------------------------------------------------------
 
     //
     // What kind of variant are we?
