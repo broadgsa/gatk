@@ -73,6 +73,7 @@ public class RODTrackBuilder implements RMDTrackBuilder {
         Types.put("HapmapVCF", HapmapVCFROD.class);
         Types.put("Beagle", BeagleROD.class);
         Types.put("Plink", PlinkRod.class);
+        Types.put("Bed", RodBed.class);
     }
 
     /**
