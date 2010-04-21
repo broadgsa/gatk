@@ -18,7 +18,7 @@ import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 @Analysis(name = "Comp Overlap", description = "the overlap between eval and comp sites")
-public class DbSNPPercentage extends VariantEvaluator {
+public class CompOverlap extends VariantEvaluator {
 
     @DataPoint(name = "eval sites", description = "number of eval SNP sites")
     long nEvalSNPs = 0;
@@ -41,7 +41,7 @@ public class DbSNPPercentage extends VariantEvaluator {
     @DataPoint(name = "% concordant", description = "the concordance rate")
     double concordantRate = 0.0;
 
-    public DbSNPPercentage(VariantEvalWalker parent) {
+    public CompOverlap(VariantEvalWalker parent) {
         // don't do anything
     }
 

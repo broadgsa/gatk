@@ -6,7 +6,7 @@
     <dependencies>
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.CountVariants" />
-      <class name="org.broadinstitute.sting.gatk.walkers.varianteval.DbSNPPercentage" />
+      <class name="org.broadinstitute.sting.gatk.walkers.varianteval.CompOverlap" />
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.GenotypeConcordance" />
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator" />
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.TiTvVariantEvaluator" />
