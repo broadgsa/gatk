@@ -5,9 +5,7 @@ import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 
 /**

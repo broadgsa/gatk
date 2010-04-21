@@ -116,7 +116,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {rodDbSNP.STANDARD_DBSNP_TRACK_NAME};
-    private Set<String> uniqueKnownNames = new HashSet<String>();
 
     @Argument(shortName="sample", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
     protected String[] SAMPLES = {};
@@ -264,10 +263,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             } else if ( d.getName().startsWith("comp") ) {
                 compNames.add(d.getName());
             } else if ( d.getName().startsWith(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) || d.getName().startsWith("hapmap") ) {
-                // it feels like overkill (i.e. too much output) to include the dbsnp track as
-                //  truth given that it's also used in the known/novel stratification.  If this
-                //  becomes useful for some reason, uncomment this line...
-                uniqueKnownNames.add(d.getName());
+                compNames.add(d.getName());
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());
             }
@@ -466,8 +462,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                             break;
                         case 2:
                             VariantContext comp = vcs.get(group.compTrackName);
-                            if ( comp != null && minCompQualScore != NO_MIN_QUAL_SCORE && comp.getNegLog10PError() < (minCompQualScore / 10.0))
-                                comp = null;                            
+                            if ( comp != null &&
+                                    minCompQualScore != NO_MIN_QUAL_SCORE &&
+                                    comp.hasNegLog10PError() &&
+                                    comp.getNegLog10PError() < (minCompQualScore / 10.0) )
+                                comp = null;
                             String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context );
                             if ( interesting != null ) interestingReasons.add(interesting);
                             break;
@@ -523,7 +522,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         if ( vc == null )
             return true;
 
-        if ( minQualScore != NO_MIN_QUAL_SCORE && vc.getNegLog10PError() < (minQualScore / 10.0)) {
+        if ( minQualScore != NO_MIN_QUAL_SCORE &&
+                vc.hasNegLog10PError() &&
+                vc.getNegLog10PError() < (minQualScore / 10.0) ) {
             //System.out.printf("exclude %s%n", vc);
             return false;
         }
@@ -572,7 +573,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         if ( tracker != null ) {
             bindVariantContexts(bindings, evalNames, tracker, context, false);
             bindVariantContexts(bindings, compNames, tracker, context, true);
-            bindVariantContexts(bindings, uniqueKnownNames, tracker, context, true);
         }
         return bindings;
     }
