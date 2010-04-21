@@ -72,23 +72,11 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
 
-    public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
 
     private VCFWriter writer = null;
 
+    public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
     private ClusteredSnps clusteredSNPs = null;
-
-    class FilterExp {
-        String name;
-        String expStr;
-        Expression exp;
-
-        public FilterExp(String name, String str, Expression exp) {
-            this.name = name;
-            this.expStr = str;
-            this.exp = exp;
-        }
-    }
 
     // the structures necessary to initialize and maintain a windowed context
     private FiltrationContextWindow variantContextWindow;
