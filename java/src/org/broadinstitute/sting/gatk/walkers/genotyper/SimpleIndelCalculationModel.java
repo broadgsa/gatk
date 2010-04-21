@@ -75,7 +75,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
         }
 
         VariantContext vc = new VariantContext("UG_Indel_call", loc, alleles, new HashMap<String,Genotype>() /* genotypes */,
-                0.0 /* log error */, null /* filters */, null /* attributes */);
+                -1.0 /* log error */, null /* filters */, null /* attributes */);
 
         vcc = new VariantCallContext(vc,true);
 /*
