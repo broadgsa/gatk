@@ -76,8 +76,8 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
         GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());
     }
 
-    public void addCall(VariantContext vc) {
-        writer.addCall(vc);
+    public void addCall(VariantContext vc, String refAllele) {
+        writer.addCall(vc,refAllele);
     }
 
     public void close() {

@@ -148,8 +148,9 @@ public class GLFWriter implements GLFGenotypeWriter {
      * Add a genotype, given a variant context
      *
      * @param vc  the variant context representing the call to add
+     * @param refAllele not used by this writer
      */
-    public void addCall(VariantContext vc) {
+    public void addCall(VariantContext vc, String refAllele) {
         if ( headerText == null )
             throw new IllegalStateException("The GLF Header must be written before calls can be added");
 

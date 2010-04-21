@@ -68,8 +68,9 @@ public class GeliTextWriter implements GeliGenotypeWriter {
      * Add a genotype, given a variant context
      *
      * @param vc  the variant context representing the call to add
+     * @param refAllele required by the inteface; not used by this writer.
      */
-    public void addCall(VariantContext vc) {
+    public void addCall(VariantContext vc, String refAllele) {
 
         char ref = vc.getReference().toString().charAt(0);
 

@@ -230,6 +230,7 @@ public class UnifiedGenotyperEngine {
             }
         }
 
+        if ( call != null ) call.setRefAllele(Character.toString(ref));
         return call;
     }
 

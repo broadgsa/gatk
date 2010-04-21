@@ -78,12 +78,14 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
      * Add a genotype, given a variant context
      *
      * @param vc  the variant context representing the call to add
+     * @param refAllele currently has to be a single character representing the reference base (the base
+     * immediately preceding the event in case of indels)
      */
-    public void addCall(VariantContext vc) {
+    public void addCall(VariantContext vc, String refAllele) {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
-        VCFRecord call = VariantContextAdaptors.toVCF(vc, vc.getReference().toString().charAt(0), allowedGenotypeFormatStrings, false, false);
+        VCFRecord call = VariantContextAdaptors.toVCF(vc, refAllele.charAt(0), allowedGenotypeFormatStrings, false, false);
 
         Set<Allele> altAlleles = vc.getAlternateAlleles();
         StringBuffer altAlleleCountString = new StringBuffer();
