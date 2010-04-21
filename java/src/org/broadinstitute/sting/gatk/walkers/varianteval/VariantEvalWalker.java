@@ -116,6 +116,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {rodDbSNP.STANDARD_DBSNP_TRACK_NAME};
+    private Set<String> uniqueKnownNames = new HashSet<String>();
 
     @Argument(shortName="sample", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
     protected String[] SAMPLES = {};
@@ -260,13 +261,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if ( d.getName().startsWith("eval") ) {
                 evalNames.add(d.getName());
-            } else if ( d.getName().startsWith(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) ) {
+            } else if ( d.getName().startsWith("comp") ) {
+                compNames.add(d.getName());
+            } else if ( d.getName().startsWith(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) || d.getName().startsWith("hapmap") ) {
                 // it feels like overkill (i.e. too much output) to include the dbsnp track as
                 //  truth given that it's also used in the known/novel stratification.  If this
                 //  becomes useful for some reason, uncomment this line...
-                //compNames.add(d.getName());
-            } else if ( d.getName().startsWith("hapmap") || d.getName().startsWith("comp") ) {
-                compNames.add(d.getName());
+                uniqueKnownNames.add(d.getName());
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());
             }
@@ -571,6 +572,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         if ( tracker != null ) {
             bindVariantContexts(bindings, evalNames, tracker, context, false);
             bindVariantContexts(bindings, compNames, tracker, context, true);
+            bindVariantContexts(bindings, uniqueKnownNames, tracker, context, true);
         }
         return bindings;
     }

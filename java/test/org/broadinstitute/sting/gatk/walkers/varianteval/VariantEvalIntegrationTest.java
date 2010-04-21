@@ -18,8 +18,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "f44a2c9057a78349e1d3ccec327d3343");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "e8c5107015e5926aa647e274cb58bff6");
+        expectations.put("-L 1:1-10,000,000", "5ea9dd109c45c47243f40af759b36d09");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "8b126d445eaec0263d2af6fbfea5ad8b");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -39,8 +39,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B dbsnp_130,dbSNP," + GATKDataLocation + "dbsnp_130_b36.rod" +
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
-        expectations.put("", "49a723e6e77a45a4fb0a46890d66806b");
-        expectations.put(" -known comp_hapmap -known dbsnp", "11e2a3ae77b3ce4b659baa832388f920");
+        expectations.put("", "1bc8126366117045bb08872e098502af");
+        expectations.put(" -known comp_hapmap -known dbsnp", "1bc8126366117045bb08872e098502af");
         expectations.put(" -known comp_hapmap", "11e2a3ae77b3ce4b659baa832388f920");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
@@ -59,7 +59,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("d8b14bc334a8c4f3cd5462839f5a3ef2", "a3ce1d70d8ae3874807e9d61994d42af"));
+                Arrays.asList("cd4813cc4bcce0f8f81d42bcde11f7ce", "a3ce1d70d8ae3874807e9d61994d42af"));
         executeTest("testVEWriteVCF", spec);
     }
 }
