@@ -78,7 +78,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
             glf.next();
             records.add((GLFSingleCall)glf.mRecord); // we know they're all single calls in the reference file
             VariantContext vc = VariantContextAdaptors.toVariantContext("GLF",glf);
-            gw.addCall(vc);
+            gw.addCall(vc,null);
         }
         gw.close(); // close the file
 
@@ -142,7 +142,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
             parseGeli(geliText, line);
             records.add(geliText); // we know they're all single calls in the reference file
             VariantContext vc = VariantContextAdaptors.toVariantContext("Geli",geliText);
-            gw.addCall(vc);
+            gw.addCall(vc,null);
             line = readLine(reader);
         }
         gw.close(); // close the file
