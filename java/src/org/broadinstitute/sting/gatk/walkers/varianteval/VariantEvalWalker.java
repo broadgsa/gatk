@@ -133,8 +133,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="evalModule", shortName="E", doc="One or more specific eval modules to apply to the eval track(s)", required=false)
     protected String[] modulesToUse = {};
 
-    @Argument(fullName="useAllModules", shortName="all", doc="Use all possible eval modules", required=false)
-    protected Boolean USE_ALL_MODULES = false;
+    @Argument(fullName="useNoModules", shortName="none", doc="Use no eval modules", required=false)
+    protected Boolean USE_NO_MODULES = false;
 
     @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit")
     protected Boolean LIST = false;
@@ -264,7 +264,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if ( d.getName().startsWith("eval") ) {
                 evalNames.add(d.getName());
-            } else if ( d.getName().startsWith(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) || d.getName().startsWith("hapmap") || d.getName().startsWith("comp") ) {
+            } else if ( d.getName().startsWith(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) ) {
+                // it feels like overkill (i.e. too much output) to include the dbsnp track as
+                //  truth given that it's also used in the known/novel stratification.  If this
+                //  becomes useful for some reason, uncomment this line...
+                //compNames.add(d.getName());
+            } else if ( d.getName().startsWith("hapmap") || d.getName().startsWith("comp") ) {
                 compNames.add(d.getName());
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());
@@ -340,7 +345,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( Class<? extends VariantEvaluator> c : PackageUtils.getClassesImplementingInterface(VariantEvaluator.class) )
             classMap.put(c.getSimpleName(), c);
 
-        if ( USE_ALL_MODULES ) {
+        if ( USE_NO_MODULES ) {
+            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(0);            
+        } else if ( modulesToUse.length == 0 ) {
             evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(classMap.values());
         } else {
             // get the specific classes provided

@@ -17,22 +17,22 @@ import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
-@Analysis(name = "DbSNP Overlap", description = "the overlap between DbSNP sites and other SNP tracks")
+@Analysis(name = "Comp Overlap", description = "the overlap between eval and comp sites")
 public class DbSNPPercentage extends VariantEvaluator {
 
-    @DataPoint(name = "DbSNP count", description = "number of DPSNP sites")
-    long nDBSNPs = 0;
-
-    @DataPoint(name = "total count", description = "number of total snp sites")
+    @DataPoint(name = "eval sites", description = "number of eval SNP sites")
     long nEvalSNPs = 0;
 
-    @DataPoint(name = "novel snps", description = "number of total snp sites")
+    @DataPoint(name = "comp sites", description = "number of comp SNP sites")
+    long nCompSNPs = 0;
+
+    @DataPoint(name = "evals not at comp", description = "number of eval sites outside of comp sites")
     long novelSites = 0;
 
-    @DataPoint(name = "snps at comp", description = "number of SNP sites at comp sites")
+    @DataPoint(name = "evals at comp", description = "number of eval sites at comp sites")
     long nSNPsAtComp = 0;
 
-    @DataPoint(name = "% snps at comp", description = "percentage of SNP sites at comp sites")
+    @DataPoint(name = "% evals at comp", description = "percentage of eval sites at comp sites")
     double compRate = 0.0;
 
     @DataPoint(name = "concordant", description = "number of concordant sites")
@@ -46,19 +46,19 @@ public class DbSNPPercentage extends VariantEvaluator {
     }
 
     public String getName() {
-        return "dbOverlap";
+        return "compOverlap";
     }
 
     public int getComparisonOrder() {
         return 2;   // we need to see each eval track and each comp track
     }
 
-    public long nNovelSites() { return Math.abs(nEvalSNPs - nSNPsAtComp); }
-    public double dbSNPRate() { return rate(nSNPsAtComp, nEvalSNPs); }
+    public long nNovelSites() { return nEvalSNPs - nSNPsAtComp; }
+    public double compRate() { return rate(nSNPsAtComp, nEvalSNPs); }
     public double concordanceRate() { return rate(nConcordant, nSNPsAtComp); }
 
     public void finalizeEvaluation() {
-        compRate = 100 * dbSNPRate();
+        compRate = 100 * compRate();
         concordantRate = 100 * concordanceRate();
         novelSites = nNovelSites();
     }
@@ -68,32 +68,32 @@ public class DbSNPPercentage extends VariantEvaluator {
     }
 
     /**
-     * Returns true if every allele in eval is also in dbsnp
+     * Returns true if every allele in eval is also in comp
      *
      * @param eval  eval context
-     * @param dbsnp db context
+     * @param comp db context
      * @return true if eval and db are discordant
      */
-    public boolean discordantP(VariantContext eval, VariantContext dbsnp) {
+    public boolean discordantP(VariantContext eval, VariantContext comp) {
         for (Allele a : eval.getAlleles()) {
-            if (!dbsnp.hasAllele(a, true))
+            if (!comp.hasAllele(a, true))
                 return true;
         }
 
         return false;
     }
 
-    public String update2(VariantContext eval, VariantContext dbsnp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        boolean dbSNPIsGood = dbsnp != null && dbsnp.isSNP() && dbsnp.isNotFiltered();
+    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        boolean compIsGood = comp != null && comp.isSNP() && comp.isNotFiltered();
         boolean evalIsGood = eval != null && eval.isSNP();
 
-        if (dbSNPIsGood) nDBSNPs++;             // count the number of dbSNP events
-        if (evalIsGood) nEvalSNPs++;           // count the number of dbSNP events
+        if (compIsGood) nCompSNPs++;           // count the number of comp events
+        if (evalIsGood) nEvalSNPs++;           // count the number of eval events
 
-        if (dbSNPIsGood && evalIsGood) {
+        if (compIsGood && evalIsGood) {
             nSNPsAtComp++;
 
-            if (!discordantP(eval, dbsnp))     // count whether we're concordant or not with the dbSNP value
+            if (!discordantP(eval, comp))     // count whether we're concordant or not with the comp value
                 nConcordant++;
         }
 
