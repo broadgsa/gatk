@@ -55,8 +55,6 @@ import java.util.*;
 // todo -- evalations should support comment lines
 // todo -- add Mendelian variable explanations (nDeNovo and nMissingTransmissions)
 
-// todo -- write a simple column table system and have the evaluators return this instead of the list<list<string>> objects
-
 // todo -- site frequency spectrum eval (freq. of variants in eval as a function of their AC and AN numbers)
 // todo -- clustered SNP counter
 // todo -- HWEs
@@ -64,7 +62,6 @@ import java.util.*;
 // todo -- synonymous / non-synonmous ratio, or really just comparison of observed vs. expected biological annotation values
 
 // todo -- Performance:
-// todo -- create JEXL context implementing object that simply looks up values for JEXL evaluations.  Throws error for unknown fields
 // todo -- deal with performance issues with variant contexts
 
 // todo -- port over SNP density walker:
@@ -77,9 +74,6 @@ import java.util.*;
 // Todo -- should really include argument parsing @annotations from subclass in this walker.  Very
 // todo -- useful general capability.  Right now you need to add arguments to VariantEval2 to handle new
 // todo -- evaluation arguments (which is better than passing a string!)
-
-
-// todo -- write or find a simple way to organize the table like output of variant eval 2.  A generic table of strings?
 
 // todo -- these really should be implemented as default select expression
 // todo Extend VariantEval, our general-purpose tool for SNP evaluation, to differentiate Ti/Tv at CpG islands and also
@@ -154,6 +148,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     private static double NO_MIN_QUAL_SCORE = -1.0;
     @Argument(shortName = "Q", fullName="minPhredConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public double minQualScore = NO_MIN_QUAL_SCORE;
+    @Argument(shortName = "Qcomp", fullName="minPhredConfidenceScoreForComp", doc="Minimum confidence score to consider a comp SNP a variant", required=false)
+    public double minCompQualScore = NO_MIN_QUAL_SCORE;
 
     // Right now we will only be looking at SNPS
     EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION);
@@ -469,6 +465,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                             break;
                         case 2:
                             VariantContext comp = vcs.get(group.compTrackName);
+                            if ( comp != null && minCompQualScore != NO_MIN_QUAL_SCORE && comp.getNegLog10PError() < (minCompQualScore / 10.0))
+                                comp = null;                            
                             String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context );
                             if ( interesting != null ) interestingReasons.add(interesting);
                             break;
