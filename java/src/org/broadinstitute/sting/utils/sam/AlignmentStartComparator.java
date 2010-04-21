@@ -16,6 +16,9 @@ import java.util.Comparator;
  */
 public class AlignmentStartComparator implements Comparator<SAMRecord> {
     public int compare(SAMRecord lhs, SAMRecord rhs) {
+        if(!lhs.getReferenceIndex().equals(rhs.getReferenceIndex()))
+            return lhs.getReferenceIndex() - rhs.getReferenceIndex();
+
         // Note: no integer overflow here because alignment starts are >= 0.
         return lhs.getAlignmentStart() - rhs.getAlignmentStart();
     }
