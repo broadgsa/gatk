@@ -110,4 +110,8 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
         return i + j;
     }
 
+    public void onTraversalDone(Long l) {
+        return;
+    }
+
 }
