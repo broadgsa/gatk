@@ -171,13 +171,21 @@ public class VariantContextAdaptors {
             Allele refAllele = determineRefAllele(vcf, ref);
             alleles.add(refAllele);
 
-            for ( String alt : vcf.getAlternateAlleleList() ) {
-                if ( ! Allele.acceptableAlleleBases(alt) ) {
+            for ( VCFGenotypeEncoding alt : vcf.getAlternateAlleles() ) {
+                if ( ! Allele.acceptableAlleleBases(alt.getBases()) ) {
                     //System.out.printf("Excluding vcf record %s%n", vcf);
                     return null;
                 }
 
-                Allele allele = new Allele(alt, false);
+                Allele allele;
+                // special case: semi-deletion
+                if ( vcf.isDeletion() && refAllele.length() > alt.getLength() ) {
+                    char[] semiDeletion = new char[refAllele.length() - alt.getLength()];
+                    System.arraycopy(ref.getBases(), alt.getLength(), semiDeletion, 0, refAllele.length() - alt.getLength());
+                    allele = new Allele(String.valueOf(semiDeletion), false);
+                } else {
+                    allele = new Allele(alt.getBases(), false);
+                }
                 if ( ! allele.isNoCall() )
                     alleles.add(allele);
             }
