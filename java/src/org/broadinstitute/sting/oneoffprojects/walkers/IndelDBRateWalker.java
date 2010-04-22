@@ -86,7 +86,7 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
                       tracker.getReferenceMetaData("eval").size() != 0 ? tracker.getReferenceMetaData("eval").get(0) : null ;
         VariantContext evalContext;
         if ( eval != null ) {
-            evalContext = VariantContextAdaptors.toVariantContext("eval",eval);
+            evalContext = VariantContextAdaptors.toVariantContext("eval",eval,ref);
         } else {
             evalContext = null;
         }
