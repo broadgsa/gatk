@@ -23,16 +23,12 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
-
-
-
 /**
  * This plugin for {@link VariantAnnotatorEngine} serves as the core
  * of the {@link GenomicAnnotator}. It finds all records in the -B input files
- * that match the given variant's position and, optionally, it's reference and alternate alleles.
- * Whether or not matching is done by reference and alternate alleles for a particular input file
- * based solely on whether the given -B input has columns named "haplotypeReference" and
- * "haplotypeAlternate".
+ * that match the given variant's position and, optionally, the variant's reference and alternate alleles.
+ *
+ * For details, see:  http://www.broadinstitute.org/gsa/wiki/index.php/GenomicAnnotator
  */
 public class GenomicAnnotation implements InfoFieldAnnotation {
 

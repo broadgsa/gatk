@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -42,22 +43,17 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.walkers.Allows;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-
 
 /**
  * Annotates variant calls with information from user-specified tabular files.
@@ -65,8 +61,8 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
  * For details, see:  http://www.broadinstitute.org/gsa/wiki/index.php/GenomicAnnotator
  */
 //@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
-@Allows(value={DataSource.READS, DataSource.REFERENCE})
-@Reference(window=@Window(start=-50,stop=50))
+//@Allows(value={DataSource.READS, DataSource.REFERENCE})
+//@Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class GenomicAnnotator extends RodWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
@@ -80,6 +76,18 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="oneToMany", shortName="m", doc="If more than one record from the same file matches a particular locus (for example, multiple dbSNP records with the same position), create multiple entries in the ouptut VCF file - one for each match. If a particular tabular file has J matches, and another tabular file has K matches for a given locus, then J*K output VCF records will be generated - one for each pair of K, J.   If this flag is not provided, the multiple records are still generated, but they are stored in the INFO field of a single output VCF record, with their annotation keys differentiated by appending '_i' with i varying from 1 to K*J. ", required=false)
     protected Boolean ONE_TO_MANY = false;
+
+    @Argument(fullName="join", shortName="j", doc="TODO If more than one record from the same file matches a particular locus (for example, multiple dbSNP records with the same position), create multiple entries in the ouptut VCF file - one for each match. If a particular tabular file has J matches, and another tabular file has K matches for a given locus, then J*K output VCF records will be generated - one for each pair of K, J.   If this flag is not provided, the multiple records are still generated, but they are stored in the INFO field of a single output VCF record, with their annotation keys differentiated by appending '_i' with i varying from 1 to K*J. ", required=false)
+    protected String[] JOIN_COLUMNS = {};
+
+    /*
+       NOTE: there are several cases for file1.a=file2.b
+           if, for a particular locus:
+                only file1.0 matches,   INNER-JOIN  -  skip file1.a                OUTER JOIN   -  annotate with file1.a
+                only file2.0 matches,   INNER-JOIN  -  skip file2.a                OUTER JOIN   -  annotate with file2.a
+
+     */
+
 
     private VCFWriter vcfWriter;
 
