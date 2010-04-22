@@ -27,6 +27,7 @@ import java.util.*;
  * @Author chartl
  * @Date Apr 21, 2010
  */
+@Reference(window=@Window(start=-40,stop=40))
 public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> {
 
     @Argument(fullName="indelWindow",doc="size of the window in which to look for indels; max 40",required=false)
@@ -125,7 +126,7 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
         }
         // step 3: see if there are any contexts left; if so then they must be within the window
         if ( ! compContexts.isEmpty() ) {
-            return nonEmptyOverlapTable();
+            return nonEmptyOverlapTable(ref);
         } else {
             return emptyOverlapTable();
         }
@@ -138,14 +139,14 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
         return ot;
     }
 
-    public OverlapTable nonEmptyOverlapTable() {
+    public OverlapTable nonEmptyOverlapTable(ReferenceContext ref) {
         if ( vcfWriter != null ) {
             int i = 0;
             while ( i < compContexts.size() && compContexts.get(i).getLocation().isBefore(evalContexts.get(0).getLocation())) {
                 vcfWriter.addRecord(VariantContextAdaptors.toVCF(compContexts.get(i),(char)compContexts.get(i).getReference().getBases()[0]));
                 i++;
             }
-            vcfWriter.addRecord(VariantContextAdaptors.toVCF(evalContexts.get(0),(char) evalContexts.get(0).getReference().getBases()[0]));
+            vcfWriter.addRecord(VariantContextAdaptors.toVCF(evalContexts.get(0),ref.getBase()));
             while ( i < compContexts.size() && compContexts.get(i).getLocation().distance(evalContexts.get(0).getLocation()) <= indelWindow) {
                 vcfWriter.addRecord(VariantContextAdaptors.toVCF(compContexts.get(i),(char) compContexts.get(i).getReference().getBases()[0]));
                 i++;
