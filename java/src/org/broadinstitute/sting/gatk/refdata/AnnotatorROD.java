@@ -30,8 +30,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -53,13 +57,24 @@ public class AnnotatorROD extends TabularROD {
     private static Logger logger = Logger.getLogger(AnnotatorROD.class);
 
     /** Special column names */
-    //public static final String CHRPOS_COLUMN = "chrpos";
+    public static final String CHRPOS_COLUMN = "chrpos";
     public static final String HAPLOTYPE_REFERENCE_COLUMN = "haplotypeReference";
     public static final String HAPLOTYPE_ALTERNATE_COLUMN = "haplotypeAlternate";
     public static final String HAPLOTYPE_STRAND_COLUMN = "haplotypeStrand";
 
-
     private static int parsedRecords = 0;
+
+    // Temporary attributes were added to make it easier to implement certain
+    // optimizations for RODs that span an interval. For example, if a Walker
+    // needs to do a time-consuming computation on data from a ROD, it would normally
+    // have to repeat this computation every time its map(..) method is called.
+    // If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
+    // However, many computations (including validation and parsing) are done per ROD rather than
+    // per position. Therefore, substantial optimizations are possible if the result
+    // of the first computation is cached and reused on subsequent map(..) calls.
+    // Temporary attributes provide a convenient place to store these results,
+    // freeing the Walkers from having to maintain their own ROD -> result hashmaps.
+    private Map<Object, Object> temporaryAttributes;
 
    /**
     * Constructor.
@@ -156,4 +171,122 @@ public class AnnotatorROD extends TabularROD {
 
         return true;
     }
+
+
+    // ----------------------------------------------------------------------
+    //
+    // ROD accessors
+    //
+    // ----------------------------------------------------------------------
+    public GenomeLoc getLocation() {
+        if ( loc == null ) {
+            String s = get(getHeader().get(0));
+            if(s == null) {
+                throw new RuntimeException("Location not set.."); //this should never happen unless the line in the file is empty
+            }
+            loc = GenomeLocParser.parseGenomeLoc(s);
+        }
+
+        return loc;
+    }
+
+
+    /**
+     * Checks whether an attribute has been set for the given key.
+     *
+     * Temporary attributes make it easier to implement certain
+     * optimizations for RODs that span an interval. For example, if a Walker
+     * needs to do a time-consuming computation on data from a ROD, it would normally
+     * have to repeat this computation every time its map(..) method is called.
+     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
+     * However, many computations (including validation and parsing) are done per ROD rather than
+     * per position. Therefore, substantial optimizations are possible if the result
+     * of the first computation is cached and reused on subsequent map(..) calls.
+     * Temporary attributes provide a convenient place to store these results,
+     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
+     *
+     * @param key key
+     * @return True if an attribute has been set for this key.
+     */
+    public boolean containsTemporaryAttribute(Object key) {
+        if(temporaryAttributes != null) {
+            return temporaryAttributes.containsKey(key);
+        }
+        return false;
+    }
+
+    /**
+     * Sets the key to the given value, replacing any previous value. The previous
+     * value is returned.
+     *
+     * Temporary attributes make it easier to implement certain
+     * optimizations for RODs that span an interval. For example, if a Walker
+     * needs to do a time-consuming computation on data from a ROD, it would normally
+     * have to repeat this computation every time its map(..) method is called.
+     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
+     * However, many computations (including validation and parsing) are done per ROD rather than
+     * per position. Therefore, substantial optimizations are possible if the result
+     * of the first computation is cached and reused on subsequent map(..) calls.
+     * Temporary attributes provide a convenient place to store these results,
+     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
+     *
+     * @param key    key
+     * @param value  value
+     * @return attribute
+     */
+    public Object setTemporaryAttribute(Object key, Object value) {
+        if(temporaryAttributes == null) {
+            temporaryAttributes = new HashMap<Object, Object>();
+        }
+        return temporaryAttributes.put(key, value);
+    }
+
+    /**
+     * Looks up the value associated with the given key.
+     *
+     * Temporary attributes make it easier to implement certain
+     * optimizations for RODs that span an interval. For example, if a Walker
+     * needs to do a time-consuming computation on data from a ROD, it would normally
+     * have to repeat this computation every time its map(..) method is called.
+     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
+     * However, many computations (including validation and parsing) are done per ROD rather than
+     * per position. Therefore, substantial optimizations are possible if the result
+     * of the first computation is cached and reused on subsequent map(..) calls.
+     * Temporary attributes provide a convenient place to store these results,
+     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
+     *
+     * @param key key
+     * @return The value, or null.
+     */
+    public Object getTemporaryAttribute(Object key) {
+        if(temporaryAttributes != null) {
+            return temporaryAttributes.get(key);
+        }
+        return null;
+    }
+
+    /**
+     * Removes the attribute that has the given key.
+     *
+     * Temporary attributes make it easier to implement certain
+     * optimizations for RODs that span an interval. For example, if a Walker
+     * needs to do a time-consuming computation on data from a ROD, it would normally
+     * have to repeat this computation every time its map(..) method is called.
+     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
+     * However, many computations (including validation and parsing) are done per ROD rather than
+     * per position. Therefore, substantial optimizations are possible if the result
+     * of the first computation is cached and reused on subsequent map(..) calls.
+     * Temporary attributes provide a convenient place to store these results,
+     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
+     *
+     * @param key key
+     * @return The value that was associated with this key, or null.
+     */
+    public Object removeTemporaryAttribute(Object key) {
+         if(temporaryAttributes != null) {
+             return temporaryAttributes.remove(key);
+         }
+         return null;
+    }
+
 }
