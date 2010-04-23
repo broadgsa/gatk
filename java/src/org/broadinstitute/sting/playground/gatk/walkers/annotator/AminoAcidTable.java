@@ -8,35 +8,34 @@ import java.util.HashMap;
  */
 public class AminoAcidTable {
 
-    protected static HashMap<String, String[]> aminoAcidTable = new HashMap<String, String[]>();
-    protected static HashMap<String, String[]> mtAminoAcidTable = new HashMap<String, String[]>(); //mitochondrial
 
-    protected static final String[] ISOLEUCINE = new String[] {"I" , "Isoleucine", "Ile"};
-    protected static final String[] LEUCINE = new String[] {"L" , "Leucine", "Leu"};
+    protected static final AminoAcid ISOLEUCINE = new AminoAcid("I" , "Isoleucine", "Ile");
+    protected static final AminoAcid LEUCINE = new AminoAcid("L" , "Leucine", "Leu");
+    protected static final AminoAcid VALINE =    new AminoAcid("V" , "Valine", "Val");
+    protected static final AminoAcid PHENYLALANINE =    new AminoAcid("F" , "Phenylalanine", "Phe");
+    protected static final AminoAcid METHIONINE = new AminoAcid("M" , "Methionine", "Met");
+    protected static final AminoAcid CYSTEINE = new AminoAcid("C" , "Cysteine", "Cys");
+    protected static final AminoAcid ALANINE = new AminoAcid("A" , "Alanine", "Ala");
+    protected static final AminoAcid STOP_CODON = new AminoAcid("*" , "Stop Codon", "Amb");
+    protected static final AminoAcid GLYCINE = new AminoAcid("G" , "Glycine", "Gly");
+    protected static final AminoAcid PROLINE = new AminoAcid("P" , "Proline", "Pro");
+    protected static final AminoAcid THEONINE = new AminoAcid("T" , "Threonine", "Thr");
+    protected static final AminoAcid SERINE = new AminoAcid("S" , "Serine", "Ser");
+    protected static final AminoAcid TYROSINE = new AminoAcid("Y" , "Tyrosine", "Tyr");
+    protected static final AminoAcid TRYPTOPHAN = new AminoAcid("W" , "Tryptophan", "Trp");
+    protected static final AminoAcid GLUTAMINE = new AminoAcid("Q" , "Glutamine", "Gln");
+    protected static final AminoAcid ASPARAGINE = new AminoAcid("N" , "Asparagine", "Asn");
+    protected static final AminoAcid HISTIDINE = new AminoAcid("H" , "Histidine", "His");
+    protected static final AminoAcid GLUTAMIC_ACID = new AminoAcid("E" , "Glutamic acid", "Glu");
+    protected static final AminoAcid ASPARTIC_ACID = new AminoAcid("D" , "Aspartic acid", "Asp");
+    protected static final AminoAcid LYSINE = new AminoAcid("K" , "Lysine", "Lys");
+    protected static final AminoAcid ARGININE = new AminoAcid("R" , "Arginine", "Arg");
 
-    protected static final String[] VALINE =    new String[] {"V" , "Valine", "Val"};
-    protected static final String[] PHENYLALANINE =    new String[] {"F" , "Phenylalanine", "Phe"};
-    protected static final String[] METHIONINE = new String[] {"M" , "Methionine", "Met"};
-    protected static final String[] CYSTEINE = new String[] {"C" , "Cysteine", "Cys"};
-    protected static final String[] ALANINE = new String[] {"A" , "Alanine", "Ala"};
-    protected static final String[] STOP_CODON = new String[] {"*" , "Stop Codon", "Amb"};
-    protected static final String[] GLYCINE = new String[] {"G" , "Glycine", "Gly"};
-    protected static final String[] PROLINE = new String[] {"P" , "Proline", "Pro"};
-    protected static final String[] THEONINE = new String[] {"T" , "Threonine", "Thr"};
-    protected static final String[] SERINE = new String[] {"S" , "Serine", "Ser"};
-    protected static final String[] TYROSINE = new String[] {"Y" , "Tyrosine", "Tyr"};
-    protected static final String[] TRYPTOPHAN = new String[] {"W" , "Tryptophan", "Trp"};
-    protected static final String[] GLUTAMINE = new String[] {"Q" , "Glutamine", "Gln"};
-    protected static final String[] ASPARAGINE = new String[] {"N" , "Asparagine", "Asn"};
-    protected static final String[] HISTIDINE = new String[] {"H" , "Histidine", "His"};
-    protected static final String[] GLUTAMIC_ACID = new String[] {"E" , "Glutamic acid", "Glu"};
-    protected static final String[] ASPARTIC_ACID = new String[] {"D" , "Aspartic acid", "Asp"};
-    protected static final String[] LYSINE = new String[] {"K" , "Lysine", "Lys"};
-    protected static final String[] ARGININE = new String[] {"R" , "Arginine", "Arg"};
+    protected static HashMap<String, AminoAcid> aminoAcidTable = new HashMap<String, AminoAcid>();
+    protected static HashMap<String, AminoAcid> mitochondrialAminoAcidTable = new HashMap<String, AminoAcid>();
 
     static {
-
-        //code gotten from: http://algoart.com/aatable.htm
+        //populate the tables
         aminoAcidTable.put("ATT", ISOLEUCINE);
         aminoAcidTable.put("ATC", ISOLEUCINE);
         aminoAcidTable.put("ATA", ISOLEUCINE);
@@ -145,65 +144,31 @@ public class AminoAcidTable {
         aminoAcidTable.put("TGA", STOP_CODON);
 
 
-        //populate the mitochondrial ammino-acid table:
-        mtAminoAcidTable.putAll(aminoAcidTable);
-        mtAminoAcidTable.put("AGA", STOP_CODON);
-        mtAminoAcidTable.put("AGG", STOP_CODON);
-        mtAminoAcidTable.put("ATA", METHIONINE);
-        mtAminoAcidTable.put("TGA", TRYPTOPHAN);
+        //populate the mitochondrial AA table
+        mitochondrialAminoAcidTable.putAll(aminoAcidTable);
+        mitochondrialAminoAcidTable.put("AGA", STOP_CODON);
+        mitochondrialAminoAcidTable.put("AGG", STOP_CODON);
+        mitochondrialAminoAcidTable.put("ATA", METHIONINE);
+        mitochondrialAminoAcidTable.put("TGA", TRYPTOPHAN);
     }
 
 
 
+
     /**
-     * Returns the 1-letter code for the matching amino acid.
+     * Returns the the matching amino acid.
      *
      * @param codon The 3-letter mRNA nucleotide codon 5' to 3'. Expects T's instead of U's. Not case sensitive.
      * @param mitochondrial Whether this is from a mitochondrial gene (mitochondria have a slightly different codon table).
      *
-     * @return The 1 letter code of the amino acid.
+     * @return The amino acid matching the given codon.
      */
-    public static String getAA1LetterCode(String codon, boolean mitochondrial) {
+    public static AminoAcid getAA(String codon, boolean mitochondrial) {
         codon = codon.toUpperCase();
         if(!aminoAcidTable.containsKey(codon)) {
             throw new IllegalArgumentException("Invalid codon: " + codon);
         }
 
-        return aminoAcidTable.get(codon)[0];
-    }
-
-    /**
-     * Returns the 3-letter code for the matching amino acid.
-     *
-     * @param codon The 3-letter mRNA nucleotide codon 5' to 3'. Expects T's instead of U's. Not case sensitive.
-     * @param mitochondrial Whether this is from a mitochondrial gene (mitochondria have a slightly different codon table).
-     *
-     * @return The 3 letter code of the amino acid.
-     */
-    public static String getAA3LetterCode(String codon, boolean mitochondrial) {
-        codon = codon.toUpperCase();
-        if(!aminoAcidTable.containsKey(codon)) {
-            throw new IllegalArgumentException("Invalid codon: " + codon);
-        }
-
-        return aminoAcidTable.get(codon)[2];
-    }
-
-
-    /**
-     * Returns the full name of the matching amino acid.
-     *
-     * @param codon The 3-letter mRNA nucleotide codon 5' to 3'. Expects T's instead of U's. Not case sensitive.
-     * @param mitochondrial Whether this is from a mitochondrial gene (mitochondria have a slightly different codon table).
-     *
-     * @return The full name of the amino acid.
-     */
-    public static String getAAName(String codon, boolean mitochondrial) {
-        codon = codon.toUpperCase();
-        if(!aminoAcidTable.containsKey(codon)) {
-            throw new IllegalArgumentException("Invalid codon: " + codon);
-        }
-
-        return aminoAcidTable.get(codon)[1];
+        return aminoAcidTable.get(codon);
     }
 }
