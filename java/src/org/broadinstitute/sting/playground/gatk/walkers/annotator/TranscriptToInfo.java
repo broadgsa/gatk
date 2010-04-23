@@ -80,7 +80,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
     public static final String OUTPUT_MRNA_COORD = "mrnaCoord"; //1-based offset within the transcript
     public static final String OUTPUT_CODING_COORD = "codingCoord"; //1-based offset within the cds region
 
-    public static final String OUTPUT_SPLICE_DISTANCE = "minSpliceDistance"; //eg. 40
+    public static final String OUTPUT_SPLICE_DISTANCE = "spliceDist"; //eg. integer, bp to nearest exon/intron boundary
 
     public static final String OUTPUT_CODON_NUMBER = "codonCoord"; //eg. 20
     public static final String OUTPUT_REFERENCE_CODON = "referenceCodon";
@@ -90,9 +90,14 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
 
     public static final String OUTPUT_CHANGES_AMINO_ACID = "changesAA"; //eg. true
 
-    public static final String OUTPUT_CODING_COORD_STR = "coding_coord_str";
-    public static final String OUTPUT_PROTEIN_COORD_STR = "protein_coord_str";
-    public static final String OUTPUT_INTRON_COORD_STR = "intron_coord_str";
+    public static final String OUTPUT_CODING_COORD_STR = "codingCoordStr";
+    public static final String OUTPUT_PROTEIN_COORD_STR = "proteinCoordStr";
+
+    //public static final String OUTPUT_INTRON_COORD_STR = "intron_coord_str";
+    public static final String OUTPUT_SPLICE_INFO = "spliceInfo"; //(eg "splice-donor -4", or "splice-acceptor 3") for the 10bp surrounding each exon/intron boundary
+    public static final String OUTPUT_UORF_CHANGE = "uorfChange"; // (eg +1 or -1, indicating the addition or interruption of an ATG trinucleotide in the annotated utr5)
+
+
 
     public static final String[] OUTPUT_COLUMN_NAMES = new String[] {
         OUTPUT_SORT_KEY,
@@ -122,9 +127,10 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
 
         OUTPUT_CODING_COORD_STR,
         OUTPUT_PROTEIN_COORD_STR,
-        OUTPUT_INTRON_COORD_STR,
 
         OUTPUT_IN_CODING_REGION,
+        OUTPUT_SPLICE_INFO,
+        OUTPUT_UORF_CHANGE,
     };
 
 
@@ -258,16 +264,21 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
 
         /**
          * Computes the distance to the nearest splice-site.
-         * Returns 1 when down-stream of splice-juction, -1 when upstream
+         * The returned value is negative its on the 5' side (eg. upstream) of the juntion, and
+         * positive if its on the 3' side.
          */
-        public int distanceToSpliceSite(final long genomPosition) {
+        public int computeDistanceToNearestSpliceSite(final long genomPosition) {
             int prevDistance = Integer.MAX_VALUE;
-            int curDistance;
             for(int i = 0; i < exonStarts.length; i++) {
                 final long curStart = exonStarts[i];
-                curDistance = (int) (curStart-genomPosition);
+                int curDistance = (int) (curStart-genomPosition);
                 if(genomPosition < curStart) {
-                    return Math.min(prevDistance, curDistance);
+                    //position is within the current intron
+                    if(prevDistance < curDistance) {
+                        return positiveStrand ? prevDistance : -prevDistance;
+                    } else {
+                        return positiveStrand ? -curDistance : curDistance;
+                    }
                 } else {
                     prevDistance = (int) (genomPosition - curStart) + 1;
                 }
@@ -275,13 +286,21 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
                 final long curStop = exonEnds[i];
                 curDistance = (int) (curStop-genomPosition) + 1;
                 if(genomPosition <= curStop) {
-                    return Math.min(prevDistance, curDistance);
+                    //position is within an exon
+                    if(prevDistance < curDistance) {
+                        return positiveStrand ? prevDistance : -prevDistance;
+                    } else {
+                        return positiveStrand ? -curDistance : curDistance;
+                    }
                 } else {
                     prevDistance = (int) (genomPosition - curStop);
                 }
             }
 
-            return prevDistance; //out of exons. return genomPosition-curStop
+            throw new IllegalArgumentException("Genomic position: [" + genomPosition +"] not found within transcript: " + this +". " +
+                    "This method should not have been called for this position. NOTE: this method assumes that all transcripts start " +
+                    "with an exon and end with an exon (rather than an intron). Is this wrong?");
+            //return prevDistance; //out of exons. return genomPosition-curStop
         }
 
 
@@ -298,6 +317,66 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
             return rod.toString();
         }
 
+
+
+        /**
+         * Computes the coding coord of the 1st nucleotide in the transcript.
+         * If the 1st nucleotide is in the 5'utr, the returned value will be negative.
+         * Otherwise (if the 1st nucleotide is CDS), the returned value is 1.
+         */
+        public int computeInitialCodingCoord() {
+            if(!isProteinCodingTranscript()) {
+                throw new StingException("This method should only be called for protein-coding transcripts");
+            }
+
+            if(positiveStrand)
+            {
+                if( cdsStart == exonStarts[0] ) {
+                    //the 1st nucleotide of the transcript is CDS.
+                    return 1;
+                }
+
+                int result = 0;
+                for(int i = 0; i < exonStarts.length; i++)
+                {
+                    final long exonStart = exonStarts[i];
+                    final long exonEnd = exonEnds[i];
+                    if(cdsStart <= exonEnd) { //eg. exonEnd is now on the 3' side of cdsStart
+                        //this means cdsStart is within the current exon
+                        result += (cdsStart - exonStart) + 1;
+                        break;
+                    } else {
+                        //cdsStart is downstream of the current exon
+                        result += (exonEnd - exonStart) + 1;
+                    }
+                }
+                return -result; //negate because 5' UTR coding coord is negative
+            }
+            else //(negative strand)
+            {
+                final long cdsStart_5prime = cdsEnd;
+                if(cdsStart_5prime == exonEnds[exonEnds.length - 1]) {
+                    //the 1st nucleotide of the transcript is CDS.
+                    return 1;
+                }
+
+                int result = 0;
+                for(int i = exonEnds.length - 1; i >= 0; i--)
+                {
+                    final long exonStart = exonEnds[i]; //when its the negative strand, the 5' coord of the 1st exon is exonEnds[i]
+                    final long exonEnd = exonStarts[i];
+                    if( exonEnd <= cdsStart_5prime ) { //eg. exonEnd is now on the 3' side of cdsStart
+                        //this means cdsStart is within the current exon
+                        result += -(cdsStart_5prime - exonStart) + 1;
+                        break;
+                    } else {
+                        //cdsStart is downstream of the current exon
+                        result += -(exonEnd - exonStart) + 1;
+                    }
+                }
+                return -result; //negate because 5' UTR coding coord is negative
+            }
+        }
     }
 
 
@@ -362,7 +441,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
             return 0;
 
 
-        Collection<RODRecordList> rods = tracker.getBoundRodTracks();
+        final Collection<RODRecordList> rods = tracker.getBoundRodTracks();
         if(rods.size() == 0) {
             //if there's nothing overlapping this locus, skip it.
             return 0;
@@ -378,7 +457,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
                 throw new RuntimeException("The 'refgene' -B arg must have the type: 'AnnotatorInputTable'.");
             }
 
-            AnnotatorROD refGeneRod = (AnnotatorROD) refGeneRodObject;
+            final AnnotatorROD refGeneRod = (AnnotatorROD) refGeneRodObject;
             RefGeneTranscriptRecord parsedRefGeneRod = (RefGeneTranscriptRecord) refGeneRod.getTemporaryAttribute("parsedRefGeneRod");
             if( parsedRefGeneRod == null ) {
                 parsedRefGeneRod = new RefGeneTranscriptRecord(refGeneRod);
@@ -429,30 +508,30 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
 
         if(isProteinCodingTranscript && parsedRefGeneRod.cdsSequence.length() % 3 != 0) {
             System.err.println("WARNING: The following record has " + parsedRefGeneRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. Skipping... \n" + parsedRefGeneRod.toString());
-            //TODO figure out why all CDS lengths aren't in multiples of 3 nucleotides - Sarah says its ok to thow these out.
+            //discard transcripts where CDS length is not a multiple of 3
             return;
         }
 
 
-        //here, 5' and 3' are according to the DNA (not on the RNA)
-        int frame = 0; //the frame of the current position
-        int txOffset_from5 = 1; //goes from txStart 5' to txEnd 3' for both + and - strand
-        int proteinOffset_from5 = 1; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand
-        int codonOffset_from5 = 0; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand - counts the number of codons (this count is 1-based even though its set to 0 here.)
-
         char[] currentCodon_5to3 = null; //holds the current RNA codon - 5' to 3'
-
 
         final long txStart_5prime = positiveStrand ? parsedRefGeneRod.txStart : parsedRefGeneRod.txEnd; //1-based, inclusive
         final long txEnd_3prime = positiveStrand ? parsedRefGeneRod.txEnd : parsedRefGeneRod.txStart; //1-based, inclusive
-        final int increment_5to3 = positiveStrand ? 1 : -1;
+        final int increment_5to3 = positiveStrand ? 1 : -1; //whether to increment or decrement
         final int strandSign = increment_5to3; //alias
 
         final long cdsStart_5prime = positiveStrand ? parsedRefGeneRod.cdsStart : parsedRefGeneRod.cdsEnd; //1-based, inclusive
         final long cdsEnd_3prime = positiveStrand ? parsedRefGeneRod.cdsEnd : parsedRefGeneRod.cdsStart ; //1-based, inclusive
 
-        //compute chromosome key (later used to sort the output file)
+        int frame = 0; //the frame of the current position
+        int txOffset_from5 = 1; //goes from txStart 5' to txEnd 3' for both + and - strand
+        int codonCount_from5 = 0; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand - counts the number of codons (this count is 1-based even though its set to 0 here.)
+        int codingCoord_from5 = isProteinCodingTranscript ? parsedRefGeneRod.computeInitialCodingCoord() : 0; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand
+
+
         boolean mitochondrial = false;
+
+        //compute chromosome sort key (this becomes the 1st column in the file and is later used to sort the output file using the GNU command-line sort utility)
         long chromKey;
         final char lastChromChar = parsedRefGeneRod.txChrom.charAt(parsedRefGeneRod.txChrom.length() -1);
         switch( Character.toLowerCase(lastChromChar) ) {
@@ -474,6 +553,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
         chromKey++; //shift so there's no zero (otherwise, multiplication is screwed up in the next step)
         chromKey *= 100000000000L;
 
+        PositionType positionType = null;
 
         for(long txCoord_5to3 = txStart_5prime; txCoord_5to3 != txEnd_3prime + increment_5to3; txCoord_5to3 += increment_5to3)
         {
@@ -483,18 +563,28 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
             //whether the current txCoord_5to3 is within an exon
             final boolean isWithinExon = parsedRefGeneRod.isWithinExon(txCoord_5to3); //TODO if necessary, this can be sped up by keeping track of current exon/intron
 
+            final int distanceToNearestSpliceSite = parsedRefGeneRod.computeDistanceToNearestSpliceSite(txCoord_5to3);
+
             //figure out what region the current position is in.
-            PositionType positionType;
             if(isProteinCodingTranscript)
             {
                 if(isWithinExon)
                 {
-                    if( strandSign*(txCoord_5to3 - cdsStart_5prime) < 0 ) {
+                    //update positionType (and codingCoord_from5 if needed)
+                    if( strandSign*(txCoord_5to3 - cdsStart_5prime) < 0 ) {  //multiplying by strandSign is like doing absolute value.
                         positionType = PositionType.utr5;
-                    } else if( strandSign*(txCoord_5to3 - cdsEnd_3prime) > 0 ) {
-                        positionType = PositionType.utr3;
+                    } else if( strandSign*(txCoord_5to3 - cdsEnd_3prime) > 0 ) {  //multiplying by strandSign is like doing absolute value.
+                        if(positionType != PositionType.utr3) {
+                            //if we're transitioning from CDS to utr3, reset the coding coord to 1.
+                            codingCoord_from5 = 1; //reset the coding coord for utr3
+                            positionType = PositionType.utr3;
+                        }
                     } else {
-                        positionType = PositionType.CDS;
+                        if(positionType != PositionType.CDS) {
+                            //if we're transitioning from utr5 to CDS, reset the coding coord from -1 to 1.
+                            codingCoord_from5 = 1;
+                            positionType = PositionType.CDS;
+                        }
                     }
                 } else {
                     positionType = PositionType.intron;
@@ -514,11 +604,11 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
                     currentCodon_5to3 = new char[3];
                 }
 
-                codonOffset_from5++;
+                codonCount_from5++;
 
-                currentCodon_5to3[0] = parsedRefGeneRod.cdsSequence.charAt( proteinOffset_from5 - 1 ); //subtract 1 to go to zero-based coords
-                currentCodon_5to3[1] = parsedRefGeneRod.cdsSequence.charAt( proteinOffset_from5 );
-                currentCodon_5to3[2] = parsedRefGeneRod.cdsSequence.charAt( proteinOffset_from5 + 1);
+                currentCodon_5to3[0] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 - 1 ); //subtract 1 to go to zero-based coords
+                currentCodon_5to3[1] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 );
+                currentCodon_5to3[2] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 + 1);
 
                 if(!positiveStrand) {
                     currentCodon_5to3[0] = BaseUtils.simpleComplement(currentCodon_5to3[0]);
@@ -526,9 +616,6 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
                     currentCodon_5to3[2] = BaseUtils.simpleComplement(currentCodon_5to3[2]);
                 }
             }
-
-
-            final String distanceToSpliceSiteString = Integer.toString(parsedRefGeneRod.distanceToSpliceSite(txCoord_5to3));
 
             for(final char haplotypeAlternate : ALLELES )
             {
@@ -545,55 +632,104 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
 
                 outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
                 outputLineFields.put(OUTPUT_MRNA_COORD, Integer.toString(txOffset_from5) );
-                outputLineFields.put(OUTPUT_SPLICE_DISTANCE, distanceToSpliceSiteString );
+                outputLineFields.put(OUTPUT_SPLICE_DISTANCE, Integer.toString(distanceToNearestSpliceSite) );
+
+                //comppute OUTPUT_SPLICE_INFO
+                final String spliceInfoString;
+                if(Math.abs(distanceToNearestSpliceSite) <= 10) {
+                    if(distanceToNearestSpliceSite < 0) {
+                        //is on the 5' side of the splice junction
+                        if(isWithinExon) {
+                            spliceInfoString = "splice-donor " + distanceToNearestSpliceSite;
+                        } else {
+                            spliceInfoString = "splice-acceptor " + distanceToNearestSpliceSite;
+                        }
+                    } else {
+                        if(isWithinExon) {
+                            spliceInfoString = "splice-acceptor " + distanceToNearestSpliceSite;
+                        } else {
+                            spliceInfoString = "splice-donor " + distanceToNearestSpliceSite;
+                        }
+                    }
+                    outputLineFields.put(OUTPUT_SPLICE_INFO, spliceInfoString);
+                }
 
                 if(isProteinCodingTranscript)
                 {
                     outputLineFields.put(OUTPUT_IN_CODING_REGION, Boolean.toString(positionType == PositionType.CDS) );
 
-                    if(isWithinExon) {
-                        outputLineFields.put(OUTPUT_CODING_COORD, Integer.toString(proteinOffset_from5) );
-
-                        if(positionType == PositionType.CDS) {
+                    if(isWithinExon)
+                    {
+                        if(positionType == PositionType.utr5)
+                        {
+                            /*
+                            if(THIS IS A uORF)
+                            outputLineFields.put(OUTPUT_UORF_CHANGE, "TODO" ); //TODO put this here
+                            */
+                        }
+                        else if(positionType == PositionType.CDS)
+                        {
                             final String referenceCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
                             outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame) );
-                            outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonOffset_from5) );
-                            outputLineFields.put(OUTPUT_PROTEIN_COORD_STR, "p."+ Integer.toString(codonOffset_from5) );
-                            outputLineFields.put(OUTPUT_CODING_COORD_STR, "c."+ Integer.toString(proteinOffset_from5) );
+                            outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5) );
 
+                            final AminoAcid refAA = AminoAcidTable.getAA(referenceCodon, mitochondrial);
                             outputLineFields.put(OUTPUT_REFERENCE_CODON, referenceCodon );
-                            final String refAA = AminoAcidTable.getAA3LetterCode(referenceCodon, mitochondrial);
-                            outputLineFields.put(OUTPUT_REFERENCE_AA, refAA);
+                            outputLineFields.put(OUTPUT_REFERENCE_AA, refAA.getCode());
 
                             final char temp = currentCodon_5to3[frame];
                             currentCodon_5to3[frame] = haplotypeAlternate;
                             final String variantCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
-                            final String variantAA = AminoAcidTable.getAA3LetterCode(variantCodon, mitochondrial);
+                            final AminoAcid variantAA = AminoAcidTable.getAA(variantCodon, mitochondrial);
                             outputLineFields.put(OUTPUT_VARIANT_CODON, variantCodon );
-                            outputLineFields.put(OUTPUT_VARIANT_AA, variantAA);
+                            outputLineFields.put(OUTPUT_VARIANT_AA, variantAA.getCode());
+
+                            outputLineFields.put(OUTPUT_PROTEIN_COORD_STR, "p."+ refAA.getLetter() + Integer.toString(codonCount_from5) + variantAA.getLetter() ); //for example: "p.K76A"
 
                             currentCodon_5to3[frame] = temp;
 
-                            outputLineFields.put(OUTPUT_CHANGES_AMINO_ACID, Boolean.toString(!refAA.equals(variantAA)));
+                            outputLineFields.put(OUTPUT_CHANGES_AMINO_ACID, Boolean.toString(!refAA.getLetter().equals(variantAA.getLetter())));
                         }
                     }
+
+
+                    final StringBuilder codingCoordStr = new StringBuilder();
+                    codingCoordStr.append( mitochondrial ? "m." : "c." );
+                    if(positionType == PositionType.utr3) {
+                        codingCoordStr.append( '*' );
+                    }
+
+                    if(isWithinExon) {
+                        codingCoordStr.append( Integer.toString(codingCoord_from5) );
+                    } else {
+                        //intronic coordinates
+                        if(distanceToNearestSpliceSite < 0) {
+                            codingCoordStr.append( Integer.toString(codingCoord_from5 + 1) );
+                        } else {
+                            codingCoordStr.append( Integer.toString(codingCoord_from5 ) );
+                        }
+                        codingCoordStr.append( Integer.toString( distanceToNearestSpliceSite ) );
+                    }
+                    codingCoordStr.append( haplotypeReference + ">" + haplotypeAlternate);
+                    outputLineFields.put(OUTPUT_CODING_COORD_STR,  codingCoordStr.toString() );
+
                 }
 
 
                 //write out the record
-                StringBuilder outputLine = new StringBuilder();
-                for( String column : OUTPUT_COLUMN_NAMES) {
+                final StringBuilder outputLine = new StringBuilder();
+                for( final String column : OUTPUT_COLUMN_NAMES ) {
                     if(outputLine.length() != 0) {
-                        outputLine.append(AnnotatorROD.DELIMITER);
+                        outputLine.append( AnnotatorROD.DELIMITER );
                     }
-                    String value = outputLineFields.get(column);
+                    final String value = outputLineFields.get(column);
                     outputLine.append(value != null ? value : "");
                 }
 
                 outputStream.println(outputLine);
 
                 if( !isProteinCodingTranscript ) {
-                    //need only one record for this position, instead of 4 (one for each allele)
+                    //need only one record for this position with "*" for haplotypeAlternate, instead of the 4 individual alleles
                     break;
                 }
 
@@ -603,11 +739,12 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
             txOffset_from5++;
 
             if(positionType == PositionType.CDS) {
-                proteinOffset_from5++;
                 frame = (frame + 1) % 3;
             }
 
-
+            if(isWithinExon) {
+                codingCoord_from5++;
+            }
 
         } // l for-loop
 
