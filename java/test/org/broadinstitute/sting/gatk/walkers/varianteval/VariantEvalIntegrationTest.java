@@ -13,13 +13,14 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     private static String root = cmdRoot +
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
-            " -B eval,VCF," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
+            " -B eval,VCF," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
+            " -B comp_genotypes,VCF," + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
 
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "bb96e002225df21a84ba7c72613cc67a");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "7427803b4121665e130c76191f862231");
+        expectations.put("-L 1:1-10,000,000", "b28ffcff420177d9b73aa726e260fb34");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "749d53687497d7939713e9ce586642a4");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -39,10 +40,11 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B dbsnp_130,dbSNP," + GATKDataLocation + "dbsnp_130_b36.rod" +
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
-        String matchingMD5 = "920940d4006d5d140183f3ba35cafe00";
+
+        String matchingMD5 = "3abf37ada16619f4b3f39cb7ecad497f";
         expectations.put("", matchingMD5);
         expectations.put(" -known comp_hapmap -known dbsnp", matchingMD5);
-        expectations.put(" -known comp_hapmap", "ae9ab5a1556e773b3b1ba80453b14eda");
+        expectations.put(" -known comp_hapmap", "75026dbdad38f74ac697a7c102e64db4");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs2 = entry.getKey();
@@ -60,7 +62,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("40fca380c2e768cfff5febefc4a73aa0", "a3ce1d70d8ae3874807e9d61994d42af"));
+                Arrays.asList("06cdbe7f94990dfe61b5e3ec03b49151", "b4a42c90318adc88361691ece50426f2"));
         executeTest("testVEWriteVCF", spec);
     }
 }

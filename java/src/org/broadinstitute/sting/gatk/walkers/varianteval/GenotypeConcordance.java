@@ -11,15 +11,31 @@ import org.apache.log4j.Logger;
 
 import java.util.*;
 
-/**
- * The Broad Institute
- * SOFTWARE COPYRIGHT NOTICE AGREEMENT
- * This software and its documentation are copyright 2009 by the
- * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- * <p/>
- * This software is supplied without any warranty or guaranteed support whatsoever. Neither
- * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
+/*
+ * Copyright (c) 2010 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 @Analysis(name = "Genotype Concordance", description = "Determine the genotype concordance between the genotypes in difference tracks")
 public class GenotypeConcordance extends VariantEvaluator {
     protected final static Logger logger = Logger.getLogger(GenotypeConcordance.class);
@@ -31,6 +47,11 @@ public class GenotypeConcordance extends VariantEvaluator {
     // a mapping from sample to stats
     @DataPoint(name="samples", description = "the concordance statistics for each sample")
     SampleStats sampleStats = null;
+
+    // a mapping from sample to stats summary
+    @DataPoint(name="summary", description = "the concordance statistics summary for each sample")
+    SampleSummaryStats sampleSummaryStats = null;
+
 
     // two histograms of variant quality scores, for true positive and false positive calls
     @DataPoint(description = "the variant quality score histograms for true positive and false positive calls")
@@ -250,6 +271,7 @@ public class GenotypeConcordance extends VariantEvaluator {
             if (eval != null) {
                 // initialize the concordance table
                 sampleStats = new SampleStats(eval,Genotype.Type.values().length);
+                sampleSummaryStats = new SampleSummaryStats(eval);
                 for (final VariantContext vc : missedValidationData) {
                     determineStats(null, vc);
                 }
@@ -341,6 +363,10 @@ public class GenotypeConcordance extends VariantEvaluator {
         if( qualityScoreHistograms != null ) {
             qualityScoreHistograms.organizeHistogramTables();
         }
+
+        if( sampleSummaryStats != null && sampleStats != null ) {
+            sampleSummaryStats.generateSampleSummaryStats( sampleStats );
+        }
     }
 }
 
@@ -351,7 +377,7 @@ class SampleStats implements TableType {
     private final int nGenotypeTypes;
 
     // sample to concordance stats object
-    private HashMap<String, long[][]> concordanceStats = new HashMap<String, long[][]>();
+    public final HashMap<String, long[][]> concordanceStats = new HashMap<String, long[][]>();
 
     /**
      *
@@ -379,12 +405,12 @@ class SampleStats implements TableType {
      * @return a list of objects, in this case strings, that are the column names
      */
     public Object[] getColumnKeys() {
-        return new String[]{"total_true_ref","n_ref/ref","%_ref/ref",
-                            "n_ref/no-call","n_ref/het","n_ref/hom",
-                            "total_true_het","n_het/het","%_het/het",
-                            "n_het/no-call","n_het/ref","n_het/hom",
-                            "total_true_hom","n_hom/hom","%_hom/hom",
-                            "n_hom/no-call","n_hom/ref","n_hom/het"};
+        return new String[]{"total_true_ref","%_ref/ref","n_ref/no-call",
+                            "n_ref/ref","n_ref/het","n_ref/hom",
+                            "total_true_het","%_het/het","n_het/no-call",
+                            "n_het/ref","n_het/het","n_het/hom",
+                            "total_true_hom","%_hom/hom","n_hom/no-call",
+                            "n_hom/ref","n_hom/het","n_hom/hom"};
     }
 
     public SampleStats(VariantContext vc, int nGenotypeTypes) {
@@ -399,23 +425,129 @@ class SampleStats implements TableType {
         // save some repeat work, get the total every time
         long total = 0;
         Object[] rowKeys = getRowKeys();
-        for (int called = 0; called < nGenotypeTypes; called++)
+        for (int called = 0; called < nGenotypeTypes; called++) {
             total += concordanceStats.get(rowKeys[x])[type.ordinal()][called];
+        }
 
         // now get the cell they're interested in
         switch (y % 6) {
             case (0): // get the total_true for this type
                 return total;
             case (1):
-                return concordanceStats.get(rowKeys[x])[type.ordinal()][type.ordinal()];
-            case (2):
                 return total == 0 ? 0.0 : (100.0 * (double) concordanceStats.get(rowKeys[x])[type.ordinal()][type.ordinal()] / (double) total);
             default:
-                return concordanceStats.get(rowKeys[x])[type.ordinal()][(y % 6) - 3];
+                return concordanceStats.get(rowKeys[x])[type.ordinal()][(y % 6) - 2];
         }
     }
 
     public String getName() {
         return "Sample Statistics";
+    }
+}
+
+/**
+ * a table of sample names to genotype concordance summary statistics
+ */
+class SampleSummaryStats implements TableType {
+
+    // sample to concordance stats object
+    private final HashMap<String, double[]> concordanceSummary = new HashMap<String, double[]>();
+
+    /**
+     *
+     * @return one row per sample
+     */
+    public Object[] getRowKeys() {
+        return concordanceSummary.keySet().toArray(new String[concordanceSummary.size()]);
+    }
+
+    /**
+     * get the column keys
+     * @return a list of objects, in this case strings, that are the column names
+     */
+    public Object[] getColumnKeys() {
+        return new String[]{"%het_called_het","%hom_called_hom","%nonref_called_nonref","calledGenotypeConcordance","calledNonRefConcordance"};
+    }
+
+    public SampleSummaryStats(final VariantContext vc) {
+        for( final String sample : vc.getSampleNames() ) {
+            concordanceSummary.put(sample, new double[5]); // There are five summary values to report out
+        }
+    }
+
+    public Object getCell(int x, int y) {
+        final Object[] rowKeys = getRowKeys();
+        return String.format("%.3f",concordanceSummary.get(rowKeys[x])[y]);
+    }
+
+    /**
+     * Calculate the five summary stats per sample
+     * @param sampleStats The Map which holds concordance values per sample
+     */
+    public void generateSampleSummaryStats( final SampleStats sampleStats ) {
+        for( final String sample : concordanceSummary.keySet() ) {
+            final long[][] stats = sampleStats.concordanceStats.get(sample);
+            final double[] summary = concordanceSummary.get(sample);
+            if( stats == null ) { throw new StingException( "SampleStats and SampleSummaryStats contain different samples! sample = " + sample ); }
+
+            long numer, denom;
+
+            // Summary 0: % het called as het
+            numer = stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
+            denom = 0L;
+            for(final Genotype.Type type : Genotype.Type.values()) {
+                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
+            }
+            summary[0] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+
+            // Summary 1: % homVar called as homVar
+            numer = stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
+            denom = 0L;
+            for(final Genotype.Type type : Genotype.Type.values()) {
+                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
+            }
+            summary[1] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+
+            // Summary 2: % non-ref called as non-ref
+            numer = 0L;
+            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
+            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HET.ordinal()];
+            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
+            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
+            denom = 0L;
+            for(final Genotype.Type type : Genotype.Type.values()) {
+                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
+                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
+            }
+            summary[2] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+
+            // Summary 3: genotype concordance of sites called in eval track
+            numer = 0L;
+            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
+            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
+            numer += stats[Genotype.Type.HOM_REF.ordinal()][Genotype.Type.HOM_REF.ordinal()];
+            denom = 0L;
+            for(final Genotype.Type type : new Genotype.Type[]{Genotype.Type.HOM_VAR, Genotype.Type.HET, Genotype.Type.HOM_REF} ) { // excluding no calls here
+                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
+                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
+                denom += stats[Genotype.Type.HOM_REF.ordinal()][type.ordinal()];
+            }
+            summary[3] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+
+            // Summary 4: genotype concordance of sites called non-ref in eval track
+            numer = 0L;
+            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
+            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
+            denom = 0L;
+            for(final Genotype.Type type : new Genotype.Type[]{Genotype.Type.HOM_VAR, Genotype.Type.HET, Genotype.Type.HOM_REF} ) { // excluding no calls here
+                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
+                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
+            }
+            summary[4] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+        }
+    }
+
+    public String getName() {
+        return "Sample Summary Statistics";
     }
 }
