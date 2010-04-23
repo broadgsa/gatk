@@ -285,7 +285,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
         else if ( readLoc.overlapsP(currentInterval) ) {
             if ( read.getReadUnmappedFlag() ||
-                 read.getDuplicateReadFlag() ||
                  read.getNotPrimaryAlignmentFlag() ||
                  read.getMappingQuality() == 0 ||
                  read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
@@ -483,6 +482,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // if this doesn't match perfectly to the reference, let's try to clean it
             if ( rawMismatchScore > 0 ) {
                 altReads.add(aRead);
+                //logger.debug("Adding " + aRead.getRead().getReadName() + " with raw mismatch score " + rawMismatchScore + " to non-ref reads");
                 if ( !read.getDuplicateReadFlag() )
                     totalRawMismatchSum += rawMismatchScore;
                 aRead.setMismatchScoreToReference(rawMismatchScore);
@@ -502,6 +502,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // otherwise, we can emit it as is
             else {
                 // if ( debugOn ) System.out.println("Emitting as is...");
+                //logger.debug("Adding " + aRead.getRead().getReadName() + " with raw mismatch score " + rawMismatchScore + " to ref reads");
                 refReads.add(read);
             }
         }
@@ -540,6 +541,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         while ( iter.hasNext() ) {
             Consensus consensus = iter.next();
+            //logger.debug("Trying new consensus: " + AlignmentUtils.cigarToString(consensus.cigar) + " " + new String(consensus.str));
 
 //            if ( DEBUG ) {
 //                System.out.println("Checking consensus with alignment at "+consensus.positionOnReference+" cigar "+consensus.cigar);
@@ -567,7 +569,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 else
                     consensus.readIndexes.add(new Pair<Integer, Integer>(j, altAlignment.first));
 
-                //logger.debug(consensus.str +  " vs. " + toTest.getRead().getReadString() + " => " + myScore + " - " + altAlignment.first);
+                //logger.debug(AlignmentUtils.cigarToString(consensus.cigar) +  " vs. " + toTest.getRead().getReadName() + "-" + toTest.getRead().getReadString() + " => " + myScore + " vs. " + altAlignment.first);
                 if ( !toTest.getRead().getDuplicateReadFlag() )
                     consensus.mismatchSum += myScore;
 
@@ -577,13 +579,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     break;
             }
 
-            //logger.debug(consensus.str +  " " + consensus.mismatchSum);
+            //logger.debug("Mismatch sum of new consensus: " + consensus.mismatchSum);
             if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
                 // we do not need this alt consensus, release memory right away!!
                 if ( bestConsensus != null )
                     bestConsensus.readIndexes.clear();
                 bestConsensus = consensus;
-                //logger.debug(consensus.str +  " " + consensus.mismatchSum);
+                //logger.debug("New consensus " + AlignmentUtils.cigarToString(bestConsensus.cigar) +  " is now best consensus");
             } else {
                 // we do not need this alt consensus, release memory right away!!
                 consensus.readIndexes.clear();
