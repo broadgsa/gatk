@@ -142,6 +142,11 @@ public class GeliAdapter implements GeliGenotypeWriter {
                 if ( maxMappingQual < p.getMappingQual() )
                     maxMappingQual = p.getMappingQual();
             }
+        } else {
+            if (genotype.hasAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY))
+                readCount = genotype.getAttributeAsInt(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY);
+            if (genotype.hasAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY))
+                maxMappingQual = Double.valueOf(genotype.getAttributeAsInt(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY));
         }
 
         LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);

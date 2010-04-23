@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import edu.mit.broad.picard.genotype.DiploidGenotype;
+import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
@@ -46,7 +48,8 @@ public class VariantContextAdaptors {
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
         adaptors.put(HapMapROD.class, new HapMapAdaptor());
         adaptors.put(RodGLF.class, new GLFAdaptor());
-        adaptors.put(RodGeliText.class, new GeliAdaptor());
+        adaptors.put(RodGeliText.class, new GeliTextAdaptor());
+        adaptors.put(rodGELI.class, new GeliAdaptor());
     }
 
     public static boolean canBeConvertedToVariantContext(Object variantContainingObject) {
@@ -593,7 +596,7 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private static class GeliAdaptor extends VCAdaptor {
+    private static class GeliTextAdaptor extends VCAdaptor {
           /**
          * convert to a Variant Context, given:
          * @param name the name of the ROD
@@ -649,6 +652,79 @@ public class VariantContextAdaptors {
                 return vc;
             } else
                 return null; // can't handle anything else
+        }
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // GELI to VariantContext
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    private static class GeliAdaptor extends VCAdaptor {
+          /**
+         * convert to a Variant Context, given:
+         * @param name the name of the ROD
+         * @param input the Rod object, in this case a RodGeliText
+         * @return a VariantContext object
+         */
+        VariantContext convert(String name, Object input) {
+            return convert(name, input, null);
+        }
+
+        /**
+         * convert to a Variant Context, given:
+         * @param name  the name of the ROD
+         * @param input the Rod object, in this case a RodGeliText
+         * @param ref   the reference context
+         * @return a VariantContext object
+         */
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
+            GenotypeLikelihoods geli = ((rodGELI)input).getGeliRecord();
+            if ( ! Allele.acceptableAlleleBases(String.valueOf((char)geli.getReferenceBase())) )
+                return null;
+            Allele refAllele = new Allele(String.valueOf((char)geli.getReferenceBase()), true);
+
+            // add the reference allele
+            List<Allele> alleles = new ArrayList<Allele>();
+            alleles.add(refAllele);
+
+            // add the two alt alleles
+            if (!Allele.acceptableAlleleBases(String.valueOf((char) geli.getBestGenotype().getAllele1()))) {
+                return null;
+            }
+            Allele allele1 = new Allele(String.valueOf((char) geli.getBestGenotype().getAllele1()), false);
+            if (!alleles.contains(allele1) && !allele1.equals(refAllele, true)) alleles.add(allele1);
+
+            // add the two alt alleles
+            if (!Allele.acceptableAlleleBases(String.valueOf((char) geli.getBestGenotype().getAllele2()))) {
+                return null;
+            }
+            Allele allele2 = new Allele(String.valueOf((char) geli.getBestGenotype().getAllele2()), false);
+            if (!alleles.contains(allele2) && !allele2.equals(refAllele, true)) alleles.add(allele2);
+
+
+            Map<String, String> attributes = new HashMap<String, String>();
+            Collection<Genotype> genotypes = new ArrayList<Genotype>();
+            MutableGenotype call = new MutableGenotype(name, alleles);
+
+            // setup the genotype likelihoods
+            double[] post = new double[10];
+            String[] gTypes = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT"};
+            for (int x = 0; x < 10; x++)
+                post[x] = Double.valueOf(geli.getLikelihood(DiploidGenotype.fromBases((byte) gTypes[x].charAt(0), (byte) gTypes[x].charAt(1))));
+
+            // set the likelihoods, depth, and RMS mapping quality values
+            call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY, post);
+            call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY, (int) geli.getMaxMappingQuality());
+            call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY, geli.getNumReads());
+
+            // add the call to the genotype list, and then use this list to create a VariantContext
+            genotypes.add(call);
+            VariantContext vc = new VariantContext(name, ((rodGELI) input).getLocation(), alleles, genotypes, geli.getBestToReferenceLod(), null, attributes);
+            vc.validate();
+            return vc;
+
         }
     }
 

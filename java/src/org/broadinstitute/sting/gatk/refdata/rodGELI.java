@@ -36,7 +36,11 @@ public class rodGELI extends BasicReferenceOrderedDatum {
 		return GenomeLocParser.createGenomeLoc(gh.getSequenceIndex(), gh.getPosition());
 	}
 
-	/** Required by ReferenceOrderedDatum interface. This implementation provides its own iterator,
+    public GenotypeLikelihoods getGeliRecord() {
+        return gh;
+    }
+
+    /** Required by ReferenceOrderedDatum interface. This implementation provides its own iterator,
 	 * so this method does nothing at all (always returns false).
 	 *
 	 */
