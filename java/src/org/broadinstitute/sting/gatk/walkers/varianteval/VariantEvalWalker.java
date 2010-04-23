@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
+import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
@@ -48,6 +49,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -163,6 +165,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="reportType", fullName="reportType", doc="If provided, set the template type", required=false)
     protected VE2ReportFactory.VE2TemplateType reportType = VE2ReportFactory.defaultReportFormat;
 
+    @Argument(shortName="reportLocation", fullName="reportLocation", doc="If provided, set the base file for reports (Required for output formats with more than one file per analysis)", required=false)
+    protected File outputLocation = null;
 
     Set<String> rsIDsToExclude = null;
 
@@ -248,6 +252,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        ReportFormat.AcceptableOutputType type = (outputLocation == null) ? ReportFormat.AcceptableOutputType.STREAM : ReportFormat.AcceptableOutputType.FILE;
+        if (!VE2ReportFactory.isCompatibleWithOutputType(type,reportType))
+            throw new StingException("The report format requested is not compatible with your output location.  You specified a " + type + " output type which isn't an option for " + reportType);
         if ( LIST )
             listModulesAndExit();
 
@@ -289,8 +296,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     private void listModulesAndExit() {
         List<Class<? extends VariantEvaluator>> veClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
         out.println("\nAvailable eval modules:");
-        for (int i = 0; i < veClasses.size(); i++)
-            out.println("\t" + veClasses.get(i).getSimpleName());
+        for (Class<? extends VariantEvaluator> veClass : veClasses) out.println("\t" + veClass.getSimpleName());
         out.println();
         System.exit(0);
     }
@@ -643,7 +649,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        ReportMarshaller marshaller = VE2ReportFactory.createMarhsaller(out,reportType,createExtraOutputTags());
+        // our report mashaller
+        ReportMarshaller marshaller;
+
+        // create the report marshaller early, so that we can fail-fast if something is wrong with the output sources
+        if (outputLocation == null)
+            marshaller = VE2ReportFactory.createMarhsaller(new OutputStreamWriter(out), reportType, createExtraOutputTags());
+        else
+            marshaller = VE2ReportFactory.createMarhsaller(outputLocation, reportType, createExtraOutputTags());
         for ( String evalName : variantEvaluationNames ) {
             for ( EvaluationContext group : contexts ) {
                 VariantEvaluator eval = getEvalByName(evalName, group.evaluations);
@@ -662,7 +675,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
      * @return a list of nodes to attach to the report as tags
      */
     private List<Node> createExtraOutputTags() {
-        List<Node> list = new ArrayList();
+        List<Node> list = new ArrayList<Node>();
         list.add(new Node("reference file",getToolkit().getArguments().referenceFile.getName(),"The reference sequence file"));
         for (String binding : getToolkit().getArguments().RODBindings)
             list.add(new Node("ROD binding",binding,"The reference sequence file"));

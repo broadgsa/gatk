@@ -47,21 +47,18 @@ public class ReportMarshaller {
 
     // the aggregation of all our analyses
     private Node root;
-    private Writer writeLocation;
-
+    private File outputFileLocation;
+    private Writer outputWriter;
     /**
      * create a marshaled object
      *
      * @param reportName the report name
      * @param template   the template to use
      */
-    public ReportMarshaller(String reportName, File filename, ReportFormat template) {
-        try {
-            init(reportName, new OutputStreamWriter(new FileOutputStream(filename)));
-        } catch (FileNotFoundException e) {
-            throw new StingException("Unable to create Writer from file " + filename,e);
-        }
+    public ReportMarshaller(String reportName, File filename, ReportFormat template, List<Node> reportTags) {
         temp = template;
+        this.outputFileLocation = filename;
+        createRootNode(reportName, reportTags);
     }
 
     /**
@@ -70,37 +67,23 @@ public class ReportMarshaller {
      * @param reportName the report name
      */
     public ReportMarshaller(String reportName, Writer writer, ReportFormat template, List<Node> reportTags) {
-        init(reportName, writer);
+        this.outputWriter = writer;
         temp = template;
-        for (Node n : reportTags) {
-            n.setTag();
-            root.addChild(n);
-        }
+        createRootNode(reportName, reportTags);
     }
 
     /**
-     * create a marshaled object
-     *
+     * create the root node
      * @param reportName the report name
+     * @param reportTags the report type
      */
-    public ReportMarshaller(String reportName, OutputStream writer, ReportFormat template, List<Node> reportTags) {
-        init(reportName, new PrintWriter(writer));
-        temp = template;
-        for (Node n : reportTags) {
-            n.setTag();
-            root.addChild(n);
-        }
-    }
-
-    /**
-     * initialize the ReportMarshaller
-     * @param reportName the report name
-     * @param writer the output writer
-     */
-    private void init(String reportName, Writer writer) {
+    private void createRootNode(String reportName, List<Node> reportTags) {
         root = new Node("report", reportName, DateFormat.getDateTimeInstance().format(new Date()));
         root.addChild(new Node("title", reportName, "title of the report"));
-        this.writeLocation = writer;
+        for (Node n : reportTags) {
+            n.setTag();
+            root.addChild(n);
+        }
     }
 
     /**
@@ -190,13 +173,9 @@ public class ReportMarshaller {
      * call the method to finalize the report
      */
     public void close() {
-        try {
-            temp.write(writeLocation, root);
-            writeLocation.flush();
-            writeLocation.close();
-        } catch (IOException e) {
-            throw new StingException("IO exception", e);
-        }
+        if (outputFileLocation != null) temp.write(outputFileLocation, root);
+        else temp.write(outputWriter, root);
+        temp.close();
     }
 
     /**

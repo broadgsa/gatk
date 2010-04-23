@@ -36,7 +36,8 @@ package org.broadinstitute.sting.playground.utils.report.templates;
  */
 public class TableFormat extends TableBasedFormat {
     private static final int COLUMN_WIDTH = 25;
-        
+    private static final String TBL = "tbl";
+
     /**
      * format the string according to our internal rules
      *
@@ -49,13 +50,43 @@ public class TableFormat extends TableBasedFormat {
     }
 
     /**
-     * does the output format want to display line breaks (dotted lines)?
+     * should we add readability marks?
      *
-     * @return true if the format uses them
+     * @return true if we should (line breaks, etc)
      */
     @Override
-    public boolean displayDashedLineBreaks() {
+    public boolean addReadabilityMarks() {
         return true;
+    }
+
+    /**
+     * a string to prepend for header lines
+     *
+     * @return a string, blank if no string to be appended
+     */
+    @Override
+    public String headerIndicator() {
+        return "";
+    }
+
+    /**
+     * should we split the seperate files by analysis
+     *
+     * @return
+     */
+    @Override
+    public boolean splitFilesByAnalysis() {
+        return false;
+    }
+
+    /**
+     * what extension do we want our files to have
+     *
+     * @return a string of the extension
+     */
+    @Override
+    public String extension() {
+        return TBL;
     }
 }
 

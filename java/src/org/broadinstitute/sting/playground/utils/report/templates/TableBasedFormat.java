@@ -1,13 +1,10 @@
 package org.broadinstitute.sting.playground.utils.report.templates;
 
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
+import org.broadinstitute.sting.utils.StingException;
 
-import java.io.PrintWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 
 /**
  * an abstract class to share the basics of a table based format; many methods
@@ -16,11 +13,42 @@ import java.util.Map;
 public abstract class TableBasedFormat implements ReportFormat {
     private Map<String, List<Node>> analyses = new HashMap<String, List<Node>>();
     private PrintWriter stream;
-    
+    private File baseLocation;
+
+    /**
+     * write the base node to the specified writer
+     * @param writeTo the file base to write to
+     * @param baseNode the root node
+     */
     @Override
-    public void write(Writer writeTo, Node baseNode) {
+    public void write(File writeTo, Node baseNode) {
+        baseLocation = writeTo;
+
+        // if there is only a single output file, create it
+        if (!splitFilesByAnalysis()) newStream("");
+
+        traverseAnalysisNodes(baseNode);
+    }
+
+    /**
+     * write the base node to the specified writer
+     * @param writeLocation the writer to write to
+     * @param baseNode the root node
+     */
+    public void write(Writer writeLocation, Node baseNode) {
+        if (splitFilesByAnalysis()) throw new StingException("Unable to write output report, we require a file input for multi-file formats");
+        // if there is only a single output file, create it
+        stream = new PrintWriter(writeLocation);
+        traverseAnalysisNodes(baseNode);
+        stream.flush();
+    }
+
+    /**
+     * traverse the analysis nodes, outputting to our stream
+     * @param baseNode the base (root) node, with analysis nodes as children
+     */
+    private void traverseAnalysisNodes(Node baseNode) {
         getAnalyses(baseNode);
-        stream = new PrintWriter(writeTo);
         for (String s : analyses.keySet()) {
             writeAnalysis(analyses.get(s));
             outputTables(analyses.get(s));
@@ -47,24 +75,24 @@ public abstract class TableBasedFormat implements ReportFormat {
     private void writeAnalysis(List<Node> nodes) {
         if (nodes.size() < 1 || !nodes.get(0).getName().equals("analysis")) return;
         Node forTitle = nodes.get(0);
-        stream.println(niceDivider(80));
-        stream.println("Analysis Name:         \t" + forTitle.getValue());
-        stream.println("Analysis Description:  \t" + forTitle.getDescription());
-        stream.println();
+        newStream(forTitle.getValue());
+        stream.println(headerIndicator() + "Analysis Name:         \t" + forTitle.getValue());
+        stream.println(headerIndicator() + "Analysis Description:  \t" + forTitle.getDescription());
+        if (addReadabilityMarks()) stream.println();
 
         String header = extractHeaderString(forTitle);
         if (header == null) return; // a null here indicates we don't have any unique columns to display
-        stream.println(header);
-        stream.println(niceDivider(header.length()));
+        stream.println(trimLastChar(header));
+        if (addReadabilityMarks()) stream.println(niceDivider(header.length()));
 
         for (Node analysis : nodes) {
             String dataString = dataPointNodesToValues(analysis);
             if (dataString.length() > 0 && !dataString.equals("<null>")) {
                 stream.print(getTagValues(analysis));
-                stream.println(dataString);
+                stream.println(trimLastChar(dataString));
             }
         }
-        stream.println();
+        if (addReadabilityMarks()) stream.println();
         stream.println();
 
     }
@@ -104,15 +132,19 @@ public abstract class TableBasedFormat implements ReportFormat {
 
         // output the tables
         for (String tableName : tableHeaders.keySet()) {
-            stream.println("Table Name : " + tableName);
-            stream.println();
-            stream.println(tableHeaders.get(tableName));
-            stream.println(niceDivider(tableHeaders.get(tableName).length()));
+            newStream(tableName);
+            stream.println(headerIndicator() + "Table Name : " + tableName);
+            stream.println(trimLastChar(tableHeaders.get(tableName)));
+            if (addReadabilityMarks()) stream.println(niceDivider(tableHeaders.get(tableName).length()));
             List<String> rows = tableRows.get(tableName);
             for (String row : rows)
-                stream.println(row);
-            stream.println();
+                stream.println(trimLastChar(row));            
+            if (addReadabilityMarks()) stream.println();
         }
+    }
+
+    public String trimLastChar(String toTrim) {
+        return toTrim.substring(0,toTrim.length()-1);
     }
 
     /**
@@ -186,17 +218,48 @@ public abstract class TableBasedFormat implements ReportFormat {
     }
 
     /**
+     * this function checks whether we need to create a new stream for the specified analysis
+     */
+    public void newStream(String analysisOrTableName) {
+        String name = analysisOrTableName.replaceAll("\\s+","_").replaceAll("\\/","_slash_");
+        if (stream == null || splitFilesByAnalysis()) {
+            if (stream != null) stream.close();
+            try {
+                stream = new PrintWriter(this.baseLocation + "." + name + this.extension());
+            } catch (FileNotFoundException e) {
+                throw new StingException("Unable to create Report file at location " + this.baseLocation + "." + name + this.extension(), e);
+            }
+        }
+    }
+
+    /**
+     * return the valid outputs we support
+     * @return
+     */
+    public EnumSet<AcceptableOutputType> getAcceptableOutputTypes() {
+        EnumSet<AcceptableOutputType> set =  EnumSet.of(AcceptableOutputType.FILE); // always acceptable
+        if (!splitFilesByAnalysis()) set.add(AcceptableOutputType.STREAM);
+        return set;
+    }
+
+    /**
      * create a correct-length divider string
      * @param length the length for the divider
      * @return a string with the divider text of length "length"
      */
     private String niceDivider(int length) {
-        if (!displayDashedLineBreaks()) return "";
         StringBuilder builder = new StringBuilder();
         for (int x = 0; x < length; x++) builder.append("-");
         return builder.toString();
     }
 
+    /**
+     * close the output file, if open
+     */
+    public void close() {
+        if (stream != null) stream.close();
+    }
+    
     /**
      * format the string according to our internal rules
      * @param str the string to format
@@ -205,8 +268,27 @@ public abstract class TableBasedFormat implements ReportFormat {
     public abstract String formatColumn(String str);
 
     /**
-     * does the output format want to display line breaks (dotted lines)?
-     * @return true if the format uses them
+     * should we add readability marks?
+     * @return true if we should (line breaks, etc)
      */
-    public abstract boolean displayDashedLineBreaks();
+    public abstract boolean addReadabilityMarks();
+
+
+    /**
+     * a string to prepend for header lines
+     * @return a string, blank if no string to be appended
+     */
+    public abstract String headerIndicator();
+
+    /**
+     * should we split the separate files by analysis
+     * @return
+     */
+    public abstract boolean splitFilesByAnalysis();
+
+    /**
+     * what extension do we want our files to have
+     * @return a string of the extension
+     */
+    public abstract String extension();
 }

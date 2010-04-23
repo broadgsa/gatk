@@ -1,9 +1,13 @@
 package org.broadinstitute.sting.playground.utils.report.templates;
 
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
+import org.broadinstitute.sting.utils.StingException;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.util.EnumSet;
 
 
 /**
@@ -19,12 +23,36 @@ public class GrepFormat implements ReportFormat {
 
     /**
      * write out to the writer, given the root node
-     * @param baseFile the writer to write to
+     * @param baseFile the file to write to
+     * @param baseNode the root node
+     */
+    @Override
+    public void write(File baseFile, Node baseNode) {
+        try {
+            stream = new PrintWriter(baseFile);
+        } catch (FileNotFoundException e) {
+            throw new StingException("Unable to write to file " + baseFile, e);
+        }
+        privateWrite(baseNode);
+    }
+
+    /**
+     * write out to the writer, given the root node
+     *
+     * @param baseFile the file to write to
      * @param baseNode the root node
      */
     @Override
     public void write(Writer baseFile, Node baseNode) {
         stream = new PrintWriter(baseFile);
+        privateWrite(baseNode);
+    }
+
+    /**
+     * write out the node
+     * @param baseNode the base (root) node
+     */
+    private void privateWrite(Node baseNode) {
         for (Node analysis : baseNode.getChildren()) {
             StringBuilder builder = new StringBuilder();
             boolean first = true;
@@ -54,5 +82,20 @@ public class GrepFormat implements ReportFormat {
             for (Node child : n.getChildren())
                 recursiveTraverse(child,value + ".[" + nString + "]");
         }
+    }
+
+    @Override
+    public void close() {
+        stream.close();
+    }
+
+    /**
+     * return the valid outputs we support
+     * @return
+     */
+    public EnumSet<AcceptableOutputType> getAcceptableOutputTypes() {
+        EnumSet<AcceptableOutputType> set =  EnumSet.of(AcceptableOutputType.FILE); // always acceptable
+        set.add(AcceptableOutputType.STREAM);
+        return set;
     }
 }
