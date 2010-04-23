@@ -716,11 +716,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 break;
             case I:
                 for (int j = 0; j < elementLength; j++) {
-                   if ( ! BaseUtils.isRegularBase(readStr[altIdx+j]) ) {
-                       // Insertions with N's in them cause real problems sometimes; it's better to drop them altogether
-                       ok_flag=false;
-                       break;
-                   }
+                    if ( ! BaseUtils.isRegularBase(readStr[altIdx+j]) ) {
+                        // Insertions with N's in them cause real problems sometimes; it's better to drop them altogether
+                        ok_flag=false;
+                        break;
+                    }
                     sb.append((char)readStr[altIdx + j]);
                 }
                 altIdx += elementLength;
@@ -759,7 +759,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             cigar.add(new CigarElement(indelStr.length, CigarOperator.D));
         }
         else {
-            sb.append(indelStr);
+            for ( byte b : indelStr )
+                sb.append((char)b);
             cigar.add(new CigarElement(indelStr.length, CigarOperator.I));
         }
 
