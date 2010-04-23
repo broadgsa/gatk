@@ -191,7 +191,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
         // our input and output files
         File knownFile = new File(validationDataLocation + "large_test_geli_binary.geli");         // our known good geli
         File tempFile = new File("temp_binary.geli");                                                      // our temporary geli output -> input file
-        //tempFile.deleteOnExit();                                                                    // delete when we're done
+        tempFile.deleteOnExit();                                                                    // delete when we're done
 
         // create our genotype writer for GLFs
         GenotypeWriter gw = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.GELI_BINARY,tempFile);
