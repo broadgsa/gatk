@@ -88,7 +88,7 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
             vcfWriter = new VCFWriter(out);
 
         if ( PRIORITY_STRING != null )
-            priority = PRIORITY_STRING.toLowerCase().split(",");
+            priority = PRIORITY_STRING.split(",");
 
         Set<String> samples;
         switch (COMBO_TYPE ) {
