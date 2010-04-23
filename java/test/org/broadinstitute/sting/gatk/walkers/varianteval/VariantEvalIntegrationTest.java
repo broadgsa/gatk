@@ -7,7 +7,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-public class VariantEvalIntegrationTest extends WalkerTest {
+public class
+        VariantEvalIntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T VariantEval" +
             " -R " + oneKGLocation + "reference/human_b36_both.fasta -reportType Grep";
 
@@ -19,8 +20,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "b28ffcff420177d9b73aa726e260fb34");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "749d53687497d7939713e9ce586642a4");
+        expectations.put("-L 1:1-10,000,000", "f2ce1e0e9bbe81b482a9448cb88e2263");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "b39229f55b726c2f61a17463a3c883be");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -41,10 +42,10 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
-        String matchingMD5 = "3abf37ada16619f4b3f39cb7ecad497f";
+        String matchingMD5 = "f8c7bd3ce4499cff485d2170ce896af9";
         expectations.put("", matchingMD5);
         expectations.put(" -known comp_hapmap -known dbsnp", matchingMD5);
-        expectations.put(" -known comp_hapmap", "75026dbdad38f74ac697a7c102e64db4");
+        expectations.put(" -known comp_hapmap", "99c687b95b1a4614cd76570bfd24e7a6");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs2 = entry.getKey();
@@ -62,7 +63,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("06cdbe7f94990dfe61b5e3ec03b49151", "b4a42c90318adc88361691ece50426f2"));
+                Arrays.asList("bfbad4053c89c264cec16040df0bcc4c", "b4a42c90318adc88361691ece50426f2"));
         executeTest("testVEWriteVCF", spec);
     }
 }

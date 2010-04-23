@@ -57,7 +57,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     @DataPoint(description = "the variant quality score histograms for true positive and false positive calls")
     QualityScoreHistograms qualityScoreHistograms = null;
 
-    private static final int MAX_MISSED_VALIDATION_DATA = 10000;
+    private static final int MAX_MISSED_VALIDATION_DATA = 100;
 
 
     class FrequencyStats implements TableType {
