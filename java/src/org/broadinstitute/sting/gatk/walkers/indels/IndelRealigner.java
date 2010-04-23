@@ -470,7 +470,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
             if ( numBlocks == 2 ) {
-                Cigar newCigar = indelRealignment(read.getCigar(), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
+                Cigar newCigar = AlignmentUtils.leftAlignIndel(read.getCigar(), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
                 aRead.setCigar(newCigar);
             }
 
@@ -600,7 +600,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         final double improvement = (bestConsensus == null ? -1 : ((double)(totalRawMismatchSum - bestConsensus.mismatchSum))/10.0);
         if ( improvement >= LOD_THRESHOLD && bestConsensus.mismatchSum <= totalAlignerMismatchSum ) {
 
-            bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, bestConsensus.positionOnReference);
+            bestConsensus.cigar = AlignmentUtils.leftAlignIndel(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, bestConsensus.positionOnReference);
 
            // start cleaning the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
@@ -1003,167 +1003,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             } catch (Exception e) {}
         }
         return reduces;
-    }
-
-    /** Takes the alignment of the read sequence <code>readSeq</code> to the reference sequence <code>refSeq</code>
-     * starting at 0-based position <code>refIndex</code> on the <code>refSeq</code> and specified by its <code>cigar</code>.
-     * The last argument <code>readIndex</code> specifies 0-based position on the read where the alignment described by the
-     * <code>cigar</code> starts. Usually cigars specify alignments of the whole read to the ref, so that readIndex is normally 0.
-     * Use non-zero readIndex only when the alignment cigar represents alignment of a part of the read. The refIndex in this case
-     * should be the position where the alignment of that part of the read starts at. In other words, both refIndex and readIndex are
-     * always the positions where the cigar starts on the ref and on the read, respectively.
-     *
-     * If the alignment has an indel, then this method attempts moving this indel left across a stretch of repetitive bases. For instance, if the original cigar
-     * specifies that (any) one AT  is deleted from a repeat sequence TATATATA, the output cigar will always mark the leftmost AT
-     * as deleted. If there is no indel in the original cigar, or the indel position is determined unambiguously (i.e. inserted/deleted sequence
-     * is not repeated), the original cigar is returned.
-     * @param cigar structure of the original alignment
-     * @param refSeq reference sequence the read is aligned to
-     * @param readSeq read sequence
-     * @param refIndex 0-based alignment start position on ref
-     * @param readIndex 0-based alignment start position on read
-     * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
-     */
-    private Cigar indelRealignment(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
-        if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
-
-        final CigarElement ce1 = cigar.getCigarElement(0);
-        final CigarElement ce2 = cigar.getCigarElement(1);
-
-        // we currently can not handle clipped reads; alternatively, if the alignment starts from insertion, there
-        // is no place on the read to move that insertion further left; so we are done:
-        if ( ce1.getOperator() != CigarOperator.M ) return cigar;
-
-        int difference = 0; // we can move indel 'difference' bases left
-        final int indel_length = ce2.getLength();
-
-        int period = 0; // period of the inserted/deleted sequence
-        int indelIndexOnRef = refIndex+ce1.getLength() ; // position of the indel on the REF (first deleted base or first base after insertion)
-        int indelIndexOnRead = readIndex+ce1.getLength(); // position of the indel on the READ (first insterted base, of first base after deletion)
-
-        byte[] indelString = new byte[ce2.getLength()];  // inserted or deleted sequence
-
-        if ( ce2.getOperator() == CigarOperator.D )
-            System.arraycopy(refSeq, indelIndexOnRef, indelString, 0, ce2.getLength());
-        else if ( ce2.getOperator() == CigarOperator.I )
-            System.arraycopy(readSeq, indelIndexOnRead, indelString, 0, ce2.getLength());
-        else
-            // we can get here if there is soft clipping done at the beginning of the read
-            // for now, we'll just punt the issue and not try to realign these
-            return cigar;
-
-        // now we have to check all WHOLE periods of the indel sequence:
-        //  for instance, if
-        //   REF:   AGCTATATATAGCC
-        //   READ:   GCTAT***TAGCC
-        // the deleted sequence ATA does have period of 2, but deletion obviously can not be
-        // shifted left by 2 bases (length 3 does not contain whole number of periods of 2);
-        // however if 4 bases are deleted:
-        //   REF:   AGCTATATATAGCC
-        //   READ:   GCTA****TAGCC
-        // the length 4 is a multiple of the period of 2, and indeed deletion site can be moved left by 2 bases!
-        //  Also, we will always have to check the length of the indel sequence itself (trivial period). If the smallest
-        // period is 1 (which means that indel sequence is a homo-nucleotide sequence), we obviously do not have to check
-        // any other periods.
-
-        // NOTE: we treat both insertions and deletions in the same way below: we always check if the indel sequence
-        // repeats itsels on the REF (never on the read!), even for insertions: if we see TA inserted and REF has, e.g., CATATA prior to the insertion
-        // position, we will move insertion left, to the position right after CA. This way, while moving the indel across the repeat
-        // on the ref, we can theoretically move it across a non-repeat on the read if the latter has a mismtach.
-
-        while ( period < indel_length ) { // we will always get at least trivial period = indelStringLength
-
-                period = BaseUtils.sequencePeriod(indelString, period+1);
-
-                if ( indel_length % period != 0 ) continue; // if indel sequence length is not a multiple of the period, it's not gonna work
-
-                int newIndex = indelIndexOnRef;
-
-                while ( newIndex >= period ) { // let's see if there is a repeat, i.e. if we could also say that same bases at lower position are deleted
-
-                    // lets check if bases [newIndex-period,newIndex) immediately preceding the indel on the ref
-                    // are the same as the currently checked period of the inserted sequence:
-
-                    boolean match = true;
-
-                    for ( int testRefPos = newIndex - period, indelPos = 0 ; testRefPos < newIndex; testRefPos++, indelPos++) {
-                        byte indelChr = indelString[indelPos];
-                        if ( refSeq[testRefPos] != indelChr || !BaseUtils.isRegularBase((char)indelChr) ) {
-                            match = false;
-                            break;
-                        }
-                    }
-                    if ( match ) {
-                        newIndex -= period; // yes, they are the same, we can move indel farther left by at least period bases, go check if we can do more...
-                    }
-                    else {
-                        break; // oops, no match, can not push indel farther left
-                    }
-                }
-
-                final int newDifference = indelIndexOnRef - newIndex;
-                if ( newDifference > difference ) difference = newDifference; // deletion should be moved 'difference' bases left
-
-                if ( period == 1 ) break; // we do not have to check all periods of homonucleotide sequences, we already
-                                          // got maximum possible shift after checking period=1 above.
-        }
-
-        //        if ( ce2.getLength() >= 2 )
-        //            System.out.println("-----------------------------------\n  FROM:\n"+AlignmentUtils.alignmentToString(cigar,readSeq,refSeq,refIndex, (readIsConsensusSequence?refIndex:0)));
-
-
-        if ( difference > 0 ) {
-
-            // The following if() statement: this should've never happened, unless the alignment is really screwed up.
-            // A real life example:
-            //
-            //   ref:    TTTTTTTTTTTTTTTTTT******TTTTTACTTATAGAAGAAAT...
-            //  read:       GTCTTTTTTTTTTTTTTTTTTTTTTTACTTATAGAAGAAAT...
-            //
-            //  i.e. the alignment claims 6 T's to be inserted. The alignment is clearly malformed/non-conforming since we could
-            // have just 3 T's inserted (so that the beginning of the read maps right onto the beginning of the
-            // reference fragment shown): that would leave us with same 2 mismatches at the beginning of the read
-            // (G and C) but lower gap penalty. Note that this has nothing to do with the alignment being "right" or "wrong"
-            // with respect to where on the DNA the read actually came from. It is the assumptions of *how* the alignments are
-            // built and represented that are broken here. While it is unclear how the alignment shown above could be generated
-            // in the first place, we are not in the business of fixing incorrect alignments in this method; all we are
-            // trying to do is to left-adjust correct ones. So if something like that happens, we refuse to change the cigar
-            // and bail out.
-            if ( ce1.getLength()-difference < 0 ) return cigar;
-
-            Cigar newCigar = new Cigar();
-            // do not add leading M cigar element if its length is zero (i.e. if we managed to left-shift the
-            // insertion all the way to the read start):
-            if ( ce1.getLength() - difference > 0 )
-                newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
-            newCigar.add(ce2);  // add the indel, now it's left shifted since we decreased the number of preceding matching bases
-
-            if ( cigar.numCigarElements() > 2 ) {
-                // if we got something following the indel element:
-
-                if ( cigar.getCigarElement(2).getOperator() == CigarOperator.M  ) {
-                    // if indel was followed by matching bases (that's the most common situation),
-                    // increase the length of the matching section after the indel by the amount of left shift
-                    // (matching bases that were on the left are now *after* the indel; we have also checked at the beginning
-                    // that the first cigar element was also M):
-                    newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
-                } else {
-                    // if the element after the indel was not M, we have to add just the matching bases that were on the left
-                    // and now appear after the indel after we performed the shift. Then add the original element that followed the indel.
-                    newCigar.add(new CigarElement(difference, CigarOperator.M));
-                    newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength(),cigar.getCigarElement(2).getOperator()));
-                }
-                // now add remaining (unchanged) cigar elements, if any:
-                for ( int i = 3 ; i < cigar.numCigarElements() ; i++ )  {
-                    newCigar.add(new CigarElement(cigar.getCigarElement(i).getLength(),cigar.getCigarElement(i).getOperator()));
-                }
-            }
-
-            //logger.debug("Realigning indel: " + AlignmentUtils.cigarToString(cigar) + " to " + AlignmentUtils.cigarToString(newCigar));
-            cigar = newCigar;
-
-        }
-        return cigar;
     }
 
     private class AlignedRead {
