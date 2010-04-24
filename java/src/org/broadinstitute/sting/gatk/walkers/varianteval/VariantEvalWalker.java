@@ -154,7 +154,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     public double minCompQualScore = NO_MIN_QUAL_SCORE;
 
     // Right now we will only be looking at SNPS
-    EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION);
+    // todo -- enable INDEL variant contexts, there's no reason not to but the integration tests need to be updated
+    EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION); //, VariantContext.Type.INDEL);
 
     @Argument(shortName="rsID", fullName="rsID", doc="If provided, list of rsID and build number for capping known snps by their build date", required=false)
     protected String rsIDFile = null;

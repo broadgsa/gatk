@@ -239,12 +239,12 @@ public class VariantContextAdaptors {
 
     private static Allele determineRefAllele(VCFRecord vcf, ReferenceContext ref) {
         Allele refAllele;
-        if ( ref == null ) {
+        if ( vcf.isInsertion() ) {
+            refAllele = new Allele(Allele.NULL_ALLELE_STRING, true);
+        } else if ( ref == null ) {
             refAllele = new Allele(vcf.getReference(), true);
         } else if ( !vcf.isIndel() ) {
             refAllele = new Allele(Character.toString(ref.getBase()), true);
-        } else if ( vcf.isInsertion() ) {
-            refAllele = new Allele(Allele.NULL_ALLELE_STRING, true);
         } else if ( vcf.isDeletion() ) {
             int start = (int)(ref.getLocus().getStart() - ref.getWindow().getStart() + 1);
             int delLength = 0;
