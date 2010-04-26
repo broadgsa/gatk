@@ -78,12 +78,10 @@ public class SimpleMetricsByAC extends VariantEvaluator {
     }
 
     class MetricsByAc implements TableType {
-        int nchromosomes = -1;
         ArrayList<MetricsAtAC> metrics = new ArrayList<MetricsAtAC>();
         Object[] rows = null;
 
         public MetricsByAc( int nchromosomes ) {
-            this.nchromosomes = nchromosomes;
             rows = new Object[nchromosomes+1];
             metrics = new ArrayList<MetricsAtAC>(nchromosomes+1);
             for ( int i = 0; i < nchromosomes + 1; i++ ) {
@@ -115,11 +113,8 @@ public class SimpleMetricsByAC extends VariantEvaluator {
         }
 
         public void incrValue( VariantContext eval ) {
-            int an = eval.getChromosomeCount();
-            if ( an == nchromosomes ) { // ignore sites with no calls
-                int ac = eval.getChromosomeCount(eval.getAlternateAllele(0));
-                metrics.get(ac).update(eval);
-            }
+            int ac = eval.getChromosomeCount(eval.getAlternateAllele(0));
+            metrics.get(ac).update(eval);
         }
     }
 
@@ -146,7 +141,10 @@ public class SimpleMetricsByAC extends VariantEvaluator {
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         final String interesting = null;
 
-        if (eval != null && eval.isSNP() && eval.hasGenotypes() ) {
+        if (eval != null &&
+                eval.isSNP() &&
+                eval.hasGenotypes() &&
+                eval.getNoCallCount() == 0 ) {
             if ( metrics == null )
                 metrics = new MetricsByAc(2 * eval.getNSamples());
             metrics.incrValue(eval);
