@@ -321,17 +321,14 @@ public class RefMetaDataTracker {
         } else {
             for ( Map.Entry<String, RODRecordList> datum : map.entrySet() ) {
                 final String rodName = datum.getKey();
-                if ( rodName.startsWith(luName) ) {
+                if ( datum.getValue() != null && rodName.startsWith(luName) ) {
                     if ( trackData == null ) trackData = new RODRecordListImpl(name);
                     //System.out.printf("Adding bindings from %s to %s at %s%n", rodName, name, datum.getValue().getLocation());
                     ((RODRecordListImpl)trackData).add(datum.getValue(), true);
                 }
             }
         }
-        if ( trackData != null )
-            return trackData;
-        else
-            return null;
+        return trackData;
     }
 
     /**
