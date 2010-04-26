@@ -56,6 +56,8 @@ import java.util.*;
 
 public class UnifiedGenotyperEngine {
 
+    public static final String TRIGGER_TRACK_NAME = "trigger";
+
     // should we annotate dbsnp?
     protected boolean annotateDbsnp = false;
     // should we annotate hapmap2?
@@ -122,7 +124,7 @@ public class UnifiedGenotyperEngine {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(rodDbSNP.class) ) {
+            if ( rod.getName().equals(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) ) {
                 this.annotateDbsnp = true;
             }
             if ( rod.getName().equals("hapmap2") ) {
@@ -212,7 +214,6 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            // Note that for testing purposes, we may want to throw multi-samples at pooled mode
             Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, null);
             if ( stratifiedContexts == null )
                 return null;

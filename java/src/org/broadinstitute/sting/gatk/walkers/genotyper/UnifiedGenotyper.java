@@ -41,8 +41,8 @@ import java.io.File;
 
 
 /**
- * A variant caller which unifies the approaches of several disparate callers.  Works for single-sample,
- * multi-sample, and pooled data.  The user can choose from several different incorporated calculation models.
+ * A variant caller which unifies the approaches of several disparate callers.  Works for single-sample and
+ * multi-sample data.  The user can choose from several different incorporated calculation models.
  */
 @Reference(window=@Window(start=-20,stop=20))
 @By(DataSource.REFERENCE)

@@ -145,7 +145,7 @@ public class VariantAnnotatorEngine {
         List<ReferenceOrderedDataSource> dataSources = engine.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(rodDbSNP.class) ) {
+            if ( rod.getName().equals(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) ) {
                 annotateDbsnp = true;
             }
             if ( rod.getName().equals("hapmap2") ) {
