@@ -1,0 +1,124 @@
+package org.broadinstitute.sting.oneoffprojects.walkers.validation;
+
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.StingException;
+
+import java.io.*;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
+import java.util.List;
+
+/**
+ * a walker for validating (in the style of validating pile-up) the ROD system.
+ */
+public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
+
+    // the divider to use in some of the text output
+    private static final String DIVIDER = "-->";
+
+    // used to calculate the MD5 of a file
+    MessageDigest digest = null;
+
+    /**
+     * emit the md5 sums for each of the input ROD files (will save up a lot of time if and when the ROD files change
+     * underneath us).
+     */
+    public void initialize() {
+        // setup the MD5-er
+        try {
+            digest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new StingException("Unable to find MD5 checksumer");
+        }
+        out.println("Header:");
+        // enumerate the list of ROD's we've loaded
+        List<ReferenceOrderedDataSource> rodList = GenomeAnalysisEngine.instance.getRodDataSources();
+        for (ReferenceOrderedDataSource rod : rodList) {
+            out.println(rod.getName() + DIVIDER + rod.getReferenceOrderedData().getType());
+            out.println(rod.getName() + DIVIDER + rod.getReferenceOrderedData().getFile());
+            out.println(rod.getName() + DIVIDER + md5sum(rod.getReferenceOrderedData().getFile()));
+        }
+        out.println("Data:");
+    }
+
+    /**
+     *
+     * @param tracker the ref meta data tracker to get RODs
+     * @param ref reference context
+     * @param context the reads
+     * @return an 1 for each site with a rod, 0 otherwise
+     */
+    @Override
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if (tracker != null && tracker.getAllRods().size() > 0) {
+            out.print(context.getLocation() + DIVIDER);
+            Collection<GATKFeature> features = tracker.getAllRods();
+            for (GATKFeature feat : features)
+                out.print(feat.getName() + DIVIDER);
+            out.println(";");
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * Provide an initial value for reduce computations.
+     *
+     * @return Initial value of reduce.
+     */
+    @Override
+    public Integer reduceInit() {
+        return 0;
+    }
+
+    /**
+     * Reduces a single map with the accumulator provided as the ReduceType.
+     *
+     * @param value result of the map.
+     * @param sum   accumulator for the reduce.
+     * @return accumulator with result of the map taken into account.
+     */
+    @Override
+    public Integer reduce(Integer value, Integer sum) {
+        return value + sum;
+    }
+
+    // shamelessly absconded and adapted from http://www.javalobby.org/java/forums/t84420.html
+    private String md5sum(File f) {
+        InputStream is;
+        try {
+            is = new FileInputStream(f);
+        } catch (FileNotFoundException e) {
+            throw new StingException("Unable to get a file input stream from " + f, e);
+        }
+        byte[] buffer = new byte[8192];
+        int read = 0;
+        try {
+            while ((read = is.read(buffer)) > 0) {
+                digest.update(buffer, 0, read);
+            }
+            byte[] md5sum = digest.digest();
+            BigInteger bigInt = new BigInteger(1, md5sum);
+            return bigInt.toString(16);
+        }
+        catch (IOException e) {
+            throw new RuntimeException("Unable to process file for MD5", e);
+        }
+        finally {
+            try {
+                is.close();
+            }
+            catch (IOException e) {
+                throw new RuntimeException("Unable to close input stream for MD5 calculation", e);
+            }
+        }
+    }
+}
