@@ -7,6 +7,12 @@ import re
 import unittest
 import tempfile
 
+def all(iterable):
+    for element in iterable:
+        if not element:
+            return False
+    return True
+
 # maximum number of unnamed jobs allowed sa dependencies
 MAX_UNNAMED_DEPENDENCIES = 10
 
