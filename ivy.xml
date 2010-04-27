@@ -28,6 +28,9 @@
     <dependency org="com.google.collections" name="google-collections" rev="1.0"/>
     <dependency org="dom4j" name="dom4j" rev="1.6"/>
 
+    <!-- Matrix package from math.nist.gov -->
+    <dependency org="gov.nist" name="Jama" rev="1.0.2" conf="default"/>
+
     <!-- Dependencies for the graph aligner -->  
     <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" conf="default"/>
      

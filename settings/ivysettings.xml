@@ -14,5 +14,6 @@
     <module organisation="net.sf" module="samtools" resolver="projects" />
     <module organisation="org.reflections" module="reflections" resolver="projects" />
     <module organisation="org.broad" module="tribble" resolver="projects" />
+    <module organisation="gov.nist" module="Jama" resolver="projects" />
   </modules>
 </ivysettings>
