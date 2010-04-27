@@ -27,9 +27,9 @@ package org.broadinstitute.sting.utils.classloader;
 
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.AbstractConfiguration;
 import org.reflections.util.ClasspathHelper;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.reflections.util.ConfigurationBuilder;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.ArrayList;
@@ -45,13 +45,11 @@ public class PackageUtils {
     private static Reflections reflections = null;
 
     static {
+
         // Initialize general-purpose source tree reflector.
-        reflections = new Reflections( new AbstractConfiguration() {
-            {
-                setUrls(ClasspathHelper.getUrlsForCurrentClasspath());
-                setScanners(new SubTypesScanner());
-            }
-        });
+        reflections = new Reflections( new ConfigurationBuilder()
+                .setUrls(ClasspathHelper.getUrlsForCurrentClasspath())
+                .setScanners(new SubTypesScanner()));
     }
 
     /**

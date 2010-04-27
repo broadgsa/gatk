@@ -18,15 +18,22 @@
     <dependency org="org.broad" name="tribble" rev="latest.integration" conf="default"/>
     
     <!-- Dependencies for reflections mvn repository -->
-    <dependency org="org.reflections" name="reflections" rev="0.9.2" conf="default"/>
+    <dependency org="org.reflections" name="reflections" rev="0.9.5-svnversion79" conf="default"/>
     <dependency org="com.google.collections" name="google-collections" rev="0.9" conf="default"/>
+    <dependency org="javassist" name="javassist" rev="3.8.0.GA"/>
+    <dependency org="ch.qos.logback" name="logback-core" rev="0.9.9"/>
+    <dependency org="ch.qos.logback" name="logback-classic" rev="0.9.9"/>
+    <dependency org="org.slf4j" name="slf4j-api" rev="1.5.6"/>
+    <dependency org="xml-apis" name="xml-apis" rev="1.0.b2"/>
+    <dependency org="com.google.collections" name="google-collections" rev="1.0"/>
+    <dependency org="dom4j" name="dom4j" rev="1.6"/>
 
     <!-- Dependencies for the graph aligner -->  
-      <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" conf="default"/>
+    <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" conf="default"/>
      
     <!-- Dependencies for VariantFiltration -->  
-      <dependency org="commons-jexl" name="commons-jexl" rev="1.1" conf="default"/>
-      <dependency org="commons-logging" name="commons-logging" rev="1.1.1" conf="default"/>
+    <dependency org="commons-jexl" name="commons-jexl" rev="1.1" conf="default"/>
+    <dependency org="commons-logging" name="commons-logging" rev="1.1.1" conf="default"/>
      
     <!-- Scala dependancies -->
     <dependency org="org.scala-lang" name="scala-compiler" rev="2.7.7" conf="scala->default"/>
