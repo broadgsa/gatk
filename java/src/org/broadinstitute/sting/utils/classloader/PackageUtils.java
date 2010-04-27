@@ -26,11 +26,14 @@
 package org.broadinstitute.sting.utils.classloader;
 
 import org.reflections.Reflections;
+import org.reflections.scanners.ResourcesScanner;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.ManifestAwareClasspathHelper;
 import org.slf4j.LoggerFactory;
 
+import java.net.URL;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,11 +49,11 @@ public class PackageUtils {
     private static Reflections reflections = null;
 
     static {
-
+        List<URL> urls = ManifestAwareClasspathHelper.getUrlsForManifestCurrentClasspath();
         // Initialize general-purpose source tree reflector.
         reflections = new Reflections( new ConfigurationBuilder()
-                .setUrls(ClasspathHelper.getUrlsForCurrentClasspath())
-                .setScanners(new SubTypesScanner()));
+                .setUrls(urls)
+                .setScanners(new SubTypesScanner(),new ResourcesScanner()));
     }
 
     /**
