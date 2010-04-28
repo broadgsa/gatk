@@ -52,7 +52,6 @@ public class GenotypeConcordance extends VariantEvaluator {
     @DataPoint(name="summary", description = "the concordance statistics summary for each sample")
     SampleSummaryStats sampleSummaryStats = null;
 
-
     // two histograms of variant quality scores, for true positive and false positive calls
     @DataPoint(description = "the variant quality score histograms for true positive and false positive calls")
     QualityScoreHistograms qualityScoreHistograms = null;
@@ -225,32 +224,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     }
 
     public String toString() {
-        return getName() + ": " + getTableRows();
-    }
-
-    private static List<String> SAMPLE_HEADER =
-            Arrays.asList("sample",
-                    "total_true_ref", "n_ref/ref", "%_ref/ref",
-                    "n_ref/no-call", "n_ref/het", "n_ref/hom",
-                    "total_true_het", "n_het/het", "%_het/het",
-                    "n_het/no-call", "n_het/ref", "n_het/hom",
-                    "total_true_hom", "n_hom/hom", "%_hom/hom",
-                    "n_hom/no-call", "n_hom/ref", "n_hom/het");
-
-    private static List<String> FREQUENCY_HEADER =
-            Arrays.asList("alleleCount", "n_found", "n_missed", "%_found");
-
-    // making it a table
-
-    public List<String> getTableHeader() {
-        ArrayList<String> header = new ArrayList<String>();
-        header.addAll(SAMPLE_HEADER);
-        header.addAll(FREQUENCY_HEADER);
-        return header;
-    }
-
-    public List<List<String>> getTableRows() {
-        return null;
+        return getName() + ": <table>";
     }
 
     private boolean warnedAboutValidationData = false;
@@ -449,6 +423,15 @@ class SampleStats implements TableType {
  * a table of sample names to genotype concordance summary statistics
  */
 class SampleSummaryStats implements TableType {
+    private final static String ALL_SAMPLES_KEY = "allSamples";
+    private final static String[] COLUMN_KEYS = new String[]{
+            "percent_comp_het_called_het",
+            "percent_comp_het_called_var",
+            "percent_comp_hom_called_hom",
+            "percent_comp_hom_called_var",
+            "percent_variant_sensitivity",
+            "percent_genotype_concordance",
+            "percent_genotype_error_rate"};
 
     // sample to concordance stats object
     private final HashMap<String, double[]> concordanceSummary = new HashMap<String, double[]>();
@@ -466,26 +449,77 @@ class SampleSummaryStats implements TableType {
      * @return a list of objects, in this case strings, that are the column names
      */
     public Object[] getColumnKeys() {
-        return new String[]{"%het_called_het","%hom_called_hom","%nonref_called_nonref","calledGenotypeConcordance","calledNonRefConcordance"};
+        return COLUMN_KEYS;
     }
 
     public SampleSummaryStats(final VariantContext vc) {
+        concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
         for( final String sample : vc.getSampleNames() ) {
-            concordanceSummary.put(sample, new double[5]); // There are five summary values to report out
+            concordanceSummary.put(sample, new double[COLUMN_KEYS.length]);
         }
     }
 
     public Object getCell(int x, int y) {
         final Object[] rowKeys = getRowKeys();
-        return String.format("%.3f",concordanceSummary.get(rowKeys[x])[y]);
+        return String.format("%.2f",concordanceSummary.get(rowKeys[x])[y]);
     }
+
+    /**
+     * Helper routine that sums up all columns / rows found in stats specified by all pairs in d1 x d2
+     *
+     * @param stats
+     * @param d1
+     * @param d2
+     * @return
+     */
+    private long sumStatsAllPairs( final long[][] stats, EnumSet<Genotype.Type> d1, EnumSet<Genotype.Type> d2 ) {
+        long sum = 0L;
+
+        for(final Genotype.Type e1 : d1 ) {
+            for(final Genotype.Type e2 : d2 ) {
+                sum += stats[e1.ordinal()][e2.ordinal()];
+            }
+        }
+
+        return sum;
+    }
+
+    private long sumStatsDiag( final long[][] stats, EnumSet<Genotype.Type> d1) {
+        long sum = 0L;
+
+        for(final Genotype.Type e1 : d1 ) {
+            sum += stats[e1.ordinal()][e1.ordinal()];
+        }
+
+        return sum;
+    }
+
+    private double ratio(long numer, long denom) {
+        return denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0;
+    }
+
+    final long[] allSamplesNumerators = new long[COLUMN_KEYS.length];
+    final long[] allSamplesDenominators = new long[COLUMN_KEYS.length];
+
+    private void updateSummaries(int i, double[] summary, long numer, long denom ) {
+        allSamplesNumerators[i] += numer;
+        allSamplesDenominators[i] += denom;
+        summary[i] = ratio(numer, denom);
+    }
+
 
     /**
      * Calculate the five summary stats per sample
      * @param sampleStats The Map which holds concordance values per sample
      */
     public void generateSampleSummaryStats( final SampleStats sampleStats ) {
+        EnumSet<Genotype.Type> allVariantGenotypes = EnumSet.of(Genotype.Type.HOM_VAR, Genotype.Type.HET);
+        EnumSet<Genotype.Type> allCalledGenotypes = EnumSet.of(Genotype.Type.HOM_VAR, Genotype.Type.HET, Genotype.Type.HOM_REF);
+        EnumSet<Genotype.Type> allGenotypes = EnumSet.allOf(Genotype.Type.class);
+
         for( final String sample : concordanceSummary.keySet() ) {
+            if ( sample.equals(ALL_SAMPLES_KEY) ) continue;
+
             final long[][] stats = sampleStats.concordanceStats.get(sample);
             final double[] summary = concordanceSummary.get(sample);
             if( stats == null ) { throw new StingException( "SampleStats and SampleSummaryStats contain different samples! sample = " + sample ); }
@@ -494,57 +528,51 @@ class SampleSummaryStats implements TableType {
 
             // Summary 0: % het called as het
             numer = stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
-            denom = 0L;
-            for(final Genotype.Type type : Genotype.Type.values()) {
-                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
-            }
-            summary[0] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+            denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HET), allGenotypes);
+            updateSummaries(0, summary,  numer, denom);
 
-            // Summary 1: % homVar called as homVar
+            // Summary 1: % het called as var
+            numer = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HET), allVariantGenotypes);
+            denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HET), allGenotypes);
+            updateSummaries(1, summary,  numer, denom);
+
+            // Summary 2: % homVar called as homVar
             numer = stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
-            denom = 0L;
-            for(final Genotype.Type type : Genotype.Type.values()) {
-                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
-            }
-            summary[1] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+            denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_VAR), allGenotypes);
+            updateSummaries(2, summary,  numer, denom);
 
-            // Summary 2: % non-ref called as non-ref
-            numer = 0L;
-            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
-            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HET.ordinal()];
-            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
-            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
-            denom = 0L;
-            for(final Genotype.Type type : Genotype.Type.values()) {
-                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
-                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
-            }
-            summary[2] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+            // Summary 3: % homVars called as var
+            numer = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_VAR), allVariantGenotypes);
+            denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_VAR), allGenotypes);
+            updateSummaries(3, summary,  numer, denom);
 
-            // Summary 3: genotype concordance of sites called in eval track
-            numer = 0L;
-            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
-            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
-            numer += stats[Genotype.Type.HOM_REF.ordinal()][Genotype.Type.HOM_REF.ordinal()];
-            denom = 0L;
-            for(final Genotype.Type type : new Genotype.Type[]{Genotype.Type.HOM_VAR, Genotype.Type.HET, Genotype.Type.HOM_REF} ) { // excluding no calls here
-                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
-                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
-                denom += stats[Genotype.Type.HOM_REF.ordinal()][type.ordinal()];
-            }
-            summary[3] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+            // Summary 4: % non-ref called as non-ref
+            // MAD: this is known as the variant sensitivity (# non-ref according to comp found in eval / # non-ref in comp)
+            numer = sumStatsAllPairs(stats, allVariantGenotypes, allVariantGenotypes);
+            denom = sumStatsAllPairs(stats, allVariantGenotypes, allGenotypes);
+            updateSummaries(4, summary,  numer, denom);
 
-            // Summary 4: genotype concordance of sites called non-ref in eval track
-            numer = 0L;
-            numer += stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
-            numer += stats[Genotype.Type.HET.ordinal()][Genotype.Type.HET.ordinal()];
-            denom = 0L;
-            for(final Genotype.Type type : new Genotype.Type[]{Genotype.Type.HOM_VAR, Genotype.Type.HET, Genotype.Type.HOM_REF} ) { // excluding no calls here
-                denom += stats[Genotype.Type.HOM_VAR.ordinal()][type.ordinal()];
-                denom += stats[Genotype.Type.HET.ordinal()][type.ordinal()];
-            }
-            summary[4] = ( denom != 0L ? 100.0 * ( ((double)numer) / ((double)denom) ) : 0.0 );
+            // Summary 5: genotype concordance of sites called in eval track
+            // MAD: this is the tradition genotype concordance
+            numer = sumStatsDiag(stats, allCalledGenotypes);
+            denom = sumStatsAllPairs(stats, allCalledGenotypes, allCalledGenotypes);
+            updateSummaries(5, summary,  numer, denom);
+
+            // Summary 6: genotype concordance of sites called non-ref in eval track
+            long homrefConcords = stats[Genotype.Type.HOM_REF.ordinal()][Genotype.Type.HOM_REF.ordinal()];
+            long diag = sumStatsDiag(stats, allVariantGenotypes);
+            long allNoHomRef = sumStatsAllPairs(stats, allCalledGenotypes, allCalledGenotypes) - homrefConcords;
+            numer = allNoHomRef - diag;
+            denom = allNoHomRef;
+            updateSummaries(6, summary,  numer, denom);
         }
+
+        // update the final summary stats
+        final double[] allSamplesSummary = concordanceSummary.get(ALL_SAMPLES_KEY);
+        for ( int i = 0; i < allSamplesSummary.length; i++) {
+            allSamplesSummary[i] = ratio(allSamplesNumerators[i], allSamplesDenominators[i]);
+        }
+
     }
 
     public String getName() {
