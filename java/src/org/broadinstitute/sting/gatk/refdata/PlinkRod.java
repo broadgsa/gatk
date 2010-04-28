@@ -19,7 +19,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
     public static final String SEQUENOM_NO_BASE = "-";
 
     private final Set<String> headerEntries = new HashSet<String>(Arrays.asList("#Family ID","Individual ID","Sex",
-                "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE"));
+                "Paternal ID","Maternal ID","Phenotype", "FID","IID","PAT","MAT","SEX","PHENOTYPE","#Individual ID"));
     private final byte SNP_MAJOR_MODE = 1;
 
     private PlinkVariantInfo currentVariant;
