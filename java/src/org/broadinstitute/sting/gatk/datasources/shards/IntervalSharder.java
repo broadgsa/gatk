@@ -105,6 +105,8 @@ public class IntervalSharder {
         BinMergingIterator binMerger = new BinMergingIterator();
         for(SAMReaderID id: dataSource.getReaderIDs()) {
             final SAMSequenceRecord referenceSequence = dataSource.getHeader(id).getSequence(contig);
+            if(referenceSequence == null)
+                continue;
             final CachingBAMFileIndex index = dataSource.getIndex(id);
             binMerger.addReader(id,
                                 index,
@@ -118,6 +120,9 @@ public class IntervalSharder {
         for(GenomeLoc location: loci) {
             if(!location.getContig().equals(contig))
                 throw new StingException("Location outside bounds of contig");
+
+            if(!binIterator.hasNext())
+                break;
 
             int locationStart = (int)location.getStart();
             final int locationStop = (int)location.getStop();
@@ -195,7 +200,7 @@ public class IntervalSharder {
             filePointers.add(lastFilePointer);
 
         // Lookup the locations for every file pointer in the index.
-        for(SAMReaderID id: dataSource.getReaderIDs()) {
+        for(SAMReaderID id: readerToIndexMap.keySet()) {
             CachingBAMFileIndex index = readerToIndexMap.get(id);
             for(FilePointer filePointer: filePointers)
                 filePointer.addFileSpans(id,index.getChunksOverlapping(filePointer.overlap.getBin(id)));
