@@ -41,4 +41,5 @@ public interface QueryableTrack {
     public Iterator<GATKFeature> query(final GenomeLoc interval, final boolean contained) throws IOException;
     public Iterator<GATKFeature> query(final String contig, final int start, final int stop) throws IOException;
     public Iterator<GATKFeature> query(final String contig, final int start, final int stop, final boolean contained) throws IOException;
+    public void close();
 }

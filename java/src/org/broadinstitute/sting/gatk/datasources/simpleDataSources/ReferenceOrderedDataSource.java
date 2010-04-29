@@ -2,14 +2,19 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.tracks.QueryableTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 /**
  * User: hanna
@@ -36,16 +41,16 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     /**
      * A pool of iterators for navigating through the genome.
      */
-    private ReferenceOrderedDataPool iteratorPool = null;
+    private final ReferenceOrderedDataPool iteratorPool;
 
     /**
      * Create a new reference-ordered data source.
-     * @param rod
+     * @param rod the reference ordered data
      */
     public ReferenceOrderedDataSource( Walker walker, RMDTrack rod) {
         this.rod = rod;
-        // if (!rod.supportsQuery()) // TODO: Aaron turn on to enable Tribble searches
-        this.iteratorPool = new ReferenceOrderedDataPool( walker, rod );
+        if (rod.supportsQuery()) iteratorPool = null;
+        else iteratorPool = new ReferenceOrderedDataPool( walker, rod );
     }
 
     /**
@@ -70,6 +75,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Iterator through the data.
      */
     public LocationAwareSeekableRODIterator seek( Shard shard ) {
+        if (iteratorPool == null) // use query
+            return getQuery(shard.getGenomeLocs());
         DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs().get(0)) : new EntireStream();
         LocationAwareSeekableRODIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
         return RODIterator;
@@ -83,18 +90,28 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Iterator through the data.
      */
     public LocationAwareSeekableRODIterator seek(GenomeLoc loc) {
+        if (iteratorPool == null) // use query
+            return getQuery(Arrays.asList(loc));
         DataStreamSegment dataStreamSegment = loc != null ? new MappedStreamSegment(loc) : new EntireStream();
         LocationAwareSeekableRODIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
         return RODIterator;
     }
 
+    /**
+     * assuming the ROD is a queryable ROD, use that interface to get an iterator to the selected region
+     * @param loc the region to query for
+     * @return a LocationAwareSeekableRODIterator over the selected region
+     */
+    private LocationAwareSeekableRODIterator getQuery(List<GenomeLoc> loc) {
+        return new StitchingLocationAwareSeekableRODIterator(loc,(QueryableTrack)rod);
+    }
 
     /**
      * Close the specified iterator, returning it to the pool.
      * @param iterator Iterator to close.
      */
     public void close( LocationAwareSeekableRODIterator iterator ) {
-        this.iteratorPool.release(iterator);        
+        if (iteratorPool != null) iteratorPool.release(iterator);
     }
 
 }
@@ -166,6 +183,82 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      */
     public void closeResource( LocationAwareSeekableRODIterator resource ) {
         if (resource instanceof FlashBackIterator) ((FlashBackIterator)resource).close();            
+    }
+}
+
+/**
+ * stitch together the multiple calls to seek (since shards can have multiple intervals now)
+ * on the underlying Tribble track into one seamless iteration
+ */
+class StitchingLocationAwareSeekableRODIterator implements LocationAwareSeekableRODIterator {
+
+    // the list of intervals we're iterating over
+    private final LinkedList<GenomeLoc> locationList;
+
+    // The reference-ordered data itself.
+    private final QueryableTrack rod;
+
+    // the current iterator
+    private SeekableRODIterator iterator;
+
+    StitchingLocationAwareSeekableRODIterator(List<GenomeLoc> list, QueryableTrack rmd) {
+        rod = rmd;
+        locationList = new LinkedList<GenomeLoc>();
+        locationList.addAll(list);
+        fetchNextInterval();
+    }
+
+    @Override
+    public GenomeLoc peekNextLocation() {
+        if (iterator == null) return null;
+        return iterator.peekNextLocation();
+    }
+
+    @Override
+    public GenomeLoc position() {
+        if (iterator == null) return null;
+        return iterator.position();
+    }
+
+    @Override
+    public RODRecordList seekForward(GenomeLoc interval) {
+        RODRecordList list = iterator.seekForward(interval);
+        if (list == null) { // we were unable to seek the current interval to the location
+            fetchNextInterval();
+            list = iterator.seekForward(interval);
+        }
+        return list;
+    }
+
+    @Override
+    public boolean hasNext() {
+        if (iterator == null) return false;
+        return iterator.hasNext();
+    }
+
+    @Override
+    public RODRecordList next() {
+        if (!hasNext()) throw new IllegalStateException("StitchingLocationAwareSeekableRODIterator: We do not have a next");
+        RODRecordList list = iterator.next();
+        if (!iterator.hasNext()) fetchNextInterval();
+        return list;
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("\"Thou shall not remove()!\" - Software Engineering Team");
+    }
+
+    private void fetchNextInterval() {
+        if (locationList != null && locationList.size() > 0) {
+            GenomeLoc loc = locationList.getFirst();
+            locationList.removeFirst();
+            try {
+                iterator = new SeekableRODIterator(rod.query(loc));
+            } catch (IOException e) {
+                throw new StingException("Unable to query iterator with location " + loc + " and rod name of " + ((RMDTrack)rod).getName());
+            }
+        }
     }
 }
 

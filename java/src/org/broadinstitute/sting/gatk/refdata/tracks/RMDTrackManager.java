@@ -96,9 +96,10 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
         // create a track builder instance for each track builder, and find out what tracks we can make
         for (String builderName : this.pluginsByName.keySet()) {
             RMDTrackBuilder builder = this.createByName(builderName);
-            for (String name : builder.getAvailableTrackNamesAndTypes().keySet()) {
+            Map<String, Class> mapping = builder.getAvailableTrackNamesAndTypes();
+            for (String name : mapping.keySet()) {
                 availableTracks.put(name.toUpperCase(), builder);
-                availableTrackClasses.put(name.toUpperCase(), builder.getAvailableTrackNamesAndTypes().get(name));
+                availableTrackClasses.put(name.toUpperCase(), mapping.get(name));
             }
         }
     }

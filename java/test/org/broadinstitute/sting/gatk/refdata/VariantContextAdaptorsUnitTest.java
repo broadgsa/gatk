@@ -4,6 +4,8 @@ import edu.mit.broad.picard.genotype.geli.GeliFileReader;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.CloseableIterator;
+import org.broad.tribble.gelitext.GeliTextCodec;
+import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broad.tribble.util.AsciiLineReader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -131,10 +133,10 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
         GenotypeWriter gw = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.GELI,tempFile);
         ((GeliTextWriter)gw).writeHeader(null);  // the write header command ignores the parameter
 
-        RodGeliText geliText = new RodGeliText("myROD"); // now cycle the input file to the output file        
-
+        GeliTextFeature geliText;
+        GeliTextCodec codec = new GeliTextCodec();
         // buffer the records we see
-        List<RodGeliText> records = new ArrayList<RodGeliText>();
+        List<GeliTextFeature> records = new ArrayList<GeliTextFeature>();
 
         // a little more complicated than the GLF example, we have to read the file in
         AsciiLineReader reader = createReader(knownFile);
@@ -144,20 +146,17 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
 
         // while we have records, make a Variant Context and output it to a GLF file
         while (line != null && line != "") {
-            parseGeliText(geliText, line);
+            geliText = (GeliTextFeature)codec.decode(line);
             records.add(geliText); // we know they're all single calls in the reference file
             VariantContext vc = VariantContextAdaptors.toVariantContext("Geli",geliText);
-            gw.addCall(vc,null);
+            if (vc != null) gw.addCall(vc,null);
             line = readLine(reader);
         }
         gw.close(); // close the file
         reader.close();
 
-        // now reopen the file with the temp GLF file and read it back in, compare against what we first stored
-        geliText = new RodGeliText("myROD");
-
         // buffer the new records we see
-        List<RodGeliText> records2 = new ArrayList<RodGeliText>();
+        List<GeliTextFeature> records2 = new ArrayList<GeliTextFeature>();
 
         reader = createReader(tempFile);
         // get the first real line (non-header)
@@ -165,18 +164,21 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
 
         // while we have records, make a Variant Context and output it to a GLF file
         while (line != null && line != "") {
-            parseGeliText(geliText,line);
+            geliText = (GeliTextFeature)codec.decode(line);
             records2.add(geliText); // we know they're all single calls in the reference file
-            line = readLine(reader);
-            
+            line = readLine(reader);            
         }
         gw.close(); // close the file
         reader.close();
         // compare sizes
-        Assert.assertEquals("The input GLF file doesn't contain the same number of records as we saw in the first file", records.size(),records2.size());
+        Assert.assertEquals("The input Geli file doesn't contain the same number of records as we saw in the first file", records.size(),records2.size());
         // now compare each record
         for (int x = 0; x < records.size(); x++)
-            Assert.assertTrue("GLF Records were not preserved when cycling them to and from disc", records.get(x).equals(records2.get(x)));
+            if(!records.get(x).equals(records2.get(x))) {
+                System.err.println("Record 1 :" + records.get(x).toString());
+                System.err.println("Record 2 :" + records2.get(x).toString());
+                Assert.fail("Geli Text Records were not preserved when cycling them to and from disc");
+            }
     }
 
     /**
@@ -231,24 +233,13 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
         Assert.assertEquals("The input GeliBinary file doesn't contain the same number of records as we saw in the first file", records.size(),records2.size());
         // now compare each record
         for (int x = 0; x < records.size(); x++) {
-            Assert.assertTrue("GeliBinary Records were not preserved when cycling them to and from disc", records.get(x).getGeliRecord().equals(records2.get(x).getGeliRecord()));
-        }
-    }
+            if(!records.get(x).getGeliRecord().equals(records2.get(x).getGeliRecord())) {
+                Assert.fail("GeliBinary Records were not preserved when cycling them to and from disc");
+                System.err.println("Record 1 :" + records.get(x).toString());
+                System.err.println("Record 2 :" + records2.get(x).toString());
 
-
-    /**
-     * parse the geli given a line representation
-     * @param geliText the object to parse into
-     * @param line the line to parse with
-     */
-    private void parseGeliText(RodGeliText geliText, String line) {
-        boolean parsed = false;
-        try {
-            parsed = geliText.parseLine(null,line.split(TabularROD.DEFAULT_DELIMITER_REGEX));
-        } catch (IOException e) {
-            Assert.fail("IOException: " + e.getMessage());
+            }
         }
-        if (!parsed) Assert.fail("Unable to parse line" + line);
     }
 
     /**

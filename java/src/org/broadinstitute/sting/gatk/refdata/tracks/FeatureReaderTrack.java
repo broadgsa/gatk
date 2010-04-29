@@ -101,4 +101,14 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
     public Iterator<GATKFeature> query(String contig, int start, int stop, boolean contained) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop, contained),this.getName());
     }
+
+    @Override
+    public void close() {
+        try {
+            reader.close();
+        } catch (IOException e) {
+            throw new StingException("Unable to close reader " + reader.toString(),e);
+        }
+        reader = null;
+    }
 }

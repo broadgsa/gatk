@@ -20,11 +20,11 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("211be63cf93cddf021e5b0eb9341b386");
+        md5.add("4828a31b10b90698723328829ae4ecd3");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " -B variant,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
+                        " -B variant,GeliText," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +
@@ -37,11 +37,11 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("b31446fa91b8ed82ad73a5a5a72700a7");
+        md5.add("1f55df5c40f2325847bc35522aba1d70");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " -B variant,Variants," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
+                        " -B variant,GeliText," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +

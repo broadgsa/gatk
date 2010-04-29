@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import edu.mit.broad.picard.genotype.DiploidGenotype;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
+import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
@@ -48,7 +49,7 @@ public class VariantContextAdaptors {
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
         adaptors.put(HapMapROD.class, new HapMapAdaptor());
         adaptors.put(RodGLF.class, new GLFAdaptor());
-        adaptors.put(RodGeliText.class, new GeliTextAdaptor());
+        adaptors.put(GeliTextFeature.class, new GeliTextAdaptor());
         adaptors.put(rodGELI.class, new GeliAdaptor());
     }
 
@@ -615,39 +616,42 @@ public class VariantContextAdaptors {
          * @return a VariantContext object
          */
         VariantContext convert(String name, Object input, ReferenceContext ref) {
-            RodGeliText geli = (RodGeliText)input;
-            if ( ! Allele.acceptableAlleleBases(geli.getReference()) )
+            GeliTextFeature geli = (GeliTextFeature)input;
+            if ( ! Allele.acceptableAlleleBases(String.valueOf(geli.getRefBase())) )
                 return null;
-            Allele refAllele = new Allele(geli.getReference(), true);
+            Allele refAllele = new Allele(String.valueOf(geli.getRefBase()), true);
 
             // make sure we can convert it
-            if ( geli.isSNP() || geli.isIndel()) {
+            if ( geli.getGenotype().isHet() || !geli.getGenotype().containsBase(geli.getRefBase())) {
                 // add the reference allele
                 List<Allele> alleles = new ArrayList<Allele>();
-                alleles.add(refAllele);
-
+                List<Allele> genotypeAlleles = new ArrayList<Allele>();
                 // add all of the alt alleles
-                for ( String alt : geli.getAlternateAlleleList() ) {
-                    if ( ! Allele.acceptableAlleleBases(alt) ) {
+                for ( char alt : geli.getGenotype().toString().toCharArray() ) {
+                    if ( ! Allele.acceptableAlleleBases(String.valueOf(alt)) ) {
                         return null;
                     }
-                    Allele allele = new Allele(alt, false);
-                    if (!alleles.contains(allele)) alleles.add(allele);
-                }
+                    Allele allele = new Allele(String.valueOf(alt), false);
+                    if (!alleles.contains(allele) && !refAllele.basesMatch(allele.getBases())) alleles.add(allele);
 
+                    // add the allele, first checking if it's reference or not
+                    if (!refAllele.basesMatch(allele.getBases())) genotypeAlleles.add(allele);
+                    else genotypeAlleles.add(refAllele);
+                }
 
                 Map<String, String> attributes = new HashMap<String, String>();
                 Collection<Genotype> genotypes = new ArrayList<Genotype>();
-                MutableGenotype call = new MutableGenotype(name, alleles);
+                MutableGenotype call = new MutableGenotype(name, genotypeAlleles);
 
                 // set the likelihoods, depth, and RMS mapping quality values
-                call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY,geli.genotypePosteriors);
-                call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY,geli.getMaxMappingQuality());
-                call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY,geli.depth);
+                call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY,geli.getLikelihoods());
+                call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY,geli.getMaximumMappingQual());
+                call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY,geli.getDepthOfCoverage());
 
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
-                VariantContext vc = new VariantContext(name, geli.getLocation(), alleles, genotypes, geli.getNegLog10PError(), null, attributes);
+                alleles.add(refAllele);
+                VariantContext vc = new VariantContext(name, GenomeLocParser.createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
                 vc.validate();
                 return vc;
             } else

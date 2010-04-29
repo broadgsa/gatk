@@ -18,8 +18,8 @@ public class RodSystemValidationIntegrationTest extends WalkerTest {
     @Test
     public void testSimpleGeliPileup() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B eval,Variants," + validationDataLocation + "ROD_validation/chr1.geli", 1,
-                Arrays.asList("536567b13ea4b8786badd96c879df245"));
+                baseTestString() + " -B eval,GeliText," + validationDataLocation + "ROD_validation/chr1.geli", 1,
+                Arrays.asList("0d338375f724dd2b5481a8606892c772"));
         executeTest("testVCFSelect1", spec);
     }
 }

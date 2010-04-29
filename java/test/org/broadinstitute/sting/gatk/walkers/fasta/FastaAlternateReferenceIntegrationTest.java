@@ -22,7 +22,7 @@ public class FastaAlternateReferenceIntegrationTest extends WalkerTest {
         executeTest("testFastaAlternateReferenceIndels", spec2);
 
         WalkerTestSpec spec4 = new WalkerTestSpec(
-                "-T FastaAlternateReferenceMaker -R " + oneKGLocation + "reference/human_b36_both.fasta -B snps,Variants," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.geli.calls -B snpmask,dbsnp,/humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod -L 1:10,023,400-10,023,500;1:10,029,200-10,029,500 -o %s",
+                "-T FastaAlternateReferenceMaker -R " + oneKGLocation + "reference/human_b36_both.fasta -B snps,GeliText," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.geli.calls -B snpmask,dbsnp,/humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod -L 1:10,023,400-10,023,500;1:10,029,200-10,029,500 -o %s",
                  1,
                  Arrays.asList("82705a88f6fc25880dd2331183531d9a"));
         executeTest("testFastaAlternateReferenceSnps", spec4);
