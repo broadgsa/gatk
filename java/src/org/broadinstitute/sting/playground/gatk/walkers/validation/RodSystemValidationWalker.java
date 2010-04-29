@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.validation;
+package org.broadinstitute.sting.playground.gatk.walkers.validation;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -22,7 +22,7 @@ import java.util.List;
 public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
 
     // the divider to use in some of the text output
-    private static final String DIVIDER = "-->";
+    private static final String DIVIDER = ",";
 
     // used to calculate the MD5 of a file
     MessageDigest digest = null;
