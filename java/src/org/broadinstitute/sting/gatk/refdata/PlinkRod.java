@@ -29,6 +29,8 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
 
     private List<String> sampleNames;
 
+    private String[] fileHeader;
+
     public enum PlinkFileType {
         STANDARD_PED, RAW_PED, BINARY_PED
     }
@@ -201,9 +203,15 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
             throw new StingException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
 
         StringTokenizer st = new StringTokenizer(plinkLine, "\t");
-        st.nextToken(); // family ID
-        sampleNames.add(st.nextToken());
-        for (int i = 2; i < headerFieldCount; i++)
+        int offset = 0;
+        String sample = st.nextToken();
+        while ( ! fileHeader[offset].equals("Individual ID") && ! fileHeader[offset].equals("#Individual ID") ) {
+            sample = st.nextToken(); // kill nonstandard tokens
+            offset ++;
+        }
+        
+        sampleNames.add(sample);
+        for (int i = offset+1; i < headerFieldCount ; i++)
             st.nextToken();
 
         int snpNumber = 0;
@@ -221,7 +229,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         plinkFileType = PlinkFileType.STANDARD_PED;
 
         String[] headerFields = header.split("\t");
-
+        fileHeader = headerFields;
         int skippedFields = 0;
         for ( String field : headerFields ) {
             if ( headerEntries.contains(field) )
