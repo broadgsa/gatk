@@ -81,7 +81,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     public static final String OUTPUT_POSITION_TYPE = "positionType"; //eg. utr5, cds, utr3, intron, intergenic
 
     public static final String OUTPUT_MRNA_COORD = "mrnaCoord"; //1-based offset within the transcript
-    public static final String OUTPUT_CODING_COORD = "codingCoord"; //1-based offset within the cds region
 
     public static final String OUTPUT_SPLICE_DISTANCE = "spliceDist"; //eg. integer, bp to nearest exon/intron boundary
 
@@ -117,7 +116,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
         OUTPUT_FRAME,
         OUTPUT_MRNA_COORD,
-        OUTPUT_CODING_COORD,
         OUTPUT_CODON_NUMBER,
         OUTPUT_SPLICE_DISTANCE,
 
