@@ -1,12 +1,16 @@
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -19,21 +23,25 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
 
 
 /**
- *  Takes a refGene table ( -B arg must be: -B refgene,AnnotatorInfoTable,/path/to/refgene_file.txt) and generates the big table of nucleotides containing
+ *  Takes a UCSC refGene table ( -B arg must be: -B refgene,AnnotatorInfoTable,/path/to/refgene_file.txt) and generates the big table of nucleotides containing
  *  annotations for each possible variant at each transcript position (eg. 4 variants for each position).
+ *
+ *  The map & reduce types are both TreeMap<String, String>
+ *  TreeMap entries represent lines in the output file. The TreeMap key is a combination of a given output line's position (so that this key can be used to sort all output lines
+ *  by reference order), as well as allele and gene name (so that its unique across all output lines). The String value is the output line itself.
  */
 @Reference(window=@Window(start=-4,stop=4))
 @By(DataSource.REFERENCE)
 @Requires(value={DataSource.REFERENCE}, referenceMetaData={ @RMD(name="refgene",type=AnnotatorROD.class) })
-public class TranscriptToInfo extends RodWalker<Integer, Integer>
+public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap<String, String>> implements TreeReducible<TreeMap<String, String>>
 {
 
 /**
@@ -57,12 +65,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
 */
 
 
-
-    public static final int OUTPUT_STREAM_BUFFER_SIZE = 8*1024*1024;
-
     /** Output columns */
-    public static final String OUTPUT_SORT_KEY = "00000_SORT_KEY";
-
     public static final String OUTPUT_CHRPOS = AnnotatorROD.CHRPOS_COLUMN;
     public static final String OUTPUT_HAPLOTYPE_REFERENCE = AnnotatorROD.HAPLOTYPE_REFERENCE_COLUMN;
     public static final String OUTPUT_HAPLOTYPE_ALTERNATE = AnnotatorROD.HAPLOTYPE_ALTERNATE_COLUMN;
@@ -89,18 +92,17 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
     public static final String OUTPUT_VARIANT_AA = "variantAA";
 
     public static final String OUTPUT_CHANGES_AMINO_ACID = "changesAA"; //eg. true
+    public static final String OUTPUT_FUNCTIONAL_CLASS = "functionalClass"; //eg. missense
 
     public static final String OUTPUT_CODING_COORD_STR = "codingCoordStr";
     public static final String OUTPUT_PROTEIN_COORD_STR = "proteinCoordStr";
 
-    //public static final String OUTPUT_INTRON_COORD_STR = "intron_coord_str";
     public static final String OUTPUT_SPLICE_INFO = "spliceInfo"; //(eg "splice-donor -4", or "splice-acceptor 3") for the 10bp surrounding each exon/intron boundary
     public static final String OUTPUT_UORF_CHANGE = "uorfChange"; // (eg +1 or -1, indicating the addition or interruption of an ATG trinucleotide in the annotated utr5)
 
 
 
     public static final String[] OUTPUT_COLUMN_NAMES = new String[] {
-        OUTPUT_SORT_KEY,
 
         OUTPUT_CHRPOS,
         OUTPUT_HAPLOTYPE_REFERENCE,
@@ -124,6 +126,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
         OUTPUT_VARIANT_CODON,
         OUTPUT_VARIANT_AA,
         OUTPUT_CHANGES_AMINO_ACID,
+        OUTPUT_FUNCTIONAL_CLASS,
 
         OUTPUT_CODING_COORD_STR,
         OUTPUT_PROTEIN_COORD_STR,
@@ -137,7 +140,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
     /**
      * Container for all data fields from a single refGene.txt row.
      */
-    static class RefGeneTranscriptRecord
+    protected static class RefGeneTranscriptRecord
     {
         public static final String REFGENE_NAME = "name";  //eg. NM_021649
         public static final String REFGENE_STRAND = "strand";  //eg. +
@@ -163,6 +166,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
          * Then, all calculations are performed at the end.
          */
         public StringBuilder txSequence;  //the sequence of the entire transcript in order from 5' to 3'
+        public StringBuilder utr5Sequence; //the protein coding sequence (with introns removed) in order from 5' to 3'
         public StringBuilder cdsSequence; //the protein coding sequence (with introns removed) in order from 5' to 3'
 
         public boolean positiveStrand;
@@ -187,14 +191,15 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
             this.rod = refGeneRod;
             //String binStr = rod.get("bin");
             //String idStr = refGeneRod.get("id"); //int(10) unsigned range Unique identifier ( usually 0 for some reason - even for translated )
-
             String strandStr = refGeneRod.get("strand");
-            if(strandStr.equals("+")) {
+            if(strandStr == null) {
+                throw new IllegalArgumentException("refGene record doesn't contain a 'strand' column. Make sure refGene input file has a header and the usual columns: \"" + strandStr + "\"");
+            } else if(strandStr.equals("+")) {
                 positiveStrand = true;
             } else if(strandStr.equals("-")) {
                 positiveStrand = false;
             } else {
-                throw new IllegalArgumentException("refGene record contains unexpected strand value: \"" + strandStr + "\"");
+                throw new IllegalArgumentException("refGene record contains unexpected value for 'strand' column: \"" + strandStr + "\"");
             }
 
             name = refGeneRod.get("name");
@@ -208,14 +213,17 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
             txStart = loc.getStart();
             txEnd = loc.getStop();
 
-            txSequence = new StringBuilder( (int) (txEnd - txStart + 1) );  //the sequence of the entire transcript in order from 5' to 3'
-            cdsSequence = new StringBuilder( (int) (cdsEnd - cdsStart + 1) ); //TODO reduce init size by size of introns
-
             String cdsStartStr = refGeneRod.get(REFGENE_CDS_START);
             String cdsEndStr = refGeneRod.get(REFGENE_CDS_END);
 
             cdsStart = Long.parseLong(cdsStartStr);
             cdsEnd = Long.parseLong(cdsEndStr);
+
+            txSequence = new StringBuilder( (int) (txEnd - txStart + 1) );  //the sequence of the entire transcript in order from 5' to 3'
+            if(isProteinCodingTranscript()) {
+                utr5Sequence = new StringBuilder( positiveStrand ? (int) (cdsStart - txStart + 1) : (int) (txEnd - cdsEnd + 1) ); //TODO reduce init size by size of introns
+                cdsSequence = new StringBuilder( (int) (cdsEnd - cdsStart + 1) ); //TODO reduce init size by size of introns
+            }
 
             String exonCountStr = refGeneRod.get(REFGENE_EXON_COUNT);
             String exonStartsStr = refGeneRod.get(REFGENE_EXON_STARTS);
@@ -380,6 +388,8 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
     }
 
 
+    protected String outputFilename = null;
+
     protected int transcriptsProcessedCounter = 0;
 
 
@@ -388,44 +398,37 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
         intergenic, intron, utr5, CDS, utr3, non_coding_exon, non_coding_intron
     }
 
-    /** Output stream for computed results */
-    private PrintStream outputStream;
-
 
     /**
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
         //init the output file
-        String outputFilename = getToolkit().getArguments().outFileName;
-        if(outputFilename == null ) {
-            outputStream = System.out;
-        } else {
-            try {
-                outputStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(outputFilename), OUTPUT_STREAM_BUFFER_SIZE));
-            } catch(Exception e) {
-                throw new StingException("Unable to open output file for writing: " + outputFilename);
-            }
+        outputFilename = getToolkit().getArguments().outFileName;
+        if(outputFilename == null) {
+            throw new StingException("Output file not specified. (Used -o command-line-arg)" );
         }
 
-        outputStream.println(Utils.join(AnnotatorROD.DELIMITER, OUTPUT_COLUMN_NAMES));
+        if(!new File(outputFilename).canWrite()) {
+            throw new StingException("Unable to write to output file: " + outputFilename );
+        }
+
     }
 
     /**
-     * Initialize the number of loci processed to zero.
+     * Initialize the output filename.
      *
      * @return 0
      */
-    public Integer reduceInit() { return 0; }
+    public TreeMap<String, String> reduceInit()
+    {
+        return new TreeMap<String, String>() {
 
-
-    /**
-     * We want reads that span deletions
-     *
-     * @return true
-     */
-    public boolean includeReadsWithDeletionAtLoci() { return true; }
-
+            public String toString() {
+                return size() + " total entries";
+            }
+        };
+    }
 
 
     /**
@@ -436,18 +439,19 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
      * @param context  the context for the given locus
      * @return 1 if the locus was successfully processed, 0 if otherwise
      */
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public TreeMap<String, String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+
         if ( tracker == null )
-            return 0;
+            return null;
 
 
         final Collection<RODRecordList> rods = tracker.getBoundRodTracks();
         if(rods.size() == 0) {
             //if there's nothing overlapping this locus, skip it.
-            return 0;
+            return null;
         }
 
-
+        final TreeMap<String, String> result = new TreeMap<String, String>();
 
 
         final List<Object> refGeneRODs = (List<Object>) tracker.getReferenceMetaData("refgene");
@@ -464,56 +468,104 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
                 refGeneRod.setTemporaryAttribute("parsedRefGeneRod", parsedRefGeneRod);
             }
 
+            //populate the parsedRefGeneRod.positiveStrand data structure
             if(parsedRefGeneRod.positiveStrand) {
                 parsedRefGeneRod.txSequence.append(ref.getBase());
             } else {
                 parsedRefGeneRod.txSequence.insert(0, ref.getBase());
             }
 
+            //continue populating the parsedRefGeneRod.utr5Sequence and  parsedRefGeneRod.cdsSequence data structures
             final long position = ref.getLocus().getStart();
-            if(parsedRefGeneRod.isProteinCodingTranscript() && position >= parsedRefGeneRod.cdsStart && position <= parsedRefGeneRod.cdsEnd && parsedRefGeneRod.isWithinExon(position) ) {
-                if(parsedRefGeneRod.positiveStrand) {
-                    parsedRefGeneRod.cdsSequence.append(ref.getBase());
-                } else {
-                    parsedRefGeneRod.cdsSequence.insert(0, ref.getBase());
+            if(parsedRefGeneRod.isProteinCodingTranscript() && parsedRefGeneRod.isWithinExon(position) )
+            {
+                //we're within an exon of a proteinCodingTranscript
+
+                if(parsedRefGeneRod.positiveStrand)
+                {
+                    if(position < parsedRefGeneRod.cdsStart)
+                    {
+                        parsedRefGeneRod.utr5Sequence.append(ref.getBase()); //within utr5
+                    }
+                    else if(position >= parsedRefGeneRod.cdsStart && position <= parsedRefGeneRod.cdsEnd)
+                    {
+                        parsedRefGeneRod.cdsSequence.append(ref.getBase()); //within CDS
+                    }
+                }
+                else
+                {
+                    if(position > parsedRefGeneRod.cdsEnd)
+                    {
+                        //As we more left-to-right (aka. 3' to 5'), we do insert(0,..) to reverse the sequence so that it become 5' to 3' in parsedRefGeneRod.utr5Sequence.
+                        parsedRefGeneRod.utr5Sequence.insert(0,ref.getBase()); //within utr5.
+                    }
+                    else if(position >= parsedRefGeneRod.cdsStart && position <= parsedRefGeneRod.cdsEnd)
+                    {
+                        parsedRefGeneRod.cdsSequence.insert(0,ref.getBase()); //within CDS
+                    }
                 }
             }
 
-            if(position == parsedRefGeneRod.txEnd) {
+            if(position == parsedRefGeneRod.txEnd)
+            {
                 //we've reached the end of the transcript - compute all data and write it out.
-                generateOutputRecordsForROD(parsedRefGeneRod);
+                try
+                {
+                    generateOutputRecordsForROD(parsedRefGeneRod, result);
+                }
+                catch(Exception e)
+                {
+                    logger.error(Thread.currentThread().getName() + " - Unexpected error occurred at position: [" + parsedRefGeneRod.txChrom + ":" + position + "] in transcript: " + parsedRefGeneRod, e);
+                }
 
                 transcriptsProcessedCounter++;
                 if(transcriptsProcessedCounter % 100 == 0) {
-                    System.err.println(new Date() + ": " +  transcriptsProcessedCounter + " transcripts processed");
+                    logger.info(new Date() + ": " +  transcriptsProcessedCounter + " transcripts processed");
                 }
             }
         }
 
-        return 1;
+        return result;
     }
 
 
     private static final char[] ALLELES = {'A','C','G','T'};
 
+    private static final String OUTPUT_HEADER_LINE;
+
+    static {
+        StringBuilder outputHeaderLine = new StringBuilder();
+        for( final String column : OUTPUT_COLUMN_NAMES ) {
+            if(outputHeaderLine.length() != 0) {
+                outputHeaderLine.append( AnnotatorROD.DELIMITER );
+            }
+            outputHeaderLine.append(column);
+        }
+
+        OUTPUT_HEADER_LINE = outputHeaderLine.toString();
+    }
 
 
-    private void generateOutputRecordsForROD(RefGeneTranscriptRecord parsedRefGeneRod) {
-
+    /**
+     * Returns the filename.
+     *
+     * @param parsedRefGeneRod
+     * @param result
+     * @return
+     */
+    private void generateOutputRecordsForROD(RefGeneTranscriptRecord parsedRefGeneRod, TreeMap<String, String> result) throws IOException
+    {
         //Transcripts that don't produce proteins are indicated in refGene by cdsStart == cdsEnd
         //These will be handled by generating only one record, with haplotypeAlternate == "*".
         final boolean isProteinCodingTranscript = parsedRefGeneRod.isProteinCodingTranscript();
 
-        final boolean positiveStrand = parsedRefGeneRod.positiveStrand; //shorten the name
+        final boolean positiveStrand = parsedRefGeneRod.positiveStrand; //alias
 
         if(isProteinCodingTranscript && parsedRefGeneRod.cdsSequence.length() % 3 != 0) {
-            System.err.println("WARNING: The following record has " + parsedRefGeneRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. Skipping... \n" + parsedRefGeneRod.toString());
+            logger.warn("WARNING: Transcript " + parsedRefGeneRod.name +" at position ["+ parsedRefGeneRod.txChrom + ":" +parsedRefGeneRod.txStart + "-" + parsedRefGeneRod.txEnd + "] has " + parsedRefGeneRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. Skipping...");
             //discard transcripts where CDS length is not a multiple of 3
             return;
         }
-
-
-        char[] currentCodon_5to3 = null; //holds the current RNA codon - 5' to 3'
 
         final long txStart_5prime = positiveStrand ? parsedRefGeneRod.txStart : parsedRefGeneRod.txEnd; //1-based, inclusive
         final long txEnd_3prime = positiveStrand ? parsedRefGeneRod.txEnd : parsedRefGeneRod.txStart; //1-based, inclusive
@@ -525,66 +577,51 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
 
         int frame = 0; //the frame of the current position
         int txOffset_from5 = 1; //goes from txStart 5' to txEnd 3' for both + and - strand
-        int codonCount_from5 = 0; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand - counts the number of codons (this count is 1-based even though its set to 0 here.)
-        int codingCoord_from5 = isProteinCodingTranscript ? parsedRefGeneRod.computeInitialCodingCoord() : 0; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand
+        int utr5Count_from5 = 0;
+        char[] utr5NucBuffer_5to3 = null; //used to find uORFs - size = 5 because to hold the 3 codons that overlap any given position: [-2,-1,0], [-1,0,1], and [0,1,2]
 
+        int codonCount_from5 = 1; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand - counts the number of codons
+        int codingCoord_from5 = isProteinCodingTranscript ? parsedRefGeneRod.computeInitialCodingCoord() : -1; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand
+        boolean codingCoordResetForCDS = false;
+        boolean codingCoordResetForUtr3 = false;
+        final char[] currentCodon_5to3 = isProteinCodingTranscript ? new char[3] : null; //holds the current RNA codon - 5' to 3'
 
-        boolean mitochondrial = false;
-
-        //compute chromosome sort key (this becomes the 1st column in the file and is later used to sort the output file using the GNU command-line sort utility)
-        long chromKey;
-        final char lastChromChar = parsedRefGeneRod.txChrom.charAt(parsedRefGeneRod.txChrom.length() -1);
-        switch( Character.toLowerCase(lastChromChar) ) {
-        case 'm':
-            chromKey = 0;
-            mitochondrial = true;
-            break;
-        case 'x':
-            chromKey = 23;
-            break;
-        case 'y':
-            chromKey = 24;
-            break;
-        default:
-            chromKey = Integer.parseInt(parsedRefGeneRod.txChrom.substring(3));
-            break;
-        }
-
-        chromKey++; //shift so there's no zero (otherwise, multiplication is screwed up in the next step)
-        chromKey *= 100000000000L;
+        final boolean mitochondrial = parsedRefGeneRod.txChrom.toLowerCase().startsWith("chrm");
 
         PositionType positionType = null;
+        boolean isWithinIntronAndFarFromSpliceJunction = false;
+        long intronStart_5prime = -1;
+        long intronEnd_5prime = -1;
+
+        final Map<String, String> outputLineFields = new HashMap<String, String>();
 
         for(long txCoord_5to3 = txStart_5prime; txCoord_5to3 != txEnd_3prime + increment_5to3; txCoord_5to3 += increment_5to3)
         {
-            //get the reference sequence
-            final char haplotypeReference = parsedRefGeneRod.txSequence.charAt( txOffset_from5 - 1 );
 
-            //whether the current txCoord_5to3 is within an exon
+            //compute certain attributes of the current position
             final boolean isWithinExon = parsedRefGeneRod.isWithinExon(txCoord_5to3); //TODO if necessary, this can be sped up by keeping track of current exon/intron
 
             final int distanceToNearestSpliceSite = parsedRefGeneRod.computeDistanceToNearestSpliceSite(txCoord_5to3);
+            final boolean isWithin10bpOfSpliceJunction = Math.abs(distanceToNearestSpliceSite) <= 10;
 
-            //figure out what region the current position is in.
+
+            //increment coding coord is necessary
+            if(isWithinExon) {
+                codingCoord_from5++;
+            }
+
+            //figure out the current positionType
+            final PositionType prevPositionType = positionType; //save the position before it is updated
             if(isProteinCodingTranscript)
             {
                 if(isWithinExon)
                 {
-                    //update positionType (and codingCoord_from5 if needed)
-                    if( strandSign*(txCoord_5to3 - cdsStart_5prime) < 0 ) {  //multiplying by strandSign is like doing absolute value.
+                    if( strandSign*(txCoord_5to3 - cdsStart_5prime) < 0 ) {  //utr5  (multiplying by strandSign is like doing absolute value.)
                         positionType = PositionType.utr5;
-                    } else if( strandSign*(txCoord_5to3 - cdsEnd_3prime) > 0 ) {  //multiplying by strandSign is like doing absolute value.
-                        if(positionType != PositionType.utr3) {
-                            //if we're transitioning from CDS to utr3, reset the coding coord to 1.
-                            codingCoord_from5 = 1; //reset the coding coord for utr3
-                            positionType = PositionType.utr3;
-                        }
+                    } else if( strandSign*(txCoord_5to3 - cdsEnd_3prime) > 0 ) {  //utr3  (multiplying by strandSign is like doing absolute value.)
+                        positionType = PositionType.utr3;
                     } else {
-                        if(positionType != PositionType.CDS) {
-                            //if we're transitioning from utr5 to CDS, reset the coding coord from -1 to 1.
-                            codingCoord_from5 = 1;
-                            positionType = PositionType.CDS;
-                        }
+                        positionType = PositionType.CDS;
                     }
                 } else {
                     positionType = PositionType.intron;
@@ -597,183 +634,445 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer>
                 }
             }
 
-            //compute current codon
-            if(positionType == PositionType.CDS && frame == 0)
-            {
-                if(currentCodon_5to3 == null) {
-                    currentCodon_5to3 = new char[3];
-                }
-
-                codonCount_from5++;
-
-                currentCodon_5to3[0] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 - 1 ); //subtract 1 to go to zero-based coords
-                currentCodon_5to3[1] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 );
-                currentCodon_5to3[2] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 + 1);
-
-                if(!positiveStrand) {
-                    currentCodon_5to3[0] = BaseUtils.simpleComplement(currentCodon_5to3[0]);
-                    currentCodon_5to3[1] = BaseUtils.simpleComplement(currentCodon_5to3[1]);
-                    currentCodon_5to3[2] = BaseUtils.simpleComplement(currentCodon_5to3[2]);
-                }
+            //handle transitions
+            if(positionType == PositionType.CDS && prevPositionType != PositionType.CDS && !codingCoordResetForCDS) {
+                //transitioning from utr5 to CDS, reset the coding coord from -1 to 1.
+                codingCoord_from5 = 1;
+                codingCoordResetForCDS = true;
+            } else if(positionType == PositionType.utr3 && prevPositionType != PositionType.utr3 && !codingCoordResetForUtr3) {
+                //transitioning from CDS to utr3, reset the coding coord to 1.
+                codingCoord_from5 = 1;
+                codingCoordResetForUtr3 = true;
             }
 
-            for(final char haplotypeAlternate : ALLELES )
+
+            try
             {
-                final LinkedHashMap<String, String> outputLineFields = new LinkedHashMap<String, String>();
 
-                outputLineFields.put(OUTPUT_SORT_KEY,  Long.toString( chromKey + txCoord_5to3) );
+                //handle introns
+                boolean wasWithinIntronAndFarFromSpliceJunction = isWithinIntronAndFarFromSpliceJunction;
+                isWithinIntronAndFarFromSpliceJunction = !isWithinExon && !isWithin10bpOfSpliceJunction;
 
-                outputLineFields.put(OUTPUT_CHRPOS, parsedRefGeneRod.txChrom + ":" + txCoord_5to3);
-                outputLineFields.put(OUTPUT_HAPLOTYPE_REFERENCE, Character.toString( haplotypeReference ) );
-                outputLineFields.put(OUTPUT_HAPLOTYPE_ALTERNATE, isProteinCodingTranscript ? Character.toString( haplotypeAlternate ) : "*");
-                outputLineFields.put(OUTPUT_HAPLOTYPE_STRAND, positiveStrand ? "+" : "-");
-                outputLineFields.put(OUTPUT_GENE_NAME, parsedRefGeneRod.name2 );
-                outputLineFields.put(OUTPUT_TRANSCRIPT_ACCESSION, parsedRefGeneRod.name );
+                if(!wasWithinIntronAndFarFromSpliceJunction && isWithinIntronAndFarFromSpliceJunction) {
+                    //save intron start
+                    intronStart_5prime = txCoord_5to3;
 
-                outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
-                outputLineFields.put(OUTPUT_MRNA_COORD, Integer.toString(txOffset_from5) );
-                outputLineFields.put(OUTPUT_SPLICE_DISTANCE, Integer.toString(distanceToNearestSpliceSite) );
+                } else if(wasWithinIntronAndFarFromSpliceJunction && !isWithinIntronAndFarFromSpliceJunction) {
+                    //output intron record
+                    intronEnd_5prime = txCoord_5to3 - increment_5to3;
 
-                //comppute OUTPUT_SPLICE_INFO
-                final String spliceInfoString;
-                if(Math.abs(distanceToNearestSpliceSite) <= 10) {
-                    if(distanceToNearestSpliceSite < 0) {
-                        //is on the 5' side of the splice junction
-                        if(isWithinExon) {
-                            spliceInfoString = "splice-donor " + distanceToNearestSpliceSite;
-                        } else {
-                            spliceInfoString = "splice-acceptor " + distanceToNearestSpliceSite;
-                        }
-                    } else {
-                        if(isWithinExon) {
-                            spliceInfoString = "splice-acceptor " + distanceToNearestSpliceSite;
-                        } else {
-                            spliceInfoString = "splice-donor " + distanceToNearestSpliceSite;
-                        }
-                    }
-                    outputLineFields.put(OUTPUT_SPLICE_INFO, spliceInfoString);
-                }
+                    final long intronStart = (intronStart_5prime < intronEnd_5prime ? intronStart_5prime : intronEnd_5prime) ;
+                    final long intronEnd = (intronEnd_5prime > intronStart_5prime ? intronEnd_5prime : intronStart_5prime);
+                    outputLineFields.clear();
+                    outputLineFields.put(OUTPUT_CHRPOS, parsedRefGeneRod.txChrom + ":" + intronStart +  "-" + intronEnd);
+                    outputLineFields.put(OUTPUT_HAPLOTYPE_REFERENCE, Character.toString( '*' ) );
+                    outputLineFields.put(OUTPUT_HAPLOTYPE_ALTERNATE, Character.toString( '*' ) );
+                    outputLineFields.put(OUTPUT_HAPLOTYPE_STRAND, positiveStrand ? "+" : "-");
+                    outputLineFields.put(OUTPUT_GENE_NAME, parsedRefGeneRod.name2 );
+                    outputLineFields.put(OUTPUT_TRANSCRIPT_ACCESSION, parsedRefGeneRod.name );
 
-                if(isProteinCodingTranscript)
-                {
-                    outputLineFields.put(OUTPUT_IN_CODING_REGION, Boolean.toString(positionType == PositionType.CDS) );
+                    outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
 
-                    if(isWithinExon)
+                    if(isProteinCodingTranscript)
                     {
-                        if(positionType == PositionType.utr5)
-                        {
-                            /*
-                            if(THIS IS A uORF)
-                            outputLineFields.put(OUTPUT_UORF_CHANGE, "TODO" ); //TODO put this here
-                            */
+                        outputLineFields.put(OUTPUT_IN_CODING_REGION, Boolean.toString(positionType == PositionType.CDS) );
+                    }
+
+                    final String sortKey = computeSortKey(parsedRefGeneRod.txChrom, intronStart, '*', parsedRefGeneRod);
+
+                    addThisLineToResult(sortKey, outputLineFields, result);
+                }
+
+
+                //when in utr5, compute the utr5NucBuffer_5to3 which is later used to compute the OUTPUT_UORF_CHANGE field
+                if(positionType == PositionType.utr5)
+                {
+                    if(utr5Count_from5 < parsedRefGeneRod.utr5Sequence.length())
+                    {
+                        if(utr5NucBuffer_5to3 == null) {
+                            //initialize
+                            utr5NucBuffer_5to3 = new char[5];
+                            utr5NucBuffer_5to3[3] = parsedRefGeneRod.utr5Sequence.charAt( utr5Count_from5 );
+                            if(!positiveStrand) {
+                                utr5NucBuffer_5to3[3] = BaseUtils.simpleComplement(utr5NucBuffer_5to3[3]);
+                            }
+
+                            if(utr5Count_from5 + 1 < parsedRefGeneRod.utr5Sequence.length() ) {
+                                utr5NucBuffer_5to3[4] = parsedRefGeneRod.utr5Sequence.charAt( utr5Count_from5 + 1 );
+                                if(!positiveStrand) {
+                                    utr5NucBuffer_5to3[4] = BaseUtils.simpleComplement(utr5NucBuffer_5to3[4]);
+                                }
+                            }
                         }
-                        else if(positionType == PositionType.CDS)
+
+                        //as we move 5' to 3', shift nucleotides down to the 5' end, making room for the new 3' nucleotide:
+                        utr5NucBuffer_5to3[0] = utr5NucBuffer_5to3[1];
+                        utr5NucBuffer_5to3[1] = utr5NucBuffer_5to3[2];
+                        utr5NucBuffer_5to3[2] = utr5NucBuffer_5to3[3];
+                        utr5NucBuffer_5to3[3] = utr5NucBuffer_5to3[4];
+
+                        char nextRefBase = 0;
+                        if( utr5Count_from5 + 2 < parsedRefGeneRod.utr5Sequence.length() )
                         {
-                            final String referenceCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
-                            outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame) );
-                            outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5) );
+                            nextRefBase = parsedRefGeneRod.utr5Sequence.charAt( utr5Count_from5 + 2 );
 
-                            final AminoAcid refAA = AminoAcidTable.getAA(referenceCodon, mitochondrial);
-                            outputLineFields.put(OUTPUT_REFERENCE_CODON, referenceCodon );
-                            outputLineFields.put(OUTPUT_REFERENCE_AA, refAA.getCode());
+                            //reverse complement if necessary
+                            if(!positiveStrand) {
+                                nextRefBase = BaseUtils.simpleComplement(nextRefBase);
+                            }
+                        }
+                        utr5NucBuffer_5to3[4] = nextRefBase;
 
-                            final char temp = currentCodon_5to3[frame];
-                            currentCodon_5to3[frame] = haplotypeAlternate;
-                            final String variantCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
-                            final AminoAcid variantAA = AminoAcidTable.getAA(variantCodon, mitochondrial);
-                            outputLineFields.put(OUTPUT_VARIANT_CODON, variantCodon );
-                            outputLineFields.put(OUTPUT_VARIANT_AA, variantAA.getCode());
+                        //check for bad bases
+                        if( (utr5NucBuffer_5to3[0] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[0])) ||
+                            (utr5NucBuffer_5to3[1] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[1])) ||
+                            (utr5NucBuffer_5to3[2] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[2])) ||
+                            (utr5NucBuffer_5to3[3] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[3])) ||
+                            (utr5NucBuffer_5to3[4] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[4])))
+                        {
+                            logger.error("Exception: Skipping current position [" + parsedRefGeneRod.txChrom + ":" +txCoord_5to3 + "] in transcript " + parsedRefGeneRod.name +". utr5NucBuffer_5to3 contains irregular base:" + utr5NucBuffer_5to3[0] + utr5NucBuffer_5to3[1] + utr5NucBuffer_5to3[2] + utr5NucBuffer_5to3[3] + utr5NucBuffer_5to3[4]);// +". Transcript is: " + parsedRefGeneRod);
+                            continue;
+                        }
 
-                            outputLineFields.put(OUTPUT_PROTEIN_COORD_STR, "p."+ refAA.getLetter() + Integer.toString(codonCount_from5) + variantAA.getLetter() ); //for example: "p.K76A"
+                    } else { // if(utr5Count_from5 >= parsedRefGeneRod.utr5Sequence.length())
+                        //defensive programming
+                        logger.error("Exception: Skipping current position [" + parsedRefGeneRod.txChrom + ":" +txCoord_5to3 + "] in transcript " + parsedRefGeneRod.name +". utr5Count_from5 is now " + utr5Count_from5 + ", while parsedRefGeneRod.utr5Sequence.length() == " + parsedRefGeneRod.utr5Sequence.length() + ". This means parsedRefGeneRod.utr5Sequence isn't as long as it should be. This is a bug in handling this record: " + parsedRefGeneRod);
+                        continue;
+                    }
+                }
 
-                            currentCodon_5to3[frame] = temp;
 
-                            outputLineFields.put(OUTPUT_CHANGES_AMINO_ACID, Boolean.toString(!refAA.getLetter().equals(variantAA.getLetter())));
+                //when in CDS, compute current codon
+                if(positionType == PositionType.CDS)
+                {
+                    if(frame == 0)
+                    {
+                        currentCodon_5to3[0] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 - 1 ); //subtract 1 to go to zero-based coords
+                        currentCodon_5to3[1] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 );
+                        currentCodon_5to3[2] = parsedRefGeneRod.cdsSequence.charAt( codingCoord_from5 + 1);
+
+                        if(!positiveStrand) {
+                            currentCodon_5to3[0] = BaseUtils.simpleComplement(currentCodon_5to3[0]);
+                            currentCodon_5to3[1] = BaseUtils.simpleComplement(currentCodon_5to3[1]);
+                            currentCodon_5to3[2] = BaseUtils.simpleComplement(currentCodon_5to3[2]);
                         }
                     }
 
-
-                    final StringBuilder codingCoordStr = new StringBuilder();
-                    codingCoordStr.append( mitochondrial ? "m." : "c." );
-                    if(positionType == PositionType.utr3) {
-                        codingCoordStr.append( '*' );
+                    //check for bad bases
+                    if(!BaseUtils.isRegularBase(currentCodon_5to3[0]) || !BaseUtils.isRegularBase(currentCodon_5to3[1]) || !BaseUtils.isRegularBase(currentCodon_5to3[2])) {
+                        logger.error("Exception: Skipping current position [" + parsedRefGeneRod.txChrom + ":" +txCoord_5to3 + "] in transcript " + parsedRefGeneRod.name +". CDS codon contains irregular base:" + currentCodon_5to3[0] + currentCodon_5to3[1] + currentCodon_5to3[2]);// +". Transcript is: " + parsedRefGeneRod);
+                        continue;
                     }
 
-                    if(isWithinExon) {
-                        codingCoordStr.append( Integer.toString(codingCoord_from5) );
-                    } else {
-                        //intronic coordinates
+                }
+
+                char haplotypeReference = parsedRefGeneRod.txSequence.charAt( txOffset_from5 - 1 );
+                if(!BaseUtils.isRegularBase(haplotypeReference)) {
+                    //check for bad bases
+                    logger.error("Exception: Current position [" + parsedRefGeneRod.txChrom + ":" +txCoord_5to3 + "] in transcript " + parsedRefGeneRod.name + " contains an irregular base:" + haplotypeReference); // +". Transcript is: " + parsedRefGeneRod);
+                    continue;
+                }
+
+                for(char haplotypeAlternate : ALLELES )
+                {
+                    outputLineFields.clear();
+
+                    if(!isProteinCodingTranscript || isWithinIntronAndFarFromSpliceJunction) {
+                        haplotypeReference = '*';
+                        haplotypeAlternate = '*';
+                    }
+
+                    //compute simple OUTPUT fields.
+                    outputLineFields.put(OUTPUT_CHRPOS, parsedRefGeneRod.txChrom + ":" + txCoord_5to3);
+                    outputLineFields.put(OUTPUT_HAPLOTYPE_REFERENCE, Character.toString( haplotypeReference ) );
+                    outputLineFields.put(OUTPUT_HAPLOTYPE_ALTERNATE, Character.toString( haplotypeAlternate ) );
+                    outputLineFields.put(OUTPUT_HAPLOTYPE_STRAND, positiveStrand ? "+" : "-");
+                    outputLineFields.put(OUTPUT_GENE_NAME, parsedRefGeneRod.name2 );
+                    outputLineFields.put(OUTPUT_TRANSCRIPT_ACCESSION, parsedRefGeneRod.name );
+
+                    outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
+                    outputLineFields.put(OUTPUT_MRNA_COORD, Integer.toString(txOffset_from5) );
+                    outputLineFields.put(OUTPUT_SPLICE_DISTANCE, Integer.toString(distanceToNearestSpliceSite) );
+
+                    //compute OUTPUT_SPLICE_INFO
+                    final String spliceInfoString;
+                    if(isWithin10bpOfSpliceJunction) {
                         if(distanceToNearestSpliceSite < 0) {
-                            codingCoordStr.append( Integer.toString(codingCoord_from5 + 1) );
+                            //is on the 5' side of the splice junction
+                            if(isWithinExon) {
+                                spliceInfoString = "splice-donor " + distanceToNearestSpliceSite;
+                            } else {
+                                spliceInfoString = "splice-acceptor " + distanceToNearestSpliceSite;
+                            }
                         } else {
-                            codingCoordStr.append( Integer.toString(codingCoord_from5 ) );
+                            if(isWithinExon) {
+                                spliceInfoString = "splice-acceptor " + distanceToNearestSpliceSite;
+                            } else {
+                                spliceInfoString = "splice-donor " + distanceToNearestSpliceSite;
+                            }
                         }
-                        codingCoordStr.append( Integer.toString( distanceToNearestSpliceSite ) );
+                        outputLineFields.put(OUTPUT_SPLICE_INFO, spliceInfoString);
                     }
-                    codingCoordStr.append( haplotypeReference + ">" + haplotypeAlternate);
-                    outputLineFields.put(OUTPUT_CODING_COORD_STR,  codingCoordStr.toString() );
 
-                }
-
-
-                //write out the record
-                final StringBuilder outputLine = new StringBuilder();
-                for( final String column : OUTPUT_COLUMN_NAMES ) {
-                    if(outputLine.length() != 0) {
-                        outputLine.append( AnnotatorROD.DELIMITER );
+                    //compute OUTPUT_IN_CODING_REGION
+                    if(isProteinCodingTranscript)
+                    {
+                        outputLineFields.put(OUTPUT_IN_CODING_REGION, Boolean.toString(positionType == PositionType.CDS) );
                     }
-                    final String value = outputLineFields.get(column);
-                    outputLine.append(value != null ? value : "");
-                }
-
-                outputStream.println(outputLine);
-
-                if( !isProteinCodingTranscript ) {
-                    //need only one record for this position with "*" for haplotypeAlternate, instead of the 4 individual alleles
-                    break;
-                }
-
-            } //ALLELE for-loop
 
 
-            txOffset_from5++;
+                    //compute OUTPUT_UORF_CHANGE
+                    if(positionType == PositionType.utr5)
+                    {
+                        String refCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + utr5NucBuffer_5to3[2]).toLowerCase();
+                        String refCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(utr5NucBuffer_5to3[2]) + utr5NucBuffer_5to3[3]).toLowerCase();
+                        String refCodon3 = (Character.toString(utr5NucBuffer_5to3[2]) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toLowerCase();
 
-            if(positionType == PositionType.CDS) {
-                frame = (frame + 1) % 3;
+                        String varCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + haplotypeAlternate).toLowerCase();
+                        String varCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(haplotypeAlternate) + utr5NucBuffer_5to3[3]).toLowerCase();
+                        String varCodon3 = (Character.toString(haplotypeAlternate) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toLowerCase();
+
+                        //check for +1 (eg. addition of new ATG uORF) and -1 (eg. disruption of existing ATG uORF)
+                        String uORFChangeStr = null;
+                        if( (refCodon1.equals("atg") && !varCodon1.equals("atg")) ||
+                            (refCodon2.equals("atg") && !varCodon2.equals("atg")) ||
+                            (refCodon3.equals("atg") && !varCodon3.equals("atg")))
+                        {
+                            uORFChangeStr = "-1";
+                        }
+                        else if((varCodon1.equals("atg") && !refCodon1.equals("atg")) ||
+                                (varCodon2.equals("atg") && !refCodon2.equals("atg")) ||
+                                (varCodon3.equals("atg") && !refCodon3.equals("atg")))
+                        {
+                            uORFChangeStr = "+1";
+                        }
+
+                        outputLineFields.put(OUTPUT_UORF_CHANGE, uORFChangeStr );
+                    }
+                    //compute CDS-specific fields
+                    else if(positionType == PositionType.CDS)
+                    {
+                        final String referenceCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
+                        outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame) );
+                        outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5) );
+
+                        final AminoAcid refAA = AminoAcidTable.getAA(referenceCodon, mitochondrial);
+                        outputLineFields.put(OUTPUT_REFERENCE_CODON, referenceCodon );
+                        outputLineFields.put(OUTPUT_REFERENCE_AA, refAA.getCode());
+
+                        final char temp = currentCodon_5to3[frame];
+                        currentCodon_5to3[frame] = haplotypeAlternate;
+                        final String variantCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
+                        final AminoAcid variantAA = AminoAcidTable.getAA(variantCodon, mitochondrial);
+                        outputLineFields.put(OUTPUT_VARIANT_CODON, variantCodon );
+                        outputLineFields.put(OUTPUT_VARIANT_AA, variantAA.getCode());
+
+                        outputLineFields.put(OUTPUT_PROTEIN_COORD_STR, "p."+ refAA.getLetter() + Integer.toString(codonCount_from5) + variantAA.getLetter() ); //for example: "p.K76A"
+
+                        currentCodon_5to3[frame] = temp;
+
+                        boolean changesAA = !refAA.equals(variantAA);
+                        outputLineFields.put(OUTPUT_CHANGES_AMINO_ACID, Boolean.toString(changesAA));
+                        final String functionalClass;
+                        if(changesAA) {
+                            if(variantAA.isStop()) {
+                                functionalClass ="nonsense";
+                            } else {
+                                functionalClass ="missense";
+                            }
+                        } else {
+                            functionalClass ="silent";
+                        }
+                        outputLineFields.put(OUTPUT_FUNCTIONAL_CLASS, functionalClass);
+                    }
+
+
+                    //compute OUTPUT_CODING_COORD_STR
+                    if(isProteinCodingTranscript)
+                    {
+                        //compute coding coord
+                        final StringBuilder codingCoordStr = new StringBuilder();
+                        codingCoordStr.append( mitochondrial ? "m." : "c." );
+                        if(positionType == PositionType.utr3) {
+                            codingCoordStr.append( '*' );
+                        }
+
+                        if(isWithinExon) {
+                            codingCoordStr.append( Integer.toString(codingCoord_from5) );
+                            codingCoordStr.append( haplotypeReference + ">" + haplotypeAlternate);
+                        } else {
+                            //intronic coordinates
+                            if(distanceToNearestSpliceSite < 0) {
+                                codingCoordStr.append( Integer.toString(codingCoord_from5 + 1) );
+                            } else {
+                                codingCoordStr.append( Integer.toString(codingCoord_from5 ) );
+                                codingCoordStr.append( "+" );
+                            }
+
+                            codingCoordStr.append( Integer.toString( distanceToNearestSpliceSite ) );
+                        }
+
+                        outputLineFields.put(OUTPUT_CODING_COORD_STR, codingCoordStr.toString());
+                    }
+
+
+                    //generate the output line and add it to 'result' map.
+                    if(!isWithinIntronAndFarFromSpliceJunction) {
+                        final String sortKey = computeSortKey(parsedRefGeneRod.txChrom, txCoord_5to3, haplotypeAlternate, parsedRefGeneRod);
+
+                        addThisLineToResult(sortKey, outputLineFields, result);
+                    }
+
+                    if( haplotypeAlternate == '*' ) {
+                        //need only one record for this position with "*" for haplotypeAlternate, instead of the 4 individual alleles
+                        break;
+                    }
+
+                } //ALLELE for-loop
             }
+            finally
+            {
+                //increment coords
+                txOffset_from5++;
 
-            if(isWithinExon) {
-                codingCoord_from5++;
+                if(positionType == PositionType.utr5) {
+                    utr5Count_from5++;
+                } else if(positionType == PositionType.CDS) {
+                    frame = (frame + 1) % 3;
+                    if(frame == 0) {
+                        codonCount_from5++;
+                    }
+                }
             }
-
         } // l for-loop
 
     } //method close
 
 
     /**
-     * Increment the number of loci processed.
+     * Utility method. Creates a line containing the outputLineFields, and adds it to result, hashed by the sortKey.
      *
-     * @param value result of the map.
-     * @param sum   accumulator for the reduce.
-     * @return the new number of loci processed.
+     * @param sortKey  Reference-order sort key
+     * @param outputLineFields Column-name to value pairs.
+     * @param result  The hashmap that accumulates all results.
      */
-    public Integer reduce(Integer value, Integer sum) {
-        return sum + value;
+    private void addThisLineToResult(final String sortKey, final Map<String, String> outputLineFields, TreeMap<String, String> result) {
+        final StringBuilder outputLine = new StringBuilder();
+        for( final String column : OUTPUT_COLUMN_NAMES ) {
+            if(outputLine.length() != 0) {
+                outputLine.append( AnnotatorROD.DELIMITER );
+            }
+            final String value = outputLineFields.get(column);
+            if(value != null) {
+                outputLine.append(value);
+            }
+        }
+
+        result.put(sortKey, outputLine.toString());
+    }
+
+
+
+    /**
+     * Merge the "value" file with the "sum" file and return the file name
+     * of the merged data set.
+     */
+    @Override
+    public TreeMap<String, String> reduce(TreeMap<String, String> value, TreeMap<String, String> sum)
+    {
+        if(value != null) {
+            sum.putAll(value);
+        }
+
+        return sum;
+    }
+
+    @Override
+    public TreeMap<String, String> treeReduce(TreeMap<String, String> lhs, TreeMap<String, String> rhs)
+    {
+        lhs.putAll(rhs);
+        return lhs;
+    }
+
+
+
+    /**
+     * Computes a reference-order sort key for a record with the given
+     * UCSC chromosome name, position, and allele at that position.
+     *
+     * @param txChrom
+     * @param position
+     * @param allele
+     * @param parsedRefGeneRod
+     * @return
+     */
+    protected String computeSortKey(String txChrom, long position, char allele, RefGeneTranscriptRecord parsedRefGeneRod)
+    {
+        //compute chromosome sort key (this becomes the 1st column in the file and is later used to sort the output file using the GNU command-line sort utility)
+        long key;
+        final char lastChromChar = txChrom.charAt(txChrom.length() -1);
+        switch( Character.toLowerCase(lastChromChar) ) {
+        case 'm':
+            key = 0;
+            break;
+        case 'x':
+            key = 23;
+            break;
+        case 'y':
+            key = 24;
+            break;
+        default:
+            key = Integer.parseInt(txChrom.substring(3));
+            break;
+        }
+
+        key++; //shift so there's no zero (otherwise, multiplication is screwed up in the next step)
+        key += 100; //add a leading 1 to avoid having to create leading zeros
+        key *= 10*1000L*1000L*1000L*1000L; //this way position doesn't overlap with chromosome keys
+        key += position*1000L;
+        key +=   allele;
+
+        String result = Long.toString(key);
+        if(parsedRefGeneRod != null) {
+            result += (parsedRefGeneRod.name + parsedRefGeneRod.name2);
+        }
+        return result;
     }
 
     /**
-     * Tell the user the number of loci processed and close out the new variants file.
+     * Moves the file to the destination directory.
      *
-     * @param result  the number of loci seen.
+     * @param result The file of the result
      */
-    public void onTraversalDone(Integer result) {
-        out.printf("Processed %d loci.\n", result);
+    public void onTraversalDone(TreeMap<String, String> result)
+    {
+        if(result == null) {
+            logger.info("Result is: null. No output file was generated.\n");
+            return;
+        }
 
-        outputStream.close();
+        //move the fully merged temp file to the output file.
+        logger.info("Result - writing " + result.size() + " lines to: " + outputFilename);
+        BufferedWriter fileWriter  = null;
+        try {
+            fileWriter = new BufferedWriter(new FileWriter(outputFilename));
+            fileWriter.write(OUTPUT_HEADER_LINE + '\n');
+            for(String value : result.values() ) {
+                fileWriter.write(value + "\n");
+            }
+        } catch(IOException e) {
+            logger.info("Unable to write to file: " + outputFilename);
+        } finally {
+            try {
+                if (fileWriter != null)
+                    fileWriter.close();
+            } catch(IOException e) {
+                logger.info("Unable to write to file: " + outputFilename);
+            }
+        }
+
+        logger.info("Deleting temp files..");
     }
-
-
 
 }
 
