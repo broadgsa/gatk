@@ -105,9 +105,6 @@ public class UnifiedGenotyperEngine {
         if ( UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS && !(genotypeWriter instanceof VCFGenotypeWriter) ) {
             throw new IllegalArgumentException("Attempting to use an output format other than VCF with indels. Please set the output format to VCF.");
         }
-        if ( UAC.POOLSIZE > 0 ) {
-            throw new IllegalArgumentException("Attempting to provide depreciated POOLSIZE parameter for retired POOLED model");
-        }
         if ( toolkit.getArguments().numberOfThreads > 1 && UAC.ASSUME_SINGLE_SAMPLE != null ) {
             // the ASSUME_SINGLE_SAMPLE argument can't be handled (at least for now) while we are multi-threaded because the IO system doesn't know how to get the sample name
             throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
@@ -183,7 +180,7 @@ public class UnifiedGenotyperEngine {
             pileup = filterPileup(pileup, refContext);
 
             // don't call when there is no coverage
-            if ( pileup.size() == 0 )
+            if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
                 return null;
 
             // stratify the AlignmentContext and cut by sample
@@ -204,7 +201,7 @@ public class UnifiedGenotyperEngine {
             pileup = filterPileup(pileup, refContext);
 
             // don't call when there is no coverage
-            if ( pileup.size() == 0 )
+            if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
                 return null;
 
             // are there too many deletions in the pileup?

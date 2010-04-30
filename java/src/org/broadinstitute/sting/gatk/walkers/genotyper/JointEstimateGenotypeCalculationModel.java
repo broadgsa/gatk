@@ -37,8 +37,16 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     // the alternate allele with the largest sum of quality scores
     protected Character bestAlternateAllele = null;
 
+    // are we at a 'trigger' track site?
+    protected boolean atTriggerTrack = false;
 
-    protected JointEstimateGenotypeCalculationModel() {}
+    // the standard filter to use for calls below the confidence threshold but above the emit threshold
+    protected static final Set<String> filter = new HashSet<String>(1);
+
+
+    protected JointEstimateGenotypeCalculationModel() {
+        filter.add("LowQual");
+    }
 
     public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, char[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
         return null;
@@ -55,12 +63,12 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         initializeBestAlternateAllele(ref, contexts);
 
         // did we trigger on the provided track?
-        boolean triggerTrack = tracker.getReferenceMetaData(UnifiedGenotyperEngine.TRIGGER_TRACK_NAME, false).size() > 0;
+        atTriggerTrack = tracker.getReferenceMetaData(UnifiedGenotyperEngine.TRIGGER_TRACK_NAME, false).size() > 0;
 
         // if there are no non-ref bases...
         if ( bestAlternateAllele == null ) {
             // if we don't want all bases, then we don't need to calculate genotype likelihoods
-            if ( !triggerTrack && !UAC.ALL_BASES_MODE && !UAC.GENOTYPE_MODE ) {
+            if ( !atTriggerTrack && !UAC.ALL_BASES_MODE && !UAC.GENOTYPE_MODE ) {
                 VariantCallContext vcc = new VariantCallContext(false);
                 estimateReferenceConfidence(vcc, contexts, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY, false);
                 return vcc;
@@ -80,7 +88,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( verboseWriter != null )
             printAlleleFrequencyData(ref, loc, frequencyEstimationPoints);
 
-        VariantCallContext vcc = createCalls(tracker, ref, contexts, loc, frequencyEstimationPoints, triggerTrack);
+        VariantCallContext vcc = createCalls(tracker, ref, contexts, loc, frequencyEstimationPoints);
 
         // technically, at this point our confidence in a reference call isn't accurately
         //  estimated because it didn't take into account samples with no data
@@ -190,7 +198,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
         }
 
-        vcc.confidentlyCalled = QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.CONFIDENCE_THRESHOLD;
+        vcc.confidentlyCalled = QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING;
     }
 
     protected void calculateAlleleFrequencyPosteriors(char ref, int frequencyEstimationPoints, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
@@ -326,7 +334,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         return new HashMap<String, Genotype>();
     }    
 
-    protected VariantCallContext createCalls(RefMetaDataTracker tracker, char ref, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc, int frequencyEstimationPoints, boolean triggerTrack) {
+    protected VariantCallContext createCalls(RefMetaDataTracker tracker, char ref, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
         // only need to look at the most likely alternate allele
         int indexOfMax = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
@@ -350,8 +358,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
-        if ( !triggerTrack && !UAC.ALL_BASES_MODE && ((!UAC.GENOTYPE_MODE && bestAFguess == 0) || phredScaledConfidence < UAC.CONFIDENCE_THRESHOLD) )
-            return new VariantCallContext(phredScaledConfidence >= UAC.CONFIDENCE_THRESHOLD);
+        if ( !UAC.ALL_BASES_MODE && !passesEmitThreshold(phredScaledConfidence, bestAFguess) )
+            return new VariantCallContext(passesCallThreshold(phredScaledConfidence));
 
         // output to beagle file if requested
         if ( beagleWriter != null ) {
@@ -420,8 +428,20 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             attributes.put("SB", new Double(strandScore));
         }
 
-        VariantContext vc = new VariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, null, attributes);
+        VariantContext vc = new VariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);
 
-        return new VariantCallContext(vc, phredScaledConfidence >= UAC.CONFIDENCE_THRESHOLD);
+        return new VariantCallContext(vc, passesCallThreshold(phredScaledConfidence));
+    }
+
+    protected boolean passesEmitThreshold(double conf, int bestAFguess) {
+        return (atTriggerTrack ?
+                (conf >= Math.min(UAC.TRIGGER_CONFIDENCE_FOR_CALLING, UAC.TRIGGER_CONFIDENCE_FOR_EMITTING)) :
+                ((UAC.GENOTYPE_MODE || bestAFguess != 0) && conf >= Math.min(UAC.STANDARD_CONFIDENCE_FOR_CALLING, UAC.STANDARD_CONFIDENCE_FOR_EMITTING)));
+    }
+
+    protected boolean passesCallThreshold(double conf) {
+        return (atTriggerTrack ?
+                (conf >= UAC.TRIGGER_CONFIDENCE_FOR_CALLING) :
+                (conf >= UAC.STANDARD_CONFIDENCE_FOR_CALLING));
     }
 }

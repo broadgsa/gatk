@@ -40,15 +40,24 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
 
-    @Argument(fullName = "poolSize", shortName = "ps", doc = "Number of individuals in the pool -- no longer in use", required = false)
-    public int POOLSIZE = 0;
-
     // control the output
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
     public boolean GENOTYPE_MODE = false;
 
     @Argument(fullName = "output_all_callable_bases", shortName = "all_bases", doc = "Should we output all callable bases?", required = false)
     public boolean ALL_BASES_MODE = false;
+
+    @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
+    public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
+
+    @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
+    public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
+
+    @Argument(fullName = "trigger_min_confidence_threshold_for_calling", shortName = "trig_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be called", required = false)
+    public double TRIGGER_CONFIDENCE_FOR_CALLING = 30.0;
+
+    @Argument(fullName = "trigger_min_confidence_threshold_for_emitting", shortName = "trig_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
+    public double TRIGGER_CONFIDENCE_FOR_EMITTING = 30.0;
 
     @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
@@ -63,9 +72,6 @@ public class UnifiedArgumentCollection {
 
 
     // control the various parameters to be used
-    @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered", required = false)
-    public double CONFIDENCE_THRESHOLD = 50.0;
-
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALTY_SCORE = 10;
 
@@ -81,6 +87,9 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
+    @Argument(fullName = "cap_base_quality_by_mapping_quality", shortName = "cap_base_qual", doc = "Cap the base quality of any given base by its read's mapping quality", required = false)
+    public boolean CAP_BASE_QUALITY = false;
+
 
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
@@ -93,7 +102,10 @@ public class UnifiedArgumentCollection {
         uac.NO_SLOD = NO_SLOD;
         uac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
         uac.defaultPlatform = defaultPlatform;
-        uac.CONFIDENCE_THRESHOLD = CONFIDENCE_THRESHOLD;
+        uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
+        uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
+        uac.TRIGGER_CONFIDENCE_FOR_CALLING = TRIGGER_CONFIDENCE_FOR_CALLING;
+        uac.TRIGGER_CONFIDENCE_FOR_EMITTING = TRIGGER_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
         uac.MIN_MAPPING_QUALTY_SCORE = MIN_MAPPING_QUALTY_SCORE;
         uac.MAX_MISMATCHES = MAX_MISMATCHES;

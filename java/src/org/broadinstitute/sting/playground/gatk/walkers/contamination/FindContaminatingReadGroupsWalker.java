@@ -68,7 +68,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
-        uac.CONFIDENCE_THRESHOLD = 50;
+        uac.STANDARD_CONFIDENCE_FOR_CALLING = uac.STANDARD_CONFIDENCE_FOR_EMITTING = 50.0;
         ug = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         altTable = new NamedTable();

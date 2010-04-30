@@ -31,7 +31,7 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
-        uac.CONFIDENCE_THRESHOLD = 50;
+        uac.STANDARD_CONFIDENCE_FOR_CALLING = uac.STANDARD_CONFIDENCE_FOR_EMITTING = 50.0;
         uac.ALL_BASES_MODE = true;
         ug = new UnifiedGenotyperEngine(getToolkit(), uac);
 
