@@ -76,7 +76,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             // create the GenotypeLikelihoods object
             GenotypeLikelihoods GL = new GenotypeLikelihoods(UAC.baseModel, priors, UAC.defaultPlatform);
 
-            GL.add(pileup, true);
+            GL.add(pileup, true, UAC.CAP_BASE_QUALITY);
             GLs.put(sample, GL);
 
             double[] posteriors = GL.getPosteriors();

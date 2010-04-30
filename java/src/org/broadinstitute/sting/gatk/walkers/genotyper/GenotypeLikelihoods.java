@@ -263,7 +263,7 @@ public class GenotypeLikelihoods implements Cloneable {
     }
 
     public int add(ReadBackedPileup pileup) {
-        return add(pileup, false);
+        return add(pileup, false, false);
     }
 
     /**
@@ -271,11 +271,12 @@ public class GenotypeLikelihoods implements Cloneable {
      * read-based pileup up by calling add(observedBase, qualityScore) for each base / qual in the
      * pileup
      *
-     * @param pileup         read pileup
-     * @param ignoreBadBases should we ignore bad bases
+     * @param pileup                    read pileup
+     * @param ignoreBadBases            should we ignore bad bases?
+     * @param capBaseQualsAtMappingQual should we cap a base's quality by its read's mapping quality?
      * @return the number of good bases found in the pileup
      */
-    public int add(ReadBackedPileup pileup, boolean ignoreBadBases) {
+    public int add(ReadBackedPileup pileup, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
         int n = 0;
 
         for ( PileupElement p : pileup ) {
@@ -285,7 +286,8 @@ public class GenotypeLikelihoods implements Cloneable {
 
             char base = (char)p.getBase();
             if ( ! ignoreBadBases || ! badBase(base) ) {
-                n += add(base, p.getQual(), p.getRead(), p.getOffset());
+                byte qual = capBaseQualsAtMappingQual ? (byte)Math.min((int)p.getQual(), p.getMappingQual()) : p.getQual();
+                n += add(base, qual, p.getRead(), p.getOffset());
             }
         }
         
