@@ -77,7 +77,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.baseModel = BaseMismatchModel.THREE_STATE;
-        uac.ALL_BASES = true;
+        uac.ALL_BASES_MODE = true;
         ug = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // print the header

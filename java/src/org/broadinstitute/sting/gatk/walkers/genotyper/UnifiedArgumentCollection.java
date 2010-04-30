@@ -45,10 +45,10 @@ public class UnifiedArgumentCollection {
 
     // control the output
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
-    public boolean GENOTYPE = false;
+    public boolean GENOTYPE_MODE = false;
 
     @Argument(fullName = "output_all_callable_bases", shortName = "all_bases", doc = "Should we output all callable bases?", required = false)
-    public boolean ALL_BASES = false;
+    public boolean ALL_BASES_MODE = false;
 
     @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
@@ -80,4 +80,28 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
+
+
+    public UnifiedArgumentCollection clone() {
+        UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
+
+        uac.genotypeModel = genotypeModel;
+        uac.baseModel = baseModel;
+        uac.heterozygosity = heterozygosity;
+        uac.GENOTYPE_MODE = GENOTYPE_MODE;
+        uac.ALL_BASES_MODE = ALL_BASES_MODE;
+        uac.NO_SLOD = NO_SLOD;
+        uac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
+        uac.defaultPlatform = defaultPlatform;
+        uac.CONFIDENCE_THRESHOLD = CONFIDENCE_THRESHOLD;
+        uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
+        uac.MIN_MAPPING_QUALTY_SCORE = MIN_MAPPING_QUALTY_SCORE;
+        uac.MAX_MISMATCHES = MAX_MISMATCHES;
+        uac.USE_BADLY_MATED_READS = USE_BADLY_MATED_READS;
+        uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
+
+        return uac;
+    }
+
+
 }

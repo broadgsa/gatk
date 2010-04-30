@@ -25,18 +25,10 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         INDELS
     }
 
-    protected BaseMismatchModel baseModel;
+    protected UnifiedArgumentCollection UAC;
     protected Set<String> samples;
     protected Logger logger;
-    protected double heterozygosity;
-    protected EmpiricalSubstitutionProbabilities.SequencerPlatform defaultPlatform;
     protected GenotypeWriterFactory.GENOTYPE_FORMAT OUTPUT_FORMAT;
-    protected boolean ALL_BASE_MODE;
-    protected boolean GENOTYPE_MODE;
-    protected int POOL_SIZE;
-    protected double CONFIDENCE_THRESHOLD;
-    protected double MINIMUM_ALLELE_FREQUENCY;
-    protected boolean REPORT_SLOD;
     protected PrintStream verboseWriter;
     protected PrintStream beagleWriter;
 
@@ -62,17 +54,10 @@ public abstract class GenotypeCalculationModel implements Cloneable {
                               GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
                               PrintStream verboseWriter,
                               PrintStream beagleWriter) {
+        this.UAC = UAC.clone();
         this.samples = new TreeSet<String>(samples);
-        this.logger = logger;
-        baseModel = UAC.baseModel;
-        heterozygosity = UAC.heterozygosity;
-        defaultPlatform = UAC.defaultPlatform;
         OUTPUT_FORMAT = outputFormat;
-        ALL_BASE_MODE = UAC.ALL_BASES;
-        GENOTYPE_MODE = UAC.GENOTYPE;
-        POOL_SIZE = UAC.POOLSIZE;
-        CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
-        REPORT_SLOD = ! UAC.NO_SLOD;
+        this.logger = logger;
         this.verboseWriter = verboseWriter;
         this.beagleWriter = beagleWriter;
     }

@@ -60,7 +60,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         // if there are no non-ref bases...
         if ( bestAlternateAllele == null ) {
             // if we don't want all bases, then we don't need to calculate genotype likelihoods
-            if ( !triggerTrack && !ALL_BASE_MODE && !GENOTYPE_MODE ) {
+            if ( !triggerTrack && !UAC.ALL_BASES_MODE && !UAC.GENOTYPE_MODE ) {
                 VariantCallContext vcc = new VariantCallContext(false);
                 estimateReferenceConfidence(vcc, contexts, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY, false);
                 return vcc;
@@ -152,7 +152,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 sigma_1_over_I += 1.0 / (double)i;
 
             // delta = theta / sum(1/i)
-            double delta = heterozygosity / sigma_1_over_I;
+            double delta = UAC.heterozygosity / sigma_1_over_I;
 
             // calculate the null allele frequencies for 1-N
             AFs = new double[N];
@@ -190,7 +190,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
         }
 
-        vcc.confidentlyCalled = QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= CONFIDENCE_THRESHOLD;
+        vcc.confidentlyCalled = QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.CONFIDENCE_THRESHOLD;
     }
 
     protected void calculateAlleleFrequencyPosteriors(char ref, int frequencyEstimationPoints, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
@@ -350,8 +350,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
-        if ( !triggerTrack && !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestAFguess == 0) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
-            return new VariantCallContext(phredScaledConfidence >= CONFIDENCE_THRESHOLD);
+        if ( !triggerTrack && !UAC.ALL_BASES_MODE && ((!UAC.GENOTYPE_MODE && bestAFguess == 0) || phredScaledConfidence < UAC.CONFIDENCE_THRESHOLD) )
+            return new VariantCallContext(phredScaledConfidence >= UAC.CONFIDENCE_THRESHOLD);
 
         // output to beagle file if requested
         if ( beagleWriter != null ) {
@@ -384,7 +384,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( dbsnp != null )
             attributes.put("ID", dbsnp.getRS_ID());
 
-        if ( REPORT_SLOD ) {
+        if ( !UAC.NO_SLOD ) {
             // the overall lod
             double overallLog10PofNull = log10AlleleFrequencyPriors[0] + log10PofDgivenAFi[indexOfMax][0];
             double overallLog10PofF = log10AlleleFrequencyPriors[bestAFguess] + log10PofDgivenAFi[indexOfMax][bestAFguess];
@@ -422,6 +422,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         VariantContext vc = new VariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, null, attributes);
 
-        return new VariantCallContext(vc, phredScaledConfidence >= CONFIDENCE_THRESHOLD);
+        return new VariantCallContext(vc, phredScaledConfidence >= UAC.CONFIDENCE_THRESHOLD);
     }
 }

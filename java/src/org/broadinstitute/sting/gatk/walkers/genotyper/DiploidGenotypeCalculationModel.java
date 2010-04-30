@@ -74,7 +74,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             ReadBackedPileup pileup = context.getContext(contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
-            GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
+            GenotypeLikelihoods GL = new GenotypeLikelihoods(UAC.baseModel, priors, UAC.defaultPlatform);
 
             GL.add(pileup, true);
             GLs.put(sample, GL);

@@ -32,7 +32,7 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
     public void initialize() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.CONFIDENCE_THRESHOLD = 50;
-        uac.ALL_BASES = true;
+        uac.ALL_BASES_MODE = true;
         ug = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         altTable = new NamedTable();
