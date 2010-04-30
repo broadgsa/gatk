@@ -16,7 +16,7 @@ public class AminoAcidTable {
     protected static final AminoAcid METHIONINE = new AminoAcid("M" , "Methionine", "Met");
     protected static final AminoAcid CYSTEINE = new AminoAcid("C" , "Cysteine", "Cys");
     protected static final AminoAcid ALANINE = new AminoAcid("A" , "Alanine", "Ala");
-    protected static final AminoAcid STOP_CODON = new AminoAcid("*" , "Stop Codon", "Amb");
+    protected static final AminoAcid STOP_CODON = new AminoAcid("*" , "Stop Codon", "Stop");
     protected static final AminoAcid GLYCINE = new AminoAcid("G" , "Glycine", "Gly");
     protected static final AminoAcid PROLINE = new AminoAcid("P" , "Proline", "Pro");
     protected static final AminoAcid THEONINE = new AminoAcid("T" , "Threonine", "Thr");
