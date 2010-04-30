@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -110,9 +111,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected int MAX_RECORDS_IN_RAM = 500000;
 
     @Argument(fullName="writerWindowSize", shortName="writerWindowSize", doc="the window over which the writer will store reads when --sortInMemory is enabled", required=false)
-    protected int SORTING_WRITER_WINDOW = 100;
+    protected int SORTING_WRITER_WINDOW = 300;
 
-    
+    @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
+    protected boolean NO_PG_TAG = false;
+
     // the intervals input by the user
     private Iterator<GenomeLoc> intervals = null;
 
@@ -171,22 +174,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 for ( SAMReaderID id: ids ) {
                     File file = getToolkit().getDataSource().getSAMFile(id);
                     SAMFileHeader header = getToolkit().getSAMFileHeader(id);
-                    if ( SORTING_STRATEGY == RealignerSortingStrategy.NO_SORT )
-                        header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
                     String newFileName = file.getName().substring(0, file.getName().length()-3) + outputSuffix + ".bam";
-                    SAMFileWriter writer = factory.makeBAMWriter(header, SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY, new File(baseWriterFilename, newFileName), compressionLevel);
-                    if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
-                        writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
+                    File newFile = new File(baseWriterFilename, newFileName);
+                    SAMFileWriter writer = makeWriter(factory, header, newFile);
                     for ( String rg : readGroupMap.get(file) )
                         writers.put(rg, writer);
                 }
             } else {
                 SAMFileHeader header = getToolkit().getSAMFileHeader();
-                if ( SORTING_STRATEGY == RealignerSortingStrategy.NO_SORT )
-                    header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
-                SAMFileWriter writer = factory.makeBAMWriter(header, SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY, new File(baseWriterFilename), compressionLevel);
-                if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
-                    writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
+                File file = new File(baseWriterFilename);
+                SAMFileWriter writer = makeWriter(factory, header, file);
                 for ( Set<String> set : readGroupMap.values() ) {
                     for ( String rg : set )
                         writers.put(rg, writer);                                     
@@ -221,6 +218,25 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 snpsOutput = null;
             }
         }
+    }
+
+    private SAMFileWriter makeWriter(SAMFileWriterFactory factory, SAMFileHeader header, File file) {
+        if ( SORTING_STRATEGY == RealignerSortingStrategy.NO_SORT )
+            header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+
+        if ( !NO_PG_TAG ) {
+            final SAMProgramRecord programRecord = new SAMProgramRecord("GATK IndelRealigner");
+            final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+            programRecord.setProgramVersion(headerInfo.getString("org.broadinstitute.sting.gatk.version"));
+            header.addProgramRecord( programRecord );
+        }
+
+        SAMFileWriter writer = factory.makeBAMWriter(header, SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY, file, compressionLevel);
+
+        if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
+            writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
+
+        return writer;
     }
 
     private void emit(final SAMRecord read) {

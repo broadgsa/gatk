@@ -12,14 +12,14 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
 
         String[] md5lod5 = {"67c3fc25e9d192cc5fbfd48ade0efc84", "86778f92b0fa6aa7c26e651c8c1eb320"};
         WalkerTestSpec spec1 = new WalkerTestSpec(
-                "-T IndelRealigner -LOD 5 -maxConsensuses 100 -greedy 100 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023800-10332350 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O %s -snps %s",
+                "-T IndelRealigner -noPG -LOD 5 -maxConsensuses 100 -greedy 100 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023800-10332350 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O %s -snps %s",
                  2,
                  Arrays.asList(md5lod5));
         executeTest("test Lod5", spec1);
 
         String[] md5lod200 = {"96edef86cea95f312ee8295b38227eb8", "d4d8ff567b614729ab8c52bd7d6bef48"};
         WalkerTestSpec spec2 = new WalkerTestSpec(
-                "-T IndelRealigner -LOD 200 -maxConsensuses 100 -greedy 100 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023800-10332350 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O %s -snps %s",
+                "-T IndelRealigner -noPG -LOD 200 -maxConsensuses 100 -greedy 100 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023800-10332350 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O %s -snps %s",
                  2,
                  Arrays.asList(md5lod200));
         executeTest("test Lod200", spec2);
@@ -27,7 +27,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         String filename1 = "NA12878.chrom1.SLX.SRP000032.2009_06";
         String filename2 = "low_coverage_CEU.chr1.10k-11k";
         WalkerTestSpec spec3 = new WalkerTestSpec(
-                "-T IndelRealigner -nway -LOD 5 -maxConsensuses 100 -greedy 100 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + filename1 + ".bam -I " + validationDataLocation + filename2 + ".bam -L 1:10023900-10024000 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O /tmp -snps %s",
+                "-T IndelRealigner -nway -noPG -LOD 5 -maxConsensuses 100 -greedy 100 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + filename1 + ".bam -I " + validationDataLocation + filename2 + ".bam -L 1:10023900-10024000 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O /tmp -snps %s",
                  1,
                  Arrays.asList("bd42a4fa66d7ec7a480c2b94313a78d3"));
         File file1 = new File("/tmp/" + filename1 + ".cleaned.bam");
