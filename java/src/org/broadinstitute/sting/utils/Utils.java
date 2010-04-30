@@ -177,10 +177,15 @@ public class Utils {
     //}
 
     public static <T> String join(String separator, Collection<T> objects) {
-        ArrayList<String> strs = new ArrayList<String>();
-        for (Object x : objects)
-            strs.add(x.toString());
-        return join(separator, strs.toArray(new String[0]));
+        final StringBuilder ret = new StringBuilder();
+        for(final Object o : objects) {
+            if(ret.length() != 0) {
+                ret.append(separator);
+            }
+            ret.append(o.toString());
+        }
+
+        return ret.toString();
     }
 
     public static String dupString(char c, int nCopies) {
