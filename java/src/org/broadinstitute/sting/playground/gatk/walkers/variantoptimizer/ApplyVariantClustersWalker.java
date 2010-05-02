@@ -159,12 +159,17 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
                     variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
-                    variantDatum.isHet = vc.getHetCount() > vc.getHomVarCount(); // BUGBUG: what to do here for multi sample calls?
 
-                    final double pTrue = theModel.evaluateVariant( vc.getAttributes(), vc.getPhredScaledQual(), variantDatum.isHet );
-                    final double recalQual = QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) );                             
+                    final double pTrue = theModel.evaluateVariant( vc.getAttributes(), vc.getPhredScaledQual() );
+                    double recalQual = QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) );
+                    if( !theModel.isUsingTiTvModel ) {
+                        recalQual *= 30.0;
+                    } else {
+                        recalQual *= 3.0;
+                    }
+                    // BUGBUG: decide how to scale the quality score
 
-                    if( variantDatum.isKnown && KNOWN_VAR_QUAL_PRIOR > 0.1 ) {
+                    if( variantDatum.isKnown && KNOWN_VAR_QUAL_PRIOR > 0.1 ) { // only use the known prior if the value is specified (meaning not equal to zero)
                         variantDatum.qual = 0.5 * recalQual + 0.5 * KNOWN_VAR_QUAL_PRIOR;
                     } else {
                         variantDatum.qual = recalQual;

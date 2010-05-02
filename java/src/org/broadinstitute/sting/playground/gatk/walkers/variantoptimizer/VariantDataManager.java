@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -37,6 +38,9 @@ import java.io.PrintStream;
  */
 
 public class VariantDataManager {
+
+    protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
+
     public final VariantDatum[] data;
     public final int numVariants;
     public final int numAnnotations;
@@ -56,7 +60,7 @@ public class VariantDataManager {
             meanVector = null;
             varianceVector = null;
         } else {
-            numAnnotations = _annotationKeys.size() + 1; // +1 for QUAL
+            numAnnotations = _annotationKeys.size();
             if( numAnnotations <= 0 ) {
                 throw new StingException( "There are zero annotations! (or possibly a problem with integer overflow)" );
             }
@@ -91,11 +95,12 @@ public class VariantDataManager {
         for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
             final double theMean = mean(data, jjj);
             final double theSTD = standardDeviation(data, theMean, jjj);
-            System.out.println( (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
+            logger.info( annotationKeys.get(jjj) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
             if( theSTD < 1E-8 ) {
                 foundZeroVarianceAnnotation = true;
-                System.out.println("Zero variance is a problem: standard deviation = " + theSTD);
-                System.out.println("User must -exclude annotations with zero variance. Annotation = " + (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)));
+                logger.warn("Zero variance is a problem: standard deviation = " + theSTD + " User must -exclude annotations with zero variance. Annotation = " + (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)));
+            } else if( theSTD < 1E-2 ) {
+                logger.warn("Warning! Tiny variance. It is strongly recommended that you -exclude " + annotationKeys.get(jjj));
             }
             meanVector[jjj] = theMean;
             varianceVector[jjj] = theSTD;
@@ -129,7 +134,7 @@ public class VariantDataManager {
 
     public void printClusterFileHeader( PrintStream outputFile ) {
         for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-            outputFile.println("@!ANNOTATION," + (jjj == numAnnotations-1 ? "QUAL" : annotationKeys.get(jjj)) + "," + meanVector[jjj] + "," + varianceVector[jjj]);
+            outputFile.println("@!ANNOTATION," + annotationKeys.get(jjj) + "," + meanVector[jjj] + "," + varianceVector[jjj]);
         }
     }
 }
