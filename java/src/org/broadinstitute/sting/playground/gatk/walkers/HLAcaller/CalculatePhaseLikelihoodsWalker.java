@@ -67,12 +67,12 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
 
     GATKArgumentCollection args = this.getToolkit().getArguments();
     
-    String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
+    String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_Caucasians.freq";
     String BlackAlleleFrequencyFile     = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
     String AlleleFrequencyFile          = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
-    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
+    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAllelesCommon";
 
-    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.imputed.4digit.sam";
+    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_DICTIONARY.sam";
     SAMFileReader HLADictionaryReader = new SAMFileReader();
     boolean HLAdataLoaded = false;
     String[] HLAnames, HLAreads;
@@ -216,7 +216,8 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
         out.printf("NUM\tAllele1\tAllele2\tPhase\tFrq1\tFrq2\n");
         for (int i = 0; i < HLAnames.length; i++){
             name1 = HLAnames[i].substring(4);
-            if (UniqueAlleles.containsKey(name1)){
+            String [] n1 = name1.split("\\*");
+            if (UniqueAlleles.containsKey(n1[0] + "*" + n1[1].substring(0, 4))){
                 if (AlleleFrequencies.containsKey(name1)){
                     frq1 = Double.parseDouble((String) AlleleFrequencies.get(name1).toString());
                 }else{
@@ -225,19 +226,19 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
                 //if (frq1 > minfrq){
                     for (int j = i; j < HLAnames.length; j++){
                         name2 = HLAnames[j].substring(4);
-                        if (name1.substring(0,1).equals(name2.substring(0,1))){
-                            if (UniqueAlleles.containsKey(name2)){
-                                if (AlleleFrequencies.containsKey(name2)){
-                                    frq2 = Double.parseDouble((String) AlleleFrequencies.get(name2).toString());
-                                }else{
-                                    frq2 = .0001;
-                                }
-                //                if (frq2 > minfrq){
-                                    likelihood = CalculatePhaseLikelihood(i,j,false);
-                                    numCombinations++;
-                                    out.printf("%s\t%s\t%s\t%.2f\t%.2f\t%.2f\n",numCombinations,name1,name2,likelihood,Math.log10(frq1),Math.log10(frq2));
-                //                }
+                        String [] n2 = name2.split("\\*");
+                        if (n1[0].equals(n2[0]) && UniqueAlleles.containsKey(n2[0] + "*" + n2[1].substring(0, 4))){
+                            if (AlleleFrequencies.containsKey(name2)){
+                                frq2 = Double.parseDouble((String) AlleleFrequencies.get(name2).toString());
+                            }else{
+                                frq2 = .0001;
                             }
+            //                if (frq2 > minfrq){
+                                likelihood = CalculatePhaseLikelihood(i,j,false);
+                                numCombinations++;
+                                out.printf("%s\t%s\t%s\t%.2f\t%.2f\t%.2f\n",numCombinations,name1,name2,likelihood,Math.log10(frq1),Math.log10(frq2));
+            //                }
+
                         }
                     }
                 //}

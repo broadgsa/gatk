@@ -52,6 +52,12 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "DNAcode", shortName = "DNAcode", doc = "Amino acid codes", required = false)
     public String dnaCodesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/DNA_CODE.txt";
 
+    @Argument(fullName = "PrintDNA", shortName = "PrintDNA", doc = "Print DNA sequences", required = false)
+    public boolean PrintDNA = false;
+
+    @Argument(fullName = "PrintAA", shortName = "PrintAA", doc = "Print Amino Acid sequences", required = false)
+    public boolean PrintAA = true;
+    
     String[] HLAnames, HLAreads, inputFileContents;
     Integer[] HLAstartpos, HLAstoppos;
     ArrayList<String> HLAnamesAL, HLAreadsAL;
@@ -408,23 +414,26 @@ private String PrintAminoAcids(String ID, String alleleName1, String alleleName2
                 
 
                 if (true) {
-                    error = error + PrintGenotypes(s[1], HLA_A_1,HLA_A_2, HLA_A_start,HLA_A_end);
-                    error = error + PrintGenotypes(s[1], HLA_C_1,HLA_C_2, HLA_C_start,HLA_C_end);
-                    error = error + PrintGenotypes(s[1], HLA_B_1,HLA_B_2, HLA_B_start,HLA_B_end);
-                    error = error + PrintGenotypes(s[1], HLA_DRB1_1,HLA_DRB1_2, HLA_DRB1_start,HLA_DRB1_end);
-                    error = error + PrintGenotypes(s[1], HLA_DQA1_1,HLA_DQA1_2, HLA_DQA1_start,HLA_DQA1_end);
-                    error = error + PrintGenotypes(s[1], HLA_DQB1_1,HLA_DQB1_2, HLA_DQB1_start,HLA_DQB1_end);
-                    error = error + PrintGenotypes(s[1], HLA_DPA1_1,HLA_DPA1_2, HLA_DPA1_start,HLA_DPA1_end);
-                    error = error + PrintGenotypes(s[1], HLA_DPB1_1,HLA_DPB1_2, HLA_DPB1_start,HLA_DPB1_end);
-
-                    error = error + PrintAminoAcids(s[1], HLA_A_1,HLA_A_2, A_exons);
-                    error = error + PrintAminoAcids(s[1], HLA_C_1,HLA_C_2, C_exons);
-                    error = error + PrintAminoAcids(s[1], HLA_B_1,HLA_B_2, B_exons);
-                    error = error + PrintAminoAcids(s[1], HLA_DRB1_1,HLA_DRB1_2, DRB1_exons);
-                    error = error + PrintAminoAcids(s[1], HLA_DQA1_1,HLA_DQA1_2, DQA1_exons);
-                    error = error + PrintAminoAcids(s[1], HLA_DQB1_1,HLA_DQB1_2, DQB1_exons);
-                    error = error + PrintAminoAcids(s[1], HLA_DPA1_1,HLA_DPA1_2, DPA1_exons);
-                    error = error + PrintAminoAcids(s[1], HLA_DPB1_1,HLA_DPB1_2, DPB1_exons);
+                    if (PrintDNA){
+                        error = error + PrintGenotypes(s[1], HLA_A_1,HLA_A_2, HLA_A_start,HLA_A_end);
+                        error = error + PrintGenotypes(s[1], HLA_C_1,HLA_C_2, HLA_C_start,HLA_C_end);
+                        error = error + PrintGenotypes(s[1], HLA_B_1,HLA_B_2, HLA_B_start,HLA_B_end);
+                        error = error + PrintGenotypes(s[1], HLA_DRB1_1,HLA_DRB1_2, HLA_DRB1_start,HLA_DRB1_end);
+                        error = error + PrintGenotypes(s[1], HLA_DQA1_1,HLA_DQA1_2, HLA_DQA1_start,HLA_DQA1_end);
+                        error = error + PrintGenotypes(s[1], HLA_DQB1_1,HLA_DQB1_2, HLA_DQB1_start,HLA_DQB1_end);
+                        error = error + PrintGenotypes(s[1], HLA_DPA1_1,HLA_DPA1_2, HLA_DPA1_start,HLA_DPA1_end);
+                        error = error + PrintGenotypes(s[1], HLA_DPB1_1,HLA_DPB1_2, HLA_DPB1_start,HLA_DPB1_end);
+                    }
+                    if (PrintAA){
+                        error = error + PrintAminoAcids(s[1], HLA_A_1,HLA_A_2, A_exons);
+                        error = error + PrintAminoAcids(s[1], HLA_C_1,HLA_C_2, C_exons);
+                        error = error + PrintAminoAcids(s[1], HLA_B_1,HLA_B_2, B_exons);
+                        error = error + PrintAminoAcids(s[1], HLA_DRB1_1,HLA_DRB1_2, DRB1_exons);
+                        error = error + PrintAminoAcids(s[1], HLA_DQA1_1,HLA_DQA1_2, DQA1_exons);
+                        error = error + PrintAminoAcids(s[1], HLA_DQB1_1,HLA_DQB1_2, DQB1_exons);
+                        error = error + PrintAminoAcids(s[1], HLA_DPA1_1,HLA_DPA1_2, DPA1_exons);
+                        error = error + PrintAminoAcids(s[1], HLA_DPB1_1,HLA_DPB1_2, DPB1_exons);
+                    }
                     out.printf("\n");
                     out.printf("%s",error);
                 }
@@ -433,23 +442,27 @@ private String PrintAminoAcids(String ID, String alleleName1, String alleleName2
 
         //Prints SNP names for each site
         if (true){
-            PrintSNPS(HLA_A_start,HLA_A_end);
-            PrintSNPS(HLA_C_start,HLA_C_end);
-            PrintSNPS(HLA_B_start,HLA_B_end);
-            PrintSNPS(HLA_DRB1_start,HLA_DRB1_end);
-            PrintSNPS(HLA_DQA1_start,HLA_DQA1_end);
-            PrintSNPS(HLA_DQB1_start,HLA_DQB1_end);
-            PrintSNPS(HLA_DPA1_start,HLA_DPA1_end);
-            PrintSNPS(HLA_DPB1_start,HLA_DPB1_end);
+            if (PrintDNA){
+                PrintSNPS(HLA_A_start,HLA_A_end);
+                PrintSNPS(HLA_C_start,HLA_C_end);
+                PrintSNPS(HLA_B_start,HLA_B_end);
+                PrintSNPS(HLA_DRB1_start,HLA_DRB1_end);
+                PrintSNPS(HLA_DQA1_start,HLA_DQA1_end);
+                PrintSNPS(HLA_DQB1_start,HLA_DQB1_end);
+                PrintSNPS(HLA_DPA1_start,HLA_DPA1_end);
+                PrintSNPS(HLA_DPB1_start,HLA_DPB1_end);
+            }
 
-            PrintAminoAcidSites(A_exons,"A",true);
-            PrintAminoAcidSites(C_exons,"C",false);
-            PrintAminoAcidSites(B_exons,"B",false);
-            PrintAminoAcidSites(DRB1_exons,"DRB1",false);
-            PrintAminoAcidSites(DQA1_exons,"DQA1",true);
-            PrintAminoAcidSites(DQB1_exons,"DQB1",false);
-            PrintAminoAcidSites(DPA1_exons,"DPA1",false);
-            PrintAminoAcidSites(DPB1_exons,"DPB1",true);
+            if (PrintAA){
+                PrintAminoAcidSites(A_exons,"A",true);
+                PrintAminoAcidSites(C_exons,"C",false);
+                PrintAminoAcidSites(B_exons,"B",false);
+                PrintAminoAcidSites(DRB1_exons,"DRB1",false);
+                PrintAminoAcidSites(DQA1_exons,"DQA1",true);
+                PrintAminoAcidSites(DQB1_exons,"DQB1",false);
+                PrintAminoAcidSites(DPA1_exons,"DPA1",false);
+                PrintAminoAcidSites(DPB1_exons,"DPB1",true);
+            }
         }
 
     }

@@ -56,10 +56,10 @@ public class CalculateAlleleLikelihoodsWalker extends ReadWalker<Integer, Intege
     @Argument(fullName = "ethnicity", shortName = "ethnicity", doc = "Use allele frequencies for this ethnic group", required = false)
     public String ethnicity = "CaucasianUSA";
 
-    String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
+    String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_Caucasians.freq";
     String BlackAlleleFrequencyFile     = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
     String AlleleFrequencyFile          = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
-    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
+    String UniqueAllelesFile            = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAllelesCommon";
     Hashtable AlleleFrequencies,UniqueAlleles;
     
     CigarParser formatter = new CigarParser();
@@ -95,6 +95,10 @@ public class CalculateAlleleLikelihoodsWalker extends ReadWalker<Integer, Intege
             UniqueAlleles = HLAfreqReader.GetUniqueAlleles();
             out.printf("Done! Frequencies for %s HLA alleles loaded.\n",AlleleFrequencies.size());
 
+            //out.printf("INFO Common alleles:\n");
+            for (int i = 1; i < UniqueAlleles.size(); i++){
+                //out.printf("INFO %s\n",UniqueAlleles.values().toArray()[i]);
+            }
             out.printf("INFO  Reading HLA dictionary ...");
 
 
@@ -188,12 +192,18 @@ public class CalculateAlleleLikelihoodsWalker extends ReadWalker<Integer, Intege
         
         for (int i = 0; i < numreads; i++){
             name1 = HLAnames[i].substring(4);
-            if (UniqueAlleles.containsKey(name1)){
+            String [] n1 = name1.split("\\*");
+//            out.printf("1: %s\n",n1[0] + "*" + n1[1].substring(0, 3));
+            if (UniqueAlleles.containsKey(n1[0] + "*" + n1[1].substring(0, 4))){
+                //out.printf("1: %s\n",name1);
                 //frq1 = Double.parseDouble((String) AlleleFrequencies.get(name1).toString());
                 //if (frq1 > minfrq){
                     for (int j = i; j < numreads; j++){
                         name2 = HLAnames[j].substring(4);
-                        if (UniqueAlleles.containsKey(name2)){
+                        String [] n2 = name2.split("\\*");
+//                        out.printf("2: %s\n",n2[0] + "*" + n2[1].substring(0, 3));
+                        if (UniqueAlleles.containsKey(n2[0] + "*" + n2[1].substring(0, 4))){
+                        
                 //            frq2 = Double.parseDouble((String) AlleleFrequencies.get(name2).toString());
                 //            if (frq2 > minfrq){
                                 if ((HLAstartpos[i] < HLAstoppos[j]) && (HLAstartpos[j] < HLAstoppos[i])){
@@ -211,8 +221,8 @@ public class CalculateAlleleLikelihoodsWalker extends ReadWalker<Integer, Intege
                 //}else{
                 //    if (DEBUG){out.printf("%s has allele frequency%.5f\n",name1,frq1);}
                 //}
-            }else{
-                if (DEBUG){out.printf("%s not found in allele frequency file\n",name1);}
+            //}else{
+            //    if (DEBUG){out.printf("%s not found in allele frequency file\n",name1);}
             }
         }
     }

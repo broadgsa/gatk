@@ -16,8 +16,9 @@ import java.util.Hashtable;
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
-    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.sam";
-    String ClosestAllelesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.closest";
+    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_DICTIONARY.sam";
+//    String ClosestAllelesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.CLASS1.closest";
+    String ClosestAllelesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.CLASS2.closest";
 
     boolean DatabaseLoaded = false;
     boolean DEBUG = false;
@@ -40,14 +41,24 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
     int HLA_B_end = 31432914;
     int HLA_C_start = 31344925;
     int HLA_C_end = 31347827;
+    int HLA_DQA1_start = 32713161;
+    int HLA_DQA1_end = 32719407;
+    int HLA_DQB1_start = 32735635;
+    int HLA_DQB1_end = 32742444;
+    int HLA_DPA1_start = 33140772;
+    int HLA_DPA1_end = 33149356;
+    int HLA_DPB1_start = 33151738;
+    int HLA_DPB1_end = 33162954;
+    int HLA_DRB1_start = 32654525;
+    int HLA_DRB1_end = 32665540;
 
 
     ArrayList<String> PolymorphicSites = new ArrayList<String>();
 
     Hashtable ClosestAllele = new Hashtable();
-    int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
+    int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1, iDRBstart = -1, iDRBstop = -1, iDQAstart = -1, iDQAstop = -1, iDQBstart = -1, iDQBstop = -1, iDPAstart = -1, iDPAstop = -1, iDPBstart = -1, iDPBstop = -1;
     CigarParser formatter = new CigarParser();
-
+    
     public Integer reduceInit() {
     if (!DatabaseLoaded){
             try{
@@ -77,6 +88,21 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
                         }else if (s[0].indexOf("HLA_C") > -1){
                             if (iCstart < 0){iCstart=i;}
                             iCstop = i; i++;
+                        }else if (s[0].indexOf("HLA_DRB1") > -1){
+                            if (iDRBstart < 0){iDRBstart=i;}
+                            iDRBstop = i; i++;
+                        }else if (s[0].indexOf("HLA_DQA1") > -1){
+                            if (iDQAstart < 0){iDQAstart=i;}
+                            iDQAstop = i; i++;
+                        }else if (s[0].indexOf("HLA_DQB1") > -1){
+                            if (iDQBstart < 0){iDQBstart=i;}
+                            iDQBstop = i; i++;
+                        }else if (s[0].indexOf("HLA_DPA1") > -1){
+                            if (iDPAstart < 0){iDPAstart=i;}
+                            iDPAstop = i; i++;
+                        }else if (s[0].indexOf("HLA_DPB1") > -1){
+                            if (iDPBstart < 0){iDPBstart=i;}
+                            iDPBstop = i; i++;
                         }
                     }
                 }
@@ -146,10 +172,12 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
         int numM = 0, numI = 0, numD = 0;
 
         name = read.getReadName();
+        
         String matchedAllele = (String) ClosestAllele.get(name);
 
         //out.printf("%s\t%s\n",name,matchedAllele);
         int index = HLAnames.indexOf(matchedAllele);
+        
         String matchedRead = HLAreads.get(index);
 
         if (name.indexOf("HLA_A") > -1){
@@ -161,8 +189,24 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
         } else if (name.indexOf("HLA_C") > -1){
             startimputation = HLA_C_start;
             stopimputation = HLA_C_end;
+        } else if (name.indexOf("HLA_DRB1") > -1){
+            startimputation = HLA_DRB1_start;
+            stopimputation = HLA_DRB1_end;
+        } else if (name.indexOf("HLA_DQA1") > -1){
+            startimputation = HLA_DQA1_start;
+            stopimputation = HLA_DQA1_end;
+        } else if (name.indexOf("HLA_DQB1") > -1){
+            startimputation = HLA_DQB1_start;
+            stopimputation = HLA_DQB1_end;
+        } else if (name.indexOf("HLA_DPA1") > -1){
+            startimputation = HLA_DPA1_start;
+            stopimputation = HLA_DPA1_end;
+        } else if (name.indexOf("HLA_DPB1") > -1){
+            startimputation = HLA_DPB1_start;
+            stopimputation = HLA_DPB1_end;
         }
 
+        //out.printf("DEBUG %s\t%s\t%s\t%s\t%s\n",name,matchedAllele,index,startimputation,stopimputation);
         for (int i = startimputation; i <= stopimputation; i++){
             //if position is within read
             if (i >= readstart && i <= readstop){
