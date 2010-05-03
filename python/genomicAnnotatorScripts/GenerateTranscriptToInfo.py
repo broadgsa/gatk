@@ -16,7 +16,7 @@ NOTE: This script must be run in the top level dir of your GATK checkout area.
 
 parser = OptionParser( description=description, usage="usage: %prog [options] ", formatter=IndentedHelpFormatterWithNL())
 
-parser.add_option("-d", "--refgene-directory", metavar="DIR", dest="refgene_dir", help="Specifies the directory that contains refGene-converted.txt", default="/humgen/gsa-hpprojects/GATK/data/Annotations/refseq/raw/")
+parser.add_option("-d", "--refgene-directory", metavar="DIR", dest="refgene_dir", help="Specifies the directory that contains refGene-converted.txt", default="/humgen/gsa-hpprojects/GATK/data/Annotations/refseq/hg18_b36/raw/")
 
 parser.add_option("-p", "--print", dest="output", action="store_true", default=False, help="Only print the commands to standard out, don't actually execute them yet.")
 parser.add_option("-e", "--execute", dest="execute", action="store_true", default=False, help="Executes the commands. This flag acts as a confirmation that you want to proceed with launching the processes.")
