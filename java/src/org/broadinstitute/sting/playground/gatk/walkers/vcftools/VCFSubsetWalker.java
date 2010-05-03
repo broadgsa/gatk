@@ -147,13 +147,15 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
             VCFRecord subset = subsetRecord(record);
 
             boolean isVariant = false;
-            for ( VCFGenotypeEncoding ge : subset.getVCFGenotypeRecords().get(0).getAlleles() ) {
-                if (!record.getReference().equals(ge.getBases())) {
-                    isVariant = true;
+
+            if (subset.getVCFGenotypeRecords().size() > 0) {
+                for ( VCFGenotypeEncoding ge : subset.getVCFGenotypeRecords().get(0).getAlleles() ) {
+                    if (!record.getReference().equals(ge.getBases())) {
+                        isVariant = true;
+                    }
                 }
             }
 
-            //if (isVariant && !subset.isFiltered()) {
             if ((isVariant || INCLUDE_NON_VARIANTS) && (!subset.isFiltered() || INCLUDE_FILTERED)) {
                 if (vwriter != null) {
                     vwriter.addRecord(subset);
