@@ -721,6 +721,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             final double denom = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(determinant[kkk], 0.5);
             pVarInCluster[kkk] =  (1.0 / ((double) numGaussians)) * (Math.exp( -0.5 * sum )) / denom;
 
+            /*
             if( isUsingTiTvModel ) {
                 //pVarInCluster[kkk] =  Math.exp( -0.5 * sum );
                 if( pVarInCluster[kkk] < MIN_PROB) { // Very small numbers are a very big problem
@@ -733,13 +734,14 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 //pVarInCluster[kkk] =  Math.exp( -0.5 * sum );
                 // BUGBUG: should pCluster be the distribution from the GMM or a uniform distribution here?
             }
+            */
         }
 
-        if( isUsingTiTvModel ) {
-            for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-                pVarInCluster[kkk] /= sumProb;
-            }
-        }
+        //if( isUsingTiTvModel ) {
+        //    for( int kkk = 0; kkk < numGaussians; kkk++ ) {
+        //        pVarInCluster[kkk] /= sumProb;
+        //    }
+        //}
     }
 
 
