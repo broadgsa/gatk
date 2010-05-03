@@ -44,7 +44,7 @@ import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -153,7 +153,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // Warn the user if a dbSNP file was specified since it isn't being used here
         boolean foundDBSNP = false;
         for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
-            if( rod.getName().equalsIgnoreCase(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) ) {
+            if( rod.getName().equalsIgnoreCase(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 foundDBSNP = true;
             }
         }

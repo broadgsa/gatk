@@ -2,12 +2,14 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import edu.mit.broad.picard.genotype.DiploidGenotype;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
@@ -43,7 +45,7 @@ public class VariantContextAdaptors {
     private static Map<Class, VCAdaptor> adaptors = new HashMap<Class, VCAdaptor>();
 
     static {
-        adaptors.put(rodDbSNP.class, new RodDBSnpAdaptor());
+        adaptors.put(DbSNPFeature.class, new DBSnpAdaptor());
         adaptors.put(RodVCF.class, new RodVCFAdaptor());
         adaptors.put(VCFRecord.class, new VCFRecordAdaptor());
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
@@ -94,24 +96,24 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private static class RodDBSnpAdaptor extends VCAdaptor {
+    private static class DBSnpAdaptor extends VCAdaptor {
         VariantContext convert(String name, Object input) {
             return convert(name, input, null);
         }
 
         VariantContext convert(String name, Object input, ReferenceContext ref) {
-            rodDbSNP dbsnp = (rodDbSNP)input;
-            if ( ! Allele.acceptableAlleleBases(dbsnp.getReference()) )
+            DbSNPFeature dbsnp = (DbSNPFeature)input;
+            if ( ! Allele.acceptableAlleleBases(DbSNPHelper.getReference(dbsnp)) )
                 return null;
-            Allele refAllele = new Allele(dbsnp.getReference(), true);
+            Allele refAllele = new Allele(DbSNPHelper.getReference(dbsnp), true);
 
-            if ( dbsnp.isSNP() || dbsnp.isIndel() || dbsnp.varType.contains("mixed") ) {
+            if ( DbSNPHelper.isSNP(dbsnp) || DbSNPHelper.isIndel(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
                 // add the reference allele
                 List<Allele> alleles = new ArrayList<Allele>();
                 alleles.add(refAllele);
 
                 // add all of the alt alleles
-                for ( String alt : dbsnp.getAlternateAlleleList() ) {
+                for ( String alt : DbSNPHelper.getAlternateAlleleList(dbsnp) ) {
                     if ( ! Allele.acceptableAlleleBases(alt) ) {
                         //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                         return null;
@@ -120,9 +122,9 @@ public class VariantContextAdaptors {
                 }
 
                 Map<String, String> attributes = new HashMap<String, String>();
-                attributes.put("ID", dbsnp.getRS_ID());
+                attributes.put("ID", dbsnp.getRsID());
                 Collection<Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getLocation(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
+                VariantContext vc = new VariantContext(name, GenomeLocParser.createGenomeLoc(dbsnp.getChr(),dbsnp.getStart(),dbsnp.getEnd()), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
                 vc.validate();
                 return vc;
             } else

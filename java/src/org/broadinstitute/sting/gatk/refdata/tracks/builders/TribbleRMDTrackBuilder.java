@@ -67,8 +67,8 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
         Map<String, Class> classes = new HashMap<String, Class>();
         for (String c : this.pluginsByName.keySet())
-             // we're excluding dbSNP and VCF right now
-             if (!c.contains("SNP") && !c.contains("VCF")) classes.put(c,this.pluginsByName.get(c));
+             // we're excluding VCF right now
+             if (!c.contains("VCF")) classes.put(c,this.pluginsByName.get(c));
         return classes;
     }
 

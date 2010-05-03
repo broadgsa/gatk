@@ -76,7 +76,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      */
     public LocationAwareSeekableRODIterator seek( Shard shard ) {
         if (iteratorPool == null) // use query
-            return getQuery(shard.getGenomeLocs());
+            return getQuery(shard.getGenomeLocs() == null || shard.getGenomeLocs().size() == 0 ? null : shard.getGenomeLocs());
         DataStreamSegment dataStreamSegment = shard.getGenomeLocs().size() != 0 ? new MappedStreamSegment(shard.getGenomeLocs().get(0)) : new EntireStream();
         LocationAwareSeekableRODIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
         return RODIterator;
@@ -91,7 +91,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      */
     public LocationAwareSeekableRODIterator seek(GenomeLoc loc) {
         if (iteratorPool == null) // use query
-            return getQuery(Arrays.asList(loc));
+            return getQuery(loc == null ? null : Arrays.asList(loc));
         DataStreamSegment dataStreamSegment = loc != null ? new MappedStreamSegment(loc) : new EntireStream();
         LocationAwareSeekableRODIterator RODIterator = iteratorPool.iterator(dataStreamSegment);
         return RODIterator;
@@ -103,6 +103,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return a LocationAwareSeekableRODIterator over the selected region
      */
     private LocationAwareSeekableRODIterator getQuery(List<GenomeLoc> loc) {
+        if (loc == null) // for the mono shard case
+            return new SeekableRODIterator(rod.getIterator());
         return new StitchingLocationAwareSeekableRODIterator(loc,(QueryableTrack)rod);
     }
 
@@ -253,6 +255,7 @@ class StitchingLocationAwareSeekableRODIterator implements LocationAwareSeekable
         if (locationList != null && locationList.size() > 0) {
             GenomeLoc loc = locationList.getFirst();
             locationList.removeFirst();
+            if (rod == null) throw new StingException("Unable to query(), target rod is null, next location = " + ((locationList != null) ? locationList.getFirst() : "null"));
             try {
                 iterator = new SeekableRODIterator(rod.query(loc));
             } catch (IOException e) {

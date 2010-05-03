@@ -33,7 +33,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.Argument;
@@ -904,7 +904,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	MultiSampleCallResult MultiSampleCall(RefMetaDataTracker tracker, char ref, AlignmentContext context, List<String> sample_names) 
 	{
 		String in_dbsnp;
-        if (tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME).size() > 0) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
+        if (tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME).size() > 0) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
 
 		AlignmentContext[] contexts = filterAlignmentContext(context, sample_names, 0);
 		glCache.clear(); // reset the cache

@@ -33,8 +33,8 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -121,7 +121,7 @@ public class UnifiedGenotyperEngine {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getName().equals(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) ) {
+            if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 this.annotateDbsnp = true;
             }
             if ( rod.getName().equals("hapmap2") ) {

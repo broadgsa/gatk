@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
@@ -388,9 +388,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( bestAFguess != 0 )
             attributes.put(VCFRecord.ALLELE_FREQUENCY_KEY, new Double((double)bestAFguess / (double)(frequencyEstimationPoints-1)));
 
-        rodDbSNP dbsnp = getDbSNP(tracker);
+        DbSNPFeature dbsnp = getDbSNP(tracker);
         if ( dbsnp != null )
-            attributes.put("ID", dbsnp.getRS_ID());
+            attributes.put("ID", dbsnp.getRsID());
 
         if ( !UAC.NO_SLOD ) {
             // the overall lod

@@ -55,7 +55,6 @@ public class RODTrackBuilder implements RMDTrackBuilder {
     static {
         // All known ROD types
         Types.put("GFF", RodGenotypeChipAsGFF.class);
-        Types.put("dbSNP", rodDbSNP.class);
         Types.put("SAMPileup", rodSAMPileup.class);
         Types.put("GELI", rodGELI.class);
         Types.put("RefSeq", rodRefSeq.class);

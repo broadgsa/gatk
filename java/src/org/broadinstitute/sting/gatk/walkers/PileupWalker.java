@@ -25,12 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
@@ -143,16 +144,16 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
         ArrayList<String> rodStrings = new ArrayList<String>();
         for ( GATKFeature datum : tracker.getAllRods() ) {
-            if ( datum != null && ! (datum.getUnderlyingObject() instanceof rodDbSNP)) {
-                rodStrings.add(((ReferenceOrderedDatum)datum.getUnderlyingObject()).toSimpleString()); // TODO: Aaron figure out what to do with this line, it's bad form
+            if ( datum != null && ! (datum.getUnderlyingObject() instanceof DbSNPFeature)) {
+                rodStrings.add(((ReferenceOrderedDatum)datum.getUnderlyingObject()).toSimpleString()); // TODO: Aaron: this line still survives, try to remove it
             }
         }
         String rodString = Utils.join(", ", rodStrings);
 
-        rodDbSNP dbsnp = tracker.lookup(rodDbSNP.STANDARD_DBSNP_TRACK_NAME,rodDbSNP.class);
+        DbSNPFeature dbsnp = tracker.lookup(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, DbSNPFeature.class);
 
         if ( dbsnp != null)
-            rodString += dbsnp.toMediumString();
+            rodString += DbSNPHelper.toMediumString(dbsnp);
 
         if ( !rodString.equals("") )
             rodString = "[ROD: " + rodString + "]";

@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 
@@ -96,7 +97,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      *
      * @return the dbsnp rod if there is one at this position
      */
-    public static rodDbSNP getDbSNP(RefMetaDataTracker tracker) {
-        return rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME));
+    public static DbSNPFeature getDbSNP(RefMetaDataTracker tracker) {
+        return DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
     }
 }

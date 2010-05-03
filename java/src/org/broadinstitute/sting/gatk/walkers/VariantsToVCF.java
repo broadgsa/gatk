@@ -25,11 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 
@@ -58,14 +60,14 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME));
+        DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
 
         Collection<VariantContext> contexts = tracker.getVariantContexts(ref, INPUT_ROD_NAME, ALLOWED_VARIANT_CONTEXT_TYPES, context.getLocation(), true, false);
 
         for ( VariantContext vc : contexts ) {
             VCFRecord vcf = VariantContextAdaptors.toVCF(vc, ref.getBase(), Arrays.asList(ALLOWED_FORMAT_FIELDS), false, false);
             if ( dbsnp != null )
-                vcf.setID(dbsnp.getRS_ID());
+                vcf.setID(dbsnp.getRsID());
             // set the appropriate sample name if necessary
             if ( sampleName != null && vcf.hasGenotypeData() && vcf.getGenotype(INPUT_ROD_NAME) != null )
                  vcf.getGenotype(INPUT_ROD_NAME).setSampleName(sampleName);

@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -32,8 +33,8 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
@@ -145,7 +146,7 @@ public class VariantAnnotatorEngine {
         List<ReferenceOrderedDataSource> dataSources = engine.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getName().equals(rodDbSNP.STANDARD_DBSNP_TRACK_NAME) ) {
+            if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 annotateDbsnp = true;
             }
             if ( rod.getName().equals("hapmap2") ) {
@@ -181,11 +182,11 @@ public class VariantAnnotatorEngine {
 
         // annotate dbsnp occurrence
         if ( annotateDbsnp ) {
-            rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getReferenceMetaData(rodDbSNP.STANDARD_DBSNP_TRACK_NAME));
+            DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
             infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
             // annotate dbsnp id if available and not already there
             if ( dbsnp != null && !vc.hasAttribute("ID") )
-                infoAnnotations.put("ID", dbsnp.getRS_ID());
+                infoAnnotations.put("ID", dbsnp.getRsID());
         }
 
         if ( annotateHapmap2 ) {
