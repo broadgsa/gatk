@@ -289,10 +289,18 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return 0;
         }
 
+        // edge case: when the last target interval abuts the end of the genome, we'll get one of the
+        //   unmapped reads while the currentInterval still isn't null.  We need to trigger the cleaning
+        //   at this point without trying to create a GenomeLoc.
+        if ( read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ) {
+            cleanAndCallMap(ref, read, metaDataTracker, null);
+            return 0;
+        }
+
         GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
         // hack to get around unmapped reads having screwy locations
         if ( readLoc.getStop() == 0 )
-            readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
+            readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContigIndex(), readLoc.getStart(), readLoc.getStart());
 
         if ( readLoc.isBefore(currentInterval) || ReadUtils.is454Read(read) ) {
             // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
@@ -321,25 +329,28 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
         }
         else {  // the read is past the current interval
-
-            clean(readsToClean);
-            knownIndelsToTry.clear();
-
-            // merge the two sets for emission
-            readsNotToClean.addAll(readsToClean.getReads());
-            emit(readsNotToClean);
-            readsToClean.clear();
-            readsNotToClean.clear();
-
-            do {
-                currentInterval = intervals.hasNext() ? intervals.next() : null;
-            } while ( currentInterval != null && currentInterval.isBefore(readLoc) );
-
-            // call back into map now that the state has been updated
-            map(ref, read,metaDataTracker);
+            cleanAndCallMap(ref, read, metaDataTracker, readLoc);
         }
 
         return 0;
+    }
+
+    private void cleanAndCallMap(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
+        clean(readsToClean);
+        knownIndelsToTry.clear();
+
+        // merge the two sets for emission
+        readsNotToClean.addAll(readsToClean.getReads());
+        emit(readsNotToClean);
+        readsToClean.clear();
+        readsNotToClean.clear();
+
+        do {
+            currentInterval = intervals.hasNext() ? intervals.next() : null;
+        } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
+
+        // call back into map now that the state has been updated
+        map(ref, read, metaDataTracker);
     }
 
     public Integer reduceInit() {
