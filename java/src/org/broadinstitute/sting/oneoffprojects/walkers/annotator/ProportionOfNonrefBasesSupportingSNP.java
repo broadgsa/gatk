@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;

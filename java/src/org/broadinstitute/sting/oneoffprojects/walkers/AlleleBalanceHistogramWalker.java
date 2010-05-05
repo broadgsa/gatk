@@ -1,16 +1,16 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.vcf.VCFCodec;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.*;
@@ -22,7 +22,7 @@ import java.util.*;
  * Time: 3:25:11 PM
  * To change this template use File | Settings | File Templates.
  */
-@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type= RodVCF.class)})
+@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type= VCFCodec.class)})
 public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>, Map<String,Set<Double>>> {
 
 
@@ -47,12 +47,11 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
     }
 
     public Map<String,Double> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        RodVCF vcfRod = tracker.lookup("variants",RodVCF.class);
+        VCFRecord record = tracker.lookup("variants", VCFRecord.class);
 
-        if ( vcfRod == null ) {
+        if ( record == null ) {
             return null;
         }
-        VCFRecord record = vcfRod.getRecord();
 
         return getAlleleBalanceBySample(record,ref,context);
     }

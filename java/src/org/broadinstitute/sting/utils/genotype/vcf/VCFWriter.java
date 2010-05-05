@@ -1,6 +1,10 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
+
 import java.io.*;
 import java.util.TreeSet;
 
@@ -97,7 +101,7 @@ public class VCFWriter {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
-        String vcfString = record.toStringEncoding(mHeader, validationStringency);
+        String vcfString = record.toStringEncoding(mHeader);
         try {
             mWriter.write(vcfString + "\n");
             mWriter.flush();  // necessary so that writing to an output stream will work

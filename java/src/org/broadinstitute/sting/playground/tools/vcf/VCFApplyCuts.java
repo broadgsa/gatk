@@ -27,6 +27,8 @@ package org.broadinstitute.sting.playground.tools.vcf;
 
 //import org.broadinstitute.sting.playground.tools.vcf.VCFOptimize.Cut;
 
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
 
@@ -152,7 +154,7 @@ class VCFApplyCuts extends CommandLineProgram
 		
 			VCFReader reader = null;
 
-			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(filename)); }
+			if (autocorrect) { reader = new VCFReader(new File(filename),new VCFHomogenizer()); }
 			else { reader = new VCFReader(new File(filename)); }
 
 			VCFHeader header = reader.getHeader();

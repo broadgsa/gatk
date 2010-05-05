@@ -25,10 +25,13 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.vcftools;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
@@ -70,8 +73,8 @@ public class SimpleVCFIntersectWalker extends RodWalker<VCFRecordMerger,Long>{
             return null;
         }
 
-        RodVCF priorityCall = tracker.lookup("priority",RodVCF.class);
-        RodVCF otherCall = tracker.lookup("other",RodVCF.class);
+        VCFRecord priorityCall = tracker.lookup("priority",VCFRecord.class);
+        VCFRecord otherCall = tracker.lookup("other",VCFRecord.class);
 
         if ( priorityCall == null && otherCall == null ) {
             return null;
@@ -82,9 +85,9 @@ public class SimpleVCFIntersectWalker extends RodWalker<VCFRecordMerger,Long>{
             if ( ! union ) {
                 return null;
             } else if ( merger.hasBeenInstantiated() ) {
-                merger.update(null,otherCall.getRecord());
+                merger.update(null,otherCall);
             } else {
-                merger.hold(otherCall.getRecord());
+                merger.hold(otherCall);
             }
 
         } else if ( otherCall == null ) {
@@ -92,17 +95,17 @@ public class SimpleVCFIntersectWalker extends RodWalker<VCFRecordMerger,Long>{
             if ( ! union ) {
                 return null;
             } else if ( merger.hasBeenInstantiated() ) {
-                merger.update(priorityCall.getRecord(),null);
+                merger.update(priorityCall,null);
             } else {
-                merger.hold(priorityCall.getRecord());
+                merger.hold(priorityCall);
             }
 
         } else {
 
             if ( merger.hasBeenInstantiated() ) {
-                merger.update(priorityCall.getRecord(), otherCall.getRecord());
+                merger.update(priorityCall, otherCall);
             } else {
-                merger = instantiateMerger(priorityCall.getRecord(),otherCall.getRecord());
+                merger = instantiateMerger(priorityCall,otherCall);
             }
 
         }
@@ -255,8 +258,8 @@ class VCFRecordMerger {
 
     private HashMap<VCFHeader.HEADER_FIELDS,String> getFields(VCFRecord record1, VCFRecord record2) {
         HashMap<VCFHeader.HEADER_FIELDS,String> fields = new HashMap<VCFHeader.HEADER_FIELDS,String>();
-        fields.put(VCFHeader.HEADER_FIELDS.CHROM, record1.getLocation().getContig());
-        fields.put(VCFHeader.HEADER_FIELDS.POS, String.format("%d",record1.getLocation().getStart()));
+        fields.put(VCFHeader.HEADER_FIELDS.CHROM, record1.getChr());
+        fields.put(VCFHeader.HEADER_FIELDS.POS, String.format("%d",record1.getStart()));
         fields.put(VCFHeader.HEADER_FIELDS.ID, record1.getID());
         fields.put(VCFHeader.HEADER_FIELDS.ALT, listAsString(record1.getAlternateAlleleList()));
         fields.put(VCFHeader.HEADER_FIELDS.REF, record1.getReference());

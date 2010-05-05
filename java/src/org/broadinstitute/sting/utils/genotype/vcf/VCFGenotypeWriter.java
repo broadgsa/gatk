@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 
 import java.util.Set;
@@ -24,7 +26,7 @@ public interface VCFGenotypeWriter extends GenotypeWriter {
      * Add a given VCF record to the given output.
      * @param vcfRecord Record to add.
      */
-    public void addRecord(VCFRecord vcfRecord);    
+    public void addRecord(VCFRecord vcfRecord);
 
     /**
      * set the validation stringency

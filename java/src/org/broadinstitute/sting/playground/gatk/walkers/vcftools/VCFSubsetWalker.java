@@ -25,14 +25,15 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -80,9 +81,8 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
         if (tracker != null) {
             for (GATKFeature feature : tracker.getAllRods()) {
                 Object rod = feature.getUnderlyingObject();
-                if (rod instanceof RodVCF) {
-                    RodVCF vcfrod = (RodVCF) rod;
-                    VCFRecord record = vcfrod.mCurrentRecord;
+                if (rod instanceof VCFRecord) {
+                    VCFRecord vcfrod = (VCFRecord) rod;
 
                     if (SAMPLES == null) {
                         SAMPLES = new HashSet<String>();
@@ -95,7 +95,7 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
 
                     //out.println(record.toStringEncoding(vcfrod.getHeader()));
 
-                    records.add(record);
+                    records.add(vcfrod);
                 }
             }
         }
@@ -129,8 +129,8 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
         }
 
         VCFRecord subset = new VCFRecord(record.getReference(),
-                                         record.getLocation().getContig(),
-                                         (int) record.getLocation().getStart(),
+                                         record.getChr(),
+                                         record.getStart(),
                                          record.getID(),
                                          genotypeEncodings,
                                          record.getQual(),

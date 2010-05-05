@@ -1,12 +1,11 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -42,14 +41,13 @@ public class VCFReferenceFixerWalker extends RodWalker<VCFRecord,Long> {
         }
         List<Object> rods = tracker.getReferenceMetaData("fixme");
         Object rod = rods.get(0);
-        RodVCF vcfrod = null;
-        if ( rod instanceof RodVCF ) {
-            vcfrod = (RodVCF) rod;
+        VCFRecord vcfrod = null;
+        if ( rod instanceof VCFRecord ) {
+            vcfrod = (VCFRecord) rod;
         }
 
-        VCFRecord rec = vcfrod.getRecord();
-        rec.setReferenceBase(new String(BaseUtils.charSeq2byteSeq(context.getBases())));
-        return rec;
+        if (vcfrod != null) vcfrod.setReferenceBase(new String(BaseUtils.charSeq2byteSeq(context.getBases())));
+        return vcfrod;
 
         /*
         VariantContext vcon = null;

@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -83,11 +83,11 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
         
         for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
             if( rod != null && !rod.getName().toUpperCase().startsWith("TRUTH") ) {
-                if( rod.getReferenceOrderedData().getIterator().hasNext() && rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject() instanceof RodVCF ) {
+                if( rod.getReferenceOrderedData().getIterator().hasNext() && rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject() instanceof VCFRecord ) {
                     inputRodNames.add(rod.getName());
                     System.out.println("Adding " + rod.getName() + " to input RodVCF list.");
                     if( sampleName == null && !multiSampleCalls ) {
-                        final String[] samples = ((RodVCF)rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject()).getSampleNames();
+                        final String[] samples = ((VCFRecord)rod.getReferenceOrderedData().getIterator().next().getUnderlyingObject()).getSampleNames();
 
                         if( samples.length > 1 ) {
                             multiSampleCalls = true;

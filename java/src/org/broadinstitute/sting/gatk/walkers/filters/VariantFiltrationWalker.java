@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-import org.apache.commons.jexl.Expression;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
@@ -40,6 +40,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.util.*;
 

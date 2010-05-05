@@ -29,10 +29,10 @@ import org.apache.commons.jexl.Expression;
 import org.apache.commons.jexl.ExpressionFactory;
 import org.apache.commons.jexl.JexlContext;
 import org.apache.commons.jexl.JexlHelper;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -45,7 +45,7 @@ import java.util.*;
 /**
  * Selects variant calls for output from a user-supplied VCF file using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type= RodVCF.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant",type= VCFCodec.class))
 public class VCFSelectWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="match", shortName="match", doc="Expression used with INFO fields to select VCF records for inclusion in the output VCF(see wiki docs for more info)", required=false)
     protected String[] MATCH_STRINGS = new String[]{null};
@@ -66,7 +66,7 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
 
     private List<MatchExp> matchExpressions = new ArrayList<MatchExp>();
 
-    private void initializeVcfWriter(RodVCF rod) {
+    private void initializeVcfWriter(VCFRecord record) {
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
@@ -78,7 +78,7 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
         }
 
         writer = new VCFWriter(out);
-        writer.writeHeader(new VCFHeader(hInfo, rod.getHeader().getGenotypeSamples()));
+        writer.writeHeader(new VCFHeader(hInfo, record.getHeader().getGenotypeSamples()));
     }
 
     public void initialize() {
@@ -108,15 +108,15 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        RodVCF variant = tracker.lookup("variant",RodVCF.class);
+        VCFRecord variant = tracker.lookup("variant",VCFRecord.class);
         // ignore places where we don't have a variant
         if ( variant == null )
             return 0;
 
         boolean someoneMatched = false;
         for ( MatchExp exp : matchExpressions ) {
-            Map<String, String> infoMap = new HashMap<String, String>(variant.mCurrentRecord.getInfoValues());
-            infoMap.put("QUAL", String.valueOf(variant.mCurrentRecord.getQual()));
+            Map<String, String> infoMap = new HashMap<String, String>(variant.getInfoValues());
+            infoMap.put("QUAL", String.valueOf(variant.getQual()));
 
             JexlContext jContext = JexlHelper.createContext();
             jContext.setVars(infoMap);
@@ -139,13 +139,11 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
         return 1;
     }
 
-    private void writeVCF(RodVCF variant) {
-        VCFRecord rec = variant.mCurrentRecord;
-
+    private void writeVCF(VCFRecord variant) {
         if ( writer == null )
             initializeVcfWriter(variant);
 
-        writer.addRecord(rec);
+        writer.addRecord(variant);
     }
 
     public Integer reduce(Integer value, Integer sum) {

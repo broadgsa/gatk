@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import net.sf.samtools.SAMFileHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.geli.*;
 import org.broadinstitute.sting.utils.genotype.glf.*;

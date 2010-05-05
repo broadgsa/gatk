@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
@@ -42,7 +43,6 @@ import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 

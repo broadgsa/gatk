@@ -25,19 +25,21 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -128,7 +130,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(RodVCF.class) ) {
+            if ( rod.getType().equals(VCFCodec.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
                 samples.addAll(vcfSamples);

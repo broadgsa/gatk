@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.sequenom;
 
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
@@ -38,6 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.util.*;
 

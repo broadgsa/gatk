@@ -67,8 +67,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
         Map<String, Class> classes = new HashMap<String, Class>();
         for (String c : this.pluginsByName.keySet())
-             // we're excluding VCF right now
-             if (!c.contains("VCF")) classes.put(c,this.pluginsByName.get(c));
+             classes.put(c,this.pluginsByName.get(c));
         return classes;
     }
 
@@ -88,15 +87,13 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         // make a feature reader
         FeatureReader reader;
         try {
-            FeatureCodec codec = this.createByType(targetClass);
-
             // check to see if the input file has an index
             if (!(new File(inputFile.getAbsolutePath() + linearIndexExtension).canRead())) {
-                LinearIndex index = createIndex(inputFile, codec);
-                reader = new FeatureReader(inputFile,index, codec);
+                LinearIndex index = createIndex(inputFile, this.createByType(targetClass));
+                reader = new FeatureReader(inputFile,index, this.createByType(targetClass));
             }
             else {
-                reader = new FeatureReader(inputFile,codec);
+                reader = new FeatureReader(inputFile,this.createByType(targetClass));
             }
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to create reader with file " + inputFile, e);

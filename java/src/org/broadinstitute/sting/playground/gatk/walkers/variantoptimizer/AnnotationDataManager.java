@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.util.*;
 import java.io.IOException;

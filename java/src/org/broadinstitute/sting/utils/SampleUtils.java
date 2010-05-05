@@ -27,12 +27,13 @@ package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broad.tribble.vcf.VCFCodec;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 import java.util.*;
 
@@ -79,7 +80,7 @@ public class SampleUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(RodVCF.class) ) {
+            if ( rod.getType().equals(VCFRecord.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 samples.addAll(reader.getHeader().getGenotypeSamples());
                 reader.close();
@@ -108,7 +109,7 @@ public class SampleUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(RodVCF.class) ) {
+            if ( rod.getType().equals(VCFCodec.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
                 for ( String sample : vcfSamples )

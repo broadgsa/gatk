@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.vcftools;
 
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
@@ -77,7 +78,7 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
 
             if ( vc != null ) {
                 if ( ! headerWritten ) {
-                    RodVCF vcfrod = tracker.lookup(TRACK_NAME,RodVCF.class);
+                    VCFRecord vcfrod = tracker.lookup(TRACK_NAME,VCFRecord.class);
                     writer.writeHeader(vcfrod.getHeader());
                     headerWritten = true;
                 }

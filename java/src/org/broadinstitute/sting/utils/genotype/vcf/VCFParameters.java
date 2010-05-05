@@ -1,5 +1,8 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.vcf.VCFGenotypeEncoding;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 

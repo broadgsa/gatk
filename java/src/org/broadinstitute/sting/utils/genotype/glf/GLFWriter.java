@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -10,7 +11,6 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 

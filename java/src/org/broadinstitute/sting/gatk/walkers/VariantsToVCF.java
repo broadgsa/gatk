@@ -26,6 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -95,8 +99,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                     throw new IllegalStateException("VCF record was created, but no rod data is present");
 
                 Object rod = rods.get(0);
-                if ( rod instanceof RodVCF )
-                    samples.addAll(Arrays.asList(((RodVCF)rod).getSampleNames()));
+                if ( rod instanceof VCFRecord )
+                    samples.addAll(Arrays.asList(((VCFRecord)rod).getSampleNames()));
                 else if ( rod instanceof HapMapROD )
                     samples.addAll(Arrays.asList(((HapMapROD)rod).getSampleIDs()));
                 else

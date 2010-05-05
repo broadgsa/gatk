@@ -25,10 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
@@ -157,12 +160,14 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
             return 0;
 
         // get all of the vcf rods at this locus
-        ArrayList<RodVCF> vcfRods = new ArrayList<RodVCF>();        
+        Map<VCFRecord,String> vcfRods = new LinkedHashMap<VCFRecord,String>();
         Iterator<GATKFeature> rods = rodData.getAllRods().iterator();
         while (rods.hasNext()) {
             GATKFeature rod = rods.next();
-            if ( rod.getUnderlyingObject() instanceof RodVCF )
-                vcfRods.add((RodVCF)rod.getUnderlyingObject());
+            if ( rod.getUnderlyingObject() instanceof VCFRecord ) {
+                if (vcfRods.containsKey(rod)) throw new StingException("Duplicate VCF's found");
+                vcfRods.put((VCFRecord)rod.getUnderlyingObject(),rod.getName());
+            }
         }
 
         if ( vcfRods.size() == 0 )
@@ -171,12 +176,12 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
         // pull out all of the individual calls from the rods and insert into a map based on the
         // mapping from rod/sample to uniquified name
         HashMap<String, VCFGenotypeRecord> samplesToRecords = new HashMap<String, VCFGenotypeRecord>();
-        for ( RodVCF rod : vcfRods ) {
+        for ( VCFRecord rod : vcfRods.keySet() ) {
             List<VCFGenotypeRecord> records = rod.getVCFGenotypeRecords();
             for ( VCFGenotypeRecord vcfRec : records ) {
-                String uniquifiedSample = rodNamesToSampleNames.get(new Pair<String, String>(rod.getName(), vcfRec.getSampleName()));
+                String uniquifiedSample = rodNamesToSampleNames.get(new Pair<String, String>(vcfRods.get(rod), vcfRec.getSampleName()));
                 if ( uniquifiedSample == null )
-                    throw new StingException("Unexpected sample encountered: " + vcfRec.getSampleName() + " in rod " + rod.getName());
+                    throw new StingException("Unexpected sample encountered: " + vcfRec.getSampleName() + " in rod " + vcfRods.get(rod));
 
                 samplesToRecords.put(uniquifiedSample, vcfRec);
             }

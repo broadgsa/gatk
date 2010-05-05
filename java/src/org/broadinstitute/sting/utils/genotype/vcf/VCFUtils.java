@@ -25,10 +25,11 @@
 
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -48,7 +49,7 @@ public class VCFUtils {
 
         for ( ReferenceOrderedDataSource source : toolkit.getRodDataSources() ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(RodVCF.class) ) {
+            if ( rod.getType().equals(VCFRecord.class) ) {
                 vcfs.add(rod);
             }
         }
@@ -72,7 +73,7 @@ public class VCFUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(RodVCF.class) ) {
+            if ( rod.getType().equals(VCFCodec.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 fields.addAll(reader.getHeader().getMetaData());
                 reader.close();
@@ -89,7 +90,7 @@ public class VCFUtils {
      * @param rodNamesToSampleNames  mapping of rod/sample pairs to new uniquified sample names
      * @return the new merged vcf record
      */
-    public static VCFRecord mergeRecords(List<RodVCF> rods, Map<Pair<String, String>, String> rodNamesToSampleNames) {
+    public static VCFRecord mergeRecords(Map<VCFRecord,String> rods, Map<Pair<String, String>, String> rodNamesToSampleNames) {
 
         VCFParameters params = new VCFParameters();
         params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
@@ -100,14 +101,14 @@ public class VCFUtils {
         Map<String, String> infoFields = new HashMap<String, String>();
         List<String> filters = new ArrayList<String>();
 
-        for ( RodVCF rod : rods ) {
+        for ( VCFRecord rod : rods.keySet() ) {
             List<VCFGenotypeRecord> myGenotypes = rod.getVCFGenotypeRecords();
             for ( VCFGenotypeRecord call : myGenotypes ) {
                 // set the name to be the new uniquified name and add it to the list of genotypes
-                call.setSampleName(rodNamesToSampleNames.get(new Pair<String, String>(rod.getName(), call.getSampleName())));
+                call.setSampleName(rodNamesToSampleNames.get(new Pair<String, String>(rods.get(rod), call.getSampleName())));
                 if ( params.getPosition() < 1 )
-                    params.setLocations(rod.getLocation(), call.getReference());
-                params.addGenotypeRecord(createVCFGenotypeRecord(params, call, rod.mCurrentRecord));
+                    params.setLocations(GenomeLocParser.createGenomeLoc(rod.getChr(), rod.getStart()), call.getReference());
+                params.addGenotypeRecord(createVCFGenotypeRecord(params, call, rod));
             }
 
             // set the overall confidence to be the max entry we see

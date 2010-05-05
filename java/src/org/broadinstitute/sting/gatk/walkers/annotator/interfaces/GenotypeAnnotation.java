@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
+import org.broad.tribble.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFFormatHeaderLine;
 
 import java.util.Map;
 

@@ -25,11 +25,12 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.diagnostics;
 
+import org.broad.tribble.vcf.VCFCodec;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -40,7 +41,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * Computes the density of SNPs passing and failing filters in intervals on the genome and emits a table for display
  */
 @By(DataSource.REFERENCE)
-@Requires(value={},referenceMetaData=@RMD(name="eval",type=RodVCF.class))
+@Requires(value={},referenceMetaData=@RMD(name="eval",type= VCFCodec.class))
 public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDensity.Counter> {
     @Argument(fullName="granularity", shortName="granularity", doc="", required=false)
     private int granularity = 1000000;
@@ -64,7 +65,7 @@ public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDe
     public Pair<VariantContext, GenomeLoc> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         VariantContext vc = null;
 
-        RodVCF vcf = tracker.lookup("eval",RodVCF.class);
+        VCFRecord vcf = tracker.lookup("eval",VCFRecord.class);
         if (vcf != null)
             vc = VariantContextAdaptors.toVariantContext("eval", vcf);
         return new Pair<VariantContext, GenomeLoc>(vc, context.getLocation());

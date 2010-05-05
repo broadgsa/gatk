@@ -1,15 +1,16 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
@@ -93,12 +94,12 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
 
         Object variant = rods.get(0);
 
-        if ( variant instanceof RodVCF ) {
+        if ( variant instanceof VCFRecord) {
             RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(ref.getLocus()));
             String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
             annotationString = annotationString.split("\\s+")[0];
-            ((RodVCF) variant).getRecord().addInfoField("type",annotationString);
-            vcfWriter.addRecord(((RodVCF) variant).getRecord());
+            ((VCFRecord) variant).addInfoField("type",annotationString);
+            vcfWriter.addRecord((VCFRecord) variant);
         } else {
             throw new StingException("This one-off walker only deals with VCF files.");
         }

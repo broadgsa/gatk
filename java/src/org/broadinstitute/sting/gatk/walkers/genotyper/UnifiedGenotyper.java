@@ -25,6 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;

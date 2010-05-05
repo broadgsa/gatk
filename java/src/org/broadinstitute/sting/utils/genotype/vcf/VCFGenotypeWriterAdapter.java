@@ -1,5 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.vcf.VCFFormatHeaderLine;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
@@ -64,7 +68,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         // set up the allowed genotype format fields
         allowedGenotypeFormatStrings = new ArrayList<String>();
         for ( VCFHeaderLine field : headerInfo ) {
-            if ( field instanceof VCFFormatHeaderLine )
+            if ( field instanceof VCFFormatHeaderLine)
                 allowedGenotypeFormatStrings.add(((VCFFormatHeaderLine)field).getName());
         }
     }

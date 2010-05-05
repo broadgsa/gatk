@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 

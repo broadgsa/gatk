@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.varianteval.multisample;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -76,9 +77,9 @@ class LocusConcordanceInfo {
 
     public GenomeLoc getLoc() {
         if ( concordanceType == ConcordanceType.TRUTH_SET || concordanceType == ConcordanceType.BOTH_SETS || concordanceType == ConcordanceType.TRUTH_SET_VARIANT_FILTERED) {
-            return truthVCFRecord.getLocation();
+            return GenomeLocParser.createGenomeLoc(truthVCFRecord.getChr(),truthVCFRecord.getStart());
         } else {
-            return variantVCFRecord.getLocation();
+            return GenomeLocParser.createGenomeLoc( variantVCFRecord.getChr(),variantVCFRecord.getStart());
         }
     }
 

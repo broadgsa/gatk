@@ -4,6 +4,7 @@ import edu.mit.broad.picard.genotype.DiploidGenotype;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
@@ -16,7 +17,6 @@ import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFSingleCall;
 import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
@@ -46,7 +46,6 @@ public class VariantContextAdaptors {
 
     static {
         adaptors.put(DbSNPFeature.class, new DBSnpAdaptor());
-        adaptors.put(RodVCF.class, new RodVCFAdaptor());
         adaptors.put(VCFRecord.class, new VCFRecordAdaptor());
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
         adaptors.put(HapMapROD.class, new HapMapAdaptor());
@@ -132,23 +131,6 @@ public class VariantContextAdaptors {
         }
     }
 
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // VCF to VariantContext and back again
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    private static class RodVCFAdaptor extends VCAdaptor {
-        // WARNING: do not use this method if you have anything other than point mutations in your VCF
-        VariantContext convert(String name, Object input) {
-            return vcfToVariantContext(name, ((RodVCF)input).getRecord(), null);
-        }
-
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
-            return vcfToVariantContext(name, ((RodVCF)input).getRecord(), ref);
-        }
-    }
-
     private static class VCFRecordAdaptor extends VCAdaptor {
         // WARNING: do not use this method if you have anything other than point mutations in your VCF
         VariantContext convert(String name, Object input) {
@@ -229,7 +211,7 @@ public class VariantContextAdaptors {
 
             double qual = vcf.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcf.getNegLog10PError();
 
-            GenomeLoc loc = vcf.getLocation();
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(vcf.getChr(),vcf.getStart());
             if ( vcf.isDeletion() )
                 loc = GenomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), loc.getStart()+refAllele.length()-1);
 

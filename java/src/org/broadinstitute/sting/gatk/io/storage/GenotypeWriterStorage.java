@@ -29,10 +29,10 @@ import java.io.*;
 import java.util.Set;
 import java.util.HashSet;
 
+import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 

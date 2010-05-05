@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.playground.tools.vcf;
 
+import org.broad.tribble.vcf.VCFCodec;
+
 import java.io.*;
 import java.util.zip.*;
 
@@ -34,93 +36,10 @@ import java.util.zip.*;
  * @author jmaguire
  */
 
-class VCFHomogenizer extends InputStream 
-{
-	private BufferedReader in = null;
-	private String currentLine;
-	private ByteArrayInputStream stream;
-
-	public VCFHomogenizer(Reader in)
-	{
-		this.in = (BufferedReader)in;
-		currentLine = this.readLine();
-		stream = new ByteArrayInputStream(currentLine.getBytes());
-	}
-
-	////////////////////////////////////////
-	// InputStream methods
-	
-	public int available()
-	{
-		return 1;
-	}
-
-	public void close() throws java.io.IOException
-	{
-		this.in.close();
-	}
-
-	public void mark(int readlimit)
-	{
-		System.err.println("not implemented");
-		System.exit(-1);
-	}
-
-	public void reset()
-	{
-		System.err.println("not implemented");
-		System.exit(-1);
-	}
-
-	public boolean markSupported()
-	{
-		return false; 
-	}
-
-	public int read()
-	{
-		if ((stream == null) || (stream.available() == 0))
-		{
-			currentLine = this.readLine();
-			if (currentLine == null) { return -1; }
-			stream = new ByteArrayInputStream(currentLine.getBytes());
-		}
-		return stream.read();
-	}
-
-	// END InputStream methods
-	/////////////////////////////////////
-
-
-	public static VCFHomogenizer create(String filename)
-	{
-		try
-		{
-			if (filename.endsWith(".gz"))
-			{
-				return new VCFHomogenizer(new BufferedReader(
-											new InputStreamReader(
-												new GZIPInputStream(
-													new FileInputStream(filename)))));
-			}
-			else
-			{
-				return new VCFHomogenizer(new BufferedReader(
-											new InputStreamReader(
-												new FileInputStream(filename))));
-			}
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			System.exit(-1);
-		}
-
-		return null;
-	}
+class VCFHomogenizer implements VCFCodec.LineTransform {
 
 	//my ($chr, $off, $id, $ref, $alt, $qual, $filter, $info, $format, @genotypes) = @tokens;
-	private String editLine(String input)
+	public String lineTransform(String input)
 	{
 		if (input == null) { return null; }
 
@@ -228,47 +147,6 @@ class VCFHomogenizer extends InputStream
 
 		return output;
 	}
-
-	public String readLine()
-	{
-		try
-		{
-			String line = in.readLine();
-			if (line == null) { return null; }
-			else { return editLine(line + "\n"); }
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			System.exit(-1);
-		}
-
-		return null;
-	}
-
-	/*
-	public int read()
-	{
-		throw new RuntimeException("VCFHomogenizer.read() not implemented.");
-	}
-
-	public byte read(byte[] b)
-	{
-		throw new RuntimeException("VCFHomogenizer.read(byte[]) not implemented.");
-	}
-
-	public int read(byte[] b, int off, int len)
-	{
-		throw new RuntimeException("VCFHomogenizer.read(byte[], int, int) not implemented.");
-	}
-
-	public long skip(long n)
-	{
-		throw new RuntimeException("VCFHomogenizer.skip(long) not implemented.");
-	}
-
-	public boolean markSupported() { return false; }
-	*/
 }
 
 

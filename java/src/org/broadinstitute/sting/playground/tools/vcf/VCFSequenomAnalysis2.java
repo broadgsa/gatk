@@ -24,16 +24,19 @@
  */
 
 package org.broadinstitute.sting.playground.tools.vcf;
+import org.broad.tribble.vcf.VCFGenotypeEncoding;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
-
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.*;
 import java.util.*;
 import java.lang.*;
 
 import net.sf.picard.util.Interval;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 
 class VCFSequenomAnalysis2 extends CommandLineProgram 
@@ -68,8 +71,8 @@ class VCFSequenomAnalysis2 extends CommandLineProgram
 
 			if (autocorrect) 
 			{ 
-				reader1 = new VCFReader(VCFHomogenizer.create(filename1)); 
-				reader2 = new VCFReader(VCFHomogenizer.create(filename2)); 
+				reader1 = new VCFReader(new File(filename1),new VCFHomogenizer());
+				reader2 = new VCFReader(new File(filename2),new VCFHomogenizer());  
 			}
 			else 
 			{ 

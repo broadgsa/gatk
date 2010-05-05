@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 
 import java.util.*;
 import java.util.Map.Entry;

@@ -1,12 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.varianteval.multisample;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.

@@ -25,10 +25,11 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.varianteval.multisample;
 
+import org.broad.tribble.vcf.VCFCodec;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -41,7 +42,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * a VCF binding with the name 'variants'.
  * @Author: Chris Hartl
  */
-@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="truth",type= RodVCF.class),@RMD(name="variants",type= RodVCF.class)})
+@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="truth",type= VCFCodec.class),@RMD(name="variants",type= VCFRecord.class)})
 public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInfo, MultiSampleConcordanceSet > {
     @Argument(fullName="noLowDepthLoci", shortName="NLD", doc="Do not use loci in analysis where the variant depth (as specified in the VCF) is less than the given number; "+
             "DO NOT USE THIS IF YOUR VCF DOES NOT HAVE 'DP' IN THE FORMAT FIELD", required=false) private int minDepth = -1;
@@ -65,14 +66,14 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
         if ( tracker == null ) {
             return null;
         }
-        RodVCF variantData = tracker.lookup("variants",RodVCF.class);
+        VCFRecord variantData = tracker.lookup("variants", VCFRecord.class);
         if ( ignoreKnownSites ) { // ignoreKnownSites && tracker.lookup("variants",null) != null && ! ( (RodVCF) tracker.lookup("variants",null)).isNovel() ) )
             if ( variantData != null && ! variantData.isNovel() ) {
                 //logger.info("Not novel: "+( (RodVCF) tracker.lookup("variants",null)).getID());
                 return null;
             }
         }
-        RodVCF truthData = tracker.lookup("truth",RodVCF.class);
+        VCFRecord truthData = tracker.lookup("truth",VCFRecord.class);
         LocusConcordanceInfo concordance;
 
         if ( truthData == null && variantData == null) {
@@ -82,33 +83,33 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
         } else if ( truthData == null ) {
 
             // not in the truth set
-            if ( ( (RodVCF) variantData ).isFiltered() ) {
+            if ( variantData.isFiltered() ) {
 
                 concordance = null;
 
             } else {
 
-                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.VARIANT_SET,null, ( (RodVCF) variantData ).getRecord(),ref);
+                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.VARIANT_SET,null,variantData,ref);
             }
 
         } else if ( variantData == null ) {
 
             // not in the variant set
-            if ( ( (RodVCF) truthData).isFiltered() ) {
+            if ( (truthData).isFiltered() ) {
 
                 concordance = null;
 
             } else {
 
-                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.TRUTH_SET,( (RodVCF) truthData).getRecord(),null,ref);
+                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.TRUTH_SET,truthData,null,ref);
             }
 
         } else {
 
             // in both
             // check for filtering
-            boolean truth_filter = ((RodVCF) truthData).isFiltered();
-            boolean call_filter = ((RodVCF) variantData).isFiltered();
+            boolean truth_filter = truthData.isFiltered();
+            boolean call_filter = variantData.isFiltered();
 
             if ( truth_filter && call_filter ) {
 
@@ -116,15 +117,15 @@ public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInf
 
             } else if ( truth_filter ) {
 
-                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.VARIANT_SET,null, ( (RodVCF) variantData ).getRecord(),ref);
+                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.VARIANT_SET,null,variantData,ref);
 
             } else if ( call_filter ) {
 
-                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.TRUTH_SET_VARIANT_FILTERED,( (RodVCF) truthData).getRecord(), null ,ref);
+                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.TRUTH_SET_VARIANT_FILTERED,truthData, null ,ref);
 
             } else {
 
-                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.BOTH_SETS,( (RodVCF) truthData).getRecord(),( (RodVCF) variantData).getRecord(),ref);
+                concordance = new LocusConcordanceInfo(LocusConcordanceInfo.ConcordanceType.BOTH_SETS,truthData,variantData,ref);
                 
             }
         }

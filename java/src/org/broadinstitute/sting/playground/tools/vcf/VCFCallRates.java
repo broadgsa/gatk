@@ -24,15 +24,18 @@
  */
 
 package org.broadinstitute.sting.playground.tools.vcf;
+import org.broad.tribble.vcf.VCFGenotypeEncoding;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
-
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.*;
 import java.util.*;
 
 import net.sf.picard.util.Interval;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 
 class VCFCallRates extends CommandLineProgram
@@ -62,7 +65,7 @@ class VCFCallRates extends CommandLineProgram
 
 			if (autocorrect) 
 			{ 
-				reader = new VCFReader(VCFHomogenizer.create(filename)); 
+				reader = new VCFReader(new File(filename),new VCFHomogenizer());
 			}
 			else 
 			{ 

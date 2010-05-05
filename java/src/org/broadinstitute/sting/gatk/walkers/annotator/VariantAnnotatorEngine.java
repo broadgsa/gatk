@@ -26,6 +26,9 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -41,9 +44,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnot
 import org.broadinstitute.sting.playground.gatk.walkers.annotator.GenomicAnnotation;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.util.*;
 

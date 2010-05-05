@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
@@ -21,7 +22,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 /**
  * This plugin for {@link VariantAnnotatorEngine} serves as the core
@@ -73,8 +73,8 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
         final Map<String, Object> annotations = new HashMap<String, Object>();
         for(final GATKFeature gatkFeature : tracker.getAllRods())
         {
-            final ReferenceOrderedDatum rod = (ReferenceOrderedDatum) gatkFeature.getUnderlyingObject();
-            final String name = rod.getName();
+            final Object rod = gatkFeature.getUnderlyingObject();
+            final String name = gatkFeature.getName();
             if( name.equals("variant") || name.equals("interval") ) {
                 continue;
             }

@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
 
 import java.util.List;
 

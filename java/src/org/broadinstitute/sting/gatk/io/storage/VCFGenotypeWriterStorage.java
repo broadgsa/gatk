@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 import java.io.File;
 import java.util.Set;

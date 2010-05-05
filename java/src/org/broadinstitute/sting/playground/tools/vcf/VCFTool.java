@@ -24,6 +24,10 @@
  */
 
 package org.broadinstitute.sting.playground.tools.vcf;
+import org.broad.tribble.vcf.VCFGenotypeEncoding;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
 
@@ -65,7 +69,7 @@ class VCFValidate extends CommandLineProgram
 		
 			VCFReader reader = null;
 
-			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(filename)); }
+			if (autocorrect) { reader = new VCFReader(new File(filename),new VCFHomogenizer()); }
 			else { reader = new VCFReader(new File(filename)); }
 
 			VCFHeader header = reader.getHeader();
@@ -123,8 +127,10 @@ class VCFStats extends CommandLineProgram
 			String stop  = tokens[2];
 			Interval locus = new Interval(chr, Integer.parseInt(start), Integer.parseInt(stop));
 
-			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(in_filename)); }
-			else { reader = new VCFReader(new File(in_filename)); }
+			if (autocorrect)
+                reader = new VCFReader(new File(in_filename),new VCFHomogenizer());
+			else
+                reader = new VCFReader(new File(in_filename));
 
 			VCFHeader header = reader.getHeader();
 
@@ -258,7 +264,7 @@ class CheckRefFields extends CommandLineProgram
 		
 			VCFReader reader = null;
 
-			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(filename)); }
+			if (autocorrect) { reader = new VCFReader(new File(filename),new VCFHomogenizer()); }
 			else { reader = new VCFReader(new File(filename)); }
 
 			ReferenceSequenceFileWalker ref = new ReferenceSequenceFileWalker(new File(fasta_filename));
@@ -274,7 +280,7 @@ class CheckRefFields extends CommandLineProgram
 			{
 				VCFRecord record = reader.next();
 
-				String chr = record.getLocation().getContig();
+				String chr = record.getChr();
 				if (! chr.equals(ref_seq_name))
 				{
 					System.out.println("Loading " + chr);
@@ -282,7 +288,7 @@ class CheckRefFields extends CommandLineProgram
 					ref_seq_name = chr;
 				}	
 
-				long offset   = record.getLocation().getStart();
+				long offset   = record.getStart();
 				char vcf_ref_base = record.getReference().charAt(0);
 				char fasta_ref_base = (char)ref_seq[(int)offset-1];
 
@@ -319,7 +325,7 @@ class FixRefFields extends CommandLineProgram
 		
 			VCFReader reader = null;
 
-			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(filename)); }
+			if (autocorrect) { reader = new VCFReader(new File(filename),new VCFHomogenizer()); }
 			else { reader = new VCFReader(new File(filename)); }
 
 			ReferenceSequenceFileWalker ref = new ReferenceSequenceFileWalker(new File(fasta_filename));
@@ -349,7 +355,7 @@ class FixRefFields extends CommandLineProgram
 			{
 				VCFRecord record = reader.next();
 
-				String chr = record.getLocation().getContig();
+				String chr = record.getChr();
 				if (! chr.equals(ref_seq_name))
 				{
 					System.out.println("Loading " + chr);
@@ -357,7 +363,7 @@ class FixRefFields extends CommandLineProgram
 					ref_seq_name = chr;
 				}	
 
-				long offset   = record.getLocation().getStart();
+				long offset   = record.getStart();
 				char vcf_ref_base = record.getReference().charAt(0);
 				char fasta_ref_base = (char)ref_seq[(int)offset-1];
 
@@ -498,7 +504,7 @@ class VCFGrep_old extends CommandLineProgram
 				throw new RuntimeException(e);
 			}
 
-			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(in_filename)); }
+			if (autocorrect) { reader = new VCFReader(new File(in_filename),new VCFHomogenizer()); }
 			else { reader = new VCFReader(new File(in_filename)); }
 
 
@@ -528,7 +534,7 @@ class PrintGQ extends CommandLineProgram
 			VCFReader reader;
 			VCFReader reader2;
 
-				reader = new VCFReader(VCFHomogenizer.create(filename)); 
+				reader = new VCFReader(new File(filename),new VCFHomogenizer());
 		
 			VCFHeader header = reader.getHeader();
 			VCFRecord record = reader.next();
@@ -604,7 +610,7 @@ class VCFSimpleStats extends CommandLineProgram
 
 			if (autocorrect) 
 			{ 
-				reader1 = new VCFReader(VCFHomogenizer.create(filename1)); 
+				reader1 = new VCFReader(new File(filename1),new VCFHomogenizer());
 			}
 			else 
 			{ 
@@ -819,8 +825,8 @@ class VCFConcordance extends CommandLineProgram
 
 			if (autocorrect) 
 			{ 
-				reader1 = new VCFReader(VCFHomogenizer.create(filename1)); 
-				reader2 = new VCFReader(VCFHomogenizer.create(filename2)); 
+				reader1 = new VCFReader(new File(filename1),new VCFHomogenizer());
+				reader2 = new VCFReader(new File(filename2),new VCFHomogenizer());
 			}
 			else 
 			{ 
@@ -1266,8 +1272,8 @@ public class VCFTool
 
 		public static Interval getIntervalFromRecord(VCFRecord record)
 		{
-			String chr = record.getLocation().getContig();
-			long   off = record.getLocation().getStart();
+			String chr = record.getChr();
+			long   off = record.getStart();
 			return new Interval(chr, (int)off, (int)off);
 		}
 

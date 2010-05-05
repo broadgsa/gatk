@@ -35,13 +35,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -50,8 +52,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
@@ -183,7 +183,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
             }
         }
 
-        if ( variant instanceof RodVCF ) { //TODO is this if-statement necessary?
+        if ( variant instanceof VCFRecord) { //TODO is this if-statement necessary?
             for(VariantContext annotatedVC : annotatedVCs ) {
                     vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
             }

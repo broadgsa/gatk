@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;

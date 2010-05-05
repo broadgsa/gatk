@@ -25,10 +25,12 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -136,12 +138,13 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
             return null;
 
         // get all of the vcf rods at this locus
-        ArrayList<RodVCF> vcfRods = new ArrayList<RodVCF>();
+        Map<VCFRecord, String> vcfRods = new LinkedHashMap<VCFRecord,String>();
         Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
         while (rods.hasNext()) {
-            Object rod = rods.next().getUnderlyingObject();
-            if ( rod instanceof RodVCF )
-                vcfRods.add((RodVCF)rod);
+            GATKFeature feat = rods.next();
+            Object rod = feat.getUnderlyingObject();
+            if ( rod instanceof VCFRecord )
+                vcfRods.put((VCFRecord)rod,feat.getName());
         }
 
         if ( vcfRods.size() == 0 )
@@ -166,18 +169,20 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
         return vcfWriter;
     }
 
-    private VCFRecord vcfUnion(ArrayList<RodVCF> rods) {
+    private VCFRecord vcfUnion(Map<VCFRecord, String> rods) {
         if ( priority == null )
-            return rods.get(0).mCurrentRecord;
+            return rods.keySet().iterator().next();
 
         if ( annotateUnion ) {
-            Map<String, RodVCF> rodMap = new HashMap<String, RodVCF>();
-            for ( RodVCF vcf : rods ) { rodMap.put(vcf.getName(), vcf); }
+            Map<String, VCFRecord> rodMap = new HashMap<String, VCFRecord>();
+            for ( VCFRecord vcf : rods.keySet() ) {
+                rodMap.put(rods.get(vcf),vcf);
+            }
 
             String priority1 = priority[0];
             String priority2 = priority[1];
-            VCFRecord vcf1 = rodMap.containsKey(priority1) ? rodMap.get(priority1).getRecord() : null;
-            VCFRecord vcf2 = rodMap.containsKey(priority2) ? rodMap.get(priority2).getRecord() : null;
+            VCFRecord vcf1 = rodMap.containsKey(priority1) ? rodMap.get(priority1) : null;
+            VCFRecord vcf2 = rodMap.containsKey(priority2) ? rodMap.get(priority2) : null;
 
             // for simplicity, we are setting set and call for vcf1
             String set = priority1;
@@ -213,9 +218,9 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
             return call;
         } else {
             for ( String rodname : priority ) {
-                for ( RodVCF rod : rods ) {
-                    if ( rod.getName().equals(rodname) )
-                        return rod.mCurrentRecord;
+                for ( VCFRecord rod : rods.keySet() ) {
+                    if ( rods.get(rod).equals(rodname) )
+                        return rod;
                 }
             }
         }

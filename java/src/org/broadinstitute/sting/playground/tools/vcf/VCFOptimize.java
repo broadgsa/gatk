@@ -24,10 +24,11 @@
  */
 
 package org.broadinstitute.sting.playground.tools.vcf;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
-
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 
 import java.io.*;
@@ -306,7 +307,7 @@ class VCFOptimize extends CommandLineProgram
 		
 			VCFReader reader = null;
 
-			if (autocorrect) { reader = new VCFReader(VCFHomogenizer.create(filename)); }
+			if (autocorrect) { reader = new VCFReader(new File(filename),new VCFHomogenizer()); }
 			else { reader = new VCFReader(new File(filename)); }
 
 			PrintWriter output = null;

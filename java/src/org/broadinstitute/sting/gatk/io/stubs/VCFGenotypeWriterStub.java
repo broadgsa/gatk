@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;

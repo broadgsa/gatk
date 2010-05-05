@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
@@ -64,5 +64,5 @@ public class SimpleVenn implements ConcordanceType {
     }
 
     public String getInfoName() { return "Venn"; }
-    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "2-way Venn split"); }    
+    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "2-way Venn split"); }
 }

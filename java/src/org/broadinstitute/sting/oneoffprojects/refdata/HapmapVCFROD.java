@@ -1,13 +1,13 @@
 package org.broadinstitute.sting.oneoffprojects.refdata;
 
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.refdata.BasicReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -23,14 +23,15 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Iterator
 // This is a (hopefully temporary) wrapper class for certain VCF files that we want to protect from
 // utilities that grab genotypes or sample names across all VCF files
 
-    private RodVCF rod;
+    private VCFRecord record;
+    private VCFReader reader;
 
     public VCFReader getReader() {
-        return rod.getReader();
+        return reader;
     }
 
     public VCFRecord getRecord() {
-        return rod.getRecord();
+        return record;
     }
 
     public HapmapVCFROD(String name) {
@@ -39,85 +40,77 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Iterator
 
     public HapmapVCFROD(String name, VCFRecord currentRecord, VCFReader reader) {
         super(name);
-        rod = new RodVCF(name,currentRecord,reader);
-    }
-
-    public HapmapVCFROD(String name, RodVCF rod) {
-        super(name);
-        this.rod = rod;
+        this.record = currentRecord;
+        this.reader = reader;
     }
 
     public Object initialize(final File source) throws FileNotFoundException {
-        rod = new RodVCF(name);
-        rod.initialize(source);
-        return rod.getHeader();
+        reader = new VCFReader(source);
+        if (reader.hasNext()) record = reader.next();
+        return reader.getHeader();
     }
 
     public boolean parseLine(Object obj, String[] args) {
-        try {
-            return rod.parseLine(obj,args);
-        } catch (Exception e) {
-            throw new UnsupportedOperationException("Parse line not supported",e);
-        }
+        return false;
     }
 
     public double getNegLog10PError() {
-        return rod.getNegLog10PError();
+        return record.getNegLog10PError();
     }
     public String getReference() {
-        return rod.getReference();
+        return record.getReference();
     }
 
     public String toString() {
-        return rod.toString();
+        return record.toString();
     }
 
     public List<String> getAlternateAlleleList() {
-        return rod.getAlternateAlleleList();
+        return record.getAlternateAlleleList();
     }
 
     public boolean isDeletion() {
-        return rod.isDeletion();
+        return record.isDeletion();
     }
 
     public GenomeLoc getLocation() {
-        return rod.getLocation();
+        return GenomeLocParser.createGenomeLoc(record.getChr(),record.getStart());
     }
 
     public boolean isBiallelic() {
-        return rod.isBiallelic();
+        return record.isBiallelic();
     }
 
     public boolean isIndel() {
-        return rod.isIndel();
+        return record.isIndel();
     }
 
     public boolean isSNP() {
-        return rod.isSNP();
+        return record.isSNP();
     }
 
     public boolean isReference() {
-        return rod.isReference();
+        return record.isReference();
     }
 
     public double getNonRefAlleleFrequency() {
-        return rod.getNonRefAlleleFrequency();
+        return record.getNonRefAlleleFrequency();
     }
 
     public char getAlternativeBaseForSNP() {
-        return rod.getAlternativeBaseForSNP();
+        return record.getAlternativeBaseForSNP();
     }
 
     public boolean isInsertion() {
-        return rod.isInsertion();
+        return record.isInsertion();
     }
 
     public List<String> getAlleleList() {
-        return rod.getAlleleList();
+        return record.getAlleleList();
     }
 
     public char getReferenceForSNP() {
-        return rod.getReferenceForSNP();
+        return record.getReferenceForSNP();
     }
 
     public boolean hasGenotype(DiploidGenotype g) {
@@ -126,29 +119,29 @@ public class HapmapVCFROD extends BasicReferenceOrderedDatum implements Iterator
     }
 
     public VCFHeader getHeader() {
-        return rod.getHeader();
+        return record.getHeader();
     }
 
     public boolean hasNext() {
-        return rod.hasNext();
+        return reader.hasNext();
     }
 
     public HapmapVCFROD next() {
-        return new HapmapVCFROD(name,rod.next());
+        return new HapmapVCFROD(name, record, reader);
     }
 
     public void remove() {
-        rod.remove();
+        throw new UnsupportedOperationException("Unable to remove");
     }
 
     public static HapmapVCFROD createIterator(String name, File file) {
-        RodVCF vcf = new RodVCF(name);
+        HapmapVCFROD vcf = new HapmapVCFROD(name);
         try {
             vcf.initialize(file);
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to find file " + file);
+            throw new StingException("Unable to load file",e);
         }
-        return new HapmapVCFROD(name,vcf);
+        return vcf;
     }
 
 }
