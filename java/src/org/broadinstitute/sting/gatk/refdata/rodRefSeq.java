@@ -51,6 +51,57 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
     /** Returns the list of all exons in this transcript, as genomic intervals */
     public List<GenomeLoc> getExons() { return exons; }
 
+    /** Returns all exons falling ::entirely:: inside an interval **/
+    public List<GenomeLoc> getExonsInInterval( GenomeLoc interval ) {
+        List<GenomeLoc> relevantExons = new ArrayList<GenomeLoc>(exons.size());
+        for ( GenomeLoc exon : getExons() ) {
+            if ( interval.containsP(exon) ) {
+                relevantExons.add(exon);
+            }
+        }
+
+        return relevantExons;
+    }
+
+    /** convenience method; returns the numbers of the exons in the interval **/
+    public List<Integer> getExonNumbersInInterval( GenomeLoc interval ) {
+        List<Integer> numbers = new ArrayList<Integer>();
+        int iNo = 0;
+        for ( GenomeLoc exon : getExons() ) {
+            if ( interval.containsP(exon) ) {
+                numbers.add(iNo);
+            }
+            iNo++;
+        }
+
+        return numbers;
+    }
+
+    public String getOverlapString(GenomeLoc position) {
+        boolean is_exon = false;
+        StringBuilder overlapString = new StringBuilder();
+        int exonNo = 1;
+
+        for ( GenomeLoc exon : exons ) {
+            if ( exon.containsP(position) ) {
+                overlapString.append(String.format("exon_%d",exonNo));
+                is_exon = true;
+                break;
+            }
+            exonNo ++;
+        }
+
+        if ( ! is_exon ) {
+            if ( overlapsCodingP(position) ) {
+                overlapString.append("Intron");
+            } else {
+                overlapString.append("UTR");
+            }
+        }
+
+        return overlapString.toString();
+    }
+
     /** Returns true if the specified interval 'that' overlaps with the full genomic interval of this transcript */
     public boolean overlapsP (GenomeLoc that) {
         return transcript_interval.overlapsP(that);
