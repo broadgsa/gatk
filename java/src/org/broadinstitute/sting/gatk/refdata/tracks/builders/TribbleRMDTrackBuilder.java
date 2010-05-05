@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureReader;
@@ -53,6 +54,11 @@ import java.util.Map;
  * that gets iterators from the FeatureReader using Tribble.
  */
 public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implements RMDTrackBuilder {
+    /**
+     * our log, which we want to capture anything from this class
+     */
+    private static Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
+
 
     // the linear index extension
     private static final String linearIndexExtension = ".idx";
@@ -88,7 +94,8 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         FeatureReader reader;
         try {
             // check to see if the input file has an index
-            if (!(new File(inputFile.getAbsolutePath() + linearIndexExtension).canRead())) {
+            if (requireIndex(inputFile)) {
+                logger.warn("Creating Tribble Index for file " + inputFile);
                 LinearIndex index = createIndex(inputFile, this.createByType(targetClass));
                 reader = new FeatureReader(inputFile,index, this.createByType(targetClass));
             }
@@ -114,6 +121,26 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     private LinearIndex createIndex(File inputFile, FeatureCodec codec) throws IOException {
         LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
         return create.createIndex();
+    }
+
+    /**
+     * this function checks if we need to make an index file. There are three cases:
+     * 1. The index file doesn't exist; return true
+     * 2. The index does exist, but is older than the file.  We delete the index and return true
+     * 3. else return false;
+     * @param inputFile the target file to make an index for
+     * @return true if we need to create an index, false otherwise
+     */
+    private boolean requireIndex(File inputFile) {
+        // can we read the index? if not, create an index
+        File indexFile = new File(inputFile.getAbsolutePath() + linearIndexExtension);
+        if (!(indexFile.canRead())) return true;
+        if (inputFile.lastModified() > indexFile.lastModified()) {
+            logger.warn("Removing out of date (index file date older than target file ) index file " + indexFile);
+            indexFile.delete();
+            return true;
+        }
+        return false;
     }
 }
 
