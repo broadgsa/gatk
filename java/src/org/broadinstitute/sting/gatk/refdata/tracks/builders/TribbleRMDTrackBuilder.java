@@ -61,7 +61,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
 
 
     // the linear index extension
-    private static final String linearIndexExtension = ".idx";
+    public static final String linearIndexExtension = ".idx";
 
     /** Create a new plugin manager. */
     public TribbleRMDTrackBuilder() {
@@ -118,7 +118,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @return a linear index for the specified type
      * @throws IOException if we cannot write the index file
      */
-    private LinearIndex createIndex(File inputFile, FeatureCodec codec) throws IOException {
+    public static LinearIndex createIndex(File inputFile, FeatureCodec codec) throws IOException {
         LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
         return create.createIndex();
     }
@@ -131,7 +131,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the target file to make an index for
      * @return true if we need to create an index, false otherwise
      */
-    private boolean requireIndex(File inputFile) {
+    public static boolean requireIndex(File inputFile) {
         // can we read the index? if not, create an index
         File indexFile = new File(inputFile.getAbsolutePath() + linearIndexExtension);
         if (!(indexFile.canRead())) return true;

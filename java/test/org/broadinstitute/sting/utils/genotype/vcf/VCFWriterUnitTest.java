@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -54,6 +55,7 @@ public class VCFWriterUnitTest extends BaseTest {
         }
         Assert.assertEquals(2,counter);
         reader.close();
+        new File(fakeVCFFile + TribbleRMDTrackBuilder.linearIndexExtension).delete();
         fakeVCFFile.delete();
     }
 

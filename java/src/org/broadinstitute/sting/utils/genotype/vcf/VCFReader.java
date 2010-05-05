@@ -21,7 +21,9 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import org.broad.tribble.FeatureReader;
+import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -57,6 +59,14 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
 
     private void initialize(File vcfFile, VCFCodec.LineTransform transform) {
         VCFCodec codec = new VCFCodec();
+        LinearIndex index = null;
+        if (TribbleRMDTrackBuilder.requireIndex(vcfFile)) {
+            try {
+                index = TribbleRMDTrackBuilder.createIndex(vcfFile, new VCFCodec());
+            } catch (IOException e) {
+                throw new StingException("Unable to make required index for file " + vcfFile + " do you have write permissions to the directory?");
+            }
+        }
         if (transform != null) codec.setTransformer(transform);
         try {
             vcfReader = new FeatureReader(vcfFile,codec);

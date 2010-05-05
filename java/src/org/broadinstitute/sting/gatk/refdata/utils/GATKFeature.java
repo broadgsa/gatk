@@ -63,13 +63,15 @@ public abstract class GATKFeature implements Feature {
      */
     public static class TribbleGATKFeature extends GATKFeature {
         private final Feature feature;
-
+        private GenomeLoc position = null;
+        
         public TribbleGATKFeature(Feature f, String name) {
             super(name);
             feature = f;
         }
         public GenomeLoc getLocation() {
-            return GenomeLocParser.createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
+            if (position == null) position = GenomeLocParser.createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
+            return position;
         }
 
         /** Return the features reference sequence name, e.g chromosome or contig */
