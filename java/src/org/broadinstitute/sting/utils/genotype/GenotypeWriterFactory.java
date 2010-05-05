@@ -22,7 +22,7 @@ import java.util.Set;
 public class GenotypeWriterFactory {
     /** available genotype writers */
     public enum GENOTYPE_FORMAT {
-        GELI, GLF, GFF, TABULAR, GELI_BINARY, VCF
+        GELI, GLF, GELI_BINARY, VCF
     }
 
     /**
