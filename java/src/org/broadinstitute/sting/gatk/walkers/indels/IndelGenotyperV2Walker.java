@@ -241,13 +241,17 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 return 0;
             }
 
-//            if ( read.getAlignmentStart() < normal_context.getStart() ) {
-//                if ( skippingReads ) return 0; // return if we are legitimately skipping reads over some bad region.
-//                // this should never happen
-//                throw new StingException("Read "+read.getReadName()+": out of order on the contig\n"+
-//					"Read starts at "+read.getReferenceName()+":"+read.getAlignmentStart()+ " (cigar="+read.getCigarString()+
-//					"); window starts at "+normal_context.getStart());
-//           }
+            long alignmentEnd = read.getAlignmentEnd();
+            Cigar c = read.getCigar();
+            int lastNonClippedElement = 0; // reverse offset to the last unclipped element
+            CigarOperator op = null;
+            // moving backwards from the end of the cigar, skip trailing S or H cigar elements:
+            do {
+                lastNonClippedElement++;
+                op = c.getCigarElement( c.numCigarElements()-lastNonClippedElement ).getOperator();
+            } while ( op == CigarOperator.H || op == CigarOperator.S );
+
+            // now op is the last non-S/H operator in the cigar.
 
             // a little trick here: we want to make sure that current read completely fits into the current
             // window so that we can accumulate indel observations over the whole length of the read.
@@ -257,9 +261,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             // in this program we assign insertions, internally, to the first base *after* the insertion position.
             // Hence, we have to make sure that that extra base is already in the window or we will get IndexOutOfBounds.
 
-            long alignmentEnd = read.getAlignmentEnd();
-            Cigar c = read.getCigar();
-            if ( c.getCigarElement(c.numCigarElements()-1).getOperator() == CigarOperator.I) alignmentEnd++;
+            if ( op == CigarOperator.I) alignmentEnd++;
 
             if ( alignmentEnd > normal_context.getStop()) {
 
@@ -1226,8 +1228,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                     indelsAtSite = indels.get(pos);
                 } catch (IndexOutOfBoundsException e) {
                     SAMRecord r = rec.getSAMRecord();
-                    System.out.println("Read "+r.getReadName()+": out of coverage window bounds.Probably window is too small.\n"+
-                        "Read length="+r.getReadLength()+"; cigar="+r.getCigarString()+"; start="+
+                    System.out.println("Failed to add indel observation, probably out of coverage window bounds (trailing indel?):\nRead "+
+                            r.getReadName()+": "+
+                        "read length="+r.getReadLength()+"; cigar="+r.getCigarString()+"; start="+
                         r.getAlignmentStart()+"; end="+r.getAlignmentEnd()+"; window start="+getStart()+
                         "; window end="+getStop());
                     throw e;
