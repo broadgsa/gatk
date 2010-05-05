@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="LiftoverVCF">
+  <executable name="LiftoverVCF">
+    <main-class name="org.broadinstitute.sting.utils.tools.LiftoverVCF" />
+    <resource-bundle file="StingText.properties" />
+    <dependencies>
+    </dependencies>
+  </executable>
+</package>
