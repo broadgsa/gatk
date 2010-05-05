@@ -108,6 +108,9 @@ public class AlignmentUtils {
                 case N:
                     refIndex += ce.getLength();
                     break;
+                case H:
+                case P:
+                    break;
                 default: throw new StingException("The " + ce.getOperator() + " cigar element is not currently supported");
             }
 
@@ -226,44 +229,12 @@ public class AlignmentUtils {
     	return n;
     }
 
-    public static String toString(Cigar cig) {
-        StringBuilder b = new StringBuilder();
-
-        for ( int i = 0 ; i < cig.numCigarElements() ; i++ ) {
-            char c='?';
-            switch ( cig.getCigarElement(i).getOperator() ) {
-            case M : c = 'M'; break;
-            case D : c = 'D'; break;
-            case I : c = 'I'; break;
-            }
-            b.append(cig.getCigarElement(i).getLength());
-            b.append(c);
-        }
-        return b.toString();
-    }
-
-
     public static String alignmentToString(final Cigar cigar,final  String seq, final String ref, final int posOnRef ) {
         return alignmentToString( cigar, seq, ref, posOnRef, 0 );
     }
 
     public static String cigarToString(Cigar cig) {
-        if ( cig == null )
-            return "null";
-
-        StringBuilder b = new StringBuilder();
-
-        for ( int i = 0 ; i < cig.numCigarElements() ; i++ ) {
-            char c='?';
-            switch ( cig.getCigarElement(i).getOperator() ) {
-                case M : c = 'M'; break;
-                case D : c = 'D'; break;
-                case I : c = 'I'; break;
-            }
-            b.append(cig.getCigarElement(i).getLength());
-            b.append(c);
-        }
-        return b.toString();
+        return cig.toString();
     }
 
     public static String alignmentToString(final Cigar cigar,final  String seq, final String ref, final int posOnRef, final int posOnRead ) {
