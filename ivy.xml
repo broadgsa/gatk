@@ -18,7 +18,7 @@
     <dependency org="org.broad" name="tribble" rev="latest.integration" conf="default"/>
     
     <!-- Dependencies for reflections mvn repository -->
-    <dependency org="org.reflections" name="reflections" rev="0.9.5-svnversion79M" conf="default"/>
+    <dependency org="org.reflections" name="reflections" rev="0.9.5-svnversion79M_mod2" conf="default"/>
     <dependency org="com.google.collections" name="google-collections" rev="0.9" conf="default"/>
     <dependency org="javassist" name="javassist" rev="3.8.0.GA"/>
     <dependency org="ch.qos.logback" name="logback-core" rev="0.9.9"/>
