@@ -23,15 +23,18 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.tools;
+package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFCodec;
 
 import java.io.File;
+import java.util.List;
 
 import net.sf.picard.liftover.LiftOver;
 import net.sf.picard.util.Interval;
@@ -41,19 +44,8 @@ import net.sf.samtools.SAMFileReader;
 /**
  * Lifts a VCF file over from one build to another.  Note that the resulting VCF could be mis-sorted.
  */
-public class LiftoverVCF extends CommandLineProgram {
-
-    public static void main(String args[]) {
-        LiftoverVCF LO = new LiftoverVCF();
-        CommandLineProgram.start( LO, args );
-        System.exit(0);
-    }
-
-    @Argument(fullName="vcf", shortName="vcf", doc="VCF file to lift over", required=true)
-    protected File VCF = null;
-
-    @Argument(fullName="out", shortName="out", doc="Output VCF file", required=true)
-    protected File OUT = null;
+@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFCodec.class))
+public class LiftoverVCF extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)
     protected File CHAIN = null;
@@ -61,41 +53,56 @@ public class LiftoverVCF extends CommandLineProgram {
     @Argument(fullName="newSequenceDictionary", shortName="dict", doc="Sequence .dict file for the new build", required=true)
     protected File NEW_SEQ_DICT = null;
 
-    @Override
-    protected int execute() {
+    private VCFWriter writer;
 
-        VCFReader reader = new VCFReader(VCF);
-        VCFWriter writer = new VCFWriter(OUT);
-        writer.writeHeader(reader.getHeader());
+    private LiftOver liftOver;
 
-        LiftOver liftOver = new LiftOver(CHAIN);
+    private long successfulIntervals = 0, failedIntervals = 0;
+
+    public void initialize() {
+        liftOver = new LiftOver(CHAIN);
         liftOver.setLiftOverMinMatch(LiftOver.DEFAULT_LIFTOVER_MINMATCH);
 
         final SAMFileHeader toHeader = new SAMFileReader(NEW_SEQ_DICT).getFileHeader();
         liftOver.validateToSequences(toHeader.getSequenceDictionary());
+    }
 
-        long successfulIntervals = 0, failedIntervals = 0;
+    private void convertAndWrite(VCFRecord record) {
 
-        while ( reader.hasNext() ) {
-            VCFRecord record = reader.next();
+        final Interval fromInterval = new Interval(record.getChr(), record.getStart(), record.getEnd());
+        final Interval toInterval = liftOver.liftOver(fromInterval);
 
-            final Interval fromInterval = new Interval(record.getChr(), record.getStart(), record.getEnd());
-            final Interval toInterval = liftOver.liftOver(fromInterval);
-
-            if ( toInterval != null ) {
-                record.setLocation(toInterval.getSequence(), toInterval.getStart());
-                writer.addRecord(record);
-                successfulIntervals++;
-            } else {
-                failedIntervals++;
+        if ( toInterval != null ) {
+            record.setLocation(toInterval.getSequence(), toInterval.getStart());
+            if ( writer == null ) {
+                writer = new VCFWriter(out);
+                writer.writeHeader(record.getHeader());
             }
+            writer.addRecord(record);
+            successfulIntervals++;
+        } else {
+            failedIntervals++;
         }
+    }
 
-        reader.close();
-        writer.close();
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( tracker == null )
+            return 0;
 
-        System.out.println("Converted " + successfulIntervals + " intervals; failed to convert " + failedIntervals + " intervals.");
+        List<Object> rods = tracker.getReferenceMetaData("vcf");
+
+        for ( Object rod : rods )
+            convertAndWrite((VCFRecord)rod);
 
         return 0;
+    }
+
+    public Integer reduceInit() { return 0; }
+
+    public Integer reduce(Integer value, Integer sum) { return 0; }
+
+    public void onTraversalDone(Integer result) {
+        writer.close();
+        System.out.println("Converted " + successfulIntervals + " intervals; failed to convert " + failedIntervals + " intervals.");
     }
 }
