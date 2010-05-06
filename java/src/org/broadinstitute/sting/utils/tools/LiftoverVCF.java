@@ -29,12 +29,16 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broad.tribble.vcf.VCFRecord;
 import org.broad.tribble.vcf.VCFHeader;
 
 import java.util.TreeSet;
 import java.util.HashMap;
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import net.sf.picard.liftover.LiftOver;
 import net.sf.picard.util.Interval;
@@ -64,8 +68,18 @@ public class LiftoverVCF extends CommandLineProgram {
     @Argument(fullName="newSequenceDictionary", shortName="dict", doc="Sequence .dict file for the new build", required=true)
     protected File NEW_SEQ_DICT = null;
 
+    @Argument(fullName="oldReferenceFasta", shortName="fasta", doc="Sequence .fasta file for the old build", required=true)
+    protected File OLD_REF_FASTA = null;
+
     @Override
     protected int execute() {
+
+        try {
+            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(OLD_REF_FASTA);
+            GenomeLocParser.setupRefContigOrdering(seq);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("Unable to load the old sequence dictionary");
+        }
 
         VCFReader reader = new VCFReader(VCF);
         VCFHeader header = reader.getHeader();
@@ -76,8 +90,8 @@ public class LiftoverVCF extends CommandLineProgram {
         final SAMFileHeader toHeader = new SAMFileReader(NEW_SEQ_DICT).getFileHeader();
         liftOver.validateToSequences(toHeader.getSequenceDictionary());
 
-        TreeSet<Interval> sortedIntervals = new TreeSet<Interval>();
-        HashMap<Interval, VCFRecord> intervalsToRecords = new HashMap<Interval, VCFRecord>();
+        TreeSet<GenomeLoc> sortedLocs = new TreeSet<GenomeLoc>();
+        HashMap<GenomeLoc, VCFRecord> locsToRecords = new HashMap<GenomeLoc, VCFRecord>();
         long successfulIntervals = 0, failedIntervals = 0;
 
         while ( reader.hasNext() ) {
@@ -88,8 +102,9 @@ public class LiftoverVCF extends CommandLineProgram {
 
             if ( toInterval != null ) {
                 record.setLocation(toInterval.getSequence(), toInterval.getStart());
-                sortedIntervals.add(toInterval);
-                intervalsToRecords.put(toInterval, record);
+                GenomeLoc loc = GenomeLocParser.createGenomeLoc(toInterval.getSequence(), toInterval.getStart());
+                sortedLocs.add(loc);
+                locsToRecords.put(loc, record);
                 successfulIntervals++;
             } else {
                 failedIntervals++;
@@ -104,8 +119,8 @@ public class LiftoverVCF extends CommandLineProgram {
         VCFWriter writer = new VCFWriter(OUT);
         writer.writeHeader(header);
 
-        for ( Interval interval : sortedIntervals )
-            writer.addRecord(intervalsToRecords.get(interval));
+        for ( GenomeLoc loc : sortedLocs )
+            writer.addRecord(locsToRecords.get(loc));
 
         writer.close();
 
