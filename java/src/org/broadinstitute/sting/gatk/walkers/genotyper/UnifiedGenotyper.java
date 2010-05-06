@@ -157,12 +157,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 
-        // FORMAT and INFO fields if not in POOLED mode
-        //if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
+        // FORMAT and INFO fields
         headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
         headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
         headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total number of alleles in called genotypes"));
-        //}
 
         // all of the arguments from the argument collection
         Set<Object> args = new HashSet<Object>();
