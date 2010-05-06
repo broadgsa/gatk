@@ -120,7 +120,16 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      */
     public static LinearIndex createIndex(File inputFile, FeatureCodec codec) throws IOException {
         LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
-        return create.createIndex();
+        create.setDisplayProgress(false);  // don't display progress indicators
+
+        // if we can write the index, we should, but if not just create it in memory
+        if (new File(inputFile.getAbsoluteFile() + linearIndexExtension).canWrite())
+            return create.createIndex();
+        else {
+            logger.info("Unable to write to location " + inputFile.getAbsoluteFile() + linearIndexExtension + " for index file, creating index in memory only");
+            return create.createIndex(null);
+        }
+
     }
 
     /**

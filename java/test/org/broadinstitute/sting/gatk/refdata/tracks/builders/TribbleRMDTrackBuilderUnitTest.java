@@ -23,10 +23,14 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
+import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.BaseTest;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 
@@ -49,9 +53,19 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     @Test
     public void testBuilder() {
         Map<String,Class> classes = builder.getAvailableTrackNamesAndTypes();
-        for (String c: classes.keySet()) {
-            System.err.println("class = " + c);
+        Assert.assertTrue(classes.size() > 0);
+    }
+
+    @Test
+    public void testBuilderIndexUnwriteable() {
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/mixedup.vcf");
+        try {
+            builder.createIndex(vcfFile,new VCFCodec());
+        } catch (IOException e) {
+            Assert.fail("Unable to make index because of IO exception " + e.getMessage());
         }
-        //Assert.fail("Fail");
+        // make sure we didn't write the file (check that it's length is zero)
+        Assert.assertEquals(0,new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).length());
+
     }
 }

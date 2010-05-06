@@ -69,7 +69,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         }
         if (transform != null) codec.setTransformer(transform);
         try {
-            vcfReader = new FeatureReader(vcfFile,codec);
+            vcfReader = new FeatureReader(vcfFile,index,codec);
             iterator= vcfReader.iterator();
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to read VCF File from " + vcfFile, e);
