@@ -143,6 +143,7 @@ public class SimpleMetricsByAC extends VariantEvaluator {
 
         if (eval != null &&
                 eval.isSNP() &&
+                eval.isBiallelic() &&
                 eval.hasGenotypes()) {
             if ( metrics == null )
                 metrics = new MetricsByAc(2 * eval.getNSamples());
