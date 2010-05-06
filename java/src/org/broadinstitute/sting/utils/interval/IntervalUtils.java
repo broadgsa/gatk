@@ -27,7 +27,7 @@ public class IntervalUtils {
      * @param argList A list of strings containing interval data.
      * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used. 
      */
-    public static GenomeLocSortedSet parseIntervalArguments(List<String> argList) {
+    public static List<GenomeLoc> parseIntervalArguments(List<String> argList) {
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
 
         if (argList != null) { // now that we can be in this function if only the ROD-to-Intervals was provided, we need to
@@ -58,7 +58,7 @@ public class IntervalUtils {
             }
         }
 
-        return GenomeLocSortedSet.createSetFromList(rawIntervals);
+        return rawIntervals;
     }
 
     /**
@@ -70,15 +70,13 @@ public class IntervalUtils {
      * @param mergingRule A descriptor for the type of merging to perform.
      * @return A sorted, merged version of the intervals passed in.
      */
-    public static GenomeLocSortedSet sortAndMergeIntervals(GenomeLocSortedSet intervals, IntervalMergingRule mergingRule) {
-        List<GenomeLoc> intervalList = intervals.toList();
-
+    public static GenomeLocSortedSet sortAndMergeIntervals(List<GenomeLoc> intervals, IntervalMergingRule mergingRule) {
         // sort raw interval list
-        Collections.sort(intervalList);
+        Collections.sort(intervals);
         // now merge raw interval list
-        intervalList = GenomeLocParser.mergeIntervalLocations(intervalList, mergingRule);
+        intervals = GenomeLocParser.mergeIntervalLocations(intervals, mergingRule);
 
-        return GenomeLocSortedSet.createSetFromList(intervalList);
+        return GenomeLocSortedSet.createSetFromList(intervals);
     }
 
     /**

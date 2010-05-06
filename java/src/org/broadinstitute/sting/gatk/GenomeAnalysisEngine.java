@@ -227,7 +227,7 @@ public class GenomeAnalysisEngine {
         if (rawIntervals.size() == 0)
             return null;
 
-        return IntervalUtils.sortAndMergeIntervals(GenomeLocSortedSet.createSetFromList(rawIntervals),mergingRule);
+        return IntervalUtils.sortAndMergeIntervals(rawIntervals,mergingRule);
     }
 
     /**
