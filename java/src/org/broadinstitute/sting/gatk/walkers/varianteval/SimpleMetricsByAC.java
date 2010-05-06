@@ -143,8 +143,7 @@ public class SimpleMetricsByAC extends VariantEvaluator {
 
         if (eval != null &&
                 eval.isSNP() &&
-                eval.hasGenotypes() &&
-                eval.getNoCallCount() == 0 ) {
+                eval.hasGenotypes()) {
             if ( metrics == null )
                 metrics = new MetricsByAc(2 * eval.getNSamples());
             metrics.incrValue(eval);
