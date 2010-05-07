@@ -80,7 +80,7 @@ public class SampleUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(VCFRecord.class) ) {
+            if ( rod.getType().equals(VCFCodec.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 samples.addAll(reader.getHeader().getGenotypeSamples());
                 reader.close();
