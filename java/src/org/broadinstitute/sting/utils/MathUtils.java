@@ -710,9 +710,20 @@ public class MathUtils {
 
     }
 
-
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int)Math.floor(reads.size()/2.));
     }
-    
+
+
+    //
+    // useful common utility routines
+    //
+    public static double rate(long n, long d)           { return n / (1.0 * Math.max(d, 1)); }
+    public static double rate(int n, int d)             { return n / (1.0 * Math.max(d, 1)); }
+
+    public static long inverseRate(long n, long d)      { return n == 0 ? 0 : d / Math.max(n, 1); }
+    public static long inverseRate(int n, int d)        { return n == 0 ? 0 : d / Math.max(n, 1); }
+
+    public static double ratio(int num, int denom)      { return ((double)num) / (Math.max(denom, 1)); }
+    public static double ratio(long num, long denom)    { return ((double)num) / (Math.max(denom, 1)); }
 }

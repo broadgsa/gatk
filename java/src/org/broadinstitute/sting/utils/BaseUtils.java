@@ -192,6 +192,10 @@ public class BaseUtils {
         return isRegularBase((char)base);
     }
 
+    static public boolean isNBase(char base) {
+        return isNBase((byte)base);
+    }
+
     static public boolean isNBase(byte base) {
         return base == 'N';
     }
