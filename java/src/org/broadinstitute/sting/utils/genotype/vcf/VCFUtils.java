@@ -49,7 +49,7 @@ public class VCFUtils {
 
         for ( ReferenceOrderedDataSource source : toolkit.getRodDataSources() ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(VCFRecord.class) ) {
+            if ( rod.getType().equals(VCFCodec.class) ) {
                 vcfs.add(rod);
             }
         }
