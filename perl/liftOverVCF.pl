@@ -21,7 +21,7 @@ GetOptions( "vcf=s" => \$in,
 	    "tmp=s" => \$tmp);
 
 if ( !$in || !$gatk || !$chain || !$newRef || !$oldRef || !$out ) {
-    print "Usage: liftOverVCF.pl\n\t-vcf \t\t<input vcf>\n\t-gatk \t\t<path to gatk trunk>\n\t-chain \t\t<chain file>\n\t-newRef \t<path to new reference prefix; we will need newRef.dict, .fasta, and .fasta.fai>\n\t-oldRef \t<path to old reference prefix; we will need oldRef.fasta>\n\t-out \t\t<output vcf>\n\t-tmp <temp file location; defaults to /tmp>";
+    print "Usage: liftOverVCF.pl\n\t-vcf \t\t<input vcf>\n\t-gatk \t\t<path to gatk trunk>\n\t-chain \t\t<chain file>\n\t-newRef \t<path to new reference prefix; we will need newRef.dict, .fasta, and .fasta.fai>\n\t-oldRef \t<path to old reference prefix; we will need oldRef.fasta>\n\t-out \t\t<output vcf>\n\t-tmp <temp file location; defaults to /tmp>\n";
     print "Example: ./liftOverVCF.pl\n\t-vcf /humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/1kg_snp_validation/all_validation_batches.b36.vcf\n\t-chain b36ToHg19.broad.over.chain\n\t-out lifted.hg19.vcf\n\t-gatk /humgen/gsa-scr1/ebanks/Sting_dev\n\t-newRef /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19\n\t-oldRef /broad/1KG/reference/human_b36_both\n";
     exit(1);
 }
