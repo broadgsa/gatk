@@ -10,9 +10,9 @@ import math
 import shutil
 import string
 
-GATK_STABLE = '/home/radon01/depristo/dev/GenomeAnalysisTKStable/trunk/dist/GenomeAnalysisTK.jar'
-GATK_DEV = '/home/radon01/depristo/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar'
-GATK = 'java -Xmx%s -Djava.io.tmpdir=/broad/shptmp/depristo/tmp/ -jar ' + GATK_STABLE + ' -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -l INFO '
+GATK_STABLE_JAR = '/home/radon01/depristo/dev/GenomeAnalysisTKStable/trunk/dist/GenomeAnalysisTK.jar'
+GATK_DEV_JAR = '/home/radon01/depristo/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar'
+GATK_JAR = GATK_STABLE_JAR
 
 # add to GATK to enable dbSNP aware cleaning
 # -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod
@@ -22,7 +22,6 @@ GATK = 'java -Xmx%s -Djava.io.tmpdir=/broad/shptmp/depristo/tmp/ -jar ' + GATK_S
 
 hg18 = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
 b36 = [str(i) for i in range(1,23)] + ['X', 'Y']
-
 
 HG18_TO_B36 = {
     'hg18' : 'b36',
@@ -46,17 +45,17 @@ def appendExtension(path, newExt, addExtension = True):
 #    return os.path.join(OPTIONS.dir, s)
 
 class PipelineArgs:
-    def __init__( self, GATK = GATK, ref = 'hg18', name = None, memory = '4g' ):
-        self.GATK = GATK
+    def __init__( self, GATK_JAR = GATK_JAR, ref = 'hg18', name = None, memory = '4g' ):
+        self.GATK = 'java -Xmx%s -Djava.io.tmpdir=/broad/shptmp/depristo/tmp/ -jar ' + GATK_JAR + ' -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -l INFO '
         self.ref = ref
         self.name = name
         self.memory = memory
 
     def convertToB36(self): 
-        return this.ref == 'b36'
+        return self.ref == 'b36'
 
     def addGATKArg(self, arg):
-        if arg[0] != ' ':
+        if len(arg) > 0 and arg[0] != ' ':
             arg = ' ' + arg
         self.GATK += arg
 
@@ -67,8 +66,8 @@ class PipelineArgs:
             return suffix
             
     def finalizedGATKCommand(self, args):
-        cmd = (self.GATK % self.memory) + args
-        if self.convertToB36:
+        cmd = (self.GATK % self.memory) + ' ' + args
+        if self.convertToB36():
             cmd = hg18args_to_b36(cmd)
         return cmd
         
@@ -83,11 +82,18 @@ def simpleGATKCommand( pargs, name, args, lastJobs ):
 # Takes a simpleGATKCommand and splits it by chromosome, merging output
 # 
 def splitGATKCommandByChr( myPipelineArgs, cmd, outputsToParallelize, mergeCommands ):
+    if cmd.cmd_str_from_user.find(" -L") != -1:
+        sys.exit("Found -L argument in command -- cannot be provided for parallelization by chromosome: " + cmd.cmd_str_from_user)
     def makeChrCmd(chr):
         chrOutputMap = map(lambda x: appendExtension(x, chr), outputsToParallelize)
-        chr_cmd_str = cmd.cmd_str_from_user
+        chr_cmd_str = cmd.cmd_str_from_user 
+        chr_cmd_str += ' -L ' + chr
         for x, y in zip(outputsToParallelize, chrOutputMap):
             chr_cmd_str = chr_cmd_str.replace(x, y)
+
+        if myPipelineArgs.convertToB36():
+            chr_cmd_str = hg18args_to_b36(chr_cmd_str)
+            
         chrCmd = FarmJob(chr_cmd_str, jobName = cmd.jobName + '.byChr' + chr, dependencies = cmd.dependencies)
         return chrCmd, chrOutputMap
 

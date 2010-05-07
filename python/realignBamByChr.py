@@ -88,12 +88,12 @@ def main():
 
 def createTargets( myPipelineArgs, chr, inputBam, outputRoot, args, lastJobs ):
     outputIntervals = outputRoot + ".intervals"
-    GATKArgs = '-T RealignerTargetCreator -I %s -o %s -mrl 10000 -L %s' % (inputBam, outputIntervals, chr)
+    GATKArgs = '-T RealignerTargetCreator -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -o %s -mrl 10000 -L %s' % (inputBam, outputIntervals, chr)
     return simpleGATKCommand( myPipelineArgs, 'CreateInterval' + chr, GATKArgs, lastJobs ), outputIntervals
 
 def realign( myPipelineArgs, chr, inputBam, outputRoot, intervals, lastJobs ):
     outputBAM = outputRoot + ".bam"
-    GATKArgs = '-T IndelRealigner -I %s -targetIntervals %s --output %s -sort ON_DISK -mrl 100000 -L %s' % (inputBam, intervals, outputBAM, chr)
+    GATKArgs = '-T IndelRealigner -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -targetIntervals %s --output %s -sort ON_DISK -mrl 100000 -L %s' % (inputBam, intervals, outputBAM, chr)
     return simpleGATKCommand( myPipelineArgs, 'Realign' + chr, GATKArgs, lastJobs ), outputBAM
 
 def index( myPipelineArgs, chr, inputBam, outputRoot, realignedBam, lastJobs ):
