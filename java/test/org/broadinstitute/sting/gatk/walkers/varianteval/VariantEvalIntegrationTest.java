@@ -28,8 +28,8 @@ public class
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "b2fcb4a3e852c43acb93f7720a3c4b76");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "63e9b9db244f4a593e643d2d7431219e");
+        expectations.put("-L 1:1-10,000,000", "08b93c2561742dc480534ae16d2d0508");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "65bf329cf1499544d1eb28de786a4561");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -71,7 +71,7 @@ public class
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
                 2,
-                Arrays.asList("f7a06a988573c5b1b69e52fb8e0edc06", "b4a42c90318adc88361691ece50426f2"));
+                Arrays.asList("521837758da151b84fca57fd1bb7dad1", "b4a42c90318adc88361691ece50426f2"));
         executeTest("testVEWriteVCF", spec);
     }
 }
