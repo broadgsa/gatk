@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.vcf;
 
-import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -34,56 +34,43 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broad.tribble.vcf.VCFRecord;
 import org.broad.tribble.vcf.VCFCodec;
 
-import java.io.File;
 import java.util.List;
 
-import net.sf.picard.liftover.LiftOver;
-import net.sf.picard.util.Interval;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-
 /**
- * Lifts a VCF file over from one build to another.  Note that the resulting VCF could be mis-sorted.
+ * Filters a lifted-over VCF file for ref bases that have been changed.
  */
 @Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFCodec.class))
-public class LiftoverVCF extends RodWalker<Integer, Integer> {
-
-    @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)
-    protected File CHAIN = null;
-
-    @Argument(fullName="newSequenceDictionary", shortName="dict", doc="Sequence .dict file for the new build", required=true)
-    protected File NEW_SEQ_DICT = null;
+public class FilterLiftedVCF extends RodWalker<Integer, Integer> {
 
     private VCFWriter writer;
 
-    private LiftOver liftOver;
+    private long failedLocs = 0, totalLocs = 0;
 
-    private long successfulIntervals = 0, failedIntervals = 0;
+    public void initialize() {}
 
-    public void initialize() {
-        liftOver = new LiftOver(CHAIN);
-        liftOver.setLiftOverMinMatch(LiftOver.DEFAULT_LIFTOVER_MINMATCH);
+    private void filterAndWrite(char ref, VCFRecord record) {
 
-        final SAMFileHeader toHeader = new SAMFileReader(NEW_SEQ_DICT).getFileHeader();
-        liftOver.validateToSequences(toHeader.getSequenceDictionary());
-    }
+        totalLocs++;
 
-    private void convertAndWrite(VCFRecord record) {
+        char recordRef = record.getReference().charAt(0);
 
-        final Interval fromInterval = new Interval(record.getChr(), record.getStart(), record.getEnd());
-        final Interval toInterval = liftOver.liftOver(fromInterval);
+        if ( recordRef != ref ) {
 
-        if ( toInterval != null ) {
-            record.setLocation(toInterval.getSequence(), toInterval.getStart());
-            if ( writer == null ) {
-                writer = new VCFWriter(out);
-                writer.writeHeader(record.getHeader());
+            // is it reverse complemented?
+            if ( BaseUtils.simpleComplement(recordRef) == ref ) {
+                record.setFilterString(record.isFiltered() ? String.format("%s;LiftoverToReverseComplementRefBase", record.getFilterString()) : "LiftoverToNewBase");
+                failedLocs++;
+            } else {
+                record.setFilterString(record.isFiltered() ? String.format("%s;LiftoverToDifferentRefBase", record.getFilterString()) : "LiftoverToNewBase");
+                failedLocs++;
             }
-            writer.addRecord(record);
-            successfulIntervals++;
-        } else {
-            failedIntervals++;
         }
+
+        if ( writer == null ) {
+            writer = new VCFWriter(out);
+            writer.writeHeader(record.getHeader());
+        }
+        writer.addRecord(record);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -93,7 +80,7 @@ public class LiftoverVCF extends RodWalker<Integer, Integer> {
         List<Object> rods = tracker.getReferenceMetaData("vcf");
 
         for ( Object rod : rods )
-            convertAndWrite((VCFRecord)rod);
+            filterAndWrite(ref.getBase(), (VCFRecord)rod);
 
         return 0;
     }
@@ -105,6 +92,6 @@ public class LiftoverVCF extends RodWalker<Integer, Integer> {
     public void onTraversalDone(Integer result) {
         if ( writer != null )
             writer.close();
-        System.out.println("Converted " + successfulIntervals + " records; failed to convert " + failedIntervals + " records.");
+        System.out.println("Filtered " + failedLocs + " records out of " + totalLocs + " total records.");
     }
 }
