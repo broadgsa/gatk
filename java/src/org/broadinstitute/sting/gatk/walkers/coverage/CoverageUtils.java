@@ -19,21 +19,40 @@ public class CoverageUtils {
 
     public enum PartitionType { BY_READ_GROUP, BY_SAMPLE }
 
+    /**
+     * Returns the counts of bases from reads with MAPQ > minMapQ and base quality > minBaseQ in the context
+     * as an array of ints, indexed by the index fields of BaseUtils
+     *
+     * @param context
+     * @param minMapQ
+     * @param minBaseQ
+     * @return
+     */
+    public static int[] getBaseCounts(AlignmentContext context, int minMapQ, int minBaseQ) {
+        int[] counts = new int[6];
+
+        for (PileupElement e : context.getBasePileup()) {
+            if ( e.getMappingQual() >= minMapQ && ( e.getQual() >= minBaseQ || e.isDeletion() ) ) {
+                updateCounts(counts,e);
+            }
+        }
+
+        return counts;
+    }
+
+
     public static Map<String,int[]> getBaseCountsBySample(AlignmentContext context, int minMapQ, int minBaseQ, PartitionType type) {
         Map<String,int[]> samplesToCounts = new HashMap<String,int[]>();
 
-            for (PileupElement e : context.getBasePileup()) {
-                if ( e.getMappingQual() >= minMapQ && ( e.getQual() >= minBaseQ || e.isDeletion() ) ) {
-                    String sample = type == PartitionType.BY_SAMPLE ? e.getRead().getReadGroup().getSample() :
-                            e.getRead().getReadGroup().getSample()+"_rg_"+e.getRead().getReadGroup().getReadGroupId();
-                    if ( samplesToCounts.keySet().contains(sample) ) {
-                        updateCounts(samplesToCounts.get(sample),e);
-                    } else {
-                        samplesToCounts.put(sample,new int[6]);
-                        updateCounts(samplesToCounts.get(sample),e);
-                    }
-                }
+        for (PileupElement e : context.getBasePileup()) {
+            if ( e.getMappingQual() >= minMapQ && ( e.getQual() >= minBaseQ || e.isDeletion() ) ) {
+                String sample = type == PartitionType.BY_SAMPLE ? e.getRead().getReadGroup().getSample() :
+                        e.getRead().getReadGroup().getSample()+"_rg_"+e.getRead().getReadGroup().getReadGroupId();
+                if ( ! samplesToCounts.keySet().contains(sample) )
+                    samplesToCounts.put(sample,new int[6]);
+                updateCounts(samplesToCounts.get(sample),e);
             }
+        }
 
         return samplesToCounts;
     }
