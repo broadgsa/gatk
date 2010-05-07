@@ -82,9 +82,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
     int nBins = 499;
     @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to 50.", required = false)
-    byte minMappingQuality = 50;
+    byte minMappingQuality = -1;
     @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to 20.", required = false)
-    byte minBaseQuality = 20;
+    byte minBaseQuality = -1;
     @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
     boolean printBaseCounts = false;
     @Argument(fullName = "omitLocusTable", shortName = "omitLocusTable", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
