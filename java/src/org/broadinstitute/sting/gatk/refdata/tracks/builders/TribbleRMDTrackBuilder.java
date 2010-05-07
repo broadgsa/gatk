@@ -52,6 +52,17 @@ import java.util.Map;
  *
  * This class keeps track of the available codecs, and knows how to put together a track of
  * that gets iterators from the FeatureReader using Tribble.
+ *
+ * Here's an example run command to find SNPs 200 base pairs up and downstream of the target file.
+ *
+ * java -jar dist/GenomeAnalysisTK.jar \
+ * -R /broad/1KG/reference/human_b36_both.fasta \
+ * -L 1:1863 \
+ * -L MT:16520 \
+ * -db /humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_129_b36.rod \
+ * -dbw 200 \
+ * -l INFO \
+ * -T DbSNPWindowCounter
  */
 public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implements RMDTrackBuilder {
     /**
@@ -92,6 +103,19 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
         // make a feature reader
         FeatureReader reader;
+        reader = createFeatureReader(targetClass, inputFile);
+        // return a feature reader track
+        return new FeatureReaderTrack(targetClass, name, inputFile, reader);
+    }
+
+    /**
+     * create a feature reader of the specified type
+     * @param targetClass the target codec type
+     * @param inputFile the input file to create the track from (of the codec type)
+     * @return the FeatureReader instance
+     */
+    public FeatureReader createFeatureReader(Class targetClass, File inputFile) {
+        FeatureReader reader = null;
         try {
             // check to see if the input file has an index
             if (requireIndex(inputFile)) {
@@ -107,8 +131,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         } catch (IOException e) {
             throw new StingException("Unable to make the index file for " + inputFile, e);
         }
-        // return a feature reader track
-        return new FeatureReaderTrack(targetClass, name, inputFile, reader);
+        return reader;
     }
 
     /**
@@ -120,13 +143,13 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      */
     public static LinearIndex createIndex(File inputFile, FeatureCodec codec) throws IOException {
         LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
-        create.setDisplayProgress(false);  // don't display progress indicators
-
+        
         // if we can write the index, we should, but if not just create it in memory
-        if (new File(inputFile.getAbsoluteFile() + linearIndexExtension).canWrite())
+        File indexFile = new File(inputFile.getAbsoluteFile() + linearIndexExtension);
+        if (indexFile.getParentFile().canWrite() && (!indexFile.exists() || indexFile.canWrite()))
             return create.createIndex();
         else {
-            logger.info("Unable to write to location " + inputFile.getAbsoluteFile() + linearIndexExtension + " for index file, creating index in memory only");
+            logger.info("Unable to write to location " + indexFile + " for index file, creating index in memory only");
             return create.createIndex(null);
         }
 

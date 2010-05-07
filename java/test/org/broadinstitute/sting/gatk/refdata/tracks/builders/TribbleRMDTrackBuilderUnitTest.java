@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
+
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Assert;
