@@ -6,7 +6,7 @@ use Getopt::Long;
 sub usage {
 
     print "\nUsage:\n";
-    print "sortByRef.pl [--k POS] INPUT REF_DICT\n\n";
+    print "sortByRef.pl [--k POS] [--tmp dir] INPUT REF_DICT\n\n";
 
     print " Sorts lines of the input file INFILE according\n";
     print " to the reference contig order specified by the\n";
@@ -14,18 +14,21 @@ sub usage {
     print " The sort is stable. If -k option is not specified,\n";
     print " it is assumed that the contig name is the first\n";
     print " field in each line.\n\n";
-    print "  INPUT      input file to sort. If '-' is specified, \n";
-    print "             then reads from STDIN.\n";
-    print "  REF_DICT   .fai file, or ANY file that has contigs, in the\n";
-    print "             desired soting order, as its first column.\n";
-    print "  --k POS :  contig name is in the field POS (1-based)\n";
-    print "             of input lines.\n\n";
+    print "  INPUT       input file to sort. If '-' is specified, \n";
+    print "              then reads from STDIN.\n";
+    print "  REF_DICT    .fai file, or ANY file that has contigs, in the\n";
+    print "              desired soting order, as its first column.\n";
+    print "  --k POS :   contig name is in the field POS (1-based)\n";
+    print "              of input lines.\n\n";
+    print "  --tmp DIR : temp directory [default=/tmp]\n\n";
 
     exit(1);
 }
 
 my $pos = 1;
-GetOptions( "k:i" => \$pos );
+my $tmp = "/tmp";
+GetOptions( "k:i" => \$pos,
+	    "tmp=s" => \$tmp);
 
 $pos--;
 
@@ -92,7 +95,7 @@ while ( <$INPUT> ) {
     if ( defined $temp_outputs{$order} ) { $fhandle = $temp_outputs{$order} }
     else {
         #print "opening $order $$ $_\n";
-        open( $fhandle, " > /tmp/sortByRef.$$.$order.tmp" ) or
+        open( $fhandle, " > $tmp/sortByRef.$$.$order.tmp" ) or
             die ( "Can not open temporary file $order: $!");
         $temp_outputs{$order} = $fhandle;
     }
@@ -115,11 +118,9 @@ for ( my $i = 0 ; $i < $n ; $i++ ) {
     next if ( ! defined $temp_outputs{$i} ) ; 
 
     my $f; 
-    open ( $f, "< /tmp/sortByRef.$$.$i.tmp" );
+    open ( $f, "< $tmp/sortByRef.$$.$i.tmp" );
     while ( <$f> ) { print ; }
     close $f;
 
-    unlink "/tmp/sortByRef.$$.$i.tmp";
-
-    
+    unlink "$tmp/sortByRef.$$.$i.tmp";    
 }
