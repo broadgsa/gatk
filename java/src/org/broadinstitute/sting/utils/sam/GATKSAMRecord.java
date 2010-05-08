@@ -315,8 +315,6 @@ public class GATKSAMRecord extends SAMRecord {
 
     public void setValidationStringency(net.sf.samtools.SAMFileReader.ValidationStringency validationStringency) { mRecord.setValidationStringency(validationStringency); }
 
-    public SAMFileReader getReader() { return mRecord.getReader(); }
-
     public SAMFileHeader getHeader() { return mRecord.getHeader(); }
 
     public void setHeader(SAMFileHeader samFileHeader) { mRecord.setHeader(samFileHeader); }
@@ -341,5 +339,5 @@ public class GATKSAMRecord extends SAMRecord {
 
     public String toString() { return mRecord.toString(); }
 
-    public SAMFileSpan getFilePointer() { return mRecord.getFilePointer(); }
+    public SAMFileSource getFileSource() { return mRecord.getFileSource(); }
 }

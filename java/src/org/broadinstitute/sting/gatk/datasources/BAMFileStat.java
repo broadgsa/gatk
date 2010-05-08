@@ -95,9 +95,9 @@ public class BAMFileStat extends CommandLineProgram {
         inspector.inspect(System.out,null,null);
     }
 
-    private class BAMFileIndexContentInspector extends CachingBAMFileIndex {
+    private class BAMFileIndexContentInspector /*extends CachingBAMFileIndex*/ {
         public BAMFileIndexContentInspector(File bamFileIndex) {
-            super(bamFileIndex);    
+//            super(bamFileIndex);    
         }
 
         public void inspect(PrintStream outputStream, Integer startPosition, Integer stopPosition) {

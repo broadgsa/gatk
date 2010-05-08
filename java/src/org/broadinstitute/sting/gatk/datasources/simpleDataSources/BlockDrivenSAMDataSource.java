@@ -129,9 +129,9 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @param id Id of the reader.
      * @return The index.  Will preload the index if necessary.
      */
-    public CachingBAMFileIndex getIndex(final SAMReaderID id) {
+    public BrowseableBAMIndex getIndex(final SAMReaderID id) {
         SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        return readers.getReader(id).getIndex(CachingBAMFileIndex.class);
+        return readers.getReader(id).getBrowseableIndex();
     }
 
     /**
@@ -181,7 +181,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @return ID of the reader.
      */
     public SAMReaderID getReaderID(SAMRecord read) {
-        return resourcePool.getReaderID(read.getReader());
+        return resourcePool.getReaderID(read.getFileSource().getReader());
     }    
 
     /**
@@ -191,7 +191,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      * @param read The read to add to the shard.
      */
     private void addReadToBufferingShard(BAMFormatAwareShard shard,SAMReaderID id,SAMRecord read) {
-        SAMFileSpan endChunk = read.getFilePointer().getContentsFollowing();
+        SAMFileSpan endChunk = read.getFileSource().getFilePointer().getContentsFollowing();
         shard.addRead(read);
         readerPositions.put(id,endChunk);
     }
@@ -204,7 +204,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
      */
     private SAMReaderID getReaderID(SAMReaders readers, SAMRecord read) {
         for(SAMReaderID id: getReaderIDs()) {
-            if(readers.getReader(id) == read.getReader())
+            if(readers.getReader(id) == read.getFileSource().getReader())
                 return id;
         }
         throw new StingException("Unable to find id for reader associated with read " + read.getReadName());
@@ -405,7 +405,9 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
          */
         public SAMReaders(Reads sourceInfo) {
             for(File readsFile: sourceInfo.getReadsFiles()) {
-                SAMFileReader reader = new SAMFileReader(readsFile,CachingBAMFileIndex.class,true);
+                SAMFileReader reader = new SAMFileReader(readsFile,true);
+                reader.enableFileSource(true);
+                reader.enableIndexCaching(true);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
 
                 // If no read group is present, hallucinate one.

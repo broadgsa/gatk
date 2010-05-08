@@ -126,8 +126,8 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
      * @return ID of the reader.
      */
     public SAMReaderID getReaderID(SAMRecord read) {
-        if(resourcePool.readerToIDMap.containsKey(read.getReader()))
-            return resourcePool.readerToIDMap.get(read.getReader());
+        if(resourcePool.readerToIDMap.containsKey(read.getFileSource().getReader()))
+            return resourcePool.readerToIDMap.get(read.getFileSource().getReader());
         throw new StingException("Unable to find reader id for record.");
     }
 

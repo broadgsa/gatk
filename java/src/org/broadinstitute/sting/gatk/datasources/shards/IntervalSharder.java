@@ -29,6 +29,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -42,6 +43,8 @@ import net.sf.picard.util.PeekableIterator;
  * @version 0.1
  */
 public class IntervalSharder {
+    private static Logger logger = Logger.getLogger(IntervalSharder.class);
+
     public static Iterator<FilePointer> shardIntervals(final BlockDrivenSAMDataSource dataSource, final List<GenomeLoc> loci) {
         return new FilePointerIterator(dataSource,loci);
     }
@@ -101,13 +104,13 @@ public class IntervalSharder {
         FilePointer lastFilePointer = null;
         BAMOverlap lastBAMOverlap = null;
 
-        Map<SAMReaderID,CachingBAMFileIndex> readerToIndexMap = new HashMap<SAMReaderID,CachingBAMFileIndex>();
+        Map<SAMReaderID,BrowseableBAMIndex> readerToIndexMap = new HashMap<SAMReaderID,BrowseableBAMIndex>();
         BinMergingIterator binMerger = new BinMergingIterator();
         for(SAMReaderID id: dataSource.getReaderIDs()) {
             final SAMSequenceRecord referenceSequence = dataSource.getHeader(id).getSequence(contig);
             if(referenceSequence == null)
                 continue;
-            final CachingBAMFileIndex index = dataSource.getIndex(id);
+            final BrowseableBAMIndex index = dataSource.getIndex(id);
             binMerger.addReader(id,
                                 index,
                                 referenceSequence.getSequenceIndex(),
@@ -115,6 +118,7 @@ public class IntervalSharder {
             // Cache the reader for later data lookup.
             readerToIndexMap.put(id,index);
         }
+
         PeekableIterator<BAMOverlap> binIterator = new PeekableIterator<BAMOverlap>(binMerger);
 
         for(GenomeLoc location: loci) {
@@ -201,10 +205,9 @@ public class IntervalSharder {
 
         // Lookup the locations for every file pointer in the index.
         for(SAMReaderID id: readerToIndexMap.keySet()) {
-            CachingBAMFileIndex index = readerToIndexMap.get(id);
+            BrowseableBAMIndex index = readerToIndexMap.get(id);
             for(FilePointer filePointer: filePointers)
-                filePointer.addFileSpans(id,index.getChunksOverlapping(filePointer.overlap.getBin(id)));
-            index.close();
+                filePointer.addFileSpans(id,index.getSpanOverlapping(filePointer.overlap.getBin(id)));
         }
         
         return filePointers;
@@ -214,7 +217,7 @@ public class IntervalSharder {
         private PriorityQueue<BinQueueState> binQueue = new PriorityQueue<BinQueueState>();
         private Queue<BAMOverlap> pendingOverlaps = new LinkedList<BAMOverlap>();
 
-        public void addReader(final SAMReaderID id, final CachingBAMFileIndex index, final int referenceSequence, Iterator<Bin> bins) {
+        public void addReader(final SAMReaderID id, final BrowseableBAMIndex index, final int referenceSequence, Iterator<Bin> bins) {
             binQueue.add(new BinQueueState(id,index,referenceSequence,new LowestLevelBinFilteringIterator(index,bins)));
         }
 
@@ -292,85 +295,31 @@ public class IntervalSharder {
             if(binQueue.isEmpty())
                 throw new NoSuchElementException("No more bins are available");
             BinQueueState current = binQueue.peek();
-            return new ReaderBin(current.id,current.index,current.referenceSequence,current.bins.peek());
+            return new ReaderBin(current.getReaderID(),current.getIndex(),current.getReferenceSequence(),current.peekNextBin());
         }
 
         private ReaderBin getNextBin() {
             if(binQueue.isEmpty())
                 throw new NoSuchElementException("No more bins are available");
             BinQueueState current = binQueue.remove();
-            ReaderBin readerBin = new ReaderBin(current.id,current.index,current.referenceSequence,current.bins.next());
-            if(current.bins.hasNext())
+            ReaderBin readerBin = new ReaderBin(current.getReaderID(),current.getIndex(),current.getReferenceSequence(),current.nextBin());
+            if(current.hasNextBin())
                 binQueue.add(current);
             return readerBin;
         }
 
-        private class ReaderBin {
-            public final SAMReaderID id;
-            public final CachingBAMFileIndex index;
-            public final int referenceSequence;
-            public final Bin bin;
-
-            public ReaderBin(final SAMReaderID id, final CachingBAMFileIndex index, final int referenceSequence, final Bin bin) {
-                this.id = id;
-                this.index = index;
-                this.referenceSequence = referenceSequence;
-                this.bin = bin;
-            }
-
-            public int getStart() {
-                return index.getFirstLocusInBin(bin);
-            }
-
-            public int getStop() {
-                return index.getLastLocusInBin(bin);
-            }
-        }
-
-        private class BinQueueState implements Comparable<BinQueueState> {
-            public final SAMReaderID id;
-            public final CachingBAMFileIndex index;
-            public final int referenceSequence;
-            public final PeekableIterator<Bin> bins;
-
-            public BinQueueState(final SAMReaderID id, final CachingBAMFileIndex index, final int referenceSequence, final Iterator<Bin> bins) {
-                this.id = id;
-                this.index = index;
-                this.referenceSequence = referenceSequence;
-                this.bins = new PeekableIterator<Bin>(bins);
-            }
-
-            public int compareTo(BinQueueState other) {
-                if(!this.bins.hasNext() && !other.bins.hasNext()) return 0;
-                if(!this.bins.hasNext()) return -1;
-                if(!this.bins.hasNext()) return 1;
-
-                int thisStart = this.index.getFirstLocusInBin(this.bins.peek());
-                int otherStart = other.index.getFirstLocusInBin(other.bins.peek());
-
-                // Straight integer subtraction works here because lhsStart, rhsStart always positive.
-                if(thisStart != otherStart)
-                    return thisStart - otherStart;
-
-                int thisStop = this.index.getLastLocusInBin(this.bins.peek());
-                int otherStop = other.index.getLastLocusInBin(other.bins.peek());
-
-                // Straight integer subtraction works here because lhsStop, rhsStop always positive.
-                return thisStop - otherStop;
-            }
-        }
     }
 
     /**
      * Filters out bins not at the lowest level in the tree.
      */
     private static class LowestLevelBinFilteringIterator implements Iterator<Bin> {
-        private CachingBAMFileIndex index;
+        private BrowseableBAMIndex index;
         private Iterator<Bin> wrappedIterator;
 
         private Bin nextBin;
 
-        public LowestLevelBinFilteringIterator(final CachingBAMFileIndex index, Iterator<Bin> iterator) {
+        public LowestLevelBinFilteringIterator(final BrowseableBAMIndex index, Iterator<Bin> iterator) {
             this.index = index;
             this.wrappedIterator = iterator;
             advance();
@@ -396,7 +345,7 @@ public class IntervalSharder {
                     nextBin = bin;
             }
         }
-    }    
+    }
 }
 
 /**
@@ -451,6 +400,102 @@ class BAMOverlap {
         return bins.get(id);
     }
 }
+
+class ReaderBin {
+    public final SAMReaderID id;
+    public final BrowseableBAMIndex index;
+    public final int referenceSequence;
+    public final Bin bin;
+
+    public ReaderBin(final SAMReaderID id, final BrowseableBAMIndex index, final int referenceSequence, final Bin bin) {
+        this.id = id;
+        this.index = index;
+        this.referenceSequence = referenceSequence;
+        this.bin = bin;
+    }
+
+    public int getStart() {
+        return index.getFirstLocusInBin(bin);
+    }
+
+    public int getStop() {
+        return index.getLastLocusInBin(bin);
+    }
+}
+
+class BinQueueState implements Comparable<BinQueueState> {
+    private final SAMReaderID id;
+    private final BrowseableBAMIndex index;
+    private final int referenceSequence;
+    private final PeekableIterator<Bin> bins;
+
+    private int firstLocusInCurrentBin;
+    private int lastLocusInCurrentBin;
+
+    public BinQueueState(final SAMReaderID id, final BrowseableBAMIndex index, final int referenceSequence, final Iterator<Bin> bins) {
+        this.id = id;
+        this.index = index;
+        this.referenceSequence = referenceSequence;
+        this.bins = new PeekableIterator<Bin>(bins);
+        refreshLocusInBinCache();
+    }
+
+    public SAMReaderID getReaderID() {
+        return id;
+    }
+
+    public BrowseableBAMIndex getIndex() {
+        return index;
+    }
+
+    public int getReferenceSequence() {
+        return referenceSequence;
+    }
+
+    public boolean hasNextBin() {
+        return bins.hasNext();
+    }
+
+    public Bin peekNextBin() {
+        return bins.peek();
+    }
+
+    public Bin nextBin() {
+        Bin nextBin = bins.next();
+        refreshLocusInBinCache();
+        return nextBin;
+    }
+
+    public int compareTo(BinQueueState other) {
+        if(!this.bins.hasNext() && !other.bins.hasNext()) return 0;
+        if(!this.bins.hasNext()) return -1;
+        if(!this.bins.hasNext()) return 1;
+
+        // Both BinQueueStates have next bins.  Before proceeding, make sure the bin cache is valid.
+        if(this.firstLocusInCurrentBin <= 0 || this.lastLocusInCurrentBin <= 0 ||
+           other.firstLocusInCurrentBin <= 0 || other.lastLocusInCurrentBin <= 0) {
+            throw new StingException("Sharding mechanism error - bin->locus cache is invalid.");
+        }
+
+        // Straight integer subtraction works here because lhsStart, rhsStart always positive.
+        if(this.firstLocusInCurrentBin != other.firstLocusInCurrentBin)
+            return this.firstLocusInCurrentBin - other.firstLocusInCurrentBin;
+
+        // Straight integer subtraction works here because lhsStop, rhsStop always positive.
+        return this.lastLocusInCurrentBin - other.lastLocusInCurrentBin;
+    }
+
+    private void refreshLocusInBinCache() {
+        firstLocusInCurrentBin = -1;
+        lastLocusInCurrentBin = -1;
+        if(bins.hasNext()) {
+            Bin bin = bins.peek();
+            firstLocusInCurrentBin = index.getFirstLocusInBin(bin);
+            lastLocusInCurrentBin = index.getLastLocusInBin(bin);
+        }
+    }
+}
+
 
 
 
