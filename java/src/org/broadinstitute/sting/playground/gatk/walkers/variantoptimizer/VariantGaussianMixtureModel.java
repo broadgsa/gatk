@@ -506,6 +506,61 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         */
     }
 
+   public final void outputClusterReports( final String outputPrefix ) {
+        final double STD_STEP = 0.2;
+        final double MAX_STD = 4.0;
+        final double MIN_STD = -4.0;
+        final int NUM_BINS = (int)Math.floor((Math.abs(MIN_STD) + Math.abs(MAX_STD)) / STD_STEP);
+        final int numAnnotations = dataManager.numAnnotations;
+        int totalCountsKnown = 0;
+        int totalCountsNovel = 0;
+
+        final int counts[][][] = new int[numAnnotations][NUM_BINS][2];
+        for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+            for( int iii = 0; iii < NUM_BINS; iii++ ) {
+                counts[jjj][iii][0] = 0;
+                counts[jjj][iii][1] = 0;
+            }
+        }
+
+        for( VariantDatum datum : dataManager.data ) {
+            final int isKnown = ( datum.isKnown ? 1 : 0 );
+            for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                int histBin = (int)Math.round((datum.annotations[jjj]-MIN_STD) * (1.0 / STD_STEP));
+                if(histBin < 0) { histBin = 0; }
+                if(histBin > NUM_BINS-1) { histBin = NUM_BINS-1; }
+                if(histBin >= 0 && histBin <= NUM_BINS-1) {
+                    counts[jjj][histBin][isKnown]++;
+                }
+            }
+            if( isKnown == 1 ) { totalCountsKnown++; }
+            else { totalCountsNovel++; }
+        }
+
+        int annIndex = 0;
+        for( final String annotation : dataManager.annotationKeys ) {
+            PrintStream outputFile;
+            try {
+                outputFile = new PrintStream( outputPrefix + "." + annotation + ".dat" );
+            } catch (Exception e) {
+                throw new StingException( "Unable to create output file: " + outputPrefix + ".dat" );
+            }
+
+            outputFile.println("annotationValue,knownDist,novelDist");
+
+            for( int iii = 0; iii < NUM_BINS; iii++ ) {
+                final double annotationValue = (((double)iii * STD_STEP)+MIN_STD) * dataManager.varianceVector[annIndex] + dataManager.meanVector[annIndex];
+                outputFile.println( annotationValue + "," + ( ((double)counts[annIndex][iii][1])/((double)totalCountsKnown) ) +
+                                                      "," + ( ((double)counts[annIndex][iii][0])/((double)totalCountsNovel) ));
+            }
+
+            annIndex++;
+        }
+
+       // BUGBUG: next output the actual cluster on top by integrating out every other annotation
+    }
+
+
     public final void outputOptimizationCurve( final VariantDatum[] data, final String outputPrefix, final int desiredNumVariants ) {
 
         final int numVariants = data.length;
@@ -719,7 +774,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
 
             final double denom = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(determinant[kkk], 0.5);
-            pVarInCluster[kkk] =  (1.0 / ((double) numGaussians)) * (Math.exp( -0.5 * sum )) / denom;
+            pVarInCluster[kkk] =  pCluster[kkk] * (Math.exp( -0.5 * sum )) / denom;
 
             /*
             if( isUsingTiTvModel ) {

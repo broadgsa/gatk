@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
@@ -89,6 +90,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     private VCFWriter vcfWriter;
     private Set<String> ignoreInputFilterSet = null;
     private final ArrayList<String> ALLOWED_FORMAT_FIELDS = new ArrayList<String>();
+    private boolean usingDBSNP = false;
 
 
     //---------------------------------------------------------------------------------------------------------------
@@ -127,18 +129,25 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
         vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
         final TreeSet<String> samples = new TreeSet<String>();
-        List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
-        for ( ReferenceOrderedDataSource source : dataSources ) {
-            RMDTrack rod = source.getReferenceOrderedData();
+        final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
+        for ( final ReferenceOrderedDataSource source : dataSources ) {
+            final RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getType().equals(VCFCodec.class) ) {
-                VCFReader reader = new VCFReader(rod.getFile());
-                Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
+                final VCFReader reader = new VCFReader(rod.getFile());
+                final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
                 samples.addAll(vcfSamples);
                 reader.close();
             }
         }
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
+
+        for( final ReferenceOrderedDataSource source : dataSources ) {
+            final RMDTrack rod = source.getReferenceOrderedData();
+            if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                usingDBSNP = true;
+            }
+        }
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -155,13 +164,22 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         }
 
         for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-            final VCFRecord vcf = VariantContextAdaptors.toVCF(vc, ref.getBase(), ALLOWED_FORMAT_FIELDS, false, false);
-            if( vc != null && vc.isSNP() ) {
+            if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
+                final VCFRecord vcf = VariantContextAdaptors.toVCF(vc, ref.getBase(), ALLOWED_FORMAT_FIELDS, false, false);
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
-                    variantDatum.isKnown = !vc.getAttribute("ID").equals(".");
-
+                    boolean isKnown = !vc.getAttribute("ID").equals(".");
+                    if(usingDBSNP) {
+                        isKnown = false;
+                        for( VariantContext dbsnpVC : tracker.getVariantContexts(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, context.getLocation(), false, false) ) {
+                            if(dbsnpVC != null && dbsnpVC.isSNP()) {
+                                isKnown=true;
+                            }
+                        }
+                    }
+                    variantDatum.isKnown = isKnown;
+                    
                     final double pTrue = theModel.evaluateVariant( vc.getAttributes(), vc.getPhredScaledQual() );
                     double recalQual = 400.0 * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) );
                     

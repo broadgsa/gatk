@@ -107,6 +107,8 @@ public class VariantConcordanceROCCurveWalker extends RodWalker<ExpandingArrayLi
             trueNegGlobal[kkk] = 0;
             falseNegGlobal[kkk] = 0;
         }
+
+        
     }
 
     //---------------------------------------------------------------------------------------------------------------
