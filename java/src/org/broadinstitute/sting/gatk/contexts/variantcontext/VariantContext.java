@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broad.tribble.vcf.VCFRecord;
 
 import java.util.*;
 
@@ -867,6 +868,46 @@ public class VariantContext {
     // utility routines
     //
     // ---------------------------------------------------------------------------------------------------------
+
+    public static VariantContext simpleMerge(Set<VariantContext> VCs) {
+        if ( VCs == null || VCs.size() == 0 )
+            return null;
+
+        Iterator<VariantContext> iter = VCs.iterator();
+
+        // establish the baseline info from the first VC
+        VariantContext first = iter.next();
+        String name = first.getName();
+        GenomeLoc loc = first.getLocation();
+        Set<Allele> alleles = new HashSet<Allele>(first.getAlleles());
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(first.getGenotypes());
+        double negLog10PError = first.isVariant() ? first.getNegLog10PError() : -1;
+        Set<String> filters = new HashSet<String>(first.getFilters());
+        Map<String, String> attributes = new HashMap<String, String>();
+        int depth = 0;
+        if ( first.hasAttribute(VCFRecord.DEPTH_KEY) )
+            depth = Integer.valueOf(first.getAttribute(VCFRecord.DEPTH_KEY).toString());
+
+        // cycle through and add info from the other VCs, making sure the loc/reference matches
+        while ( iter.hasNext() ) {
+            VariantContext vc = iter.next();
+            if ( !loc.equals(vc.getLocation()) || !first.getReference().equals(vc.getReference()) )
+                return null;
+
+            alleles.addAll(vc.getAlleles());
+            genotypes.putAll(vc.getGenotypes());
+
+            negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
+
+            filters.addAll(vc.getFilters());
+            if ( vc.hasAttribute(VCFRecord.DEPTH_KEY) )
+                depth += Integer.valueOf(vc.getAttribute(VCFRecord.DEPTH_KEY).toString());
+        }
+
+        if ( depth > 0 )
+            attributes.put(VCFRecord.DEPTH_KEY, String.valueOf(depth));
+        return new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
+    }
 
     private void determineType() {
         if ( type == null ) {
