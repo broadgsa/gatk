@@ -19,6 +19,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         SOLEXA,         // Solexa / Illumina
         ROCHE454,       // 454
         SOLID,          // SOLiD
+        CG,             // Complete Genomics
         UNKNOWN         // No idea -- defaulting to 1/3
     }
 
@@ -37,6 +38,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         bind("454", SequencerPlatform.ROCHE454);
         bind("ILLUMINA", SequencerPlatform.SOLEXA);
         bind("solid", SequencerPlatform.SOLID);
+        bind("CG", SequencerPlatform.CG);
     }
 
     public static SequencerPlatform standardizeSequencerPlatform( final String sequencerString ) {
@@ -160,6 +162,25 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         addMisCall(pl, 'T', 'G', 18.5/100.0);
     }
 
+    private static void addCG() {
+        SequencerPlatform pl = SequencerPlatform.CG;
+        addMisCall(pl, 'A', 'C', 28.2/100.0);
+        addMisCall(pl, 'A', 'G', 28.7/100.0);
+        addMisCall(pl, 'A', 'T', 43.1/100.0);
+
+        addMisCall(pl, 'C', 'A', 29.8/100.0);
+        addMisCall(pl, 'C', 'G', 18.6/100.0);
+        addMisCall(pl, 'C', 'T', 51.6/100.0);
+
+        addMisCall(pl, 'G', 'A', 32.5/100.0);
+        addMisCall(pl, 'G', 'C', 21.4/100.0);
+        addMisCall(pl, 'G', 'T', 46.1/100.0);
+
+        addMisCall(pl, 'T', 'A', 42.6/100.0);
+        addMisCall(pl, 'T', 'C', 34.1/100.0);
+        addMisCall(pl, 'T', 'G', 23.3/100.0);
+    }
+
     private static void addUnknown() {
         SequencerPlatform pl = SequencerPlatform.UNKNOWN;
         for ( char b1 : BaseUtils.BASES ) {
@@ -175,6 +196,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         addSolexa();
         add454();
         addSOLiD();
+        addCG();
         addUnknown();
     }
 
