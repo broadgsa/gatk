@@ -125,7 +125,9 @@ public class VCFSubsetWalker extends RodWalker<ArrayList<VCFRecord>, VCFWriter> 
 
         ArrayList<VCFGenotypeEncoding> genotypeEncodings = new ArrayList<VCFGenotypeEncoding>();
         for (VCFGenotypeEncoding allele : genotypeEncodingSet) {
-            genotypeEncodings.add(allele);
+            if (!allele.getBases().equalsIgnoreCase(".")) {
+                genotypeEncodings.add(allele);
+            }
         }
 
         VCFRecord subset = new VCFRecord(record.getReference(),
