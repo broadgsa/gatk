@@ -264,7 +264,7 @@ OUTPUT_FORMAT_DELIMITER = "\t"
 
 for line in open(input_filename):
     line = line.strip()
-    if counter % 1000000 == 0:
+    if counter % 1000000 == 0 and counter > 0:
         print("Processed %d records" % counter )
 
     counter+=1
@@ -384,13 +384,13 @@ for line in open(input_filename):
 
 
         if haplotype_strand_column:
-            line_fields.insert(3, haplotype_strand_value)
+            line_fields.insert(0, haplotype_strand_value)
 
         if haplotype_alternate_column:
-            line_fields.insert(2, haplotype_alternate_value)
+            line_fields.insert(0, haplotype_alternate_value)
 
         if haplotype_reference_column:
-            line_fields.insert(1, haplotype_reference_value)
+            line_fields.insert(0, haplotype_reference_value)
 
         line_fields.insert(0, chrpos_value)
 
