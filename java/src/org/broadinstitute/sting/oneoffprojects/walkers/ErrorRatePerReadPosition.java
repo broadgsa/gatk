@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.List;
 import java.util.HashMap;
@@ -13,14 +14,19 @@ import java.util.HashSet;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 
+/**
+ * Computes the read error rate per position in read (in the original 5'->3' orientation that the read had coming off the machine)
+ */
 public class ErrorRatePerReadPosition extends LocusWalker<Integer, Integer> {
+    @Argument(fullName="min_base_quality_score", shortName="mbq", doc="Minimum base quality required to consider a base for calling (default: 0)", required=false) public Integer MIN_BASE_QUAL = 0;
+    @Argument(fullName="min_mapping_quality_score", shortName="mmq", doc="Minimum read mapping quality required to consider a read for calling (default: 0)", required=false) public Integer MIN_MAPPING_QUAL = 0;
+
     private HashMap<String, int[]> mismatches;
     private HashMap<String, int[]> counts;
     private HashMap<String, int[]> quals;
     private HashMap<String, HashSet<Integer>> readLengthsPerReadGroup;
     private HashSet<Integer> readLengths;
     private int readLength = 10000;
-
 
     public void initialize() {
         mismatches = new HashMap<String, int[]>();
@@ -46,30 +52,30 @@ public class ErrorRatePerReadPosition extends LocusWalker<Integer, Integer> {
 
         for (int i = 0; i < offsets.size(); i++) {
             int offset = offsets.get(i);
-            char readBase = reads.get(i).getReadString().charAt(offset);
 
-            int refIndex = ref.getBaseIndex();
-            int readIndex = BaseUtils.simpleBaseToBaseIndex(readBase);
+            if (reads.get(i).getMappingQuality() >= MIN_MAPPING_QUAL &&
+                reads.get(i).getBaseQualities()[offset] >= MIN_BASE_QUAL) {
 
+                char readBase = reads.get(i).getReadString().charAt(offset);
 
-            if (!reads.get(i).getReadNegativeStrandFlag() && (!reads.get(i).getReadPairedFlag() || reads.get(i).getFirstOfPairFlag())) {
-                String keyName = reads.get(i).getReadGroup().getReadGroupId();
+                int refIndex = ref.getBaseIndex();
+                int readIndex = BaseUtils.simpleBaseToBaseIndex(readBase);
 
-                //out.printf("%d %d%n", refIndex, readIndex);
+                if (!reads.get(i).getReadNegativeStrandFlag() && (!reads.get(i).getReadPairedFlag() || reads.get(i).getFirstOfPairFlag())) {
+                    String keyName = reads.get(i).getReadGroup().getReadGroupId();
 
-                mismatches.get(keyName)[offset] += (refIndex != readIndex) ? 1 : 0;
-                counts.get(keyName)[offset]++;
-                quals.get(keyName)[offset] += reads.get(i).getBaseQualities()[offset];
+                    mismatches.get(keyName)[offset] += (refIndex != readIndex) ? 1 : 0;
+                    counts.get(keyName)[offset]++;
+                    quals.get(keyName)[offset] += reads.get(i).getBaseQualities()[offset];
 
-                //out.println(reads.get(i).getBaseQualities()[offset]);
+                    int readLength = reads.get(i).getReadLength();
+                    if (!readLengthsPerReadGroup.containsKey(keyName)) {
+                        readLengthsPerReadGroup.put(keyName, new HashSet<Integer>());
+                    }
 
-                int readLength = reads.get(i).getReadLength();
-                if (!readLengthsPerReadGroup.containsKey(keyName)) {
-                    readLengthsPerReadGroup.put(keyName, new HashSet<Integer>());
+                    readLengthsPerReadGroup.get(keyName).add(readLength);
+                    readLengths.add(readLength);
                 }
-
-                readLengthsPerReadGroup.get(keyName).add(readLength);
-                readLengths.add(readLength);
             }
         }
 
