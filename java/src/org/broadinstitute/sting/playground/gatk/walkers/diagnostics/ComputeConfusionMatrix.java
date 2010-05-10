@@ -119,7 +119,7 @@ public class ComputeConfusionMatrix extends LocusWalker<Integer, Integer> {
     }
 
     private void incrementConfusionCounts(String context, String altBase, String refBase) {
-        String key = String.format("%s:%s:%s", context, altBase, refBase);
+        String key = String.format("%s:%s:%s", context, altBase.toUpperCase(), refBase.toUpperCase());
 
         Integer counts = confusionCounts.get(key);
         if (counts == null) { counts = 0; }
