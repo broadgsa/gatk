@@ -185,7 +185,7 @@ public class VariantAnnotatorEngine {
             DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
             infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
             // annotate dbsnp id if available and not already there
-            if ( dbsnp != null && !vc.hasAttribute("ID") )
+            if ( dbsnp != null && (!vc.hasAttribute("ID") || vc.getAttribute("ID").equals(VCFRecord.EMPTY_ID_FIELD)) )
                 infoAnnotations.put("ID", dbsnp.getRsID());
         }
 
@@ -199,10 +199,11 @@ public class VariantAnnotatorEngine {
             infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3.size() == 0 ? "0" : "1");
         }
 
-
         //Process the info field
         List<Map<String, Object>> infoAnnotationOutputsList = new LinkedList<Map<String, Object>>(); //each element in infoAnnotationOutputs corresponds to a single line in the output VCF file
         infoAnnotationOutputsList.add(new HashMap<String, Object>(vc.getAttributes())); //keep the existing info-field annotations. After this infoAnnotationOutputsList.size() == 1, which means the output VCF file gains 1 line.
+        // put the DB membership info in
+        infoAnnotationOutputsList.get(0).putAll(infoAnnotations);
 
         //go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations )
@@ -266,7 +267,7 @@ public class VariantAnnotatorEngine {
             }
         }
 
-      //Create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
+        //Create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
         Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
         for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
             returnValue.add( new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), infoAnnotationOutput) );
