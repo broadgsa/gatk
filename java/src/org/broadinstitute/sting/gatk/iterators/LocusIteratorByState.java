@@ -250,6 +250,7 @@ public class LocusIteratorByState extends LocusIterator {
     //final boolean DEBUG = false;
     //final boolean DEBUG2 = false && DEBUG;
     private Reads readInfo;
+    private AlignmentContext nextAlignmentContext;
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -271,7 +272,8 @@ public class LocusIteratorByState extends LocusIterator {
     }
 
     public boolean hasNext() {
-        boolean r = ! readStates.isEmpty() || it.hasNext();
+        lazyLoadNextAlignmentContext();
+        boolean r = (nextAlignmentContext != null);
         //if ( DEBUG ) System.out.printf("hasNext() = %b%n", r);
 
         // if we don't have a next record, make sure we clean the warning queue
@@ -303,12 +305,20 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
     public AlignmentContext next() {
-        // keep iterating forward until we encounter a reference position that has something "real" hanging over it
-        // (i.e. either a real base, or a real base or a deletion if includeReadsWithDeletion is true)
+        lazyLoadNextAlignmentContext();
+        if(!hasNext())
+            throw new NoSuchElementException("LocusIteratorByState: out of elements.");
+        AlignmentContext currentAlignmentContext = nextAlignmentContext;
+        nextAlignmentContext = null;
+        return currentAlignmentContext;
+    }
 
-
-        while(true) {
-
+    /**
+     * Creates the next alignment context from the given state.  Note that this is implemented as a lazy load method.
+     * nextAlignmentContext MUST BE null in order for this method to advance to the next entry.
+     */
+    private void lazyLoadNextAlignmentContext() {
+        while(nextAlignmentContext == null && (!readStates.isEmpty() || it.hasNext())) {
             // this call will set hasExtendedEvents to true if it picks up a read with indel right before the current position on the ref:
             collectPendingReads(readInfo.getMaxReadsAtLocus());
 
@@ -318,12 +328,12 @@ public class LocusIteratorByState extends LocusIterator {
             int nMQ0Reads = 0;
 
 
-            // if extended events are requested, and if previous traversal step brought us over an indel in 
+            // if extended events are requested, and if previous traversal step brought us over an indel in
             // at least one read, we emit extended pileup (making sure that it is associated with the previous base,
             // i.e. the one right *before* the indel) and do NOT shift the current position on the ref.
             // In this case, the subsequent call to next() will emit the normal pileup at the current base
             // and shift the position.
-            if ( readInfo.generateExtendedEvents() && hasExtendedEvents ) {
+            if (readInfo.generateExtendedEvents() && hasExtendedEvents) {
                 ArrayList<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(readStates.size());
 
                 int maxDeletionLength = 0;
@@ -370,11 +380,9 @@ public class LocusIteratorByState extends LocusIterator {
                 GenomeLoc loc = GenomeLocParser.incPos(our1stState.getLocation(),-1);
 //                System.out.println("Indel(s) at "+loc);
 //               for ( ExtendedEventPileupElement pe : indelPile ) { if ( pe.isIndel() ) System.out.println("  "+pe.toString()); }
-                return new AlignmentContext(loc, new ReadBackedExtendedEventPileup(loc, indelPile, size, maxDeletionLength, nInsertions, nDeletions, nMQ0Reads));
+                nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileup(loc, indelPile, size, maxDeletionLength, nInsertions, nDeletions, nMQ0Reads));
             }  else {
-
                 ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
-
 
                 // todo -- performance problem -- should be lazy, really
                 for ( SAMRecordState state : readStates ) {
@@ -398,9 +406,8 @@ public class LocusIteratorByState extends LocusIterator {
                 GenomeLoc loc = getLocation();
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
                 // if we got reads with non-D/N over the current position, we are done
-                if ( pile.size() != 0 ) return new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions, nMQ0Reads));
+                if ( pile.size() != 0 ) nextAlignmentContext = new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions, nMQ0Reads));
             }
-
         }
     }
 
