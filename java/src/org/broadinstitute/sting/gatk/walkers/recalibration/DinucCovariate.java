@@ -61,6 +61,7 @@ public class DinucCovariate implements StandardCovariate {
         dinucHashMap.put( Dinuc.hashBytes(NO_CALL, NO_CALL), NO_DINUC );
     }
 
+    /*
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
 
@@ -93,7 +94,7 @@ public class DinucCovariate implements StandardCovariate {
 
         return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
     }
-
+    */
 
     /**
      * Takes an array of size (at least) read.getReadLength() and fills it with the covariate values for each position in the read.

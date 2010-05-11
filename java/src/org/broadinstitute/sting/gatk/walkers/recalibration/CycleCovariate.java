@@ -61,6 +61,7 @@ public class CycleCovariate implements StandardCovariate {
         }
     }
 
+    /*
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
 
@@ -158,8 +159,9 @@ public class CycleCovariate implements StandardCovariate {
 
         return cycle;
     }
+    */
 
-
+    // Used to pick out the covariate's value from attributes of the read
     public void getValues(SAMRecord read, Comparable[] comparable) {
 
         //-----------------------------

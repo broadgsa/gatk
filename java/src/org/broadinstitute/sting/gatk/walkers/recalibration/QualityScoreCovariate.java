@@ -41,10 +41,12 @@ public class QualityScoreCovariate implements RequiredCovariate {
     public void initialize( final RecalibrationArgumentCollection RAC ) {
     }
 
+    /*
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
         return (int)(read.getBaseQualities()[offset]);
     }
+    */
 
     public void getValues(SAMRecord read, Comparable[] comparable) {
         byte[] baseQualities = read.getBaseQualities();

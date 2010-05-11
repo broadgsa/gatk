@@ -43,10 +43,12 @@ public class ReadGroupCovariate implements RequiredCovariate{
     public void initialize( final RecalibrationArgumentCollection RAC ) {
     }
 
+    /*
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final SAMRecord read, final int offset ) {
         return read.getReadGroup().getReadGroupId();
     }
+    */
 
     public void getValues(SAMRecord read, Comparable[] comparable) {
         final String readGroupId = read.getReadGroup().getReadGroupId();

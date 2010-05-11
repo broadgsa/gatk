@@ -41,6 +41,7 @@ public class TileCovariate implements ExperimentalCovariate {
         exceptionWhenNoTile = RAC.EXCEPTION_IF_NO_TILE;
     }
 
+
     // Used to pick out the covariate's value from attributes of the read
     public Comparable getValue(final SAMRecord read, final int offset) {
         Integer tile = IlluminaUtil.getTileFromReadName(read.getReadName());
