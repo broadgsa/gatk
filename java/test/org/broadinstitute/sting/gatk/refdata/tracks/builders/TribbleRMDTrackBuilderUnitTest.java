@@ -41,7 +41,7 @@ import java.util.Map;
  * 
  * Class TribbleRMDTrackBuilderUnitTest
  *
- * Testing out the builder for tribble Tracks (not really a functional test right now)
+ * Testing out the builder for tribble Tracks
  */
 public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     private TribbleRMDTrackBuilder builder;

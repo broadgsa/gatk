@@ -97,7 +97,7 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
         try {
             is = new FileInputStream(f);
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to get a file input stream from " + f, e);
+            return "Not a file";
         }
         byte[] buffer = new byte[8192];
         int read = 0;
