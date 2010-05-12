@@ -208,7 +208,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
 
     public GenotypeConcordance(VariantEvalWalker parent) {
-        // don't do anything
+        super(parent);
     }
 
     public String getName() {

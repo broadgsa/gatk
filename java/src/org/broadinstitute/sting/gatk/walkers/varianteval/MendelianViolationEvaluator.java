@@ -59,8 +59,6 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     @DataPoint(name="KHV->PHR",description = "number of child hom variant calls where the parent was hom ref")
     long KidHomVar_ParentHomRef;
 
-    VariantEvalWalker parent;
-
     TrioStructure trio;
 
     private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
@@ -84,7 +82,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     }
 
     public MendelianViolationEvaluator(VariantEvalWalker parent) {
-        this.parent = parent;
+        super(parent);
 
         if (enabled()) {
             trio = parseTrioDescription(parent.FAMILY_STRUCTURE);
@@ -94,11 +92,11 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     }
 
     public boolean enabled() {
-        return parent.FAMILY_STRUCTURE != null;
+        return getVEWalker().FAMILY_STRUCTURE != null;
     }
 
     private double getQThreshold() {
-        return parent.MENDELIAN_VIOLATION_QUAL_THRESHOLD / 10;  // we aren't 10x scaled in the GATK a la phred
+        return getVEWalker().MENDELIAN_VIOLATION_QUAL_THRESHOLD / 10;  // we aren't 10x scaled in the GATK a la phred
     }
 
     public String getName() {

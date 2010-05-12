@@ -208,7 +208,7 @@ public class VariantQualityScore extends VariantEvaluator {
     }
 
     public VariantQualityScore(VariantEvalWalker parent) {
-        // don't do anything
+        super(parent);
     }
 
     public String getName() {

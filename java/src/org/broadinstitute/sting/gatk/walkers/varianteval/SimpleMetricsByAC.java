@@ -8,6 +8,8 @@ import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.StingException;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
+
 import java.util.ArrayList;
 
 /*
@@ -113,12 +115,21 @@ public class SimpleMetricsByAC extends VariantEvaluator {
         }
 
         public void incrValue( VariantContext eval ) {
-            int ac = eval.getChromosomeCount(eval.getAlternateAllele(0));
-            metrics.get(ac).update(eval);
+            int ac = -1;
+            
+            if ( eval.hasGenotypes() )
+                ac = eval.getChromosomeCount(eval.getAlternateAllele(0));
+            else if ( eval.hasAttribute("AC") ) {
+                ac = Integer.valueOf(eval.getAttributeAsString("AC"));
+            }
+
+            if ( ac != -1 )
+                metrics.get(ac).update(eval);
         }
     }
 
     public SimpleMetricsByAC(VariantEvalWalker parent) {
+        super(parent);
         // don't do anything
     }
 
@@ -141,13 +152,18 @@ public class SimpleMetricsByAC extends VariantEvaluator {
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         final String interesting = null;
 
-        if (eval != null &&
-                eval.isSNP() &&
-                eval.isBiallelic() &&
-                eval.hasGenotypes()) {
-            if ( metrics == null )
-                metrics = new MetricsByAc(2 * eval.getNSamples());
-            metrics.incrValue(eval);
+        if (eval != null ) {
+            if ( metrics == null ) {
+                int nSamples = this.getVEWalker().getNSamplesForEval(eval);
+                if ( nSamples != -1 )
+                    metrics = new MetricsByAc(2 * nSamples);
+            }
+
+            if ( eval.isSNP() &&
+                    eval.isBiallelic() &&
+                    metrics != null ) {
+                metrics.incrValue(eval);
+            }
         }
 
         return interesting; // This module doesn't capture any interesting sites, so return null

@@ -35,6 +35,16 @@ abstract class VariantEvaluator {
 //            System.out.printf("%40s %s%n", interestingSitePrefix, why);
 //    }
 
+    protected VariantEvalWalker veWalker = null;
+    public VariantEvaluator(VariantEvalWalker parent) {
+        veWalker = parent;
+        // don't do anything
+    }
+
+    protected VariantEvalWalker getVEWalker() {
+        return veWalker;
+    }
+
     public abstract boolean enabled();
     //public boolean processedAnySites()                                  { return processedASite; }
     //protected void markSiteAsProcessed()                                { processedASite = true; }

@@ -24,7 +24,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator {
     double TiTvRatioStandard = 0.0;
 
     public TiTvVariantEvaluator(VariantEvalWalker parent) {
-        // don't do anything
+        super(parent);
     }
 
     public boolean enabled() {

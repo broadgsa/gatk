@@ -63,7 +63,7 @@ public class ValidationRate extends VariantEvaluator {
     private SiteStats evalOverlapAtPoly = new SiteStats();
 
     public ValidationRate(VariantEvalWalker parent) {
-        // don't do anything
+        super(parent);
     }
 
     public String getName() {
@@ -126,7 +126,8 @@ public class ValidationRate extends VariantEvaluator {
 
             if (eval == null)
                 overlap.nNoCall++;
-            else if (eval.isPolymorphic())
+            //else if (eval.isPolymorphic()) // requires genotypes
+            else if (eval.isSNP())
                 overlap.nPoly++;
             else
                 overlap.nMono++;

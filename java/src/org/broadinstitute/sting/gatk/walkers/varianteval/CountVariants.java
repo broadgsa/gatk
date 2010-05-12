@@ -65,7 +65,7 @@ public class CountVariants extends VariantEvaluator {
     double deletionInsertionRatio = 0;
     
     public CountVariants(VariantEvalWalker parent) {
-        // don't do anything
+        super(parent);
     }
 
     private double perLocusRate(long n) {

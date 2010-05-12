@@ -169,6 +169,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="reportLocation", fullName="reportLocation", doc="If provided, set the base file for reports (Required for output formats with more than one file per analysis)", required=false)
     protected File outputLocation = null;
 
+    @Argument(shortName="nSamples", fullName="nSamples", doc="If provided, analyses that need the number of samples in an eval track that has no genotype information will receive this number as the number of samples", required=false)
+    protected int nSamples = -1;
+
     Set<String> rsIDsToExclude = null;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -700,6 +703,22 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         Node noveltyNode = new Node("novelty_name",group.novelty,"The novelty name");
         // the ordering is important below, this is the order the columns will appear in any output format
         return Arrays.asList(evalNode,compNode,jexlNode,filterNode,noveltyNode);
+    }
+
+    //
+    // utility functions
+    //
+
+    /**
+     * Takes an eval generated VariantContext and attempts to return the number of samples in the
+     * VC. If there are genotypes, it returns that value first.  Otherwise it returns nSamples, if
+     * provided.  Returns -1 if no sample counts can be obtained.
+     *
+     * @param eval
+     * @return
+     */
+    public int getNSamplesForEval( VariantContext eval ) {
+        return eval.hasGenotypes() ? eval.getNSamples() : nSamples;
     }
 
     protected Logger getLogger() { return logger; }

@@ -42,7 +42,7 @@ public class CompOverlap extends VariantEvaluator {
     double concordantRate = 0.0;
 
     public CompOverlap(VariantEvalWalker parent) {
-        // don't do anything
+        super(parent);
     }
 
     public String getName() {
