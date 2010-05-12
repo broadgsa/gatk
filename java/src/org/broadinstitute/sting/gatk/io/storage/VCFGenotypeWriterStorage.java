@@ -64,11 +64,11 @@ public class VCFGenotypeWriterStorage extends GenotypeWriterStorage<VCFGenotypeW
      * @param target Target stream for the temporary storage.  May not be null.
      */
     public void mergeInto(VCFGenotypeWriter target) {
-        VCFReader reader = new VCFReader(file);
+        // make sure we pass false to the reader, so that it doesn't create an index on disk
+        VCFReader reader = new VCFReader(file,false);
         while ( reader.hasNext() )
             target.addRecord(reader.next());
         reader.close();
-
         file.delete();        
     }    
 }

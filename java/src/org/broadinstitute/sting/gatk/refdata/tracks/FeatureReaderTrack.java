@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
+import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.FeatureReader;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
@@ -64,7 +65,7 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
      *         but other more advanced tracks support the query interface
      */
     @Override
-    public Iterator<GATKFeature> getIterator() {
+    public CloseableIterator<GATKFeature> getIterator() {
         try {
             return new FeatureToGATKFeatureIterator(reader.iterator(),this.getName());
         } catch (IOException e) {
@@ -83,22 +84,22 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
     }
 
     @Override
-    public Iterator<GATKFeature> query(GenomeLoc interval) throws IOException {
+    public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
     }
 
     @Override
-    public Iterator<GATKFeature> query(GenomeLoc interval, boolean contained) throws IOException {
+    public CloseableIterator<GATKFeature> query(GenomeLoc interval, boolean contained) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop(), contained),this.getName());
     }
 
     @Override
-    public Iterator<GATKFeature> query(String contig, int start, int stop) throws IOException {
+    public CloseableIterator<GATKFeature> query(String contig, int start, int stop) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop),this.getName());
     }
 
     @Override
-    public Iterator<GATKFeature> query(String contig, int start, int stop, boolean contained) throws IOException {
+    public CloseableIterator<GATKFeature> query(String contig, int start, int stop, boolean contained) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop, contained),this.getName());
     }
 

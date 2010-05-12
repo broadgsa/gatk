@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
@@ -64,7 +65,7 @@ public class RODRMDTrack extends RMDTrack {
      *         but other more advanced tracks support the query interface
      */
     @Override
-    public Iterator<GATKFeature> getIterator() {
+    public CloseableIterator<GATKFeature> getIterator() {
         return new GATKFeatureIterator(data.iterator());
     }
 

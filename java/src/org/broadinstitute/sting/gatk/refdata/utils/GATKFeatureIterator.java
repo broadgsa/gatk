@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 
 import java.util.Iterator;
@@ -36,7 +37,7 @@ import java.util.Iterator;
  *
  * Takes a RODatum iterator and makes it an iterator of GATKFeatures.  Shazam!
  */
-public class GATKFeatureIterator implements Iterator<GATKFeature> {
+public class GATKFeatureIterator implements CloseableIterator<GATKFeature> {
     private final Iterator<ReferenceOrderedDatum> iter;
     public GATKFeatureIterator(Iterator<ReferenceOrderedDatum> iter) {
         this.iter = iter;
@@ -55,5 +56,10 @@ public class GATKFeatureIterator implements Iterator<GATKFeature> {
     @Override
     public void remove() {
         throw new UnsupportedOperationException("Remove not supported");
+    }
+
+    @Override
+    public void close() {
+        // do nothing, our underlying iterator doesn't support this
     }
 }

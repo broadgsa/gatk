@@ -7,7 +7,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import java.util.Set;
 
 /**
- * An extension of eth GenotypeWriter interface with support
+ * An extension of the GenotypeWriter interface with support
  * for adding header lines.
  *
  * @author mhanna

@@ -50,26 +50,27 @@ abstract class ResourcePool <T,I extends Iterator> {
     public I iterator( DataStreamSegment segment ) {
         // Grab the first iterator in the list whose position is before the requested position.
         T selectedResource = null;
-        synchronized(this) {
-            selectedResource = selectBestExistingResource( segment, availableResources );
+        synchronized (this) {
+            selectedResource = selectBestExistingResource(segment, availableResources);
 
             // No iterator found?  Create another.  It is expected that
             // each iterator created will have its own file handle.
-            if( selectedResource == null ) {
+            if (selectedResource == null) {
                 selectedResource = createNewResource();
-                addNewResource( selectedResource );
+                addNewResource(selectedResource);
             }
 
             // Remove the iterator from the list of available iterators.
             availableResources.remove(selectedResource);
+
+
+            I iterator = createIteratorFromResource(segment, selectedResource);
+
+            // Make a note of this assignment for proper releasing later.
+            resourceAssignments.put(iterator, selectedResource);
+
+            return iterator;
         }
-
-        I iterator = createIteratorFromResource( segment, selectedResource );
-
-        // Make a note of this assignment for proper releasing later.
-        resourceAssignments.put( iterator, selectedResource );
-
-        return iterator;
     }
 
     /**

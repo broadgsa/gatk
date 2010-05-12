@@ -61,7 +61,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     public void testBuilderIndexUnwriteable() {
         File vcfFile = new File(validationDataLocation + "/ROD_validation/mixedup.vcf");
         try {
-            builder.createIndex(vcfFile,new VCFCodec());
+            builder.createIndex(vcfFile,new VCFCodec(), true);
         } catch (IOException e) {
             Assert.fail("Unable to make index because of IO exception " + e.getMessage());
         }

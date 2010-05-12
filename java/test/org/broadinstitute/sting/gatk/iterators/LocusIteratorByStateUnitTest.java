@@ -5,6 +5,7 @@ import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -17,6 +18,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -47,7 +49,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         reads.setMaxPileupSize(MAX_READS);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(records.iterator(), reads);
+        li = new LocusIteratorByState(new FakeCloseableIterator(records.iterator()), reads);
 
         // inject the testing version of the locus iterator watcher
         li.setLocusOverflowTracker(new LocusIteratorOverride(MAX_READS));
@@ -73,7 +75,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         reads.setMaxPileupSize(MAX_READS);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(records.iterator(), reads);
+        li = new LocusIteratorByState(new FakeCloseableIterator(records.iterator()), reads);
 
         // inject the testing version of the locus iterator watcher
         li.setLocusOverflowTracker(new LocusIteratorOverride(MAX_READS));
@@ -101,5 +103,33 @@ class TestReads extends Reads {
 
     public void setMaxPileupSize(int maxSize) {
         this.maximumReadsAtLocus = maxSize;
+    }
+}
+
+class FakeCloseableIterator<T> implements CloseableIterator<T> {
+    Iterator<T> iterator;
+
+    public FakeCloseableIterator(Iterator<T> it) {
+        iterator = it;
+    }
+
+    @Override
+    public void close() {
+        return;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return iterator.hasNext();
+    }
+
+    @Override
+    public T next() {
+        return iterator.next();
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("Don't remove!");
     }
 }

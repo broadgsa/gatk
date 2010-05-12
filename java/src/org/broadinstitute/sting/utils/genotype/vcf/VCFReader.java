@@ -22,6 +22,7 @@ import java.util.zip.GZIPInputStream;
 
 import org.broad.tribble.FeatureReader;
 import org.broad.tribble.index.linear.LinearIndex;
+import org.broad.tribble.readers.BasicFeatureReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.utils.StingException;
@@ -45,7 +46,16 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param vcfFile the vcf file to write
      */
     public VCFReader(File vcfFile) {
-        initialize(vcfFile, null);
+        initialize(vcfFile, null, true);
+    }
+
+    /**
+     * Create a VCF reader, given a VCF file
+     *
+     * @param vcfFile the vcf file to write
+     */
+    public VCFReader(File vcfFile, boolean createIndexOnDisk) {
+        initialize(vcfFile, null, createIndexOnDisk);
     }
 
     /**
@@ -54,22 +64,21 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param vcfFile the vcf file to write
      */
     public VCFReader(File vcfFile, VCFCodec.LineTransform transform) {
-        initialize(vcfFile, transform);
+        initialize(vcfFile, transform, true);
     }
 
-    private void initialize(File vcfFile, VCFCodec.LineTransform transform) {
+    /**
+     * initialize the VCF reader
+     * @param vcfFile the VCF file to open
+     * @param transform the line transformer to use, if any
+     * @param createIndexOnDisk do we need to create an index on disk?
+     */
+    private void initialize(File vcfFile, VCFCodec.LineTransform transform, boolean createIndexOnDisk) {
         VCFCodec codec = new VCFCodec();
-        LinearIndex index = null;
-        if (TribbleRMDTrackBuilder.requireIndex(vcfFile)) {
-            try {
-                index = TribbleRMDTrackBuilder.createIndex(vcfFile, new VCFCodec());
-            } catch (IOException e) {
-                throw new StingException("Unable to make required index for file " + vcfFile + " do you have write permissions to the directory?");
-            }
-        }
+        LinearIndex index = createIndex(vcfFile, createIndexOnDisk);
         if (transform != null) codec.setTransformer(transform);
         try {
-            vcfReader = new FeatureReader(vcfFile,index,codec);
+            vcfReader = new BasicFeatureReader(vcfFile,index,codec);
             iterator= vcfReader.iterator();
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to read VCF File from " + vcfFile, e);
@@ -77,6 +86,24 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             throw new StingException("Unable to read VCF File from " + vcfFile, e);
         }
         mHeader = codec.getHeader();
+    }
+
+    /**
+     * create an index given:
+     * @param vcfFile the vcf file
+     * @param createIndexOnDisk do we create the index on disk (or only in memory?)
+     * @return an instance of an index
+     */
+    private LinearIndex createIndex(File vcfFile, boolean createIndexOnDisk) {
+        LinearIndex index = null;
+        if (TribbleRMDTrackBuilder.requireIndex(vcfFile)) {
+            try {
+                index = TribbleRMDTrackBuilder.createIndex(vcfFile, new VCFCodec(), createIndexOnDisk);
+            } catch (IOException e) {
+                throw new StingException("Unable to make required index for file " + vcfFile + " do you have write permissions to the directory?");
+            }
+        }
+        return index;
     }
 
 
@@ -110,6 +137,9 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         return this;
     }
 
+    /**
+     * close the files
+     */
     public void close() {
         if (vcfReader != null) try {
             vcfReader.close();

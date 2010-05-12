@@ -26,11 +26,10 @@
 package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.*;
 import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.index.linear.LinearIndexCreator;
+import org.broad.tribble.readers.BasicFeatureReader;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureReaderTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
@@ -53,16 +52,6 @@ import java.util.Map;
  * This class keeps track of the available codecs, and knows how to put together a track of
  * that gets iterators from the FeatureReader using Tribble.
  *
- * Here's an example run command to find SNPs 200 base pairs up and downstream of the target file.
- *
- * java -jar dist/GenomeAnalysisTK.jar \
- * -R /broad/1KG/reference/human_b36_both.fasta \
- * -L 1:1863 \
- * -L MT:16520 \
- * -db /humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_129_b36.rod \
- * -dbw 200 \
- * -l INFO \
- * -T DbSNPWindowCounter
  */
 public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implements RMDTrackBuilder {
     /**
@@ -120,11 +109,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             // check to see if the input file has an index
             if (requireIndex(inputFile)) {
                 logger.warn("Creating Tribble Index for file " + inputFile);
-                LinearIndex index = createIndex(inputFile, this.createByType(targetClass));
-                reader = new FeatureReader(inputFile,index, this.createByType(targetClass));
+                LinearIndex index = createIndex(inputFile, this.createByType(targetClass), true);
+                reader = new BasicFeatureReader(inputFile,index, this.createByType(targetClass));
             }
             else {
-                reader = new FeatureReader(inputFile,this.createByType(targetClass));
+                reader = new BasicFeatureReader(inputFile,this.createByType(targetClass));
             }
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to create reader with file " + inputFile, e);
@@ -138,18 +127,19 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * create an index for the input file
      * @param inputFile the input file
      * @param codec the codec to use
+     * @param onDisk write the index to disk?
      * @return a linear index for the specified type
      * @throws IOException if we cannot write the index file
      */
-    public static LinearIndex createIndex(File inputFile, FeatureCodec codec) throws IOException {
+    public static LinearIndex createIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
         LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
         
         // if we can write the index, we should, but if not just create it in memory
         File indexFile = new File(inputFile.getAbsoluteFile() + linearIndexExtension);
-        if (indexFile.getParentFile().canWrite() && (!indexFile.exists() || indexFile.canWrite()))
+        if (indexFile.getParentFile().canWrite() && (!indexFile.exists() || indexFile.canWrite()) && onDisk)
             return create.createIndex();
         else {
-            logger.info("Unable to write to location " + indexFile + " for index file, creating index in memory only");
+            if (onDisk) logger.info("Unable to write to location " + indexFile + " for index file, creating index in memory only");
             return create.createIndex(null);
         }
 

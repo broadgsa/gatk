@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -78,7 +79,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     // This implementation tracks the query history and makes next() illegal after a seekforward query of length > 1,
     // but re-enables next() again after a length-1 query.
 
-    public SeekableRODIterator(Iterator<GATKFeature> it) {
+    public SeekableRODIterator(CloseableIterator<GATKFeature> it) {
         this.it = new PushbackIterator<GATKFeature>(it);
         records = new LinkedList<GATKFeature>();
         // the following is a trick: we would like the iterator to know the actual name assigned to
@@ -169,7 +170,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
 
              if ( r.getLocation().getStart() < curr_position )
                  throw new StingException("LocationAwareSeekableRODIterator: track "+r.getName() +
-                         " is out of coordinate order on contig "+r.getLocation().getContig());
+                         " is out of coordinate order on contig "+r.getLocation() + " compared to " + curr_contig + ":" + curr_position);
 
              if ( r.getLocation().getStart() > curr_position ) break; // next record starts after the current position; we do not need it yet
 
@@ -334,4 +335,8 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
 
     }
 
+    @Override
+    public void close() {
+        if (this.it != null) ((CloseableIterator)this.it.getUnderlyingIterator()).close();
+    }
 }

@@ -73,6 +73,7 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
         this.stream = null;
         writer = GenotypeWriterFactory.create(stub.getFormat(), file);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
+        // TODO: this line is a problem, creating with an empty hashset eliminates any genotype FORMAT fields in the calls (besides GT)
         GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());
     }
 

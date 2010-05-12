@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -37,9 +38,9 @@ import java.util.Iterator;
  *         a decorator interface for tracks that are queryable
  */
 public interface QueryableTrack {
-    public Iterator<GATKFeature> query(final GenomeLoc interval) throws IOException;
-    public Iterator<GATKFeature> query(final GenomeLoc interval, final boolean contained) throws IOException;
-    public Iterator<GATKFeature> query(final String contig, final int start, final int stop) throws IOException;
-    public Iterator<GATKFeature> query(final String contig, final int start, final int stop, final boolean contained) throws IOException;
+    public CloseableIterator<GATKFeature> query(final GenomeLoc interval) throws IOException;
+    public CloseableIterator<GATKFeature> query(final GenomeLoc interval, final boolean contained) throws IOException;
+    public CloseableIterator<GATKFeature> query(final String contig, final int start, final int stop) throws IOException;
+    public CloseableIterator<GATKFeature> query(final String contig, final int start, final int stop, final boolean contained) throws IOException;
     public void close();
 }

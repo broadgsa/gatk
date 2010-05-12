@@ -1,9 +1,11 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.FeatureIterator;
 import org.broad.tribble.FeatureReader;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.util.CloseableTribbleIterator;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -49,7 +51,7 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        FeatureIterator<DbSNPFeature> dbSNPs;
+        CloseableTribbleIterator<DbSNPFeature> dbSNPs;
 
         // our upstream and downstream window locations
         int windowStart = (int)Math.max(context.getLocation().getStart()-windowSize,0);

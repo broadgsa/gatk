@@ -142,6 +142,11 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
     public void remove() {
         throw new IllegalStateException("GRRR");
     }
+
+    @Override
+    public void close() {
+        // nothing to do
+    }
 }
 
 class FakeRODRecordList extends AbstractList<GATKFeature> implements RODRecordList {

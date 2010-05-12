@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 
 import java.io.File;
@@ -73,7 +74,7 @@ public abstract class RMDTrack {
      * @return how to get an iterator of the underlying data.  This is all a track has to support,
      *         but other more advanced tracks support the query interface
      */
-    public abstract Iterator<GATKFeature> getIterator();
+    public abstract CloseableIterator<GATKFeature> getIterator();
 
     /**
      * helper function for determining if we are the same track
