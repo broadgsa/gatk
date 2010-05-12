@@ -35,7 +35,7 @@ public class UnifiedGenotyperPerformanceTest extends WalkerTest {
         executeTest("testUnifiedGenotyperWholeExome", spec);
     }
 
-    @Test
+    //@Test
     public void testUnifiedGenotyperWGParallel() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
