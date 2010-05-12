@@ -109,7 +109,7 @@ def executeJob(job, farm_queue = None, just_print_commands = False, debug = True
         job.jobID = justPrintJobIDCounter
         justPrintJobIDCounter += 1
     elif farm_queue:
-        print 'job.executionString', job.executionString
+        #print 'job.executionString', job.executionString
         result = subprocess.Popen([job.executionString, ""], shell=True, stdout=subprocess.PIPE).communicate()[0]
         p = re.compile('Job <(\d+)> is submitted to queue')
         job.jobID = p.match(result).group(1)

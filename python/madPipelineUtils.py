@@ -17,11 +17,11 @@ GATK_JAR = GATK_STABLE_JAR
 # add to GATK to enable dbSNP aware cleaning
 # -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod
 
-#hg18 = ['chrM'] + ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
-#b36 = [str(i) for i in range(1,23)] + ['X', 'Y', 'MT']
+hg18 = ['chrM'] + ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
+b36 = [str(i) for i in range(1,23)] + ['X', 'Y', 'MT']
 
-hg18 = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
-b36 = [str(i) for i in range(1,23)] + ['X', 'Y']
+#hg18 = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
+#b36 = [str(i) for i in range(1,23)] + ['X', 'Y']
 
 HG18_TO_B36 = {
     'hg18' : 'b36',
@@ -45,11 +45,12 @@ def appendExtension(path, newExt, addExtension = True):
 #    return os.path.join(OPTIONS.dir, s)
 
 class PipelineArgs:
-    def __init__( self, GATK_JAR = GATK_JAR, ref = 'hg18', name = None, memory = '4g' ):
+    def __init__( self, GATK_JAR = GATK_JAR, ref = 'hg18', name = None, memory = '4g', excludeChrs = [] ):
         self.GATK = 'java -Xmx%s -Djava.io.tmpdir=/broad/shptmp/depristo/tmp/ -jar ' + GATK_JAR + ' -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -l INFO '
         self.ref = ref
         self.name = name
         self.memory = memory
+        self.excludeChrs = excludeChrs
 
     def convertToB36(self): 
         return self.ref == 'b36'
@@ -70,6 +71,9 @@ class PipelineArgs:
         if self.convertToB36():
             cmd = hg18args_to_b36(cmd)
         return cmd
+        
+    def chrsToSplitBy(self, chrs):
+        return filter(lambda x: x not in self.excludeChrs, chrs)
         
 # 
 # General features
@@ -97,7 +101,7 @@ def splitGATKCommandByChr( myPipelineArgs, cmd, outputsToParallelize, mergeComma
         chrCmd = FarmJob(chr_cmd_str, jobName = cmd.jobName + '.byChr' + chr, dependencies = cmd.dependencies)
         return chrCmd, chrOutputMap
 
-    splits = map( makeChrCmd, hg18 )
+    splits = map( makeChrCmd, myPipelineArgs.chrsToSplitBy(hg18) )
     splitCommands = map(lambda x: x[0], splits)
 
     def mergeCommand1(i):

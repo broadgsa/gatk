@@ -9,6 +9,7 @@ import faiReader
 import math
 import shutil
 import string
+import picard_utils
 from madPipelineUtils import *
 
 def main():
@@ -42,7 +43,7 @@ def main():
     inputBam, outputRoot = args[1:]
     outputBamList = outputRoot + '.bams.list'
     
-    STAGES = ['targets', 'realign', 'index']
+    STAGES = ['targets', 'realign', 'index', 'merge']
     for stage in stages:
         if stage not in STAGES:
             sys.exit('unknown stage ' + stage)
@@ -57,6 +58,7 @@ def main():
         return name in stages
 
     out = open(outputBamList, 'w')
+    realignInfo = []
     for chr in hg18:
         lastJobs = None
         
@@ -66,23 +68,30 @@ def main():
             allJobs.append(newjobs)
             if newjobs != []: 
                 lastJobs = newjobs
-            return [], lastJobs
-
-        newJobs = []
+            return lastJobs
 
         def execStage(name, func, args = [], lastJobs = []):
             if OPTIONS.verbose: print 'Name is', name
             newJobs, results = func(myPipelineArgs, chr, inputBam, outputRoot + '.' + chr, args, lastJobs)
-            if includeStage(name): newJobs, lastJobs = updateNewJobs(newJobs, lastJobs)
-            return newJobs, lastJobs, results
+            if includeStage(name): lastJobs = updateNewJobs(newJobs, lastJobs)
+            return lastJobs, results
             
-        newJobs, lastJobs, intervals = execStage('targets', createTargets)
-        newJobs, lastJobs, realignedBam = execStage('realign', realign, intervals, lastJobs)
+        lastJobs, intervals = execStage('targets', createTargets)
+        realignJobs, realignedBam = execStage('realign', realign, intervals, lastJobs)
+        realignInfo.append([realignJobs, realignedBam])
         # need to merge and then index
-        newJobs, lastJobs, ignore = execStage('index', index, realignedBam, lastJobs)
+        indexJobs, ignore = execStage('index', index, realignedBam, realignJobs)
         print >> out, os.path.abspath(realignedBam)
      
     out.close() 
+
+    if 'merge' in stages:
+        realignerJobs = []
+        if realignInfo[0][0] != []:
+            realignerJobs = map(lambda x: x[0][0], realignInfo)
+        mergerJob = mergeBams(myPipelineArgs, outputRoot + ".bam", map(lambda x: x[1], realignInfo), realignerJobs)
+        allJobs.append(mergerJob)
+
     print 'EXECUTING JOBS'
     executeJobs(allJobs, farm_queue = OPTIONS.farmQueue, just_print_commands = OPTIONS.dry) 
 
@@ -98,6 +107,11 @@ def realign( myPipelineArgs, chr, inputBam, outputRoot, intervals, lastJobs ):
 
 def index( myPipelineArgs, chr, inputBam, outputRoot, realignedBam, lastJobs ):
     return indexBAMFile( myPipelineArgs.name, realignedBam, lastJobs )
+
+def mergeBams( myPipelineArgs, outputFilename, bamsToMerge, lastJobs ):
+    print lastJobs
+    cmd = picard_utils.mergeBAMCmd( outputFilename, bamsToMerge, compression_level = 5 )
+    return FarmJob(cmd, jobName = 'merge.' + myPipelineArgs.name, dependencies = lastJobs)
 
 if __name__ == "__main__":
     main()
