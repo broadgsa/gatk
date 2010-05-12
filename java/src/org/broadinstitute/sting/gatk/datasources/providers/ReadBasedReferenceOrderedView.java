@@ -163,7 +163,7 @@ class WindowedData {
     public void close() {
         if (states == null) return;
         for (RMDDataState state : states)
-            if (state.iterator instanceof FlashBackIterator) state.dataSource.close((FlashBackIterator) state.iterator);
+            state.dataSource.close( state.iterator );
 
         // Clear out the existing data so that post-close() accesses to this data will fail-fast.
         states = null;
