@@ -54,7 +54,6 @@ public class RODTrackBuilder implements RMDTrackBuilder {
 
     static {
         // All known ROD types
-        Types.put("SAMPileup", rodSAMPileup.class);
         Types.put("GELI", rodGELI.class);
         Types.put("RefSeq", rodRefSeq.class);
         Types.put("Table", TabularROD.class);
