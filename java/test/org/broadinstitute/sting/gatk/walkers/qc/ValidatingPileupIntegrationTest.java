@@ -16,9 +16,9 @@ public class ValidatingPileupIntegrationTest extends WalkerTest {
     public void testEcoliThreaded() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T ValidatingPileup" +
-                " -I /humgen/gsa-scr1/GATK_Data/Validation_Data/MV1994.selected.bam" +
-                " -R /humgen/gsa-scr1/GATK_Data/Validation_Data/Escherichia_coli_K12_MG1655.fasta" +
-                " -B pileup,SAMPileup,/humgen/gsa-scr1/GATK_Data/Validation_Data/MV1994.selected.pileup" +
+                " -I " + validationDataLocation + "MV1994.selected.bam" +
+                " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
+                " -B pileup,SAMPileup,"+ validationDataLocation + "MV1994.selected.pileup" +
                 " -S SILENT -nt 8",0, Collections.<String>emptyList());
         executeTest("testEcoliThreaded",spec);
     }
