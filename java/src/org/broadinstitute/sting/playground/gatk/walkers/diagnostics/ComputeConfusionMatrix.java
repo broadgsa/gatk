@@ -149,14 +149,14 @@ public class ComputeConfusionMatrix extends LocusWalker<Integer, Integer> {
             contextualNorms.put(contextualKey, contextualCount + confusionCounts.get(key));
         }
 
-        out.printf("confusionMatrix\tcontext\talt\tref\tcounts\ttotal\tfraction\n");
+        out.printf("context\talt\tref\tcounts\ttotal\tfraction\n");
         for (String key : keys) {
             String[] fields = key.split(":");
             String contextualKey = String.format("%s:%s", fields[0], fields[1]);
 
             out.printf(
-                "confusionMatrix\t%s\t%s\t%s\t%d\t%d\t%f\n",
-                fields[0],
+                "%s\t%s\t%s\t%d\t%d\t%f\n",
+                fields[0].isEmpty() ? "." : fields[0],
                 fields[1],
                 fields[2],
                 confusionCounts.get(key),
