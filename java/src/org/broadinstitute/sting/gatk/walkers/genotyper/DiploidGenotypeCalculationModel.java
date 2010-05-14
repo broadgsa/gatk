@@ -289,12 +289,23 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                 int genotype = indexes[index];
 
                 double score;
-                if ( genotype == GenotypeType.REF.ordinal() )
-                    score = matrix[index][GenotypeType.REF.ordinal()] - Math.max(matrix[index][GenotypeType.HET.ordinal()], matrix[index][GenotypeType.HOM.ordinal()]);
-                else if ( genotype == GenotypeType.HET.ordinal() )
-                    score = matrix[index][GenotypeType.HET.ordinal()] - Math.max(matrix[index][GenotypeType.REF.ordinal()], matrix[index][GenotypeType.HOM.ordinal()]);
-                else // ( genotype == GenotypeType.HOM.ordinal() )
-                    score = matrix[index][GenotypeType.HOM.ordinal()] - Math.max(matrix[index][GenotypeType.REF.ordinal()], matrix[index][GenotypeType.HET.ordinal()]);
+
+                int maxEntry = MathUtils.maxElementIndex(matrix[index]);
+                // if the max value is for the most likely genotype, we can compute next vs. next best
+                if ( genotype == maxEntry ) {
+                    if ( genotype == GenotypeType.REF.ordinal() )
+                        score = matrix[index][genotype] - Math.max(matrix[index][GenotypeType.HET.ordinal()], matrix[index][GenotypeType.HOM.ordinal()]);
+                    else if ( genotype == GenotypeType.HET.ordinal() )
+                        score = matrix[index][genotype] - Math.max(matrix[index][GenotypeType.REF.ordinal()], matrix[index][GenotypeType.HOM.ordinal()]);
+                    else // ( genotype == GenotypeType.HOM.ordinal() )
+                        score = matrix[index][genotype] - Math.max(matrix[index][GenotypeType.REF.ordinal()], matrix[index][GenotypeType.HET.ordinal()]);
+                }
+                // otherwise, we need to calculate the probability of the genotype
+                else {
+                    double[] normalized = MathUtils.normalizeFromLog10(matrix[index]);
+                    double chosenGenotype = normalized[genotype];
+                    score = -1.0 * Math.log10(1.0 - chosenGenotype);
+                }
 
                 samplesToGenotypes.put(sample, new Pair<Integer, Double>(genotype, Math.abs(score)));
                 index++;
