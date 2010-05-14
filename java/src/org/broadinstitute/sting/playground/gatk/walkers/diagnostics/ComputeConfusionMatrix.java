@@ -45,13 +45,13 @@ import java.util.Hashtable;
  */
 @Reference(window=@Window(start=-5,stop=5))
 public class ComputeConfusionMatrix extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="minimumDepth", shortName="minDepth", doc="Require locus pileup to have specified minimum depth", required=false)
+    @Argument(fullName="minimumDepth", shortName="minDepth", doc="Require locus pileup to have specified minimum depth (default: 10)", required=false)
     public Integer MIN_DEPTH = 10;
 
-    @Argument(fullName="maximumDepth", shortName="maxDepth", doc="Require locus pileup to have specified maximum depth", required=false)
+    @Argument(fullName="maximumDepth", shortName="maxDepth", doc="Require locus pileup to have specified maximum depth (default: 100)", required=false)
     public Integer MAX_DEPTH = 100;
 
-    @Argument(fullName="contextWindowSize", shortName="window", doc="Size of context window", required=false)
+    @Argument(fullName="contextWindowSize", shortName="window", doc="Size of context window (default: 0)", required=false)
     public Integer WINDOW_SIZE = 0;
 
     private Hashtable<String, Integer> confusionCounts = new Hashtable<String, Integer>();
