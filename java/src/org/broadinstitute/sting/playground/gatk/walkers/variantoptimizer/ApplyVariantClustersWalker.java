@@ -180,7 +180,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
                     }
                     variantDatum.isKnown = isKnown;
                     
-                    final double pTrue = theModel.evaluateVariant( vc.getAttributes(), vc.getPhredScaledQual() );
+                    final double pTrue = theModel.evaluateVariant( vc );
                     double recalQual = 400.0 * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) );
                     
                     if( variantDatum.isKnown && KNOWN_VAR_QUAL_PRIOR > 0.1 ) { // only use the known prior if the value is specified (meaning not equal to zero)
@@ -193,7 +193,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
                     vcf.addInfoField("OQ", ((Double)vc.getPhredScaledQual()).toString() );
                     vcf.setQual( variantDatum.qual );
-                    vcf.setFilterString(VCFRecord.UNFILTERED);
+                    vcf.setFilterString(VCFRecord.UNFILTERED); //BUGBUG: Set to passes filters
                     vcfWriter.addRecord( vcf );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file

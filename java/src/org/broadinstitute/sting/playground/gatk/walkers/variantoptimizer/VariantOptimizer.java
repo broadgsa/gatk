@@ -129,7 +129,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
             return mapList;
         }
 
-        double annotationValues[] = new double[annotationKeys.size()];
+        final double annotationValues[] = new double[annotationKeys.size()];
 
         // todo -- do we really need to support multiple tracks -- logic is cleaner without this case -- what's the use case?
         for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
@@ -137,23 +137,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     int iii = 0;
                     for( final String key : annotationKeys ) {
-
-                        double value = 0.0;
-                        if( key.equals("AB") && !vc.getAttributes().containsKey(key) ) {
-                            value = (0.5 - 0.005) + (0.01 * Math.random()); // HomVar calls don't have an allele balance
-                        } else if( key.equals("QUAL") ) {
-                            value = vc.getPhredScaledQual();
-                        } else {
-                            try {
-                                value = Double.parseDouble( (String)vc.getAttribute( key, "0.0" ) );
-                                if( Double.isInfinite(value) ) {
-                                    value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
-                                }
-                            } catch( NumberFormatException e ) {
-                                // do nothing, default value is 0.0
-                            }
-                        }
-                        annotationValues[iii++] = value;
+                        annotationValues[iii++] = VariantGaussianMixtureModel.decodeAnnotation( key, vc );
                     }
 
                     final VariantDatum variantDatum = new VariantDatum();
@@ -234,7 +218,6 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                 final Process p = Runtime.getRuntime().exec( rScriptCommandLine );
                 p.waitFor();
             } catch (InterruptedException e) {
-                e.printStackTrace();
                 throw new StingException(e.getMessage());
             } catch ( IOException e ) {
                 throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );

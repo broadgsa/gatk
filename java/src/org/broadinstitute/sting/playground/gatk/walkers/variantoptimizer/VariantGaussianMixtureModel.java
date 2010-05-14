@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -35,7 +36,6 @@ import Jama.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.Map;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -52,8 +52,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     public final VariantDataManager dataManager;
     private final int numGaussians;
     private final int numIterations;
-    private final long RANDOM_SEED = 91801305;
-    private final Random rand = new Random( RANDOM_SEED );
+    private final static long RANDOM_SEED = 91801305;
+    private final static Random rand = new Random( RANDOM_SEED );
     private final double MIN_PROB = 1E-7;
     private final double MIN_SIGMA = 1E-5;
     private final double MIN_DETERMINANT = 1E-5;
@@ -428,31 +428,31 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    public final double evaluateVariant( final Map<String,Object> annotationMap, final double qualityScore ) {
+    public static double decodeAnnotation( final String annotationKey, final VariantContext vc ) {
+        double value = 0.0;
+        if( annotationKey.equals("AB") && !vc.getAttributes().containsKey(annotationKey) ) {
+            value = (0.5 - 0.005) + (0.01 * rand.nextDouble()); // HomVar calls don't have an allele balance
+        } else if( annotationKey.equals("QUAL") ) {
+            value = vc.getPhredScaledQual();
+        } else {
+            try {
+                value = Double.parseDouble( (String)vc.getAttribute( annotationKey, "0.0" ) );
+                if( Double.isInfinite(value) ) {
+                    value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
+                }
+            } catch( NumberFormatException e ) {
+                // do nothing, default value is 0.0
+            }
+        }
+        return value;
+    }
+
+    public final double evaluateVariant( final VariantContext vc ) {
         final double[] pVarInCluster = new double[numGaussians];
         final double[] annotations = new double[dataManager.numAnnotations];
 
         for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
-            double value = 0.0;
-            final String annotationKey = dataManager.annotationKeys.get(jjj);
-            if( annotationKey.equals("QUAL") ) {
-                value = qualityScore;
-            } else if( annotationKey.equals("AB") && !annotationMap.containsKey(annotationKey) ) {
-                value = (0.5 - 0.005) + (0.01 * Math.random()); // HomVar calls don't have an allele balance
-            } else {
-                try {
-                    final Object stringValue = annotationMap.get( annotationKey );
-                    if( stringValue != null ) {
-                        value = Double.parseDouble( stringValue.toString() );
-                        if( Double.isInfinite(value) ) {
-                            value = ( value > 0 ? 1.0 : -1.0 ) * INFINITE_ANNOTATION_VALUE;
-                        }
-                    }
-                } catch( NumberFormatException e ) {
-                    // do nothing, default value is 0.0
-                }
-            }
-
+            final double value = decodeAnnotation( dataManager.annotationKeys.get(jjj), vc );
             annotations[jjj] = (value - dataManager.meanVector[jjj]) / dataManager.varianceVector[jjj];
         }
 
