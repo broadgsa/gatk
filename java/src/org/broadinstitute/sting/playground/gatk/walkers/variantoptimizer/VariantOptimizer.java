@@ -39,10 +39,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations producing calibrated variant cluster parameters which can be applied to other datasets
@@ -64,10 +61,10 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
-    @Argument(fullName="exclude_annotation", shortName="exclude", doc="The names of the annotations which should be excluded from the calculations", required=false)
-    private String[] EXCLUDED_ANNOTATIONS = null;
-    @Argument(fullName="force_annotation", shortName="force", doc="The names of the annotations which should be forced into the calculations even if they aren't present in every variant", required=false)
-    private String[] FORCED_ANNOTATIONS = null;
+
+    @Argument(fullName="use_annotation", shortName="an", doc="The names of the annotations which should used for calculations", required=true)
+    private String[] USE_ANNOTATIONS = null;
+
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
     private String CLUSTER_FILENAME = "optimizer.cluster";
     @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian Mixture model", required=false)
@@ -90,9 +87,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    private final ExpandingArrayList<String> annotationKeys = new ExpandingArrayList<String>();
-    private boolean firstVariant = true;
-    private int numAnnotations = 0;
+    private ExpandingArrayList<String> annotationKeys;
     private static final double INFINITE_ANNOTATION_VALUE = 10000.0;
     private Set<String> ignoreInputFilterSet = null;
     private boolean usingDBSNP = false;
@@ -104,9 +99,13 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        annotationKeys = new ExpandingArrayList<String>(Arrays.asList(USE_ANNOTATIONS));
+
         if( IGNORE_INPUT_FILTERS != null ) {
             ignoreInputFilterSet = new TreeSet<String>(Arrays.asList(IGNORE_INPUT_FILTERS));
         }
+
+        // todo -- shouldn't be caching these values -- reduces code flexibility
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
@@ -130,32 +129,12 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
             return mapList;
         }
 
-        double annotationValues[] = new double[numAnnotations];
+        double annotationValues[] = new double[annotationKeys.size()];
 
+        // todo -- do we really need to support multiple tracks -- logic is cleaner without this case -- what's the use case?
         for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-
             if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
-                    if( firstVariant ) { // This is the first variant encountered so set up the list of annotations
-                        annotationKeys.addAll( vc.getAttributes().keySet() );
-                        annotationKeys.add("QUAL");
-                        if( annotationKeys.contains("ID") ) { annotationKeys.remove("ID"); } // ID field is added to the vc's INFO field?
-                        if( annotationKeys.contains("DB") ) { annotationKeys.remove("DB"); }
-                        if( EXCLUDED_ANNOTATIONS != null ) {
-                            for( final String excludedAnnotation : EXCLUDED_ANNOTATIONS ) {
-                                if( annotationKeys.contains( excludedAnnotation ) ) { annotationKeys.remove( excludedAnnotation ); }
-                            }
-                        }
-                        if( FORCED_ANNOTATIONS != null ) {
-                            for( final String forcedAnnotation : FORCED_ANNOTATIONS ) {
-                                if( !annotationKeys.contains( forcedAnnotation ) ) { annotationKeys.add( forcedAnnotation ); }
-                            }
-                        }
-                        numAnnotations = annotationKeys.size();
-                        annotationValues = new double[numAnnotations];
-                        firstVariant = false;
-                    }
-
                     int iii = 0;
                     for( final String key : annotationKeys ) {
 
@@ -180,6 +159,8 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.annotations = annotationValues;
                     variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+
+                    // todo this is a bit ugly logic -- why not just look for DBSNP?
                     boolean isKnown = !vc.getAttribute("ID").equals(".");
                     if(usingDBSNP) {
                         isKnown = false;
@@ -254,7 +235,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                 p.waitFor();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                System.exit(-1);
+                throw new StingException(e.getMessage());
             } catch ( IOException e ) {
                 throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
             }
