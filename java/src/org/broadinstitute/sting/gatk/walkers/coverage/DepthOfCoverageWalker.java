@@ -61,13 +61,6 @@ import java.util.*;
  * @Author chartl
  * @Date Feb 22, 2010
  */
-// todo [DONE] -- add per target (e.g. regional) aggregation
-// todo [DONE] -- add ability to print out the calculated bins and quit (for pre-analysis bin size selection)
-// todo [DONE] -- refactor the location of the ALL_SAMPLE metrics [keep out of the per-sample HashMaps]
-// todo [DONE] -- per locus output through -o
-// todo [DONE] -- support for using read groups instead of samples
-// todo [DONE] -- coverage including deletions
-// todo [DONE] -- base counts
 // todo -- cache the map from sample names to means in the print functions, rather than regenerating each time
 // todo -- support for granular histograms for total depth; maybe n*[start,stop], bins*sqrt(n)
 // todo -- alter logarithmic scaling to spread out bins more
@@ -81,9 +74,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     int stop = 500;
     @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
     int nBins = 499;
-    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to 50.", required = false)
+    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to -1.", required = false)
     byte minMappingQuality = -1;
-    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to 20.", required = false)
+    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to -1.", required = false)
     byte minBaseQuality = -1;
     @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
     boolean printBaseCounts = false;
@@ -107,6 +100,11 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     boolean ignoreDeletionSites = false;
     @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate the coverage statistics over this list of genes. Currently accepts RefSeq.", required = false)
     File refSeqGeneList = null;
+    @Argument(fullName = "outputFormat", doc = "the format of the output file (e.g. csv, table, rtable); defaults to r-readable table", required = false)
+    String outputFormat = "rtable";
+
+    String[] OUTPUT_FORMATS = {"table","rtable","csv"};
+    String separator = "\t";
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STANDARD WALKER METHODS
@@ -124,6 +122,20 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             }
             System.out.println("]");
             System.exit(0);
+        }
+
+        boolean goodOutputFormat = false;
+        for ( String f : OUTPUT_FORMATS ) {
+            goodOutputFormat = goodOutputFormat || f.equals(outputFormat);
+        }
+
+        if ( ! goodOutputFormat ) {
+            System.out.println("Improper output format. Can be one of table,rtable,csv. Was "+outputFormat);
+            System.exit(0);
+        }
+
+        if ( outputFormat.equals("csv") ) {
+            separator = ",";
         }
 
         if ( getToolkit().getArguments().outFileName == null ) {
@@ -282,30 +294,31 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             throw new StingException("Unable to open interval file on reduce", e);
         }
 
-
         Pair<GenomeLoc,CoverageAggregator> firstPair = statsByInterval.get(0);
         CoverageAggregator firstAggregator = firstPair.second;
         DepthOfCoverageStats firstStats = isSample ? firstAggregator.getCoverageBySample() : firstAggregator.getCoverageByReadGroup();
 
         StringBuilder summaryHeader = new StringBuilder();
         summaryHeader.append("Target");
-        summaryHeader.append("\ttotal_coverage");
-        summaryHeader.append("\taverage_coverage");
+        summaryHeader.append(separator);
+        summaryHeader.append("total_coverage");
+        summaryHeader.append(separator);
+        summaryHeader.append("average_coverage");
 
         for ( String s : firstStats.getAllSamples() ) {
-            summaryHeader.append("\t");
+            summaryHeader.append(separator);
             summaryHeader.append(s);
             summaryHeader.append("_total_cvg");
-            summaryHeader.append("\t");
+            summaryHeader.append(separator);
             summaryHeader.append(s);
             summaryHeader.append("_mean_cvg");
-            summaryHeader.append("\t");
+            summaryHeader.append(separator);
             summaryHeader.append(s);
             summaryHeader.append("_granular_Q1");
-            summaryHeader.append("\t");
+            summaryHeader.append(separator);
             summaryHeader.append(s);
             summaryHeader.append("_granular_median");
-            summaryHeader.append("\t");
+            summaryHeader.append(separator);
             summaryHeader.append(s);
             summaryHeader.append("_granular_Q3");
         }
@@ -386,26 +399,27 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     private void printTargetSummary(PrintStream output, Pair<?,DepthOfCoverageStats> intervalStats) {
         DepthOfCoverageStats stats = intervalStats.second;
         int[] bins = stats.getEndpoints();
+
         StringBuilder targetSummary = new StringBuilder();
         targetSummary.append(intervalStats.first.toString());
-        targetSummary.append("\t");
+        targetSummary.append(separator);
         targetSummary.append(stats.getTotalCoverage());
-        targetSummary.append("\t");
+        targetSummary.append(separator);
         targetSummary.append(String.format("%.2f",stats.getTotalMeanCoverage()));
 
         for ( String s : stats.getAllSamples() ) {
-            targetSummary.append("\t");
+            targetSummary.append(separator);
             targetSummary.append(stats.getTotals().get(s));
-            targetSummary.append("\t");
+            targetSummary.append(separator);
             targetSummary.append(String.format("%.2f", stats.getMeans().get(s)));
-            targetSummary.append("\t");
+            targetSummary.append(separator);
             int median = getQuantile(stats.getHistograms().get(s),0.5);
             int q1 = getQuantile(stats.getHistograms().get(s),0.25);
             int q3 = getQuantile(stats.getHistograms().get(s),0.75);
             targetSummary.append(formatBin(bins,q1));
-            targetSummary.append("\t");
+            targetSummary.append(separator);
             targetSummary.append(formatBin(bins,median));
-            targetSummary.append("\t");
+            targetSummary.append(separator);
             targetSummary.append(formatBin(bins,q3));
 
         }
@@ -424,16 +438,17 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     }
 
     private void printIntervalTable(PrintStream output, int[][] intervalTable, int[] cutoffs) {
-        output.printf("\tdepth>=%d",0);
+        String colHeader = outputFormat.equals("rtable") ? "" : "Number_of_sources";
+        output.printf(colHeader + separator+"depth>=%d",0);
         for ( int col = 0; col < intervalTable[0].length-1; col ++ ) {
-            output.printf("\tdepth>=%d",cutoffs[col]);
+            output.printf(separator+"depth>=%d",cutoffs[col]);
         }
 
         output.printf(String.format("%n"));
         for ( int row = 0; row < intervalTable.length; row ++ ) {
             output.printf("At_least_%d_samples",row+1);
             for ( int col = 0; col < intervalTable[0].length; col++ ) {
-                output.printf("\t%d",intervalTable[row][col]);
+                output.printf(separator+"%d",intervalTable[row][col]);
             }
             output.printf(String.format("%n"));
         }
@@ -503,13 +518,13 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             if ( ! useReadGroup || useBoth ) {
                 File perLocusStatisticsFile = deriveFromStream("sample_locus_statistics");
                 File perLocusCoverageFile = deriveFromStream("sample_coverage_statistics");
-                printPerLocus(perLocusStatisticsFile,perLocusCoverageFile,coverageProfiles.getCoverageBySample());
+                printPerLocus(perLocusStatisticsFile,perLocusCoverageFile,coverageProfiles.getCoverageBySample(),false);
             }
 
             if ( useReadGroup || useBoth ) {
                 File perLocusRGStats = deriveFromStream("read_group_locus_statistics");
                 File perLocusRGCoverage = deriveFromStream("read_group_locus_coverage");
-                printPerLocus(perLocusRGStats,perLocusRGCoverage,coverageProfiles.getCoverageByReadGroup());
+                printPerLocus(perLocusRGStats,perLocusRGCoverage,coverageProfiles.getCoverageByReadGroup(),true);
             }
         }
     }
@@ -530,11 +545,15 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     private void printPerSample(PrintStream out, File optionalFile, DepthOfCoverageStats stats) {
         PrintStream output = getCorrectStream(out,optionalFile);
         int[] leftEnds = stats.getEndpoints();
+
         StringBuilder hBuilder = new StringBuilder();
-        hBuilder.append("\t");
-        hBuilder.append(String.format("from_0_to_%d)\t",leftEnds[0]));
+        if ( ! outputFormat.equals("rTable")) {
+            hBuilder.append("Source_of_reads");
+        }
+        hBuilder.append(separator);
+        hBuilder.append(String.format("from_0_to_%d)%s",leftEnds[0],separator));
         for ( int i = 1; i < leftEnds.length; i++ )
-            hBuilder.append(String.format("from_%d_to_%d)\t",leftEnds[i-1],leftEnds[i]));
+            hBuilder.append(String.format("from_%d_to_%d)%s",leftEnds[i-1],leftEnds[i],separator));
         hBuilder.append(String.format("from_%d_to_inf%n",leftEnds[leftEnds.length-1]));
         output.print(hBuilder.toString());
         Map<String,int[]> histograms = stats.getHistograms();
@@ -542,14 +561,14 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             StringBuilder sBuilder = new StringBuilder();
             sBuilder.append(String.format("sample_%s",s));
             for ( int count : histograms.get(s) ) {
-                sBuilder.append(String.format("\t%d",count));
+                sBuilder.append(String.format("%s%d",separator,count));
             }
             sBuilder.append(String.format("%n"));
             output.print(sBuilder.toString());
         }
     }
 
-    private void printPerLocus(File locusFile, File coverageFile, DepthOfCoverageStats stats) {
+    private void printPerLocus(File locusFile, File coverageFile, DepthOfCoverageStats stats, boolean isRG) {
         PrintStream output = getCorrectStream(out,locusFile);
         PrintStream coverageOut = getCorrectStream(out,coverageFile);
         if ( output == null ) {
@@ -564,10 +583,19 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         // rows - # of samples
         // columns - depth of coverage
 
+        boolean printSampleColumnHeader = outputFormat.equals("csv") || outputFormat.equals("table");
+
         StringBuilder header = new StringBuilder();
-        header.append(String.format("\tgte_0"));
+        if ( printSampleColumnHeader ) {
+            if ( isRG ) {
+                header.append("ReadGroup");
+            } else {
+                header.append("Sample");
+            }
+        }
+        header.append(String.format("%sgte_0",separator));
         for ( int d : endpoints ) {
-            header.append(String.format("\tgte_%d",d));
+            header.append(String.format("%sgte_%d",separator,d));
         }
         header.append(String.format("%n"));
 
@@ -577,7 +605,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         for ( int row = 0; row < samples; row ++ ) {
             output.printf("%s_%d","NSamples",row+1);
             for ( int depthBin = 0; depthBin < baseCoverageCumDist[0].length; depthBin ++ ) {
-                output.printf("\t%d",baseCoverageCumDist[row][depthBin]);
+                output.printf("%s%d",separator,baseCoverageCumDist[row][depthBin]);
             }
             output.printf("%n");
         }
@@ -586,7 +614,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             coverageOut.printf("%s",sample);
             double[] coverageDistribution = stats.getCoverageProportions(sample);
             for ( int bin = 0; bin < coverageDistribution.length; bin ++ ) {
-                coverageOut.printf("\t%.2f",coverageDistribution[bin]);
+                coverageOut.printf("%s%.2f",separator,coverageDistribution[bin]);
             }
             coverageOut.printf("%n");
         }
@@ -610,8 +638,11 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
 
     private void printSummary(PrintStream out, File optionalFile, DepthOfCoverageStats stats) {
         PrintStream output = getCorrectStream(out,optionalFile);
-
-        output.printf("%s\t%s\t%s\t%s\t%s\t%s%n","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
+        if ( ! outputFormat.equals("csv") ) {
+            output.printf("%s\t%s\t%s\t%s\t%s\t%s%n","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
+        } else {
+            output.printf("%s,%s,%s,%s,%s,%s%n","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
+        }
 
         Map<String,int[]> histograms = stats.getHistograms();
         Map<String,Double> means = stats.getMeans();
@@ -627,10 +658,18 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             median =  median == histogram.length-1 ? histogram.length-2 : median;
             q1 = q1 == histogram.length-1 ? histogram.length-2 : q1;
             q3 = q3 == histogram.length-1 ? histogram.length-2 : q3;
-            output.printf("%s\t%d\t%.2f\t%d\t%d\t%d%n",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
+            if ( ! outputFormat.equals("csv") ) {
+                output.printf("%s\t%d\t%.2f\t%d\t%d\t%d%n",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
+            } else {
+                output.printf("%s,%d,%.2f,%d,%d,%d%n",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
+            }
         }
 
-        output.printf("%s\t%d\t%.2f\t%s\t%s\t%s%n","Total",stats.getTotalCoverage(),stats.getTotalMeanCoverage(),"N/A","N/A","N/A");
+        if ( ! outputFormat.equals("csv") ) {
+            output.printf("%s\t%d\t%.2f\t%s\t%s\t%s%n","Total",stats.getTotalCoverage(),stats.getTotalMeanCoverage(),"N/A","N/A","N/A");
+        } else {
+            output.printf("%s,%d,%.2f,%s,%s,%s%n","Total",stats.getTotalCoverage(),stats.getTotalMeanCoverage(),"N/A","N/A","N/A");
+        }
     }
 
     private int getQuantile(int[] histogram, double prop) {
@@ -656,19 +695,18 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         StringBuilder perSampleOutput = new StringBuilder();
         int tDepth = 0;
         for ( String s : allSamples ) {
-            perSampleOutput.append("\t");
+            perSampleOutput.append(separator);
             long dp = countsBySample.keySet().contains(s) ? sumArray(countsBySample.get(s)) : 0;
             perSampleOutput.append(dp);
             if ( printBaseCounts ) {
-                perSampleOutput.append("\t");
+                perSampleOutput.append(separator);
                 perSampleOutput.append(baseCounts(countsBySample.get(s)));
             }
             tDepth += dp;
         }
         // remember -- genome locus was printed in map()
-        stream.printf("\t%d\t%.2f\t%s%n",tDepth,( (double) tDepth/ (double) allSamples.size()), perSampleOutput);
-        //System.out.printf("\t%d\t%.2f\t%s%n",tDepth,( (double) tDepth/ (double) allSamples.size()), perSampleOutput);
-
+        stream.printf("%s%d%s%.2f%s%n",separator,tDepth,separator,( (double) tDepth/ (double) allSamples.size()),
+                                       perSampleOutput);
     }
 
     private long sumArray(int[] array) {

@@ -86,9 +86,9 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
         for ( GenomeLoc interval : intervalBuffer.keySet() ) {
             for ( rodRefSeq refseq : refseqBuffer ) {
                 if ( interval.overlapsP(refseq.getLocation()) &&
-                     ! intervalBuffer.get(interval).geneNames.contains(refseq.getGeneName()) ) {
+                     ! intervalBuffer.get(interval).geneNames.contains(refseq.getTranscriptUniqueGeneName()) ) {
                     // if the interval overlaps the gene transcript; and the gene is not already represented in the interval
-                    intervalBuffer.get(interval).update(refseq.getGeneName(),
+                    intervalBuffer.get(interval).update(refseq.getTranscriptUniqueGeneName(),
                                                         refseq.getExonsInInterval(interval),
                                                         refseq.getExonNumbersInInterval(interval));
                     nUpdate++;

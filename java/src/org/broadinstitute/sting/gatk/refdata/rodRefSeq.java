@@ -77,6 +77,10 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
         return numbers;
     }
 
+    public String getTranscriptUniqueGeneName() {
+        return String.format("%s(%s)",getGeneName(),getTranscriptId());
+    }
+
     public String getOverlapString(GenomeLoc position) {
         boolean is_exon = false;
         StringBuilder overlapString = new StringBuilder();
