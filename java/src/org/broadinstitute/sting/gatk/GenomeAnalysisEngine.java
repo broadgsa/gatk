@@ -702,7 +702,7 @@ public class GenomeAnalysisEngine {
             else
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
-            return new (shardType);
+            return new MonolithicShardStrategy(shardType);
         }
 
         ShardStrategy shardStrategy = null;
