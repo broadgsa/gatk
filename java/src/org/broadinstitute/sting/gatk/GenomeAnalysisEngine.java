@@ -138,6 +138,9 @@ public class GenomeAnalysisEngine {
      * @return the value of this traversal.
      */
     public Object execute(GATKArgumentCollection args, Walker<?, ?> my_walker, Collection<SamRecordFilter> filters) {
+        //HeapSizeMonitor monitor = new HeapSizeMonitor();
+        //monitor.start();
+
         // validate our parameters
         if (args == null) {
             throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
@@ -169,7 +172,12 @@ public class GenomeAnalysisEngine {
                 readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
 
         // execute the microscheduler, storing the results
-        return microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
+        Object result =  microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
+
+        //monitor.stop();
+        //logger.info(String.format("Maximum heap size consumed: %d",monitor.getMaxMemoryUsed()));
+
+        return result;
     }
 
     /**
@@ -694,7 +702,7 @@ public class GenomeAnalysisEngine {
             else
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
-            return new MonolithicShardStrategy(shardType);
+            return new (shardType);
         }
 
         ShardStrategy shardStrategy = null;
