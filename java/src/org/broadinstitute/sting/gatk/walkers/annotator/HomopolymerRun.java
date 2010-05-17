@@ -15,12 +15,22 @@ import java.util.HashMap;
 
 public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
+    private boolean ANNOTATE_INDELS = false;
+
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
-        if ( !vc.isBiallelic() || !vc.isSNP() )
+        if ( !vc.isBiallelic() )
             return null;
 
-        int run = computeHomopolymerRun(vc.getAlternateAllele(0).toString().charAt(0), ref);
+        int run;
+        if ( vc.isSNP() ) {
+            run = computeHomopolymerRun(vc.getAlternateAllele(0).toString().charAt(0), ref);
+        } else if ( vc.isIndel() && ANNOTATE_INDELS ) {
+            run = computeIndelHomopolymerRun(vc,ref);
+        } else {
+            return null;
+        }
+        
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyName(), String.format("%d", run));
         return map;
@@ -59,4 +69,32 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
         return Math.max(leftRun, rightRun);
      }
+
+    private static int computeIndelHomopolymerRun(VariantContext vc, ReferenceContext ref) {
+        char[] bases = ref.getBases();
+        GenomeLoc locus = ref.getLocus();
+        GenomeLoc window = ref.getWindow();
+        int refBasePos = (int) (locus.getStart() - window.getStart())+1;
+        if ( vc.isDeletion() ) {
+            // check that deleted bases are the same
+            char dBase = bases[refBasePos];
+            for ( int i = 0; i < vc.getAlternateAllele(0).length(); i ++ ) {
+                if ( bases[refBasePos+i] != dBase ) {
+                    return 0;
+                }
+            }
+
+            return computeHomopolymerRun(dBase,ref);
+        } else {
+            // check that inserted bases are the same
+            char insBase = (char) vc.getAlternateAllele(0).getBases()[0];
+            for ( byte b : vc.getAlternateAllele(0).getBases() ) {
+                if ( insBase != (char) b ) {
+                    return 0;
+                }
+            }
+
+            return computeHomopolymerRun(insBase,ref);
+        }
+    }
 }
