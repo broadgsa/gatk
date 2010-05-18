@@ -25,7 +25,7 @@ SLEEP_TIME = 1
 def main():
     global OPTIONS
     usage = """usage: %prog [options] sites
-Automatically captures IGV PNG screenshots at each site in the file sites (of the form chrX:start-stop or chrX:pos) by connecting to 
+Automatically captures IGV PNG screenshots at each site in the file sites (of the form chrX:start-stop or chrX:pos or a VCF file) by connecting to 
 an IGV session.  See http://www.broadinstitute.org/igv/?q=PortCommands.  Make sure you enable ports in the IGV preferences"""
     parser = OptionParser(usage=usage)
     parser.add_option("-w", "--wait", dest="wait",
@@ -40,6 +40,9 @@ an IGV session.  See http://www.broadinstitute.org/igv/?q=PortCommands.  Make su
     parser.add_option("-s", "--sort", dest="sort",
                         type='string', default="base",
                         help="The sort order for the bases, currently can be one of base, position, strand, quality, sample, and readGroup.")
+    parser.add_option("-p", "--prefix", dest="prefix",
+                        type='string', default="",
+                        help="A prefix to add before the contig name before sending the command to IGV.  Useful for dealing with b36 -> hg18 issues")
                         
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 1:
@@ -58,7 +61,13 @@ an IGV session.  See http://www.broadinstitute.org/igv/?q=PortCommands.  Make su
     sendCommand("snapshotDirectory " + OPTIONS.dir + "\n")
     c = 0
     for line in open(sites):
-        site = line.split()[0]
+        parts = line.split()
+        
+        if sites.find(".vcf") != -1 and parts[0][0] != "#":
+            site = OPTIONS.prefix + ':'.join(parts[0:2])
+        else:
+            site = parts[0]
+        
         print site
         c+=1
         sendCommand("goto %s\n" % site)
