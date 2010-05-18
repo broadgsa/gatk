@@ -301,7 +301,7 @@ public class VariantAnnotatorEngine {
                 // dbSNP.avHet=value1 from record 1 and dbSNP.avHet=value2 from record 2 will become dbSNP.avHet_1=value1 and dbSNP.avHet_2=value2 )
                 Map<String,String> annotationsForRecordWithRenamedKeys = new HashMap<String, String>();
                 for(Map.Entry<String, String> annotation : annotationsForRecord.entrySet()) {
-                    annotationsForRecordWithRenamedKeys.put(annotation.getKey() + "_" + i, annotation.getValue());
+                    annotationsForRecordWithRenamedKeys.put(annotation.getKey() + "_" + (i + 1), annotation.getValue());
                 }
 
                 annotationsForRecord = annotationsForRecordWithRenamedKeys;
