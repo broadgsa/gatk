@@ -23,13 +23,17 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +47,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.refdata.AnnotatorROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.By;
@@ -51,6 +57,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
@@ -72,7 +79,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
     protected String sampleName = null;
 
     @Argument(fullName="select", shortName="s", doc="Optionally specifies which subset of columns from which -B inputs should be used for annotations. For example, -B mydbsnp,AnnotatorInputTable,/path/to/mydbsnp.txt -B mytable,AnnotatorInputTable,/path/mytable.txt -s mydbsnp.avHet,mydbsnp.name,mytable.column3 will cause annotations to only be generated from the 3 columns specified using -s.", required=false)
-    protected String[] COLUMNS = {};
+    protected String[] SELECT_COLUMNS = {};
 
     @Argument(fullName="oneToMany", shortName="m", doc="If more than one record from the same file matches a particular locus (for example, multiple dbSNP records with the same position), create multiple entries in the ouptut VCF file - one for each match. If a particular tabular file has J matches, and another tabular file has K matches for a given locus, then J*K output VCF records will be generated - one for each pair of K, J.   If this flag is not provided, the multiple records are still generated, but they are stored in the INFO field of a single output VCF record, with their annotation keys differentiated by appending '_i' with i varying from 1 to K*J. ", required=false)
     protected Boolean ONE_TO_MANY = false;
@@ -116,10 +123,41 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
             logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
         }
 
-        engine = new VariantAnnotatorEngine(getToolkit(), new String[] { }, new String[] { "GenomicAnnotation" });
+        //read all ROD file headers and construct a set of all column names to be used for validation of command-line args
+        final HashSet<String> allColumnNames = new HashSet<String>();
+        try {
+            for(ReferenceOrderedDataSource ds : getToolkit().getRodDataSources()) {
+                if(! AnnotatorROD.class.isAssignableFrom(ds.getReferenceOrderedData().getType())) {
+                    continue; //skip all non-AnnotatorROD files.
+                }
+                final ArrayList<String> header = AnnotatorROD.readHeader(ds.getReferenceOrderedData().getFile());
+                for(String columnName : header) {
+                    allColumnNames.add(ds.getName() + "." + columnName);
+                }
+            }
+        } catch(IOException e) {
+            throw new StingException("Failed when attempting to read file header. ", e);
+        }
 
+        //parse the SELECT_COLUMNS arg and validate the column names
+        List<String> parsedSelectColumns = new LinkedList<String>();
+        for(String token : SELECT_COLUMNS) {
+            parsedSelectColumns.addAll(Arrays.asList(token.split(",")));
+        }
+        SELECT_COLUMNS = parsedSelectColumns.toArray(SELECT_COLUMNS);
+
+        for(String columnName : SELECT_COLUMNS) {
+            if(!allColumnNames.contains(columnName)) {
+                throw new StingException("The column name '" + columnName + "' provided to -s doesn't match any of the column names in any of the -B files.");
+            }
+        }
+
+
+
+        //instanciate teh VariantAnnotatorEngine
+        engine = new VariantAnnotatorEngine(getToolkit(), new String[] { }, new String[] { "GenomicAnnotation" });
         engine.setOneToMany( Boolean.TRUE.equals( ONE_TO_MANY ) );
-        engine.setRequestedColumns(COLUMNS);
+        engine.setRequestedColumns(SELECT_COLUMNS);
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
