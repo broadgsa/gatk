@@ -61,14 +61,12 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
-
     @Argument(fullName="use_annotation", shortName="an", doc="The names of the annotations which should used for calculations", required=true)
     private String[] USE_ANNOTATIONS = null;
-
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
     private String CLUSTER_FILENAME = "optimizer.cluster";
     @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian Mixture model", required=false)
-    private int NUM_GAUSSIANS = 7;
+    private int NUM_GAUSSIANS = 1;
     @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian Mixture model", required=false)
     private int NUM_ITERATIONS = 10;
     @Argument(fullName="minVarInCluster", shortName="minVar", doc="The minimum number of variants in a cluster to be considered a valid cluster. It can be used to prevent overfitting.", required=false)
@@ -148,9 +146,9 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                     boolean isKnown = !vc.getAttribute("ID").equals(".");
                     if(usingDBSNP) {
                         isKnown = false;
-                        for( VariantContext dbsnpVC : tracker.getVariantContexts(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, context.getLocation(), false, false) ) {
+                        for( final VariantContext dbsnpVC : tracker.getVariantContexts(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, context.getLocation(), false, false) ) {
                             if(dbsnpVC != null && dbsnpVC.isSNP()) {
-                                isKnown=true;
+                                isKnown = true;
                             }
                         }
                     }

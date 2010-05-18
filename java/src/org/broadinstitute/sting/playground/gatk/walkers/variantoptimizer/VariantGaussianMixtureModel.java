@@ -61,7 +61,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private final double[][] mu; // The means for the clusters
     private final Matrix[] sigma; // The variances for the clusters, sigma is really sigma^2
     private final Matrix[] sigmaInverse;
-    private final boolean[] deadCluster;
     private final double[] pCluster;
     private final double[] determinant;
     private final double[] clusterTITV;
@@ -82,7 +81,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         mu = new double[numGaussians][];
         sigma = new Matrix[numGaussians];
         determinant = new double[numGaussians];
-        deadCluster = new boolean[numGaussians];
         pCluster = new double[numGaussians];
         clusterTITV = new double[numGaussians];
         clusterTruePositiveRate = new double[numGaussians];
@@ -114,7 +112,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         // Several of the clustering parameters aren't used the second time around in ApplyVariantClusters
         numIterations = 0;
         clusterTITV = null;
-        deadCluster = null;
         minVarInCluster = 0;
 
         // BUGBUG: move this parsing out of the constructor
@@ -144,7 +141,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             sigma[kkk] = new Matrix(sigmaVals[kkk]);
             sigmaInverse[kkk] = sigma[kkk].inverse(); // Precompute all the inverses and determinants for use later
             determinant[kkk] = sigma[kkk].det();
-            //if( determinant[kkk] < MIN_DETERMINANT ) { determinant[kkk] = MIN_DETERMINANT; }
             kkk++;
         }
         isUsingTiTvModel = _isUsingTiTvModel;
@@ -252,12 +248,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         // Set up the initial random Gaussians
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            deadCluster[kkk] = false;
             pCluster[kkk] = 1.0 / ((double) (stopCluster - startCluster));
-            //final double[] randMu = new double[numAnnotations];
-            //for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-            //    randMu[jjj] = -1.5 + 3.0 * rand.nextDouble();
-            //}
             mu[kkk] = data[rand.nextInt(numVariants)].annotations;
             final double[][] randSigma = new double[numAnnotations][numAnnotations];
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
@@ -270,17 +261,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             tmp = tmp.times(tmp.transpose());
             sigma[kkk] = tmp;
             determinant[kkk] = sigma[kkk].det();
-            //if( determinant[kkk] < MIN_DETERMINANT ) { deadCluster[kkk] = true; }
         }
 
         // The EM loop
         for( int ttt = 0; ttt < numIterations; ttt++ ) {
-
-            //int numValidClusters = 0;
-            //for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            //    if( !deadCluster[kkk] ) { numValidClusters++; }
-            //}
-            //logger.info("Starting iteration " + (ttt+1) + " with " + numValidClusters + " clusters.");
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // Expectation Step (calculate the probability that each data point is in each cluster)
@@ -309,7 +293,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 clusterTITV[kkk] = 0.0;
                 clusterTruePositiveRate[kkk] = 1.0;
             }
-            printClusterParamters( clusterFileName + ".WithoutTiTv." + iterationNumber );
+            printClusterParameters( clusterFileName + ".WithoutTiTv." + iterationNumber );
             return;
         }
 
@@ -340,29 +324,26 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             final boolean isTransition = data[iii].isTransition;
             final boolean isKnown = data[iii].isKnown;
             for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-                if( !deadCluster[kkk] ) {
-                    final double prob = pVarInCluster[kkk][iii];
-                    if( isKnown ) { // known
-                        probKnown[kkk] += prob;
-                        if( isTransition ) { // transition
-                            probKnownTi[kkk] += prob;
-                            probTi[kkk] += prob;
-                        } else { // transversion
-                            probKnownTv[kkk] += prob;
-                            probTv[kkk] += prob;
-                        }
-                    } else { //novel
-                        probNovel[kkk] += prob;
-                        if( isTransition ) { // transition
-                            probNovelTi[kkk] += prob;
-                            probTi[kkk] += prob;
-                        } else { // transversion
-                            probNovelTv[kkk] += prob;
-                            probTv[kkk] += prob;
-                        }
+                final double prob = pVarInCluster[kkk][iii];
+                if( isKnown ) { // known
+                    probKnown[kkk] += prob;
+                    if( isTransition ) { // transition
+                        probKnownTi[kkk] += prob;
+                        probTi[kkk] += prob;
+                    } else { // transversion
+                        probKnownTv[kkk] += prob;
+                        probTv[kkk] += prob;
+                    }
+                } else { //novel
+                    probNovel[kkk] += prob;
+                    if( isTransition ) { // transition
+                        probNovelTi[kkk] += prob;
+                        probTi[kkk] += prob;
+                    } else { // transversion
+                        probNovelTv[kkk] += prob;
+                        probTv[kkk] += prob;
                     }
                 }
-
             }
         }
 
@@ -376,50 +357,46 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 knownAlphaFactor = 0.5;
             }
             for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-                if( !deadCluster[kkk] ) {
-                    clusterTITV[kkk] = probTi[kkk] / probTv[kkk];
-                    if( probKnown[kkk] > 500.0 && probNovel[kkk] > 500.0 ) {
-                        clusterTruePositiveRate[kkk] = calcTruePositiveRateFromKnownTITV( probKnownTi[kkk] / probKnownTv[kkk], probNovelTi[kkk] / probNovelTv[kkk], clusterTITV[kkk], knownAlphaFactor );
-                    } else {
-                        clusterTruePositiveRate[kkk] = calcTruePositiveRateFromTITV( clusterTITV[kkk] );
-                    }
+                clusterTITV[kkk] = probTi[kkk] / probTv[kkk];
+                if( probKnown[kkk] > 500.0 && probNovel[kkk] > 500.0 ) {
+                    clusterTruePositiveRate[kkk] = calcTruePositiveRateFromKnownTITV( probKnownTi[kkk] / probKnownTv[kkk], probNovelTi[kkk] / probNovelTv[kkk], clusterTITV[kkk], knownAlphaFactor );
+                } else {
+                    clusterTruePositiveRate[kkk] = calcTruePositiveRateFromTITV( clusterTITV[kkk] );
                 }
             }
 
             if( ttt == 0 ) {
-                printClusterParamters( clusterFileName + ".TargetTiTv." + iterationNumber );
+                printClusterParameters( clusterFileName + ".TargetTiTv." + iterationNumber );
             } else if( ttt == 1 ) {
-                printClusterParamters( clusterFileName + ".KnownTiTv." + iterationNumber );
+                printClusterParameters( clusterFileName + ".KnownTiTv." + iterationNumber );
             } else if( ttt == 2 ) {
-                printClusterParamters( clusterFileName + ".BlendedTiTv." + iterationNumber );
+                printClusterParameters( clusterFileName + ".BlendedTiTv." + iterationNumber );
             }
         }
     }
 
-    private void printClusterParamters( final String clusterFileName ) {
+    private void printClusterParameters( final String clusterFileName ) {
         try {
             final PrintStream outputFile = new PrintStream( clusterFileName );
             dataManager.printClusterFileHeader( outputFile );
             final int numAnnotations = mu[0].length;
             final int numVariants = dataManager.numVariants;
             for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-                if( !deadCluster[kkk] ) {
-                    if( pCluster[kkk] * numVariants > minVarInCluster ) {
-                        final double sigmaVals[][] = sigma[kkk].getArray();
-                        outputFile.print("@!CLUSTER,");
-                        outputFile.print(pCluster[kkk] + ",");
-                        outputFile.print(clusterTITV[kkk] + ",");
-                        outputFile.print(clusterTruePositiveRate[kkk] + ",");
-                        for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                            outputFile.print(mu[kkk][jjj] + ",");
-                        }
-                        for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                            for(int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                                outputFile.print(sigmaVals[jjj][ppp] + ",");
-                            }
-                        }
-                        outputFile.println(-1);
+                if( pCluster[kkk] * numVariants > minVarInCluster ) {
+                    final double sigmaVals[][] = sigma[kkk].getArray();
+                    outputFile.print("@!CLUSTER,");
+                    outputFile.print(pCluster[kkk] + ",");
+                    outputFile.print(clusterTITV[kkk] + ",");
+                    outputFile.print(clusterTruePositiveRate[kkk] + ",");
+                    for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                        outputFile.print(mu[kkk][jjj] + ",");
                     }
+                    for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                        for(int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                            outputFile.print(sigmaVals[jjj][ppp] + ",");
+                        }
+                    }
+                    outputFile.println(-1);
                 }
             }
             outputFile.close();
@@ -458,52 +435,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         evaluateGaussiansForSingleVariant( annotations, pVarInCluster );
 
-        //if( isUsingTiTvModel ) {
-            // Sum prob model
-            double sum = 0.0;
-            for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-                sum += pVarInCluster[kkk] * clusterTruePositiveRate[kkk];
-            }
-            return sum;
-        /*
-        } else {
-            // Max prob model
-            double maxProb = 0.0;
-            for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-                if( pVarInCluster[kkk] > maxProb ) {
-                    maxProb = pVarInCluster[kkk];
-                }
-            }
-            return maxProb;
-        }
-        */
-
-        // Max prob model
-        /*
-        double maxProb = 0.0;
-        for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-            if( pVarInCluster[kkk] > maxProb ) {
-                maxProb = pVarInCluster[kkk];
-            }
-        }
-        return maxProb;
-        */
-
-        // Entropy model
-        /*
         double sum = 0.0;
         for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-            //if( isHetCluster[kkk] == isHet ) {
-                sum += pVarInCluster[kkk] * Math.log(pVarInCluster[kkk]);
-            //}
+            sum += pVarInCluster[kkk] * clusterTruePositiveRate[kkk];
         }
-
-        double entropy = -1.0 * sum;
-        double maxEntropy = -1.0 * Math.log( 1.0 / ((double) numGaussians));
-
-        //System.out.println("H = " + entropy + ", pTrue = " + ( 1.0 - (entropy / maxEntropy) ));
-        return ( 1.0 - (entropy / maxEntropy) );
-        */
+        return sum;
     }
 
    public final void outputClusterReports( final String outputPrefix ) {
@@ -688,60 +624,56 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         final double sigmaVals[][][] = new double[numGaussians][][];
         final double denom[] = new double[numGaussians];
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            if( !deadCluster[kkk] ) {
-                sigmaVals[kkk] = sigma[kkk].inverse().getArray();
-                denom[kkk] = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(Math.abs(determinant[kkk]), 0.5);
-            }
+            sigmaVals[kkk] = sigma[kkk].inverse().getArray();
+            denom[kkk] = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(Math.abs(determinant[kkk]), 0.5);
         }
         final double mult[] = new double[numAnnotations];
         for( int iii = 0; iii < data.length; iii++ ) {
             double sumProb = 0.0;
             for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-                if( !deadCluster[kkk] ) {
-                    double sum = 0.0;
-                    for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        mult[jjj] = 0.0;
-                        for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                            mult[jjj] += (data[iii].annotations[ppp] - mu[kkk][ppp]) * sigmaVals[kkk][ppp][jjj];
-                        }
+                double sum = 0.0;
+                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                    mult[jjj] = 0.0;
+                    for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                        mult[jjj] += (data[iii].annotations[ppp] - mu[kkk][ppp]) * sigmaVals[kkk][ppp][jjj];
                     }
-                    for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        sum += mult[jjj] * (data[iii].annotations[jjj] - mu[kkk][jjj]);
-                    }
-
-                    pVarInCluster[kkk][iii] = pCluster[kkk] * (Math.exp( -0.5 * sum ) / denom[kkk]);
-                    likelihood += pVarInCluster[kkk][iii];
-                    if(Double.isNaN(denom[kkk]) || determinant[kkk] < 0.5 * MIN_DETERMINANT) {
-                        System.out.println("det = " + sigma[kkk].det());
-                        System.out.println("denom = " + denom[kkk]);
-                        System.out.println("sumExp = " + sum);
-                        System.out.println("pVar = " + pVarInCluster[kkk][iii]);
-                        System.out.println("=-------=");
-                        throw new StingException("Numerical Instability! determinant of covariance matrix <= 0. Try running with fewer clusters and then with better behaved annotation values.");
-                    }
-                    if(sum < 0.0) {
-                        System.out.println("det = " + sigma[kkk].det());
-                        System.out.println("denom = " + denom[kkk]);
-                        System.out.println("sumExp = " + sum);
-                        System.out.println("pVar = " + pVarInCluster[kkk][iii]);
-                        System.out.println("=-------=");
-                        throw new StingException("Numerical Instability! covariance matrix no longer positive definite. Try running with fewer clusters and then with better behaved annotation values.");
-                    }
-                    if(pVarInCluster[kkk][iii] > 1.0) {
-                        System.out.println("det = " + sigma[kkk].det());
-                        System.out.println("denom = " + denom[kkk]);
-                        System.out.println("sumExp = " + sum);
-                        System.out.println("pVar = " + pVarInCluster[kkk][iii]);
-                        System.out.println("=-------=");
-                        throw new StingException("Numerical Instability! probability distribution returns > 1.0. Try running with fewer clusters and then with better behaved annotation values.");
-                    }
-
-                    if( pVarInCluster[kkk][iii] < MIN_PROB) { // Very small numbers are a very big problem
-                        pVarInCluster[kkk][iii] = MIN_PROB;// + MIN_PROB * rand.nextDouble();
-                    }
-
-                    sumProb += pVarInCluster[kkk][iii];
                 }
+                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                    sum += mult[jjj] * (data[iii].annotations[jjj] - mu[kkk][jjj]);
+                }
+
+                pVarInCluster[kkk][iii] = pCluster[kkk] * (Math.exp( -0.5 * sum ) / denom[kkk]);
+                likelihood += pVarInCluster[kkk][iii];
+                if(Double.isNaN(denom[kkk]) || determinant[kkk] < 0.5 * MIN_DETERMINANT) {
+                    System.out.println("det = " + sigma[kkk].det());
+                    System.out.println("denom = " + denom[kkk]);
+                    System.out.println("sumExp = " + sum);
+                    System.out.println("pVar = " + pVarInCluster[kkk][iii]);
+                    System.out.println("=-------=");
+                    throw new StingException("Numerical Instability! determinant of covariance matrix <= 0. Try running with fewer clusters and then with better behaved annotation values.");
+                }
+                if(sum < 0.0) {
+                    System.out.println("det = " + sigma[kkk].det());
+                    System.out.println("denom = " + denom[kkk]);
+                    System.out.println("sumExp = " + sum);
+                    System.out.println("pVar = " + pVarInCluster[kkk][iii]);
+                    System.out.println("=-------=");
+                    throw new StingException("Numerical Instability! covariance matrix no longer positive definite. Try running with fewer clusters and then with better behaved annotation values.");
+                }
+                if(pVarInCluster[kkk][iii] > 1.0) {
+                    System.out.println("det = " + sigma[kkk].det());
+                    System.out.println("denom = " + denom[kkk]);
+                    System.out.println("sumExp = " + sum);
+                    System.out.println("pVar = " + pVarInCluster[kkk][iii]);
+                    System.out.println("=-------=");
+                    throw new StingException("Numerical Instability! probability distribution returns > 1.0. Try running with fewer clusters and then with better behaved annotation values.");
+                }
+
+                if( pVarInCluster[kkk][iii] < MIN_PROB) { // Very small numbers are a very big problem
+                    pVarInCluster[kkk][iii] = MIN_PROB;// + MIN_PROB * rand.nextDouble();
+                }
+
+                sumProb += pVarInCluster[kkk][iii];
             }
 
             for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
@@ -757,8 +689,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private void evaluateGaussiansForSingleVariant( final double[] annotations, final double[] pVarInCluster ) {
 
         final int numAnnotations = annotations.length;
-
-        double sumProb = 0.0;
         final double mult[] = new double[numAnnotations];
         for( int kkk = 0; kkk < numGaussians; kkk++ ) {
             final double sigmaVals[][] = sigmaInverse[kkk].getArray();
@@ -775,28 +705,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
             final double denom = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(determinant[kkk], 0.5);
             pVarInCluster[kkk] =  pCluster[kkk] * (Math.exp( -0.5 * sum )) / denom;
-
-            /*
-            if( isUsingTiTvModel ) {
-                //pVarInCluster[kkk] =  Math.exp( -0.5 * sum );
-                if( pVarInCluster[kkk] < MIN_PROB) { // Very small numbers are a very big problem
-                    pVarInCluster[kkk] = MIN_PROB;
-                }
-                sumProb += pVarInCluster[kkk];
-            } else {
-                //final double denom = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(determinant[kkk], 0.5);
-                //pVarInCluster[kkk] =  pCluster[kkk] * (Math.exp( -0.5 * sum )) / denom;
-                //pVarInCluster[kkk] =  Math.exp( -0.5 * sum );
-                // BUGBUG: should pCluster be the distribution from the GMM or a uniform distribution here?
-            }
-            */
         }
-
-        //if( isUsingTiTvModel ) {
-        //    for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-        //        pVarInCluster[kkk] /= sumProb;
-        //    }
-        //}
     }
 
 
@@ -816,53 +725,48 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
         double sumPK = 0.0;
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            if( !deadCluster[kkk] ) {
-                double sumProb = 0.0;
-                for( int iii = 0; iii < numVariants; iii++ ) {
-                    final double prob = pVarInCluster[kkk][iii];
-                    sumProb += prob;
-                    for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        mu[kkk][jjj] +=  prob * data[iii].annotations[jjj];
-                    }
-                }
-
+            double sumProb = 0.0;
+            for( int iii = 0; iii < numVariants; iii++ ) {
+                final double prob = pVarInCluster[kkk][iii];
+                sumProb += prob;
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    mu[kkk][jjj] /=  sumProb;
-                }
-
-                for( int iii = 0; iii < numVariants; iii++ ) {
-                    final double prob = pVarInCluster[kkk][iii];
-                    for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
-                            sigmaVals[kkk][jjj][ppp] +=  prob * (data[iii].annotations[jjj]-mu[kkk][jjj]) * (data[iii].annotations[ppp]-mu[kkk][ppp]);
-                        }
-                    }
-                }
-
-                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
-                        if( sigmaVals[kkk][jjj][ppp] < MIN_SIGMA ) { // Very small numbers are a very big problem
-                            sigmaVals[kkk][jjj][ppp] = MIN_SIGMA;// + MIN_SIGMA * rand.nextDouble();
-                        }
-                        sigmaVals[kkk][ppp][jjj] = sigmaVals[kkk][jjj][ppp]; // sigma must be a symmetric matrix
-                    }
-                }
-
-                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                        sigmaVals[kkk][jjj][ppp] /=  sumProb;
-                    }
-                }
-
-                sigma[kkk] = new Matrix(sigmaVals[kkk]);
-                determinant[kkk] = sigma[kkk].det();
-                //if( determinant[kkk] < MIN_DETERMINANT ) { deadCluster[kkk] = true; }
-
-                if( !deadCluster[kkk] ) {
-                    pCluster[kkk] = sumProb / numVariants;
-                    sumPK += pCluster[kkk];
+                    mu[kkk][jjj] +=  prob * data[iii].annotations[jjj];
                 }
             }
+
+            for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                mu[kkk][jjj] /=  sumProb;
+            }
+
+            for( int iii = 0; iii < numVariants; iii++ ) {
+                final double prob = pVarInCluster[kkk][iii];
+                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                    for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
+                        sigmaVals[kkk][jjj][ppp] +=  prob * (data[iii].annotations[jjj]-mu[kkk][jjj]) * (data[iii].annotations[ppp]-mu[kkk][ppp]);
+                    }
+                }
+            }
+
+            for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
+                    if( sigmaVals[kkk][jjj][ppp] < MIN_SIGMA ) { // Very small numbers are a very big problem
+                        sigmaVals[kkk][jjj][ppp] = MIN_SIGMA;// + MIN_SIGMA * rand.nextDouble();
+                    }
+                    sigmaVals[kkk][ppp][jjj] = sigmaVals[kkk][jjj][ppp]; // sigma must be a symmetric matrix
+                }
+            }
+
+            for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                    sigmaVals[kkk][jjj][ppp] /=  sumProb;
+                }
+            }
+
+            sigma[kkk] = new Matrix(sigmaVals[kkk]);
+            determinant[kkk] = sigma[kkk].det();
+
+            pCluster[kkk] = sumProb / numVariants;
+            sumPK += pCluster[kkk];
         }
 
         // ensure pCluster sums to one, it doesn't automatically due to very small numbers getting capped
@@ -924,15 +828,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         // Replace extremely small clusters with another random draw from the dataset
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            //if(determinant[kkk] < MIN_DETERMINANT ) {
             if( pCluster[kkk] < 0.0005 * (1.0 / ((double) (stopCluster-startCluster))) ||
                     determinant[kkk] < MIN_DETERMINANT ) { // This is a very small cluster compared to all the others
                 logger.info("!! Found singular cluster! Initializing a new random cluster.");
-                pCluster[kkk] = 0.1 / ((double) (stopCluster-startCluster)); // 0.5 /
-                //final double[] randMu = new double[numAnnotations];
-                //for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                //   randMu[jjj] = -1.5 + 3.0 * rand.nextDouble();
-                //}
+                pCluster[kkk] = 0.1 / ((double) (stopCluster-startCluster)); 
                 mu[kkk] = data[rand.nextInt(numVariants)].annotations;
                 final double[][] randSigma = new double[numAnnotations][numAnnotations];
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {

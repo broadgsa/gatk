@@ -193,7 +193,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
 
                     vcf.addInfoField("OQ", ((Double)vc.getPhredScaledQual()).toString() );
                     vcf.setQual( variantDatum.qual );
-                    vcf.setFilterString(VCFRecord.UNFILTERED); //BUGBUG: Set to passes filters
+                    vcf.setFilterString(VCFRecord.PASSES_FILTERS);
                     vcfWriter.addRecord( vcf );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
