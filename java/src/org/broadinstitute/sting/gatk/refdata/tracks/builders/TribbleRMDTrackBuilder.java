@@ -27,12 +27,15 @@ package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.*;
+import org.broad.tribble.index.Index;
 import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.readers.BasicFeatureReader;
+import org.broad.tribble.util.LineReader;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureReaderTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
+import org.broadinstitute.sting.utils.file.FSLock;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -90,11 +93,8 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      */
     @Override
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
-        // make a feature reader
-        FeatureReader reader;
-        reader = createFeatureReader(targetClass, inputFile);
         // return a feature reader track
-        return new FeatureReaderTrack(targetClass, name, inputFile, reader);
+        return new FeatureReaderTrack(targetClass, name, inputFile, createFeatureReader(targetClass, inputFile));
     }
 
     /**
@@ -106,15 +106,8 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public FeatureReader createFeatureReader(Class targetClass, File inputFile) {
         FeatureReader reader = null;
         try {
-            // check to see if the input file has an index
-            if (requireIndex(inputFile)) {
-                logger.warn("Creating Tribble Index for file " + inputFile);
-                LinearIndex index = createIndex(inputFile, this.createByType(targetClass), true);
-                reader = new BasicFeatureReader(inputFile,index, this.createByType(targetClass));
-            }
-            else {
-                reader = new BasicFeatureReader(inputFile,this.createByType(targetClass));
-            }
+            Index index = loadIndex(inputFile, this.createByType(targetClass), true);
+            reader = new BasicFeatureReader(inputFile.getAbsolutePath(), index, this.createByType(targetClass));
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to create reader with file " + inputFile, e);
         } catch (IOException e) {
@@ -131,38 +124,62 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @return a linear index for the specified type
      * @throws IOException if we cannot write the index file
      */
-    public static LinearIndex createIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
-        LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
-        
-        // if we can write the index, we should, but if not just create it in memory
+    public static Index loadIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
+
+        // our return index
+        LinearIndex returnIndex = null;
+
+        // create the index file name, locking on the index file name
         File indexFile = new File(inputFile.getAbsoluteFile() + linearIndexExtension);
-        if (indexFile.getParentFile().canWrite() && (!indexFile.exists() || indexFile.canWrite()) && onDisk)
-            return create.createIndex();
-        else {
-            if (onDisk) logger.info("Unable to write to location " + indexFile + " for index file, creating index in memory only");
-            return create.createIndex(null);
+        FSLock lock = new FSLock(indexFile);
+
+        // acquire a lock on the file
+        boolean obtainedLock = lock.lock();
+        try {
+            // if the file exists, and we can read it, load the index from disk
+            if (indexFile.exists() && indexFile.canRead() && obtainedLock) {
+                logger.info("Loading Tribble index from disk for file " + inputFile);
+                return LinearIndex.createIndex(indexFile);
+            }
+            // else we need to create the index, and write it to disk if we can
+            else
+                return writeIndexToDisk(inputFile, codec, onDisk, indexFile, obtainedLock);            
+        }
+        finally {
+            lock.unlock();
         }
 
     }
 
     /**
-     * this function checks if we need to make an index file. There are three cases:
-     * 1. The index file doesn't exist; return true
-     * 2. The index does exist, but is older than the file.  We delete the index and return true
-     * 3. else return false;
-     * @param inputFile the target file to make an index for
-     * @return true if we need to create an index, false otherwise
+     * attempt to create the index, and to disk
+     * @param inputFile the input file
+     * @param codec the codec to use
+     * @param onDisk if they asked for disk storage or now
+     * @param indexFile the index file location
+     * @param obtainedLock did we obtain the lock on the file?
+     * @return the index object
+     * @throws IOException
      */
-    public static boolean requireIndex(File inputFile) {
-        // can we read the index? if not, create an index
-        File indexFile = new File(inputFile.getAbsolutePath() + linearIndexExtension);
-        if (!(indexFile.canRead())) return true;
-        if (inputFile.lastModified() > indexFile.lastModified()) {
-            logger.warn("Removing out of date (index file date older than target file ) index file " + indexFile);
-            indexFile.delete();
-            return true;
+    private static LinearIndex writeIndexToDisk(File inputFile, FeatureCodec codec, boolean onDisk, File indexFile, boolean obtainedLock) throws IOException {
+        LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
+        LinearIndex index = create.createIndex();
+
+        // if the index doesn't exist, and we can write to the directory, and we got a lock, write to the disk
+        if (indexFile.getParentFile().canWrite() &&
+                (!indexFile.exists() || indexFile.canWrite()) &&
+                onDisk &&
+                obtainedLock) {
+            logger.info("Creating Tribble Index on disk for file " + inputFile);
+            index.write(indexFile);
+            return index;
         }
-        return false;
+        // we can't write it to disk, just store it in memory
+        else {
+            // if they wanted to write, let them know we couldn't
+            if (onDisk) logger.warn("Unable to write to " + indexFile + " for the index file, creating index in memory only");
+            return index;
+        }
     }
 }
 
@@ -177,7 +194,7 @@ class FakeTribbleTrack implements FeatureCodec {
     }
 
     @Override
-    public int headerLineCount(File file) {
-        return 0;
+    public int readHeader(LineReader reader) {
+        return 0; // the basics
     }
 }

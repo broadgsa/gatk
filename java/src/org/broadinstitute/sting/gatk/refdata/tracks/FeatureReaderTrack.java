@@ -112,4 +112,8 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
         }
         reader = null;
     }
+
+    public FeatureReader getReader() {
+        return reader;
+    }
 }

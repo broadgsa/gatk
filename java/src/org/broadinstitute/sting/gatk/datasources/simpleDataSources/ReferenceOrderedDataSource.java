@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import org.broad.tribble.FeatureReader;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureReaderTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
@@ -51,7 +52,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     public ReferenceOrderedDataSource( Walker walker, RMDTrack rod) {
         this.rod = rod;
         if (rod.supportsQuery())
-            iteratorPool = new ReferenceOrderedQueryDataPool(new TribbleRMDTrackBuilder(), rod);
+            iteratorPool = new ReferenceOrderedQueryDataPool(new TribbleRMDTrackBuilder(), (FeatureReaderTrack)rod);
         else
             iteratorPool = new ReferenceOrderedDataPool( walker, rod );
     }
@@ -186,9 +187,11 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
     // our tribble track builder
     private final TribbleRMDTrackBuilder builder;
 
-    public ReferenceOrderedQueryDataPool( TribbleRMDTrackBuilder builder, RMDTrack rod ) {
+    public ReferenceOrderedQueryDataPool( TribbleRMDTrackBuilder builder, FeatureReaderTrack rod ) {
         this.rod = rod;
         this.builder = builder;
+        // a little bit of a hack, but it saves us from re-reading the index from the file
+        this.addNewResource(rod.getReader());
     }
 
     @Override
@@ -208,8 +211,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
         try {
             if (position instanceof MappedStreamSegment) {
                 GenomeLoc pos = ((MappedStreamSegment) position).locus;
-                //System.err.println("Querying position1 " + pos.getContig() + " start " + pos.getStart() + " stop " + pos.getStop());
-                return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.query(pos.getContig(), (int) pos.getStart(), (int) pos.getStop()),rod.getName()));
+                return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.query(pos.getContig(),(int) pos.getStart(), (int) pos.getStop()),rod.getName()));
             } else {
                 return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.iterator(),rod.getName()));
             }

@@ -1,32 +1,16 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 import org.broad.tribble.FeatureReader;
-import org.broad.tribble.index.linear.LinearIndex;
+import org.broad.tribble.index.Index;
 import org.broad.tribble.readers.BasicFeatureReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
 
 /** The VCFReader class, which given a valid vcf file, parses out the header and VCF records */
 public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
@@ -75,10 +59,10 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      */
     private void initialize(File vcfFile, VCFCodec.LineTransform transform, boolean createIndexOnDisk) {
         VCFCodec codec = new VCFCodec();
-        LinearIndex index = createIndex(vcfFile, createIndexOnDisk);
+        Index index = createIndex(vcfFile, createIndexOnDisk);
         if (transform != null) codec.setTransformer(transform);
         try {
-            vcfReader = new BasicFeatureReader(vcfFile,index,codec);
+            vcfReader = new BasicFeatureReader(vcfFile.getAbsolutePath(),index,codec);
             iterator= vcfReader.iterator();
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to read VCF File from " + vcfFile, e);
@@ -94,15 +78,14 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param createIndexOnDisk do we create the index on disk (or only in memory?)
      * @return an instance of an index
      */
-    private LinearIndex createIndex(File vcfFile, boolean createIndexOnDisk) {
-        LinearIndex index = null;
-        if (TribbleRMDTrackBuilder.requireIndex(vcfFile)) {
-            try {
-                index = TribbleRMDTrackBuilder.createIndex(vcfFile, new VCFCodec(), createIndexOnDisk);
-            } catch (IOException e) {
-                throw new StingException("Unable to make required index for file " + vcfFile + " do you have write permissions to the directory?");
-            }
+    private Index createIndex(File vcfFile, boolean createIndexOnDisk) {
+        Index index = null;
+        try {
+            index = TribbleRMDTrackBuilder.loadIndex(vcfFile, new VCFCodec(), createIndexOnDisk);
+        } catch (IOException e) {
+            throw new StingException("Unable to make required index for file " + vcfFile + " do you have write permissions to the directory?");
         }
+
         return index;
     }
 

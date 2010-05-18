@@ -30,6 +30,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -59,14 +60,15 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
 
     @Test
     public void testBuilderIndexUnwriteable() {
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/mixedup.vcf");
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/relic.vcf");
         try {
-            builder.createIndex(vcfFile,new VCFCodec(), true);
+            builder.loadIndex(vcfFile,new VCFCodec(), true);
         } catch (IOException e) {
-            Assert.fail("Unable to make index because of IO exception " + e.getMessage());
+            e.printStackTrace();
+            Assert.fail("IO exception unexpected" + e.getMessage());
         }
-        // make sure we didn't write the file (check that it's length is zero)
-        Assert.assertEquals(0,new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).length());
+        // make sure we didn't write the file (check that it's timestamp is within bounds)
+        Assert.assertTrue(Math.abs(1274210993000l - new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).lastModified()) < 100);
 
     }
 }
