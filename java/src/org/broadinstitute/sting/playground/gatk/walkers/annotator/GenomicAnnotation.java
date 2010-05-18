@@ -15,7 +15,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.AnnotatorROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
@@ -109,7 +108,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                         //continue;            //TODO If this site is monomorphic in the VC, and the current record specifies a particular alternate allele, skip this record. Right?
                     //} else
                     if(alternateAlleles.size() > 1) {
-                        throw new StingException("Record (" + rod + ") in " + name + " contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
+                        throw new StingException("Record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
                     }
 
                     boolean positiveStrand = true; //if HAPLOTYPE_STRAND_COLUMN isn't specified, assume positive strand.
@@ -157,7 +156,6 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                     //match against hapolotypeReference.
                     Allele vcRef = vc.getReference();
                     if(!vcRef.basesMatch(hapRefValue)) {
-                        //TODO check the intersection of vcRef and hapRefValue
                         continue; //skip record
                     }
                 }
