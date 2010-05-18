@@ -86,15 +86,25 @@ public class DepthOfCoverageStats {
 
     public DepthOfCoverageStats(DepthOfCoverageStats cloneMe) {
         this.binLeftEndpoints = cloneMe.binLeftEndpoints;
-        this.granularHistogramBySample = cloneMe.granularHistogramBySample;
-        this.totalCoverages = cloneMe.totalCoverages;
-        this.nLoci = cloneMe.nLoci;
-        this.totalLocusDepth = cloneMe.totalLocusDepth;
-        this.totalDepthOfCoverage = cloneMe.totalDepthOfCoverage;
-        this.locusHistogram = cloneMe.locusHistogram;
-        this.locusCoverageCounts = cloneMe.locusCoverageCounts;
-        this.tabulateLocusCounts = cloneMe.tabulateLocusCounts;
+        granularHistogramBySample = new HashMap<String,int[]>();
+        totalCoverages = new HashMap<String,Long>();
+        for ( String s : cloneMe.getAllSamples() ) {
+            granularHistogramBySample.put(s,new int[cloneMe.getHistograms().get(s).length]);
+            for ( int i = 0; i < granularHistogramBySample.get(s).length; i++ ) {
+                granularHistogramBySample.get(s)[i] = cloneMe.getHistograms().get(s)[i];
+            }
+            totalCoverages.put(s,cloneMe.totalCoverages.get(s));
+        }
+
         this.includeDeletions = cloneMe.includeDeletions;
+        if ( cloneMe.tabulateLocusCounts ) {
+            this.locusCoverageCounts = new int[cloneMe.locusCoverageCounts.length][cloneMe.locusCoverageCounts[0].length];
+        }
+        //this.granularHistogramBySample = cloneMe.granularHistogramBySample;
+        //this.totalCoverages = cloneMe.totalCoverages;
+        this.nLoci = cloneMe.nLoci;
+        this.totalDepthOfCoverage = cloneMe.totalDepthOfCoverage;
+        this.tabulateLocusCounts = cloneMe.tabulateLocusCounts;
     }
 
     public void addSample(String sample) {
