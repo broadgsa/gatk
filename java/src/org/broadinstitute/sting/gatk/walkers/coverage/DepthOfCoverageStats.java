@@ -84,6 +84,19 @@ public class DepthOfCoverageStats {
         totalDepthOfCoverage = 0;
     }
 
+    public DepthOfCoverageStats(DepthOfCoverageStats cloneMe) {
+        this.binLeftEndpoints = cloneMe.binLeftEndpoints;
+        this.granularHistogramBySample = cloneMe.granularHistogramBySample;
+        this.totalCoverages = cloneMe.totalCoverages;
+        this.nLoci = cloneMe.nLoci;
+        this.totalLocusDepth = cloneMe.totalLocusDepth;
+        this.totalDepthOfCoverage = cloneMe.totalDepthOfCoverage;
+        this.locusHistogram = cloneMe.locusHistogram;
+        this.locusCoverageCounts = cloneMe.locusCoverageCounts;
+        this.tabulateLocusCounts = cloneMe.tabulateLocusCounts;
+        this.includeDeletions = cloneMe.includeDeletions;
+    }
+
     public void addSample(String sample) {
         if ( granularHistogramBySample.containsKey(sample) ) {
             return;

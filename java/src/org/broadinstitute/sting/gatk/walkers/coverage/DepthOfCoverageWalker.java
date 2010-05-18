@@ -67,7 +67,7 @@ import java.util.*;
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
 @By(DataSource.REFERENCE)
-public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, CoverageAggregator> implements TreeReducible<CoverageAggregator> {
+public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.AggregationType,Map<String,int[]>>, CoverageAggregator> implements TreeReducible<CoverageAggregator> {
     @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
     int start = 1;
     @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
@@ -90,10 +90,8 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     boolean printBinEndpointsAndExit = false;
     @Argument(fullName = "omitPerSampleStats", shortName = "omitSampleSummary", doc = "Omits the summary files per-sample. These statistics are still calculated, so this argument will not improve runtime.", required = false)
     boolean omitSampleSummary = false;
-    @Argument(fullName = "useReadGroups", shortName = "rg", doc = "Split depth of coverage output by read group rather than by sample", required = false)
-    boolean useReadGroup = false;
-    @Argument(fullName = "useBothSampleAndReadGroup", shortName = "both", doc = "Split output by both read group and by sample", required = false)
-    boolean useBoth = false;
+    @Argument(fullName = "partitionType", shortName = "pt", doc = "Partition type for depth of coverage. Defaults to sample. Can be any combination of sample, readgroup, library.", required = false)
+    String[] partitionTypes = new String[] {"sample"};
     @Argument(fullName = "includeDeletions", shortName = "dels", doc = "Include information on deletions", required = false)
     boolean includeDeletions = false;
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
@@ -104,7 +102,10 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     String outputFormat = "rtable";
 
     String[] OUTPUT_FORMATS = {"table","rtable","csv"};
+    String[] PARTITION_TYPES = {"sample","readgroup","library"};
     String separator = "\t";
+    List<CoverageAggregator.AggregationType> aggregationTypes = new ArrayList<CoverageAggregator.AggregationType>();
+    Map<CoverageAggregator.AggregationType,List<String>> orderCheck = new HashMap<CoverageAggregator.AggregationType,List<String>>();
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STANDARD WALKER METHODS
@@ -124,6 +125,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             System.exit(0);
         }
 
+        // Check the output format
         boolean goodOutputFormat = false;
         for ( String f : OUTPUT_FORMATS ) {
             goodOutputFormat = goodOutputFormat || f.equals(outputFormat);
@@ -138,18 +140,33 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
             separator = ",";
         }
 
+        // Check the partition types
+        for ( String t : partitionTypes ) {
+            boolean valid = false;
+            for ( String s : PARTITION_TYPES ) {
+                if ( s.equalsIgnoreCase(t) ) {
+                    valid = true;
+                }
+            }
+            if ( ! valid ) {
+                throw new StingException("The partition type '"+t+"' is not a valid partition type. Please use any combination of 'sample','readgroup','library'.");
+            } else {
+                aggregationTypes.add(CoverageAggregator.typeStringToAggregationType(t));
+            }
+        }
+
         if ( getToolkit().getArguments().outFileName == null ) {
             logger.warn("This walker creates many output files from one input file; you may wish to specify an input file rather "+
                         "than defaulting all output to stdout.");
         }
 
         if ( ! omitDepthOutput ) { // print header
-            out.printf("%s\t%s\t%s","Locus","Total_Depth","Average_Depth");
-            // get all the samples
-            HashSet<String> allSamples = getSamplesFromToolKit(useReadGroup);
-            if ( useBoth ) {
-                allSamples.addAll(getSamplesFromToolKit(!useReadGroup));
+            out.printf("%s\t%s","Locus","Total_Depth");
+            for (CoverageAggregator.AggregationType type : aggregationTypes ) {
+                out.printf("\t%s_%s","Average_Depth",agTypeToString(type));
             }
+            // get all the samples
+            HashSet<String> allSamples = getSamplesFromToolKit(aggregationTypes);
 
             for ( String s : allSamples) {
                 out.printf("\t%s_%s","Depth_for",s);
@@ -163,24 +180,48 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         } else {
             out.printf("Per-Locus Depth of Coverage output was omitted");
         }
+
+        for (CoverageAggregator.AggregationType type : aggregationTypes ) {
+            orderCheck.put(type,new ArrayList<String>());
+            for ( String id : getSamplesFromToolKit(type) ) {
+                orderCheck.get(type).add(id);
+            }
+            Collections.sort(orderCheck.get(type));
+        }
     }
 
-    private HashSet<String> getSamplesFromToolKit( boolean getReadGroupsInstead ) {
+    private HashSet<String> getSamplesFromToolKit( List<CoverageAggregator.AggregationType> types ) {
         HashSet<String> partitions = new HashSet<String>(); // since the DOCS object uses a HashMap, this will be in the same order
-
-        if ( getReadGroupsInstead ) {
-            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
-                partitions.add(rg.getSample()+"_rg_"+rg.getReadGroupId());
-            }
-        } else {
-            for ( Set<String> sampleSet : getToolkit().getSamplesByReaders()) {
-                for (String s : sampleSet) {
-                    partitions.add(s);
-                }
-            }
+        for (CoverageAggregator.AggregationType t : types ) {
+            partitions.addAll(getSamplesFromToolKit(t));
         }
 
         return partitions;
+    }
+
+    private HashSet<String> getSamplesFromToolKit(CoverageAggregator.AggregationType type) {
+        HashSet<String> partition = new HashSet<String>();
+        if ( type == CoverageAggregator.AggregationType.SAMPLE ) {
+            for ( Set<String> sampleSet : getToolkit().getSamplesByReaders() ) {
+                for ( String s : sampleSet ) {
+                    partition.add(s);
+                }
+            }
+        } else if ( type == CoverageAggregator.AggregationType.READGROUP ) {
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partition.add(rg.getSample()+"_rg_"+rg.getReadGroupId());
+            }
+        } else if ( type == CoverageAggregator.AggregationType.LIBRARY ) {
+            for ( Set<String> libraries : getToolkit().getLibrariesByReaders() ) {
+                for ( String l : libraries ) {
+                    partition.add(l);
+                }
+            }
+        } else {
+            throw new StingException("Invalid aggregation type sent to getSamplesFromToolKit");
+        }
+
+        return partition;
     }
 
     public boolean isReduceByInterval() {
@@ -188,53 +229,28 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     }
 
     public CoverageAggregator reduceInit() {
-
-        CoverageAggregator.AggregationType agType;
-        if ( useBoth ) {
-            agType = CoverageAggregator.AggregationType.BOTH;
-        } else {
-            agType = useReadGroup ? CoverageAggregator.AggregationType.READ : CoverageAggregator.AggregationType.SAMPLE;
+        CoverageAggregator aggro = new CoverageAggregator(aggregationTypes,start,stop,nBins);
+        for (CoverageAggregator.AggregationType t : aggregationTypes ) {
+            aggro.addIdentifiers(t,getSamplesFromToolKit(t));
         }
-
-        CoverageAggregator aggro = new CoverageAggregator(agType,start,stop,nBins);
-
-        if ( ! useReadGroup || useBoth ) {
-            aggro.addSamples(getSamplesFromToolKit(false));
-        }
-
-        if ( useReadGroup || useBoth ) {
-            aggro.addReadGroups(getSamplesFromToolKit(true));
-        }
-
         aggro.initialize(includeDeletions,omitLocusTable);
-
+        checkOrder(aggro);
         return aggro;
     }
 
-    public Map<String,int[]> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public Map<CoverageAggregator.AggregationType,Map<String,int[]>> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
         if ( ! omitDepthOutput ) {
             out.printf("%s",ref.getLocus()); // yes: print locus in map, and the rest of the info in reduce (for eventual cumulatives)
             //System.out.printf("\t[log]\t%s",ref.getLocus());
         }
 
-        Map<String,int[]> countsBySample = CoverageUtils.getBaseCountsBySample(context,minMappingQuality,minBaseQuality,
-                useReadGroup ? CoverageUtils.PartitionType.BY_READ_GROUP : CoverageUtils.PartitionType.BY_SAMPLE);
-
-        if ( useBoth ) {
-            Map<String,int[]> countsByOther = CoverageUtils.getBaseCountsBySample(context,minMappingQuality,minBaseQuality,
-                !useReadGroup ? CoverageUtils.PartitionType.BY_READ_GROUP : CoverageUtils.PartitionType.BY_SAMPLE);
-            for ( String s : countsByOther.keySet()) {
-                countsBySample.put(s,countsByOther.get(s));
-            }
-        }
-
-        return countsBySample;
+        return CoverageUtils.getBaseCountsByPartition(context,minMappingQuality,minBaseQuality,aggregationTypes);
     }
 
-    public CoverageAggregator reduce(Map<String,int[]> thisMap, CoverageAggregator prevReduce) {
+    public CoverageAggregator reduce(Map<CoverageAggregator.AggregationType,Map<String,int[]>> thisMap, CoverageAggregator prevReduce) {
         if ( ! omitDepthOutput ) {
-            printDepths(out,thisMap, prevReduce.getAllSamples());
+            printDepths(out,thisMap, prevReduce.getIdentifiersByType());
             // this is an additional iteration through thisMap, plus dealing with IO, so should be much slower without
             // turning on omit
         }
@@ -254,20 +270,26 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
     ////////////////////////////////////////////////////////////////////////////////////
 
     public void onTraversalDone( List<Pair<GenomeLoc,CoverageAggregator>> statsByInterval ) {
-        if ( refSeqGeneList != null && ( useBoth || ! useReadGroup ) ) {
+        if ( refSeqGeneList != null && aggregationTypes.contains(CoverageAggregator.AggregationType.SAMPLE ) ) {
             printGeneStats(statsByInterval);
         }
 
-        if ( useBoth || ! useReadGroup ) {
+        if ( aggregationTypes.contains(CoverageAggregator.AggregationType.SAMPLE) ) {
             File intervalStatisticsFile = deriveFromStream("sample_interval_statistics");
             File intervalSummaryFile = deriveFromStream("sample_interval_summary");
-            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, true);
+            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, CoverageAggregator.AggregationType.SAMPLE );
         }
 
-        if ( useBoth || useReadGroup ) {
+        if ( aggregationTypes.contains(CoverageAggregator.AggregationType.READGROUP ) ) {
             File intervalStatisticsFile = deriveFromStream("read_group_interval_statistics");
             File intervalSummaryFile = deriveFromStream("read_group_interval_summary");
-            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, false);
+            printIntervalStats(statsByInterval,intervalSummaryFile, intervalStatisticsFile, CoverageAggregator.AggregationType.READGROUP);
+        }
+
+        if ( aggregationTypes.contains(CoverageAggregator.AggregationType.LIBRARY) ) {
+            File intervalStatisticsFile = deriveFromStream("library_interval_statistics");
+            File intervalSummaryFile = deriveFromStream("library_interval_summary");
+            printIntervalStats(statsByInterval,intervalSummaryFile,intervalStatisticsFile,CoverageAggregator.AggregationType.LIBRARY);
         }
 
         onTraversalDone(mergeAll(statsByInterval));
@@ -283,7 +305,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         return first;
     }
 
-    private DepthOfCoverageStats printIntervalStats(List<Pair<GenomeLoc,CoverageAggregator>> statsByInterval, File summaryFile, File statsFile, boolean isSample) {
+    private DepthOfCoverageStats printIntervalStats(List<Pair<GenomeLoc,CoverageAggregator>> statsByInterval, File summaryFile, File statsFile, CoverageAggregator.AggregationType type) {
         PrintStream summaryOut;
         PrintStream statsOut;
 
@@ -296,7 +318,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
 
         Pair<GenomeLoc,CoverageAggregator> firstPair = statsByInterval.get(0);
         CoverageAggregator firstAggregator = firstPair.second;
-        DepthOfCoverageStats firstStats = isSample ? firstAggregator.getCoverageBySample() : firstAggregator.getCoverageByReadGroup();
+        DepthOfCoverageStats firstStats = firstAggregator.getCoverageByAggregationType(type);
 
         StringBuilder summaryHeader = new StringBuilder();
         summaryHeader.append("Target");
@@ -330,8 +352,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         for ( Pair<GenomeLoc,CoverageAggregator> targetAggregator : statsByInterval ) {
 
             Pair<GenomeLoc,DepthOfCoverageStats> targetStats = new Pair<GenomeLoc,DepthOfCoverageStats>(
-                    targetAggregator.first, isSample ? targetAggregator.second.getCoverageBySample() :
-                    targetAggregator.second.getCoverageByReadGroup());
+                    targetAggregator.first, targetAggregator.second.getCoverageByAggregationType(type));
             printTargetSummary(summaryOut,targetStats);
             updateTargetTable(nTargetsByAvgCvgBySample,targetStats.second);
         }
@@ -354,10 +375,10 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         for ( Pair<GenomeLoc,CoverageAggregator> targetStats : statsByTarget ) {
             String gene = getGeneName(targetStats.first,refseqIterator);
             if ( geneNamesToStats.keySet().contains(gene) ) {
-                geneNamesToStats.get(gene).merge(targetStats.second.getCoverageBySample());
+                geneNamesToStats.get(gene).merge(targetStats.second.getCoverageByAggregationType(CoverageAggregator.AggregationType.SAMPLE));
             } else {
-                geneNamesToStats.put(gene,targetStats.second.getCoverageBySample());
-                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,targetStats.second.getCoverageBySample()));
+                geneNamesToStats.put(gene,targetStats.second.getCoverageByAggregationType(CoverageAggregator.AggregationType.SAMPLE));
+                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(CoverageAggregator.AggregationType.SAMPLE))));
             }
         }
 
@@ -498,35 +519,42 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
 
         if ( ! omitSampleSummary ) {
             logger.info("Printing summary info");
-            if ( ! useReadGroup || useBoth ) {
-                File summaryStatisticsFile = deriveFromStream("sample_summary_statistics");
-                File perSampleStatisticsFile = deriveFromStream("sample_statistics");
-                printSummary(out,summaryStatisticsFile,coverageProfiles.getCoverageBySample());
-                printPerSample(out,perSampleStatisticsFile,coverageProfiles.getCoverageBySample());
-            }
-
-            if ( useReadGroup || useBoth ) {
-                File rgStatsFile = deriveFromStream("read_group_summary");
-                File rgSumFile = deriveFromStream("read_group_statistics");
-                printSummary(out,rgStatsFile,coverageProfiles.getCoverageByReadGroup());
-                printPerSample(out,rgSumFile,coverageProfiles.getCoverageByReadGroup());
+            for (CoverageAggregator.AggregationType type : aggregationTypes ) {
+                outputSummaryFiles(coverageProfiles,type);
             }
         }
 
         if ( ! omitLocusTable ) {
             logger.info("Printing locus summary");
-            if ( ! useReadGroup || useBoth ) {
-                File perLocusStatisticsFile = deriveFromStream("sample_locus_statistics");
-                File perLocusCoverageFile = deriveFromStream("sample_coverage_statistics");
-                printPerLocus(perLocusStatisticsFile,perLocusCoverageFile,coverageProfiles.getCoverageBySample(),false);
-            }
-
-            if ( useReadGroup || useBoth ) {
-                File perLocusRGStats = deriveFromStream("read_group_locus_statistics");
-                File perLocusRGCoverage = deriveFromStream("read_group_locus_coverage");
-                printPerLocus(perLocusRGStats,perLocusRGCoverage,coverageProfiles.getCoverageByReadGroup(),true);
+            for (CoverageAggregator.AggregationType type : aggregationTypes ) {
+                outputLocusFiles(coverageProfiles,type);
             }
         }
+    }
+
+    private String agTypeToString(CoverageAggregator.AggregationType type) {
+        if ( type == CoverageAggregator.AggregationType.SAMPLE ) {
+            return "sample";
+        } else if ( type == CoverageAggregator.AggregationType.READGROUP ) {
+            return "read_group";
+        } else if ( type == CoverageAggregator.AggregationType.LIBRARY ) {
+            return "library";
+        } else {
+            throw new StingException("Invalid aggregation type "+type+" sent to agTypeToString. This is a BUG!");
+        }
+    }
+
+    private void outputLocusFiles(CoverageAggregator coverageProfiles, CoverageAggregator.AggregationType type ) {
+        File locusStats = deriveFromStream(agTypeToString(type)+"_cumulative_coverage_counts");
+        File coverageStats = deriveFromStream(agTypeToString(type)+"_cumulative_coverage_proportions");
+        printPerLocus(locusStats,coverageStats,coverageProfiles.getCoverageByAggregationType(type),agTypeToString(type));
+    }
+
+    private void outputSummaryFiles(CoverageAggregator coverageProfiles, CoverageAggregator.AggregationType type ) {
+        File summaryFile = deriveFromStream(agTypeToString(type)+"_summary");
+        File statsFile = deriveFromStream(agTypeToString(type)+"_statistics");
+        printPerSample(out,statsFile,coverageProfiles.getCoverageByAggregationType(type));
+        printSummary(out,summaryFile,coverageProfiles.getCoverageByAggregationType(type));
     }
 
     public File deriveFromStream(String append) {
@@ -568,7 +596,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         }
     }
 
-    private void printPerLocus(File locusFile, File coverageFile, DepthOfCoverageStats stats, boolean isRG) {
+    private void printPerLocus(File locusFile, File coverageFile, DepthOfCoverageStats stats, String partitionType) {
         PrintStream output = getCorrectStream(out,locusFile);
         PrintStream coverageOut = getCorrectStream(out,coverageFile);
         if ( output == null ) {
@@ -587,11 +615,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
 
         StringBuilder header = new StringBuilder();
         if ( printSampleColumnHeader ) {
-            if ( isRG ) {
-                header.append("ReadGroup");
-            } else {
-                header.append("Sample");
-            }
+            header.append(partitionType);
         }
         header.append(String.format("%sgte_0",separator));
         for ( int d : endpoints ) {
@@ -689,24 +713,34 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
         return bin;
     }
 
-    private void printDepths(PrintStream stream, Map<String,int[]> countsBySample, Set<String> allSamples) {
+    private void printDepths(PrintStream stream, Map<CoverageAggregator.AggregationType,Map<String,int[]>> countsBySampleByType, Map<CoverageAggregator.AggregationType,List<String>> identifiersByType) {
         // get the depths per sample and build up the output string while tabulating total and average coverage
-        // todo -- update me to deal with base counts/indels
         StringBuilder perSampleOutput = new StringBuilder();
         int tDepth = 0;
-        for ( String s : allSamples ) {
-            perSampleOutput.append(separator);
-            long dp = countsBySample.keySet().contains(s) ? sumArray(countsBySample.get(s)) : 0;
-            perSampleOutput.append(dp);
-            if ( printBaseCounts ) {
+        boolean depthCounted = false;
+        for (CoverageAggregator.AggregationType type : aggregationTypes ) {
+            Map<String,int[]> countsByID = countsBySampleByType.get(type);
+            for ( String s : identifiersByType.get(type) ) {
                 perSampleOutput.append(separator);
-                perSampleOutput.append(baseCounts(countsBySample.get(s)));
+                long dp = countsByID.keySet().contains(s) ? sumArray(countsByID.get(s)) : 0 ;
+                perSampleOutput.append(dp);
+                if ( printBaseCounts ) {
+                    perSampleOutput.append(separator);
+                    perSampleOutput.append(baseCounts(countsByID.get(s)));
+                }
+                if ( ! depthCounted ) {
+                    tDepth += dp;
+                }
             }
-            tDepth += dp;
+            depthCounted = true; // only sum the total depth once
         }
+
         // remember -- genome locus was printed in map()
-        stream.printf("%s%d%s%.2f%s%n",separator,tDepth,separator,( (double) tDepth/ (double) allSamples.size()),
-                                       perSampleOutput);
+        stream.printf("%s%d",separator,tDepth);
+        for (CoverageAggregator.AggregationType type : aggregationTypes ) {
+            stream.printf("%s%.2f",separator, ( (double) tDepth / identifiersByType.get(type).size() ) );
+        }
+        stream.printf("%s%n",perSampleOutput);
     }
 
     private long sumArray(int[] array) {
@@ -737,115 +771,99 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<String,int[]>, Covera
 
         return s.toString();
     }
+
+    private void checkOrder(CoverageAggregator ag) {
+        for (CoverageAggregator.AggregationType t : aggregationTypes ) {
+            List<String> order = orderCheck.get(t);
+            List<String> namesInAg = ag.getIdentifiersByType().get(t);
+            Set<String> namesInDOCS = ag.getCoverageByAggregationType(t).getAllSamples();
+            int index = 0;
+            for ( String s : namesInAg ) {
+                if ( ! s.equalsIgnoreCase(order.get(index)) ) {
+                    throw new StingException("IDs are out of order for type "+t+"! Aggregator has different ordering");
+                }
+                index++;
+            }
+        }
+    }
 }
 
 class CoverageAggregator {
-    private DepthOfCoverageStats coverageByRead;
-    private DepthOfCoverageStats coverageBySample;
 
-    enum AggregationType { READ, SAMPLE, BOTH }
+    enum AggregationType { READGROUP, SAMPLE, LIBRARY }
 
-    private AggregationType agType;
-    private Set<String> sampleNames;
-    private Set<String> allSamples;
-
-    public CoverageAggregator(AggregationType type, int start, int stop, int nBins) {
-        if ( type == AggregationType.READ || type == AggregationType.BOTH) {
-            coverageByRead = new DepthOfCoverageStats(DepthOfCoverageStats.calculateBinEndpoints(start,stop,nBins));
+    private List<AggregationType> types;
+    private Map<AggregationType,DepthOfCoverageStats> coverageProfiles;
+    private Map<AggregationType,List<String>> identifiersByType;
+    private Set<String> allIdentifiers;
+    public CoverageAggregator(List<AggregationType> typesToUse, int start, int stop, int nBins) {
+        coverageProfiles = new HashMap<AggregationType,DepthOfCoverageStats>();
+        identifiersByType = new HashMap<AggregationType,List<String>>();
+        types = typesToUse;
+        for ( AggregationType type : types ) {
+            coverageProfiles.put(type,new DepthOfCoverageStats(DepthOfCoverageStats.calculateBinEndpoints(start,stop,nBins)));
+            identifiersByType.put(type,new ArrayList<String>());
         }
-
-        if ( type == AggregationType.SAMPLE || type == AggregationType.BOTH) {
-            coverageBySample = new DepthOfCoverageStats(DepthOfCoverageStats.calculateBinEndpoints(start,stop,nBins));
-        }
-
-        agType = type;
-        allSamples = new HashSet<String>();
+        allIdentifiers = new HashSet<String>();
     }
 
     public void merge(CoverageAggregator otherAggregator) {
-        if ( agType == AggregationType.SAMPLE || agType == AggregationType.BOTH ) {
-            this.coverageBySample.merge(otherAggregator.coverageBySample);
-        }
-
-        if ( agType == AggregationType.READ || agType == AggregationType.BOTH) {
-            this.coverageByRead.merge(otherAggregator.coverageByRead);
+        for ( AggregationType type : types ) {
+            this.coverageProfiles.get(type).merge(otherAggregator.coverageProfiles.get(type));
         }
     }
 
-    public DepthOfCoverageStats getCoverageByReadGroup() {
-        return coverageByRead;
+    public DepthOfCoverageStats getCoverageByAggregationType(AggregationType t) {
+        return coverageProfiles.get(t);
     }
 
-    public DepthOfCoverageStats getCoverageBySample() {
-        return coverageBySample;
-    }
-
-    public void addSamples(Set<String> samples) {
-        for ( String s : samples ) {
-            coverageBySample.addSample(s);
-            allSamples.add(s);
+    public void addIdentifiers(AggregationType t, Set<String> ids) {
+        for ( String s : ids ) {
+            coverageProfiles.get(t).addSample(s);
+            identifiersByType.get(t).add(s);
+            allIdentifiers.add(s);
         }
-
-        if ( agType == AggregationType.BOTH ) {
-            sampleNames = samples;
-        }
+        Collections.sort(identifiersByType.get(t));
     }
-
-    public void addReadGroups(Set<String> readGroupNames) {
-        for ( String s : readGroupNames ) {
-            coverageByRead.addSample(s);
-            allSamples.add(s);
-        }
-    }
-
 
     public void initialize(boolean useDels, boolean omitLocusTable) {
-        if ( agType == AggregationType.SAMPLE || agType == AggregationType.BOTH ) {
+        for ( AggregationType t : types ) {
             if ( useDels ) {
-                coverageBySample.initializeDeletions();
+                coverageProfiles.get(t).initializeDeletions();
             }
-
             if ( ! omitLocusTable ) {
-                coverageBySample.initializeLocusCounts();
-            }
-        }
-
-        if ( agType == AggregationType.READ || agType == AggregationType.BOTH) {
-            if ( useDels ) {
-                coverageByRead.initializeDeletions();
-            }
-
-            if ( ! omitLocusTable ) {
-                coverageByRead.initializeLocusCounts();
+                coverageProfiles.get(t).initializeLocusCounts();
             }
         }
     }
 
-    public void update(Map<String,int[]> countsByIdentifier) {
-        if ( agType != AggregationType.BOTH ) {
-            if ( agType == AggregationType.SAMPLE ) {
-                coverageBySample.update(countsByIdentifier);
-            } else {
-                coverageByRead.update(countsByIdentifier);
-            }
-        } else { // have to separate samples and read groups
-            HashMap<String,int[]> countsBySample = new HashMap<String,int[]>(sampleNames.size());
-            HashMap<String,int[]> countsByRG = new HashMap<String,int[]>(allSamples.size()-sampleNames.size());
-            for ( String s : countsByIdentifier.keySet() ) {
-                if ( sampleNames.contains(s) ) {
-                    countsBySample.put(s,countsByIdentifier.get(s));
-                } else {                                               // cannot use .remove() to save time due to concurrency issues
-                    countsByRG.put(s,countsByIdentifier.get(s));
-                }
-            }
-
-            coverageBySample.update(countsBySample);
-            coverageByRead.update(countsByRG);
+    public void update(Map<AggregationType,Map<String,int[]>> countsByIdentifierByType) {
+        for ( AggregationType t : types ) {
+            coverageProfiles.get(t).update(countsByIdentifierByType.get(t));
         }
     }
 
-    public Set<String> getAllSamples() {
-        return allSamples;
+    public Set<String> getAllIdentifiers() {
+        return allIdentifiers;
     }
 
+    public Map<AggregationType,List<String>> getIdentifiersByType() {
+        return identifiersByType;
+    }
+
+    public static AggregationType typeStringToAggregationType(String type) {
+        if ( type.equals("sample") ) {
+            return AggregationType.SAMPLE;
+        }
+
+        if ( type.equals("library") ) {
+            return AggregationType.LIBRARY;
+        }
+
+        if ( type.equals("readgroup") ) {
+            return AggregationType.READGROUP;
+        }
+
+        throw new StingException("Valid partition type string "+type+" is not associated with an aggregation type. This is a BUG!");
+    }
 }

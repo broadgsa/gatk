@@ -1,13 +1,15 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -16,8 +18,6 @@ import java.util.Map;
  * @Date Mar 3, 2010
  */
 public class CoverageUtils {
-
-    public enum PartitionType { BY_READ_GROUP, BY_SAMPLE }
 
     /**
      * Returns the counts of bases from reads with MAPQ > minMapQ and base quality > minBaseQ in the context
@@ -40,21 +40,37 @@ public class CoverageUtils {
         return counts;
     }
 
+    public static String getTypeID( SAMRecord r, CoverageAggregator.AggregationType type ) {
+        if ( type == CoverageAggregator.AggregationType.SAMPLE ) {
+            return r.getReadGroup().getSample();
+        } else if ( type == CoverageAggregator.AggregationType.READGROUP ) {
+            return String.format("%s_rg_%s",r.getReadGroup().getSample(),r.getReadGroup().getReadGroupId());
+        } else if ( type == CoverageAggregator.AggregationType.LIBRARY ) {
+            return r.getReadGroup().getLibrary();
+        } else {
+            throw new StingException("Invalid type ID sent to getTypeID. This is a BUG!");
+        }
+    }
+    public static Map<CoverageAggregator.AggregationType,Map<String,int[]>>
+                    getBaseCountsByPartition(AlignmentContext context, int minMapQ, int minBaseQ, List<CoverageAggregator.AggregationType> types) {
 
-    public static Map<String,int[]> getBaseCountsBySample(AlignmentContext context, int minMapQ, int minBaseQ, PartitionType type) {
-        Map<String,int[]> samplesToCounts = new HashMap<String,int[]>();
-
+        Map<CoverageAggregator.AggregationType,Map<String,int[]>> countsByIDByType = new HashMap<CoverageAggregator.AggregationType,Map<String,int[]>>();
+        for (CoverageAggregator.AggregationType t : types ) {
+            countsByIDByType.put(t,new HashMap<String,int[]>());
+        }
         for (PileupElement e : context.getBasePileup()) {
             if ( e.getMappingQual() >= minMapQ && ( e.getQual() >= minBaseQ || e.isDeletion() ) ) {
-                String sample = type == PartitionType.BY_SAMPLE ? e.getRead().getReadGroup().getSample() :
-                        e.getRead().getReadGroup().getSample()+"_rg_"+e.getRead().getReadGroup().getReadGroupId();
-                if ( ! samplesToCounts.keySet().contains(sample) )
-                    samplesToCounts.put(sample,new int[6]);
-                updateCounts(samplesToCounts.get(sample),e);
+                for (CoverageAggregator.AggregationType t : types ) {
+                    String id = getTypeID(e.getRead(),t);
+                    if ( ! countsByIDByType.get(t).keySet().contains(id) ) {
+                        countsByIDByType.get(t).put(id,new int[6]);
+                    }
+                    updateCounts(countsByIDByType.get(t).get(id),e);
+                }
             }
         }
 
-        return samplesToCounts;
+        return countsByIDByType;
     }
 
     private static void updateCounts(int[] counts, PileupElement e) {
