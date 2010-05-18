@@ -377,7 +377,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             if ( geneNamesToStats.keySet().contains(gene) ) {
                 geneNamesToStats.get(gene).merge(targetStats.second.getCoverageByAggregationType(CoverageAggregator.AggregationType.SAMPLE));
             } else {
-                geneNamesToStats.put(gene,targetStats.second.getCoverageByAggregationType(CoverageAggregator.AggregationType.SAMPLE));
+                geneNamesToStats.put(gene,new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(CoverageAggregator.AggregationType.SAMPLE)));
                 statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(CoverageAggregator.AggregationType.SAMPLE))));
             }
         }
