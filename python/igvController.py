@@ -14,11 +14,13 @@ import faiReader
 import math
 import shutil
 import string
+import time
 from madPipelineUtils import *
 
 HOST = 'vm0e0-052.broadinstitute.org'       # Symbolic name meaning the local host
 PORT = 60151                                # Arbitrary non-privileged port
 LOCAL_DIR = "/Users/depristo/Desktop/IGV_screenshots"
+SLEEP_TIME = 1
 
 def main():
     global OPTIONS
@@ -50,7 +52,7 @@ an IGV session.  See http://www.broadinstitute.org/igv/?q=PortCommands.  Make su
 
     def sendCommand(cmd):
         s.send(cmd)
-        print s.recv(512).trim()
+        print cmd.strip(), '=>', s.recv(512).strip()
 
     s.connect((OPTIONS.host, PORT))
     sendCommand("snapshotDirectory " + OPTIONS.dir + "\n")
@@ -64,6 +66,8 @@ an IGV session.  See http://www.broadinstitute.org/igv/?q=PortCommands.  Make su
         if OPTIONS.wait: 
             raw_input("Enter To Continue") 
         else:
+            print 'sleep', SLEEP_TIME, 'secs' 
+            time.sleep(SLEEP_TIME)
             sendCommand("snapshot\n") # %s.png\n" % re.sub("-","_",re.sub(':', '_', site)))
     print c
 
