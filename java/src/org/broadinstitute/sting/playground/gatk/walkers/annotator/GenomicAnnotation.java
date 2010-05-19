@@ -13,9 +13,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.AnnotatorROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.TabularROD;
+import org.broadinstitute.sting.gatk.refdata.features.sampileup.AnnotatorInputTableFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
@@ -31,9 +30,10 @@ import org.broadinstitute.sting.utils.StingException;
  */
 public class GenomicAnnotation implements InfoFieldAnnotation {
 
-    private static final String HAPLOTYPE_REFERENCE_COLUMN = AnnotatorROD.HAPLOTYPE_REFERENCE_COLUMN;
-    private static final String HAPLOTYPE_ALTERNATE_COLUMN = AnnotatorROD.HAPLOTYPE_ALTERNATE_COLUMN;
-    private static final String HAPLOTYPE_STRAND_COLUMN = AnnotatorROD.HAPLOTYPE_STRAND_COLUMN;
+    public static final String CHRPOS_COLUMN = "chrpos";
+    public static final String HAPLOTYPE_REFERENCE_COLUMN = "haplotypeReference";
+    public static final String HAPLOTYPE_ALTERNATE_COLUMN = "haplotypeAlternate";
+    public static final String HAPLOTYPE_STRAND_COLUMN = "haplotypeStrand";
 
 
     /**
@@ -72,18 +72,16 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
         final Map<String, Object> annotations = new HashMap<String, Object>();
         for(final GATKFeature gatkFeature : tracker.getAllRods())
         {
-            final Object rod = gatkFeature.getUnderlyingObject();
             final String name = gatkFeature.getName();
             if( name.equals("variant") || name.equals("interval") ) {
                 continue;
             }
 
-            if( ! (rod instanceof TabularROD) ) {
+            if( ! (gatkFeature.getUnderlyingObject() instanceof AnnotatorInputTableFeature) ) {
                 continue; //GenericAnnotation only works with TabularRODs because it needs to be able to select individual columns.
             }
 
-            TabularROD tabularRod = (TabularROD) rod;
-            final Map<String, String> annotationsForRecord = convertRecordToAnnotations( tabularRod );
+            final Map<String, String> annotationsForRecord = convertRecordToAnnotations( gatkFeature );
 
             //If this record contains the HAPLOTYPE_REFERENCE_COLUMN and/or HAPLOTYPE_ALTERNATE_COLUMN, check whether the
             //alleles specified match the the variant's reference allele and alternate allele.
@@ -118,7 +116,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                         if(hapStrandValue.equals("-") || hapStrandValue.equals("r")) {
                             positiveStrand = false;
                         } else if(!hapStrandValue.equals("+") && !hapStrandValue.equals("f")) {
-                            throw new StingException("Record (" + rod + ") in " + name + " has an invalid value for " + HAPLOTYPE_STRAND_COLUMN + ". This value is: \"" + hapStrandValue + "\"");
+                            throw new StingException("Record (" + gatkFeature.getUnderlyingObject() + ") in " + name + " has an invalid value for " + HAPLOTYPE_STRAND_COLUMN + ". This value is: \"" + hapStrandValue + "\"");
                         }
                     }
 
@@ -183,18 +181,17 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
      *   thisRodName.fieldName1=fieldValue, thisRodName.fieldName1=fieldValue
      *   (eg. dbSNP.avHet=0.7, dbSNP.ref_allele=A)
      *
-     * @param rod A TabularROD corresponding to one record in one input file.
-     *
+     * @param annotatorInputTableFeature AnnotatorInputTableFeature corresponding to one record in one input file.
+     * @param name The binding name of the given AnnotatorInputTableFeature.
      * @return The map of column-name -> value pairs.
      */
-    private Map<String, String> convertRecordToAnnotations( final TabularROD rod ) {
-        final String rodName = rod.getName(); //aka the rod binding
+    private Map<String, String> convertRecordToAnnotations( final GATKFeature feature) {
 
         final Map<String, String> result = new HashMap<String, String>();
-        for(final Entry<String, String> entry : rod.entrySet()) {
+        for(final Entry<String, String> entry : ((AnnotatorInputTableFeature) feature.getUnderlyingObject()).getEntrySet()) {
             final String value = entry.getValue();
             if(!value.trim().isEmpty()) {
-                result.put( generateInfoFieldKey(rodName, entry.getKey()), entry.getValue());
+                result.put( generateInfoFieldKey(feature.getName(), entry.getKey()), entry.getValue());
             }
         }
 
