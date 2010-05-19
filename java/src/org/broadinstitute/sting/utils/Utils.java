@@ -25,11 +25,18 @@
 
 package org.broadinstitute.sting.utils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import net.sf.samtools.util.StringUtil;
+
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.Pair;
-
-import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -151,6 +158,40 @@ public class Utils {
     }
 
     /**
+     * Splits a String using indexOf instead of regex to speed things up.
+     *
+     * @param str the string to split.
+     * @param delimiter the delimiter used to split the string.
+     * @return an array of tokens.
+     */
+    public static ArrayList<String> split(String str, String delimiter) {
+        return split(str, delimiter, 10);
+    }
+
+    /**
+     * Splits a String using indexOf instead of regex to speed things up.
+     *
+     * @param str the string to split.
+     * @param delimiter the delimiter used to split the string.
+     * @param expectedNumTokens The number of tokens expected. This is used to initialize the ArrayList.
+     * @return an array of tokens.
+     */
+    public static ArrayList<String> split(String str, String delimiter, int expectedNumTokens) {
+        final ArrayList<String> result =  new ArrayList<String>(expectedNumTokens);
+
+        int delimiterIdx = -1;
+        do {
+            final int tokenStartIdx = delimiterIdx + 1;
+            delimiterIdx = str.indexOf(delimiter, tokenStartIdx);
+            final String token = (delimiterIdx != -1 ? str.substring(tokenStartIdx, delimiterIdx) : str.substring(tokenStartIdx) );
+            result.add(token);
+        } while( delimiterIdx != -1 );
+
+        return result;
+    }
+
+
+    /**
      * join an array of strings given a seperator
      * @param separator the string to insert between each array element
      * @param strings the array of strings
@@ -177,12 +218,14 @@ public class Utils {
     //}
 
     public static <T> String join(String separator, Collection<T> objects) {
-        final StringBuilder ret = new StringBuilder();
-        for(final Object o : objects) {
-            if(ret.length() != 0) {
-                ret.append(separator);
-            }
-            ret.append(o.toString());
+        if(objects.isEmpty()) {
+            return "";
+        }
+        Iterator<T> iter = objects.iterator();
+        final StringBuilder ret = new StringBuilder(iter.next().toString());
+        while(iter.hasNext()) {
+            ret.append(separator);
+            ret.append(iter.next().toString());
         }
 
         return ret.toString();
