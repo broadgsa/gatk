@@ -261,7 +261,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
 
         return applyDecoratingIterators(enableVerification,
                 new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,mergingIterator)),
-                reads.getDownsamplingFraction(),
+                reads.getDownsamplingMethod().toFraction,
                 reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 reads.getSupplementalFilters());        
     }
@@ -282,7 +282,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
 
         return applyDecoratingIterators(shard instanceof ReadShard,
                 new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,mergingIterator)),
-                reads.getDownsamplingFraction(),
+                reads.getDownsamplingMethod().toFraction,
                 reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 reads.getSupplementalFilters());
     }    

@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
-import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
+import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
@@ -57,15 +55,21 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
 
     /**
      * Create a new window maker with the given iterator as a data source, covering
-     * the given inteervals.
+     * the given intervals.
      * @param iterator The data source for this window.
      * @param intervals The set of intervals over which to traverse.
      */
     public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals) {
         this.sourceInfo = iterator.getSourceInfo();
         this.readIterator = iterator;
-        
-        LocusIterator locusIterator = new LocusIteratorByState(new FilteringIterator(iterator,new LocusStreamFilterFunc()),sourceInfo);
+
+        LocusIterator locusIterator;
+        if(sourceInfo.getDownsamplingMethod() != null &&
+          (sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_BY_SAMPLE || sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR))
+            locusIterator = new DownsamplingLocusIteratorByState(new FilteringIterator(iterator,new LocusStreamFilterFunc()),sourceInfo);
+        else
+            locusIterator = new LocusIteratorByState(new FilteringIterator(iterator,new LocusStreamFilterFunc()),sourceInfo);        
+
         this.locusOverflowTracker = locusIterator.getLocusOverflowTracker();
 
         this.sourceIterator = new PeekableIterator<AlignmentContext>(locusIterator);

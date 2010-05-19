@@ -73,7 +73,7 @@ public class ReservoirDownsampler<T> implements Collection<T> {
      * @return The downsampled contents of this reservoir.
      */
     public Collection<T> getDownsampledContents() {
-        return Collections.unmodifiableCollection(reservoir);
+        return (Collection<T>)reservoir.clone();
     }
 
     @Override

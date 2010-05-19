@@ -165,14 +165,14 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
             iterator = seekRead(shard);
             iterator = applyDecoratingIterators(true,
                     iterator,
-                    reads.getDownsamplingFraction(),
+                    reads.getDownsamplingMethod().toFraction,
                     reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                     reads.getSupplementalFilters());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS) {
             iterator = seekLocus(shard);
             iterator = applyDecoratingIterators(false,
                     iterator,
-                    reads.getDownsamplingFraction(),
+                    reads.getDownsamplingMethod().toFraction,
                     reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                     reads.getSupplementalFilters());
         } else if ((shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) ||
@@ -180,7 +180,7 @@ public class IndexDrivenSAMDataSource extends SAMDataSource {
             iterator = seekLocus(shard);
             iterator = applyDecoratingIterators(false,
                     iterator,
-                    reads.getDownsamplingFraction(),
+                    reads.getDownsamplingMethod().toFraction,
                     reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                     reads.getSupplementalFilters());
 

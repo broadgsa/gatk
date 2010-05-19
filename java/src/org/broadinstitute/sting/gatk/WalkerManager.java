@@ -239,6 +239,27 @@ public class WalkerManager extends PluginManager<Walker> {
     }
 
     /**
+     * Gets the type of downsampling method requested by the walker.  If an alternative
+     * downsampling method is specified on the command-line, the command-line version will
+     * be used instead.
+     * @param walker The walker to interrogate.
+     * @return The downsampling method, as specified by the walker.  Null if none exists.
+     */
+    public static DownsamplingMethod getDownsamplingMethod(Walker walker) {
+        DownsamplingMethod downsamplingMethod = null;
+
+        if( walker.getClass().isAnnotationPresent(Downsample.class) ) {
+            Downsample downsampleParameters = walker.getClass().getAnnotation(Downsample.class);
+            DownsampleType type = downsampleParameters.by();
+            Integer toCoverage = downsampleParameters.toCoverage() >= 0 ? downsampleParameters.toCoverage() : null;
+            Double toFraction = downsampleParameters.toFraction() >= 0.0d ? downsampleParameters.toFraction() : null;
+            downsamplingMethod = new DownsamplingMethod(type,toCoverage,toFraction);
+        }
+
+        return downsamplingMethod;
+    }
+
+    /**
      * Create a name for this type of walker.
      *
      * @param walkerType The type of walker.

@@ -28,8 +28,7 @@ import java.util.Collection;
 public class Reads {
     private List<File> readsFiles = null;
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
-    private Double downsamplingFraction = null;
-    private Integer downsampleToCoverage = null;
+    private DownsamplingMethod downsamplingMethod = null;
     private ValidationExclusion exclusionList = null;
     private Collection<SamRecordFilter> supplementalFilters = null;
     protected int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
@@ -76,19 +75,11 @@ public class Reads {
     }
 
     /**
-     * Get the fraction of reads to downsample.
+     * Gets the method and parameters used when downsampling reads.
      * @return Downsample fraction.
      */
-    public Double getDownsamplingFraction() {
-        return downsamplingFraction;
-    }
-
-    /**
-     * Downsample each locus to the specified coverage.
-     * @return Coverage to which to downsample.
-     */
-    public Integer getDownsampleToCoverage() {
-        return downsampleToCoverage;
+    public DownsamplingMethod getDownsamplingMethod() {
+        return downsamplingMethod;
     }
 
     /**
@@ -117,6 +108,7 @@ public class Reads {
      */
     public Reads( List<File> readsFiles ) {
         this.readsFiles = readsFiles;
+        this.downsamplingMethod = new DownsamplingMethod(DownsampleType.NONE,null,null);
         this.supplementalFilters = new ArrayList<SamRecordFilter>();
         this.exclusionList = new ValidationExclusion();
     }
@@ -127,8 +119,6 @@ public class Reads {
      * is package protected.
      * @param samFiles list of reads files.
      * @param strictness Stringency of reads file parsing.
-     * @param downsampleFraction fraction of reads to downsample.
-     * @param downsampleCoverage downsampling per-locus.
      * @param exclusionList what safety checks we're willing to let slide
      * @param supplementalFilters additional filters to dynamically apply.
      * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
@@ -140,8 +130,7 @@ public class Reads {
      */
     Reads( List<File> samFiles,
            SAMFileReader.ValidationStringency strictness,
-           Double downsampleFraction,
-           Integer downsampleCoverage,
+           DownsamplingMethod downsamplingMethod,
            ValidationExclusion exclusionList,
            Collection<SamRecordFilter> supplementalFilters,
            int maximumReadsAtLocus,
@@ -149,8 +138,7 @@ public class Reads {
            boolean generateExtendedEvents) {
         this.readsFiles = samFiles;
         this.validationStringency = strictness;
-        this.downsamplingFraction = downsampleFraction;
-        this.downsampleToCoverage = downsampleCoverage;
+        this.downsamplingMethod = downsamplingMethod;
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;
         this.supplementalFilters = supplementalFilters;
         this.maximumReadsAtLocus = maximumReadsAtLocus;

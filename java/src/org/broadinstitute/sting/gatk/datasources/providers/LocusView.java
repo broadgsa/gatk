@@ -127,8 +127,8 @@ public abstract class LocusView extends LocusIterator implements View {
 
         // Find the next.
         seedNextLocus();
-        if( sourceInfo.getDownsampleToCoverage() != null )
-            current.downsampleToCoverage( sourceInfo.getDownsampleToCoverage() );
+        if( sourceInfo.getDownsamplingMethod().toCoverage != null )
+            current.downsampleToCoverage( sourceInfo.getDownsamplingMethod().toCoverage );
         
         // if the current loci isn't null, get the overflow tracker and pass it to the alignment context
         if ((this.loci != null))

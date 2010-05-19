@@ -92,7 +92,6 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         collect.intervals = new ArrayList<String>();
         collect.intervals.add("intervals".toLowerCase());
         collect.excludeIntervals = new ArrayList<String>();
-        collect.disableThreading = false;
         collect.outFileName = "outFileName".toLowerCase();
         collect.errFileName = "errFileName".toLowerCase();
         collect.outErrFileName = "outErrFileName".toLowerCase();

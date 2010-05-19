@@ -524,10 +524,18 @@ public class GenomeAnalysisEngine {
      * @return The reads object providing reads source info.
      */
     private Reads extractSourceInfo(Walker walker, Collection<SamRecordFilter> filters, GATKArgumentCollection argCollection) {
+
+        DownsamplingMethod method = null;
+        if(argCollection.downsamplingType != DownsampleType.NONE)
+            method = new DownsamplingMethod(argCollection.downsamplingType,argCollection.downsampleCoverage,argCollection.downsampleFraction);
+        else if(WalkerManager.getDownsamplingMethod(walker) != null)
+            method = WalkerManager.getDownsamplingMethod(walker);
+        else
+            method = new DownsamplingMethod(DownsampleType.NONE,null,null);
+
         return new Reads(argCollection.samFiles,
                 argCollection.strictnessLevel,
-                argCollection.downsampleFraction,
-                argCollection.downsampleCoverage,
+                method,
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
                 argCollection.readMaxPileup,

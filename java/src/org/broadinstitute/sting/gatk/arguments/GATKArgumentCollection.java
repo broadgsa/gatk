@@ -29,6 +29,7 @@ import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.gatk.DownsampleType;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;
 import org.simpleframework.xml.stream.Format;
@@ -125,6 +126,10 @@ public class GATKArgumentCollection {
     public Boolean filterZeroMappingQualityReads = false;
 
     @Element(required = false)
+    @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here.", required = false)
+    public DownsampleType downsamplingType = DownsampleType.NONE;
+
+    @Element(required = false)
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
     public Double downsampleFraction = null;
 
@@ -148,13 +153,9 @@ public class GATKArgumentCollection {
     @Argument(fullName = "max_reads_at_locus", shortName = "mrl", doc = "Sets the upper limit for the number of reads presented at a single locus; use this argument if you are running into memory issues resulting from too many reads piled up at a given locus (but use downsample_to_coverage instead if you are trying to downsample); int.MAX_VALUE by default.", required = false)
     public int readMaxPileup = Integer.MAX_VALUE;
 
-    @Element(required = false)
-    @Argument(fullName = "disablethreading", shortName = "dt", doc = "Disable experimental threading support.", required = false)
-    public Boolean disableThreading = false;
-
     /** How many threads should be allocated to this analysis. */
     @Element(required = false)
-    @Argument(fullName = "numthreads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
+    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public int numberOfThreads = 1;
 
     /** What rule should we use when merging intervals */
