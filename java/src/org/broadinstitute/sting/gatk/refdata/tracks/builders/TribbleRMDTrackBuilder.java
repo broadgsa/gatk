@@ -76,6 +76,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
         Map<String, Class> classes = new HashMap<String, Class>();
         for (String c : this.pluginsByName.keySet())
+            if (!c.contains("BED")) // ugg the collision for Bed files is a problem right now
              classes.put(c,this.pluginsByName.get(c));
         return classes;
     }

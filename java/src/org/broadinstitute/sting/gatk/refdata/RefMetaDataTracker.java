@@ -68,6 +68,20 @@ public class RefMetaDataTracker {
     }
 
     /**
+     * get all the GATK features associated with a specific track name
+     * @param name the name of the track we're looking for
+     * @param requireExactMatch do we require an exact match for the name (true) or do we require only that the name starts with
+     *        the passed in parameter (false).
+     * @return a list of GATKFeatures for the target rmd
+     *
+     * Important: The list returned by this function is guaranteed not to be null, but may be empty!
+     */
+    public List<GATKFeature> getGATKFeatureMetaData(final String name, boolean requireExactMatch) {
+        List<GATKFeature> feat = getTrackDataByName(name,requireExactMatch);
+        return (feat == null) ? new ArrayList<GATKFeature>() : feat; // to satisfy the above requirement that we don't return null
+    }
+
+    /**
      * get a singleton record, given the name and a type.  This function will return the first record at the current position seen,
      * and emit a logger warning if there were more than one option.
      *
