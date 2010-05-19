@@ -48,9 +48,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.AnnotatorROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.refdata.features.sampileup.AnnotatorInputTableCodec;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -123,14 +123,15 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
             logger.warn("There are no samples input at all; use the --sampleName argument to specify one if desired.");
         }
 
+
         //read all ROD file headers and construct a set of all column names to be used for validation of command-line args
         final HashSet<String> allColumnNames = new HashSet<String>();
         try {
             for(ReferenceOrderedDataSource ds : getToolkit().getRodDataSources()) {
-                if(! AnnotatorROD.class.isAssignableFrom(ds.getReferenceOrderedData().getType())) {
-                    continue; //skip all non-AnnotatorROD files.
+                if(! ds.getReferenceOrderedData().getType().equals(AnnotatorInputTableCodec.class)) {
+                    continue; //skip all non-AnnotatorInputTable files.
                 }
-                final ArrayList<String> header = AnnotatorROD.readHeader(ds.getReferenceOrderedData().getFile());
+                final ArrayList<String> header = AnnotatorInputTableCodec.readHeader(ds.getReferenceOrderedData().getFile());
                 for(String columnName : header) {
                     allColumnNames.add(ds.getName() + "." + columnName);
                 }
@@ -148,7 +149,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
 
         for(String columnName : SELECT_COLUMNS) {
             if(!allColumnNames.contains(columnName)) {
-                throw new StingException("The column name '" + columnName + "' provided to -s doesn't match any of the column names in any of the -B files.");
+                throw new StingException("The column name '" + columnName + "' provided to -s doesn't match any of the column names in any of the -B files. Here is the list of available column names: " + allColumnNames);
             }
         }
 
