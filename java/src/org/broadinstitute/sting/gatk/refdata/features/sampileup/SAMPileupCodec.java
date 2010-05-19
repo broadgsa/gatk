@@ -29,9 +29,8 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broad.tribble.util.LineReader;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -44,7 +43,7 @@ import static org.broadinstitute.sting.gatk.refdata.features.sampileup.SAMPileup
  * @author mhanna
  * @version 0.1
  */
-public class SAMPileupCodec implements FeatureCodec {
+public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
     // the number of tokens we expect to parse from a dbSNP line
     private static final int expectedTokenCount = 10;
     private static final char fldDelim = '\t';
@@ -59,16 +58,16 @@ public class SAMPileupCodec implements FeatureCodec {
     /**
      * Return the # of header lines for this file.
      *
-     * @param f the file
+     * @param reader the line reader
      * @return 0 in this case, we assume no header lines.  The DbSNP file may have a
      *         header line beginning with '#', but we can ignore that in the decode function.
      */
-    public int headerLineCount(File f) {
+    public int readHeader(LineReader reader) {
         // we don't require a header line, but it may exist.  We'll deal with that above.
         return 0;
     }
 
-    public Feature decode(String line) {
+    public SAMPileupFeature decode(String line) {
 //       0          1             2         3                  4         5            6         7
 //*     chrX     466           T         Y                170      170       88      32 ... (piles of read bases  and quals follow)
 //*    chrX    141444     *     +CA/+CA       32       468     255     25     +CA     *       5       2       12      6
