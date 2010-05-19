@@ -20,8 +20,9 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.AnnotatorROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.features.sampileup.AnnotatorInputTableCodec;
+import org.broadinstitute.sting.gatk.refdata.features.sampileup.AnnotatorInputTableFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -52,7 +53,7 @@ import org.broadinstitute.sting.utils.StingException;
  */
 @Reference(window=@Window(start=-4,stop=4))
 @By(DataSource.REFERENCE)
-@Requires(value={DataSource.REFERENCE}, referenceMetaData={ @RMD(name="transcripts",type=AnnotatorROD.class) })
+@Requires(value={DataSource.REFERENCE}, referenceMetaData={ @RMD(name="transcripts",type=AnnotatorInputTableFeature.class) } )
 public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap<String, String>> implements TreeReducible<TreeMap<String, String>>
 {
     private static final String ROD_NAME = "transcripts";
@@ -68,10 +69,10 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     private final char[] ALLELES = {'A','C','G','T'};
 
     /** Output columns */
-    private final String OUTPUT_CHRPOS = AnnotatorROD.CHRPOS_COLUMN;
-    private final String OUTPUT_HAPLOTYPE_REFERENCE = AnnotatorROD.HAPLOTYPE_REFERENCE_COLUMN;
-    private final String OUTPUT_HAPLOTYPE_ALTERNATE = AnnotatorROD.HAPLOTYPE_ALTERNATE_COLUMN;
-    private final String OUTPUT_HAPLOTYPE_STRAND = AnnotatorROD.HAPLOTYPE_STRAND_COLUMN;
+    private final String OUTPUT_CHRPOS = GenomicAnnotation.CHRPOS_COLUMN;
+    private final String OUTPUT_HAPLOTYPE_REFERENCE = GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN;
+    private final String OUTPUT_HAPLOTYPE_ALTERNATE = GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN;
+    private final String OUTPUT_HAPLOTYPE_STRAND = GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN;
 
     private final String OUTPUT_IN_CODING_REGION = "inCodingRegion"; //eg. true
 
@@ -142,7 +143,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
         final ArrayList<String> header;
         try {
-            header = AnnotatorROD.readHeader(transcriptsDataSource.getReferenceOrderedData().getFile());
+            header = AnnotatorInputTableCodec.readHeader(transcriptsDataSource.getReferenceOrderedData().getFile());
         } catch(Exception e) {
             throw new StingException("Failed when attempting to read header from file: " + transcriptsDataSource.getReferenceOrderedData().getFile(), e);
         }
@@ -183,7 +184,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         StringBuilder outputHeaderLine = new StringBuilder();
         for( final String column : outputColumnNames ) {
             if(outputHeaderLine.length() != 0) {
-                outputHeaderLine.append( AnnotatorROD.DELIMITER );
+                outputHeaderLine.append( AnnotatorInputTableCodec.DELIMITER );
             }
             outputHeaderLine.append(column);
         }
@@ -249,7 +250,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         for(Object transcriptRodObject : transcriptRODs)
         {
             //parse this ROD if it hasn't been already.
-            final AnnotatorROD transcriptRod = (AnnotatorROD) transcriptRodObject;
+            final AnnotatorInputTableFeature transcriptRod = (AnnotatorInputTableFeature) transcriptRodObject;
             TranscriptTableRecord parsedTranscriptRod = (TranscriptTableRecord) transcriptRod.getTemporaryAttribute("parsedTranscriptRod");
             if( parsedTranscriptRod == null ) {
                 parsedTranscriptRod = new TranscriptTableRecord(transcriptRod, GENE_NAME_COLUMNS);
@@ -265,7 +266,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             }
 
             //populate parsedTranscriptRod.utr5Sequence and parsedTranscriptRod.cdsSequence
-            final long position = ref.getLocus().getStart();
+            final int position = (int) ref.getLocus().getStart();
             if(parsedTranscriptRod.isProteinCodingTranscript() && parsedTranscriptRod.isWithinExon(position) )
             {
                 //we're within an exon of a proteinCodingTranscript
@@ -372,13 +373,13 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             return;
         }
 
-        final long txStart_5prime = positiveStrand ? parsedTranscriptRod.txStart : parsedTranscriptRod.txEnd; //1-based, inclusive
-        final long txEnd_3prime = positiveStrand ? parsedTranscriptRod.txEnd : parsedTranscriptRod.txStart; //1-based, inclusive
+        final int txStart_5prime = positiveStrand ? parsedTranscriptRod.txStart : parsedTranscriptRod.txEnd; //1-based, inclusive
+        final int txEnd_3prime = positiveStrand ? parsedTranscriptRod.txEnd : parsedTranscriptRod.txStart; //1-based, inclusive
         final int increment_5to3 = positiveStrand ? 1 : -1; //whether to increment or decrement
         final int strandSign = increment_5to3; //alias
 
-        final long cdsStart_5prime = positiveStrand ? parsedTranscriptRod.cdsStart : parsedTranscriptRod.cdsEnd; //1-based, inclusive
-        final long cdsEnd_3prime = positiveStrand ? parsedTranscriptRod.cdsEnd : parsedTranscriptRod.cdsStart ; //1-based, inclusive
+        final int cdsStart_5prime = positiveStrand ? parsedTranscriptRod.cdsStart : parsedTranscriptRod.cdsEnd; //1-based, inclusive
+        final int cdsEnd_3prime = positiveStrand ? parsedTranscriptRod.cdsEnd : parsedTranscriptRod.cdsStart ; //1-based, inclusive
 
         int frame = 0; //the frame of the current position
         int txOffset_from5 = 1; //goes from txStart 5' to txEnd 3' for both + and - strand
@@ -395,12 +396,12 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
         PositionType positionType = null;
         boolean isWithinIntronAndFarFromSpliceJunction = false;
-        long intronStart_5prime = -1;
-        long intronEnd_5prime = -1;
+        int intronStart_5prime = -1;
+        int intronEnd_5prime = -1;
 
         final Map<String, String> outputLineFields = new HashMap<String, String>();
 
-        for(long txCoord_5to3 = txStart_5prime; txCoord_5to3 != txEnd_3prime + increment_5to3; txCoord_5to3 += increment_5to3)
+        for(int txCoord_5to3 = txStart_5prime; txCoord_5to3 != txEnd_3prime + increment_5to3; txCoord_5to3 += increment_5to3)
         {
             ++totalPositionsCounter;
 
@@ -466,8 +467,8 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     //output intron record
                     intronEnd_5prime = txCoord_5to3 - increment_5to3;
 
-                    final long intronStart = (intronStart_5prime < intronEnd_5prime ? intronStart_5prime : intronEnd_5prime) ;
-                    final long intronEnd = (intronEnd_5prime > intronStart_5prime ? intronEnd_5prime : intronStart_5prime);
+                    final int intronStart = (intronStart_5prime < intronEnd_5prime ? intronStart_5prime : intronEnd_5prime) ;
+                    final int intronEnd = (intronEnd_5prime > intronStart_5prime ? intronEnd_5prime : intronStart_5prime);
                     outputLineFields.clear();
                     outputLineFields.put(OUTPUT_CHRPOS, parsedTranscriptRod.txChrom + ":" + intronStart +  "-" + intronEnd);
                     outputLineFields.put(OUTPUT_HAPLOTYPE_REFERENCE, Character.toString( '*' ) );
@@ -758,7 +759,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         final StringBuilder outputLine = new StringBuilder();
         for( final String column : outputColumnNames ) {
             if(outputLine.length() != 0) {
-                outputLine.append( AnnotatorROD.DELIMITER );
+                outputLine.append( AnnotatorInputTableCodec.DELIMITER );
             }
             final String value = outputLineFields.get(column);
             if(value != null) {
@@ -804,7 +805,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
      * @param parsedTranscriptRod
      * @return
      */
-    protected String computeSortKey(String txChrom, long position, char allele, TranscriptTableRecord parsedTranscriptRod)
+    protected String computeSortKey(String txChrom, int position, char allele, TranscriptTableRecord parsedTranscriptRod)
     {
         //compute chromosome sort key (this becomes the 1st column in the file and is later used to sort the output file using the GNU command-line sort utility)
         long key;
@@ -909,17 +910,17 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         public String[] geneNames; //eg. NM_021649
 
         public String txChrom; //The chromosome name
-        public long txStart;
-        public long txEnd;
+        public int txStart;
+        public int txEnd;
 
-        public long cdsStart;
-        public long cdsEnd;
+        public int cdsStart;
+        public int cdsEnd;
 
-        public long[] exonStarts;
-        public long[] exonEnds;
+        public int[] exonStarts;
+        public int[] exonEnds;
         //public int[] exonFrames; - not used for anything, frame is computed another way
 
-        private AnnotatorROD rod;
+        private AnnotatorInputTableFeature rod;
 
 
         /**
@@ -927,11 +928,11 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
          *
          * @param transcriptRod A rod representing a single record in the transcript table.
          */
-        public TranscriptTableRecord(final AnnotatorROD transcriptRod, String[] geneNameColumns) {
+        public TranscriptTableRecord(final AnnotatorInputTableFeature transcriptRod, String[] geneNameColumns) {
             this.rod = transcriptRod;
             //String binStr = transcriptRod.get("bin");
             //String idStr = transcriptRod.get("id"); //int(10) unsigned range Unique identifier ( usually 0 for some reason - even for translated )
-            String strandStr = transcriptRod.get(STRAND_COLUMN);
+            String strandStr = transcriptRod.getColumnValue(STRAND_COLUMN);
             if(strandStr == null) {
                 throw new IllegalArgumentException("Transcript table record doesn't contain a 'strand' column. Make sure the transcripts input file has a header and the usual columns: \"" + strandStr + "\"");
             } else if(strandStr.equals("+")) {
@@ -944,22 +945,20 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
             geneNames = new String[geneNameColumns.length];
             for(int i = 0; i < geneNameColumns.length; i++) {
-                geneNames[i] = transcriptRod.get(geneNameColumns[i]);
+                geneNames[i] = transcriptRod.getColumnValue(geneNameColumns[i]);
             }
 
             //String txStartStr = transcriptRod.get(TXSTART_COLUMN);  //These fields were used to generate column 1 of the ROD file (eg. they got turned into chr:txStart-txStop)
             //String txEndStr = transcriptRod.get(TXEND_COLUMN);
+            txChrom = transcriptRod.getChr();
+            txStart = transcriptRod.getStart();
+            txEnd = transcriptRod.getEnd();
 
-            final GenomeLoc loc = transcriptRod.getLocation();
-            txChrom = loc.getContig();
-            txStart = loc.getStart();
-            txEnd = loc.getStop();
+            String cdsStartStr = transcriptRod.getColumnValue(CDS_START_COLUMN);
+            String cdsEndStr = transcriptRod.getColumnValue(CDS_END_COLUMN);
 
-            String cdsStartStr = transcriptRod.get(CDS_START_COLUMN);
-            String cdsEndStr = transcriptRod.get(CDS_END_COLUMN);
-
-            cdsStart = Long.parseLong(cdsStartStr);
-            cdsEnd = Long.parseLong(cdsEndStr);
+            cdsStart = Integer.parseInt(cdsStartStr);
+            cdsEnd = Integer.parseInt(cdsEndStr);
 
             txSequence = new StringBuilder( (int) (txEnd - txStart + 1) );  //the sequence of the entire transcript in order from 5' to 3'
             if(isProteinCodingTranscript()) {
@@ -967,9 +966,9 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                 cdsSequence = new StringBuilder( (int) (cdsEnd - cdsStart + 1) ); //TODO reduce init size by size of introns
             }
 
-            String exonCountStr = transcriptRod.get(EXON_COUNT_COLUMN);
-            String exonStartsStr = transcriptRod.get(EXON_STARTS_COLUMN);
-            String exonEndsStr = transcriptRod.get(EXON_ENDS_COLUMN);
+            String exonCountStr = transcriptRod.getColumnValue(EXON_COUNT_COLUMN);
+            String exonStartsStr = transcriptRod.getColumnValue(EXON_STARTS_COLUMN);
+            String exonEndsStr = transcriptRod.getColumnValue(EXON_ENDS_COLUMN);
             //String exonFramesStr = transcriptRod.get(EXON_FRAMES_COLUMN);
 
             String[] exonStartStrs = exonStartsStr.split(",");
@@ -982,12 +981,12 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                 throw new RuntimeException("exonCount != exonStarts.length || exonCount != exonEnds.length || exonCount != exonFrames.length. Exon starts: " + exonStartsStr + ", Exon ends: " + exonEndsStr + /*",  Exon frames: " + exonFramesStr + */", Exon count: " + exonCountStr +". transcriptRod = " + transcriptRod);
             }
 
-            exonStarts = new long[exonCount];
-            exonEnds = new long[exonCount];
+            exonStarts = new int[exonCount];
+            exonEnds = new int[exonCount];
             //exonFrames = new int[exonCount];
             for(int i = 0; i < exonCount; i++) {
-                exonStarts[i] = Long.parseLong(exonStartStrs[i]);
-                  exonEnds[i] = Long.parseLong(exonEndStrs[i]);
+                exonStarts[i] = Integer.parseInt(exonStartStrs[i]);
+                  exonEnds[i] = Integer.parseInt(exonEndStrs[i]);
               //exonFrames[i] = Integer.parseInt(exonFrameStrs[i]);
             }
         }
@@ -997,13 +996,13 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
          * Takes a genomic position on the same contig as the transcript, and
          * returns true if this position falls within an exon.
          */
-        public boolean isWithinExon(final long genomPosition) {
+        public boolean isWithinExon(final int genomPosition) {
             for(int i = 0; i < exonStarts.length; i++) {
-                final long curStart = exonStarts[i];
+                final int curStart = exonStarts[i];
                 if(genomPosition < curStart) {
                     return false;
                 }
-                final long curStop = exonEnds[i];
+                final int curStop = exonEnds[i];
                 if(genomPosition <= curStop) {
                     return true;
                 }
@@ -1017,10 +1016,10 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
          * The returned value is negative its on the 5' side (eg. upstream) of the juntion, and
          * positive if its on the 3' side.
          */
-        public int computeDistanceToNearestSpliceSite(final long genomPosition) {
+        public int computeDistanceToNearestSpliceSite(final int genomPosition) {
             int prevDistance = Integer.MAX_VALUE;
             for(int i = 0; i < exonStarts.length; i++) {
-                final long curStart = exonStarts[i];
+                final int curStart = exonStarts[i];
                 int curDistance = (int) (curStart-genomPosition);
                 if(genomPosition < curStart) {
                     //position is within the current intron
@@ -1033,7 +1032,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     prevDistance = (int) (genomPosition - curStart) + 1;
                 }
 
-                final long curStop = exonEnds[i];
+                final int curStop = exonEnds[i];
                 curDistance = (int) (curStop-genomPosition) + 1;
                 if(genomPosition <= curStop) {
                     //position is within an exon
@@ -1089,8 +1088,8 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                 int result = 0;
                 for(int i = 0; i < exonStarts.length; i++)
                 {
-                    final long exonStart = exonStarts[i];
-                    final long exonEnd = exonEnds[i];
+                    final int exonStart = exonStarts[i];
+                    final int exonEnd = exonEnds[i];
                     if(cdsStart <= exonEnd) { //eg. exonEnd is now on the 3' side of cdsStart
                         //this means cdsStart is within the current exon
                         result += (cdsStart - exonStart) + 1;
@@ -1104,7 +1103,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             }
             else //(negative strand)
             {
-                final long cdsStart_5prime = cdsEnd;
+                final int cdsStart_5prime = cdsEnd;
                 if(cdsStart_5prime == exonEnds[exonEnds.length - 1]) {
                     //the 1st nucleotide of the transcript is CDS.
                     return 1;
@@ -1113,8 +1112,8 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                 int result = 0;
                 for(int i = exonEnds.length - 1; i >= 0; i--)
                 {
-                    final long exonStart = exonEnds[i]; //when its the negative strand, the 5' coord of the 1st exon is exonEnds[i]
-                    final long exonEnd = exonStarts[i];
+                    final int exonStart = exonEnds[i]; //when its the negative strand, the 5' coord of the 1st exon is exonEnds[i]
+                    final int exonEnd = exonStarts[i];
                     if( exonEnd <= cdsStart_5prime ) { //eg. exonEnd is now on the 3' side of cdsStart
                         //this means cdsStart is within the current exon
                         result += -(cdsStart_5prime - exonStart) + 1;
