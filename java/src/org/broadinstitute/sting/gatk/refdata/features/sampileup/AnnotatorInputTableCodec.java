@@ -1,15 +1,17 @@
 package org.broadinstitute.sting.gatk.refdata.features.sampileup;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.util.AsciiLineReader;
+import org.broad.tribble.util.LineReader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.text.XReadLines;
 
 public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTableFeature> {
 
@@ -19,24 +21,20 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
 
     private ArrayList<String> header;
 
-    private File file;
-
     /**
-     * We use this to parse out the header.
+     * Parses the header.
      *
-     * @param f the file
+     * @param reader
      *
-     * @return 0. Since we just read the header, the number of lines left to skip is 0.
+     * @return The # of header lines for this file.
      */
-    public int headerLineCount(File f) {
-        this.file = f;
-
+    public int readHeader(LineReader reader)
+    {
         int[] lineCounter = new int[1];
         try {
-
-            header = readHeader(f, lineCounter);
+            header = readHeader(reader, lineCounter);
         } catch(IOException e) {
-            throw new IllegalArgumentException("Unable to read from file " + f, e);
+            throw new IllegalArgumentException("Unable to read from file.", e);
         }
         return lineCounter[0];
     }
@@ -79,7 +77,12 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
      * @throws IOException
      */
     public static ArrayList<String> readHeader(final File source) throws IOException {
-        return readHeader(source, null);
+        FileInputStream is = new FileInputStream(source);
+        try {
+            return readHeader(new AsciiLineReader(is), null);
+        } finally {
+            is.close();
+        }
     }
 
 
@@ -90,28 +93,23 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
      * @return The header fields.
      * @throws IOException
      */
-    private static ArrayList<String> readHeader(final File source, int[] lineCounter) throws IOException {
+    private static ArrayList<String> readHeader(final LineReader source, int[] lineCounter) throws IOException {
 
         ArrayList<String> header = null;
         int numLines = 0;
 
-        final XReadLines reader = new XReadLines(source);
-        try {
-            //find the 1st line that's non-empty and not a comment
-            for ( String line : reader ) {
-                numLines++;
-                line = line.trim();
-                if ( line.isEmpty() || line.startsWith("#") ) {
-                    continue;
-                }
-
-                //parse the header
-                header = Utils.split(line, DELIMITER);
-                break;
+        //find the 1st line that's non-empty and not a comment
+        String line = null;
+        while( (line = source.readLine()) != null ) {
+            numLines++;
+            line = line.trim();
+            if ( line.isEmpty() || line.startsWith("#") ) {
+                continue;
             }
-        }
-        finally {
-            reader.close();
+
+            //parse the header
+            header = Utils.split(line, DELIMITER);
+            break;
         }
 
         // check that we found the header
