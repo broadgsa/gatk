@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.bed.BEDFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -31,7 +32,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
 
     private HashMap<GenomeLoc,IntervalInfoBuilder> intervalBuffer = new HashMap<GenomeLoc,IntervalInfoBuilder>();
     private HashSet<rodRefSeq> refseqBuffer = new HashSet<rodRefSeq>();
-    private RodBed currentTCGA = null;
+    private BEDFeature currentTCGA = null;
 
     public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         // three items to look up: interval_list, tcga, and refseq
@@ -67,7 +68,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
         // update the current tcga target
 
         if ( tcgaList != null && tcgaList.size() > 0 ) {
-            currentTCGA = (RodBed) tcgaList.get(0);
+            currentTCGA = (BEDFeature) tcgaList.get(0);
         }
 
         cleanup(ref);
@@ -96,13 +97,13 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
             }
 
             if ( currentTCGA != null &&
-                 interval.overlapsP(currentTCGA.getLocation()) &&
-                 currentTCGA.getFields(null).size() > 2 &&
-                 ! intervalBuffer.get(interval).geneNames.contains("TCGA_"+currentTCGA.getFields(null).get(3)) ) {
+                 interval.overlapsP(GenomeLocParser.createGenomeLoc(currentTCGA.getChr(),currentTCGA.getStart(),currentTCGA.getEnd())) &&
+                 !currentTCGA.getName().equals("") &&
+                 ! intervalBuffer.get(interval).geneNames.contains("TCGA_"+currentTCGA.getName()) ) {
 
-                intervalBuffer.get(interval).update("TCGA_"+currentTCGA.getFields(null).get(3).split("_f|_r")[0],
-                        new ArrayList<GenomeLoc>(Arrays.asList(currentTCGA.getLocation())),
-                        new ArrayList<Integer>(Arrays.asList(Integer.parseInt(currentTCGA.getFields(null).get(3).split("_f|_r")[1])-1)));
+                intervalBuffer.get(interval).update("TCGA_"+currentTCGA.getName().split("_f|_r")[0],
+                        new ArrayList<GenomeLoc>(Arrays.asList(GenomeLocParser.createGenomeLoc(currentTCGA.getChr(),currentTCGA.getStart(),currentTCGA.getEnd()))),
+                        new ArrayList<Integer>(Arrays.asList(Integer.parseInt(currentTCGA.getName().split("_f|_r")[1])-1)));
             }
         }
 
@@ -138,7 +139,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
             intervalBuffer.remove(interval);
         }
 
-        if ( currentTCGA != null && currentTCGA.getLocation().isBefore(ref.getLocus()) ) {
+        if ( currentTCGA != null && GenomeLocParser.createGenomeLoc(currentTCGA.getChr(),currentTCGA.getStart(),currentTCGA.getEnd()).isBefore(ref.getLocus()) ) {
             currentTCGA = null;
         }
     }
