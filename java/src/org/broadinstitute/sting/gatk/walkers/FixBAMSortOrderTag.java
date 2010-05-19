@@ -38,6 +38,7 @@ package org.broadinstitute.sting.gatk.walkers;
  */
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.commandline.Argument;
 import net.sf.samtools.SAMFileWriter;
@@ -62,7 +63,7 @@ public class FixBAMSortOrderTag extends ReadWalker<SAMRecord, SAMFileWriter> {
     public SAMFileHeader.SortOrder SORT_ORDER=SAMFileHeader.SortOrder.coordinate;
 
     @Override
-    public SAMRecord map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public SAMRecord map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         return read;
     }
 

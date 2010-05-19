@@ -123,7 +123,7 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
         if ( pileup != null ) {
 
             int mismatchQualities = 0, totalQualities = 0;
-            char upperRef = Character.toUpperCase(ref.getBase());
+            char upperRef = Character.toUpperCase(ref.getBaseAsChar());
             for (PileupElement p : pileup ) {
                 // check the ends of the reads to see how far they extend
                 SAMRecord read = p.getRead();

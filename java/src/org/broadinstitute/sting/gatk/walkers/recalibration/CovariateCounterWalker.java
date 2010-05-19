@@ -298,7 +298,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 if( gatkRead.getBaseQualities()[offset] > 0 ) {
 
                     bases = gatkRead.getReadBases();
-                    refBase = (byte)ref.getBase();
+                    refBase = ref.getBase();
 
                     // Skip if this base is an 'N' or etc.
                     if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
@@ -345,9 +345,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param context The AlignmentContext which holds the reads covered by this locus
      * @param ref The reference base
      */
-    private static void updateMismatchCounts(final Pair<Long, Long> counts, final AlignmentContext context, final char ref) {
+    private static void updateMismatchCounts(final Pair<Long, Long> counts, final AlignmentContext context, final byte ref) {
         for( PileupElement p : context.getBasePileup() ) {
-            final char readChar = (char)(p.getBase());
+            final byte readChar = p.getBase();
             final int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
             final int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
 

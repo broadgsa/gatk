@@ -29,6 +29,7 @@ import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 
 /**
@@ -54,7 +55,7 @@ public class CoarseCoverageWalker extends ReadWalker<Integer,Integer> {
     }
     
 	@Override
-	public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+	public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 		
 		if ( read.getReadUnmappedFlag() ||
 			 read.getDuplicateReadFlag() ||

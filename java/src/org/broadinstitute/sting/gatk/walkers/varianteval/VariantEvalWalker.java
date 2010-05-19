@@ -441,7 +441,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         //System.out.printf("map at %s with %d skipped%n", context.getLocation(), context.getSkippedBases());
 
-        Map<String, VariantContext> vcs = getVariantContexts(tracker, context);
+        Map<String, VariantContext> vcs = getVariantContexts(ref, tracker, context);
         //Collection<VariantContext> comps = getCompVariantContexts(tracker, context);
 
         // to enable walking over pairs where eval or comps have no elements
@@ -493,7 +493,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         return 0;
     }
 
-    private void writeInterestingSite(List<String> interestingReasons, VariantContext vc, char ref) {
+    private void writeInterestingSite(List<String> interestingReasons, VariantContext vc, byte ref) {
         if ( vc != null && writer != null && interestingReasons.size() > 0 ) {
             // todo -- the vc == null check is because you can be interesting because you are a FN, and so VC == null
             MutableVariantContext mvc = new MutableVariantContext(vc);
@@ -576,21 +576,21 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 //
 //logger.info(String.format("Ignore second+ events at locus %s in rod %s => rec is %s", context.getLocation(), rodList.getName(), rec));
 
-    private Map<String, VariantContext> getVariantContexts(RefMetaDataTracker tracker, AlignmentContext context) {
+    private Map<String, VariantContext> getVariantContexts(ReferenceContext ref, RefMetaDataTracker tracker, AlignmentContext context) {
         // todo -- we need to deal with dbSNP where there can be multiple records at the same start site.  A potential solution is to
         // todo -- allow the variant evaluation to specify the type of variants it wants to see and only take the first such record at a site
         Map<String, VariantContext> bindings = new HashMap<String, VariantContext>();
         if ( tracker != null ) {
-            bindVariantContexts(bindings, evalNames, tracker, context, false);
-            bindVariantContexts(bindings, compNames, tracker, context, true);
+            bindVariantContexts(ref, bindings, evalNames, tracker, context, false);
+            bindVariantContexts(ref, bindings, compNames, tracker, context, true);
         }
         return bindings;
     }
 
-    private void bindVariantContexts(Map<String, VariantContext> map, Collection<String> names,
+    private void bindVariantContexts(ReferenceContext ref, Map<String, VariantContext> map, Collection<String> names,
                                      RefMetaDataTracker tracker, AlignmentContext context, boolean allowExcludes ) {
         for ( String name : names ) {
-            Collection<VariantContext> contexts = tracker.getVariantContexts(name, ALLOW_VARIANT_CONTEXT_TYPES, context.getLocation(), true, true);
+            Collection<VariantContext> contexts = tracker.getVariantContexts(ref, name, ALLOW_VARIANT_CONTEXT_TYPES, context.getLocation(), true, true);
             if ( contexts.size() > 1 )
                 throw new StingException("Found multiple variant contexts at " + context.getLocation());
 

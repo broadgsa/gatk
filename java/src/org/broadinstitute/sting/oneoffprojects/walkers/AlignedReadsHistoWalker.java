@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -28,7 +29,7 @@ public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
 	    return !read.getReadUnmappedFlag();
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         //System.out.println(read.getAttribute("NM"));
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());
         if (editDist <= 50)

@@ -54,7 +54,7 @@ public class AnnotationDataManager {
         INDICATE_MEAN_NUM_VARS = _INDICATE_MEAN_NUM_VARS;
     }
 
-    public void addAnnotations( final VariantContext vc, final char ref, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
+    public void addAnnotations( final VariantContext vc, final byte ref, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
 
         if( sampleName != null ) { // Only process variants that are found in the sample with this sampleName
             if( vc.getGenotype(sampleName).isNoCall() ) { // This variant isn't found in this sample so break out

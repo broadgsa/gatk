@@ -90,7 +90,7 @@ public class TrioGenotyperWalker extends RefWalker<VariantContext, Integer>{
     }
 
     public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        VariantContext vc = tracker.getVariantContext("variants", EnumSet.of(VariantContext.Type.SNP), context.getLocation(), true);
+        VariantContext vc = tracker.getVariantContext(ref, "variants", EnumSet.of(VariantContext.Type.SNP), context.getLocation(), true);
         
         if ( vc != null && vc.isPolymorphic() ) {
             if ( ! vc.hasGenotypes(FAMILY_MEMBERS) )
@@ -179,7 +179,7 @@ public class TrioGenotyperWalker extends RefWalker<VariantContext, Integer>{
             if ( a == 0 )
                 writer.writeHeader(VariantContextAdaptors.createVCFHeader(null, vc));
 
-            writer.addRecord(VariantContextAdaptors.toVCF(vc, '.'));
+            writer.addRecord(VariantContextAdaptors.toVCF(vc, (byte)'.'));
             a++;
         }
 

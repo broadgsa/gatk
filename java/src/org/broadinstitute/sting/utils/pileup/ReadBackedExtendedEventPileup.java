@@ -346,7 +346,7 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
      * @return list of distinct events; first element of a pair is a string representation of the event, second element
      * gives the number of reads, in which that event was observed
      */
-    public List<Pair<String,Integer>> getEventStringsWithCounts(char[] refBases) {
+    public List<Pair<String,Integer>> getEventStringsWithCounts(byte[] refBases) {
         Map<String, Integer> events = new HashMap<String,Integer>();
 
         for ( ExtendedEventPileupElement e : this ) {
@@ -385,7 +385,7 @@ public class ReadBackedExtendedEventPileup implements Iterable<ExtendedEventPile
      * @param refBases
      * @return
      */
-    private String getDeletionString(int length, char[] refBases) {
+    private String getDeletionString(int length, byte[] refBases) {
         if ( refBases == null ) {
             return  Integer.toString(length)+"D"; // if we do not have reference bases, we can only report something like "5D"
         } else {

@@ -59,7 +59,7 @@ public class ProportionOfRefSecondBasesSupportingSNP implements InfoFieldAnnotat
         Pair<Integer,Integer> totalAndSNPSupporting = new Pair<Integer,Integer>(0,0);
         for ( String sample : context.keySet() ) {
             ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
-            totalAndSNPSupporting = getTotalRefAndSNPSupportCounts(pileup, ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), totalAndSNPSupporting);
+            totalAndSNPSupporting = getTotalRefAndSNPSupportCounts(pileup, ref.getBaseAsChar(), vc.getAlternateAllele(0).toString().charAt(0), totalAndSNPSupporting);
 
         }
         if ( totalAndSNPSupporting.equals(new Pair<Integer,Integer>(0,0)) )

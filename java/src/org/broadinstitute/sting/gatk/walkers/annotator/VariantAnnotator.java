@@ -171,7 +171,7 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             return 0;
 
         Object variant = rods.get(0);
-        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant);
+        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant, ref);
         if ( vc == null )
             return 0;
 

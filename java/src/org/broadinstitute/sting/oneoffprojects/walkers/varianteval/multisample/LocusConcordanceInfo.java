@@ -54,7 +54,7 @@ class LocusConcordanceInfo {
     }
 
     public byte getReferenceBase() {
-        return (byte) reference.getBase();
+        return reference.getBase();
     }
 
     public boolean isTruthOnly () {
@@ -63,7 +63,7 @@ class LocusConcordanceInfo {
 
     public boolean isVariantSite() {
         for ( VCFGenotypeRecord g : truthVCFRecord.getVCFGenotypeRecords() ) {
-            if ( g.isVariant(reference.getBase()) ) {
+            if ( g.isVariant(reference.getBaseAsChar()) ) {
                 return true;
             }
         }

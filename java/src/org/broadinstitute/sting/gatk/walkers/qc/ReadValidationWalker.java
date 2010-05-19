@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
@@ -67,7 +68,7 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
      * @param read the read itself, as a SAMRecord
      * @return true if the read passes the filter, false if it doesn't
      */
-    public boolean filter(char[] ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, SAMRecord read) {
         return true;
 	}
 
@@ -77,7 +78,7 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
      * @param read the read itself, as a SAMRecord
      * @return the read itself
      */
-    public SAMRecord map( char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+    public SAMRecord map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         return read;
     }
 

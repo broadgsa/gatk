@@ -3,11 +3,15 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Collections;
 import java.util.Collection;
+import java.util.Arrays;
 
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 /**
@@ -60,10 +64,41 @@ public class ReferenceView implements View {
      * @return A list of the bases starting at the start of the locus (inclusive) and ending
      *         at the end of the locus (inclusive).
      */
-    protected char[] getReferenceBases( GenomeLoc genomeLoc ) {
+//    protected char[] getReferenceBasesAsChars( GenomeLoc genomeLoc ) {
+////        SAMSequenceRecord sequenceInfo = reference.getSequenceDictionary().getSequence(genomeLoc.getContig());
+////        long stop = Math.min( genomeLoc.getStop(), sequenceInfo.getSequenceLength() );
+////        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),stop);
+////        return (StringUtil.bytesToString(subsequence.getBases()) + Utils.dupString('X', (int)(genomeLoc.getStop() - stop)) ).toCharArray();
+//        return new String(getReferenceBases(genomeLoc)).toCharArray();
+//    }
+
+    final static int BUFFER = 10000;
+    final static byte[] Xs = new byte[BUFFER];
+    static {
+        Arrays.fill(Xs, (byte)'X');
+    }
+
+    protected byte[] getReferenceBases( SAMRecord read ) {
+        return getReferenceBases(GenomeLocParser.createGenomeLoc(read));
+
+    }
+
+    protected byte[] getReferenceBases( GenomeLoc genomeLoc ) {
         SAMSequenceRecord sequenceInfo = reference.getSequenceDictionary().getSequence(genomeLoc.getContig());
         long stop = Math.min( genomeLoc.getStop(), sequenceInfo.getSequenceLength() );
-        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),stop);
-        return (StringUtil.bytesToString(subsequence.getBases()) + Utils.dupString('X', (int)(genomeLoc.getStop() - stop)) ).toCharArray();        
+        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(), genomeLoc.getStart(), stop);
+
+        int overhang = (int)(genomeLoc.getStop() - stop);
+        if ( overhang > 0 ) {
+            if ( overhang > BUFFER ) // todo -- this is a bit dangerous
+                throw new StingException("Insufficient buffer size for Xs overhanging genome -- expand BUFFER");
+            byte[] all = new byte[subsequence.getBases().length + overhang];
+            System.arraycopy(subsequence.getBases(), 0, all, 0, subsequence.getBases().length);
+            System.arraycopy(Xs, 0, all, subsequence.getBases().length, overhang);
+            return all;
+        } else {
+            // fast path
+            return subsequence.getBases();
+        }
     }
 }

@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.List;
@@ -17,12 +18,12 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
     protected final int MAX_TARGET_EDIT_DISTANCE = 10;
 
     // Do we actually want to operate on the context?
-    public boolean filter(char[] ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, SAMRecord read) {
 	    // we only want aligned reads
 	    return !read.getReadUnmappedFlag();
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());
 
@@ -34,15 +35,15 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
             int start = read.getAlignmentStart()-1;
             int stop  = read.getAlignmentEnd();
             // sometimes BWA outputs screwy reads
-            if ( stop - start > ref.length )
+            if ( stop - start > ref.getBases().length )
                 return 0;
 
-            List<Byte> refSeq = Utils.subseq(ref);
+            List<Byte> refSeq = Utils.subseq(ref.getBases());
             List<Byte> readBases = Utils.subseq(read.getReadBases());
             assert(refSeq.size() == readBases.size());
 
             // it's actually faster to reallocate a resized array than to use ArrayLists...
-            if ( ref.length > mismatchCounts.length ) {
+            if ( ref.getBases().length > mismatchCounts.length ) {
                 int oldLength = mismatchCounts.length;
                 mismatchCounts = (long[])resizeArray(mismatchCounts, refSeq.size());
                 for ( int i = oldLength; i < refSeq.size(); i++ )

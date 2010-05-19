@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.diagnostics;
 
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
@@ -31,11 +32,11 @@ public class MatePairLibrarySize extends ReadWalker<Integer, Integer> {
         }
     }
 
-    public boolean filter(char[] ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, SAMRecord read) {
         return (read.getReadPairedFlag() && read.getFirstOfPairFlag());
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         int insert = read.getInferredInsertSize();
 
         Integer oldcount = matePairSize.get(read.getReadGroup().getLibrary()).get(insert);

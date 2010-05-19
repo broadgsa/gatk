@@ -39,14 +39,14 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        char refBase = Character.toUpperCase(ref.getBase());
+        char refBase = Character.toUpperCase(ref.getBaseAsChar());
         ReadBackedPileup pileup = context.getBasePileup();
         int[] baseCounts = pileup.getBaseCounts();
         int length = 0;
         for (int i : baseCounts) {length += i;}
-        char[] contextBases = ref.getBases();
-        char prevBase = Character.toUpperCase(contextBases[0]);
-        char nextBase = Character.toUpperCase(contextBases[contextBases.length - 1]);
+        byte[] contextBases = ref.getBases();
+        byte prevBase = (byte)Character.toUpperCase(contextBases[0]);
+        byte nextBase = (byte)Character.toUpperCase(contextBases[contextBases.length - 1]);
 
         if (contextBases.length == 3 && refBase != 'N' && pileup.getBases() != null && pileup.getSecondaryBases() != null) {
             VariantCallContext ugResult = ug.runGenotyper(tracker,ref,context);
@@ -83,14 +83,14 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
                             if (!element.getRead().getReadNegativeStrandFlag()) {
                                 strandRef = Character.toString(refBase);
                                 strandPrimary = Character.toString(primaryBase);
-                                strandPrev = Character.toString(prevBase);
+                                strandPrev = Character.toString((char)prevBase);
                                 strandSecondary = Character.toString(secondaryBase);
                                 strandCall = call;
                             }
                             else {
                                 strandRef = Character.toString(BaseUtils.simpleComplement(refBase));
                                 strandPrimary = Character.toString(BaseUtils.simpleComplement(primaryBase));
-                                strandPrev = Character.toString(BaseUtils.simpleComplement(nextBase));
+                                strandPrev = Character.toString(BaseUtils.simpleComplement((char)nextBase));
                                 strandSecondary = Character.toString(BaseUtils.simpleComplement(secondaryBase));
                                 strandCall = BaseUtils.simpleReverseComplement(call);
                             }

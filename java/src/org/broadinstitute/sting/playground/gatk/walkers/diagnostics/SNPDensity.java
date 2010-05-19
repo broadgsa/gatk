@@ -67,7 +67,7 @@ public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDe
 
         VCFRecord vcf = tracker.lookup("eval",VCFRecord.class);
         if (vcf != null)
-            vc = VariantContextAdaptors.toVariantContext("eval", vcf);
+            vc = VariantContextAdaptors.toVariantContext("eval", vcf, ref);
         return new Pair<VariantContext, GenomeLoc>(vc, context.getLocation());
     }
 

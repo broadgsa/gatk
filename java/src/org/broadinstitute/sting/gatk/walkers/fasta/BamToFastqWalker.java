@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.fasta;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import net.sf.samtools.SAMRecord;
@@ -59,7 +60,7 @@ public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
         }
     }
 
-	public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+	public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         out.println("@" + read.getReadName());
         if ( !RE_REVERSE || !read.getReadNegativeStrandFlag() ) {
             out.println(read.getReadString());

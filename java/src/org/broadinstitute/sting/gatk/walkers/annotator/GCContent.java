@@ -30,7 +30,7 @@ public class GCContent implements InfoFieldAnnotation, ExperimentalAnnotation {
     private static double computeGCContent(ReferenceContext ref) {
         int gc = 0, at = 0;
 
-        for ( char base : ref.getBases() ) {
+        for ( byte base : ref.getBases() ) {
             int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
             if ( baseIndex == BaseUtils.gIndex || baseIndex == BaseUtils.cIndex )
                 gc++;

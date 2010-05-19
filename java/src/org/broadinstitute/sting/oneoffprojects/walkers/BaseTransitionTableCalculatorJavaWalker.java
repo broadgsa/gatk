@@ -230,7 +230,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     public void updateTable(BaseTransitionTable t, SAMRecord r, int o, ReferenceContext ref) {
         // System.out.println("Update Table");
         if ( r.getReadNegativeStrandFlag() ) {
-            t.update(BaseUtils.simpleComplement((char) r.getReadBases()[o]),BaseUtils.simpleComplement(ref.getBase()));
+            t.update((byte)BaseUtils.simpleComplement((char) r.getReadBases()[o]), (byte)BaseUtils.simpleComplement(ref.getBaseAsChar()));
         } else {
             t.update(r.getReadBases()[o], ref.getBase());
         }
@@ -353,7 +353,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         return String.format("%s\t%s%n",header,"Counts");
     }
 
-    public int countMismatches(char ref, ReadBackedPileup p) {
+    public int countMismatches(byte ref, ReadBackedPileup p) {
         int refM = p.getBaseCounts()[BaseUtils.simpleBaseToBaseIndex(ref)];
         return p.size()-refM;
     }
@@ -477,16 +477,12 @@ class BaseTransitionTable implements Comparable {
         out.print(s.toString());
     }
 
-    public void update(char observedBase, char refBase ) {
+    public void update(byte observedBase, byte refBase ) {
         //if ( observedBase == refBase ) {
         //    throw new StingException("BaseTransitionTable received equal observed and reference bases, which should not happen.");
         //}
         // System.out.println("Table updating: Observed Base: "+observedBase+" Ref base: "+refBase);
         table[BaseUtils.simpleBaseToBaseIndex(observedBase)][BaseUtils.simpleBaseToBaseIndex(refBase)]++;
-    }
-
-    public void update(byte observed, char ref) {
-        update( (char) observed, ref);
     }
 
     public int numConditions() {

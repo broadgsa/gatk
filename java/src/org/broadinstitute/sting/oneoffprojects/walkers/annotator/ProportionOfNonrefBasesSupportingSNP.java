@@ -62,7 +62,7 @@ public class ProportionOfNonrefBasesSupportingSNP implements InfoFieldAnnotation
         Pair<Integer,Integer> totalNonref_totalSNP = new Pair<Integer,Integer>(0,0);
         for ( String sample : context.keySet() ) {
             ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
-            totalNonref_totalSNP = getNonrefAndSNP(pileup, ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), totalNonref_totalSNP);
+            totalNonref_totalSNP = getNonrefAndSNP(pileup, ref.getBaseAsChar(), vc.getAlternateAllele(0).toString().charAt(0), totalNonref_totalSNP);
 
         }
         if ( totalNonref_totalSNP.equals(new Pair<Integer,Integer>(0,0)) )

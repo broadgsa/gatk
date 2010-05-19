@@ -77,12 +77,12 @@ public class IndelSubsets implements ConcordanceType {
     }
 
     private int homopolymerRunSize(ReferenceContext ref, VCFRecord indel) {
-        char[] bases = ref.getBases();
+        byte[] bases = ref.getBases();
         GenomeLoc window = ref.getWindow();
         GenomeLoc locus = ref.getLocus();
 
         int refBasePos = (int)(locus.getStart() - window.getStart());
-        char indelBase = indel.isDeletion() ? bases[refBasePos+1] : indel.getAlternateAlleleList().get(0).charAt(0);
+        byte indelBase = indel.isDeletion() ? bases[refBasePos+1] : (byte)indel.getAlternateAlleleList().get(0).charAt(0);
         int leftRun = 0;
         for ( int i = refBasePos; i >= 0; i--) {
             if ( bases[i] != indelBase )
@@ -90,7 +90,7 @@ public class IndelSubsets implements ConcordanceType {
             leftRun++;
         }
 
-        indelBase = indel.isDeletion() ? bases[Math.min(refBasePos+indel.getAlternateAlleleList().get(0).length(),bases.length-1)] : indel.getAlternateAlleleList().get(0).charAt(indel.getAlternateAlleleList().get(0).length()-1);
+        indelBase = indel.isDeletion() ? bases[Math.min(refBasePos+indel.getAlternateAlleleList().get(0).length(),bases.length-1)] : (byte)indel.getAlternateAlleleList().get(0).charAt(indel.getAlternateAlleleList().get(0).length()-1);
         int rightRun = 0;
         for ( int i = refBasePos + (indel.isDeletion() ? 1+indel.getAlternateAlleleList().get(0).length() : 1); i < bases.length; i++) {
             if ( bases[i] != indelBase )

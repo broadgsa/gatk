@@ -104,7 +104,7 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
         }
         
         for ( PileupElement e : alicon.getBasePileup() ) {
-            if ( BaseUtils.basesAreEqual( e.getBase(), (byte) ref.getBase() ) ) {
+            if ( BaseUtils.basesAreEqual( e.getBase(), ref.getBase() ) ) {
                 refBases++;
             } else if ( BaseUtils.basesAreEqual(e.getBase(), (byte) snpBase ) ) {
                 altBases++;

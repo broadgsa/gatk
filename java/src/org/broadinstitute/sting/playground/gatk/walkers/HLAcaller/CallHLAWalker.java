@@ -408,7 +408,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 }
 
                 //Get likelihood score for homozygous ref: used to normalize likelihoood scores at 0.
-                String homref = String.valueOf(ref.getBase())+String.valueOf(ref.getBase());
+                String homref = String.valueOf(ref.getBaseAsChar())+String.valueOf(ref.getBaseAsChar());
                 Double homreflikelihood = Double.parseDouble((String) Scores.get(homref).toString());
 
                 //Add SNP if it is a SNP and hasn't been added before

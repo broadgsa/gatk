@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.ArrayList;
@@ -89,7 +90,7 @@ public class ClusterReadsWalker extends ReadWalker<Integer, Integer> {
         return 0;
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker tracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
         //Calculate concordance for this read and all overlapping reads
         if (!ReadsToDiscard.contains(read.getReadName())){
             AlignedReads.add(read);

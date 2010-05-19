@@ -27,6 +27,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
@@ -130,7 +131,7 @@ public class TestReadFishingWalker extends ReadWalker<Integer,Long> {
     }
 
     @Override
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         Alignment bestAlignment = aligner.getBestAlignment(read.getReadBases());
         System.out.println("bestAlignment = " + bestAlignment);
         return 1;

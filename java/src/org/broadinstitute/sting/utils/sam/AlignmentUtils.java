@@ -156,7 +156,7 @@ public class AlignmentUtils {
 
         int windowStart = (int)ref.getWindow().getStart();
         int windowStop = (int)ref.getWindow().getStop();
-        char[] refBases = ref.getBases();
+        byte[] refBases = ref.getBases();
         byte[] readBases = p.getRead().getReadBases();
         byte[] readQualities = p.getRead().getBaseQualities();
         Cigar c = p.getRead().getCigar();
@@ -179,7 +179,7 @@ public class AlignmentUtils {
                         if ( currentPos < windowStart )
                             continue;
 
-                        char refChr = refBases[refIndex++];
+                        byte refChr = refBases[refIndex++];
 
                         // do we need to skip the target site?
                         if ( ignoreTargetSite && ref.getLocus().getStart() == currentPos )

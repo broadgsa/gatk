@@ -29,6 +29,7 @@ import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 
 /**
@@ -63,7 +64,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * @param read the read itself, as a SAMRecord
      * @return true if the read passes the filter, false if it doesn't
      */
-    public boolean filter(char[] ref, SAMRecord read) {
+    public boolean filter(ReferenceContext ref, SAMRecord read) {
         // check the read group
         if  ( readGroup != null ) {
             SAMReadGroupRecord myReadGroup = read.getReadGroup();
@@ -91,7 +92,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * @param read the read itself, as a SAMRecord
      * @return the read itself
      */
-    public SAMRecord map( char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+    public SAMRecord map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         return read;
     }
 

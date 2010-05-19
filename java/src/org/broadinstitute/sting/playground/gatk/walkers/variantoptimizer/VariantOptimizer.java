@@ -146,7 +146,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                     boolean isKnown = !vc.getAttribute("ID").equals(".");
                     if(usingDBSNP) {
                         isKnown = false;
-                        for( final VariantContext dbsnpVC : tracker.getVariantContexts(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, context.getLocation(), false, false) ) {
+                        for( final VariantContext dbsnpVC : tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, context.getLocation(), false, false) ) {
                             if(dbsnpVC != null && dbsnpVC.isSNP()) {
                                 isKnown = true;
                             }

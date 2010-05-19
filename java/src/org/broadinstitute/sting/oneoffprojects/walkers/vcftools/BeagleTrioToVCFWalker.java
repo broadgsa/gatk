@@ -73,7 +73,7 @@ public class BeagleTrioToVCFWalker extends RodWalker<VariantContext, Long> {
         VariantContext vc = null;
 
         if ( ref != null ) {
-            vc = tracker.getVariantContext(TRACK_NAME, null, context.getLocation(), false);
+            vc = tracker.getVariantContext(ref, TRACK_NAME, null, context.getLocation(), false);
             BeagleROD beagle = tracker.lookup(BEAGLE_NAME,BeagleROD.class);
 
             if ( vc != null ) {

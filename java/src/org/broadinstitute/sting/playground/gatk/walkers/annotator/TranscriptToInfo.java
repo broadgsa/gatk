@@ -261,7 +261,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             if(parsedTranscriptRod.positiveStrand) {
                 parsedTranscriptRod.txSequence.append(ref.getBase());
             } else {
-                final char complementBase = BaseUtils.simpleComplement(ref.getBase());
+                final char complementBase = BaseUtils.simpleComplement(ref.getBaseAsChar());
                 parsedTranscriptRod.txSequence.insert(0, complementBase);
             }
 
@@ -275,16 +275,16 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                 {
                     if(position < parsedTranscriptRod.cdsStart)
                     {
-                        parsedTranscriptRod.utr5Sequence.append(ref.getBase()); //within utr5
+                        parsedTranscriptRod.utr5Sequence.append(ref.getBaseAsChar()); //within utr5
                     }
                     else if(position >= parsedTranscriptRod.cdsStart && position <= parsedTranscriptRod.cdsEnd)
                     {
-                        parsedTranscriptRod.cdsSequence.append(ref.getBase()); //within CDS
+                        parsedTranscriptRod.cdsSequence.append(ref.getBaseAsChar()); //within CDS
                     }
                 }
                 else
                 {
-                    final char complementBase = BaseUtils.simpleComplement(ref.getBase());
+                    final char complementBase = BaseUtils.simpleComplement(ref.getBaseAsChar());
                     if(position > parsedTranscriptRod.cdsEnd)
                     {
                         //As we move left to right (aka. 3' to 5'), we do insert(0,..) to reverse the sequence so that it become 5' to 3' in parsedTranscriptRod.utr5Sequence.

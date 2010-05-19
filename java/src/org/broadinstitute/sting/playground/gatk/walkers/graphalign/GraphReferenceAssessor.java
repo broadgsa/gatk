@@ -27,6 +27,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.graphalign;
 
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.Argument;
 
@@ -176,7 +177,7 @@ public class GraphReferenceAssessor extends ReadWalker<Integer, Integer> {
         return minNMM;
     }
 
-    public Integer map(char[] refArg, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext refArg, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
         if ( MAXREADS-- == 0 ) {
             System.exit(0);
@@ -184,7 +185,7 @@ public class GraphReferenceAssessor extends ReadWalker<Integer, Integer> {
             ;
         } else if ( ! read.getReadUnmappedFlag() && read.getCigar().numCigarElements() == 1 ) {
             try {
-                byte[] ref = BaseUtils.charSeq2byteSeq(refArg);
+                byte[] ref = refArg.getBases();
                 // we're all XM
                 int nMMFromRead = (Short)read.getAttribute("NM");
                 MismatchCounter nAlignedMM = countMismatches(ref, read.getReadBases(), read.getBaseQualities());

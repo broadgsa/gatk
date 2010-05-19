@@ -142,7 +142,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( rods.size() == 0 )
             return 0;
 
-        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", rods.get(0));
+        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", rods.get(0), ref);
         FiltrationContext varContext = new FiltrationContext(tracker, ref, vc);
 
         // if we're still initializing the context, do so

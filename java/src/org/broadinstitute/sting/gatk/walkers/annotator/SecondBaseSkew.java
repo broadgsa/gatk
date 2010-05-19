@@ -68,7 +68,7 @@ public class SecondBaseSkew implements InfoFieldAnnotation, ExperimentalAnnotati
         Pair<Integer, Integer> depth = new Pair<Integer, Integer>(0, 0);
         for ( String sample : stratifiedContexts.keySet() ) {
             //Pair<Integer,Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBase(),stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getPileup(), alternate);
-            Pair<Integer, Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBase(), stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), alternate);
+            Pair<Integer, Integer> sampleDepth = getSecondaryPileupNonrefCount(ref.getBaseAsChar(), stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), alternate);
             depth.first += sampleDepth.first;
             depth.second += sampleDepth.second;
         }

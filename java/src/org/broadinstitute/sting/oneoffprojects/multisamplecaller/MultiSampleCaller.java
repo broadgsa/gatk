@@ -350,14 +350,14 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 		context = filter_each_read(context);
 
-		if (ref.getBase() == 'N') { return null; }
+		if (ref.getBaseAsChar() == 'N') { return null; }
 		if (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) == -1) { return null; }
 		if (context.getReads().size() <= 0) { return null; }
         if (context.getReads().size() >= 10000) { return null; }     // to deal with big piles -- totally arbitrary threshold
 
-		this.ref = ref.getBase();
-		MultiSampleCallResult result = this.MultiSampleCall(tracker, ref.getBase(), context, sample_names);
-        if ( INCLUDE_STATS ) stats_output_file.println(DepthStats.Row(ref.getBase(), context));
+		this.ref = ref.getBaseAsChar();
+		MultiSampleCallResult result = this.MultiSampleCall(tracker, ref.getBaseAsChar(), context, sample_names);
+        if ( INCLUDE_STATS ) stats_output_file.println(DepthStats.Row(ref.getBaseAsChar(), context));
 		return result;
 	}
 

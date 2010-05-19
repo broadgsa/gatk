@@ -29,6 +29,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.ArrayList;
@@ -180,7 +181,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
         return isWithinInterval;
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if (!ReadsToDiscard.contains(read.getReadName())){
             UpdateCorrelation(read);
         }else{

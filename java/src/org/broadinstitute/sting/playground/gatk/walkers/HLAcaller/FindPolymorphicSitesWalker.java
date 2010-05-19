@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.ArrayList;
@@ -139,7 +140,7 @@ public class FindPolymorphicSitesWalker extends ReadWalker<Integer, Integer> {
         NonPolymorphicSites = nonpolymorphicsites.toArray(new Integer[nonpolymorphicsites.size()]);
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         //Calculate concordance for this read and all overlapping reads
         return 1;
     }

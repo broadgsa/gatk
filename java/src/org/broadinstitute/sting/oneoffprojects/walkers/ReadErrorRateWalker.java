@@ -27,6 +27,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -56,8 +57,8 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
      * @param read     the read to assess
      * @return true if the read can be processed, false if it should be ignored
      */
-    public boolean filter(char[] ref, SAMRecord read) {
-        return (read.getCigar().numCigarElements() == 1 && read.getReadLength() <= ref.length && (!useNonNextBestBase || read.getAttribute("SQ") != null));
+    public boolean filter(ReferenceContext ref, SAMRecord read) {
+        return (read.getCigar().numCigarElements() == 1 && read.getReadLength() <= ref.getBases().length && (!useNonNextBestBase || read.getAttribute("SQ") != null));
     }
 
     /**
@@ -71,7 +72,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
      *         Last element is for internal use so the reduce() function can figure out how
      *         many reads we processed.
      */
-    public boolean[] map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public boolean[] map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         boolean[] errorsPerCycle = new boolean[read.getReadLength() + 1];
 
         byte[] bases  = read.getReadBases();
@@ -85,7 +86,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
             System.out.println();
 
             for (int cycle = 0; cycle < bases.length; cycle++) {
-                byte compBase = convertIUPACBaseToSimpleBase((byte)ref[cycle]);
+                byte compBase = convertIUPACBaseToSimpleBase(ref.getBases()[cycle]);
 
                 System.out.print((char) compBase);
             }
@@ -93,7 +94,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
         }
 
         for (int cycle = 0; cycle < bases.length; cycle++) {
-            byte compBase = convertIUPACBaseToSimpleBase((byte)ref[cycle]);
+            byte compBase = convertIUPACBaseToSimpleBase(ref.getBases()[cycle]);
 
             if (compBase != '.') {
                 if (useNextBestBase || useNextRandomBase || useNonNextBestBase) {

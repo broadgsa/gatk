@@ -89,7 +89,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
             if(shouldShowSecondaryBasePileup(basePileup))
                 secondBasePileup = getSecondBasePileup(basePileup);
 
-            out.printf("%s%s %s%n", basePileup.getPileupString(ref.getBase()), secondBasePileup, rods);
+            out.printf("%s%s %s%n", basePileup.getPileupString(ref.getBaseAsChar()), secondBasePileup, rods);
         }
 
         if ( context.hasExtendedEventPileup() ) {

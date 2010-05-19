@@ -46,7 +46,7 @@ public class VCFReferenceFixerWalker extends RodWalker<VCFRecord,Long> {
             vcfrod = (VCFRecord) rod;
         }
 
-        if (vcfrod != null) vcfrod.setReferenceBase(new String(BaseUtils.charSeq2byteSeq(context.getBases())));
+        if (vcfrod != null) vcfrod.setReferenceBase(new String(context.getBases()));
         return vcfrod;
 
         /*

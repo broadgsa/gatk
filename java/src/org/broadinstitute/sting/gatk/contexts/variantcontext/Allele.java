@@ -120,6 +120,16 @@ public class Allele implements Comparable<Allele> {
             throw new IllegalArgumentException("Unexpected base in allele bases " + new String(bases));
     }
 
+
+    public Allele(byte base, boolean isRef) {
+        this( base1ToBases(base), isRef);
+    }
+    
+    private static byte[] base1ToBases(byte base) {
+        byte[] bases = { base };
+        return bases;
+    }
+
     /**
      * @param bases  bases representing an allele
      * @return true if the bases represent the null allele
@@ -170,6 +180,7 @@ public class Allele implements Comparable<Allele> {
     public Allele(String bases, boolean isRef) {
         this(bases.getBytes(), isRef);
     }
+
 
     /**
      * Creates a non-Ref allele.  @see Allele(byte[], boolean) for full information

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -61,7 +62,7 @@ public class PairedQualityScoreCountsWalker extends ReadWalker<Pair<byte[],Boole
         return reduceCounts;
     }
 
-    public Pair<byte[],Boolean> map( char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Pair<byte[],Boolean> map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( canUseRead(read) ) {
             return getCorrectlyOrientedBaseQualities(read);
         } else {

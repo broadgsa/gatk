@@ -84,7 +84,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
         while (glf.hasNext()) {
             glf.next();
             records.add((GLFSingleCall)glf.mRecord); // we know they're all single calls in the reference file
-            VariantContext vc = VariantContextAdaptors.toVariantContext("GLF",glf);
+            VariantContext vc = VariantContextAdaptors.toVariantContext("GLF",glf, null);
             gw.addCall(vc,null);
         }
         gw.close(); // close the file
@@ -148,7 +148,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
         while (line != null && line != "") {
             geliText = (GeliTextFeature)codec.decode(line);
             records.add(geliText); // we know they're all single calls in the reference file
-            VariantContext vc = VariantContextAdaptors.toVariantContext("Geli",geliText);
+            VariantContext vc = VariantContextAdaptors.toVariantContext("Geli",geliText, null);
             if (vc != null) gw.addCall(vc,null);
             line = readLine(reader);
         }
@@ -211,7 +211,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
         while (iterator.hasNext()) {
             rodGELI gel = new rodGELI("myROD",iterator.next());
             records.add(gel);
-            VariantContext vc = VariantContextAdaptors.toVariantContext("myROD",gel);
+            VariantContext vc = VariantContextAdaptors.toVariantContext("myROD",gel, null);
             if (vc != null) gw.addCall(vc,null);
         }
         iterator.close();

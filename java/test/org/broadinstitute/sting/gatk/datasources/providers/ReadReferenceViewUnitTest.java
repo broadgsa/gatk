@@ -75,8 +75,9 @@ public class ReadReferenceViewUnitTest extends ReferenceViewTemplate {
 
         SAMRecord rec = buildSAMRecord(selectedContig.getSequenceName(),(int)contigStart,(int)contigStop);
         ReferenceSequence expectedAsSeq = sequenceFile.getSubsequenceAt(selectedContig.getSequenceName(),(int)contigStart,selectedContig.getSequenceLength());
-        char[] expected = StringUtil.bytesToString(expectedAsSeq.getBases()).toCharArray();
-        char[] actual = view.getReferenceBases(rec);
+        //char[] expected = StringUtil.bytesToString(expectedAsSeq.getBases()).toCharArray();
+        byte[] expected = expectedAsSeq.getBases();
+        byte[] actual = view.getReferenceBases(rec);
 
         Assert.assertEquals(expected.length, (readLength - overlap));
         Assert.assertEquals(actual.length, readLength);
@@ -101,8 +102,8 @@ public class ReadReferenceViewUnitTest extends ReferenceViewTemplate {
         ReadReferenceView view = new ReadReferenceView(dataProvider);
 
         ReferenceSequence expectedAsSeq = sequenceFile.getSubsequenceAt(loc.getContig(),loc.getStart(),loc.getStop());
-        char[] expected = StringUtil.bytesToString(expectedAsSeq.getBases()).toCharArray();
-        char[] actual = view.getReferenceBases(read);
+        byte[] expected = expectedAsSeq.getBases();
+        byte[] actual = view.getReferenceBases(read);
 
         Assert.assertArrayEquals(String.format("Base array at  in shard %s does not match expected",loc.toString()),
                                  expected,

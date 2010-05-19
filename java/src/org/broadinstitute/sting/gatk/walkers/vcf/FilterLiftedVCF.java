@@ -80,7 +80,7 @@ public class FilterLiftedVCF extends RodWalker<Integer, Integer> {
         List<Object> rods = tracker.getReferenceMetaData("vcf");
 
         for ( Object rod : rods )
-            filterAndWrite(ref.getBase(), (VCFRecord)rod);
+            filterAndWrite(ref.getBaseAsChar(), (VCFRecord)rod);
 
         return 0;
     }

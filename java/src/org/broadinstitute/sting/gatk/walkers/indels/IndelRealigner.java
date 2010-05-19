@@ -30,6 +30,7 @@ import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
@@ -283,7 +284,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( currentInterval == null ) {
             emit(read);
             return 0;
@@ -314,9 +315,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                  read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
                 readsNotToClean.add(read);
             } else {
-                readsToClean.add(read, ref);
+                readsToClean.add(read, ref.getBasesAsChars());
                 // add the rods to the list of known variants
-                populateKnownIndels(metaDataTracker);
+                populateKnownIndels(metaDataTracker, null);     // todo -- fixme!
             }
 
             if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
@@ -335,7 +336,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return 0;
     }
 
-    private void cleanAndCallMap(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
+    private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
         clean(readsToClean);
         knownIndelsToTry.clear();
 
@@ -403,7 +404,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private void populateKnownIndels(ReadMetaDataTracker metaDataTracker) {
+    private void populateKnownIndels(ReadMetaDataTracker metaDataTracker, ReferenceContext ref) {
         for ( Collection<GATKFeature> rods : metaDataTracker.getContigOffsetMapping().values() ) {
             Iterator<GATKFeature> rodIter = rods.iterator();
             while ( rodIter.hasNext() ) {
@@ -411,7 +412,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( knownIndelsToTry.containsKey(rod) )
                     continue;
                 if ( VariantContextAdaptors.canBeConvertedToVariantContext(rod))
-                    knownIndelsToTry.put(rod, VariantContextAdaptors.toVariantContext("", rod));
+                    knownIndelsToTry.put(rod, VariantContextAdaptors.toVariantContext("", rod, ref));
                 else
                     knownIndelsToTry.put(rod, null);
             }

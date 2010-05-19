@@ -81,7 +81,7 @@ public class ComputeConfusionMatrix extends LocusWalker<Integer, Integer> {
         int windowCenter = (windowLength - 1)/2;
 
         String fwRefBases = new String(ref.getBases());
-        String fwRefBase = String.format("%c", ref.getBase());
+        String fwRefBase = String.format("%c", ref.getBaseAsChar());
         String fwWindowLeft = fwRefBases.substring(windowCenter - WINDOW_SIZE, windowCenter);
 
         //String rcRefBases = new String(BaseUtils.simpleReverseComplement(ref.getBases()));

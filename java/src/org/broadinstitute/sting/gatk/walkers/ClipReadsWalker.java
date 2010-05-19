@@ -34,6 +34,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -168,7 +169,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
      * @param read the read itself, as a SAMRecord
      * @return the ReadClipper object describing what should be done to clip this read
      */
-    public ReadClipper map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public ReadClipper map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
             ReadClipper clipper = new ReadClipper(read);
 

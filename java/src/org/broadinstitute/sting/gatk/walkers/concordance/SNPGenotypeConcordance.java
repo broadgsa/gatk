@@ -31,7 +31,7 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     }
 
     public String computeConcordance(Map<String, VCFGenotypeRecord> samplesToRecords, ReferenceContext ref) {
-        char refBase = ref.getBase();
+        char refBase = ref.getBaseAsChar();
 
         VCFGenotypeRecord call1 = samplesToRecords.get(sample1);
         if ( call1 != null && call1.isNoCall() )
@@ -90,7 +90,7 @@ public class SNPGenotypeConcordance implements ConcordanceType {
             // are they the same genotype
             if ( genotype1.equals(genotype2) )
                 result.append("sameGenotype");
-            else if ( sameVariantAllele(genotype1, genotype2, ref.getBase()) )
+            else if ( sameVariantAllele(genotype1, genotype2, ref.getBaseAsChar()) )
                 result.append("differentGenotypeSameVariantAllele");
             else
                 result.append("differentVariantAllele");

@@ -92,8 +92,6 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 
         logger.debug("Probing " + ref.getLocus() + " " + ref.getWindow());
 
-        String refBase = String.valueOf(ref.getBase());
-
         Collection<VariantContext> VCs = tracker.getAllVariantContexts(ref);
         if ( VCs.size() == 0 )
             return "";
@@ -128,7 +126,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             }
         }
 
-		char[] context_bases = ref.getBases();
+		byte[] context_bases = ref.getBases();
 		for (int i = 0; i < 401; i++) {
 			if ( maskFlags[i] == 1 ) {
                 context_bases[i] = 'N';
@@ -140,11 +138,11 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 
         String assay_sequence;
         if ( vc.isSNP() )
-            assay_sequence = leading_bases + "[" + refBase + "/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
+            assay_sequence = leading_bases + "[" + ref.getBaseAsChar() + "/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
         else if ( vc.isInsertion() )
-            assay_sequence = leading_bases + refBase + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
+            assay_sequence = leading_bases + ref.getBaseAsChar() + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
         else if ( vc.isDeletion() )
-            assay_sequence = leading_bases + refBase + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length());
+            assay_sequence = leading_bases + ref.getBaseAsChar() + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length());
         else
             return "";
 

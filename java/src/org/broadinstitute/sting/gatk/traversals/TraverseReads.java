@@ -3,11 +3,13 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -77,12 +79,12 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
 
         // while we still have more reads
         for (SAMRecord read : reads) {
-            // an array of characters that represent the reference
-            char[] refSeq = null;
+            // ReferenceContext -- the reference bases covered by the read
+            ReferenceContext refContext = null;
 
             // get the array of characters for the reference sequence, since we're a mapped read
             if (needsReferenceBasesP && !read.getReadUnmappedFlag() && dataProvider.hasReference())
-                refSeq = reference.getReferenceBases(read);
+                refContext = reference.getReferenceContext(read);
 
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
@@ -91,9 +93,9 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
             // if the read is mapped, create a metadata tracker
             ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
 
-            final boolean keepMeP = walker.filter(refSeq, read);
+            final boolean keepMeP = walker.filter(refContext, read);
             if (keepMeP) {
-                M x = walker.map(refSeq, read, tracker); // the tracker can be null
+                M x = walker.map(refContext, read, tracker); // the tracker can be null
                 sum = walker.reduce(x, sum);
             }
 

@@ -49,6 +49,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
@@ -316,7 +317,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @param read The read to be recalibrated
      * @return The read with quality scores replaced
      */
-    public SAMRecord map( char[] refBases, SAMRecord read, ReadMetaDataTracker metaDataTracker  ) {
+    public SAMRecord map( ReferenceContext refBases, SAMRecord read, ReadMetaDataTracker metaDataTracker  ) {
 
         RecalDataManager.parseSAMRecord( read, RAC );
 
@@ -332,7 +333,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                     return read; // can't recalibrate a SOLiD read with no calls in the color space, and the user wants to skip over them
                 }
             }
-            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases );
+            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases == null ? null : refBases.getBasesAsChars() );
         }
 
         //compute all covariate values for this read
@@ -360,9 +361,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if ( read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // Save the old qualities if the tag isn't already taken in the read
             read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
         }
+
         if (read.getAttribute(SAMTag.UQ.name()) != null) {
-            // TODO - When refBases is switches to byte[], call the appropriate overload in SAM-JDK, and remove char[] overload from SAM-JDK.
-            read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, refBases, read.getAlignmentStart() - 1));
+            read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, refBases.getBases(), read.getAlignmentStart() - 1, false));
         }
 
         return read;

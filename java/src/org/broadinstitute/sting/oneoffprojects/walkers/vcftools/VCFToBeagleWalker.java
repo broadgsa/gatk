@@ -67,7 +67,7 @@ public class VCFToBeagleWalker extends RodWalker<Integer, VCFToBeagleWalker.Resu
         if ( ref != null ) {
             EnumSet<VariantContext.Type> allowedTypes = EnumSet.of(VariantContext.Type.SNP);
 
-            VariantContext vc = tracker.getVariantContext("variants", allowedTypes, context.getLocation(), false);
+            VariantContext vc = tracker.getVariantContext(ref, "variants", allowedTypes, context.getLocation(), false);
 
             if ( vc != null && vc.isBiallelic() && vc.isNotFiltered() ) {
                 if ( trio != null ) { // we are emitting a trio file

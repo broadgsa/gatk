@@ -3,6 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+
 import java.util.Hashtable;
 /**
  * Creates a haplotype file given reads (for SNP analysis, imputation, etc)
@@ -37,7 +39,7 @@ public class CreateHaplotypesWalker extends ReadWalker<Integer, Integer> {
 
 
     
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
         int readstart = read.getAlignmentStart();
         int readstop = read.getAlignmentEnd();

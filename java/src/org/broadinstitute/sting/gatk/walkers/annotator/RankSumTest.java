@@ -37,7 +37,7 @@ public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgress
                 if ( context == null )
                     continue;
 
-                fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
+                fillQualsFromPileup(ref.getBaseAsChar(), vc.getAlternateAllele(0).toString().charAt(0), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
             }
         }
 

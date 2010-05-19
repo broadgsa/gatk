@@ -232,6 +232,7 @@ public class RefMetaDataTracker {
      *
      * see getVariantContexts for more information.
      *
+     * @param ref                ReferenceContext to enable conversion to variant context
      * @param name               name
      * @param curLocation        location
      * @param allowedTypes       allowed types
@@ -239,17 +240,17 @@ public class RefMetaDataTracker {
      * @param takeFirstOnly      do we take the first rod only?
      * @return variant context
      */
-    public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        return getVariantContexts(null, Arrays.asList(name), allowedTypes, curLocation, requireStartHere, takeFirstOnly);
-    }
+//    public Collection<VariantContext> getVariantContexts(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+//        return getVariantContexts(null, Arrays.asList(name), allowedTypes, curLocation, requireStartHere, takeFirstOnly);
+//    }
 
     public Collection<VariantContext> getVariantContexts(ReferenceContext ref, String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         return getVariantContexts(ref, Arrays.asList(name), allowedTypes, curLocation, requireStartHere, takeFirstOnly);
     }
 
-    public Collection<VariantContext> getVariantContexts(Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
-        return getVariantContexts(null, names, allowedTypes, curLocation, requireStartHere, takeFirstOnly);
-    }
+//    public Collection<VariantContext> getVariantContexts(Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+//        return getVariantContexts(null, names, allowedTypes, curLocation, requireStartHere, takeFirstOnly);
+//    }
 
     public Collection<VariantContext> getVariantContexts(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         Collection<VariantContext> contexts = new ArrayList<VariantContext>();
@@ -274,8 +275,8 @@ public class RefMetaDataTracker {
      * @param requireStartHere   do we require the rod to start at this location?
      * @return variant context
      */
-    public VariantContext getVariantContext(String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere ) {
-        Collection<VariantContext> contexts = getVariantContexts(name, allowedTypes, curLocation, requireStartHere, false );
+    public VariantContext getVariantContext(ReferenceContext ref, String name, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere ) {
+        Collection<VariantContext> contexts = getVariantContexts(ref, name, allowedTypes, curLocation, requireStartHere, false );
 
         if ( contexts.size() > 1 )
             throw new StingException("Requested a single VariantContext object for track " + name + " but multiple variants were present at position " + curLocation);

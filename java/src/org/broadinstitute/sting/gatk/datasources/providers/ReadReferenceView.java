@@ -7,6 +7,7 @@ import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -61,10 +62,16 @@ public class ReadReferenceView extends ReferenceView {
      *         mapped to the reference, followed by X's coresponding to the rest of the read.
      *         This indicates that the rest lies off the end of the contig.
      */
-    public char[] getReferenceBases( SAMRecord read ) {
-        if (read.getReadUnmappedFlag())
-            return null;
-        return getReferenceBases( GenomeLocParser.createGenomeLoc(read) );
+//    public char[] getReferenceBases( SAMRecord read ) {
+//        if (read.getReadUnmappedFlag())
+//            return null;
+//        return getReferenceBases( GenomeLocParser.createGenomeLoc(read) );
+//    }
+
+    public ReferenceContext getReferenceContext( SAMRecord read ) {
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
+        byte[] bases = super.getReferenceBases(loc);
+        return new ReferenceContext( loc, loc, bases );
     }
 
 }

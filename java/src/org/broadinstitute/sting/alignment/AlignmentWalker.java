@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
@@ -70,14 +71,6 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
      */
     private SAMFileHeader header;
 
-    /** Must return true for reads that need to be processed. Reads, for which this method return false will
-     * be skipped by the engine and never passed to the walker.
-     */
-    @Override
-    public boolean filter(char[] ref, SAMRecord read) {
-        return true;
-    }
-
     /**
      * Create an aligner object.  The aligner object will load and hold the BWT until close() is called.
      */    
@@ -109,7 +102,7 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
      * @return Number of alignments found for this read.
      */
     @Override
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         SAMRecord alignedRead = aligner.align(read,header);
         if (outputBam != null) {
             outputBam.addAlignment(alignedRead);

@@ -53,7 +53,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
             return new Pair<GenomeLoc, String>(context.getLocation(), "");
         }
 
-        String refBase = String.valueOf(ref.getBase());
+        String refBase = String.valueOf(ref.getBaseAsChar());
 
         for ( VariantContext vc : tracker.getAllVariantContexts(ref) ) {
             // if we have multiple variants at a locus, just take the first one we see

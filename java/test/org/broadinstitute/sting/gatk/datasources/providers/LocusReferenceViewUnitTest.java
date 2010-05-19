@@ -61,7 +61,8 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
-        char[] results = view.getReferenceBases(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length() + 9));
+        byte[] results = view.getReferenceBases(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length() + 9));
+        System.out.printf("results are %s%n", new String(results));
         Assert.assertEquals(20, results.length);
         for (int x = 0; x < results.length; x++) {
             if (x <= 10) Assert.assertTrue(results[x] != 'X');
@@ -104,7 +105,7 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
 
             ReferenceSequence expectedAsSeq = sequenceFile.getSubsequenceAt(locus.getContig(), locus.getStart(), locus.getStop());
             char expected = StringUtil.bytesToString(expectedAsSeq.getBases()).charAt(0);
-            char actual = view.getReferenceContext(locus).getBase();
+            char actual = view.getReferenceContext(locus).getBaseAsChar();
 
             Assert.assertEquals(String.format("Value of base at position %s in shard %s does not match expected", locus.toString(), shard.getGenomeLocs()),
                     expected,

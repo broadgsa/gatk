@@ -51,18 +51,20 @@ public class ReferenceContext {
     /**
      * The bases in the window around the current locus.
      */
-    private char[] bases;
+    private byte[] bases;
+
+    private char[] basesAsCharCached = null;
 
     /**
      * Contructor for a simple, windowless reference context.
      * @param locus locus of interest.
      * @param base reference base at that locus.
      */
-    public ReferenceContext( GenomeLoc locus, char base ) {
-        this( locus, locus, new char[] { base } );
+    public ReferenceContext( GenomeLoc locus, byte base ) {
+        this( locus, locus, new byte[] { base } );
     }
 
-    public ReferenceContext( GenomeLoc locus, GenomeLoc window, char[] bases ) {
+    public ReferenceContext( GenomeLoc locus, GenomeLoc window, byte[] bases ) {
   //      if( !window.containsP(locus) )
   //          throw new StingException("Invalid locus or window; window does not contain locus");
 
@@ -87,8 +89,13 @@ public class ReferenceContext {
      * Get the base at the given locus.
      * @return The base at the given locus from the reference.
      */
-    public char getBase() {
+    public byte getBase() {
         return bases[(int)(locus.getStart() - window.getStart())];
+    }
+
+    @Deprecated
+    public char getBaseAsChar() {
+        return (char)getBase();
     }
 
     /**
@@ -104,9 +111,17 @@ public class ReferenceContext {
      * @return All bases available.  If the window is of size [0,0], the array will
      *         contain only the base at the given locus.
      */
-    public char[] getBases() {
+    public byte[] getBases() {
         return bases;
     }
+
+    @Deprecated
+    public char[] getBasesAsChars() {
+        if ( basesAsCharCached == null )
+            basesAsCharCached = new String(bases).toCharArray();
+        return basesAsCharCached;
+    }
+
 
     /** Extracts from the current window and returns n bases starting at this context's locus (NOT
      * from the window start!). The returned array of chars is newly allocated. If n is too large (runs beyond
@@ -115,12 +130,12 @@ public class ReferenceContext {
      * @param n number of requested bases including and starting from the current locus
      * @return
      */
-    public char[] getBasesAtLocus(int n) {
+    public byte[] getBasesAtLocusAsByte(int n) {
 
         int start = (int)(locus.getStart()-window.getStart());
         int stop = ( n==(-1) ? bases.length : start+n );
 
-        char[] b = new char[stop-start];
+        byte[] b = new byte[stop-start];
 
         if ( stop > bases.length )
             throw new StingException("Bases beyond the current window requested: window="+window+", requested="+n);
@@ -128,5 +143,10 @@ public class ReferenceContext {
         int i = 0;
         for ( int j = start ;  j < stop ; j++) b[i++]=bases[j];
         return b;
+    }
+
+    @Deprecated
+    public char[] getBasesAtLocus(int n) {
+        return new String(getBasesAtLocusAsByte(n)).toCharArray();
     }
 }

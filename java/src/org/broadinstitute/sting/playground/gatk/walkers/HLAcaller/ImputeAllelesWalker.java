@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 import java.io.FileInputStream;
 import java.io.BufferedReader;
@@ -161,7 +162,7 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
     }
 
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         int readstart = read.getAlignmentStart();
         int readstop = read.getAlignmentEnd();
         int startimputation = 0, stopimputation = 0;

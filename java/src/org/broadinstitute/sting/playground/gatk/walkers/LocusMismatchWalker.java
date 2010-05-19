@@ -125,7 +125,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
                 //System.out.printf("Using %s%n", e.getRead().getReadName());
                 baseCounts[e.getBaseIndex()] += 1;
                 usableDepth++;
-                if ( ! BaseUtils.basesAreEqual(e.getBase(), (byte)ref.getBase()) ) {
+                if ( ! BaseUtils.basesAreEqual(e.getBase(), ref.getBase()) ) {
                     nMismatches++;
                     qSumMismatches += e.getQual();
                 }
@@ -138,7 +138,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
                 baseCountString += baseCounts[BaseUtils.simpleBaseToBaseIndex(b)] + " ";
             }
             return String.format("%s %c %10s %5.2f %d %d %d %s",
-                    pileup.getLocation(), ref.getBase(),
+                    pileup.getLocation(), ref.getBaseAsChar(),
                     getGenotypeClass(g), 10 * g.getNegLog10PError(),
                     usableDepth, nMismatches, qSumMismatches, baseCountString);
         }

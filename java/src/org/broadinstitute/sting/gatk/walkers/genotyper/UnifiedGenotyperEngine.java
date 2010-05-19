@@ -159,7 +159,7 @@ public class UnifiedGenotyperEngine {
             gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format, verboseWriter, beagleWriter));
         }
 
-        char ref = Character.toUpperCase(refContext.getBase());
+        char ref = Character.toUpperCase(refContext.getBaseAsChar());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 

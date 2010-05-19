@@ -95,7 +95,7 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
                       tracker.getReferenceMetaData("comp").size() != 0 ? tracker.getReferenceMetaData("comp").get(0) : null;
         VariantContext compContext;
         if ( comp != null ) {
-            compContext = VariantContextAdaptors.toVariantContext("comp",comp);
+            compContext = VariantContextAdaptors.toVariantContext("comp",comp, ref);
         } else {
             compContext = null;
         }
@@ -142,12 +142,12 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
         if ( vcfWriter != null ) {
             int i = 0;
             while ( i < compContexts.size() && compContexts.get(i).getLocation().isBefore(evalContexts.get(0).getLocation())) {
-                vcfWriter.addRecord(VariantContextAdaptors.toVCF(compContexts.get(i),(char)compContexts.get(i).getReference().getBases()[0]));
+                vcfWriter.addRecord(VariantContextAdaptors.toVCF(compContexts.get(i),compContexts.get(i).getReference().getBases()[0]));
                 i++;
             }
             vcfWriter.addRecord(VariantContextAdaptors.toVCF(evalContexts.get(0),ref.getBase()));
             while ( i < compContexts.size() && compContexts.get(i).getLocation().distance(evalContexts.get(0).getLocation()) <= indelWindow) {
-                vcfWriter.addRecord(VariantContextAdaptors.toVCF(compContexts.get(i),(char) compContexts.get(i).getReference().getBases()[0]));
+                vcfWriter.addRecord(VariantContextAdaptors.toVCF(compContexts.get(i),compContexts.get(i).getReference().getBases()[0]));
                 i++;
             }
         }

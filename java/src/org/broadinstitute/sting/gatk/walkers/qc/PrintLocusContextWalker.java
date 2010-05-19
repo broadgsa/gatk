@@ -16,7 +16,7 @@ import net.sf.samtools.SAMRecord;
  */
 public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integer> implements TreeReducible<Integer> {
     public AlignmentContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        out.printf( "In map: ref = %s, loc = %s, reads = %s%n", ref.getBase(),
+        out.printf( "In map: ref = %s, loc = %s, reads = %s%n", ref.getBaseAsChar(),
                                                                 context.getLocation(),
                                                                 Arrays.deepToString( getReadNames(context.getReads()) ) );
         return context;

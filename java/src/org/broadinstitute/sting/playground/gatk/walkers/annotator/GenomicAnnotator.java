@@ -205,11 +205,11 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> {
             return 0;
 
         Object variant = rods.get(0);
-        if( ref.getBase() == 'N') {
+        if( BaseUtils.isNBase(ref.getBase()) ) {
             return 0; //TODO Currently, VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()) fails when base is 'N'. is this right?
         }
 
-        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant);
+        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant, ref);
         if ( vc == null )
             return 0;
 

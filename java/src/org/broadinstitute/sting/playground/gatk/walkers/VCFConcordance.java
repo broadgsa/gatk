@@ -31,8 +31,8 @@ public class VCFConcordance extends RodWalker<Integer, Integer> {
             VariantContext eval = null;
             VariantContext truth = null;
             try {
-                eval = tracker.getVariantContext("eval", vc, loc, true);
-                truth = tracker.getVariantContext("truth", vc, loc, true);
+                eval = tracker.getVariantContext(ref, "eval", vc, loc, true);
+                truth = tracker.getVariantContext(ref, "truth", vc, loc, true);
             } catch (java.util.NoSuchElementException e) {
                 return 0;
             }

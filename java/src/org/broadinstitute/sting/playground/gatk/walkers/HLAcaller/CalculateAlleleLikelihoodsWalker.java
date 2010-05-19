@@ -28,6 +28,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.ArrayList;
@@ -106,7 +107,7 @@ public class CalculateAlleleLikelihoodsWalker extends ReadWalker<Integer, Intege
         return 0;
     }
 
-    public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         HLAnamesAL.add(read.getReadName());
         HLAreadsAL.add(formatter.FormatRead(read.getCigarString(), read.getReadString()));
         HLAstartposAL.add(read.getAlignmentStart());

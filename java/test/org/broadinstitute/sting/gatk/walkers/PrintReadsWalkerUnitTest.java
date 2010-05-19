@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.ArtificialReadsTraversal;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -54,7 +55,9 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
      */
     private ArtificialReadsTraversal trav;
     private int readTotal = 0;
-    private char bases[] = {'a', 't'};
+    //private char bases[] = {'a', 't'};
+    private ReferenceContext bases = null;
+    //private ReferenceContext ref = new ReferenceContext()
 
     @Before
     public void before() {

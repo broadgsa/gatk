@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODItera
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.CircularArray;
@@ -178,7 +179,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 
 	@Override
-	public Integer map(char[] ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
+	public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
     //        if ( read.getReadName().equals("428EFAAXX090610:2:36:1384:639#0") ) System.out.println("GOT READ");
 
@@ -294,9 +295,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 if ( rg == null ) throw new StingException("Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
 
                 if ( normalReadGroups.contains(rg) ) {
-                    normal_context.add(read,ref);
+                    normal_context.add(read,ref.getBasesAsChars());
                 } else if ( tumorReadGroups.contains(rg) ) {
-                    tumor_context.add(read,ref);
+                    tumor_context.add(read,ref.getBasesAsChars());
                 } else {
                     throw new StingException("Unrecognized read group in merged stream: "+rg);
                 }
@@ -315,7 +316,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 
             } else {
-                normal_context.add(read, ref);
+                normal_context.add(read, ref.getBasesAsChars());
                 if ( normal_context.getReads().size() > MAX_READ_NUMBER ) {
                     System.out.println("WARNING: a count of "+MAX_READ_NUMBER+" reads reached in a window "+
                             refName+':'+normal_context.getStart()+'-'+normal_context.getStop()+". The whole window will be dropped");
