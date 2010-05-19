@@ -138,6 +138,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         try {
             // if the file exists, and we can read it, load the index from disk
             if (indexFile.exists() && indexFile.canRead() && obtainedLock) {
+
+                // check to see if the index file is out of date
+                if (indexFile.lastModified() < inputFile.lastModified())
+                    logger.warn("Tribble index file " + indexFile + " is older than the track file " + inputFile + ", this can lead to unexpected behavior");
+                
                 logger.info("Loading Tribble index from disk for file " + inputFile);
                 return LinearIndex.createIndex(indexFile);
             }

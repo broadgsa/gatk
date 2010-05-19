@@ -24,6 +24,9 @@
 package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
 
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Assert;
@@ -70,5 +73,56 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
         // make sure we didn't write the file (check that it's timestamp is within bounds)
         Assert.assertTrue(Math.abs(1274210993000l - new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).lastModified()) < 100);
 
+    }
+
+    @Test
+    public void testBuilderIndexOutOfDate() {
+        Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
+        ValidationAppender appender = new ValidationAppender("Tribble index file /humgen/gsa-hpprojects/GATK/data/Validation_Data/ROD_validation/newerTribbleTrack.vcf.idx is older than the track file /humgen/gsa-hpprojects/GATK/data/Validation_Data/ROD_validation/newerTribbleTrack.vcf, this can lead to unexpected behavior");
+        logger.addAppender(appender);
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf");
+        try {
+            builder.loadIndex(vcfFile,new VCFCodec(), true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Assert.fail("IO exception unexpected" + e.getMessage());
+        }
+        // check to make sure the appender saw the target string 
+        Assert.assertTrue(appender.foundString());
+
+    }
+}
+
+/**
+ * this appender looks for a specific message in the log4j stream.
+ * It can be used to verify that a specific message was generated to the logging system.
+ */
+class ValidationAppender extends AppenderSkeleton {
+
+    private boolean foundString = false;
+    private String targetString = "";
+
+    public ValidationAppender(String target) {
+        targetString = target;
+    }
+
+    @Override
+    protected void append(LoggingEvent loggingEvent) {
+        if (loggingEvent.getMessage().equals(targetString))
+            foundString = true;
+    }
+
+    @Override
+    public void close() {
+        // do nothing
+    }
+
+    @Override
+    public boolean requiresLayout() {
+        return false;
+    }
+
+    public boolean foundString() {
+        return foundString;
     }
 }
