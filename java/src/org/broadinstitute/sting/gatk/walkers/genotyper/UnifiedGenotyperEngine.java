@@ -215,7 +215,7 @@ public class UnifiedGenotyperEngine {
             if ( stratifiedContexts == null )
                 return null;
 
-            DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
+            DiploidGenotypePriors priors = new DiploidGenotypePriors((byte)ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
             call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
             // annotate the call, if possible

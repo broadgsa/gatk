@@ -53,6 +53,9 @@ public class ReferenceContext {
      */
     private byte[] bases;
 
+    /**
+     * A cache of the bases converted to characters for walkers not yet using byte[] interface
+     */
     private char[] basesAsCharCached = null;
 
     /**
@@ -64,6 +67,7 @@ public class ReferenceContext {
         this( locus, locus, new byte[] { base } );
     }
 
+    // todo -- this really should take the referenceview as an option and only grab the bases if necessary
     public ReferenceContext( GenomeLoc locus, GenomeLoc window, byte[] bases ) {
   //      if( !window.containsP(locus) )
   //          throw new StingException("Invalid locus or window; window does not contain locus");

@@ -47,22 +47,31 @@ public enum DiploidGenotype {
     GT ('G', 'T'),
     TT ('T', 'T');
 
-    public char base1, base2;
+    public byte base1, base2;
+
     private DiploidGenotype(char base1, char base2) {
+        this((byte)base1, (byte)base2);
+    }
+
+    private DiploidGenotype(byte base1, byte base2) {
         this.base1 = base1;
         this.base2 = base2;
     }
 
-    public boolean isHomRef(char r) {
+    public boolean isHomRef(byte r) {
         return isHom() && r == base1;
     }
 
-    public boolean isHomVar(char r) {
+    public boolean isHomVar(byte r) {
         return isHom() && r != base1;
     }
 
-    public boolean isHetRef(char r) {
-        return MathUtils.countOccurrences(r, this.toString()) == 1;
+    public boolean isHetRef(byte r) {
+        if ( base1 == r )
+            return r != base2;
+        else
+            return base2 == r;
+        //return MathUtils.countOccurrences(r, this.toString()) == 1;
     }
 
     public boolean isHom() {

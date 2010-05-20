@@ -70,9 +70,9 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
     private void testGenotypePriors(char ref, double h, double[] array) {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double val = 0.0;
-            if ( g.isHomRef(ref) ) val = DiploidGenotypePriors.heterozygosity2HomRefProbability(h);
+            if ( g.isHomRef((byte)ref) ) val = DiploidGenotypePriors.heterozygosity2HomRefProbability(h);
             if ( g.isHet() )       val = DiploidGenotypePriors.heterozygosity2HetProbability(h);
-            if ( g.isHomVar(ref) ) val = DiploidGenotypePriors.heterozygosity2HomVarProbability(h);
+            if ( g.isHomVar((byte)ref) ) val = DiploidGenotypePriors.heterozygosity2HomVarProbability(h);
 
             val = log10(val);
             double e = array[g.ordinal()];
@@ -99,7 +99,7 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
     }
 
     private void testPolarizedGenotypePriors(char ref, double h, double pRefError, double[] array) {
-        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, h, pRefError);
+        DiploidGenotypePriors priors = new DiploidGenotypePriors((byte)ref, h, pRefError);
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double val = Math.pow(10, priors.getPrior(g));
             double e = array[g.ordinal()];

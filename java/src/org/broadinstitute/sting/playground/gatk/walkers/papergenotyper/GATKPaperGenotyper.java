@@ -68,7 +68,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
         if (ref.getBase() == 'N' || ref.getBase() == 'n') return null; // we don't deal with the N ref base case
 
         ReadBackedPileup pileup = context.getPileup();
-        double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBaseAsChar(),
+        double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
                                                                                  DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
                                                                                  0.01);
         // get the bases and qualities from the pileup

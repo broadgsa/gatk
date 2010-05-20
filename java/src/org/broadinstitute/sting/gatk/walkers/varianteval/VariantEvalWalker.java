@@ -638,19 +638,19 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         }
     }
 
-    private String formatKeyword(String keyWord) {
-        //System.out.printf("keyword %s%n", keyWord);
-
-        StringBuilder s = new StringBuilder();
-        int i = 0;
-        for ( String part : keyWord.split("\\.") ) {
-            //System.out.printf("part %s %d%n", part, nameSizes[i]);
-            s.append(String.format("%" + nameSizes[i] + "s ", part));
-            i++;
-        }
-
-        return s.toString();
-    }
+//    private String formatKeyword(String keyWord) {
+//        //System.out.printf("keyword %s%n", keyWord);
+//
+//        StringBuilder s = new StringBuilder();
+//        int i = 0;
+//        for ( String part : keyWord.split("\\.") ) {
+//            //System.out.printf("part %s %d%n", part, nameSizes[i]);
+//            s.append(String.format("%" + nameSizes[i] + "s ", part));
+//            i++;
+//        }
+//
+//        return s.toString();
+//    }
 
     public void onTraversalDone(Integer result) {
         // our report mashaller

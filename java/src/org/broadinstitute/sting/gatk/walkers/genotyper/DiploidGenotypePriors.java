@@ -73,7 +73,7 @@ public class DiploidGenotypePriors {
      * @param ref
      * @param heterozygosity
      */
-    public DiploidGenotypePriors(char ref, double heterozygosity, boolean dontPolarize) {
+    public DiploidGenotypePriors(byte ref, double heterozygosity, boolean dontPolarize) {
         if ( dontPolarize ) {
             double[] vals = heterozygosity2DiploidProbabilities(heterozygosity);
             priors = getReferenceIndependentPriors(ref, vals[0], vals[1], vals[2]);
@@ -90,7 +90,7 @@ public class DiploidGenotypePriors {
      * @param heterozygosity
      * @param probOfTriStateGenotype The prob of seeing a true B/C het when the reference is A
      */
-    public DiploidGenotypePriors(char ref, double heterozygosity, double probOfTriStateGenotype) {
+    public DiploidGenotypePriors(byte ref, double heterozygosity, double probOfTriStateGenotype) {
         priors = getReferencePolarizedPriors(ref, heterozygosity, probOfTriStateGenotype);
     }
 
@@ -226,7 +226,7 @@ public class DiploidGenotypePriors {
      * @param heterozyosity
      * @param pRefError
      */
-    public static double[] getReferencePolarizedPriors(char ref, double heterozyosity, double pRefError ) {
+    public static double[] getReferencePolarizedPriors(byte ref, double heterozyosity, double pRefError ) {
         if ( ! MathUtils.isBounded(pRefError, 0.0, 0.01) ) {
             throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
         }
@@ -276,7 +276,7 @@ public class DiploidGenotypePriors {
      * @param priorHomVar
      */
     @Deprecated
-    public static double[] getReferenceIndependentPriors(char ref, double priorHomRef, double priorHet, double priorHomVar ) {
+    public static double[] getReferenceIndependentPriors(byte ref, double priorHomRef, double priorHet, double priorHomVar ) {
         if ((priorHomRef + priorHet + priorHomVar) != 1) {
             throw new RuntimeException(String.format("Prior probabilities don't sum to one => %f, %f, %f", priorHomRef, priorHet, priorHomVar));
         }
@@ -284,7 +284,7 @@ public class DiploidGenotypePriors {
         double[] priors = new double[DiploidGenotype.values().length];
 
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            int nRefBases = MathUtils.countOccurrences(ref, g.toString());
+            int nRefBases = MathUtils.countOccurrences((char)ref, g.toString());  // todo -- fixme
             double log10POfG = 0.0;
 
             switch ( nRefBases ) {
