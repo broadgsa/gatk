@@ -210,9 +210,9 @@ public class GenomeAnalysisEngine {
                 long toPruneSize = includeSortedSet.coveredSize();
                 long toExcludeSize = excludeSortedSet.coveredSize();
                 long intervalSize = intervals.coveredSize();
-                logger.info(String.format("Initial include intervals cover %d bases", toPruneSize));
-                logger.info(String.format("Excluding %d bases from original intervals (%.2f%% reduction)",
-                        toExcludeSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
+                logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
+                logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
+                        toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
             }
 
         }
@@ -295,7 +295,7 @@ public class GenomeAnalysisEngine {
      * @param walkerType Type of walker.
      * @return Name of the walker.
      */
-    public String getWalkerName(Class<Walker> walkerType) {
+    public String getWalkerName(Class<? extends Walker> walkerType) {
         return walkerManager.getName(walkerType);
     }
 

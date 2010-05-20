@@ -37,7 +37,9 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 import java.io.File;
@@ -80,10 +82,13 @@ public abstract class MicroScheduler {
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
         if (walker instanceof TreeReducible && nThreadsToUse > 1) {
-            logger.info("Creating hierarchical microscheduler");
+            if(walker.isReduceByInterval())
+                throw new StingException(String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+            logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",nThreadsToUse));
             return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, nThreadsToUse);
         } else {
-            logger.info("Creating linear microscheduler");
+            if(nThreadsToUse > 1)
+                throw new StingException(String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             return new LinearMicroScheduler(engine, walker, reads, reference, rods);
         }
     }
