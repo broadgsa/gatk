@@ -168,9 +168,9 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      */
     private static LinearIndex writeIndexToDisk(File inputFile, FeatureCodec codec, boolean onDisk, File indexFile, boolean obtainedLock) throws IOException {
         LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
-        LinearIndex index = create.createIndex();
+        LinearIndex index = create.createIndex(null); // we don't want to write initially, so we pass in null
 
-        // if the index doesn't exist, and we can write to the directory, and we got a lock, write to the disk
+        // if the index doesn't exist, and we can write to the directory, and we got a lock: write to the disk
         if (indexFile.getParentFile().canWrite() &&
                 (!indexFile.exists() || indexFile.canWrite()) &&
                 onDisk &&
@@ -182,7 +182,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         // we can't write it to disk, just store it in memory
         else {
             // if they wanted to write, let them know we couldn't
-            if (onDisk) logger.warn("Unable to write to " + indexFile + " for the index file, creating index in memory only");
+            if (onDisk) logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
             return index;
         }
     }
