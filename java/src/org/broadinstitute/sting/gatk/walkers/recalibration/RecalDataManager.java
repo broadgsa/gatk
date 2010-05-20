@@ -34,6 +34,7 @@ import java.util.*;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMUtils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -428,7 +429,9 @@ public class RecalDataManager {
         if( attr != null ) {
             byte[] colorSpaceQuals;
             if( attr instanceof String ) {
-                colorSpaceQuals = QualityUtils.fastqToPhred((String)attr);
+                String x = (String)attr;
+                colorSpaceQuals = x.getBytes();
+                SAMUtils.fastqToPhred(colorSpaceQuals);
             } else {
                 throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
             }

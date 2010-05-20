@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.contexts;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import net.sf.samtools.util.StringUtil;
 
 /**
  * The section of the reference that overlaps with the given
@@ -38,6 +39,8 @@ import org.broadinstitute.sting.utils.BaseUtils;
  */
 
 public class ReferenceContext {
+    final public static boolean UPPERCASE_REFERENCE = true;
+
     /**
      * The locus.
      */
@@ -64,7 +67,7 @@ public class ReferenceContext {
      * @param base reference base at that locus.
      */
     public ReferenceContext( GenomeLoc locus, byte base ) {
-        this( locus, locus, new byte[] { base } );
+        this( locus, locus, new byte[] { UPPERCASE_REFERENCE ? StringUtil.toUpperCase(base) : base } );
     }
 
     // todo -- this really should take the referenceview as an option and only grab the bases if necessary
@@ -75,6 +78,8 @@ public class ReferenceContext {
         this.locus = locus;
         this.window = window;
         this.bases = bases;
+
+        if (UPPERCASE_REFERENCE) StringUtil.toUpperCase(bases);
     }
 
     /**

@@ -104,7 +104,7 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
             GenomeLoc locus = shardIterator.next();
 
             ReferenceSequence expectedAsSeq = sequenceFile.getSubsequenceAt(locus.getContig(), locus.getStart(), locus.getStop());
-            char expected = StringUtil.bytesToString(expectedAsSeq.getBases()).charAt(0);
+            char expected = Character.toUpperCase(StringUtil.bytesToString(expectedAsSeq.getBases()).charAt(0));
             char actual = view.getReferenceContext(locus).getBaseAsChar();
 
             Assert.assertEquals(String.format("Value of base at position %s in shard %s does not match expected", locus.toString(), shard.getGenomeLocs()),

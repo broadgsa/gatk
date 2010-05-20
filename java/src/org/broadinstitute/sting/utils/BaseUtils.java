@@ -64,7 +64,7 @@ public class BaseUtils {
         return t;
     }
 
-    public static boolean isTransition( byte  base1, byte  base2 ) {
+    public static boolean isTransition( byte base1, byte  base2 ) {
         int b1 = simpleBaseToBaseIndex(base1);
         int b2 = simpleBaseToBaseIndex(base2);
         return b1 == 0 && b2 == 2 || b1 == 2 && b2 == 0 ||
@@ -144,6 +144,7 @@ public class BaseUtils {
         }
         return bases;
     }
+
     /**
      * Converts a simple base to a base index
      *
