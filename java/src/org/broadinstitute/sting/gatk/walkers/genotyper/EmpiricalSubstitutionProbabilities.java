@@ -76,15 +76,15 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
     /**
      * A matrix of value i x j -> log10(p) where
      *
-     *  i      - char of the miscalled base (i.e., A)
-     *  j      - char of the presumed true base (i.e., C)
+     *  i      - byte of the miscalled base (i.e., A)
+     *  j      - byte of the presumed true base (i.e., C)
      *  log10p - empirical probability p that A is actually C
      *
      * The table is available for each technology
      */
     private final static EnumMap<SequencerPlatform, double[][]> log10pTrueGivenMiscall = new EnumMap<SequencerPlatform, double[][]>(SequencerPlatform.class);
 
-    private static void addMisCall(final SequencerPlatform pl, char miscalledBase, char trueBase, double p) {
+    private static void addMisCall(final SequencerPlatform pl, byte miscalledBase, byte trueBase, double p) {
         if ( ! log10pTrueGivenMiscall.containsKey(pl) )
             log10pTrueGivenMiscall.put(pl, new double[4][4]);
 
@@ -94,7 +94,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         misCallProbs[i][j] = log10(p);
     }
 
-    private static double getProbMiscallIsBase(SequencerPlatform pl, char miscalledBase, char trueBase) {
+    private static double getProbMiscallIsBase(SequencerPlatform pl, byte miscalledBase, byte trueBase) {
         int i = BaseUtils.simpleBaseToBaseIndex(miscalledBase);
         int j = BaseUtils.simpleBaseToBaseIndex(trueBase);
 
@@ -107,84 +107,84 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
 
     private static void addSolexa() {
         SequencerPlatform pl = SequencerPlatform.SOLEXA;
-        addMisCall(pl, 'A', 'C', 57.7/100.0);
-        addMisCall(pl, 'A', 'G', 17.1/100.0);
-        addMisCall(pl, 'A', 'T', 25.2/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.C, 57.7/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.G, 17.1/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.T, 25.2/100.0);
 
-        addMisCall(pl, 'C', 'A', 34.9/100.0);
-        addMisCall(pl, 'C', 'G', 11.3/100.0);
-        addMisCall(pl, 'C', 'T', 53.9/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.A, 34.9/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.G, 11.3/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.T, 53.9/100.0);
 
-        addMisCall(pl, 'G', 'A', 31.9/100.0);
-        addMisCall(pl, 'G', 'C',  5.1/100.0);
-        addMisCall(pl, 'G', 'T', 63.0/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.A, 31.9/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.C,  5.1/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.T, 63.0/100.0);
 
-        addMisCall(pl, 'T', 'A', 45.8/100.0);
-        addMisCall(pl, 'T', 'C', 22.1/100.0);
-        addMisCall(pl, 'T', 'G', 32.0/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.A, 45.8/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.C, 22.1/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.G, 32.0/100.0);
     }
 
     private static void addSOLiD() {
         SequencerPlatform pl = SequencerPlatform.SOLID;
-        addMisCall(pl, 'A', 'C', 18.7/100.0);
-        addMisCall(pl, 'A', 'G', 42.5/100.0);
-        addMisCall(pl, 'A', 'T', 38.7/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.C, 18.7/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.G, 42.5/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.T, 38.7/100.0);
 
-        addMisCall(pl, 'C', 'A', 27.0/100.0);
-        addMisCall(pl, 'C', 'G', 18.9/100.0);
-        addMisCall(pl, 'C', 'T', 54.1/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.A, 27.0/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.G, 18.9/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.T, 54.1/100.0);
 
-        addMisCall(pl, 'G', 'A', 61.0/100.0);
-        addMisCall(pl, 'G', 'C', 15.7/100.0);
-        addMisCall(pl, 'G', 'T', 23.2/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.A, 61.0/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.C, 15.7/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.T, 23.2/100.0);
 
-        addMisCall(pl, 'T', 'A', 40.5/100.0);
-        addMisCall(pl, 'T', 'C', 34.3/100.0);
-        addMisCall(pl, 'T', 'G', 25.2/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.A, 40.5/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.C, 34.3/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.G, 25.2/100.0);
     }
 
     private static void add454() {
         SequencerPlatform pl = SequencerPlatform.ROCHE454;
-        addMisCall(pl, 'A', 'C', 23.2/100.0);
-        addMisCall(pl, 'A', 'G', 42.6/100.0);
-        addMisCall(pl, 'A', 'T', 34.3/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.C, 23.2/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.G, 42.6/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.T, 34.3/100.0);
 
-        addMisCall(pl, 'C', 'A', 19.7/100.0);
-        addMisCall(pl, 'C', 'G',  8.4/100.0);
-        addMisCall(pl, 'C', 'T', 71.9/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.A, 19.7/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.G,  8.4/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.T, 71.9/100.0);
 
-        addMisCall(pl, 'G', 'A', 71.5/100.0);
-        addMisCall(pl, 'G', 'C',  6.6/100.0);
-        addMisCall(pl, 'G', 'T', 21.9/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.A, 71.5/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.C,  6.6/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.T, 21.9/100.0);
 
-        addMisCall(pl, 'T', 'A', 43.8/100.0);
-        addMisCall(pl, 'T', 'C', 37.8/100.0);
-        addMisCall(pl, 'T', 'G', 18.5/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.A, 43.8/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.C, 37.8/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.G, 18.5/100.0);
     }
 
     private static void addCG() {
         SequencerPlatform pl = SequencerPlatform.CG;
-        addMisCall(pl, 'A', 'C', 28.2/100.0);
-        addMisCall(pl, 'A', 'G', 28.7/100.0);
-        addMisCall(pl, 'A', 'T', 43.1/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.C, 28.2/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.G, 28.7/100.0);
+        addMisCall(pl, BaseUtils.A, BaseUtils.T, 43.1/100.0);
 
-        addMisCall(pl, 'C', 'A', 29.8/100.0);
-        addMisCall(pl, 'C', 'G', 18.6/100.0);
-        addMisCall(pl, 'C', 'T', 51.6/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.A, 29.8/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.G, 18.6/100.0);
+        addMisCall(pl, BaseUtils.C, BaseUtils.T, 51.6/100.0);
 
-        addMisCall(pl, 'G', 'A', 32.5/100.0);
-        addMisCall(pl, 'G', 'C', 21.4/100.0);
-        addMisCall(pl, 'G', 'T', 46.1/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.A, 32.5/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.C, 21.4/100.0);
+        addMisCall(pl, BaseUtils.G, BaseUtils.T, 46.1/100.0);
 
-        addMisCall(pl, 'T', 'A', 42.6/100.0);
-        addMisCall(pl, 'T', 'C', 34.1/100.0);
-        addMisCall(pl, 'T', 'G', 23.3/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.A, 42.6/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.C, 34.1/100.0);
+        addMisCall(pl, BaseUtils.T, BaseUtils.G, 23.3/100.0);
     }
 
     private static void addUnknown() {
         SequencerPlatform pl = SequencerPlatform.UNKNOWN;
-        for ( char b1 : BaseUtils.BASES ) {
-            for ( char b2 : BaseUtils.BASES ) {
+        for ( byte b1 : BaseUtils.BASES ) {
+            for ( byte b2 : BaseUtils.BASES ) {
                 if ( b1 != b2 )
                     addMisCall(pl, b1, b2, 1.0/3.0);
             }
@@ -245,7 +245,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
     //
     // -----------------------------------------------------------------------------------------------------------------
 
-    protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset) {
+    protected double log10PofTrueBaseGivenMiscall(byte observedBase, byte chromBase, SAMRecord read, int offset) {
         boolean fwdStrand = ! read.getReadNegativeStrandFlag();
         SequencerPlatform pl = getReadSequencerPlatform(read);
 

@@ -33,7 +33,7 @@ public class VariantCallContext {
         this.confidentlyCalled = confidentlyCalledP;
     }
 
-    public void setRefAllele(String refAllele) {
-        this.refAllele = refAllele;
+    public void setRefAllele(byte refAllele) {
+        this.refAllele = new String(new byte[]{refAllele});
     }
 }

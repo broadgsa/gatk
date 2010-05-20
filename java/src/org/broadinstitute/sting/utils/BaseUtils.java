@@ -8,11 +8,19 @@ import java.util.Random;
  * BaseUtils contains some basic utilities for manipulating nucleotides.
  */
 public class BaseUtils {
+    public final static byte A = (byte)'A';
+    public final static byte C = (byte)'C';
+    public final static byte G = (byte)'G';
+    public final static byte T = (byte)'T';
+
+    public final static byte N = (byte)'N';
+    public final static byte D = (byte)'D';
+
     //
     // todo -- we need a generalized base abstraction using the Base enum.
     //
-    public final static char[] BASES = { 'A', 'C', 'G', 'T' };
-    public final static char[] EXTENDED_BASES = { 'A', 'C', 'G', 'T', 'N', 'D' };
+    public final static byte[] BASES = { 'A', 'C', 'G', 'T' };
+    public final static byte[] EXTENDED_BASES = { 'A', 'C', 'G', 'T', 'N', 'D' };
 
     public enum Base {
         A ( 'A', 0 ),
@@ -175,8 +183,7 @@ public class BaseUtils {
         }
     }
 
-    @Deprecated
-    static public int extendedBaseToBaseIndex(char base) {
+    static public int extendedBaseToBaseIndex(byte base) {
         switch (base) {
             case 'd':
             case 'D': return DELETION_INDEX;
@@ -197,7 +204,7 @@ public class BaseUtils {
     }
 
     static public boolean isRegularBase(byte base) {
-        return isRegularBase((char)base);
+        return simpleBaseToBaseIndex(base) != -1;
     }
 
     @Deprecated

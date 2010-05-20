@@ -757,10 +757,10 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         }
         StringBuilder s = new StringBuilder();
         int nbases = 0;
-        for ( char b : BaseUtils.EXTENDED_BASES ) {
+        for ( byte b : BaseUtils.EXTENDED_BASES ) {
             nbases++;
-            if ( includeDeletions || b != 'D' ) {
-                s.append(b);
+            if ( includeDeletions || b != BaseUtils.D ) {
+                s.append((char)b);
                 s.append(":");
                 s.append(counts[BaseUtils.extendedBaseToBaseIndex(b)]);
                 if ( nbases < 6 ) {

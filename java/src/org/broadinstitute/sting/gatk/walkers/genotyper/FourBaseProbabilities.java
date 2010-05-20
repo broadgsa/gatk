@@ -93,7 +93,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @param base base
      * @return log10 likelihood as a double
      */
-    public double getLog10Likelihood(char base) {
+    public double getLog10Likelihood(byte base) {
         return getLog10Likelihood(BaseUtils.simpleBaseToBaseIndex(base));
     }
 
@@ -117,7 +117,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @param base base
      * @return likelihoods as a double
      */
-    public double getLikelihood(char base) {
+    public double getLikelihood(byte base) {
         return getLikelihood(BaseUtils.simpleBaseToBaseIndex(base));
     }
 
@@ -144,20 +144,20 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @param offset       offset on read
      * @return 1 if the base was considered good enough to add to the likelihoods (not Q0 or 'N', for example)
      */
-    public int add(char observedBase, byte qualityScore, SAMRecord read, int offset) {
+    public int add(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
         FourBaseProbabilities fbl = computeLog10Likelihoods(observedBase, qualityScore, read, offset);
         if ( fbl == null )
             return 0;
 
-        for ( char base : BaseUtils.BASES ) {
+        for ( byte base : BaseUtils.BASES ) {
             double likelihood = fbl.getLikelihood(base);
             log10Likelihoods[BaseUtils.simpleBaseToBaseIndex(base)] += likelihood;
         }
 
         if ( verbose ) {
-            for ( char base : BaseUtils.BASES ) { System.out.printf("%s\t", base); }
+            for ( byte base : BaseUtils.BASES ) { System.out.printf("%s\t", (char)base); }
             System.out.println();
-            for ( char base : BaseUtils.BASES ) { System.out.printf("%.2f\t", log10Likelihoods[BaseUtils.simpleBaseToBaseIndex(base)]); }
+            for ( byte base : BaseUtils.BASES ) { System.out.printf("%.2f\t", log10Likelihoods[BaseUtils.simpleBaseToBaseIndex(base)]); }
             System.out.println();
         }
 
@@ -174,7 +174,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @param offset       offset on read
      * @return likelihoods for this observation or null if the base was not considered good enough to add to the likelihoods (Q0 or 'N', for example)
      */
-    public FourBaseProbabilities computeLog10Likelihoods(char observedBase, byte qualityScore, SAMRecord read, int offset) {
+    public FourBaseProbabilities computeLog10Likelihoods(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
         if ( badBase(observedBase) ) {
             return null;
         }
@@ -185,7 +185,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
                 FourBaseProbabilities fbl = (FourBaseProbabilities)this.clone();
                 fbl.log10Likelihoods = zeros.clone();
 
-                for ( char base : BaseUtils.BASES ) {
+                for ( byte base : BaseUtils.BASES ) {
                     double likelihood = log10PofObservingBaseGivenChromosome(observedBase, base, qualityScore, read, offset);
 
                     if ( verbose ) {
@@ -224,7 +224,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @param observedBase observed base
      * @return true if the base is a bad base
      */
-    private boolean badBase(char observedBase) {
+    private boolean badBase(byte observedBase) {
         return BaseUtils.simpleBaseToBaseIndex(observedBase) == -1;
     }
 
@@ -236,7 +236,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
     public String toString() {
         double sum = 0;
         StringBuilder s = new StringBuilder();
-        for ( char base : BaseUtils.BASES ) {
+        for ( byte base : BaseUtils.BASES ) {
             int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
             s.append(String.format("%s %.10f ", base, log10Likelihoods[baseIndex]));
 			sum += Math.pow(10, log10Likelihoods[baseIndex]);
@@ -265,7 +265,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
     public boolean validate(boolean throwException) {
         try {
 
-            for ( char base : BaseUtils.BASES ) {
+            for ( byte base : BaseUtils.BASES ) {
 
                 int i = BaseUtils.simpleBaseToBaseIndex(base);
                 if ( ! MathUtils.wellFormedDouble(log10Likelihoods[i]) || ! MathUtils.isNegativeOrZero(log10Likelihoods[i]) ) {
@@ -302,7 +302,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @return log10 likelihood
      */
 
-    protected double log10PofObservingBaseGivenChromosome(char observedBase, char chromBase, byte qual, SAMRecord read, int offset) {
+    protected double log10PofObservingBaseGivenChromosome(byte observedBase, byte chromBase, byte qual, SAMRecord read, int offset) {
         if (qual == 0) { // zero quals are wrong
             throw new RuntimeException(String.format("Unexpected Q0 base discovered in log10PofObservingBaseGivenChromosome: %c %s %d at %d in %s",
                     observedBase, chromBase, qual, offset, read));
@@ -333,7 +333,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @param offset       offset on read
     * @return log10 likelihood
      */
-    protected abstract double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset);
+    protected abstract double log10PofTrueBaseGivenMiscall(byte observedBase, byte chromBase, SAMRecord read, int offset);
 
     //
     // Constant static data
@@ -341,7 +341,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
     private final static double[] zeros = new double[BaseUtils.BASES.length];
 
     static {
-        for ( char base : BaseUtils.BASES ) {
+        for ( byte base : BaseUtils.BASES ) {
             zeros[BaseUtils.simpleBaseToBaseIndex(base)] = 0.0;
         }
     }

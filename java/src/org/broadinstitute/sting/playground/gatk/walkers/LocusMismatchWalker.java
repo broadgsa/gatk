@@ -134,7 +134,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
 
         if ( nMismatches < maxNumMismatches && nMismatches >= minMismatches && usableDepth >= minDepth ) {
             String baseCountString = "";
-            for ( char b : BaseUtils.BASES ) {
+            for ( byte b : BaseUtils.BASES ) {
                 baseCountString += baseCounts[BaseUtils.simpleBaseToBaseIndex(b)] + " ";
             }
             return String.format("%s %c %10s %5.2f %d %d %d %s",

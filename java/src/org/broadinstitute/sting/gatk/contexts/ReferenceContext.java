@@ -139,7 +139,7 @@ public class ReferenceContext {
      * @param n number of requested bases including and starting from the current locus
      * @return
      */
-    public byte[] getBasesAtLocusAsByte(int n) {
+    public byte[] getBasesAtLocus(int n) {
 
         int start = (int)(locus.getStart()-window.getStart());
         int stop = ( n==(-1) ? bases.length : start+n );
@@ -155,7 +155,7 @@ public class ReferenceContext {
     }
 
     @Deprecated
-    public char[] getBasesAtLocus(int n) {
-        return new String(getBasesAtLocusAsByte(n)).toCharArray();
+    public char[] getBasesAtLocusAsChar(int n) {
+        return new String(getBasesAtLocus(n)).toCharArray();
     }
 }

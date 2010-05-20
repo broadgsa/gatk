@@ -16,7 +16,7 @@ import java.util.Arrays;
  * To change this template use File | Settings | File Templates.
  */
 public class PileupElement {
-    public static final byte DELETION_BASE = 'D';
+    public static final byte DELETION_BASE = BaseUtils.D;
     public static final byte DELETION_QUAL = 0;
 
     protected SAMRecord read;

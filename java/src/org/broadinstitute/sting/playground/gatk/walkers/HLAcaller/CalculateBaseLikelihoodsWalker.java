@@ -154,7 +154,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
                 if (!ReadsToDiscard.contains(read.getReadName()) && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
                     
                     //consider base in likelihood calculations if it looks good and has high mapping score
-                    G.add(base, qual, read, offset);
+                    G.add((byte)base, qual, read, offset);
                     //if (DEBUG){
                         if (base == 'A'){numAs++;}
                         else if (base == 'C'){numCs++;}

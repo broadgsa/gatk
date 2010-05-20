@@ -35,7 +35,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected double[] PofFs = new double[BaseUtils.BASES.length];
 
     // the alternate allele with the largest sum of quality scores
-    protected Character bestAlternateAllele = null;
+    protected Byte bestAlternateAllele = null;
 
     // are we at a 'trigger' track site?
     protected boolean atTriggerTrack = false;
@@ -48,11 +48,11 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         filter.add("LowQual");
     }
 
-    public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, char[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
+    public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, byte[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
         return null;
     }
     
-    public VariantCallContext callLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
+    public VariantCallContext callLocus(RefMetaDataTracker tracker, byte ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
         int numSamples = getNSamples(contexts);
         int frequencyEstimationPoints = (2 * numSamples) + 1;  // (add 1 for allele frequency of zero)
 
@@ -74,7 +74,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 return vcc;
             }
             // otherwise, choose any alternate allele (it doesn't really matter)
-            bestAlternateAllele = (ref != 'A' ? 'A' : 'C');
+            bestAlternateAllele = (byte)(ref != 'A' ? 'A' : 'C');
         }
 
         // calculate likelihoods if there are non-ref bases
@@ -105,7 +105,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         return contexts.size();
     }
 
-    protected void initializeBestAlternateAllele(char ref, Map<String, StratifiedAlignmentContext> contexts) {
+    protected void initializeBestAlternateAllele(byte ref, Map<String, StratifiedAlignmentContext> contexts) {
         int[] qualCounts = new int[4];
 
         for ( String sample : contexts.keySet() ) {
@@ -118,7 +118,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 if ( p.isDeletion() )
                     continue;
 
-                int index = BaseUtils.simpleBaseToBaseIndex((char)p.getBase());
+                int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());
                 if ( index >= 0 )
                     qualCounts[index] += p.getQual();
             }
@@ -127,7 +127,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         // set the non-ref base with maximum quality score sum
         int maxCount = 0;
         bestAlternateAllele = null;
-        for ( char altAllele : BaseUtils.BASES ) {
+        for ( byte altAllele : BaseUtils.BASES ) {
             if ( altAllele == ref )
                 continue;
             int index = BaseUtils.simpleBaseToBaseIndex(altAllele);
@@ -138,7 +138,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
     }
 
-    protected void initialize(char ref, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
+    protected void initialize(byte ref, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
         // by default, no initialization is done
         return;
     }
@@ -201,10 +201,10 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         vcc.confidentlyCalled = QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING;
     }
 
-    protected void calculateAlleleFrequencyPosteriors(char ref, int frequencyEstimationPoints, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
+    protected void calculateAlleleFrequencyPosteriors(byte ref, int frequencyEstimationPoints, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
 
         // initialization
-        for ( char altAllele : BaseUtils.BASES ) {
+        for ( byte altAllele : BaseUtils.BASES ) {
             int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
             alleleFrequencyPosteriors[baseIndex] = new double[frequencyEstimationPoints];
             log10PofDgivenAFi[baseIndex] = new double[frequencyEstimationPoints];
@@ -226,7 +226,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
      * @param contexts         stratified alignment contexts
      * @param contextType      which stratification to use
      */
-    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int numFrequencies, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
+    protected void calculatelog10PofDgivenAFforAllF(byte ref, byte alt, int numFrequencies, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
         int baseIndex = BaseUtils.simpleBaseToBaseIndex(alt);
 
         // for each minor allele frequency, calculate log10PofDgivenAFi
@@ -245,7 +245,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
      *
      * @return value of PofDgivenAF for allele frequency f
      */
-    protected double calculateLog10PofDgivenAFforF(char ref, char alt, double f, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
+    protected double calculateLog10PofDgivenAFforF(byte ref, byte alt, double f, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
         return 0.0;
     }
 
@@ -265,7 +265,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
      * @param ref                         the ref base
      * @param frequencyEstimationPoints   number of allele frequencies
      */
-    protected void calculatePofFs(char ref, int frequencyEstimationPoints) {
+    protected void calculatePofFs(byte ref, int frequencyEstimationPoints) {
         // only calculate for the most likely alternate allele
         int baseIndex = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
@@ -286,14 +286,14 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
      * @param loc                         the GenomeLoc
      * @param frequencyEstimationPoints   number of allele frequencies
      */
-    protected void printAlleleFrequencyData(char ref, GenomeLoc loc, int frequencyEstimationPoints) {
+    protected void printAlleleFrequencyData(byte ref, GenomeLoc loc, int frequencyEstimationPoints) {
         for (int i = 0; i < frequencyEstimationPoints; i++) {
             StringBuilder AFline = new StringBuilder("AFINFO\t");
             AFline.append(loc).append("\t");
             AFline.append(i + "/" + (frequencyEstimationPoints-1) + "\t");
             AFline.append(String.format("%.2f\t", ((float)i)/ (frequencyEstimationPoints-1)));
             AFline.append(String.format("%.8f", log10AlleleFrequencyPriors[i]) + "\t");
-            for ( char altAllele : BaseUtils.BASES ) {
+            for ( byte altAllele : BaseUtils.BASES ) {
                 if ( altAllele != ref ) {
                     int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
                     double PofDgivenAF = log10PofDgivenAFi[baseIndex][i];
@@ -307,9 +307,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             verboseWriter.println(AFline);
         }
 
-        for ( char altAllele : BaseUtils.BASES ) {
+        for ( byte altAllele : BaseUtils.BASES ) {
             if ( altAllele != ref ) {
-                char base = Character.toLowerCase(altAllele);
+                char base = Character.toLowerCase((char)altAllele);
                 int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
                 if ( MathUtils.compareDoubles(PofFs[baseIndex], 0.0) != 0 ) {
                     double phredScaledConfidence = QualityUtils.phredScaleErrorRate(alleleFrequencyPosteriors[baseIndex][0]);
@@ -329,12 +329,12 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         verboseWriter.println();
     }
 
-    protected Map<String, Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
+    protected Map<String, Genotype> makeGenotypeCalls(byte ref, byte alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
         // by default, we return no genotypes
         return new HashMap<String, Genotype>();
     }    
 
-    protected VariantCallContext createCalls(RefMetaDataTracker tracker, char ref, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
+    protected VariantCallContext createCalls(RefMetaDataTracker tracker, byte ref, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
         // only need to look at the most likely alternate allele
         int indexOfMax = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
@@ -365,9 +365,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( beagleWriter != null ) {
             beagleWriter.print(loc);
             beagleWriter.print(' ');
-            beagleWriter.print(ref);
+            beagleWriter.print((char)ref);
             beagleWriter.print(' ');
-            beagleWriter.print(bestAlternateAllele);
+            beagleWriter.print((char)((byte)bestAlternateAllele));
         }
 
         // populate the sample-specific data (output it to beagle also if requested)
@@ -379,9 +379,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // next, the variant context data (alleles, attributes, etc.)
         ArrayList<Allele> alleles = new ArrayList<Allele>();
-        alleles.add(new Allele(Character.toString(ref), true));
+        alleles.add(new Allele(ref, true));
         if ( bestAFguess != 0 )
-            alleles.add(new Allele(bestAlternateAllele.toString(), false));
+            alleles.add(new Allele(bestAlternateAllele, false));
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();

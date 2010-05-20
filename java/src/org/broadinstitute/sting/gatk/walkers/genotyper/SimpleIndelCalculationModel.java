@@ -27,12 +27,12 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
     private String bestEvent = null;
 
 
-    public VariantCallContext callLocus(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
+    public VariantCallContext callLocus(RefMetaDataTracker tracker, byte ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
 //        cachedContext = contexts;
         return null;
     }
 
-    public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, char[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts) {
+    public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, byte[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts) {
 
         totalIndels = 0;
         totalCoverage = 0;
@@ -91,7 +91,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
         return vcc;
     }
 
-    protected void initializeAlleles(char [] ref, Map<String, StratifiedAlignmentContext> contexts) {
+    protected void initializeAlleles(byte[] ref, Map<String, StratifiedAlignmentContext> contexts) {
 
 
         for ( String sample : contexts.keySet() ) {
@@ -102,7 +102,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
             // calculate the sum of quality scores for each base
             ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup();
 
-            List<Pair<String,Integer>> all_events = pileup.getEventStringsWithCounts(Utils.charSeq2byteSeq(ref));
+            List<Pair<String,Integer>> all_events = pileup.getEventStringsWithCounts(ref);
             for ( Pair<String,Integer> p : all_events ) {
                 if ( p.second > bestIndelCount ) {
                     bestIndelCount = p.second;

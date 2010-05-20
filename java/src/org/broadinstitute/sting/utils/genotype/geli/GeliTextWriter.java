@@ -101,7 +101,7 @@ public class GeliTextWriter implements GeliGenotypeWriter {
         double nextVrsBest = lks[9] - lks[8];
         double nextVrsRef = 0;
         if (ref != 'X')
-            nextVrsRef = lks[9] - posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
+            nextVrsRef = lks[9] - posteriors[DiploidGenotype.createHomGenotype((byte)ref).ordinal()];
 
         int readCount = 0;
         double maxMappingQual = 0;

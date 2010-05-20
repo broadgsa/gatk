@@ -24,7 +24,7 @@ public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
     }
 
     // Do we actually want to operate on the context?
-    public boolean filter(char[] ref, SAMRecord read) {
+    public boolean filter(byte[] ref, SAMRecord read) {
 	    // we only want aligned reads
 	    return !read.getReadUnmappedFlag();
     }

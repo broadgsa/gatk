@@ -49,11 +49,11 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
     // the GenotypeLikelihoods map
     private HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();
-    private HashMap<Character, AlleleFrequencyMatrix> AFMatrixMap = new HashMap<Character, AlleleFrequencyMatrix>();
+    private HashMap<Byte, AlleleFrequencyMatrix> AFMatrixMap = new HashMap<Byte, AlleleFrequencyMatrix>();
 
     private enum GenotypeType { REF, HET, HOM }
 
-    protected void initialize(char ref,
+    protected void initialize(byte ref,
                               Map<String, StratifiedAlignmentContext> contexts,
                               StratifiedAlignmentContext.StratifiedContextType contextType) {
         // initialize the GenotypeLikelihoods
@@ -61,7 +61,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         AFMatrixMap.clear();
 
         // for each alternate allele, create a new matrix
-        for ( char alt : BaseUtils.BASES ) {
+        for ( byte alt : BaseUtils.BASES ) {
             if ( alt != ref )
                 AFMatrixMap.put(alt, new AlleleFrequencyMatrix(contexts.size()));
         }
@@ -83,7 +83,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
             // for each alternate allele, fill the matrix
             DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
-            for ( char alt : BaseUtils.BASES ) {
+            for ( byte alt : BaseUtils.BASES ) {
                 if ( alt != ref ) {
                     DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
                     DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
@@ -93,7 +93,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int numFrequencies, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
+    protected void calculatelog10PofDgivenAFforAllF(byte ref, byte alt, int numFrequencies, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
 
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
         int baseIndex = BaseUtils.simpleBaseToBaseIndex(alt);
@@ -123,13 +123,13 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected Map<String, Genotype> makeGenotypeCalls(char ref, char alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
+    protected Map<String, Genotype> makeGenotypeCalls(byte ref, byte alt, int frequency, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
         HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
 
         // set up some variables we'll need in the loop
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
-        Allele refAllele = new Allele(Character.toString(ref), true);
-        Allele altAllele = new Allele(Character.toString(alt), false);
+        Allele refAllele = new Allele(ref, true);
+        Allele altAllele = new Allele(alt, false);
         DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
         DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
         DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);

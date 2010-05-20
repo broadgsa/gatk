@@ -77,8 +77,8 @@ public class ProportionOfNonrefBasesSupportingSNP implements InfoFieldAnnotation
         int[] counts = p.getBaseCounts();
         int nonrefCounts = 0;
         int snpCounts = counts[BaseUtils.simpleBaseToBaseIndex(snp)];
-        for ( char c : BaseUtils.BASES ) {
-            if ( ! BaseUtils.basesAreEqual((byte) c, (byte) ref) ) {
+        for ( byte c : BaseUtils.BASES ) {
+            if ( ! BaseUtils.basesAreEqual(c, (byte) ref) ) {
                 nonrefCounts += counts[BaseUtils.simpleBaseToBaseIndex(c)];
             }
         }

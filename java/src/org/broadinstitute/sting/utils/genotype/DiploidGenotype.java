@@ -49,6 +49,7 @@ public enum DiploidGenotype {
 
     public byte base1, base2;
 
+    @Deprecated
     private DiploidGenotype(char base1, char base2) {
         this((byte)base1, (byte)base2);
     }
@@ -87,7 +88,7 @@ public enum DiploidGenotype {
      * @param hom the character to turn into a hom genotype, i.e. if it is A, then returned will be AA
      * @return the diploid genotype
      */
-    public static DiploidGenotype createHomGenotype(char hom) {
+    public static DiploidGenotype createHomGenotype(byte hom) {
         int index = BaseUtils.simpleBaseToBaseIndex(hom);
         if ( index == -1 )
             throw new IllegalArgumentException(hom + " is not a valid base character");
@@ -100,7 +101,7 @@ public enum DiploidGenotype {
      * @param base2 base2
      * @return the diploid genotype
      */
-    public static DiploidGenotype createDiploidGenotype(char base1, char base2) {
+    public static DiploidGenotype createDiploidGenotype(byte base1, byte base2) {
         int index1 = BaseUtils.simpleBaseToBaseIndex(base1);
         if ( index1 == -1 )
             throw new IllegalArgumentException(base1 + " is not a valid base character");

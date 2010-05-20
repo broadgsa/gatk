@@ -122,14 +122,9 @@ public class Allele implements Comparable<Allele> {
 
 
     public Allele(byte base, boolean isRef) {
-        this( base1ToBases(base), isRef);
+        this( new byte[]{ base }, isRef);
     }
     
-    private static byte[] base1ToBases(byte base) {
-        byte[] bases = { base };
-        return bases;
-    }
-
     /**
      * @param bases  bases representing an allele
      * @return true if the bases represent the null allele

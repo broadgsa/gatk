@@ -464,9 +464,9 @@ class BaseTransitionTable implements Comparable {
 
     public void print( PrintStream out ) {
         StringBuilder s = new StringBuilder();
-        for ( char observedBase : BaseUtils.BASES ) {
-            for ( char refBase : BaseUtils.BASES ) {
-                s.append(String.format("%s\t%s",observedBase,refBase));
+        for ( byte observedBase : BaseUtils.BASES ) {
+            for ( byte refBase : BaseUtils.BASES ) {
+                s.append(String.format("%s\t%s",(char)observedBase,(char)refBase));
                 for ( Comparable c : conditions ) {
                     s.append(String.format("\t%s",c.toString()));
                 }

@@ -82,7 +82,7 @@ public class DiploidGenotypeUnitTest extends BaseTest {
 
     @Test
       public void testCreateGenotype() {
-        char ref = 'A';
+        byte ref = 'A';
         DiploidGenotype g = DiploidGenotype.createHomGenotype(ref);
         Assert.assertTrue("AA".equals(g.toString()));
 

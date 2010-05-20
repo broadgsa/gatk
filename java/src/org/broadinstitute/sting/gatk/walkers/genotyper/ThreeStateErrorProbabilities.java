@@ -32,7 +32,7 @@ public class ThreeStateErrorProbabilities extends FourBaseProbabilities {
      * @param offset       offset on read
      * @return log10 likelihood
      */
-    protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset) {
+    protected double log10PofTrueBaseGivenMiscall(byte observedBase, byte chromBase, SAMRecord read, int offset) {
         return -log103; // equivalent to e / 3 model
     }
 }

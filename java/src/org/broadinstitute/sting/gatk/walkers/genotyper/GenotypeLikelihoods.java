@@ -284,7 +284,7 @@ public class GenotypeLikelihoods implements Cloneable {
             if ( p.isDeletion() )
                 continue;
 
-            char base = (char)p.getBase();
+            byte base = p.getBase();
             if ( ! ignoreBadBases || ! badBase(base) ) {
                 byte qual = capBaseQualsAtMappingQual ? (byte)Math.min((int)p.getQual(), p.getMappingQual()) : p.getQual();
                 n += add(base, qual, p.getRead(), p.getOffset());
@@ -294,7 +294,7 @@ public class GenotypeLikelihoods implements Cloneable {
         return n;
     }
 
-    public int add(char observedBase, byte qualityScore, SAMRecord read, int offset) {
+    public int add(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
 
         // Handle caching if requested.  Just look up the cached result if its available, or compute and store it
         GenotypeLikelihoods gl;
@@ -332,11 +332,11 @@ public class GenotypeLikelihoods implements Cloneable {
 
     static GenotypeLikelihoods[][][][][][] CACHE = new GenotypeLikelihoods[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY][2];
 
-    protected boolean inCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
+    protected boolean inCache( byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         return getCache(CACHE, observedBase, qualityScore, ploidy, read) != null;
     }
 
-    protected GenotypeLikelihoods getCachedGenotypeLikelihoods( char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
+    protected GenotypeLikelihoods getCachedGenotypeLikelihoods( byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         GenotypeLikelihoods gl = getCache(CACHE, observedBase, qualityScore, ploidy, read);
         if ( gl == null )
             throw new RuntimeException(String.format("BUG: trying to fetch an unset cached genotype likelihood at base=%c, qual=%d, ploidy=%d, read=%s",
@@ -344,14 +344,14 @@ public class GenotypeLikelihoods implements Cloneable {
         return gl;
     }
 
-    protected GenotypeLikelihoods calculateCachedGenotypeLikelihoods(char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset) {
+    protected GenotypeLikelihoods calculateCachedGenotypeLikelihoods(byte observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset) {
         GenotypeLikelihoods gl = calculateGenotypeLikelihoods(observedBase, qualityScore, read, offset);
         setCache(CACHE, observedBase, qualityScore, ploidy, read, gl);
         return gl;
     }
 
     protected void setCache( GenotypeLikelihoods[][][][][][] cache,
-                             char observedBase, byte qualityScore, int ploidy,
+                             byte observedBase, byte qualityScore, int ploidy,
                              SAMRecord read, GenotypeLikelihoods val ) {
         int m = FourBaseProbabilitiesFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
         int a = fourBaseLikelihoods.getReadSequencerPlatformIndex(read);
@@ -364,7 +364,7 @@ public class GenotypeLikelihoods implements Cloneable {
     }
 
     protected GenotypeLikelihoods getCache( GenotypeLikelihoods[][][][][][] cache,
-                                            char observedBase, byte qualityScore, int ploidy, SAMRecord read) {
+                                            byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         int m = FourBaseProbabilitiesFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
         int a = fourBaseLikelihoods.getReadSequencerPlatformIndex(read);
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
@@ -374,7 +374,7 @@ public class GenotypeLikelihoods implements Cloneable {
         return cache[m][a][i][j][k][x];
     }
 
-    protected GenotypeLikelihoods calculateGenotypeLikelihoods(char observedBase, byte qualityScore, SAMRecord read, int offset) {
+    protected GenotypeLikelihoods calculateGenotypeLikelihoods(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
         FourBaseProbabilities fbl = fourBaseLikelihoods.computeLog10Likelihoods(observedBase, qualityScore, read, offset);
         if ( fbl == null )
             return null;
@@ -436,7 +436,7 @@ public class GenotypeLikelihoods implements Cloneable {
      * @param observedBase observed base
      * @return true if the base is a bad base
      */
-    protected boolean badBase(char observedBase) {
+    protected boolean badBase(byte observedBase) {
         return BaseUtils.simpleBaseToBaseIndex(observedBase) == -1;
     }
 

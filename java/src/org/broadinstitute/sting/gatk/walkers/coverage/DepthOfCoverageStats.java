@@ -172,8 +172,8 @@ public class DepthOfCoverageStats {
         for ( String s : countsBySample.keySet() ) {
             int total = 0;
             int[] counts = countsBySample.get(s);
-            for ( char base : BaseUtils.EXTENDED_BASES ) {
-                if ( includeDeletions || ! ( base == 'D') ) { // note basesAreEqual assigns TRUE to (N,D) as both have simple index -1
+            for ( byte base : BaseUtils.EXTENDED_BASES ) {
+                if ( includeDeletions || ! ( base == BaseUtils.D) ) { // note basesAreEqual assigns TRUE to (N,D) as both have simple index -1
                     total += counts[BaseUtils.extendedBaseToBaseIndex(base)];
                 }
             }
