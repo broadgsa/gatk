@@ -2,6 +2,7 @@ package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
 import org.broadinstitute.sting.alignment.reference.bwt.BWT;
 import org.broadinstitute.sting.alignment.reference.bwt.BWTWriter;
@@ -173,7 +174,7 @@ public class BWTFiles {
             writeEncodedReferenceSequence(normalizedReferenceSequence,pacFile,bwtFile,saFile);
 
             // Write the encoded files for the reverse version of this reference sequence.
-            byte[] reverseReferenceSequence = BaseUtils.reverse(normalizedReferenceSequence);
+            byte[] reverseReferenceSequence = Utils.reverse(normalizedReferenceSequence);
 
             rpacFile = File.createTempFile("bwt",".rpac");
             rbwtFile = File.createTempFile("bwt",".rbwt");

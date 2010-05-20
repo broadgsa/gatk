@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import net.sf.samtools.SAMRecord;
 
@@ -69,7 +70,7 @@ public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
         } else {
             out.println(BaseUtils.simpleReverseComplement(read.getReadString()));
             out.println("+");
-            out.println(BaseUtils.reverse(read.getBaseQualityString()));
+            out.println(Utils.reverse(read.getBaseQualityString()));
         }
 
         if ( sqbw != null ) {

@@ -96,7 +96,7 @@ public class ComputeConfusionMatrix extends LocusWalker<Integer, Integer> {
             }
         }
         
-        String fwAltBase = String.format("%c", BaseUtils.baseIndexToSimpleBase(altBaseIndex));
+        String fwAltBase = String.format("%c", (char)BaseUtils.baseIndexToSimpleBase(altBaseIndex));
         //String rcAltBase = BaseUtils.simpleComplement(fwAltBase);
 
         for (int readIndex = 0; readIndex < context.getReads().size(); readIndex++) {

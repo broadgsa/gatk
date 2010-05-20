@@ -841,8 +841,8 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	char PickAlt(char ref, double[] allele_likelihoods)
 	{
 		Integer[] perm = MathUtils.sortPermutation(allele_likelihoods);
-		if (perm[3] != BaseUtils.simpleBaseToBaseIndex(ref)) { return BaseUtils.baseIndexToSimpleBase(perm[3]); }
-		else { return BaseUtils.baseIndexToSimpleBase(perm[2]); }
+		if (perm[3] != BaseUtils.simpleBaseToBaseIndex(ref)) { return BaseUtils.baseIndexToSimpleBaseAsChar(perm[3]); }
+		else { return BaseUtils.baseIndexToSimpleBaseAsChar(perm[2]); }
 	}
 
 	double Compute_discovery_lod(char ref, ClassicGenotypeLikelihoods[] genotype_likelihoods)

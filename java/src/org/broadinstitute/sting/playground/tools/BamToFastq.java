@@ -9,6 +9,7 @@ import net.sf.samtools.SAMRecord;
 import java.io.*;
 
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -68,7 +69,7 @@ public class BamToFastq extends CommandLineProgram {
             } else {
                 out.println(BaseUtils.simpleReverseComplement(read.getReadString()));
                 out.println('+');
-                out.println(BaseUtils.reverse(read.getBaseQualityString()));
+                out.println(Utils.reverse(read.getBaseQualityString()));
             }
         }
         inReader.close();

@@ -102,7 +102,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
             // calculate the sum of quality scores for each base
             ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup();
 
-            List<Pair<String,Integer>> all_events = pileup.getEventStringsWithCounts(BaseUtils.charSeq2byteSeq(ref));
+            List<Pair<String,Integer>> all_events = pileup.getEventStringsWithCounts(Utils.charSeq2byteSeq(ref));
             for ( Pair<String,Integer> p : all_events ) {
                 if ( p.second > bestIndelCount ) {
                     bestIndelCount = p.second;

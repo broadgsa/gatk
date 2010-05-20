@@ -8,6 +8,9 @@ import java.util.Random;
  * BaseUtils contains some basic utilities for manipulating nucleotides.
  */
 public class BaseUtils {
+    //
+    // todo -- we need a generalized base abstraction using the Base enum.
+    //
     public final static char[] BASES = { 'A', 'C', 'G', 'T' };
     public final static char[] EXTENDED_BASES = { 'A', 'C', 'G', 'T', 'N', 'D' };
 
@@ -79,7 +82,7 @@ public class BaseUtils {
     private BaseUtils() {}
 
     static public boolean basesAreEqual(byte base1, byte base2) {
-        return simpleBaseToBaseIndex((char)base1) == simpleBaseToBaseIndex((char)base2);
+        return simpleBaseToBaseIndex(base1) == simpleBaseToBaseIndex(base2);
     }
 
 
@@ -89,6 +92,7 @@ public class BaseUtils {
      * @param code
      * @return 0, 1, 2, 3, or -1 if the base can't be understood
      */
+    @Deprecated
     static public char[] iupacToBases(char code) {
         char[] bases = new char[2];
         switch (code) {
@@ -151,6 +155,7 @@ public class BaseUtils {
      * @param base  [AaCcGgTt]
      * @return 0, 1, 2, 3, or -1 if the base can't be understood
      */
+    @Deprecated
     static public int simpleBaseToBaseIndex(char base) {
         switch (base) {
             case '*':               // the wildcard character counts as an A
@@ -170,6 +175,7 @@ public class BaseUtils {
         }
     }
 
+    @Deprecated
     static public int extendedBaseToBaseIndex(char base) {
         switch (base) {
             case 'd':
@@ -185,6 +191,7 @@ public class BaseUtils {
         return simpleBaseToBaseIndex((char)base);
     }
 
+    @Deprecated
     static public boolean isRegularBase(char base) {
         return simpleBaseToBaseIndex(base) != -1;
     }
@@ -193,6 +200,7 @@ public class BaseUtils {
         return isRegularBase((char)base);
     }
 
+    @Deprecated
     static public boolean isNBase(char base) {
         return isNBase((byte)base);
     }
@@ -201,14 +209,13 @@ public class BaseUtils {
         return base == 'N';
     }
 
-
     /**
      * Converts a base index to a simple base
      *
      * @param baseIndex  0, 1, 2, 3
      * @return A, C, G, T, or '.' if the index can't be understood
      */
-    static public char baseIndexToSimpleBase(int baseIndex) {
+    static public byte baseIndexToSimpleBase(int baseIndex) {
         switch (baseIndex) {
             case 0: return 'A';
             case 1: return 'C';
@@ -216,6 +223,11 @@ public class BaseUtils {
             case 3: return 'T';
             default: return '.';
         }
+    }
+
+    @Deprecated
+    static public char baseIndexToSimpleBaseAsChar(int baseIndex) {
+        return (char)baseIndexToSimpleBase(baseIndex);
     }
 
     /**
@@ -240,8 +252,9 @@ public class BaseUtils {
      * @param base  [AaCcGgTt]
      * @return C, A, T, G, or '.' if the base can't be understood
      */
+    @Deprecated
     static public char crossTalkPartnerBase(char base) {
-        return baseIndexToSimpleBase(crossTalkPartnerIndex(simpleBaseToBaseIndex(base)));
+        return (char)baseIndexToSimpleBase(crossTalkPartnerIndex(simpleBaseToBaseIndex(base)));
     }
 
     /**
@@ -260,7 +273,6 @@ public class BaseUtils {
         }
     }
 
-
     public static byte getSecondBase(final SAMRecord read, int offset) {
         byte base2 = '.'; // todo -- what should the default char really be?
 
@@ -268,7 +280,7 @@ public class BaseUtils {
             byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
 
             if (offset != -1 && compressedQuals != null && compressedQuals.length == read.getReadLength()) {
-                base2 = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
+                base2 = BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
             }
         }
         else if (read.getAttribute("E2") != null) {
@@ -290,6 +302,7 @@ public class BaseUtils {
      * @param base the base [AaCcGgTt]
      * @return the transition of the base, or the input base if it's not one of the understood ones
      */
+    // todo -- are these right?  Put into recalibator if really color space specific
     static public char transition(char base) {
         switch (base) {
             case 'A':
@@ -310,6 +323,7 @@ public class BaseUtils {
      * @param base the base [AaCcGgTt]
      * @return the transversion of the base, or the input base if it's not one of the understood ones
      */
+    // todo -- are these right?  Put into recalibator if really color space specific
     static public char transversion(char base) {
         switch (base) {
             case 'A':
@@ -330,7 +344,7 @@ public class BaseUtils {
      * @param base the base [AaCcGgTt]
      * @return the complementary base, or the input base if it's not one of the understood ones
      */
-    static public char simpleComplement(char base) {
+    static public byte simpleComplement(byte base) {
         switch (base) {
             case 'A':
             case 'a': return 'T';
@@ -342,6 +356,11 @@ public class BaseUtils {
             case 't': return 'A';
             default: return base;
         }
+    }
+
+    @Deprecated
+    static public char simpleComplement(char base) {
+        return (char)simpleComplement((byte)base);
     }
 
     /**
@@ -382,6 +401,7 @@ public class BaseUtils {
      * @param bases the char array of bases
      * @return the reverse complement of the char byte array
      */
+    @Deprecated
     static public char[] simpleReverseComplement(char[] bases) {
         char[] rcbases = new char[bases.length];
 
@@ -398,6 +418,7 @@ public class BaseUtils {
      * @param bases  the char array of bases
      * @return the complement of the base char array
      */
+    @Deprecated
     static public char[] simpleComplement(char[] bases) {
         char[] rcbases = new char[bases.length];
 
@@ -429,47 +450,6 @@ public class BaseUtils {
         return new String(simpleComplement(bases.getBytes()));
     }
 
-    /**
-     * Reverse a byte array of bases
-     * 
-     * @param bases  the byte array of bases
-     * @return the reverse of the base byte array
-     */
-    static public byte[] reverse(byte[] bases) {
-        byte[] rcbases = new byte[bases.length];
-
-        for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = bases[bases.length - i - 1];
-        }
-
-        return rcbases;
-    }
-
-    /**
-     * Reverse an int array of bases
-     *
-     * @param bases  the int array of bases
-     * @return the reverse of the base int array
-     */
-    static public int[] reverse(int[] bases) {
-        int[] rcbases = new int[bases.length];
-
-        for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = bases[bases.length - i - 1];
-        }
-
-        return rcbases;
-    }
-
-    /**
-     * Reverse (NOT reverse-complement!!) a string
-     *
-     * @param bases  input string
-     * @return the reversed string
-     */
-    static public String reverse(String bases) {
-        return new String( reverse( bases.getBytes() )) ;
-    }
 
     /**
      * For the most frequent base in the sequence, return the percentage of the read it constitutes.
@@ -497,6 +477,12 @@ public class BaseUtils {
 
         return ((double) baseCounts[mostFrequentBaseIndex])/((double) sequence.length);
     }
+
+    // --------------------------------------------------------------------------------
+    //
+    // random bases
+    //
+    // --------------------------------------------------------------------------------
 
     /**
      * Return a random base index (A=0, C=1, G=2, T=3).
@@ -529,7 +515,7 @@ public class BaseUtils {
      *
      * @return a random base (A, C, G, T)
      */
-    static public char getRandomBase() {
+    static public byte getRandomBase() {
         return getRandomBase('.');
     }
 
@@ -539,7 +525,7 @@ public class BaseUtils {
      * @param excludeBase the base to exclude
      * @return a random base, excluding the one specified (A, C, G, T)
      */
-    static public char getRandomBase(char excludeBase) {
+    static public byte getRandomBase(char excludeBase) {
         return BaseUtils.baseIndexToSimpleBase(getRandomBaseIndex(BaseUtils.simpleBaseToBaseIndex(excludeBase)));
     }
     
@@ -587,15 +573,6 @@ public class BaseUtils {
     	}
     	return period;
     }
-
-    public static byte[] charSeq2byteSeq(char[] seqIn) {
-        byte[] seqOut = new byte[seqIn.length];
-        for ( int i = 0; i < seqIn.length; i++ ) {
-            seqOut[i] = (byte)seqIn[i];
-        }
-        return seqOut;
-    }
-
 }
 
 /* code snippet for testing sequencePeriod():

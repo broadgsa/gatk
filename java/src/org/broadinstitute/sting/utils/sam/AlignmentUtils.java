@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 
 
 public class AlignmentUtils {
@@ -348,7 +349,7 @@ public class AlignmentUtils {
     public static byte [] getQualsInCycleOrder(SAMRecord read) {
         if ( isReadUnmapped(read) || ! read.getReadNegativeStrandFlag() ) return read.getBaseQualities();
 
-        return BaseUtils.reverse(read.getBaseQualities());
+        return Utils.reverse(read.getBaseQualities());
     }
 
     /** Takes the alignment of the read sequence <code>readSeq</code> to the reference sequence <code>refSeq</code>

@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import net.sf.samtools.SAMRecord;
 
@@ -75,7 +76,7 @@ public class PairedQualityScoreCountsWalker extends ReadWalker<Pair<byte[],Boole
     }
 
     private Pair<byte[],Boolean> getCorrectlyOrientedBaseQualities(SAMRecord read) {
-        byte[] quals = read.getReadNegativeStrandFlag() ? BaseUtils.reverse(read.getBaseQualities()) : read.getBaseQualities();
+        byte[] quals = read.getReadNegativeStrandFlag() ? Utils.reverse(read.getBaseQualities()) : read.getBaseQualities();
         return new Pair<byte[], Boolean>(quals, read.getFirstOfPairFlag());
     }
 

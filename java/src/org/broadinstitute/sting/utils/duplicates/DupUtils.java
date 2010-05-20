@@ -74,7 +74,7 @@ public class DupUtils {
     }
 
     private static Pair<Byte, Byte> baseProbs2BaseAndQual(double[] probs, int maxQScore) {
-        char bestBase = 0;
+        byte bestBase = 0;
         double bestProb = Double.NEGATIVE_INFINITY;
         double sumProbs = 0;
 
@@ -101,13 +101,13 @@ public class DupUtils {
 //            System.out.printf("encoded    Q %2d%n", qual);
 //        }
 
-        return new Pair<Byte, Byte>((byte)bestBase, qual);
+        return new Pair<Byte, Byte>(bestBase, qual);
     }
 
     private static void print4BaseQuals(String header, double[] probs) {
         System.out.printf("%s log10(P(b)) is ", header);
         for ( int i = 0; i < 4; i++ ) {
-            System.out.printf("%c=%+.8f ", BaseUtils.baseIndexToSimpleBase(i), probs[i]);
+            System.out.printf("%c=%+.8f ", (char)BaseUtils.baseIndexToSimpleBase(i), probs[i]);
         }
         System.out.printf("%n");
     }

@@ -420,6 +420,56 @@ public class Utils {
 
         return "{" + join(", ", pairs) + "}";
     }
+
+    /**
+     * Reverse a byte array of bases
+     *
+     * @param bases  the byte array of bases
+     * @return the reverse of the base byte array
+     */
+    static public byte[] reverse(byte[] bases) {
+        byte[] rcbases = new byte[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = bases[bases.length - i - 1];
+        }
+
+        return rcbases;
+    }
+
+    /**
+     * Reverse an int array of bases
+     *
+     * @param bases  the int array of bases
+     * @return the reverse of the base int array
+     */
+    static public int[] reverse(int[] bases) {
+        int[] rcbases = new int[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = bases[bases.length - i - 1];
+        }
+
+        return rcbases;
+    }
+
+    /**
+     * Reverse (NOT reverse-complement!!) a string
+     *
+     * @param bases  input string
+     * @return the reversed string
+     */
+    static public String reverse(String bases) {
+        return new String( reverse( bases.getBytes() )) ;
+    }
+
+    public static byte[] charSeq2byteSeq(char[] seqIn) {
+        byte[] seqOut = new byte[seqIn.length];
+        for ( int i = 0; i < seqIn.length; i++ ) {
+            seqOut[i] = (byte)seqIn[i];
+        }
+        return seqOut;
+    }    
 }
 
 

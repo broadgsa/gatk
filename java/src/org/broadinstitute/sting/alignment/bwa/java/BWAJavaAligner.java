@@ -5,6 +5,7 @@ import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;
 import java.util.*;
@@ -133,7 +134,7 @@ public class BWAJavaAligner extends BWAAligner {
         List<Alignment> successfulMatches = new ArrayList<Alignment>();
 
         Byte[] uncomplementedBases = normalizeBases(read.getReadBases());
-        Byte[] complementedBases = normalizeBases(BaseUtils.reverse(BaseUtils.simpleReverseComplement(read.getReadBases())));
+        Byte[] complementedBases = normalizeBases(Utils.reverse(BaseUtils.simpleReverseComplement(read.getReadBases())));
 
         List<LowerBound> forwardLowerBounds = LowerBound.create(uncomplementedBases,forwardBWT);
         List<LowerBound> reverseLowerBounds = LowerBound.create(complementedBases,reverseBWT);

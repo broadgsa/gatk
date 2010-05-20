@@ -359,7 +359,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public char getSecondaryBase ( SAMRecord read, int offset ) {
-        return BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex( ( (byte[]) read.getAttribute("SQ") )[offset] ) );
+        return BaseUtils.baseIndexToSimpleBaseAsChar(QualityUtils.compressedQualityToBaseIndex( ( (byte[]) read.getAttribute("SQ") )[offset] ) );
     }
 
     public boolean baseIsUsable ( RefMetaDataTracker tracker, ReferenceContext ref, ReadBackedPileup pileup, AlignmentContext context ) {

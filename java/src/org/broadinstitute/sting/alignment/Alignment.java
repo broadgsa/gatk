@@ -3,6 +3,7 @@ package org.broadinstitute.sting.alignment;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 
 /**
  * Represents an alignment of a read to a site in the reference genome.
@@ -203,7 +204,7 @@ public class Alignment {
             read.setCigar(alignment.getCigar());
             if(alignment.isNegativeStrand()) {
                 read.setReadBases(BaseUtils.simpleReverseComplement(read.getReadBases()));
-                read.setBaseQualities(BaseUtils.reverse(read.getBaseQualities()));
+                read.setBaseQualities(Utils.reverse(read.getBaseQualities()));
             }
             read.setAttribute("NM",alignment.getEditDistance());
             read.setAttribute("MD",alignment.getMismatchingPositions());

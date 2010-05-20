@@ -215,6 +215,6 @@ public class QualityUtils {
      * @return the reverse of the quality array
      */
     static public byte[] reverseQualityArray( byte[] quals ) {
-        return BaseUtils.reverse(quals); // no sense in duplicating functionality
+        return Utils.reverse(quals); // no sense in duplicating functionality
     }
 }

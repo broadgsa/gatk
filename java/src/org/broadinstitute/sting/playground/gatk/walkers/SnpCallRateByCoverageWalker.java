@@ -131,7 +131,7 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
                                coverage,
                                ((float) coverage)/((float) reads.size()),
                                goodIterations,
-                               BaseUtils.baseIndexToSimpleBase(ref.getBaseIndex()),
+                               (char)BaseUtils.baseIndexToSimpleBase(ref.getBaseIndex()),
                                call == null ? "./." : call.getGenotypeString(),
                                vcCall.getGenotypeString(),
                                call == null ? 0 : call.getType() == vcCall.getType() ? 1 : 0,

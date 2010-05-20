@@ -100,18 +100,18 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
                 if (useNextBestBase || useNextRandomBase || useNonNextBestBase) {
                     byte nextBestBase;
                     if (useNextBestBase) {
-                        nextBestBase = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]));
+                        nextBestBase = BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]));
                     } else if (useNonNextBestBase) {
                         nextBestBase = bases[cycle];
                         Random generator = new Random();
-                        while (nextBestBase == bases[cycle] || nextBestBase == (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]))) {
-                            nextBestBase = (byte) BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
+                        while (nextBestBase == bases[cycle] || nextBestBase == BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]))) {
+                            nextBestBase = BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
                         }
                     } else {
                         nextBestBase = bases[cycle];
                         Random generator = new Random();
                         while (nextBestBase == bases[cycle]) {
-                            nextBestBase = (byte) BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
+                            nextBestBase = BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
                         }
                     }
 
