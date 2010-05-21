@@ -35,9 +35,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
@@ -49,6 +47,7 @@ import java.util.*;
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= ReferenceOrderedDatum.class))
+@Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
