@@ -15,7 +15,7 @@ import java.util.HashMap;
 
 public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
-    private boolean ANNOTATE_INDELS = false;
+    private boolean ANNOTATE_INDELS = true;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
@@ -84,7 +84,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
                 }
             }
 
-            return computeHomopolymerRun(dBase,ref);
+            return computeHomopolymerRun(dBase,ref)-1; // remove the extra match from the base itself
         } else {
             // check that inserted bases are the same
             byte insBase = vc.getAlternateAllele(0).getBases()[0];

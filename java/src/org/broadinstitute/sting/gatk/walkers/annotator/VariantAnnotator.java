@@ -73,6 +73,9 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
     protected Boolean LIST = false;
 
+    @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
+    protected boolean indelsOnly = false;
+
     private VCFWriter vcfWriter;
 
     private HashMap<String, String> nonVCFsampleName = new HashMap<String, String>();
@@ -154,6 +157,13 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     /**
+     * We want to see extended events if annotating indels
+     *
+     * @return true
+     */
+    public boolean generateExtendedEvents() { return indelsOnly; }
+
+    /**
      * For each site of interest, annotate based on the requested annotation types
      *
      * @param tracker  the meta-data tracker
@@ -177,8 +187,13 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
 
         // if the reference base is not ambiguous, we can annotate
         Collection<VariantContext> annotatedVCs = Arrays.asList(vc);
+        Map<String, StratifiedAlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+            if ( ! context.hasExtendedEventPileup() ) {
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+            } else {
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getExtendedEventPileup());
+            }
             if ( stratifiedContexts != null ) {
                 annotatedVCs = engine.annotateContext(tracker, ref, stratifiedContexts, vc);
             }

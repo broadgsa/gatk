@@ -75,9 +75,13 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
     @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
     int nBins = 499;
     @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to -1.", required = false)
-    byte minMappingQuality = -1;
+    int minMappingQuality = -1;
+    @Argument(fullName = "maxMappingQuality", doc = "Maximum mapping quality of reads to count towards depth. Defaults to 2^31-1 (Integer.MAX_VALUE).", required = false)
+    int maxMappingQuality = Integer.MAX_VALUE;
     @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to -1.", required = false)
     byte minBaseQuality = -1;
+    @Argument(fullName = "maxBaseQuality", doc = "Maximum quality of bases to count towards depth. Defaults to 127 (Byte.MAX_VALUE).", required = false)
+    byte maxBaseQuality = Byte.MAX_VALUE;
     @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
     boolean printBaseCounts = false;
     @Argument(fullName = "omitLocusTable", shortName = "omitLocusTable", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
@@ -245,7 +249,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             //System.out.printf("\t[log]\t%s",ref.getLocus());
         }
 
-        return CoverageUtils.getBaseCountsByPartition(context,minMappingQuality,minBaseQuality,aggregationTypes);
+        return CoverageUtils.getBaseCountsByPartition(context,minMappingQuality,maxMappingQuality,minBaseQuality,maxBaseQuality,aggregationTypes);
     }
 
     public CoverageAggregator reduce(Map<CoverageAggregator.AggregationType,Map<String,int[]>> thisMap, CoverageAggregator prevReduce) {
@@ -370,7 +374,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
     private void printGeneStats(List<Pair<GenomeLoc,CoverageAggregator>> statsByTarget) {
         LocationAwareSeekableRODIterator refseqIterator = initializeRefSeq();
         List<Pair<String,DepthOfCoverageStats>> statsByGene = new ArrayList<Pair<String,DepthOfCoverageStats>>();// maintains order
-        Map<String,DepthOfCoverageStats> geneNamesToStats = new HashMap<String,DepthOfCoverageStats>(); // alows indirect updating of objects in list
+        Map<String,DepthOfCoverageStats> geneNamesToStats = new HashMap<String,DepthOfCoverageStats>(); // allows indirect updating of objects in list
 
         for ( Pair<GenomeLoc,CoverageAggregator> targetStats : statsByTarget ) {
             String gene = getGeneName(targetStats.first,refseqIterator);
@@ -710,7 +714,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             bin++;
         }
 
-        return bin;
+        return bin == -1 ? 0 : bin;
     }
 
     private void printDepths(PrintStream stream, Map<CoverageAggregator.AggregationType,Map<String,int[]>> countsBySampleByType, Map<CoverageAggregator.AggregationType,List<String>> identifiersByType) {

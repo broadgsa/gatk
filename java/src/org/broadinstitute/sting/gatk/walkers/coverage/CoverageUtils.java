@@ -52,14 +52,14 @@ public class CoverageUtils {
         }
     }
     public static Map<CoverageAggregator.AggregationType,Map<String,int[]>>
-                    getBaseCountsByPartition(AlignmentContext context, int minMapQ, int minBaseQ, List<CoverageAggregator.AggregationType> types) {
+                    getBaseCountsByPartition(AlignmentContext context, int minMapQ, int maxMapQ, byte minBaseQ, byte maxBaseQ, List<CoverageAggregator.AggregationType> types) {
 
         Map<CoverageAggregator.AggregationType,Map<String,int[]>> countsByIDByType = new HashMap<CoverageAggregator.AggregationType,Map<String,int[]>>();
         for (CoverageAggregator.AggregationType t : types ) {
             countsByIDByType.put(t,new HashMap<String,int[]>());
         }
         for (PileupElement e : context.getBasePileup()) {
-            if ( e.getMappingQual() >= minMapQ && ( e.getQual() >= minBaseQ || e.isDeletion() ) ) {
+            if ( e.getMappingQual() >= minMapQ && e.getMappingQual() <= maxMapQ && ( ( e.getQual() >= minBaseQ && e.getQual() <= maxBaseQ ) || e.isDeletion() ) ) {
                 for (CoverageAggregator.AggregationType t : types ) {
                     String id = getTypeID(e.getRead(),t);
                     if ( ! countsByIDByType.get(t).keySet().contains(id) ) {

@@ -26,12 +26,14 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -41,11 +43,13 @@ public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
-        if ( !vc.isBiallelic() || !vc.isSNP() )
+        if ( !vc.isBiallelic() )
             return null;
         final Map<String, Genotype> genotypes = vc.getGenotypes();
-        if ( genotypes == null || genotypes.size() == 0 )
+        if ( genotypes == null || genotypes.size() == 0 ) {
+            System.out.println("No genotypes for vc at "+ref.getLocus().toString());
             return null;
+        }
 
         double ratio = 0.0;
         double totalWeights = 0.0;
@@ -58,23 +62,39 @@ public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
             if ( context == null )
                 continue;
 
-            final String bases = new String(context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().getBases()).toUpperCase();
-            if ( bases.length() == 0 )
-                return null;
+            if ( vc.isSNP() ) {
+                final String bases = new String(context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().getBases()).toUpperCase();
+                if ( bases.length() == 0 )
+                    return null;
+                char refChr = vc.getReference().toString().charAt(0);
+                char altChr = vc.getAlternateAllele(0).toString().charAt(0);
 
-            char refChr = vc.getReference().toString().charAt(0);
-            char altChr = vc.getAlternateAllele(0).toString().charAt(0);
+                int refCount = MathUtils.countOccurrences(refChr, bases);
+                int altCount = MathUtils.countOccurrences(altChr, bases);
 
-            int refCount = MathUtils.countOccurrences(refChr, bases);
-            int altCount = MathUtils.countOccurrences(altChr, bases);
+                // sanity check
+                if ( refCount + altCount == 0 )
+                    continue;
 
-            // sanity check
-            if ( refCount + altCount == 0 )
-                continue;
+                // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
+                ratio += genotype.getValue().getNegLog10PError() * ((double)refCount / (double)(refCount + altCount));
+                totalWeights += genotype.getValue().getNegLog10PError();
+            } else if ( vc.isIndel() ) {
+                final ReadBackedExtendedEventPileup indelPileup = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getExtendedEventPileup();
+                if ( indelPileup == null ) {
+                    continue;
+                }
+                // todo -- actually care about indel length from the pileup (agnostic at the moment)
+                int refCount = indelPileup.size();
+                int altCount = vc.isInsertion() ? indelPileup.getNumberOfInsertions() : indelPileup.getNumberOfDeletions();
 
-            // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
-            ratio += genotype.getValue().getNegLog10PError() * ((double)refCount / (double)(refCount + altCount));
-            totalWeights += genotype.getValue().getNegLog10PError();
+                if ( refCount + altCount == 0 ) {
+                    continue;
+                }
+
+                ratio += /* todo -- make not uniform */ 1 * ((double) refCount) / (double) (refCount + altCount);
+                totalWeights += 1;
+            }
         }
 
         // make sure we had a het genotype

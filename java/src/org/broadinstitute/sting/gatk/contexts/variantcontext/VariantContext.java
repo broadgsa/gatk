@@ -577,6 +577,24 @@ public class VariantContext {
     }
 
     /**
+     * Gets the sizes of the alternate alleles if they are insertion/deletion events, and returns a list of their sizes
+     *
+     * @return a list of indel lengths ( null if not of type indel or mixed )
+     */
+    public List<Integer> getIndelLengths() {
+        if ( getType() != Type.INDEL || getType() != Type.MIXED ) {
+            return null;
+        }
+
+        List<Integer> lengths = new ArrayList<Integer>();
+        for ( Allele a : getAlternateAlleles() ) {
+            lengths.add(a.length() - getReference().length());
+        }
+
+        return lengths;
+    }
+
+    /**
      * @param i -- the ith allele (from 0 to n - 2 for a context with n alleles including a reference allele)
      * @return the ith non-reference allele in this context
      * @throws IllegalArgumentException if i is invalid

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.junit.Test;
