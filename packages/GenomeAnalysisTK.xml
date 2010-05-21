@@ -17,9 +17,7 @@
       <!-- Filters -->
       <package name="org.broadinstitute.sting.gatk.filters" />
       <!-- Tribble codecs -->
-      <package name="org.broad.tribble.dbsnp" />
-      <package name="org.broad.tribble.vcf" />
-      <package name="org.broad.tribble.gelitext" />
+      <package name="org.broad.tribble" />
       <!-- Basic qc walkers -->
       <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker" />
       <class name="org.broadinstitute.sting.gatk.refdata.tracks.builders.RODTrackBuilder" />
