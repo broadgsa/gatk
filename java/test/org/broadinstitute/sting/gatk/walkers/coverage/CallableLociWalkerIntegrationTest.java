@@ -34,22 +34,25 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
 
     @Test
     public void testCallableLociWalker1() {
-        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000";
-        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList("b3a273984da6744d6de4ca0ab3eb759b"));
+        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -summary %s";
+        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
+                Arrays.asList("b3a273984da6744d6de4ca0ab3eb759b", "33b8b285a738d8d5daf6e98af698a4eb"));
         executeTest("formatBed", spec);
     }
 
     @Test
     public void testCallableLociWalker2() {
-        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-10,000,100;1:10,000,110-10,000,120";
-        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList("c671f65712d9575b8b3e1f1dbedc146e"));
+        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-10,000,100;1:10,000,110-10,000,120 -summary %s";
+        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
+                Arrays.asList("c671f65712d9575b8b3e1f1dbedc146e", "d287510eac04acf5a56f5cde2cba0e4a"));
         executeTest("formatBed by interval", spec);
     }
 
     @Test
     public void testCallableLociWalker3() {
-        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20";
-        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList("3fee7d7d0e305f439db29b4e641d1c20"));
+        String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20 -summary %s";
+        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
+                Arrays.asList("3fee7d7d0e305f439db29b4e641d1c20", "99c54acdad7e81ccf219b8a70cd26917"));
         executeTest("formatBed lots of arguments", spec);
     }
 }

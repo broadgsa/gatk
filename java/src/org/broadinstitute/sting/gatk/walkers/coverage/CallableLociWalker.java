@@ -32,6 +32,12 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.commandline.Argument;
 
+import java.util.EnumMap;
+import java.util.Map;
+import java.io.File;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
+
 
 /**
  * Emits a data file containing information about callable, uncallable, poorly mapped, and other parts of the genome
@@ -40,7 +46,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * @Date May 7, 2010
  */
 @By(DataSource.REFERENCE)
-public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableBaseState, CallableLociWalker.CallableBaseState> {
+public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableBaseState, CallableLociWalker.Integrator> {
     @Argument(fullName = "maxLowMAPQ", shortName = "mlmq", doc = "Maximum value for MAPQ to be considered a problematic mapped read.  The gap between this value and mmq are reads that are not sufficiently well mapped for calling but aren't indicative of mapping problems.", required = false)
     byte maxLowMAPQ = 1;
 
@@ -65,6 +71,9 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     @Argument(fullName = "format", shortName = "format", doc = "Output format for the system: either BED or STATE_PER_BASE", required = false)
     OutputFormat outputFormat;
 
+    @Argument(fullName = "summary", shortName = "summary", doc = "Name of file for output summary", required = true)
+    File summaryFile;
+
     public enum OutputFormat { BED, STATE_PER_BASE }
 
     ////////////////////////////////////////////////////////////////////////////////////
@@ -74,11 +83,18 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     public void initialize() {
+        try {
+            PrintStream summaryOut = new PrintStream(summaryFile);
+            summaryOut.close();
+        } catch (FileNotFoundException e) {
+            throw new StingException("Cannot write to summary file " + summaryFile);
+        }
     }
 
-//    public boolean isReduceByInterval() {
-//        return false;
-//    }
+    public class Integrator {
+        long counts[] = new long[CalledState.values().length];
+        CallableBaseState state = null;
+    }
 
     public static class CallableBaseState {
         public GenomeLoc loc;
@@ -118,8 +134,8 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
 
     public enum CalledState { REF_N, CALLABLE, NO_COVERAGE, LOW_COVERAGE, EXCESSIVE_COVERAGE, POOR_MAPPING_QUALITY }
 
-    public CallableBaseState reduceInit() {
-        return null;
+    public Integrator reduceInit() {
+        return new Integrator();
     }
 
     public CallableBaseState map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -158,19 +174,22 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         return new CallableBaseState(context.getLocation(), state);
     }
 
-    public CallableBaseState reduce(CallableBaseState state, CallableBaseState integrator) {
+    public Integrator reduce(CallableBaseState state, Integrator integrator) {
+        // update counts
+        integrator.counts[state.getState().ordinal()]++;
+
         if ( outputFormat == OutputFormat.STATE_PER_BASE ) {
             out.println(state.toString());
         } else {
             // format is integrating
-            if ( integrator == null ) {
-                integrator = state;
-            } else if ( state.getLocation().getStart() != integrator.getLocation().getStop() + 1 ||
-                    integrator.changingState(state.getState()) ) {
-                out.println(integrator.toString());
-                integrator = state;
+            if ( integrator.state == null )
+                integrator.state = state;
+            else if ( state.getLocation().getStart() != integrator.state.getLocation().getStop() + 1 ||
+                    integrator.state.changingState(state.getState()) ) {
+                out.println(integrator.state.toString());
+                integrator.state = state;
             } else {
-                integrator.update(state.getLocation());
+                integrator.state.update(state.getLocation());
             }
         }
 
@@ -182,9 +201,22 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     // INTERVAL ON TRAVERSAL DONE
     ////////////////////////////////////////////////////////////////////////////////////
 
-    public void onTraversalDone(CallableBaseState result) {
+    public void onTraversalDone(Integrator result) {
         // print out the last state
-        if ( result!= null )
-            out.println(result.toString());
+        if ( result != null ) {
+            out.println(result.state.toString());
+
+            try {
+                PrintStream summaryOut = new PrintStream(summaryFile);
+                summaryOut.printf("%30s %s%n", "state", "nBases");
+                for ( CalledState state : CalledState.values() ) {
+                    summaryOut.printf("%30s %d%n", state, result.counts[state.ordinal()]);
+                }
+
+                summaryOut.close();
+            } catch (FileNotFoundException e) {
+                throw new StingException(e.getMessage());
+            }
+        }
     }
 }
