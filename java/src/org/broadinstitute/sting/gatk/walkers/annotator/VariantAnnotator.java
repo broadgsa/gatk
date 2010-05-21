@@ -82,6 +82,8 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
 
     private VariantAnnotatorEngine engine;
 
+    private Collection<VariantContext> indelBufferContext;
+
 
     private void listAnnotationsAndExit() {
         List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class);
@@ -139,6 +141,10 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
         vcfWriter = new VCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
+
+        if ( indelsOnly ) {
+            indelBufferContext = null;
+        }
     }
 
     /**
@@ -199,9 +205,22 @@ public class VariantAnnotator extends LocusWalker<Integer, Integer> {
             }
         }
 
-        if ( variant instanceof VCFRecord) {
-            for(VariantContext annotatedVC : annotatedVCs ) {
+        if ( ! indelsOnly ) {
+
+            if ( variant instanceof VCFRecord ) {
+                for(VariantContext annotatedVC : annotatedVCs ) {
                     vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
+                }
+            }
+        } else {
+            // check to see if the buffered context is different (in location) this context
+            if ( indelBufferContext != null && ! indelBufferContext.iterator().next().getLocation().equals(annotatedVCs.iterator().next().getLocation()) ) {
+                for(VariantContext annotatedVC : indelBufferContext ) {
+                    vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
+                }
+                indelBufferContext = annotatedVCs;
+            } else {
+                indelBufferContext = annotatedVCs;
             }
         }
 
