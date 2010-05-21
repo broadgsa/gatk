@@ -80,6 +80,23 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         execute("testBaseOutputNoFiltering",spec);
     }
 
+    @Test
+    public void testNoCoverageDueToFiltering() {
+        File baseOutputFile = this.createTempFile("depthofcoveragenofiltering",".tmp");
+        this.setOutputFileLocation(baseOutputFile);
+
+        String[] intervals = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/fhs_jhs_30_targts.interval_list"};
+        String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/FHS_indexed_subset.bam"};
+
+        String cmd = buildRootCmd(hg18,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 5 --maxBaseQuality 4 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv";
+        WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
+
+        spec.addAuxFile("d570c27d82a80ebd2852e9d34aff4e87",baseOutputFile);
+        spec.addAuxFile("00107eea991f7379771b29dea0c859cb",createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));
+
+        execute("testNoCoverageDueToFiltering",spec);
+    }
+
     public File createTempFileFromBase(String name) {
         File fl = new File(name);
         fl.deleteOnExit();
