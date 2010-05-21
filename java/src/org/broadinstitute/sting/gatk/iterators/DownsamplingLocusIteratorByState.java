@@ -515,6 +515,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         private final int targetCoverage;
 
         private final Deque<Map<String,List<SAMRecordState>>> readStatesByAlignmentStart;
+        private int totalReadStatesInHanger = 0;
 
         /**
          * Store a random number generator with a consistent seed for consistent downsampling from run to run.
@@ -546,7 +547,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
                 private Iterator<SAMRecordState> readStateIterator;
                 private SAMRecordState nextReadState;
-                private int readsInHanger = countReadsInHanger();
+                private int readsInHanger = totalReadStatesInHanger;
 
                 {
                     alignmentStartIterator = readStatesByAlignmentStart.iterator();
@@ -577,6 +578,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     readStateIterator.remove();
                     if(currentSample.isEmpty()) sampleIterator.remove();
                     if(currentAlignmentStart.isEmpty()) alignmentStartIterator.remove();
+                    totalReadStatesInHanger--;
                 }
 
                 private void advance() {
@@ -643,6 +645,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             }
 
             Map<String,List<SAMRecordState>> culledReadStatesBySample = new HashMap<String,List<SAMRecordState>>();
+            int readStatesInHangerEntry = 0;
 
             for(Map.Entry<String,ReservoirDownsampler<SAMRecord>> entry: downsamplersBySampleName.entrySet()) {
                 String sampleName = entry.getKey();
@@ -653,7 +656,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 int readsInHanger = countReadsInHanger(sampleName);
 
                 if(readsInHanger+newReads.size()<=targetCoverage || downsamplingMethod.type==DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR)
-                    addReadsToHanger(culledReadStatesBySample,sampleName,newReads,newReads.size());
+                    readStatesInHangerEntry += addReadsToHanger(culledReadStatesBySample,sampleName,newReads,newReads.size());
                 else {
                     Iterator<Map<String,List<SAMRecordState>>> backIterator = readStatesByAlignmentStart.descendingIterator();
                     boolean readPruned = true;
@@ -675,11 +678,13 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                         firstHangerForSample.clear();
                     }
 
-                    addReadsToHanger(culledReadStatesBySample,sampleName,newReads,targetCoverage-readsInHanger);
+                    readStatesInHangerEntry += addReadsToHanger(culledReadStatesBySample,sampleName,newReads,targetCoverage-readsInHanger);
                 }
             }
-            if(!culledReadStatesBySample.isEmpty())
+            if(!culledReadStatesBySample.isEmpty()) {
                 readStatesByAlignmentStart.add(culledReadStatesBySample);
+                totalReadStatesInHanger += readStatesInHangerEntry;
+            }
         }
 
         private ReservoirDownsampler<SAMRecord> getDownsampler(String sampleName) {
@@ -687,15 +692,6 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 return downsamplersBySampleName.get(null);
             else
                 return downsamplersBySampleName.get(sampleName);
-        }
-
-        private int countReadsInHanger() {
-            int count = 0;
-            for(Map<String,List<SAMRecordState>> hangerEntry: readStatesByAlignmentStart) {
-                for(List<SAMRecordState> reads: hangerEntry.values())
-                    count += reads.size();
-            }
-            return count;
         }
 
         private int countReadsInHanger(final String sampleName) {
@@ -707,22 +703,31 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             return count;
         }
 
-        private void addReadsToHanger(final Map<String,List<SAMRecordState>> newHanger, final String sampleName, final Collection<SAMRecord> reads, final int maxReads) {
+        /**
+         * Add reads with the given sample name to the given hanger entry.
+         * @param newHangerEntry The hanger entry to add.
+         * @param sampleName Sample name of the given reads.  Should match the entry in each read's read group.
+         * @param reads Reads to add.  Selected reads will be pulled from this source.
+         * @param maxReads Maximum number of reads to add.
+         * @return Total number of reads added.
+         */
+        private int addReadsToHanger(final Map<String,List<SAMRecordState>> newHangerEntry, final String sampleName, final Collection<SAMRecord> reads, final int maxReads) {
             if(reads.isEmpty())
-                return;
-            List<SAMRecordState> hangerEntry = new LinkedList<SAMRecordState>();
+                return 0;
+            List<SAMRecordState> readStatesBySample = new LinkedList<SAMRecordState>();
             int readCount = 0;
             for(SAMRecord read: reads) {
                 if(readCount >= maxReads)
                     break;
                 SAMRecordState state = new SAMRecordState(read, readInfo.generateExtendedEvents());
                 state.stepForwardOnGenome();
-                hangerEntry.add(state);
+                readStatesBySample.add(state);
                 // TODO: What if we downsample the extended events away?
                 if (state.hadIndel()) hasExtendedEvents = true;
                 readCount++;
             }
-            newHanger.put(sampleName,hangerEntry);
+            newHangerEntry.put(sampleName,readStatesBySample);
+            return readCount;
         }
     }
 }
