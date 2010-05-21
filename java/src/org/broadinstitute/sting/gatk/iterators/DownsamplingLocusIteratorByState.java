@@ -538,17 +538,22 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
         public Iterator<SAMRecordState> iterator() {
             return new Iterator<SAMRecordState>() {
-                private final Iterator<Map<String,List<SAMRecordState>>> alignmentStartIterator;
+                private Iterator<Map<String,List<SAMRecordState>>> alignmentStartIterator;
+                private Map<String,List<SAMRecordState>> currentAlignmentStart;
+
                 private Iterator<List<SAMRecordState>> sampleIterator;
+                private List<SAMRecordState> currentSample;
+
                 private Iterator<SAMRecordState> readStateIterator;
                 private SAMRecordState nextReadState;
                 private int readsInHanger = countReadsInHanger();
 
                 {
-                    pruneEmptyElementsInHanger();
                     alignmentStartIterator = readStatesByAlignmentStart.iterator();
-                    sampleIterator = alignmentStartIterator.hasNext() ? alignmentStartIterator.next().values().iterator() : null;
-                    readStateIterator = (sampleIterator!=null && sampleIterator.hasNext()) ? sampleIterator.next().iterator() : null;
+                    currentAlignmentStart = alignmentStartIterator.hasNext() ? alignmentStartIterator.next() : null;
+                    sampleIterator = currentAlignmentStart!=null ? currentAlignmentStart.values().iterator() : null;
+                    currentSample = sampleIterator!=null && sampleIterator.hasNext() ? sampleIterator.next() : null;
+                    readStateIterator = currentSample!=null ? currentSample.iterator() : null;
                 }
 
                 public boolean hasNext() {
@@ -570,6 +575,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     if(readStateIterator == null)
                         throw new StingException("Attempted to remove read, but no previous read was found.");
                     readStateIterator.remove();
+                    if(currentSample.isEmpty()) sampleIterator.remove();
+                    if(currentAlignmentStart.isEmpty()) alignmentStartIterator.remove();
                 }
 
                 private void advance() {
@@ -577,12 +584,15 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     if(readStateIterator!=null && readStateIterator.hasNext())
                         nextReadState = readStateIterator.next();
                     else if(sampleIterator!=null && sampleIterator.hasNext()) {
-                        readStateIterator = sampleIterator.next().iterator();
+                        currentSample = sampleIterator.next();
+                        readStateIterator = currentSample.iterator();
                         nextReadState = readStateIterator.hasNext() ? readStateIterator.next() : null;
                     }
                     else if(alignmentStartIterator!=null && alignmentStartIterator.hasNext()) {
-                        sampleIterator = alignmentStartIterator.next().values().iterator();
-                        readStateIterator = sampleIterator.hasNext() ? sampleIterator.next().iterator() : null;
+                        currentAlignmentStart = alignmentStartIterator.next();
+                        sampleIterator = currentAlignmentStart != null ? currentAlignmentStart.values().iterator() : null;
+                        currentSample = (sampleIterator!=null && sampleIterator.hasNext()) ? sampleIterator.next() : null;
+                        readStateIterator = currentSample!=null ? currentSample.iterator() : null;
                         nextReadState = (readStateIterator!=null && readStateIterator.hasNext()) ? readStateIterator.next() : null;
                     }
 
@@ -592,7 +602,6 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         }
 
         public boolean isEmpty() {
-            pruneEmptyElementsInHanger();
             return readStatesByAlignmentStart.isEmpty();
         }
 
@@ -610,7 +619,6 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         }
 
         public boolean hasNext() {
-            pruneEmptyElementsInHanger();
             return !readStatesByAlignmentStart.isEmpty() || iterator.hasNext();
         }
 
@@ -669,9 +677,9 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
                     addReadsToHanger(culledReadStatesBySample,sampleName,newReads,targetCoverage-readsInHanger);
                 }
-
-                readStatesByAlignmentStart.add(culledReadStatesBySample);
             }
+            if(!culledReadStatesBySample.isEmpty())
+                readStatesByAlignmentStart.add(culledReadStatesBySample);
         }
 
         private ReservoirDownsampler<SAMRecord> getDownsampler(String sampleName) {
@@ -700,6 +708,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         }
 
         private void addReadsToHanger(final Map<String,List<SAMRecordState>> newHanger, final String sampleName, final Collection<SAMRecord> reads, final int maxReads) {
+            if(reads.isEmpty())
+                return;
             List<SAMRecordState> hangerEntry = new LinkedList<SAMRecordState>();
             int readCount = 0;
             for(SAMRecord read: reads) {
@@ -713,20 +723,6 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 readCount++;
             }
             newHanger.put(sampleName,hangerEntry);
-        }
-
-        private void pruneEmptyElementsInHanger() {
-            Iterator<Map<String,List<SAMRecordState>>> hangerIterator = readStatesByAlignmentStart.iterator();
-            while(hangerIterator.hasNext()) {
-                Map<String,List<SAMRecordState>> hangerEntry = hangerIterator.next();
-                Iterator<List<SAMRecordState>> entryBySampleIterator = hangerEntry.values().iterator();
-                while(entryBySampleIterator.hasNext()) {
-                    if(entryBySampleIterator.next().size() == 0)
-                        entryBySampleIterator.remove();
-                }
-                if(hangerEntry.size() == 0)
-                    hangerIterator.remove();
-            }
         }
     }
 }
