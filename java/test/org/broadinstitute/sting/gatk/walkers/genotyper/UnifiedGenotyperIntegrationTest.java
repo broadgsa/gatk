@@ -35,7 +35,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("d50ebc40d935ece7e57aafc7355bec77"));
+                Arrays.asList("3f919977584b2c15273cb7de948dd1ac"));
         executeTest("testMultiSamplePilot1 - Joint Estimate", spec);
     }
 
@@ -43,7 +43,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,050,000", 1,
-                Arrays.asList("2f113c2b1cd0d36522fc24e7784a2b7d"));
+                Arrays.asList("d45934ae6537a84bb123db2288ad235e"));
         executeTest("testMultiSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -51,7 +51,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testSingleSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000", 1,
-                Arrays.asList("4f08c27ada3ad1a33d12d106bc80dab6"));
+                Arrays.asList("96245f0842534527b66a9daad53134bd"));
         executeTest("testSingleSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -64,7 +64,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testParallelization() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,400,000 -nt 4", 1,
-                Arrays.asList("d643e60343c05817dcb4fafb7870804d"));
+                Arrays.asList("60bf51595eda646f5ccf0b0bf5db95d8"));
         executeTest("test parallelization", spec);
     }
 
@@ -77,11 +77,11 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "03e228232eeb0a32ea3791daec29248c" );
-        e.put( "-all_bases", "fe894f335e048d89fccd7a7b39a105a1" );
-        e.put( "--min_base_quality_score 26", "a1142c69f1951a05d5a33215c69133af" );
-        e.put( "--min_mapping_quality_score 26", "796d1ea790481a1a257609279f8076bb" );
-        e.put( "--max_mismatches_in_40bp_window 5", "379bd56d4402e974127e0677ff51d040" );
+        e.put( "-genotype", "d301500f0cd5ef1929a1adce7e857f9c" );
+        e.put( "-all_bases", "70e94c6671a3e5122cb9ad04c0ad138e" );
+        e.put( "--min_base_quality_score 26", "c508728f9d26cc3a8b73f3a5ee4275f2" );
+        e.put( "--min_mapping_quality_score 26", "34634ea8f196eaf40dac6e069ebcf09a" );
+        e.put( "--max_mismatches_in_40bp_window 5", "92903b97b43145c24f19a899ce127aa3" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -95,12 +95,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testConfidence() {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -stand_call_conf 10 ", 1,
-                Arrays.asList("7b41dc669e8a0abde089d7aeedab2941"));
+                Arrays.asList("cdcc3977ce78e15d7c8153eaf5f9a2df"));
         executeTest("testConfidence1", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -stand_emit_conf 10 ", 1,
-                Arrays.asList("258617b8de0e6468bf6a0c740b51676b"));
+                Arrays.asList("2413aafdcfd3d8ac1169662f72524035"));
         executeTest("testConfidence2", spec2);
     }
 

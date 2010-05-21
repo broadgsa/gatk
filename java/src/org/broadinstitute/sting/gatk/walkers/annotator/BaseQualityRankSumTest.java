@@ -7,8 +7,8 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import java.util.List;
 
 
-public class BaseQualityRankSumTest extends RankSumTest {
-
+public class BaseQualityRankSumTest /*extends RankSumTest*/ {
+    // todo -- seems math in this test is dubious, need to recheck and verify (p-values wildly divergent from R or MATLAB)
     public String getKeyName() { return "BaseQRankSum"; }
 
     public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("BaseQRankSum", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities"); }

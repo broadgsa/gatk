@@ -42,7 +42,7 @@ import java.util.*;
 import net.sf.samtools.SAMRecord;
 
 // todo -- rename to haplotype penalty
-public class HaplotypeScore implements InfoFieldAnnotation, WorkInProgressAnnotation {
+public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
 
