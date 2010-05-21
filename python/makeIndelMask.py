@@ -1,14 +1,4 @@
-from farm_commands2 import *
-import os.path
-import sys
 from optparse import OptionParser
-from datetime import date
-import glob
-import operator
-import faiReader
-import math
-import shutil
-import string
 
 def main():
     global OPTIONS
