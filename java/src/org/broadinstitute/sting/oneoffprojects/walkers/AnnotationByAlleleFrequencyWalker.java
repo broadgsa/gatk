@@ -153,8 +153,8 @@ public class AnnotationByAlleleFrequencyWalker  extends RodWalker<Integer, Integ
 
 
             try {
-                vc_eval = tracker.getVariantContext("eval", vc, loc, true);
-                vc_ref = tracker.getVariantContext("HapMap", vc, loc, true);
+                vc_eval = tracker.getVariantContext(ref,"eval", vc, loc, true);
+                vc_ref = tracker.getVariantContext(ref,"HapMap", vc, loc, true);
             } catch (java.util.NoSuchElementException e) {
                 return 0;
             }
