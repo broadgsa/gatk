@@ -34,7 +34,9 @@ def main():
     parser.add_option("-e", "--extraArgs", dest="extraArgs",
                         type="string", default=None,
                         help="")
-                        
+    parser.add_option("", "--dev", dest="dev",
+                        type='string', default="/home/radon01/depristo/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar",
+                        help="If provided, we'll use the GATK dev build")                        
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 3:
         parser.error("incorrect number of arguments")
@@ -48,7 +50,7 @@ def main():
         if stage not in STAGES:
             sys.exit('unknown stage ' + stage)
 
-    myPipelineArgs = PipelineArgs(name = OPTIONS.name)
+    myPipelineArgs = PipelineArgs(name = OPTIONS.name, GATK_JAR = OPTIONS.dev)
     if ( OPTIONS.useB36 ):
         myPipelineArgs.ref = 'b36'
 
