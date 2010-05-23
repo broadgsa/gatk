@@ -86,7 +86,6 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      */
     protected void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
-        logger.info("Traversal reduce result is " + sum);
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours%n", elapsed, elapsed / 60, elapsed / 3600));
