@@ -4,6 +4,7 @@ import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
@@ -127,7 +128,7 @@ public abstract class LocusView extends LocusIterator implements View {
 
         // Find the next.
         seedNextLocus();
-        if( sourceInfo.getDownsamplingMethod().toCoverage != null )
+        if( sourceInfo.getDownsamplingMethod().type == DownsampleType.ALL_READS && sourceInfo.getDownsamplingMethod().toCoverage != null )
             current.downsampleToCoverage( sourceInfo.getDownsamplingMethod().toCoverage );
         
         // if the current loci isn't null, get the overflow tracker and pass it to the alignment context

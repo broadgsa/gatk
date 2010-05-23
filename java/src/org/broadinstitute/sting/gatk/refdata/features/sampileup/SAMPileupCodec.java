@@ -44,7 +44,7 @@ import static org.broadinstitute.sting.gatk.refdata.features.sampileup.SAMPileup
  * @version 0.1
  */
 public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
-    // the number of tokens we expect to parse from a dbSNP line
+    // the number of tokens we expect to parse from a pileup line
     private static final int expectedTokenCount = 10;
     private static final char fldDelim = '\t';
 
@@ -59,8 +59,7 @@ public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
      * Return the # of header lines for this file.
      *
      * @param reader the line reader
-     * @return 0 in this case, we assume no header lines.  The DbSNP file may have a
-     *         header line beginning with '#', but we can ignore that in the decode function.
+     * @return 0 in this case, we assume no header lines.
      */
     public int readHeader(LineReader reader) {
         // we don't require a header line, but it may exist.  We'll deal with that above.
@@ -82,10 +81,9 @@ public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
                                                 "(expected = " + expectedTokenCount + ", saw = " + count + " on " +
                                                 "line = " + line + ")");
 
-        SAMPileupFeature feature = new SAMPileupFeature(tokens[0],
-                                                0,
-                                                0);
+        SAMPileupFeature feature = new SAMPileupFeature();
 
+        feature.setChr(tokens[0]);
         feature.setStart(Integer.parseInt(tokens[1]));
 
         if(tokens[2].length() != 1)

@@ -59,19 +59,9 @@ public class SAMPileupFeature implements Feature {
     private double variantScore = 0;
 
     /**
-     * create the dbSNP feature, given the following information:
-     *
-     * @param contig the contig rsID
-     * @param start  the start position, one based
-     * @param stop   the stop position, one based
+     * create the pileup feature.  Default protection so that only other classes in this package can create it.
      */
-    SAMPileupFeature(String contig,
-                     int start,
-                     int stop) {
-        this.contig = contig;
-        this.start = start;
-        this.stop = stop;
-    }
+    SAMPileupFeature() {}
 
     public String getChr() {
         return contig;
