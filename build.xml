@@ -294,14 +294,12 @@
         <antcall target="dist"/>    
       <property name="scala.src" value="scala/src" />
       <property name="scala.classes" value="scala/classes" />
-      <pathconvert property="scalajar.classpath" pathsep=";">
-        <flattenmapper/>
-        <fileset dir="${basedir}" includes="dist/*.jar"/>
-      </pathconvert>
       
       <path id="scala.classpath">
-        <pathelement location="lib/scala-compiler-2.7.7.jar"/>
-        <pathelement location="lib/scala-library-2.7.7.jar"/>
+	<fileset dir="lib">
+          <include name="scala-compiler-*.jar"/>
+          <include name="scala-library-*.jar"/>
+	</fileset>
         <fileset dir="${dist.dir}">
           <patternset id="scalaStuff">
             <include name="*.jar"/>
@@ -314,13 +312,58 @@
       <mkdir dir="${scala.classes}"/>
       <echo>Building Scala...</echo>
       <scalac srcdir="${scala.src}" destdir="${scala.classes}" classpathref="scala.classpath" force="changed">
-        <include name="**/*.scala"/>
+        <include name="*.scala"/>
       </scalac>
       
       <jar jarfile="${dist.dir}/GATKScala.jar">
         <fileset dir="${scala.classes}">
-          <include name="**/*.class"/>
+          <include name="*.class"/>
         </fileset>
+      </jar>
+    </target>
+    
+    <!-- Queue target -->
+    
+    <target name="queue" description="build Queue">
+      <antcall target="resolve">
+        <param name="ivy.conf" value="queue"/>
+      </antcall>
+      <antcall target="dist"/>
+      <property name="queue.src" value="scala/src" />
+      <property name="queue.classes" value="scala/classes" />
+      <pathconvert property="queuejar.classpath" pathsep=" ">
+        <flattenmapper/>
+        <fileset dir="${dist.dir}" includes="*.jar"/>
+      </pathconvert>
+      
+      <path id="queue.classpath">
+	<fileset dir="lib">
+          <include name="scala-compiler-*.jar"/>
+          <include name="scala-library-*.jar"/>
+	</fileset>
+        <fileset dir="${dist.dir}">
+          <patternset>
+            <include name="*.jar"/>
+          </patternset>
+        </fileset>
+      </path>
+      <taskdef resource="scala/tools/ant/antlib.xml">
+        <classpath refid="queue.classpath"/>
+      </taskdef>
+      <mkdir dir="${queue.classes}"/>
+      <echo>Building Queue...</echo>
+      <scalac srcdir="${queue.src}" destdir="${queue.classes}" classpathref="queue.classpath">
+        <include name="org/broadinstitute/sting/queue/**/*.scala"/>
+      </scalac>
+
+      <jar jarfile="${dist.dir}/Queue.jar">
+        <fileset dir="${queue.classes}">
+          <include name="org/broadinstitute/sting/queue/**/*.class"/>
+        </fileset>
+        <manifest>
+          <attribute name="Main-Class" value="org.broadinstitute.sting.queue.QCommandLine" />
+          <attribute name="Class-Path" value="${queuejar.classpath}" />
+        </manifest>
       </jar>
     </target>
     

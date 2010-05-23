@@ -4,6 +4,7 @@
   <configurations>
     <conf name="default" description="the core dependencies for the GATK"/>
     <conf name="scala" extends="default" description="the dependencies for scala"/>
+    <conf name="queue" extends="scala" description="the dependencies for Queue"/>
   </configurations>
   <dependencies defaultconf="default">
     <dependency org="net.sf" name="sam" rev="latest.integration" conf="default"/>
@@ -39,7 +40,12 @@
     <dependency org="commons-logging" name="commons-logging" rev="1.1.1" conf="default"/>
      
     <!-- Scala dependancies -->
-    <dependency org="org.scala-lang" name="scala-compiler" rev="2.7.7" conf="scala->default"/>
-    <dependency org="org.scala-lang" name="scala-library" rev="2.7.7" conf="scala->default"/>
+    <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.0.RC2" conf="scala->default"/>
+    <dependency org="org.scala-lang" name="scala-library" rev="2.8.0.RC2" conf="scala->default"/>
+
+    <!-- Queue additional dependencies -->
+    <dependency org="commons-lang" name="commons-lang" rev="2.5" conf="queue->default"/>
+    <dependency org="edu.mit.broad" name="broad-core-all" rev="2.8" conf="queue->default"/>
+
   </dependencies>
 </ivy-module>

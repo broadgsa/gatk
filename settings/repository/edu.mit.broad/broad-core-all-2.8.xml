@@ -1,0 +1,8 @@
+<ivy-module version="1.0">
+    <!-- .jar borrowed from https://svn.broadinstitute.org/CancerGenomeAnalysis/trunk/analysis_pipeline/process_management/lib/broad-core-all-2.8.jar -->
+    <info organisation="edu.mit.broad" module="broad-core-all" revision="2.8" status="integration" publication="20100522172500" />
+    <!-- BroadCore has a lot more dependencies.  For now we are only using edu.mit.broad.core.lsf which depends on apache commons-logging -->
+    <dependencies>
+      <dependency org="commons-logging" name="commons-logging" rev="1.1.1" />
+    </dependencies>
+</ivy-module>
