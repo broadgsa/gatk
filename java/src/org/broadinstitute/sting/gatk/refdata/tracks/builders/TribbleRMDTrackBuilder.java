@@ -105,6 +105,40 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      */
     public FeatureReader createFeatureReader(Class targetClass, File inputFile) {
         FeatureReader reader = null;
+        if (inputFile.getAbsolutePath().endsWith(".gz"))
+            reader = createBasicFeatureReaderNoAssumedIndex(targetClass, inputFile);
+        else
+            reader = getLinearFeatureReader(targetClass, inputFile);
+        return reader;
+    }
+
+    /**
+     * create a feature reader, without assuming there exists an index.  This code assumes the feature
+     * reader of the appropriate type will figure out what the right index type is, and determine if it
+     * exists.
+     *
+     * @param targetClass the codec class type
+     * @param inputFile the file to load
+     * @return a feature reader implementation
+     */
+    private BasicFeatureReader createBasicFeatureReaderNoAssumedIndex(Class targetClass, File inputFile) {
+        // we might not know the index type, try loading with the default reader constructor
+        logger.debug("Attempting to blindly load " + inputFile);
+        try {
+            return new BasicFeatureReader(inputFile.getAbsolutePath(),this.createByType(targetClass));
+        } catch (IOException e) {
+            throw new StingException("Unable to create feature reader from file " + inputFile);
+        }
+    }
+
+    /**
+     * create a linear feature reader, where we create the index ahead of time
+     * @param targetClass the target class
+     * @param inputFile the tribble file to parse
+     * @return the input file as a FeatureReader
+     */
+    private FeatureReader getLinearFeatureReader(Class targetClass, File inputFile) {
+        FeatureReader reader;
         try {
             Index index = loadIndex(inputFile, this.createByType(targetClass), true);
             reader = new BasicFeatureReader(inputFile.getAbsolutePath(), index, this.createByType(targetClass));
