@@ -33,8 +33,10 @@ import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class AlignmentUtils {
@@ -230,58 +232,6 @@ public class AlignmentUtils {
     	return n;
     }
 
-    public static String alignmentToString(final Cigar cigar,final  String seq, final String ref, final int posOnRef ) {
-        return alignmentToString( cigar, seq, ref, posOnRef, 0 );
-    }
-
-    public static String cigarToString(Cigar cig) {
-        return cig.toString();
-    }
-
-    public static String alignmentToString(final Cigar cigar,final  String seq, final String ref, final int posOnRef, final int posOnRead ) {
-        int readPos = posOnRead;
-        int refPos = posOnRef;
-        
-        StringBuilder refLine = new StringBuilder();
-        StringBuilder readLine = new StringBuilder();
-
-        for ( int i = 0 ; i < posOnRead ; i++ ) {
-            refLine.append( ref.charAt( refPos - readPos + i ) );
-            readLine.append( seq.charAt(i) ) ;
-        }
-
-        for ( int i = 0 ; i < cigar.numCigarElements() ; i++ ) {
-
-            final CigarElement ce = cigar.getCigarElement(i);
-
-            switch(ce.getOperator()) {
-            case I:
-                for ( int j = 0 ; j < ce.getLength(); j++ ) {
-                    refLine.append('+');
-                    readLine.append( seq.charAt( readPos++ ) );
-                }
-                break;
-            case D:
-                for ( int j = 0 ; j < ce.getLength(); j++ ) {
-                    readLine.append('*');
-                    refLine.append( ref.charAt( refPos++ ) );
-                }
-                break;
-            case M:
-                for ( int j = 0 ; j < ce.getLength(); j++ ) {
-                    refLine.append(ref.charAt( refPos++ ) );
-                    readLine.append( seq.charAt( readPos++ ) );
-                }
-                break;
-            default: throw new StingException("Unsupported cigar operator: "+ce.getOperator() );
-            }
-        }
-        refLine.append('\n');
-        refLine.append(readLine);
-        refLine.append('\n');
-        return refLine.toString();
-    }
-
     public static char[] alignmentToCharArray( final Cigar cigar, final char[] read, final char[] ref ) {
 
         final char[] alignment = new char[read.length];
@@ -291,11 +241,12 @@ public class AlignmentUtils {
         for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
 
             final CigarElement ce = cigar.getCigarElement(iii);
+            final int elementLength = ce.getLength();
 
             switch( ce.getOperator() ) {
             case I:
             case S:
-                for ( int jjj = 0 ; jjj < ce.getLength(); jjj++ ) {
+                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
                     alignment[alignPos++] = '+';
                 }
                 break;
@@ -304,11 +255,14 @@ public class AlignmentUtils {
                 refPos++;
                 break;
             case M:
-                for ( int jjj = 0 ; jjj < ce.getLength(); jjj++ ) {
+                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
                     alignment[alignPos] = ref[refPos];
                     alignPos++;
                     refPos++;
                 }
+                break;
+            case H:
+            case P:
                 break;
             default:
                 throw new StingException( "Unsupported cigar operator: " + ce.getOperator() );
@@ -372,6 +326,152 @@ public class AlignmentUtils {
      * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
      */
     public static Cigar leftAlignIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
+
+        int indexOfIndel = -1;
+        for ( int i = 0; i < cigar.numCigarElements(); i++ ) {
+            CigarElement ce = cigar.getCigarElement(i);
+            if ( ce.getOperator() == CigarOperator.D || ce.getOperator() == CigarOperator.I ) {
+                // if there is more than 1 indel, don't left align
+                if ( indexOfIndel != -1 )
+                    return cigar;
+                indexOfIndel = i;
+            }
+        }
+
+        // if there is no indel or if the alignment starts with an insertion (so that there
+        // is no place on the read to move that insertion further left), we are done
+        if ( indexOfIndel < 1 ) return cigar;
+
+        final int indelLength = cigar.getCigarElement(indexOfIndel).getLength();
+
+        byte[] altString = createIndelString(cigar, indexOfIndel, refSeq, readSeq, refIndex, readIndex);
+
+        Cigar newCigar = cigar;
+        for ( int i = 0; i < indelLength; i++ ) {
+            newCigar = moveCigarLeft(newCigar, indexOfIndel);
+            byte[] newAltString = createIndelString(newCigar, indexOfIndel, refSeq, readSeq, refIndex, readIndex);
+
+            // check to make sure we haven't run off the end of the read
+            boolean reachedEndOfRead = cigarHasZeroSizeElement(newCigar);
+
+            if ( Arrays.equals(altString, newAltString) ) {
+                cigar = newCigar;
+                i = -1;
+                if ( reachedEndOfRead )
+                    cigar = cleanUpCigar(cigar);
+            }
+
+            if ( reachedEndOfRead )
+                break;
+        }
+
+        return cigar;
+    }
+
+    private static boolean cigarHasZeroSizeElement(Cigar c) {
+        for ( CigarElement ce : c.getCigarElements() ) {
+            if ( ce.getLength() == 0 )
+                return true;
+        }
+        return false;
+    }
+
+    private static Cigar cleanUpCigar(Cigar c) {
+        ArrayList<CigarElement> elements = new ArrayList<CigarElement>(c.numCigarElements()-1);
+        for ( CigarElement ce : c.getCigarElements() ) {
+            if ( ce.getLength() != 0 &&
+                    (elements.size() != 0 || ce.getOperator() != CigarOperator.D) ) {               
+                elements.add(ce);
+            }
+        }
+        return new Cigar(elements);
+    }
+
+    private static Cigar moveCigarLeft(Cigar cigar, int indexOfIndel) {
+        // get the first few elements
+        ArrayList<CigarElement> elements = new ArrayList<CigarElement>(cigar.numCigarElements());
+        for ( int i = 0; i < indexOfIndel - 1; i++)
+            elements.add(cigar.getCigarElement(i));
+
+        // get the indel element and move it left one base
+        CigarElement ce = cigar.getCigarElement(indexOfIndel-1);
+        elements.add(new CigarElement(ce.getLength()-1, ce.getOperator()));
+        elements.add(cigar.getCigarElement(indexOfIndel));        
+        ce = cigar.getCigarElement(indexOfIndel+1);
+        elements.add(new CigarElement(ce.getLength()+1, ce.getOperator()));
+
+        // get the last few elements
+        for ( int i = indexOfIndel + 2; i < cigar.numCigarElements(); i++)
+            elements.add(cigar.getCigarElement(i));
+        return new Cigar(elements);
+    }
+
+    private static byte[] createIndelString(final Cigar cigar, final int indexOfIndel, final byte[] refSeq, final byte[] readSeq, int refIndex, int readIndex) {
+        CigarElement indel = cigar.getCigarElement(indexOfIndel);
+        int indelLength = indel.getLength();
+
+        // the indel-based reference string
+        byte[] alt = new byte[refSeq.length + (indelLength * (indel.getOperator() == CigarOperator.D ? -1 : 1))];
+
+        for ( int i = 0; i < indexOfIndel; i++ ) {
+            CigarElement ce = cigar.getCigarElement(i);
+            int length = ce.getLength();
+            
+            switch( ce.getOperator() ) {
+            case M:
+                readIndex += length;
+                refIndex += length;
+                break;
+            case S:
+                readIndex += length;
+                break;
+            case N:
+                refIndex += length;
+                break;
+            default:
+                break;
+            }
+        }
+
+        // add the bases before the indel
+        System.arraycopy(refSeq, 0, alt, 0, refIndex);
+        int currentPos = refIndex;
+
+        // take care of the indel
+        if ( indel.getOperator() == CigarOperator.D ) {
+            refIndex += indelLength;
+        } else {
+            System.arraycopy(readSeq, readIndex, alt, currentPos, indelLength);
+            currentPos += indelLength;
+        }
+
+        // add the bases after the indel
+        System.arraycopy(refSeq, refIndex, alt, currentPos, refSeq.length - refIndex);
+
+        return alt;
+    }
+
+    /** Takes the alignment of the read sequence <code>readSeq</code> to the reference sequence <code>refSeq</code>
+     * starting at 0-based position <code>refIndex</code> on the <code>refSeq</code> and specified by its <code>cigar</code>.
+     * The last argument <code>readIndex</code> specifies 0-based position on the read where the alignment described by the
+     * <code>cigar</code> starts. Usually cigars specify alignments of the whole read to the ref, so that readIndex is normally 0.
+     * Use non-zero readIndex only when the alignment cigar represents alignment of a part of the read. The refIndex in this case
+     * should be the position where the alignment of that part of the read starts at. In other words, both refIndex and readIndex are
+     * always the positions where the cigar starts on the ref and on the read, respectively.
+     *
+     * If the alignment has an indel, then this method attempts moving this indel left across a stretch of repetitive bases. For instance, if the original cigar
+     * specifies that (any) one AT  is deleted from a repeat sequence TATATATA, the output cigar will always mark the leftmost AT
+     * as deleted. If there is no indel in the original cigar, or the indel position is determined unambiguously (i.e. inserted/deleted sequence
+     * is not repeated), the original cigar is returned.
+     * @param cigar structure of the original alignment
+     * @param refSeq reference sequence the read is aligned to
+     * @param readSeq read sequence
+     * @param refIndex 0-based alignment start position on ref
+     * @param readIndex 0-based alignment start position on read
+     * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
+     */
+/*
+    public static Cigar leftAlignIndelOld(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
         if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
 
         final CigarElement ce1 = cigar.getCigarElement(0);
@@ -512,4 +612,5 @@ public class AlignmentUtils {
         }
         return cigar;
     }
+*/
 }

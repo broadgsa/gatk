@@ -315,9 +315,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                  read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
                 readsNotToClean.add(read);
             } else {
-                readsToClean.add(read, ref.getBasesAsChars());
+                readsToClean.add(read, ref.getBases());
                 // add the rods to the list of known variants
-                populateKnownIndels(metaDataTracker, null);     // todo -- fixme!
+                populateKnownIndels(metaDataTracker, null);
             }
 
             if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
@@ -420,8 +420,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private static int mismatchQualitySumIgnoreCigar(final AlignedRead aRead, final byte[] refSeq, int refIndex, int quitAboveThisValue) {
-        final byte[] readSeq = aRead.getRead().getReadBases();
-        final byte[] quals = aRead.getRead().getBaseQualities();
+        final byte[] readSeq = aRead.getReadBases();
+        final byte[] quals = aRead.getBaseQualities();
         int sum = 0;
         for (int readIndex = 0 ; readIndex < readSeq.length ; refIndex++, readIndex++ ) {
             if ( refIndex >= refSeq.length ) {
@@ -432,7 +432,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             } else {
                 byte refChr = refSeq[refIndex];
                 byte readChr = readSeq[readIndex];
-                if ( !BaseUtils.isRegularBase((char)readChr) || !BaseUtils.isRegularBase((char)refChr) )
+                if ( !BaseUtils.isRegularBase(readChr) || !BaseUtils.isRegularBase(refChr) )
                     continue; // do not count Ns/Xs/etc ?
                 if ( readChr != refChr ) {
                     sum += (int)quals[readIndex];
@@ -443,14 +443,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
         }
         return sum;
-    }
-
-    private static boolean readIsClipped(final SAMRecord read) {
-        final Cigar c = read.getCigar();
-        final int n = c.numCigarElements();
-        if ( c.getCigarElement(n-1).getOperator() == CigarOperator.S ||
-             c.getCigarElement(0).getOperator() == CigarOperator.S) return true;
-        return false;
     }
 
     private void clean(ReadBin readsToClean) {
@@ -466,7 +458,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
         final LinkedList<AlignedRead> altAlignmentsToTest = new LinkedList<AlignedRead>();  // should we try to make an alt consensus from the read?
         final Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();                 // list of alt consenses
-        long totalAlignerMismatchSum = 0, totalRawMismatchSum = 0;
+        long totalRawMismatchSum = 0;
 
         // if there are any known indels for this region, get them
         for ( VariantContext knownIndel : knownIndelsToTry.values() ) {
@@ -487,8 +479,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             //                System.out.println(read.getReadString());
             //            }
 
-            // we currently can not deal with clipped reads correctly (or a screwy record)
-            if ( read.getCigar().numCigarElements() == 0 || readIsClipped(read) ) {
+            // we can not deal with screwy records
+            if ( read.getCigar().numCigarElements() == 0 ) {
                 refReads.add(read);
                 continue;
             }
@@ -498,12 +490,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
             if ( numBlocks == 2 ) {
-                Cigar newCigar = AlignmentUtils.leftAlignIndel(read.getCigar(), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
-                aRead.setCigar(newCigar);
+                Cigar newCigar = AlignmentUtils.leftAlignIndel(unclipCigar(read.getCigar()), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
+                aRead.setCigar(newCigar, false);
             }
 
             final int startOnRef = read.getAlignmentStart()-(int)leftmostIndex;
-            totalAlignerMismatchSum += AlignmentUtils.mismatchingQualities(aRead.getRead(), reference, startOnRef);
             final int rawMismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, startOnRef, Integer.MAX_VALUE);
             //            if ( debugOn ) System.out.println("mismatchScore="+mismatchScore);
 
@@ -511,14 +502,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( rawMismatchScore > 0 ) {
                 altReads.add(aRead);
                 //logger.debug("Adding " + aRead.getRead().getReadName() + " with raw mismatch score " + rawMismatchScore + " to non-ref reads");
+
                 if ( !read.getDuplicateReadFlag() )
                     totalRawMismatchSum += rawMismatchScore;
                 aRead.setMismatchScoreToReference(rawMismatchScore);
+                aRead.setAlignerMismatchScore(AlignmentUtils.mismatchingQualities(aRead.getRead(), reference, startOnRef));
+
                 // if it has an indel, let's see if that's the best consensus
                 if ( numBlocks == 2 )  {
-                    Consensus c = createAlternateConsensus(startOnRef, aRead.getCigar(), reference, aRead.getRead().getReadBases());
-                    if ( c == null ) {} //System.out.println("ERROR: Failed to create alt consensus for read "+aRead.getRead().getReadName());
-                    else
+                    Consensus c = createAlternateConsensus(startOnRef, aRead.getCigar(), reference, aRead.getReadBases());
+                    if ( c != null )
                         altConsenses.add(c);
 
                 }
@@ -539,8 +532,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( altAlignmentsToTest.size() <= MAX_READS_FOR_CONSENSUSES ) {
             for ( AlignedRead aRead : altAlignmentsToTest ) {
                 // do a pairwise alignment against the reference
-                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getRead().getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
-                Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getRead().getReadBases());
+                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
+                Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getReadBases());
                 if ( c != null ) {
                     //                    if ( debugOn ) System.out.println("NEW consensus generated by SW: "+c.str ) ;
                     altConsenses.add(c);
@@ -555,8 +548,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 int index = generator.nextInt(altAlignmentsToTest.size());
                 AlignedRead aRead = altAlignmentsToTest.remove(index);
                 // do a pairwise alignment against the reference
-                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getRead().getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
-                Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getRead().getReadBases());
+                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
+                Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getReadBases());
                 if ( c != null )
                     altConsenses.add(c);
             }
@@ -569,7 +562,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         while ( iter.hasNext() ) {
             Consensus consensus = iter.next();
-            //logger.debug("Trying new consensus: " + AlignmentUtils.cigarToString(consensus.cigar) + " " + new String(consensus.str));
+            //logger.debug("Trying new consensus: " + consensus.cigar + " " + new String(consensus.str));
 
 //            if ( DEBUG ) {
 //                System.out.println("Checking consensus with alignment at "+consensus.positionOnReference+" cigar "+consensus.cigar);
@@ -590,14 +583,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
                 int myScore = altAlignment.second;
 
-                if ( myScore >= toTest.getMismatchScoreToReference() )
+                if ( myScore > toTest.getAlignerMismatchScore() || myScore >= toTest.getMismatchScoreToReference() )
                     myScore = toTest.getMismatchScoreToReference();
                 // keep track of reads that align better to the alternate consensus.
                 // By pushing alignments with equal scores to the alternate, it means we'll over-call (het -> hom non ref) but are less likely to under-call (het -> ref, het non ref -> het)
                 else
                     consensus.readIndexes.add(new Pair<Integer, Integer>(j, altAlignment.first));
 
-                //logger.debug(AlignmentUtils.cigarToString(consensus.cigar) +  " vs. " + toTest.getRead().getReadName() + "-" + toTest.getRead().getReadString() + " => " + myScore + " vs. " + altAlignment.first);
+                //logger.debug(consensus.cigar +  " vs. " + toTest.getRead().getReadName() + "-" + toTest.getRead().getReadString() + " => " + myScore + " vs. " + toTest.getMismatchScoreToReference());
                 if ( !toTest.getRead().getDuplicateReadFlag() )
                     consensus.mismatchSum += myScore;
 
@@ -613,7 +606,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( bestConsensus != null )
                     bestConsensus.readIndexes.clear();
                 bestConsensus = consensus;
-                //logger.debug("New consensus " + AlignmentUtils.cigarToString(bestConsensus.cigar) +  " is now best consensus");
+                //logger.debug("New consensus " + bestConsensus.cigar +  " is now best consensus");
             } else {
                 // we do not need this alt consensus, release memory right away!!
                 consensus.readIndexes.clear();
@@ -626,7 +619,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // 3) didn't just move around the mismatching columns (i.e. it actually reduces entropy), 
         // then clean!
         final double improvement = (bestConsensus == null ? -1 : ((double)(totalRawMismatchSum - bestConsensus.mismatchSum))/10.0);
-        if ( improvement >= LOD_THRESHOLD && bestConsensus.mismatchSum <= totalAlignerMismatchSum ) {
+        if ( improvement >= LOD_THRESHOLD ) {
 
             bestConsensus.cigar = AlignmentUtils.leftAlignIndel(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, bestConsensus.positionOnReference);
 
@@ -646,8 +639,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     } catch (Exception e) {}
                 }
             } else {
-                //System.out.println("CLEAN: " + AlignmentUtils.cigarToString(bestConsensus.cigar) + " " + bestConsensus.str.toString() + " " + bestConsensus.cigar.numCigarElements() );
-                //logger.debug("CLEAN: " + AlignmentUtils.cigarToString(bestConsensus.cigar) + " " + bestConsensus.str );
+                //logger.debug("CLEAN: " + bestConsensus.cigar + " " + bestConsensus.str.toString() + " " + bestConsensus.cigar.numCigarElements() );
                 if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                     // NOTE: indels are printed out in the format specified for the low-coverage pilot1
                     //  indel calls (tab-delimited): chr position size type sequence
@@ -705,7 +697,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         } else if ( statsOutput != null ) {
             try {
                 statsOutput.write(String.format("%s\tFAIL\t%.1f\t%d%n",
-                        readsToClean.getLocation().toString(), improvement, bestConsensus.mismatchSum - totalAlignerMismatchSum));
+                        readsToClean.getLocation().toString(), improvement));
                 statsOutput.flush();
             } catch (Exception e) {}
         }
@@ -720,7 +712,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < indexOnRef; i++)
             sb.append((char)reference[i]);
-        //logger.debug("CIGAR = " + AlignmentUtils.cigarToString(c));
 
         int indelCount = 0;
         int altIdx = 0;
@@ -735,6 +726,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 refIdx += elementLength;
                 break;
             case M:
+                altIdx += elementLength;
+            case N:
                 if ( reference.length < refIdx + elementLength )
                     ok_flag = false;
                 else  {
@@ -742,7 +735,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         sb.append((char)reference[refIdx+j]);
                 }
                 refIdx += elementLength;
-                altIdx += elementLength;
                 break;
             case I:
                 for (int j = 0; j < elementLength; j++) {
@@ -755,6 +747,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 }
                 altIdx += elementLength;
                 indelCount++;
+                break;
+            case S:
+            default:
                 break;
             }
         }
@@ -867,7 +862,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         else {
             if ( altCE1.getOperator() != CigarOperator.M  )
                 throw new StingException("First element of the alt consensus cigar must be M or I. Actual: "+altCigar.toString());
-            if ( altCE2.getOperator() == CigarOperator.I  || altCE2.getOperator() == CigarOperator.D ) indelCE=altCE2;
+            if ( altCE2.getOperator() == CigarOperator.I  || altCE2.getOperator() == CigarOperator.D )
+                indelCE=altCE2;
             else
                 throw new StingException("When first element of the alt consensus is M, the second one must be I or D. Actual: "+altCigar.toString());
             leadingMatchingBlockLength = altCE1.getLength();
@@ -925,7 +921,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return;
         }
 
-        int readRemaining = aRead.getReadLength();
+        int readRemaining = aRead.getReadBases().length;
         for ( CigarElement ce : readCigar.getCigarElements() ) {
             if ( ce.getOperator() != CigarOperator.D )
                 readRemaining -= ce.getLength();
@@ -951,8 +947,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                  continue;
 
             int refIdx = read.getOriginalAlignmentStart() - (int)leftmostIndex;
-            final byte[] readStr = read.getRead().getReadBases();
-            final byte[] quals = read.getRead().getBaseQualities();
+            final byte[] readStr = read.getReadBases();
+            final byte[] quals = read.getBaseQualities();
 
             for (int j=0; j < readStr.length; j++, refIdx++ ) {
                 if ( refIdx < 0 || refIdx >= reference.length ) {
@@ -988,8 +984,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     case D:
                         refIdx += elementLength;
                         break;
+                    case S:
+                    default:
+                        break;
                 }
-
             }
         }
 
@@ -1033,11 +1031,27 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return reduces;
     }
 
+    private static Cigar unclipCigar(Cigar cigar) {
+        ArrayList<CigarElement> elements = new ArrayList<CigarElement>(cigar.numCigarElements());
+        for ( CigarElement ce : cigar.getCigarElements() ) {
+            if ( !isClipOperator(ce.getOperator()) )
+                elements.add(ce);
+        }
+        return new Cigar(elements);
+    }
+
+    private static boolean isClipOperator(CigarOperator op) {
+        return op == CigarOperator.S || op == CigarOperator.H || op == CigarOperator.P;
+    }
+
     private class AlignedRead {
         private final SAMRecord read;
+        private byte[] readBases = null;
+        private byte[] baseQuals = null;
         private Cigar newCigar = null;
         private int newStart = -1;
-        private int mismatchScoreToReference;
+        private int mismatchScoreToReference = 0;
+        private long alignerMismatchScore = 0;
 
         public AlignedRead(SAMRecord read) {
             this.read = read;
@@ -1049,25 +1063,101 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         public int getReadLength() {
-               return read.getReadLength();
+            return readBases != null ? readBases.length : read.getReadLength();
+        }
+
+        public byte[] getReadBases() {
+            if ( readBases == null )
+                getUnclippedBases();
+            return readBases;
+        }
+
+        public byte[] getBaseQualities() {
+            if ( baseQuals == null )
+                getUnclippedBases();
+            return baseQuals;
+        }
+
+        // pull out the bases that aren't clipped out
+        private void getUnclippedBases() {
+            readBases = new byte[getReadLength()];
+            baseQuals = new byte[getReadLength()];
+            byte[] actualReadBases = read.getReadBases();
+            byte[] actualBaseQuals = read.getBaseQualities();
+            int fromIndex = 0, toIndex = 0;
+
+            for ( CigarElement ce : read.getCigar().getCigarElements() ) {
+                int elementLength = ce.getLength();
+                switch ( ce.getOperator() ) {
+                    case S:
+                        fromIndex += elementLength;
+                        break;
+                    case M:
+                    case I:
+                        System.arraycopy(actualReadBases, fromIndex, readBases, toIndex, elementLength);
+                        System.arraycopy(actualBaseQuals, fromIndex, baseQuals, toIndex, elementLength);
+                        fromIndex += elementLength;
+                        toIndex += elementLength;
+                    default:
+                        break;
+                }
+            }
+
+            // if we got clipped, trim the array
+            if ( fromIndex != toIndex ) {
+                byte[] trimmedRB = new byte[toIndex];
+                byte[] trimmedBQ = new byte[toIndex];
+                System.arraycopy(readBases, 0, trimmedRB, 0, toIndex);
+                System.arraycopy(baseQuals, 0, trimmedBQ, 0, toIndex);
+                readBases = trimmedRB;
+                baseQuals = trimmedBQ;
+            }
         }
 
         public Cigar getCigar() {
             return (newCigar != null ? newCigar : read.getCigar());
         }
 
-        // tentatively sets the new Cigar, but it needs to be confirmed later
-        // returns true if the new cigar is a valid change (i.e. not same as original and doesn't remove indel)
-        public boolean setCigar(Cigar cigar) {
-            if ( getCigar().equals(cigar) )
-                return false;
+        public void setCigar(Cigar cigar) {
+            setCigar(cigar, true);
+        }
 
-            String str = AlignmentUtils.cigarToString(cigar);
+        // tentatively sets the new Cigar, but it needs to be confirmed later
+        public void setCigar(Cigar cigar, boolean fixClippedCigar) {
+            if ( fixClippedCigar && getReadBases().length < read.getReadLength() )
+                cigar = reclipCigar(cigar);
+
+            // no change?
+            if ( getCigar().equals(cigar) )
+                return;
+
+            // no indel?
+            String str = cigar.toString();
             if ( !str.contains("D") && !str.contains("I") )
-                return false;
+                return;
 
             newCigar = cigar;
-            return true;
+        }
+
+        // pull out the bases that aren't clipped out
+        private Cigar reclipCigar(Cigar cigar) {
+            ArrayList<CigarElement> elements = new ArrayList<CigarElement>();
+
+            int i = 0;
+            int n = read.getCigar().numCigarElements();
+            while ( i < n && isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
+                elements.add(read.getCigar().getCigarElement(i++));
+
+            elements.addAll(cigar.getCigarElements());
+
+            i++;
+            while ( i < n && !isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
+                i++;
+
+            while ( i < n && isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
+                elements.add(read.getCigar().getCigarElement(i++));
+
+            return new Cigar(elements);
         }
 
         // tentatively sets the new start, but it needs to be confirmed later
@@ -1120,6 +1210,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         public int getMismatchScoreToReference() {
             return mismatchScoreToReference;
         }
+
+        public void setAlignerMismatchScore(long score) {
+            alignerMismatchScore = score;
+        }
+
+        public long getAlignerMismatchScore() {
+            return alignerMismatchScore;
+        }
     }
 
     private class Consensus {
@@ -1155,12 +1253,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private class ReadBin {
 
         private final ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
-        private char[] reference = null;
+        private byte[] reference = null;
         private GenomeLoc loc = null;
 
         public ReadBin() { }
 
-        public void add(SAMRecord read, char[] ref) {
+        public void add(SAMRecord read, byte[] ref) {
             reads.add(read);
 
             // set up the reference
@@ -1173,7 +1271,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( neededBases > ref.length )
                     throw new StingException("Read " + read.getReadName() + " does not overlap the previous read in this interval; please ensure that you are using the same input bam that was used in the RealignerTargetCreator step");
                 if ( neededBases > 0 ) {
-                    char[] newReference = new char[reference.length + neededBases];
+                    byte[] newReference = new byte[reference.length + neededBases];
                     System.arraycopy(reference, 0, newReference, 0, reference.length);
                     System.arraycopy(ref, ref.length-neededBases, newReference, reference.length, neededBases);
                     reference = newReference;
@@ -1185,14 +1283,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         public List<SAMRecord> getReads() { return reads; }
 
         public byte[] getRereference() {
-            // upper case it
-            for ( int i = 0; i < reference.length; i++ )
-                reference[i] = Character.toUpperCase(reference[i]);
-
-            // convert it to a byte array
-            byte[] refArray = new byte[reference.length];
-            StringUtil.charsToBytes(reference, 0, reference.length, refArray, 0);
-            return refArray;
+            return reference;
         }
 
         public GenomeLoc getLocation() { return loc; }
