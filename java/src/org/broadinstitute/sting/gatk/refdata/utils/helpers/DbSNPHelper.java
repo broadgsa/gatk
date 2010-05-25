@@ -71,13 +71,20 @@ public class DbSNPHelper {
         return DbSNPHelper.isInsertion(feature) || DbSNPHelper.isDeletion(feature) || feature.getVariantType().contains("in-del");
     }
 
-
     public static boolean isHapmap(DbSNPFeature feature) {
         return feature.getValidationStatus().contains("by-hapmap");
     }
 
     public static boolean is2Hit2Allele(DbSNPFeature feature) {
         return feature.getValidationStatus().contains("by-2hit-2allele");
+    }
+
+    public static boolean is1000genomes(DbSNPFeature feature) {
+        return feature.getValidationStatus().contains("by-1000genomes");
+    }
+
+    public static boolean isMQ1(DbSNPFeature feature) {
+        return feature.getWeight() == 1;
     }
 
     /**

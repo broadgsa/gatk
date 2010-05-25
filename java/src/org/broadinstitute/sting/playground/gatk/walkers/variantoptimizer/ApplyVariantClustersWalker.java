@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -60,7 +61,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.1 for whole genome experiments)", required=true)
+    @Argument(fullName="target_titv", shortName="titv", doc="The expected Ti/Tv ratio to display on optimization curve output figures. (~~2.1 for whole genome experiments)", required=false)
     private double TARGET_TITV = 2.1;
     @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by spreading out the Gaussians.", required=false)
     private double BACKOFF_FACTOR = 1.0;
@@ -70,8 +71,12 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
-    @Argument(fullName="known_prior", shortName="knownPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true. Setting to 0.0 means unused.", required=false)
-    private double KNOWN_VAR_QUAL_PRIOR = 0.0;
+    @Argument(fullName="known_prior", shortName="knownPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true.", required=false)
+    private int KNOWN_QUAL_PRIOR = 9;
+    @Argument(fullName="novel_prior", shortName="novelPrior", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
+    private int NOVEL_QUAL_PRIOR = 2;
+    @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
+    private double QUALITY_SCALE_FACTOR = 50.0;
     @Argument(fullName="output_prefix", shortName="output", doc="The prefix added to output VCF file name and optimization curve pdf file name", required=false)
     private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
@@ -90,8 +95,6 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
     private VCFWriter vcfWriter;
     private Set<String> ignoreInputFilterSet = null;
     private final ArrayList<String> ALLOWED_FORMAT_FIELDS = new ArrayList<String>();
-    private boolean usingDBSNP = false;
-
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -130,9 +133,9 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
         final TreeSet<String> samples = new TreeSet<String>();
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
-        for ( final ReferenceOrderedDataSource source : dataSources ) {
+        for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(VCFCodec.class) ) {
+            if( rod.getType().equals(VCFCodec.class) ) {
                 final VCFReader reader = new VCFReader(rod.getFile());
                 final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
                 samples.addAll(vcfSamples);
@@ -142,11 +145,16 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 
+        boolean foundDBSNP = false;
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                usingDBSNP = true;
+            if( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                foundDBSNP = true;
             }
+        }
+
+        if(!foundDBSNP) {
+            throw new StingException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
     }
 
@@ -169,27 +177,17 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
-                    boolean isKnown = !vc.getAttribute("ID").equals(".");
-                    if(usingDBSNP) {
-                        isKnown = false;
-                        for( VariantContext dbsnpVC : tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, context.getLocation(), false, false) ) {
-                            if(dbsnpVC != null && dbsnpVC.isSNP()) {
-                                isKnown=true;
-                            }
-                        }
-                    }
-                    variantDatum.isKnown = isKnown;
-                    
-                    final double pTrue = theModel.evaluateVariant( vc );
-                    double recalQual = 400.0 * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) );
-                    
-                    if( variantDatum.isKnown && KNOWN_VAR_QUAL_PRIOR > 0.1 ) { // only use the known prior if the value is specified (meaning not equal to zero)
-                        variantDatum.qual = 0.5 * recalQual + 0.5 * KNOWN_VAR_QUAL_PRIOR;
-                    } else {
-                        variantDatum.qual = recalQual;
-                    }
-                    mapList.add( variantDatum );
 
+                    final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                    variantDatum.isKnown = dbsnp != null;
+                    variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes
+
+                    final double acPrior =  theModel.getAlleleCountPrior( variantDatum.alleleCount );
+                    final double knownPrior = ( variantDatum.isKnown ? QualityUtils.qualToProb(KNOWN_QUAL_PRIOR) : QualityUtils.qualToProb(NOVEL_QUAL_PRIOR) );                        
+                    final double pTrue = theModel.evaluateVariant( vc ) * acPrior * knownPrior;
+
+                    variantDatum.qual = QUALITY_SCALE_FACTOR * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) ); // BUGBUG: don't have a normalizing constant, so need to scale up qual scores arbitrarily
+                    mapList.add( variantDatum );
 
                     vcf.addInfoField("OQ", ((Double)vc.getPhredScaledQual()).toString() );
                     vcf.setQual( variantDatum.qual );

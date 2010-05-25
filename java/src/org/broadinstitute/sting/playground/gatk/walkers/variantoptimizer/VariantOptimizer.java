@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -55,8 +56,6 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="target_titv", shortName="titv", doc="The target Ti/Tv ratio towards which to optimize. (~~2.1 for whole genome experiments)", required=true)
-    private double TARGET_TITV = 2.1;
     @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
@@ -65,17 +64,24 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     private String[] USE_ANNOTATIONS = null;
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
     private String CLUSTER_FILENAME = "optimizer.cluster";
-    @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used in the Gaussian Mixture model", required=false)
-    private int NUM_GAUSSIANS = 1;
-    @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed in the Gaussian Mixture model", required=false)
+    @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used when clustering", required=false)
+    private int NUM_GAUSSIANS = 6;
+    @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed when clustering", required=false)
     private int NUM_ITERATIONS = 10;
     @Argument(fullName="minVarInCluster", shortName="minVar", doc="The minimum number of variants in a cluster to be considered a valid cluster. It can be used to prevent overfitting.", required=false)
-    private int MIN_VAR_IN_CLUSTER = 1000;
+    private int MIN_VAR_IN_CLUSTER = 0;
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
     private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
     private String PATH_TO_RESOURCES = "R/";
-    
+    @Argument(fullName="weightKnowns", shortName="weightKnowns", doc="The weight for known variants during clustering", required=false)
+    private double WEIGHT_KNOWNS = 8.0;
+    @Argument(fullName="weightHapMap", shortName="weightHapMap", doc="The weight for known HapMap variants during clustering", required=false)
+    private double WEIGHT_HAPMAP = 120.0;
+    @Argument(fullName="weight1000Genomes", shortName="weight1000Genomes", doc="The weight for known 1000 Genomes Project variants during clustering", required=false)
+    private double WEIGHT_1000GENOMES = 12.0;
+    @Argument(fullName="weightMQ1", shortName="weightMQ1", doc="The weight for MQ1 dbSNP variants during clustering", required=false)
+    private double WEIGHT_MQ1 = 10.0;
 
     //@Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
     //private int NUM_KNN = 2000;
@@ -86,9 +92,8 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
     // Private Member Variables
     /////////////////////////////
     private ExpandingArrayList<String> annotationKeys;
-    private static final double INFINITE_ANNOTATION_VALUE = 10000.0;
     private Set<String> ignoreInputFilterSet = null;
-    private boolean usingDBSNP = false;
+    private int maxAC = 0;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -103,13 +108,17 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
             ignoreInputFilterSet = new TreeSet<String>(Arrays.asList(IGNORE_INPUT_FILTERS));
         }
 
-        // todo -- shouldn't be caching these values -- reduces code flexibility
+        boolean foundDBSNP = false;
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                usingDBSNP = true;
+                foundDBSNP = true;
             }
+        }
+
+        if(!foundDBSNP) {
+            throw new StingException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
     }
 
@@ -141,19 +150,23 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.annotations = annotationValues;
                     variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
-
-                    // todo this is a bit ugly logic -- why not just look for DBSNP?
-                    boolean isKnown = !vc.getAttribute("ID").equals(".");
-                    if(usingDBSNP) {
-                        isKnown = false;
-                        for( final VariantContext dbsnpVC : tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, context.getLocation(), false, false) ) {
-                            if(dbsnpVC != null && dbsnpVC.isSNP()) {
-                                isKnown = true;
-                            }
-                        }
+                    variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes
+                    if( variantDatum.alleleCount > maxAC ) {
+                        maxAC = variantDatum.alleleCount;
                     }
-                    variantDatum.isKnown = isKnown;
 
+                    variantDatum.isKnown = false;
+                    variantDatum.weight = 1.0;
+
+                    final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                    if( dbsnp != null ) {
+                        variantDatum.isKnown = true;
+                        variantDatum.weight = WEIGHT_KNOWNS;
+                        if( DbSNPHelper.isHapmap( dbsnp ) ) { variantDatum.weight = WEIGHT_HAPMAP; }
+                        else if( DbSNPHelper.is1000genomes( dbsnp ) ) { variantDatum.weight = WEIGHT_1000GENOMES; }
+                        else if( DbSNPHelper.isMQ1( dbsnp ) ) { variantDatum.weight = WEIGHT_MQ1; }
+                    }
+                    
                     mapList.add( variantDatum );
                 }
             }
@@ -191,7 +204,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         VariantGaussianMixtureModel theModel;
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( dataManager, TARGET_TITV, NUM_GAUSSIANS, NUM_ITERATIONS, MIN_VAR_IN_CLUSTER );
+                theModel = new VariantGaussianMixtureModel( dataManager, NUM_GAUSSIANS, NUM_ITERATIONS, MIN_VAR_IN_CLUSTER, maxAC );
                 break;
             //case K_NEAREST_NEIGHBORS:
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
@@ -201,9 +214,7 @@ public class VariantOptimizer extends RodWalker<ExpandingArrayList<VariantDatum>
         }
         
         theModel.run( CLUSTER_FILENAME );
-
         theModel.outputClusterReports( CLUSTER_FILENAME );
-
 
         for( final String annotation : annotationKeys ) {
             // Execute Rscript command to plot the optimization curve

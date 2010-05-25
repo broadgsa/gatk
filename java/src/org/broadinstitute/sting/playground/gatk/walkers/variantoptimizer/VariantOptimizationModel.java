@@ -40,6 +40,10 @@ public abstract class VariantOptimizationModel implements VariantOptimizationInt
 
     protected final double targetTITV;
 
+    public VariantOptimizationModel() {
+        targetTITV = 0.0;
+    }
+
     public VariantOptimizationModel( final double _targetTITV ) {
         targetTITV = _targetTITV;
     }

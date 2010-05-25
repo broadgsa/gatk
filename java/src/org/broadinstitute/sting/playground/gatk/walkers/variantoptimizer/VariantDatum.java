@@ -36,4 +36,6 @@ public class VariantDatum {
     public boolean isTransition;
     public boolean isKnown;
     public double qual;
+    public double weight;
+    public int alleleCount;
 }
