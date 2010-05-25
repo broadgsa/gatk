@@ -6,7 +6,7 @@ import org.apache.log4j._
  * A mixin to add logging to a class
  */
 trait Logging {
-  val className = this.getClass.getName
+  private val className = this.getClass.getName
   lazy val logger = configuredLogger
 
   def configuredLogger = {

@@ -1,18 +1,18 @@
 package org.broadinstitute.sting.queue.engine.scheduling
 
-import org.jgrapht.graph.SimpleDirectedGraph
+import org.jgrapht.DirectedGraph
 import edu.mit.broad.core.lsf.LocalLsfJob
 import collection.JavaConversions._
 import management.ManagementFactory
-import org.broadinstitute.sting.queue.QException
 import java.io.File
-import java.util.{ArrayList, Properties}
-import org.broadinstitute.sting.queue.engine.Pipeline
+import java.util.ArrayList
+import org.broadinstitute.sting.queue.{QArguments, QException}
 
 /**
  * Dispatches jobs to LSF and then returns.
  */
-class DispatchJobScheduler(jobGraph: SimpleDirectedGraph[ResourceNode, ResourceEdge]) extends TopologicalJobScheduler(jobGraph) {
+class DispatchJobScheduler(jobGraph: DirectedGraph[ResourceNode, ResourceEdge], qArgs: QArguments)
+        extends TopologicalJobScheduler(jobGraph, qArgs) {
   private var lsfJobs = Map.empty[ExecEdge, LocalLsfJob]
   private var lsfJobIndex = 0
   private val jvmName = ManagementFactory.getRuntimeMXBean.getName
@@ -20,16 +20,14 @@ class DispatchJobScheduler(jobGraph: SimpleDirectedGraph[ResourceNode, ResourceE
 
   protected def traversedExec(exec: ExecEdge) = {
     lsfJobIndex += 1
-    val props = new Properties
-    exec.args.foreach(x => props.put(x._1, x._2))
     val job = new LocalLsfJob
     val jobName = jobNamePrefix + "-" + lsfJobIndex
     val outputFile = jobName + ".out"
     val errorFile = jobName + ".err"
-    val workingDir = props.getProperty("jobWorkingDir", ".")
-    val lsfProject = props.getProperty("jobProject", "Queue")
-    val queue = props.getProperty("jobQueue", "broad")
-    val memory = props.getProperty("jobMemory", "2")
+    val workingDir = lookup(exec, "jobWorkingDir", ".")
+    val lsfProject = lookup(exec, "jobProject", "Queue")
+    val queue = lookup(exec, "jobQueue", "broad")
+    val memory = lookup(exec, "jobMemory", "2")
 
     var extraArgs = List("-r", "-R", "rusage[mem=" + memory + "]")
 
@@ -51,7 +49,7 @@ class DispatchJobScheduler(jobGraph: SimpleDirectedGraph[ResourceNode, ResourceE
 
     logger.info(job.getBsubCommand.mkString(" "))
 
-    if (!Pipeline.dryRun)
+    if (!qArgs.dryRun)
       job.start
   }
 

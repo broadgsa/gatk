@@ -3,6 +3,7 @@ package org.broadinstitute.sting.queue.engine
 import org.apache.commons.lang.builder.{EqualsBuilder, HashCodeBuilder}
 import java.io.File
 import org.apache.commons.lang.StringUtils
+import org.broadinstitute.sting.queue.QException
 
 /**
  * Represents a file extension along with several tags.
@@ -19,4 +20,24 @@ class QFile(val fileType: String, val parts: String*) {
   def baseName(path: String): String = baseName(new File(path))
   def baseName(file: File): String = StringUtils.removeEnd(file.getCanonicalPath, extension)
   def fullName(baseName: String) = baseName + extension
+}
+
+object QFile {
+  def getFiles(files: Any) : List[QFile] = {
+    files match {
+      case null => List.empty[QFile]
+      case Nil => List.empty[QFile]
+      case path: String => List(new QFile(path))
+      case file: QFile => List(file)
+      // Any List or Tuple add the members to this list
+      case product: Product => {
+        var list = List.empty[QFile]
+        for (fileList <- product.productIterator.toList.map(getFiles(_))) {
+          list :::= fileList
+        }
+        list
+      }
+      case x => throw new QException("Unknown file type: " + x)
+    }
+  }
 }

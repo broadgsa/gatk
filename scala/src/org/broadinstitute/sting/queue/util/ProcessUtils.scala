@@ -15,14 +15,10 @@ object ProcessUtils extends Logging {
 
   val running = new ListBuffer[Process]() 
 
-  def runCommandAndWait(command: String, environment: Map[String, String]) = {
+  def runCommandAndWait(command: String) = {
     logger.debug("Running command: " + command)
 
     var builder = new ProcessBuilder("sh", "-c", command)
-    for ((key, value) <- environment) {
-        logger.debug(String.format("adding env: %s = %s", key, value))
-        builder.environment.put(key, value)
-      }
 
     var process = builder.start
     running += process

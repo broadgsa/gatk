@@ -4,7 +4,6 @@ import collection.JavaConversions._
 import org.reflections.util.ManifestAwareClasspathHelper
 import java.io.File
 import javax.print.URIException
-import org.apache.commons.lang.StringUtils
 
 /**
  * Builds the correct class path by examining the manifests

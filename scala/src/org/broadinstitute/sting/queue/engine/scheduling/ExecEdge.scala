@@ -1,44 +1,17 @@
 package org.broadinstitute.sting.queue.engine.scheduling
 
-import org.jgrapht.DirectedGraph
 import org.apache.commons.lang.text.{StrLookup, StrSubstitutor}
-import collection.JavaConversions._
 import org.broadinstitute.sting.queue.engine.QCommand
+import java.lang.String
 
-class ExecEdge(val args: Map[String, String], private val command: QCommand) extends ResourceEdge {
+class ExecEdge(private val command: QCommand)
+        extends ResourceEdge {
   private var convertedCommandString: String = _
   def commandString = convertedCommandString
 
-  override def traverse(graph: DirectedGraph[ResourceNode, ResourceEdge]) = {
+  override def traverse(graph: JobScheduler) = {
     // Lookup any variable using the target node, or any of it's input nodes.
-    val sub = new StrSubstitutor(new NodeLookup(graph.getEdgeTarget(this), graph))
+    val sub = new StrSubstitutor(new StrLookup { def lookup(key: String) = graph.lookup(ExecEdge.this, key, null) })
     convertedCommandString = sub.replace(command.commandString)
-  }
-
-  class NodeLookup(private val targetNode: ResourceNode, private val graph: DirectedGraph[ResourceNode, ResourceEdge]) extends StrLookup {
-
-    def lookup(key: String) = {
-      var value: String = null
-      if (args.contains(key))
-        value = args(key)
-      else
-        value = lookup(key, targetNode)
-      value
-    }
-
-    private def lookup(key: String, node: ResourceNode): String = {
-      var value: String = null
-      if (node.resources.contains(key)) {
-        value = node.resources(key)
-      } else {
-        for (edge <- graph.incomingEdgesOf(node)) {
-          lookup(key, graph.getEdgeSource(edge)) match {
-            case null => {}
-            case found => value = found
-          }
-        }
-      }
-      value
-    }
   }
 }

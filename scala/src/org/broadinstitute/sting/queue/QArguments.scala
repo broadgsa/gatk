@@ -1,20 +1,22 @@
 package org.broadinstitute.sting.queue
 
 import collection.mutable.ListBuffer
-import engine.Pipeline
+import collection.JavaConversions._
 import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.sting.utils.text.XReadLines
+import java.io.{FileInputStream, File}
+import java.util.Properties
 
-object QArguments {
+class QArguments(args: Array[String]) {
+  var useBsub = false
+  var dryRun = false
   val scripts = new ListBuffer[String]
+  var inputPaths = List.empty[File]
+  var argMap = Map.empty[String, String]
 
-  def parseArgs(args: Array[String]) {
-    filterArgs(args)
-  }
+  parseArgs(args)
 
-  /**
-   * Pull out any args that are meant for QCommandLine
-   */
-  private def filterArgs(args: Array[String]) = {
+  private def parseArgs(args: Array[String]) = {
     var filtered = new ListBuffer[String]
     filtered.appendAll(args)
 
@@ -22,17 +24,15 @@ object QArguments {
       Logging.enableDebug
 
     if (isFlagged(filtered, "-dry"))
-      Pipeline.dryRun = true
+      dryRun = true
     if (isFlagged(filtered, "-bsub"))
-      Pipeline.useBsub = true
+      useBsub = true
     for (arg <- getArgs(filtered, "-P"))
-      Pipeline.addArg(arg)
+      addArg(arg)
     for (arg <- getArgs(filtered, "-I"))
-      Pipeline.addFile(arg)
+      addFile(arg)
     for (arg <- getArgs(filtered, "-S"))
       scripts.append(arg)
-
-    filtered
   }
 
   private def isFlagged(filtered: ListBuffer[String], search: String) = {
@@ -61,7 +61,30 @@ object QArguments {
     found
   }
 
+  def addArg(arg: String) = {
+    var file = new File(arg)
+    if (arg.contains("=") && !file.exists) {
+      val tokens = arg.split("=", 2)
+      argMap = argMap.updated(tokens(0), tokens(1))
+    } else if (file.exists && arg.endsWith(".properties")) {
+      var props = new Properties
+      props.load(new FileInputStream(file))
+      for ((name, value) <- props)
+        argMap = argMap.updated(name, value)
+    }
+  }
 
+  def addFile(arg: String): Unit = {
+    var file = new File(arg)
+    if (arg.endsWith(".list")) {
+      new XReadLines(file).iterator.foreach(addFile(_))
+    } else {
+      inputPaths = inputPaths ::: List(file)
+    }
+  }
+}
+
+object QArguments {
   def strip(filtered: ListBuffer[String], search: String) = {
     var index = 0
     while (0 <= index && index < filtered.size) {
@@ -70,4 +93,5 @@ object QArguments {
         filtered.remove(index, 2)
       }
     }
-  }}
+  }
+}
