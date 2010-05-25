@@ -27,9 +27,7 @@ package org.broadinstitute.sting.gatk.io.storage;
 
 import java.io.*;
 import java.util.Set;
-import java.util.HashSet;
 
-import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.*;
@@ -73,8 +71,7 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
         this.stream = null;
         writer = GenotypeWriterFactory.create(stub.getFormat(), file);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
-        // TODO: this line is a problem, creating with an empty hashset eliminates any genotype FORMAT fields in the calls (besides GT)
-        GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, new HashSet<VCFHeaderLine>());
+        GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, null);
     }
 
     public void addCall(VariantContext vc, String refAllele) {

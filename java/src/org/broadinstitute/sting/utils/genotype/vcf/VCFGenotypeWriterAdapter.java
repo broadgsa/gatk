@@ -35,7 +35,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     private VALIDATION_STRINGENCY validationStringency = VALIDATION_STRINGENCY.STRICT;
 
     // allowed genotype format strings
-    private List<String> allowedGenotypeFormatStrings;
+    private List<String> allowedGenotypeFormatStrings = null;
 
     public VCFGenotypeWriterAdapter(File writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output file must not be null");
@@ -59,18 +59,22 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         // set up the header fields
         Set<VCFHeaderLine> hInfo = new TreeSet<VCFHeaderLine>();
         hInfo.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
-        hInfo.addAll(headerInfo);
-        
+
+        // set up the allowed genotype format fields
+        if ( headerInfo != null ) {
+            for ( VCFHeaderLine field : headerInfo ) {
+                hInfo.add(field);
+                if ( field instanceof VCFFormatHeaderLine) {
+                    if ( allowedGenotypeFormatStrings == null )
+                        allowedGenotypeFormatStrings = new ArrayList<String>();
+                    allowedGenotypeFormatStrings.add(((VCFFormatHeaderLine)field).getName());
+                }
+            }
+        }
+
         // set up the sample names
         mHeader = new VCFHeader(hInfo, mSampleNames);
         mWriter.writeHeader(mHeader);
-
-        // set up the allowed genotype format fields
-        allowedGenotypeFormatStrings = new ArrayList<String>();
-        for ( VCFHeaderLine field : headerInfo ) {
-            if ( field instanceof VCFFormatHeaderLine)
-                allowedGenotypeFormatStrings.add(((VCFFormatHeaderLine)field).getName());
-        }
     }
 
     /** finish writing, closing any open files. */

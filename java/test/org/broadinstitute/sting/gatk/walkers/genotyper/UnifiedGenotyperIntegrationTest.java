@@ -57,15 +57,23 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing joint estimation model
+    // testing parallelization
     //
     // --------------------------------------------------------------------------------------------------------------
+
     @Test
     public void testParallelization() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,400,000 -nt 4", 1,
-                Arrays.asList("60bf51595eda646f5ccf0b0bf5db95d8"));
-        executeTest("test parallelization", spec);
+        String md5 = "638911a5d7b155076afc79a3d3f50548";
+
+        WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,075,000", 1,
+                Arrays.asList(md5));
+        executeTest("test parallelization (single thread)", spec1);
+
+        WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,075,000 -nt 2", 1,
+                Arrays.asList(md5));
+        executeTest("test parallelization (multithread)", spec2);
     }
 
     // --------------------------------------------------------------------------------------------------------------
