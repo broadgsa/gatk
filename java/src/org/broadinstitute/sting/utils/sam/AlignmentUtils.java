@@ -64,6 +64,7 @@ public class AlignmentUtils {
         return getMismatchCount(r, refSeq, refIndex).numMismatches;
     }
 
+    @Deprecated
     public static int numMismatches(SAMRecord r, String refSeq, int refIndex ) {
         if ( r.getReadUnmappedFlag() ) return 1000000;
         return numMismatches(r, StringUtil.stringToBytes(refSeq), refIndex);
@@ -73,11 +74,14 @@ public class AlignmentUtils {
         return getMismatchCount(r, refSeq, refIndex).mismatchQualities;
     }
 
+    @Deprecated
     public static long mismatchingQualities(SAMRecord r, String refSeq, int refIndex ) {
         if ( r.getReadUnmappedFlag() ) return 1000000;
         return numMismatches(r, StringUtil.stringToBytes(refSeq), refIndex);
      }
 
+    // todo -- this code and mismatchesInRefWindow should be combined and optimized into a single
+    // todo -- high performance implementation.  We can do a lot better than this right now
     private static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
         MismatchCount mc = new MismatchCount();
 
@@ -188,9 +192,12 @@ public class AlignmentUtils {
                         if ( ignoreTargetSite && ref.getLocus().getStart() == currentPos )
                             continue;
 
-                        char readChr = (char)readBases[readIndex];
-                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )                       
+                        byte readChr = readBases[readIndex];
+                        if ( readChr != refChr )
                             sum += (qualitySumInsteadOfMismatchCount) ? readQualities[readIndex] : 1;
+//                        char readChr = (char)readBases[readIndex];
+//                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
+//                            sum += (qualitySumInsteadOfMismatchCount) ? readQualities[readIndex] : 1;
                     }
                     break;
                 case I:

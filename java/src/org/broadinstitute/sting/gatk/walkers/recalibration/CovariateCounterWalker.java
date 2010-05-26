@@ -301,7 +301,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     refBase = ref.getBase();
 
                     // Skip if this base is an 'N' or etc.
-                    if( BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
+                    if( BaseUtils.isRegularBase( bases[offset] ) ) {
 
                         // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
                         if( !gatkRead.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( gatkRead, offset ) ) {
@@ -310,7 +310,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                             updateDataFromRead( gatkRead, offset, refBase );
 
                         } else { // calculate SOLID reference insertion rate
-                            if( refBase == (char)bases[offset] ) {
+                            if( refBase == bases[offset] ) {
                                 solidInsertedReferenceBases++;
                             } else {
                                 otherColorSpaceInconsistency++;
