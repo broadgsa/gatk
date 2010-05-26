@@ -104,6 +104,8 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
     File refSeqGeneList = null;
     @Argument(fullName = "outputFormat", doc = "the format of the output file (e.g. csv, table, rtable); defaults to r-readable table", required = false)
     String outputFormat = "rtable";
+    @Argument(fullName = "summaryCoverageThreshold", shortName = "ct", doc = "for summary file outputs, report the % of bases coverd to >= this number. Defaults to 15; can take multiple arguments.", required = false)
+    int[] coverageThresholds = {15};
 
     String[] OUTPUT_FORMATS = {"table","rtable","csv"};
     String[] PARTITION_TYPES = {"sample","readgroup","library"};
@@ -347,6 +349,12 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             summaryHeader.append(separator);
             summaryHeader.append(s);
             summaryHeader.append("_granular_Q3");
+            for ( int thresh : coverageThresholds ) {
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_%_above_");
+                summaryHeader.append(thresh);
+            }
         }
 
         summaryOut.printf("%s%n",summaryHeader);
@@ -446,6 +454,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             targetSummary.append(formatBin(bins,median));
             targetSummary.append(separator);
             targetSummary.append(formatBin(bins,q3));
+            for ( int thresh : coverageThresholds ) {
+                targetSummary.append(String.format("%s%.1f",separator,getPctBasesAbove(stats.getHistograms().get(s),stats.value2bin(thresh))));
+            }
 
         }
 
@@ -667,10 +678,16 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
     private void printSummary(PrintStream out, File optionalFile, DepthOfCoverageStats stats) {
         PrintStream output = getCorrectStream(out,optionalFile);
         if ( ! outputFormat.equals("csv") ) {
-            output.printf("%s\t%s\t%s\t%s\t%s\t%s%n","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
+            output.printf("%s\t%s\t%s\t%s\t%s\t%s","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
         } else {
-            output.printf("%s,%s,%s,%s,%s,%s%n","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
+            output.printf("%s,%s,%s,%s,%s,%s","sample_id","total","mean","granular_third_quartile","granular_median","granular_first_quartile");
         }
+
+        for ( int thresh : coverageThresholds ) {
+            output.printf("%s%s%d",separator,"%_bases_above_",thresh);
+        }
+
+        output.printf("%n");
 
         Map<String,int[]> histograms = stats.getHistograms();
         Map<String,Double> means = stats.getMeans();
@@ -687,10 +704,16 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             q1 = q1 == histogram.length-1 ? histogram.length-2 : q1;
             q3 = q3 == histogram.length-1 ? histogram.length-2 : q3;
             if ( ! outputFormat.equals("csv") ) {
-                output.printf("%s\t%d\t%.2f\t%d\t%d\t%d%n",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
+                output.printf("%s\t%d\t%.2f\t%d\t%d\t%d",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
             } else {
-                output.printf("%s,%d,%.2f,%d,%d,%d%n",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
+                output.printf("%s,%d,%.2f,%d,%d,%d",s,totals.get(s),means.get(s),leftEnds[q3],leftEnds[median],leftEnds[q1]);
             }
+
+            for ( int thresh : coverageThresholds ) {
+                output.printf("%s%.1f",separator,getPctBasesAbove(histogram,stats.value2bin(thresh)));
+            }
+
+            output.printf("%n");
         }
 
         if ( ! outputFormat.equals("csv") ) {
@@ -717,6 +740,20 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         return bin == -1 ? 0 : bin;
     }
 
+    private double getPctBasesAbove(int[] histogram, int bin) {
+        long below = 0l;
+        long above = 0l;
+        for ( int index = 0; index < histogram.length; index++) {
+            if ( index < bin ) {
+                below+=histogram[index];
+            } else {
+                above+=histogram[index];
+            }
+        }
+
+        return 100*( (double) above )/( above + below );
+    }
+
     private void printDepths(PrintStream stream, Map<CoverageAggregator.AggregationType,Map<String,int[]>> countsBySampleByType, Map<CoverageAggregator.AggregationType,List<String>> identifiersByType) {
         // get the depths per sample and build up the output string while tabulating total and average coverage
         StringBuilder perSampleOutput = new StringBuilder();
@@ -726,11 +763,11 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             Map<String,int[]> countsByID = countsBySampleByType.get(type);
             for ( String s : identifiersByType.get(type) ) {
                 perSampleOutput.append(separator);
-                long dp = countsByID.keySet().contains(s) ? sumArray(countsByID.get(s)) : 0 ;
+                long dp = (countsByID != null && countsByID.keySet().contains(s)) ? sumArray(countsByID.get(s)) : 0 ;
                 perSampleOutput.append(dp);
                 if ( printBaseCounts ) {
                     perSampleOutput.append(separator);
-                    perSampleOutput.append(baseCounts(countsByID.get(s)));
+                    perSampleOutput.append(baseCounts(countsByID != null ? countsByID.get(s) : null ));
                 }
                 if ( ! depthCounted ) {
                     tDepth += dp;

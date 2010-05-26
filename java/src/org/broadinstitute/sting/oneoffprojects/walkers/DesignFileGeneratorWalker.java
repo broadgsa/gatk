@@ -5,6 +5,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
@@ -23,8 +24,7 @@ import java.util.*;
  * Was written in order to annotate the Whole Exome Agilent designs at the Broad institute
  * Bind the refseq rod as -B refseq,refseq,/path/to/refGene.txt
  * Bind the interval list as -B interval_list,intervals,/path/to/intervals.interval_list
- * Bind the tcga (or other .bed) file as -B tcga,bed,/path/to/tcga.bed
- * [TCGA used as the agilent designs used both refseq and TCGA6k definitions] 
+ * Bind the additional files file as -B gene*,bed,/path/to/other/file.bed
  * @Author chartl                                                                                                                                                                                       
  * @Date Apr 26, 2010                                                                                                                                                                                   
  */
@@ -32,17 +32,17 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
 
     private HashMap<GenomeLoc,IntervalInfoBuilder> intervalBuffer = new HashMap<GenomeLoc,IntervalInfoBuilder>();
     private HashSet<rodRefSeq> refseqBuffer = new HashSet<rodRefSeq>();
-    private BEDFeature currentTCGA = null;
+    private HashMap<String,BEDFeature> currentBedFeatures;
 
     public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        // three items to look up: interval_list, tcga, and refseq
+        // three items to look up: interval_list, refseq, gene*
         if ( tracker == null ) {
             return null;
         }
 
         List<Object> intervalsList= tracker.getReferenceMetaData("interval_list");
         List<Object> refseqList = tracker.getReferenceMetaData("refseq");
-        List<Object> tcgaList = tracker.getReferenceMetaData("tcga");
+        List<GATKFeature> bedList = tracker.getGATKFeatureMetaData("gene",false);
 
         // put any unprocessed intervals into the interval buffer
 
@@ -65,10 +65,9 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
             }
         }
 
-        // update the current tcga target
-
-        if ( tcgaList != null && tcgaList.size() > 0 ) {
-            currentTCGA = (BEDFeature) tcgaList.get(0);
+        // update the bed features
+        for ( GATKFeature additionalGene : bedList ) {
+            currentBedFeatures.put(additionalGene.getName(),(BEDFeature) additionalGene.getUnderlyingObject());
         }
 
         cleanup(ref);
@@ -96,14 +95,18 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
                 }
             }
 
-            if ( currentTCGA != null &&
-                 interval.overlapsP(GenomeLocParser.createGenomeLoc(currentTCGA.getChr(),currentTCGA.getStart(),currentTCGA.getEnd())) &&
-                 !currentTCGA.getName().equals("") &&
-                 ! intervalBuffer.get(interval).geneNames.contains("TCGA_"+currentTCGA.getName()) ) {
+            for ( Map.Entry<String,BEDFeature> additionalGenes : currentBedFeatures.entrySet() ) {
+                GenomeLoc entryLoc = GenomeLocParser.createGenomeLoc(additionalGenes.getValue().getChr(),additionalGenes.getValue().getStart(),additionalGenes.getValue().getEnd());
+                if ( interval.overlapsP(entryLoc) &&
+                        ! additionalGenes.getValue().getName().equals("") &&
+                        ! intervalBuffer.get(interval).geneNames.contains(additionalGenes.getKey()+"_"+additionalGenes.getValue().getName())) {
 
-                intervalBuffer.get(interval).update("TCGA_"+currentTCGA.getName().split("_f|_r")[0],
-                        new ArrayList<GenomeLoc>(Arrays.asList(GenomeLocParser.createGenomeLoc(currentTCGA.getChr(),currentTCGA.getStart(),currentTCGA.getEnd()))),
-                        new ArrayList<Integer>(Arrays.asList(Integer.parseInt(currentTCGA.getName().split("_f|_r")[1])-1)));
+                    intervalBuffer.get(interval).update(additionalGenes.getKey()+"_"+additionalGenes.getValue().getName(),
+                            new ArrayList<GenomeLoc>(Arrays.asList(entryLoc)),
+                            null);
+                    nUpdate ++;
+                }
+
             }
         }
 
@@ -139,8 +142,11 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
             intervalBuffer.remove(interval);
         }
 
-        if ( currentTCGA != null && GenomeLocParser.createGenomeLoc(currentTCGA.getChr(),currentTCGA.getStart(),currentTCGA.getEnd()).isBefore(ref.getLocus()) ) {
-            currentTCGA = null;
+        for ( Map.Entry<String,BEDFeature> entry : currentBedFeatures.entrySet() ) {
+            GenomeLoc entryLoc = GenomeLocParser.createGenomeLoc(entry.getValue().getChr(),entry.getValue().getStart(),entry.getValue().getEnd());
+            if ( entryLoc.isBefore(ref.getLocus()) ) {
+                currentBedFeatures.remove(entry.getKey());
+            }
         }
     }
 
@@ -182,7 +188,7 @@ class IntervalInfoBuilder {
 
     public void update(String gene, List<GenomeLoc> exons, List<Integer> exonNumbers) {
         if ( geneNames.contains(gene) ) {
-            if ( gene.startsWith("TCGA") ) {
+            if ( gene.startsWith("gene") ) {
                 // exons are split up one per bed, so update the exon list for this gene
                 for ( int eOff = 0; eOff < exons.size(); eOff++) {
                     if ( ! exonNumbersByGene.get(gene).contains( exonNumbers.get(eOff) ) ) {

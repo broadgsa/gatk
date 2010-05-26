@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -40,37 +41,65 @@ public class CoverageUtils {
         return counts;
     }
 
-    public static String getTypeID( SAMRecord r, CoverageAggregator.AggregationType type ) {
+    public static String getTypeID( SAMReadGroupRecord r, CoverageAggregator.AggregationType type ) {
         if ( type == CoverageAggregator.AggregationType.SAMPLE ) {
-            return r.getReadGroup().getSample();
+            return r.getSample();
         } else if ( type == CoverageAggregator.AggregationType.READGROUP ) {
-            return String.format("%s_rg_%s",r.getReadGroup().getSample(),r.getReadGroup().getReadGroupId());
+            return String.format("%s_rg_%s",r.getSample(),r.getReadGroupId());
         } else if ( type == CoverageAggregator.AggregationType.LIBRARY ) {
-            return r.getReadGroup().getLibrary();
+            return r.getLibrary();
         } else {
             throw new StingException("Invalid type ID sent to getTypeID. This is a BUG!");
         }
     }
+
     public static Map<CoverageAggregator.AggregationType,Map<String,int[]>>
                     getBaseCountsByPartition(AlignmentContext context, int minMapQ, int maxMapQ, byte minBaseQ, byte maxBaseQ, List<CoverageAggregator.AggregationType> types) {
 
         Map<CoverageAggregator.AggregationType,Map<String,int[]>> countsByIDByType = new HashMap<CoverageAggregator.AggregationType,Map<String,int[]>>();
+        Map<SAMReadGroupRecord,int[]> countsByRG = getBaseCountsByReadGroup(context,minMapQ,maxMapQ,minBaseQ,maxBaseQ);
         for (CoverageAggregator.AggregationType t : types ) {
-            countsByIDByType.put(t,new HashMap<String,int[]>());
-        }
-        for (PileupElement e : context.getBasePileup()) {
-            if ( e.getMappingQual() >= minMapQ && e.getMappingQual() <= maxMapQ && ( ( e.getQual() >= minBaseQ && e.getQual() <= maxBaseQ ) || e.isDeletion() ) ) {
-                for (CoverageAggregator.AggregationType t : types ) {
-                    String id = getTypeID(e.getRead(),t);
-                    if ( ! countsByIDByType.get(t).keySet().contains(id) ) {
-                        countsByIDByType.get(t).put(id,new int[6]);
-                    }
-                    updateCounts(countsByIDByType.get(t).get(id),e);
+            // iterate through the read group counts and build the type associations
+            for ( Map.Entry<SAMReadGroupRecord,int[]> readGroupCountEntry : countsByRG.entrySet() ) {
+                String typeID = getTypeID(readGroupCountEntry.getKey(),t);
+
+                if ( ! countsByIDByType.keySet().contains(t) ) {
+                    countsByIDByType.put(t,new HashMap<String,int[]>());
+                }
+
+                if ( ! countsByIDByType.get(t).keySet().contains(typeID) ) {
+                    countsByIDByType.get(t).put(typeID,readGroupCountEntry.getValue().clone());
+                } else {
+                    addCounts(countsByIDByType.get(t).get(typeID),readGroupCountEntry.getValue());
                 }
             }
         }
 
+
         return countsByIDByType;
+    }
+
+    public static void addCounts(int[] updateMe, int[] leaveMeAlone ) {
+        for ( int index = 0; index < leaveMeAlone.length; index++ ) {
+            updateMe[index] += leaveMeAlone[index];
+        }
+    }
+
+    public static Map<SAMReadGroupRecord,int[]> getBaseCountsByReadGroup(AlignmentContext context, int minMapQ, int maxMapQ, byte minBaseQ, byte maxBaseQ) {
+        Map<SAMReadGroupRecord, int[]> countsByRG = new HashMap<SAMReadGroupRecord,int[]>();
+        for ( PileupElement e : context.getBasePileup() ) {
+            if ( e.getMappingQual() >= minMapQ && e.getMappingQual() <= maxMapQ && ( e.getQual() >= minBaseQ && e.getQual() <= maxBaseQ || e.isDeletion() ) ) {
+                SAMReadGroupRecord readGroup = e.getRead().getReadGroup();
+                if ( ! countsByRG.keySet().contains(readGroup) ) {
+                    countsByRG.put(readGroup,new int[6]);
+                    updateCounts(countsByRG.get(readGroup),e);
+                } else {
+                    updateCounts(countsByRG.get(readGroup),e);
+                }
+            }
+        }
+
+        return countsByRG;
     }
 
     private static void updateCounts(int[] counts, PileupElement e) {

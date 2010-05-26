@@ -166,6 +166,10 @@ public class DepthOfCoverageStats {
     }
 
     public void update(Map<String,int[]> countsBySample) {
+        if ( countsBySample == null ) {
+            this.updateDepths(new HashMap<String,Integer>(1));
+            return;
+        }
         // todo -- do we want to do anything special regarding base count or deletion statistics?
         HashMap<String,Integer> depthBySample = new HashMap<String,Integer>();
         // todo -- needs fixing with advent of new baseutils functionality using ENUMS and handling N,D
@@ -307,6 +311,16 @@ public class DepthOfCoverageStats {
         }
 
         return distribution;
+    }
+
+    public int value2bin(int value) {
+        for ( int index = 0; index < binLeftEndpoints.length; index++ ) {
+            if ( binLeftEndpoints[index] >= value ) {
+                return index;
+            }
+        }
+
+        return binLeftEndpoints.length-1;
     }
 
 }
