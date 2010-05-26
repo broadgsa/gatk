@@ -25,7 +25,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                  0,
                 new ArrayList<String>(0));
         try {
-            executeTest("testRealignerTargetCreatorWholeGenome", spec1);
+            executeTest("testIndelRealignerWholeGenome", spec1);
         } catch (RuntimeException e) {
             // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it         
         }
@@ -45,7 +45,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                  0,
                 new ArrayList<String>(0));
         try {
-            executeTest("testRealignerTargetCreatorWholeExome", spec2);
+            executeTest("testIndelRealignerWholeExome", spec2);
         } catch (RuntimeException e) {
             // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it
         }
