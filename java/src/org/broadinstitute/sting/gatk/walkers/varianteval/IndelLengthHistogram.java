@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.StingException;
@@ -14,6 +15,7 @@ import org.broadinstitute.sting.utils.StingException;
  * @Author chartl
  * @Date May 26, 2010
  */
+@Analysis(name = "Indel length histograms", description = "Shows the distrbution of insertion/deletion event lengths (negative for deletion, positive for insertion)")
 public class IndelLengthHistogram extends VariantEvaluator {
     private final int SIZE_LIMIT = 50;
     @DataPoint(name="indelLengthHistogram",description="Histogram of indel lengths")
@@ -27,11 +29,11 @@ public class IndelLengthHistogram extends VariantEvaluator {
         private Integer[] colKeys;
         private int limit;
         private String[] rowKeys = {"EventLength"};
-        private int[] indelHistogram;
+        private Integer[] indelHistogram;
 
         public IndelHistogram(int limit) {
             colKeys = initColKeys(limit);
-            indelHistogram = new int[limit*2];
+            indelHistogram = initHistogram(limit);
             this.limit = limit;
         }
 
@@ -50,12 +52,21 @@ public class IndelLengthHistogram extends VariantEvaluator {
         private Integer[] initColKeys(int size) {
             Integer[] cK = new Integer[size*2+1];
             int index = 0;
-            for ( int i = -size; i < size; i ++ ) {
+            for ( int i = -size; i <= size; i ++ ) {
                 cK[index] = i;
                 index++;
             }
 
             return cK;
+        }
+
+        private Integer[] initHistogram(int size) {
+            Integer[] hist = new Integer[size*2+1];
+            for ( int i = 0; i < 2*size+1; i ++ ) {
+                hist[i] = 0;
+            }
+
+            return hist;
         }
 
         public String getName() { return "indelHistTable"; }
@@ -81,12 +92,14 @@ public class IndelLengthHistogram extends VariantEvaluator {
     public int getComparisonOrder() { return 1; } // need only the evals
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        //System.out.println("Update1 called");        
         if ( ! vc1.isBiallelic() && vc1.isIndel() ) {
             veWalker.getLogger().warn("[IndelLengthHistogram] Non-biallelic indel at "+ref.getLocus()+" ignored.");
             return vc1.toString(); // biallelic sites are output
         }
 
         if ( vc1.isIndel() ) {
+            //System.out.println("Is indel");
             if ( vc1.isInsertion() ) {
                 indelHistogram.update(vc1.getAlternateAllele(0).length());
             } else if ( vc1.isDeletion() ) {

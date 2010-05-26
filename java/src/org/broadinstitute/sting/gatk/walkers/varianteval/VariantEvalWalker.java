@@ -35,7 +35,9 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
@@ -103,6 +105,7 @@ import java.util.*;
 /**
  * Test routine for new VariantContext object
  */
+@Reference(window=@Window(start=-50,stop=50))
 public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -152,10 +155,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     public double minQualScore = NO_MIN_QUAL_SCORE;
     @Argument(shortName = "Qcomp", fullName="minPhredConfidenceScoreForComp", doc="Minimum confidence score to consider a comp SNP a variant", required=false)
     public double minCompQualScore = NO_MIN_QUAL_SCORE;
+    @Argument(shortName = "dels", fullName="indelCalls", doc="evaluate indels rather than SNPs", required = false)
+    public boolean dels = false;
 
     // Right now we will only be looking at SNPS
     // todo -- enable INDEL variant contexts, there's no reason not to but the integration tests need to be updated
-    EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION); //, VariantContext.Type.INDEL);
+    EnumSet<VariantContext.Type> ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION);
 
     @Argument(shortName="rsID", fullName="rsID", doc="If provided, list of rsID and build number for capping known snps by their build date", required=false)
     protected String rsIDFile = null;
@@ -256,6 +261,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        if ( dels ) {
+            ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.NO_VARIATION);
+        }
         ReportFormat.AcceptableOutputType type = (outputLocation == null) ? ReportFormat.AcceptableOutputType.STREAM : ReportFormat.AcceptableOutputType.FILE;
         if (!VE2ReportFactory.isCompatibleWithOutputType(type,reportType))
             throw new StingException("The report format requested is not compatible with your output location.  You specified a " + type + " output type which isn't an option for " + reportType);
@@ -349,7 +357,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             classMap.put(c.getSimpleName(), c);
 
         if ( USE_NO_MODULES ) {
-            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(0);            
+            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(0);
         } else if ( modulesToUse.length == 0 ) {
             evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(classMap.values());
         } else {
@@ -442,6 +450,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         //System.out.printf("map at %s with %d skipped%n", context.getLocation(), context.getSkippedBases());
 
         Map<String, VariantContext> vcs = getVariantContexts(ref, tracker, context);
+        //System.out.println("vcs has size "+vcs.size());
         //Collection<VariantContext> comps = getCompVariantContexts(tracker, context);
 
         // to enable walking over pairs where eval or comps have no elements
@@ -581,6 +590,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         // todo -- allow the variant evaluation to specify the type of variants it wants to see and only take the first such record at a site
         Map<String, VariantContext> bindings = new HashMap<String, VariantContext>();
         if ( tracker != null ) {
+            //System.out.println("Tracker is not null");
             bindVariantContexts(ref, bindings, evalNames, tracker, context, false);
             bindVariantContexts(ref, bindings, compNames, tracker, context, true);
         }

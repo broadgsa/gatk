@@ -32,7 +32,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
 
     private HashMap<GenomeLoc,IntervalInfoBuilder> intervalBuffer = new HashMap<GenomeLoc,IntervalInfoBuilder>();
     private HashSet<rodRefSeq> refseqBuffer = new HashSet<rodRefSeq>();
-    private HashMap<String,BEDFeature> currentBedFeatures;
+    private HashMap<String,BEDFeature> currentBedFeatures = new HashMap<String,BEDFeature>();
 
     public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         // three items to look up: interval_list, refseq, gene*
@@ -220,18 +220,20 @@ class IntervalInfoBuilder {
                 buf.append("\t");
             }
             buf.append(geneNames.get(geneIndex));
-            buf.append("[");
-            if ( exonsByGene.get(geneNames.get(geneIndex)).size() > 0 ) {
-                 for ( int exonIndex = 0; exonIndex < exonsByGene.get(geneNames.get(geneIndex)).size(); exonIndex++ ) {
-                     if ( exonIndex > 0 ) {
-                         buf.append(',');
-                     }
-                     buf.append(String.format("exon_%d",exonNumbersByGene.get(geneNames.get(geneIndex)).get(exonIndex)));
-                 }
-            } else {
-                buf.append("Intron/UTR");
+            if ( ! geneNames.get(geneIndex).startsWith("gene")) {
+                buf.append("[");
+                if ( exonsByGene.get(geneNames.get(geneIndex)).size() > 0 ) {
+                    for ( int exonIndex = 0; exonIndex < exonsByGene.get(geneNames.get(geneIndex)).size(); exonIndex++ ) {
+                        if ( exonIndex > 0 ) {
+                            buf.append(',');
+                        }
+                        buf.append(String.format("exon_%d",exonNumbersByGene.get(geneNames.get(geneIndex)).get(exonIndex)));
+                    }
+                } else {
+                    buf.append("Intron/UTR");
+                }
+                buf.append("]");
             }
-            buf.append("]");
         }
 
         return buf.toString();
