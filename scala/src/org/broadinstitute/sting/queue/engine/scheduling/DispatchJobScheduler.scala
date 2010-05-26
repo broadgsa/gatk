@@ -74,6 +74,6 @@ class DispatchJobScheduler(jobGraph: DirectedGraph[ResourceNode, ResourceEdge], 
   }
 
   private def dependencyExpression(jobs: List[LocalLsfJob]) = {
-    jobs.toSet[LocalLsfJob].map(_.getName).mkString("done(\"", "\") && done(\"", "\")")
+    jobs.toSet[LocalLsfJob].map(_.getName).mkString("ended(\"", "\") && ended(\"", "\")")
   }
 }
