@@ -27,11 +27,13 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.ArrayList;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.apache.log4j.Logger;
+import net.sf.picard.filter.SamRecordFilter;
 
 /**
  * Created by IntelliJ IDEA.
@@ -131,6 +133,15 @@ public abstract class Walker<MapType, ReduceType> {
 
     public void onTraversalDone(ReduceType result) {
         out.println("[REDUCE RESULT] Traversal result is: " + result);
+    }
+
+
+    /**
+     * Returns a list of SamRecordFilters that *must* be applied to the read stream for the traversal to work
+     * @return a list of SamRecordFilters to apply in order
+     */
+    public List<SamRecordFilter> getMandatoryReadFilters() {
+        return new ArrayList<SamRecordFilter>(); // by default
     }
 
     /**

@@ -1,5 +1,12 @@
 package org.broadinstitute.sting.gatk.traversals;
 
+import net.sf.picard.filter.SamRecordFilter;
+
+import java.util.Map;
+import java.util.HashMap;
+
+import org.broadinstitute.sting.utils.Utils;
+
 /**
  * Created by IntelliJ IDEA.
  * User: hanna
@@ -20,9 +27,19 @@ public class TraversalStatistics {
     public static long nBadAlignments;
     public static long nSkippedIndels;
     public static long nDuplicates;
+    public static Map<Class, Long> counter = new HashMap<Class, Long>();
 
     static {
         reset();
+    }
+
+    public static void incrementFilter(SamRecordFilter filter) {
+        long c = 0;
+        if ( counter.containsKey(filter.getClass()) ) {
+            c = counter.get(filter.getClass());
+        }
+
+        counter.put(filter.getClass(), c + 1L);
     }
 
     public static void reset() {

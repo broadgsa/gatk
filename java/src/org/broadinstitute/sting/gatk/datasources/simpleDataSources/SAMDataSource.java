@@ -2,13 +2,13 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
-import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
@@ -209,7 +209,7 @@ public abstract class SAMDataSource implements SimpleDataSource {
 
         for( SamRecordFilter supplementalFilter: supplementalFilters )
             wrappedIterator = StingSAMIteratorAdapter.adapt(wrappedIterator.getSourceInfo(),
-                                                            new FilteringIterator(wrappedIterator,supplementalFilter));
+                                                            new CountingFilteringIterator(wrappedIterator,supplementalFilter));
 
         return wrappedIterator;
     }

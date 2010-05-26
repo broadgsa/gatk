@@ -1,20 +1,15 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.picard.filter.FilteringIterator;
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
-import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
+
 /**
  * User: hanna
  * Date: May 13, 2009

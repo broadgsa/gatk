@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.traversals;
 
-import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
@@ -148,37 +148,6 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
         return null;
     }
 
-    /**
-     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
-     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
-     */
-    public static class duplicateStreamFilterFunc implements SamRecordFilter {
-        SAMRecord lastRead = null;
-        public boolean filterOut(SAMRecord rec) {
-            boolean result = false;
-            if (rec.getReadUnmappedFlag()) {
-                TraversalStatistics.nUnmappedReads++;
-                result = true;
-            } else if (rec.getNotPrimaryAlignmentFlag()) {
-                TraversalStatistics.nNotPrimary++;
-                result = true;
-            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-            } else {
-                result = false;
-            }
-
-            if (result) {
-                TraversalStatistics.nSkippedReads++;
-                //System.out.printf("  [filter] %s => %b", rec.getReadName(), result);
-            } else {
-                TraversalStatistics.nReads++;
-            }
-            return result;
-        }
-    }
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // new style interface to the system
@@ -196,7 +165,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
     public T traverse(DuplicateWalker<M, T> walker,
                       ReadShardDataProvider dataProvider,
                       T sum) {
-        FilteringIterator filterIter = new FilteringIterator(new ReadView(dataProvider).iterator(), new duplicateStreamFilterFunc());
+        Iterator<SAMRecord> filterIter = addMandatoryFilteringIterators(new ReadView(dataProvider).iterator(), walker.getMandatoryReadFilters());
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(filterIter);
 
         /**

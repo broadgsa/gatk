@@ -11,14 +11,14 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Collection;
 
-import net.sf.picard.filter.FilteringIterator;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
+
 
 /** A micro-scheduling manager for single-threaded execution of a traversal. */
 public class LinearMicroScheduler extends MicroScheduler {
@@ -57,7 +57,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         for (Shard shard : shardStrategy) {
             // New experimental code for managing locus intervals.
             if(shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) {
-                WindowMaker windowMaker = new WindowMaker(getReadIterator(shard),shard.getGenomeLocs());
+                WindowMaker windowMaker = new WindowMaker(getReadIterator(shard), shard.getGenomeLocs(), walker.getMandatoryReadFilters());
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());

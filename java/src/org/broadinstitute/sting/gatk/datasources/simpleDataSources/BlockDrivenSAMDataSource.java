@@ -255,7 +255,7 @@ public class BlockDrivenSAMDataSource extends SAMDataSource {
                 continue;
             CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
             if(shard.getFilter() != null)
-                iterator = new FilteringIterator(iterator,shard.getFilter());
+                iterator = new FilteringIterator(iterator,shard.getFilter()); // not a counting iterator because we don't want to show the filtering of reads
             mergingIterator.addIterator(readers.getReader(id),iterator);
         }
 

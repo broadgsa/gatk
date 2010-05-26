@@ -4,7 +4,9 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
@@ -53,22 +55,27 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      */
     private boolean shardGenerated = false;
 
+    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals) {
+        this(iterator, intervals, new ArrayList<SamRecordFilter>());
+    }
+
     /**
      * Create a new window maker with the given iterator as a data source, covering
      * the given intervals.
      * @param iterator The data source for this window.
      * @param intervals The set of intervals over which to traverse.
      */
-    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals) {
+    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals, List<SamRecordFilter> filters) {
         this.sourceInfo = iterator.getSourceInfo();
         this.readIterator = iterator;
 
         LocusIterator locusIterator;
+        Iterator<SAMRecord> wrappedIterator = TraversalEngine.addMandatoryFilteringIterators(iterator, filters);
         if(sourceInfo.getDownsamplingMethod() != null &&
           (sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_BY_SAMPLE || sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR))
-            locusIterator = new DownsamplingLocusIteratorByState(new FilteringIterator(iterator,new LocusStreamFilterFunc()),sourceInfo);
+            locusIterator = new DownsamplingLocusIteratorByState(wrappedIterator,sourceInfo);
         else
-            locusIterator = new LocusIteratorByState(new FilteringIterator(iterator,new LocusStreamFilterFunc()),sourceInfo);        
+            locusIterator = new LocusIteratorByState(wrappedIterator,sourceInfo);
 
         this.locusOverflowTracker = locusIterator.getLocusOverflowTracker();
 
@@ -144,45 +151,4 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
                 sourceIterator.next();                
         }
     }
-
-    /**
-     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
-     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
-     */
-    private static class LocusStreamFilterFunc implements SamRecordFilter {
-        SAMRecord lastRead = null;
-        public boolean filterOut(SAMRecord rec) {
-            boolean result = false;
-            String why = "";
-            if (rec.getReadUnmappedFlag()) {
-                TraversalStatistics.nUnmappedReads++;
-                result = true;
-                why = "Unmapped";
-            } else if (rec.getNotPrimaryAlignmentFlag()) {
-                TraversalStatistics.nNotPrimary++;
-                result = true;
-                why = "Not Primary";
-            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-                why = "No alignment start";
-            } else if (rec.getDuplicateReadFlag()) {
-                TraversalStatistics.nDuplicates++;
-                result = true;
-                why = "Duplicate reads";
-            }
-            else {
-                result = false;
-            }
-
-            if (result) {
-                TraversalStatistics.nSkippedReads++;
-                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
-            } else {
-                TraversalStatistics.nReads++;
-            }
-            return result;
-        }
-    }
-
 }

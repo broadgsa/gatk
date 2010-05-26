@@ -3,7 +3,17 @@ package org.broadinstitute.sting.gatk.traversals;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.MathUtils;
+
+import java.util.Map;
+import java.util.List;
+import java.util.Iterator;
+
+import net.sf.picard.filter.SamRecordFilter;
+import net.sf.samtools.SAMRecord;
 
 public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
     // Time in milliseconds since we initialized this engine
@@ -88,16 +98,22 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         printProgress(true, type, null);
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
+
+        // count up the number of skipped reads by summing over all filters
+        long nSkippedReads = 0L;
+        for ( long counts : TraversalStatistics.counter.values() )
+            nSkippedReads += counts;
+
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours%n", elapsed, elapsed / 60, elapsed / 3600));
-        logger.info(String.format("Traversal skipped %d valid reads out of %d total (%.2f%%)",
-                TraversalStatistics.nSkippedReads,
+        logger.info(String.format("%d reads were filtered out during traversal out of %d total (%.2f%%)",
+                nSkippedReads,
                 TraversalStatistics.nReads,
-                (TraversalStatistics.nSkippedReads * 100.0) / TraversalStatistics.nReads));
-        logger.info(String.format("  -> %d unmapped reads", TraversalStatistics.nUnmappedReads));
-        logger.info(String.format("  -> %d duplicate reads", TraversalStatistics.nDuplicates));
-        logger.info(String.format("  -> %d reads with non-primary alignments", TraversalStatistics.nNotPrimary));
-        logger.info(String.format("  -> %d reads with bad alignments", TraversalStatistics.nBadAlignments));
-        logger.info(String.format("  -> %d reads with indels", TraversalStatistics.nSkippedIndels));
+                100.0 * MathUtils.ratio(nSkippedReads, TraversalStatistics.nReads)));
+        for ( Map.Entry<Class, Long> filterCounts : TraversalStatistics.counter.entrySet() ) {
+            long count = filterCounts.getValue();
+            logger.info(String.format("  -> %d reads (%.2f%% of total) failing %s",
+                    count, 100.0 * MathUtils.ratio(count, TraversalStatistics.nReads), Utils.getClassName(filterCounts.getKey())));
+        }
     }
 
     /** Initialize the traversal engine.  After this point traversals can be run over the data */
@@ -117,4 +133,15 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     public abstract T traverse(WalkerType walker,
                                ProviderType dataProvider,
                                T sum);
+
+    public static Iterator<SAMRecord> addMandatoryFilteringIterators(Iterator<SAMRecord> iter, List<SamRecordFilter> filters ) {
+        for( SamRecordFilter filter : filters ) {
+            //logger.debug("Adding filter " + filter.getClass());
+            iter = new CountingFilteringIterator(iter,filter);
+        }
+
+        return new CountingFilteringIterator(iter); // special case to count all reads
+    }
+
+
 }
