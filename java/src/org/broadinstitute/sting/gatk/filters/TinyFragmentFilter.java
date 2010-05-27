@@ -72,7 +72,7 @@ public class TinyFragmentFilter implements SamRecordFilter {
             long mateStart = rec.getMateAlignmentStart();
             long mateEnd = rec.getAlignmentStart() + isize;
             boolean bad = rec.getReadNegativeStrandFlag() ? start < mateStart : end > mateEnd;
-            //System.out.printf("%s %d %d %d %d %d => %b%n", rec.getReadName(), start, end, mateStart, mateEnd, isize, bad);
+            System.out.printf("%s %d %d %d %d %d => %b%n", rec.getReadName(), start, end, mateStart, mateEnd, isize, bad);
             if ( bad ) {
                 //System.out.printf("TinyFragment: " + rec.format());
                 return true;
