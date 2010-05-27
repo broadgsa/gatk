@@ -55,10 +55,6 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      */
     private boolean shardGenerated = false;
 
-    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals) {
-        this(iterator, intervals, new ArrayList<SamRecordFilter>());
-    }
-
     /**
      * Create a new window maker with the given iterator as a data source, covering
      * the given intervals.

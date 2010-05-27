@@ -59,7 +59,7 @@ public class ShardTraverser implements Callable {
         long startTime = System.currentTimeMillis(); 
 
         Object accumulator = walker.reduceInit();
-        WindowMaker windowMaker = new WindowMaker(microScheduler.getReadIterator(shard),shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(microScheduler.getReadIterator(shard),shard.getGenomeLocs(),walker.getMandatoryReadFilters());
         ShardDataProvider dataProvider = null;
         try {
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
