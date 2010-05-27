@@ -18,7 +18,7 @@ class QFile(val fileType: String, val parts: String*) {
   def matchesFile(path: String): Boolean = matchesFile(new File(path))
   def matchesFile(file: File): Boolean = file.getCanonicalPath.endsWith(extension)
   def baseName(path: String): String = baseName(new File(path))
-  def baseName(file: File): String = StringUtils.removeEnd(file.getCanonicalPath, extension)
+  def baseName(file: File): String = StringUtils.removeEnd(file.getAbsolutePath, extension)
   def fullName(baseName: String) = baseName + extension
 }
 
