@@ -519,7 +519,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 refReads.add(read);
                 nPerfectMatches++;
                 if ( nPerfectMatches % 10000 == 0 ) {
-                    logger.debug(String.format("Perfect matching fraction: %d %d => %.2f%n", nPerfectMatches, nReadsToClean, 100.0 * nPerfectMatches / ( nReadsToClean + 1)));
+                    logger.debug(String.format("Perfect matching fraction: %d %d => %.2f", nPerfectMatches, nReadsToClean, 100.0 * nPerfectMatches / ( nReadsToClean + 1)));
                 }
 
                 continue;
