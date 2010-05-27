@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.vcf;
 
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -55,22 +54,14 @@ public class FilterLiftedVCF extends RodWalker<Integer, Integer> {
         char recordRef = record.getReference().charAt(0);
 
         if ( recordRef != ref ) {
-
-            // is it reverse complemented?
-            if ( BaseUtils.simpleComplement(recordRef) == ref ) {
-                record.setFilterString(record.isFiltered() ? String.format("%s;LiftoverToReverseComplementRefBase", record.getFilterString()) : "LiftoverToNewBase");
-                failedLocs++;
-            } else {
-                record.setFilterString(record.isFiltered() ? String.format("%s;LiftoverToDifferentRefBase", record.getFilterString()) : "LiftoverToNewBase");
-                failedLocs++;
+            failedLocs++;
+        } else {
+            if ( writer == null ) {
+                writer = new VCFWriter(out);
+                writer.writeHeader(record.getHeader());
             }
+            writer.addRecord(record);
         }
-
-        if ( writer == null ) {
-            writer = new VCFWriter(out);
-            writer.writeHeader(record.getHeader());
-        }
-        writer.addRecord(record);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -80,7 +71,7 @@ public class FilterLiftedVCF extends RodWalker<Integer, Integer> {
         List<Object> rods = tracker.getReferenceMetaData("vcf");
 
         for ( Object rod : rods )
-            filterAndWrite(ref.getBaseAsChar(), (VCFRecord)rod);
+            filterAndWrite((char)ref.getBase(), (VCFRecord)rod);
 
         return 0;
     }

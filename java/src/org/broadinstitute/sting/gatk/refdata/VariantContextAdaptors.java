@@ -132,11 +132,6 @@ public class VariantContextAdaptors {
     }
 
     private static class VCFRecordAdaptor extends VCAdaptor {
-//        // WARNING: do not use this method if you have anything other than point mutations in your VCF
-//        VariantContext convert(String name, Object input) {
-//            return vcfToVariantContext(name, (VCFRecord)input, null);
-//        }
-
         VariantContext convert(String name, Object input, ReferenceContext ref) {
             return vcfToVariantContext(name, (VCFRecord)input, ref);
         }
