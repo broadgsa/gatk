@@ -29,11 +29,13 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -45,7 +47,7 @@ import java.util.Random;
  *
  * @author Kiran Garimella
  */
-public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateCollection> {
+public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateCollection> implements TreeReducible<ReadErrorRateCollection> {
     @Argument(fullName="printVisualHits",   shortName="v",  doc="print visual hits",    required=false) public boolean printVisualHits = false;
     @Argument(fullName="useNextBestBase",   shortName="nb", doc="use next best base",   required=false) public boolean useNextBestBase = false;
     @Argument(fullName="useNonNextBestBase",shortName="nnb",doc="use nonnext best base",required=false) public boolean useNonNextBestBase = false;
@@ -181,6 +183,17 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
     }
 
     /**
+     * For multithreading - take two read error rate collections and put them together
+     * @param left   one collection
+     * @param right   another collection
+     * @return left updated with the counts from right
+     */
+    public ReadErrorRateCollection treeReduce(ReadErrorRateCollection left, ReadErrorRateCollection right) {
+        left.merge(right);
+        return left;
+    }
+
+    /**
      * We've processed all the reads.  Emit the final, normalized error rate data.
      *
      * @param collection  the summed mismatch arrays
@@ -222,6 +235,16 @@ class ReadErrorRateCollection {
         return builder.toString();
     }
 
+    public void merge(ReadErrorRateCollection other) {
+        for ( Map.Entry<Integer,int[]> errorCounts : other.readsByReadLength.entrySet() ) {
+            if ( this.readsByReadLength.keySet().contains(errorCounts.getKey()) ) {
+                mergeCounts(readsByReadLength.get(errorCounts.getKey()),errorCounts.getValue());
+            } else {
+                readsByReadLength.put(errorCounts.getKey(),errorCounts.getValue());
+            }
+        }
+    }
+
     private static int[] zeroArray( int length ) {
         int[] array = new int[length];
         for ( int ii = 0; ii < length; ii ++ ) {
@@ -229,6 +252,12 @@ class ReadErrorRateCollection {
         }
 
         return array;
+    }
+
+    private static void mergeCounts ( int[] addToMe, int[] dontTouchMe ) {
+        for ( int index = 0; index < addToMe.length; index ++ ) {
+            addToMe[index] += dontTouchMe[index];
+        }
     }
 
     public static void updateErrorCounts(int[] sum, boolean[] value) {
