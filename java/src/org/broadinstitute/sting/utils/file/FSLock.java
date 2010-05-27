@@ -35,7 +35,7 @@ public class FSLock {
      */
     public FSLock(File baseLocation) {
         lockFile = new File(baseLocation.getAbsoluteFile() + lockString);
-        lockFile.deleteOnExit();
+        if (lockFile != null) lockFile.deleteOnExit();
     }
 
     /**

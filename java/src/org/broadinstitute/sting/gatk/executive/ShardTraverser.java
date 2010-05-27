@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.executive;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -33,6 +34,10 @@ public class ShardTraverser implements Callable {
     private ThreadLocalOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
 
+    /** our log, which we want to capture anything from this class */
+    protected static Logger logger = Logger.getLogger(ShardTraverser.class);
+
+
     /**
      * Is this traversal complete?
      */
@@ -55,14 +60,16 @@ public class ShardTraverser implements Callable {
 
         Object accumulator = walker.reduceInit();
         WindowMaker windowMaker = new WindowMaker(microScheduler.getReadIterator(shard),shard.getGenomeLocs());
+        ShardDataProvider dataProvider = null;
         try {
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-                ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
+                dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
                 accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
                 dataProvider.close();
             }
         }
         finally {
+            if (dataProvider != null) dataProvider.close();
             windowMaker.close();
             outputMergeTask = outputTracker.closeStorage();
 

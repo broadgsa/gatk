@@ -158,7 +158,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @return a linear index for the specified type
      * @throws IOException if we cannot write the index file
      */
-    public static Index loadIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
+    public synchronized static Index loadIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
 
         // our return index
         LinearIndex returnIndex = null;

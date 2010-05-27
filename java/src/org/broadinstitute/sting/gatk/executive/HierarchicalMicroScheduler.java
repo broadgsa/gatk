@@ -81,7 +81,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      */
     protected HierarchicalMicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse ) {
         super(engine, walker, reads, reference, rods);
-        this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+
+        if (GenomeAnalysisEngine.instance.getArguments().enableThreadedDebugging)
+            this.threadPool = new ExceptionAwareThreadPool(nThreadsToUse);
+        else
+            this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
 
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();

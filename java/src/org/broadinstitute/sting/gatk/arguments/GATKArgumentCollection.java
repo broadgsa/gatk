@@ -176,6 +176,10 @@ public class GATKArgumentCollection {
     @Argument(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read with read groups matching <TAG>:<SUBSTRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
 
+    @Element(required = false)
+    @Argument(fullName = "enable_threaded_debugging",shortName="etd", doc="Enable debugging of threaded apps by applying exception catching in the threaded version of the GATK.", required = false)
+    public boolean enableThreadedDebugging = false;
+
     /**
      * marshal the data out to a object
      *
@@ -331,6 +335,9 @@ public class GATKArgumentCollection {
             return false;
         }
         if (other.intervalMerging != this.intervalMerging) {
+            return false;
+        }
+        if (enableThreadedDebugging != other.enableThreadedDebugging) {
             return false;
         }
         if ((other.RODToInterval == null && RODToInterval != null) ||
