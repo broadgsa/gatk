@@ -6,6 +6,7 @@
     <resource-bundle file="StingText.properties" />
     <modules>
       <module file="QualityScoresRecalibration.xml" />
+      <module file="VariantRecalibration.xml" />
       <module file="LocalRealignmentAroundIndels.xml" />
       <module file="UnifiedGenotyper.xml" />
       <module file="VariantEval.xml" />
