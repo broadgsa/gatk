@@ -123,7 +123,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_KEY); // copied from VariantsToVCF
         ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
         ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.DEPTH_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY);
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
