@@ -45,7 +45,7 @@ import java.util.*;
 /**
  * Selects variant calls for output from a user-supplied VCF file using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type= VCFCodec.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant",type= VCFRecord.class))
 public class VCFSelectWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="match", shortName="match", doc="Expression used with INFO fields to select VCF records for inclusion in the output VCF(see wiki docs for more info)", required=false)
     protected String[] MATCH_STRINGS = new String[]{null};

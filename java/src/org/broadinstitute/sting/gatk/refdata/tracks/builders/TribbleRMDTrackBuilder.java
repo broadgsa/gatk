@@ -94,7 +94,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     @Override
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
         // return a feature reader track
-        return new FeatureReaderTrack(targetClass, name, inputFile, createFeatureReader(targetClass, inputFile));
+        return new FeatureReaderTrack(targetClass, this.createByType(targetClass).getFeatureType(), name, inputFile, createFeatureReader(targetClass, inputFile));
     }
 
     /**
@@ -219,21 +219,5 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             if (onDisk) logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
             return index;
         }
-    }
-}
-
-/**
- * a fake Tribble track, used to test out the Tribble interface and feature codec detection
- */
-class FakeTribbleTrack implements FeatureCodec {
-
-    @Override
-    public Feature decode(String s) {
-        return null;
-    }
-
-    @Override
-    public int readHeader(LineReader reader) {
-        return 0; // the basics
     }
 }

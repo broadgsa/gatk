@@ -38,7 +38,7 @@ import java.util.List;
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
-@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFCodec.class))
+@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFRecord.class))
 public class FilterLiftedVCF extends RodWalker<Integer, Integer> {
 
     private VCFWriter writer;

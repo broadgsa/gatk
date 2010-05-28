@@ -45,7 +45,7 @@ import net.sf.samtools.SAMFileReader;
 /**
  * Lifts a VCF file over from one build to another.  Note that the resulting VCF could be mis-sorted.
  */
-@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFCodec.class))
+@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFRecord.class))
 public class LiftoverVCF extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)

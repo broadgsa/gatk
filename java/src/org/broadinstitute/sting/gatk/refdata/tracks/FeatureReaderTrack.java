@@ -51,12 +51,13 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
      * Create a track
      *
      * @param type the type of track, used for track lookup
+     * @param recordType the type of record we produce
      * @param name the name of this specific track
      * @param file the associated file, for reference or recreating the reader
      * @param reader the feature reader to use as the underlying data source
      */
-    public FeatureReaderTrack(Class type, String name, File file, FeatureReader reader) {
-        super(type, name, file);
+    public FeatureReaderTrack(Class type, Class recordType, String name, File file, FeatureReader reader) {
+        super(type, recordType, name, file);
         this.reader = reader;
     }
 

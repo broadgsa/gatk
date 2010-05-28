@@ -589,7 +589,7 @@ public class GenomeAnalysisEngine {
         for (RMD required : allRequired) {
             boolean found = false;
             for (RMDTrack rod : rods) {
-                if (rod.matches(required.name(), required.type()))
+                if (rod.matchesNameAndRecordType(required.name(), required.type()))
                     found = true;
             }
             if (!found)

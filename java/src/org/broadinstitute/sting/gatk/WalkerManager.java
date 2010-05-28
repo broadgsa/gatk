@@ -198,7 +198,7 @@ public class WalkerManager extends PluginManager<Walker> {
             return true;
 
         for( RMD allowed: allowsDataSource.referenceMetaData() ) {
-            if( rod.matches(allowed.name(),allowed.type()) )
+            if( rod.matchesNameAndRecordType(allowed.name(),allowed.type()) )
                 return true;
         }
         return false;

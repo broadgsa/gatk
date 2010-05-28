@@ -42,6 +42,7 @@ public abstract class RMDTrack {
 
     // the basics of a track:
     private final Class type;           // our type
+    private final Class recordType;     // the underlying records that are produced by this track
     private final String name;          // the name
     private final File file;            // the associated file we create the reader from
 
@@ -49,11 +50,13 @@ public abstract class RMDTrack {
      * Create a track
      *
      * @param type the type of track, used for track lookup
+     * @param recordType the type of record produced
      * @param name the name of this specific track
      * @param file the associated file, for reference or recreating the reader
      */
-    protected RMDTrack(Class type, String name, File file) {
+    protected RMDTrack(Class type, Class recordType, String name, File file) {
         this.type = type;
+        this.recordType = recordType;
         this.name = name;
         this.file = file;
     }
@@ -70,6 +73,10 @@ public abstract class RMDTrack {
         return file;
     }
 
+    public Class getRecordType() {
+        return recordType;
+    }
+
     /**
      * @return how to get an iterator of the underlying data.  This is all a track has to support,
      *         but other more advanced tracks support the query interface
@@ -77,14 +84,26 @@ public abstract class RMDTrack {
     public abstract CloseableIterator<GATKFeature> getIterator();
 
     /**
-     * helper function for determining if we are the same track
+     * helper function for determining if we are the same track based on name and codec type
      *
      * @param name the name to match
      * @param type the type to match
      *
      * @return true on a match, false if the name or type is different
      */
-    public boolean matches(String name, Type type) {
+    public boolean matchesNameAndType(String name, Type type) {
+        return (name.equals(this.name) && (type.getClass().isAssignableFrom(this.type.getClass())));
+    }
+
+    /**
+     * helper function for determining if we are the same track based on name and record type
+     *
+     * @param name the name to match
+     * @param type the type to match
+     *
+     * @return true on a match, false if the name or type is different
+     */
+    public boolean matchesNameAndRecordType(String name, Type type) {
         return (name.equals(this.name) && (type.getClass().isAssignableFrom(this.type.getClass())));
     }
 

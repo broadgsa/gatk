@@ -135,7 +135,7 @@ public class ApplyVariantClustersWalker extends RodWalker<ExpandingArrayList<Var
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
-            if( rod.getType().equals(VCFCodec.class) ) {
+            if( rod.getRecordType().equals(VCFRecord.class) ) {
                 final VCFReader reader = new VCFReader(rod.getFile());
                 final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
                 samples.addAll(vcfSamples);

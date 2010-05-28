@@ -56,6 +56,11 @@ public class SAMReadCodec implements FeatureCodec<SAMReadFeature> {
         return 0;
     }
 
+    @Override
+    public Class<SAMReadFeature> getFeatureType() {
+        return SAMReadFeature.class;
+    }
+
     /**
      * Decode a single line in a SAM text file.
      * @param line line to decode.

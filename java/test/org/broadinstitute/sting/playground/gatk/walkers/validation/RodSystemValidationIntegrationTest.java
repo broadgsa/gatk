@@ -35,9 +35,9 @@ public class RodSystemValidationIntegrationTest extends WalkerTest {
     public void testComplexVCFPileup() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString1KG() + " -B eval,VCF," + validationDataLocation + "MultiSample.vcf" +
-                " -B eval,VCF," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf"
+                " -B eval2,VCF," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf"
                 , 1,
-                Arrays.asList("6dd0ed0a6fe7096ccb66beffb8d455da"));
+                Arrays.asList("0c8c2b705d23f8fe6e7827a3b474736a"));
         executeTest("testComplexVCFPileup", spec);
     }
 
@@ -45,9 +45,21 @@ public class RodSystemValidationIntegrationTest extends WalkerTest {
     public void testLargeComplexVCFPileup() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString1KG() + " -B eval,VCF," + validationDataLocation + "MultiSample.vcf" +
-                " -B eval,VCF," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf" +
-                " -B eval,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf" +
+                " -B eval2,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf" +
+                " -B eval3,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf" +
                 " -L 1 -L 2 -L 20"
+                , 1,
+                Arrays.asList("8805912af2c38ec8d1cbc8d82532725e"));
+        executeTest("testLargeComplexVCFPileup", spec);
+    }
+
+    //@Test
+    public void testBlockZippedVrsUnzippedVCF1() {
+        final String vcfName = validationDataLocation + "bgzipped_vcfs/vcfexample.vcf";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString1KG() + " -B eval,VCF," + vcfName +
+                " -B eval2,VCF," + vcfName + ".gz" +
+                " --PerLocusEqual"
                 , 1,
                 Arrays.asList("ab3da32eae65e8c15a9f4a787a190a37"));
         executeTest("testLargeComplexVCFPileup", spec);

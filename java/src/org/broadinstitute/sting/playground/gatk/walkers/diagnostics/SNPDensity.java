@@ -41,7 +41,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * Computes the density of SNPs passing and failing filters in intervals on the genome and emits a table for display
  */
 @By(DataSource.REFERENCE)
-@Requires(value={},referenceMetaData=@RMD(name="eval",type= VCFCodec.class))
+@Requires(value={},referenceMetaData=@RMD(name="eval",type= VCFRecord.class))
 public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDensity.Counter> {
     @Argument(fullName="granularity", shortName="granularity", doc="", required=false)
     private int granularity = 1000000;

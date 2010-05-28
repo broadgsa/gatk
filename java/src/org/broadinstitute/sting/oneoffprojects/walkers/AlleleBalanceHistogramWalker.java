@@ -22,7 +22,7 @@ import java.util.*;
  * Time: 3:25:11 PM
  * To change this template use File | Settings | File Templates.
  */
-@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type= VCFCodec.class)})
+@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type=VCFRecord.class)})
 public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>, Map<String,Set<Double>>> {
 
 

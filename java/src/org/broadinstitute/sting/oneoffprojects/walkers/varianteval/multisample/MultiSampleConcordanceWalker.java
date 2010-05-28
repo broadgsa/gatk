@@ -42,7 +42,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * a VCF binding with the name 'variants'.
  * @Author: Chris Hartl
  */
-@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="truth",type= VCFCodec.class),@RMD(name="variants",type= VCFRecord.class)})
+@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="truth",type= VCFRecord.class),@RMD(name="variants",type= VCFRecord.class)})
 public class MultiSampleConcordanceWalker extends RodWalker< LocusConcordanceInfo, MultiSampleConcordanceSet > {
     @Argument(fullName="noLowDepthLoci", shortName="NLD", doc="Do not use loci in analysis where the variant depth (as specified in the VCF) is less than the given number; "+
             "DO NOT USE THIS IF YOUR VCF DOES NOT HAVE 'DP' IN THE FORMAT FIELD", required=false) private int minDepth = -1;

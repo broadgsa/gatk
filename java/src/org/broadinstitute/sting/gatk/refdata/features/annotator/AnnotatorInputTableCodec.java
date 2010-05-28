@@ -64,6 +64,11 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         return lineCounter[0];
     }
 
+    @Override
+    public Class<AnnotatorInputTableFeature> getFeatureType() {
+        return AnnotatorInputTableFeature.class;
+    }
+
 
     /**
      * Parses the line into an AnnotatorInputTableFeature object.

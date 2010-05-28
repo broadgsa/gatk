@@ -66,6 +66,11 @@ public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
         return 0;
     }
 
+    @Override
+    public Class<SAMPileupFeature> getFeatureType() {
+        return SAMPileupFeature.class;
+    }
+
     public SAMPileupFeature decode(String line) {
 //       0          1             2         3                  4         5            6         7
 //*     chrX     466           T         Y                170      170       88      32 ... (piles of read bases  and quals follow)

@@ -56,7 +56,7 @@ public class RODRMDTrack extends RMDTrack {
      * @param data the ROD to use as the underlying data source for this track
      */
     public RODRMDTrack(Class type, String name, File file, ReferenceOrderedData data) {
-        super(type, name, file);
+        super(type, type, name, file); // the decoder type and the record type are the same in this case
         this.data = data;
     }
 

@@ -49,7 +49,7 @@ public class VCFUtils {
 
         for ( ReferenceOrderedDataSource source : toolkit.getRodDataSources() ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(VCFCodec.class) ) {
+            if ( rod.getRecordType().equals(VCFRecord.class) ) {
                 vcfs.add(rod);
             }
         }
@@ -73,7 +73,7 @@ public class VCFUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(VCFCodec.class) ) {
+            if ( rod.getRecordType().equals(VCFRecord.class) ) {
                 VCFReader reader = new VCFReader(rod.getFile());
                 fields.addAll(reader.getHeader().getMetaData());
                 reader.close();
