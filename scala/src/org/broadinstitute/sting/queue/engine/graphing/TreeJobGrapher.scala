@@ -56,7 +56,7 @@ class TreeJobGrapher extends JobGrapher {
   }
 
   private def addPaths(shortestPath: java.util.List[QCommand], qArgs: QArguments) {
-    for (inputFile <- qArgs.inputPaths.map(_.getCanonicalPath))
+    for (inputFile <- qArgs.inputPaths.map(_.getAbsolutePath))
       if (modelGraph.getEdgeSource(shortestPath.head).matchesFile(inputFile))
         addPath(shortestPath, inputFile)
   }
