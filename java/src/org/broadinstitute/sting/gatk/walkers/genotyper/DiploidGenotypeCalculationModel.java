@@ -156,13 +156,13 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             cg.setReadBackedPileup(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup());
             cg.putAttribute(VCFGenotypeRecord.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
 
-            double[] posteriors = GLs.get(sample).getPosteriors();
-            cg.setPosteriors(posteriors);
+            cg.setPosteriors(GLs.get(sample).getPosteriors());
+            double[] likelihoods = GLs.get(sample).getLikelihoods();
             String GL = String.format("%.2f,%.2f,%.2f",
-                    posteriors[refGenotype.ordinal()],
-                    posteriors[hetGenotype.ordinal()],
-                    posteriors[homGenotype.ordinal()]);
-            cg.putAttribute(VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY, GL);
+                    likelihoods[refGenotype.ordinal()],
+                    likelihoods[hetGenotype.ordinal()],
+                    likelihoods[homGenotype.ordinal()]);
+            cg.putAttribute(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY, GL);
 
             calls.put(sample, cg);
         }

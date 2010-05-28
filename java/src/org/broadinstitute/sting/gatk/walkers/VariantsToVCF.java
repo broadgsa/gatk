@@ -58,7 +58,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     // Don't allow mixed types for now
     private EnumSet<VariantContext.Type> ALLOWED_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION, VariantContext.Type.INDEL);
 
-    private String[] ALLOWED_FORMAT_FIELDS = {VCFGenotypeRecord.GENOTYPE_KEY, VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, VCFGenotypeRecord.DEPTH_KEY, VCFGenotypeRecord.GENOTYPE_POSTERIORS_TRIPLET_KEY };
+    private String[] ALLOWED_FORMAT_FIELDS = {VCFGenotypeRecord.GENOTYPE_KEY, VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, VCFGenotypeRecord.DEPTH_KEY, VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY };
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )

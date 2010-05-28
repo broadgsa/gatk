@@ -25,10 +25,9 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broad.tribble.vcf.VCFCodec;
+import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
@@ -37,34 +36,32 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF fiel 
-  */
+ * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF file
+ */
+@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFRecord.class))
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
-    @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = false)
+    @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = true)
     public PrintStream beagleWriter = null;
 
     final TreeSet<String> samples = new TreeSet<String>();
-
-
 
     public void initialize() {
 
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         for ( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(VCFCodec.class) ) {
+            if ( rod.getType().equals(VCFRecord.class) ) {
                 final VCFReader reader = new VCFReader(rod.getFile());
                 final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
                 samples.addAll(vcfSamples);
@@ -72,15 +69,11 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             }
         }
 
+        beagleWriter.print("marker alleleA alleleB");
+        for ( String sample : samples )
+            beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
 
-        if ( beagleWriter != null ) {
-            beagleWriter.print("marker alleleA alleleB");
-            for ( String sample : samples )
-                beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
-
-            beagleWriter.println();
-        }
-
+        beagleWriter.println();
     }
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
@@ -91,7 +84,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
 
             try {
-                vc_eval = tracker.getVariantContext(ref,"eval", vc, loc, true);
+                vc_eval = tracker.getVariantContext(ref,"vcf", vc, loc, true);
             } catch (java.util.NoSuchElementException e) {
                 return 0;
             }
@@ -110,23 +103,23 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 beagleWriter.print(String.format("%s ", bglPrintString));
             }
 
-            Map<String, Genotype> genotypes = vc_eval.getGenotypes();
-            if ( genotypes == null || genotypes.size() == 0 )
+            if ( !vc_eval.hasGenotypes() )
                 return null;
+
+            Map<String, Genotype> genotypes = vc_eval.getGenotypes();
             for ( String sample : samples ) {
                 // use sample as key into genotypes structure
                 Genotype genotype = genotypes.get(sample);
-                String gls = "0 0 0 ";
-                if (genotype.isCalled()) {
-                    String[] glArray = genotype.getAttributeAsString("GL").split(",");
+                if (genotype.isCalled() && genotype.hasAttribute(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY)) {
+                    String[] glArray = genotype.getAttributeAsString(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY).split(",");
 
                     for (String gl : glArray) {
-                        Double d_gl = -Double.valueOf(gl);
+                        Double d_gl = Math.pow(10, Double.valueOf(gl));
                         beagleWriter.print(String.format("%5.2f ",d_gl));
                     }
                 }
                 else
-                    beagleWriter.print(gls); // write 0 likelihoods for uncalled genotypes.
+                    beagleWriter.print("0 0 0 "); // write 0 likelihoods for uncalled genotypes.
 
             }
 
