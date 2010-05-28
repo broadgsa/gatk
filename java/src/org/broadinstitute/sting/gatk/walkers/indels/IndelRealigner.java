@@ -75,9 +75,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
     protected Integer compressionLevel = 5;
 
-    @Argument(fullName="cleanPerfectMatches", shortName="cpm", required=false, doc="If true, Realigner will ignore the NM == 0 flag and include reads with supposely no mismatches to reference for cleaning.  Useful for malformed BAM files")
-    protected boolean CLEAN_PERFECT_MATCHES = false;    
-
     public enum RealignerSortingStrategy {
         NO_SORT,
         ON_DISK,
@@ -287,29 +284,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    /**
-     * returns true if a read has only a single cigar element (indicating its xM) and it has a NM flag
-     * and NM == 0.
-     * @param read
-     * @return
-     */
-    private boolean perfectlyMatchesReference(SAMRecord read) {
-        if ( CLEAN_PERFECT_MATCHES ) {
-            return false;
-        } else {
-            boolean cigarIsMatches = read.getCigar().numCigarElements() == 1;
-            Integer NM = read.getIntegerAttribute("NM");
-            boolean noMM = NM != null && NM == 0;
-            boolean perfectMatch = cigarIsMatches && noMM;
-//            if ( perfectMatch ) {
-//                System.out.println("Perfect match " + read.format());
-//            }
-            return perfectMatch;
-        }
-    }
-
-    int nPerfectMatches = 0;
-    int nReadsToClean = 0;
+    long nPerfectMatches = 0;
+    long nReadsToClean = 0;
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( currentInterval == null ) {
@@ -514,17 +490,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 continue;
             }
 
-            // optimization to avoid trying to clean perfect matches to the reference
-            if ( perfectlyMatchesReference(read) ) {
-                refReads.add(read);
-                nPerfectMatches++;
-                if ( nPerfectMatches % 10000 == 0 ) {
-                    logger.debug(String.format("Perfect matching fraction: %d %d => %.2f", nPerfectMatches, nReadsToClean, 100.0 * nPerfectMatches / ( nReadsToClean + 1)));
-                }
-
-                continue;
-            }
-
             final AlignedRead aRead = new AlignedRead(read);
 
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
@@ -562,6 +527,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
             // otherwise, we can emit it as is
             else {
+//                nPerfectMatches++;
+//                if ( nPerfectMatches % 1000 == 0 ) {
+//                    logger.info(String.format("Perfect matching fraction: %d %d => %.2f", nPerfectMatches, nReadsToClean, 100.0 * nPerfectMatches / ( nReadsToClean + 1)));
+//                }
+
                 // if ( debugOn ) System.out.println("Emitting as is...");
                 //logger.debug("Adding " + aRead.getRead().getReadName() + " with raw mismatch score " + rawMismatchScore + " to ref reads");
                 refReads.add(read);
