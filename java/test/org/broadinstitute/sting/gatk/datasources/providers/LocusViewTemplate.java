@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import net.sf.picard.filter.SamRecordFilter;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
@@ -47,7 +48,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         GenomeLoc shardBounds = GenomeLocParser.createGenomeLoc("chr1", 1, 5);
         Shard shard = new LocusShard(Collections.singletonList(shardBounds));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, window.getLocus(), window, null, null);
 
@@ -63,7 +64,7 @@ public abstract class LocusViewTemplate extends BaseTest {
 
         GenomeLoc shardBounds = GenomeLocParser.createGenomeLoc("chr1", 1, 5);
         Shard shard = new LocusShard(Collections.singletonList(shardBounds));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
 
@@ -78,7 +79,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -92,7 +93,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -106,7 +107,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -120,7 +121,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 6, 15)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -134,7 +135,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -149,7 +150,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -168,7 +169,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -187,7 +188,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -208,7 +209,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator(read1, read2, read3, read4, read5, read6);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 1, 10)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
@@ -236,7 +237,7 @@ public abstract class LocusViewTemplate extends BaseTest {
                                                            read07, read08, read09, read10, read11, read12);
 
         Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chr1", 6, 15)));
-        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs());
+        WindowMaker windowMaker = new WindowMaker(iterator,shard.getGenomeLocs(),new ArrayList<SamRecordFilter>());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, window.getSourceInfo(), window.getLocus(), window, null, null);
         LocusView view = createView(dataProvider);
