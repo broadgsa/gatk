@@ -15,7 +15,8 @@ abstract class TopologicalJobScheduler(jobGraph: DirectedGraph[ResourceNode, Res
   protected val iterator = new TopologicalOrderIterator(this.jobGraph)
 
   iterator.addTraversalListener(new TraversalListenerAdapter[ResourceNode, ResourceEdge] {
-    override def edgeTraversed(event: EdgeTraversalEvent[ResourceNode, ResourceEdge]) = traversed(event.getEdge)
+    override def edgeTraversed(event: EdgeTraversalEvent[ResourceNode, ResourceEdge]) =
+      event.getEdge.traverse(TopologicalJobScheduler.this)
   })
 
   override def runJobs = {
@@ -23,14 +24,6 @@ abstract class TopologicalJobScheduler(jobGraph: DirectedGraph[ResourceNode, Res
     for (target <- iterator) {
       // Do nothing for now, let event handler respond
     }
+    logMissingKeys
   }
-
-  protected def traversed(edge: ResourceEdge) = {
-    edge.traverse(this)
-    edge match {
-      case exec: ExecEdge => traversedExec(exec)
-    }
-  }
-
-  protected def traversedExec(exec: ExecEdge)
 }

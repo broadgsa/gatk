@@ -6,7 +6,7 @@ import collection.JavaConversions._
 import management.ManagementFactory
 import java.io.File
 import java.util.ArrayList
-import org.broadinstitute.sting.queue.{QArguments, QException}
+import org.broadinstitute.sting.queue.QArguments
 
 /**
  * Dispatches jobs to LSF and then returns.
@@ -18,7 +18,7 @@ class DispatchJobScheduler(jobGraph: DirectedGraph[ResourceNode, ResourceEdge], 
   private val jvmName = ManagementFactory.getRuntimeMXBean.getName
   private val jobNamePrefix = "Q-" + jvmName
 
-  protected def traversedExec(exec: ExecEdge) = {
+  def processExec(exec: ExecEdge) = {
     lsfJobIndex += 1
     val job = new LocalLsfJob
     val jobName = jobNamePrefix + "-" + lsfJobIndex
@@ -66,8 +66,8 @@ class DispatchJobScheduler(jobGraph: DirectedGraph[ResourceNode, ResourceEdge], 
         // Stop recursing when we find a job along this edge and return it's job id
         case exec: ExecEdge => sourceJobs :::= List(lsfJobs(exec))
 
-        // Throw error for a new edge type that we don't know how to handle
-        case default => throw new QException("Unknown edge type: " + default)
+        // For any other type of edge find the LSF jobs preceeding the edge
+        case resourceEdge: ResourceEdge => sourceJobs :::= sourceLsfJobs(resourceEdge)
       }
     }
     sourceJobs

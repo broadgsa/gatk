@@ -9,7 +9,7 @@ import org.jgrapht.DirectedGraph
  */
 class SimpleJobScheduler(jobGraph: DirectedGraph[ResourceNode, ResourceEdge], qArgs: QArguments)
         extends TopologicalJobScheduler(jobGraph, qArgs) {
-  protected def traversedExec(exec: ExecEdge) = {
+  def processExec(exec: ExecEdge) = {
     var commandString = exec.commandString
     logger.info(commandString)
 

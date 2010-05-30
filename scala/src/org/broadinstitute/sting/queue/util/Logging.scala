@@ -18,10 +18,10 @@ trait Logging {
 object Logging {
   private var configured = false
   private var isDebug = false
-  def configureLogging() {
+  def configureLogging = {
     if (!configured) {
       var root = Logger.getRootLogger
-      root.addAppender(new ConsoleAppender(new PatternLayout("%-5p %d{HH:mm:ss,SSS} %C{1} - %m %n")))
+      root.addAppender(new ConsoleAppender(new PatternLayout("%-5p %d{HH:mm:ss,SSS} - %m %n")))
       root.setLevel(if(isDebug) Level.DEBUG else Level.INFO)
       configured = true
     }

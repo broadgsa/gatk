@@ -8,17 +8,32 @@ import org.broadinstitute.sting.queue.QArguments
 abstract class JobScheduler(protected val jobGraph: DirectedGraph[ResourceNode, ResourceEdge],
         protected val qArgs: QArguments) extends Logging {
 
+  private var missingKeys = Set.empty[String]
+
   def runJobs
   def numJobs = jobGraph.edgeSet.size
+
+  def processExec(exec: ExecEdge) : Unit
 
   /**
    * Emulates storing of properties per node by looking up values on
    * the current edge/target-node or any preceding nodes in the graph.
    */
   def lookup(edge: ResourceEdge, key: String, default: String) : String = {
-    lookupRecursive(edge, key) match {
+    val value = lookupRecursive(edge, key) match {
       case Some(value) => value
       case None => qArgs.argMap.getOrElse(key, default)
+    }
+    if (value == null)
+      missingKeys = missingKeys ++ Set(key)
+    value
+  }
+
+  protected def logMissingKeys = {
+    if (qArgs.dryRun && !missingKeys.isEmpty) {
+      logger.warn("Missing keys:")
+      for (key <- missingKeys)
+        logger.warn("  ${" + key + "}")
     }
   }
 

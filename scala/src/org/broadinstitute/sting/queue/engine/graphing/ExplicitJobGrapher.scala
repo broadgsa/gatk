@@ -15,7 +15,7 @@ object ExplicitJobGrapher {
   }
 
   private def addEdge(source: ResourceNode, target: ResourceNode, command: QCommand) = {
-    val resourceEdge = new ExecEdge(command)
+    val resourceEdge = new ExecEdge(command.commandString)
     grapher.jobGraph.addVertex(source)
     grapher.jobGraph.addVertex(target)
     grapher.jobGraph.addEdge(source, target, resourceEdge)

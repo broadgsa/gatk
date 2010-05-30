@@ -4,6 +4,6 @@ package org.broadinstitute.sting.queue.engine
  * Defines a basic command to run
  * TODO: Allow overriding arguments per command such as the job queue
  */
-class QCommand(val commandString: String) {
+class QCommand(val commandString: String) extends QModelEdge {
   override def toString = commandString
 }
