@@ -7,11 +7,13 @@ import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
 import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * Created by IntelliJ IDEA.
@@ -52,42 +54,14 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
     }
 
     /**
-     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
-     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
+     * Returns the set of locus iterator discards that this walker wants the engine to discard automatically
+     *
+     * By default, locus walkers ignore adaptor bases but still see the both bases in the overlapping but non-adaptor
+     * parts of the reads.
+     * @return
      */
-    private static class LocusStreamFilterFunc implements SamRecordFilter {
-        SAMRecord lastRead = null;
-        public boolean filterOut(SAMRecord rec) {
-            boolean result = false;
-            if (rec.getReadUnmappedFlag()) {
-                TraversalStatistics.nUnmappedReads++;
-                result = true;
-                //why = "Unmapped";
-            } else if (rec.getNotPrimaryAlignmentFlag()) {
-                TraversalStatistics.nNotPrimary++;
-                result = true;
-//                why = "Not Primary";
-            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-//                why = "No alignment start";
-            } else if (rec.getDuplicateReadFlag()) {
-                TraversalStatistics.nDuplicates++;
-                result = true;
-//                why = "Duplicate reads";
-            }
-            else {
-                result = false;
-            }
-
-            if (result) {
-                TraversalStatistics.nSkippedReads++;
-                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
-            } else {
-                TraversalStatistics.nReads++;
-            }
-
-            return result;
-        }
+    public EnumSet<LocusIteratorByState.Discard> getDiscards() {
+        return LocusIteratorByState.NO_DISCARDS;
+        //return EnumSet.of(LocusIteratorByState.Discard.ADAPTOR_BASES);
     }
 }

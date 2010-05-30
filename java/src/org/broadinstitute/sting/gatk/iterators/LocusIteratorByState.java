@@ -28,8 +28,10 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
@@ -39,6 +41,12 @@ import java.util.*;
 
 /** Iterator that traverses a SAM File, accumulating information on a per-locus basis */
 public class LocusIteratorByState extends LocusIterator {
+    private static long discarded_adaptor_bases = 0L;
+    private static long discarded_overlapped_bases = 0L;
+    private static long observed_bases = 0L;
+
+    public enum Discard { ADAPTOR_BASES, SECOND_READ_OVERLAPPING_BASES }
+    public static final EnumSet<Discard> NO_DISCARDS = EnumSet.noneOf(Discard.class);
 
     /**
      * the overflow tracker, which makes sure we get a limited number of warnings for locus pile-ups that
@@ -251,15 +259,21 @@ public class LocusIteratorByState extends LocusIterator {
     //final boolean DEBUG2 = false && DEBUG;
     private Reads readInfo;
     private AlignmentContext nextAlignmentContext;
+    private EnumSet<Discard> discards;
 
     // -----------------------------------------------------------------------------------------------------------------
     //
     // constructors and other basic operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation) {
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation ) {
+        this(samIterator, readInformation, NO_DISCARDS);
+    }
+
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation, EnumSet<Discard> discards ) {
         this.it = new PushbackIterator<SAMRecord>(samIterator);
         this.readInfo = readInformation;
+        this.discards = discards;
         overflowTracker = new LocusOverflowTracker(readInformation.getMaxReadsAtLocus());
     }
 
@@ -387,22 +401,36 @@ public class LocusIteratorByState extends LocusIterator {
                 // todo -- performance problem -- should be lazy, really
                 for ( SAMRecordState state : readStates ) {
                     if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-                        size++;
-                        PileupElement p = new PileupElement(state.getRead(), state.getReadOffset());
-                        pile.add(p);
+                        ReadUtils.OverlapType overlapType = ReadUtils.readPairBaseOverlapType(state.getRead(), getLocation().getStart());
+                        if (discards.contains(Discard.ADAPTOR_BASES) &&
+                                overlapType == ReadUtils.OverlapType.IN_ADAPTOR ) {
+                            discarded_adaptor_bases++;
+                            //printStatus("Adaptor bases", discarded_adaptor_bases);
+                            continue;
+                        } else if ( discards.contains(Discard.SECOND_READ_OVERLAPPING_BASES) &&
+                                overlapType == ReadUtils.OverlapType.OVERLAPPING &&
+                                state.getRead().getSecondOfPairFlag() ) {
+                            // only discard second bases in the base pair
+                            discarded_overlapped_bases++;
+                            //printStatus("Overlapping bases", discarded_overlapped_bases);
+                            continue;
+                        } else {
+                            observed_bases++;
+                            pile.add(new PileupElement(state.getRead(), state.getReadOffset()));
+                            size++;
+                        }
                     } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
                         size++;
                         pile.add(new PileupElement(state.getRead(), -1));
                         nDeletions++;
                     }
 
+                    // todo -- this looks like a bug w.r.t. including reads with deletion at loci -- MAD 05/27/10
                     if ( state.getRead().getMappingQuality() == 0 ) {
                         nMQ0Reads++;
                     }
-
-//                if ( state.hadIndel() ) System.out.println("Indel at "+getLocation()+" in read "+state.getRead().getReadName()) ;
-
                 }
+
                 GenomeLoc loc = getLocation();
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
                 // if we got reads with non-D/N over the current position, we are done
@@ -411,44 +439,12 @@ public class LocusIteratorByState extends LocusIterator {
         }
     }
 
-    // old implementation -- uses lists of reads and offsets
-//    public AlignmentContext next() {
-//        //if (DEBUG) {
-//        //    logger.debug("in Next:");
-//        //    printState();
-//        //}
-//
-//        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(readStates.size());
-//        ArrayList<Integer> offsets = new ArrayList<Integer>(readStates.size());
-//
-//        // keep iterating forward until we encounter a reference position that has something "real" hanging over it
-//        // (i.e. either a real base, or a real base or a deletion if includeReadsWithDeletion is true)
-//        while(true) {
-//            collectPendingReads(readInfo.getMaxReadsAtLocus());
-//
-//            // todo -- performance problem -- should be lazy, really
-//            for ( SAMRecordState state : readStates ) {
-//                if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-////                    System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
-//                    reads.add(state.getRead());
-//                    offsets.add(state.getReadOffset());
-//                } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
-//                    reads.add(state.getRead());
-//                    offsets.add(-1);
-//                }
-//            }
-//            GenomeLoc loc = getLocation();
-//
-//            updateReadStates(); // critical - must be called after we get the current state offsets and location
-//
-//        //if (DEBUG) {
-//        //    logger.debug("DONE WITH NEXT, updating read states, current state is:");
-//        //    printState();
-//        //}
-//            // if we got reads with non-D/N over the current position, we are done
-//            if ( reads.size() != 0 ) return new AlignmentContext(loc, reads, offsets);
-//        }
-//    }
+    private void printStatus(final String title, long n) {
+        if ( n % 10000 == 0 )
+            System.out.printf("%s %d / %d = %.2f%n", title, n, observed_bases, 100.0 * n / (observed_bases + 1));
+    }
+
+
 
     private void collectPendingReads(int maxReads) {
         //if (DEBUG) {
@@ -483,6 +479,7 @@ public class LocusIteratorByState extends LocusIterator {
             }
 
         }
+
         if (location != null)
             overflowTracker.exceeded(GenomeLocParser.createGenomeLoc(location.getContigIndex(),location.getStart(),rightMostEnd),
                                      curSize);

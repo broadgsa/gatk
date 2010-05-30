@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.DownsampleType;
@@ -61,17 +62,19 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * @param iterator The data source for this window.
      * @param intervals The set of intervals over which to traverse.
      */
-    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals, List<SamRecordFilter> filters) {
+    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals, List<SamRecordFilter> filters, EnumSet<LocusIteratorByState.Discard> discards ) {
         this.sourceInfo = iterator.getSourceInfo();
         this.readIterator = iterator;
 
         LocusIterator locusIterator;
         Iterator<SAMRecord> wrappedIterator = TraversalEngine.addMandatoryFilteringIterators(iterator, filters);
         if(sourceInfo.getDownsamplingMethod() != null &&
-          (sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_BY_SAMPLE || sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR))
+          (sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_BY_SAMPLE || sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR)) {
+            if ( discards.size() > 0 )
+                throw new StingException("Experimental downsampling iterator doesn't support base discarding at this point; complain to Matt Hanna");
             locusIterator = new DownsamplingLocusIteratorByState(wrappedIterator,sourceInfo);
-        else
-            locusIterator = new LocusIteratorByState(wrappedIterator,sourceInfo);
+        } else
+            locusIterator = new LocusIteratorByState(wrappedIterator,sourceInfo, discards);
 
         this.locusOverflowTracker = locusIterator.getLocusOverflowTracker();
 

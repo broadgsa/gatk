@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.pileup.ExtendedPileupElement;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -349,16 +350,6 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     public int getNumberOfMappingQualityZeroReads() {
         return nMQ0Reads;
     }
-
-//    public int getNumberOfDeletions() {
-//        int n = 0;
-//
-//        for ( int i = 0; i < size(); i++ ) {
-//            if ( getOffsets().get(i) != -1 ) { n++; }
-//        }
-//
-//        return n;
-//    }
 
     /**
      * @return the number of elements in this pileup

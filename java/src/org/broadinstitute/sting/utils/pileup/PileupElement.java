@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.pileup;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;

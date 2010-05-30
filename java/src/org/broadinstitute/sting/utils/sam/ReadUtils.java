@@ -72,6 +72,80 @@ public class ReadUtils {
         return false;
     }
 
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // utilities for detecting overlapping reads
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    /**
+     * Detects read pairs where the reads are so long relative to the over fragment size that they are
+     * reading into each other's adaptors.
+     *
+     * Normally, fragments are sufficiently far apart that reads aren't reading into each other.
+     *
+     * |-------------------->                                   first read
+     *                                 <--------------------|   second read
+     *
+     * Sometimes, mostly due to lab errors or constraints, fragment library are made too short relative to the
+     * length of the reads.  For example, it's possible to have 76bp PE reads with 125 bp inserts, so that ~25 bp of each
+     * read overlaps with its mate.
+     *
+     * |--------OOOOOOOOOOOO>               first read
+     *         <OOOOOOOOOOOO------------|   second read
+     *
+     * This filter deals with the situation where the fragment is so small that the each read actually reads into the
+     * adaptor sequence of its mate, generating mismatches at both ends of the read:
+     *
+     *              |----------------XXXX>      first read
+     *         <XXXX----------------|           second read
+     *
+     * The code below returns NOT_OVERLAPPING for the first case, IN_ADAPTOR for the last case, and OVERLAPPING
+     * given a read and a reference aligned base position.
+     *
+     * @author depristo
+     * @version 0.1
+     */
+
+    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR, OVERLAPPING };
+
+    public static OverlapType readPairBaseOverlapType(final SAMRecord rec, long basePos, final int adaptorLength) {
+        OverlapType state = OverlapType.NOT_OVERLAPPING;
+        long isize = rec.getInferredInsertSize();
+        if ( isize > 0 ) { // we're not an unmapped pair -- cannot filter out
+            long adaptorStart, adaptorEnd;
+            long mateStart = rec.getMateAlignmentStart();
+            long mateEnd = rec.getAlignmentStart() + isize;
+
+            if ( rec.getReadNegativeStrandFlag() ) {
+                // we are on the negative strand, so our mate is on the positive strand
+                adaptorStart = mateStart - adaptorLength - 1;
+                adaptorEnd = mateStart - 1;
+            } else {
+                // we are on the positive strand, so our mate is on the negative strand
+                adaptorStart = mateEnd + 1;
+                adaptorEnd = mateEnd + adaptorLength;
+            }
+
+            boolean inMate = basePos >= mateStart && basePos <= mateEnd;
+            boolean inAdapator = basePos >= adaptorStart && basePos < adaptorEnd;
+
+
+            if ( inAdapator ) state = OverlapType.IN_ADAPTOR;
+            else if ( inMate ) state = OverlapType.OVERLAPPING;
+
+//            if ( inMate || inAdapator )
+//                System.out.printf("baseOverlapState: %s start=%d base=%d mateStart=%d mateStop=%d adaptorStart=%d adaptorEnd=%d => %s%n",
+//                        rec.getReadName(), rec.getAlignmentStart(), basePos, mateStart, mateEnd, adaptorStart, adaptorEnd, state);
+        }
+
+        return state;
+    }
+
+    private static int DEFAULT_ADAPTOR_SIZE = 100;
+    public static OverlapType readPairBaseOverlapType(final SAMRecord rec, long basePos) {
+        return readPairBaseOverlapType(rec, basePos, DEFAULT_ADAPTOR_SIZE);
+    }
 
     public static boolean is454Read(SAMRecord read) {
         return isPlatformRead(read, "454");

@@ -45,7 +45,7 @@ import java.util.*;
 public class DownsamplingLocusIteratorByState extends LocusIterator {
 
     /** our log, which we want to capture anything from this class */
-    private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
+    private static Logger logger = Logger.getLogger(DownsamplingLocusIteratorByState.class);
 
     // -----------------------------------------------------------------------------------------------------------------
     //
