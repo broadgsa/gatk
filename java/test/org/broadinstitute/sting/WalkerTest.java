@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.junit.Test;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,8 +46,52 @@ public class WalkerTest extends BaseTest {
     // the default output path for the integration test
     private File outputFileLocation = null;
 
+    /**
+     * Subdirectory under the ant build directory where we store integration test md5 results
+     */
+    public static final String MD5_FILE_DB_SUBDIR = "integrationtests";
+
     public void setOutputFileLocation(File outputFileLocation) {
         this.outputFileLocation = outputFileLocation;
+    }
+
+    private static void ensureMd5DbDirectory() {
+        // todo -- make path
+        File dir = new File(MD5_FILE_DB_SUBDIR);
+        if ( ! dir.exists() ) {
+            System.out.printf("##### Creating MD5 db %s%n", MD5_FILE_DB_SUBDIR);
+            if ( ! dir.mkdir() ) {
+                throw new StingException("Infrastructure failure: failed to create md5 directory " + MD5_FILE_DB_SUBDIR);
+            }
+        }
+    }
+
+    private static File getFileForMD5(final String md5) {
+        final String basename = String.format("%s.integrationtest", md5);
+        return new File(MD5_FILE_DB_SUBDIR + "/" + basename);
+    }
+
+    private static void updateMD5Db(final String md5, final File resultsFile) {
+        // todo -- copy results file to DB dir if needed under filename for md5
+        final File dbFile = getFileForMD5(md5);
+        if ( ! dbFile.exists() ) {
+            // the file isn't already in the db, copy it over
+            System.out.printf("##### Updating MD5 file: %s%n", dbFile.getPath());
+            try {
+                FileUtils.copyFile(resultsFile, dbFile);
+            } catch ( IOException e ) {
+                throw new StingException(e.getMessage());
+            }
+        } else {
+            System.out.printf("##### MD5 file is up to date: %s%n", dbFile.getPath());
+
+        }
+    }
+
+    private static String getMD5Path(final String md5, final String valueIfNotFound) {
+        // todo -- look up the result in the directory and return the path if it exists
+        final File dbFile = getFileForMD5(md5);
+        return dbFile.exists() ? dbFile.getPath() : valueIfNotFound;
     }
 
     public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
@@ -56,12 +101,32 @@ public class WalkerTest extends BaseTest {
             BigInteger bigInt = new BigInteger(1, thedigest);
             String filemd5sum = bigInt.toString(16);
             while (filemd5sum.length() < 32) filemd5sum = "0" + filemd5sum; // pad to length 32
+
+            //
+            // copy md5 to integrationtests
+            //
+            updateMD5Db(filemd5sum, resultsFile);
+
             if (parameterize() || expectedMD5.equals("")) {
                 System.out.println(String.format("PARAMETERIZATION[%s]: file %s has md5 = %s, stated expectation is %s, equal? = %b",
                                                  name, resultsFile, filemd5sum, expectedMD5, filemd5sum.equals(expectedMD5)));
             } else {
                 System.out.println(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
                 System.out.flush();
+
+                if ( ! expectedMD5.equals(filemd5sum) ) {
+                    // we are going to fail for real in assertEquals (so we are counted by the testing framework).
+                    // prepare ourselves for the comparison
+                    System.out.printf("##### Test %s is going fail #####%n", name);
+                    String pathToExpectedMD5File = getMD5Path(expectedMD5, "[No DB file found]");
+                    String pathToFileMD5File = getMD5Path(filemd5sum, "[No DB file found]");
+                    System.out.printf("##### Path to expected file (MD5=%s): %s%n", expectedMD5, pathToExpectedMD5File);
+                    System.out.printf("##### Path to expected file (MD5=%s): %s%n", filemd5sum, pathToFileMD5File);
+                    System.out.printf("##### Diff command: diff %s %s%n", pathToExpectedMD5File, pathToFileMD5File);
+
+                    // todo -- add support for simple inline display of the first N differences for text file
+                }
+
                 Assert.assertEquals(name + " Mismatching MD5s", expectedMD5, filemd5sum);
                 System.out.println(String.format("  => %s PASSED", name));
             }
@@ -145,6 +210,8 @@ public class WalkerTest extends BaseTest {
     }
 
     protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec) {
+        ensureMd5DbDirectory(); // ensure the md5 directory exists
+
         List<File> tmpFiles = new ArrayList<File>();
         for (int i = 0; i < spec.nOutputFiles; i++) {
             String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
