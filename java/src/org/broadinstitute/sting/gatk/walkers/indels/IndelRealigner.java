@@ -719,6 +719,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return null;
 
         // create the new consensus
+        ArrayList<CigarElement> elements = new ArrayList<CigarElement>(c.numCigarElements()-1);
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < indexOnRef; i++)
             sb.append((char)reference[i]);
@@ -732,8 +733,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             int elementLength = ce.getLength();
             switch( ce.getOperator() ) {
             case D:
-                indelCount++;
                 refIdx += elementLength;
+                indelCount++;
+                elements.add(ce);
                 break;
             case M:
                 altIdx += elementLength;
@@ -745,6 +747,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         sb.append((char)reference[refIdx+j]);
                 }
                 refIdx += elementLength;
+                elements.add(new CigarElement(elementLength, CigarOperator.M));
                 break;
             case I:
                 for (int j = 0; j < elementLength; j++) {
@@ -757,6 +760,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 }
                 altIdx += elementLength;
                 indelCount++;
+                elements.add(ce);
                 break;
             case S:
             default:
@@ -771,7 +775,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             sb.append((char)reference[i]);
         byte[] altConsensus =  StringUtil.stringToBytes(sb.toString()); // alternative consensus sequence we just built from the current read
 
-        return new Consensus(altConsensus, c, indexOnRef);
+        return new Consensus(altConsensus, new Cigar(elements), indexOnRef);
     }
 
     // create a Consensus from just the indel string that falls on the reference
