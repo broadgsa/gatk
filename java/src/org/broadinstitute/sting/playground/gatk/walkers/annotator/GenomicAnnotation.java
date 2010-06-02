@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -60,31 +59,39 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
     public static final String HAPLOTYPE_ALTERNATE_COLUMN = "haplotypeAlternate";
     public static final String HAPLOTYPE_STRAND_COLUMN = "haplotypeStrand";
 
+    public static final String NUM_MATCHES_SPECIAL_INFO_FIELD = "numMatchingRecords";
+
+    /** Characters that aren't allowed within VCF info field key-value pairs */
+    public static final char[] ILLEGAL_INFO_FIELD_VALUES            = {  ' ', '=', ';' };
+    /** Replacement for each character in ILLEGAL_INFO_FIELD_VALUES */
+    public static final char[] ILLEGAL_INFO_FIELD_VALUE_SUBSTITUTES = {  '_', '-',  '!'  };
 
     /**
-     * For each ROD (aka. record) which overlaps the current locus, generates a
+     * For each -B input file, for each record which overlaps the current locus, generates a
      * set of annotations of the form:
      *
-     * thisRodName.fieldName1=fieldValue, thisRodName.fieldName1=fieldValue
+     * bindingName.columnName1=columnValue, bindingName.columnName2=columnValue2, etc.
      *
-     * Examples of generated annotations are: dbSNP.avHet=0.7, dbSNP.ref_allele=A, etc.
+     * For example: dbSNP.avHet=0.7, dbSNP.ref_allele=A, etc.
      *
      * @return The following is an explanation of this method's return value:
-     * The annotations (aka. columnName=fieldValue pairs) from a matching record in a particular file are stored in a Map<String, String>.
+     *
+     * The annotations from a matching in a particular file are stored in a Map<String, String>
+     * where the key is bindingName.columnName and the value is the columnValue.
      * Since a single input file can have multiple records that overlap the current
-     * locus (eg. dbSNP can have multiple entries for the same location), a different
+     * locus (eg. dbSNP can have multiple entries for the same genomic position), a different
      * Map<String, String> is created for each matching record in a particular file.
-     * The list of matching records for each file is then represented as a List<Map<String, String>>
+     * The set of matching records for each file is then represented as a List<Map<String, String>>
      *
      * The return value of this method is a Map<String, Object> of the form:
      *     rodName1 -> List<Map<String, String>>
      *     rodName2 -> List<Map<String, String>>
      *     rodName3 -> List<Map<String, String>>
      *     ...
-     * Where the rodNames are the -B binding names for each file that were specified on the command line.
+     * Where the rodNames are the -B binding names for each file that were specified on the command line (eg. -B bindingName,AnnotatorInputTable,/path/to/file).
      *
-     * NOTE: The lists (List<Map<String, String>>) are guaranteed to have size > 0.
-     * The reason is that a rodName -> List<Map<String, String>> entry will only
+     * NOTE: The lists (List<Map<String, String>>) are guaranteed to have size > 0
+     * because a  rodName -> List<Map<String, String>>  entry will only
      * be created in Map<String, Object> if the List has at least one element.
      */
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
@@ -106,7 +113,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                 continue; //GenericAnnotation only works with TabularRODs because it needs to be able to select individual columns.
             }
 
-            final Map<String, String> annotationsForRecord = convertRecordToAnnotations( gatkFeature );
+            final Map<String, String> annotationsForRecord = convertRecordToAnnotations( gatkFeature.getName(), ((AnnotatorInputTableFeature) gatkFeature.getUnderlyingObject()).getColumnValues());
 
             //If this record contains the HAPLOTYPE_REFERENCE_COLUMN and/or HAPLOTYPE_ALTERNATE_COLUMN, check whether the
             //alleles specified match the the variant's reference allele and alternate allele.
@@ -202,76 +209,54 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
 
 
     /**
-     * Converts the ROD to a set of key-value pairs of the form:
-     *   thisRodName.fieldName1=fieldValue, thisRodName.fieldName1=fieldValue
+     * Converts the given record to a set of key-value pairs of the form:
+     *   bindingName.columnName1=column1Value, bindingName.columnName2=column2Value
      *   (eg. dbSNP.avHet=0.7, dbSNP.ref_allele=A)
      *
-     * @param annotatorInputTableFeature AnnotatorInputTableFeature corresponding to one record in one input file.
+     * @param annotatorInputTableFeature AnnotatorInputTableFeature corresponding to one record in one -B input file.
      * @param name The binding name of the given AnnotatorInputTableFeature.
-     * @return The map of column-name -> value pairs.
+     * @return The map of columnName -> columnValue pairs.
      */
-    private Map<String, String> convertRecordToAnnotations( final GATKFeature feature) {
-
+    public static Map<String, String> convertRecordToAnnotations( String bindingName, Map<String, String> record) {
         final Map<String, String> result = new HashMap<String, String>();
-        for(final Entry<String, String> entry : ((AnnotatorInputTableFeature) feature.getUnderlyingObject()).getEntrySet()) {
+
+        for(final Entry<String, String> entry : record.entrySet()) {
             final String value = entry.getValue();
             if(!value.trim().isEmpty()) {
-                result.put( generateInfoFieldKey(feature.getName(), entry.getKey()), entry.getValue());
+                result.put( generateInfoFieldKey(bindingName, entry.getKey()), scrubInfoFieldValue(entry.getValue()));
             }
         }
 
         return result;
     }
 
+    /**
+     * Combines the 2 values into a full key.
+     * @param rodBindingName
+     * @param columnName
+     * @return
+     */
     public static String generateInfoFieldKey(String rodBindingName, String columnName ) {
-        return rodBindingName + "." + columnName;
+        return rodBindingName + '.' + columnName;
     }
+
 
 
     /**
-     * Parses the columns arg and returns a Map of columns hashed by their binding name.
-     * For example:
-     *   The command line:
-     *      -s dbSnp.valid,dbsnp.avHet -s refGene.txStart,refGene.txEnd
+     * Replaces any characters that are not allowed in the info field of a VCF file.
      *
-     *   will be passed to this method as:
-     *       ["dbSnp.valid,dbsnp.avHet", "refGene.txStart,refGene.txEnd"]
-     *
-     *   resulting in a return value of:
-     *      {
-     *       "dbSnp" -> "dbSnp.valid" ,
-     *       "dbSnp" -> "dbsnp.avHet" ,
-     *       "refGene" -> "refGene.txStart",
-     *       "refGene" -> "refGene.txEnd"
-     *      }
-     *
-     * @param columnsArg The -s command line arg value.
-     *
-     * @return Map representing a parsed version of this arg - see above.
+     * @param value
+     * @return the value with any illegal characters replaced by legal ones.
      */
-    public static Map<String, Set<String>> parseColumnsArg(String[] columnsArg) {
-        Map<String, Set<String>> result = new HashMap<String, Set<String>>();
-
-        for(String s : columnsArg) {
-            for(String columnSpecifier : s.split(",") ) {
-                String[] rodNameColumnName = columnSpecifier.split("\\.");
-                if(rodNameColumnName.length != 2) {
-                    throw new IllegalArgumentException("The following column specifier in the -s arg is invalid: [" + columnSpecifier + "]. It must be of the form 'bindingName.columnName'.");
-                }
-                String rodName = rodNameColumnName[0];
-                //String columnName = rodNameColumnName[1];
-
-                Set<String> requestedColumns = result.get(rodName);
-                if(requestedColumns == null) {
-                    requestedColumns = new HashSet<String>();
-                    result.put(rodName, requestedColumns);
-                }
-                requestedColumns.add(columnSpecifier);
-            }
+    private static String scrubInfoFieldValue(String value) {
+        for(int i = 0; i < GenomicAnnotation.ILLEGAL_INFO_FIELD_VALUES.length; i++) {
+            value = value.replace(GenomicAnnotation.ILLEGAL_INFO_FIELD_VALUES[i], GenomicAnnotation.ILLEGAL_INFO_FIELD_VALUE_SUBSTITUTES[i]);
         }
 
-        return result;
+        return value;
     }
+
+
 
     public VCFInfoHeaderLine getDescription() {
         return new VCFInfoHeaderLine("GenericAnnotation", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "For each variant in the 'variants' ROD, finds all entries in the other -B files that overlap the variant's position. ");
