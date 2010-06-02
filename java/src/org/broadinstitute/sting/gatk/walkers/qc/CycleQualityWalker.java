@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import net.sf.samtools.SAMRecord;
@@ -64,7 +65,10 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
     protected int MAX_READ_LENGTH = 500;
     @Argument(fullName="out_prefix",shortName="p",doc="prefix for output stat files",required=true)
     protected String PREFIX = null;
-
+    @Argument(fullName="html",shortName="html",doc="produce html-formatted output (starting with h3-level tags) rather than plain text",required=false)
+    protected boolean HTML = false;
+    @Argument(fullName="qualThreshold", shortName="Q",doc="flag as problematic all cycles with av. qualities below the threshold",required=false)
+    protected double QTHRESHOLD = 10.0;
     private Map<String,CycleStats[]> cyclesByLaneMap = null;
     private Map<String,CycleStats[]> cyclesByLibraryMap = null;
 
@@ -158,62 +162,28 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        out.println(result+" reads analyzed");
+        if ( HTML ) {
+            out.println("<h3>Cycle Quality QC</h3>\n");
+            out.println("File(s) analyzed: <br>");
+            for ( File f : getToolkit().getArguments().samFiles) out.println(f.toString()+"<br>");
+            out.println("<br>");
+        }
+        if ( HTML ) out.println("<br><br>");
+        out.println("\n"+result+" reads analyzed\n");
+        if ( HTML ) out.println("<br><br>");
         out.println("by platform unit:");
+        if ( HTML ) out.println("<br>");
         report2(cyclesByLaneMap, new File(PREFIX+".byLane.txt"));
+        out.println();
+        if ( HTML ) out.println("<br><br>");
         out.println("\nby library:");
+        if ( HTML ) out.println("<br>");
         report2(cyclesByLibraryMap, new File(PREFIX+".byLibrary.txt"));
+        out.println();
+        if ( HTML ) out.println("<br><br>");
     }
 
-    private void report(Map<String,CycleStats> m, File f) {
-        long totalReads =0;
-        for( Map.Entry<String,CycleStats> e : m.entrySet() ) {
-            totalReads += e.getValue().getReadCount();
-        }
-        if ( totalReads == 0 ) {
-            out.println("   No reads");
-            return;
-        }
-        try {
-            FileWriter w = new FileWriter(f);
-
-            SortedSet<String> columns = new TreeSet<String>();
-
-            int maxLength = 0;
-
-            for( Map.Entry<String,CycleStats> e : m.entrySet() ) {
-                out.print( "   "+ e.getKey()+ ": "+ e.getValue().getReadCount());
-                int minL = e.getValue().getMinReadLength();
-                int maxL = e.getValue().getMaxReadLength();
-                if ( minL == maxL ) out.println("; read length = "+minL);
-                else out.println("; WARNING: variable read length = "+minL+"-"+maxL);
-                columns.add(e.getKey());
-                if ( e.getValue().getMaxReadLength() > maxLength ) maxLength = e.getValue().getMaxReadLength();
-            }
-
-            w.write("cycle");
-            for ( String col : columns ) { w.write('\t') ; w.write(col); }
-            w.write('\n');
-
-            int cycle = 0;
-
-            while ( cycle < maxLength ) {
-                w.write(Integer.toString(cycle+1));
-                for ( String col : columns ) {
-                    CycleStats cs = m.get(col);
-                    w.write('\t');
-                    if ( cycle >= cs.getMaxReadLength() ) w.write('.');
-                    else w.write(String.format("%.4f",cs.getAverageCycleQual(cycle)));
-                }
-                w.write('\n');
-                cycle++;
-            }
-            w.close();
-        } catch (IOException ioe) {
-            throw new StingException("Failed to write report into the file "+f+":\n"+ioe.getMessage());
-        }
-    }
-
+ 
 
     private void report2(Map<String,CycleStats[]> m, File f) {
         long totalReads_1 =0;
@@ -236,13 +206,19 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
             columns.add(e.getKey());
         }
 
-        if ( totalReads_1 == 0 ) {
+        if ( totalReads_1 == 0 && totalReads_2 != 0) {
             out.println("   End 1: No reads");
+            if ( HTML ) out.println("<br>");
         }
-        if ( totalReads_2 == 0 ) {
+        if ( totalReads_2 == 0 && totalReads_1 != 0 ) {
             out.println("   End 2: No reads");
+            if ( HTML ) out.println("<br>");
         }
-        if ( totalReads_1 == 0 && totalReads_2 == 0 ) return;
+        if ( totalReads_1 == 0 && totalReads_2 == 0 && totalReads_unpaired == 0 ) {
+            out.println("   No reads found.");
+            if ( HTML ) out.println("<br>");
+            return;
+        }
         try {
             BufferedWriter w = new BufferedWriter(new FileWriter(f));
 
@@ -257,25 +233,32 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
                 int minL = ( end1 == null ? 0 : end1.getMinReadLength() );
                 int maxL = ( end1 == null ? 0 : end1.getMaxReadLength() );
 
-                if ( data.length == 1 ) {
+                if ( data.length == 2 ) {
                     out.println(": paired");
+                    if ( HTML ) out.println("<br>");
+                    out.println("    Reads analyzed:");
+                    if ( HTML ) out.println("<br>");
                     CycleStats end2 = data[1];
 
                     out.print( "      End 1: "+ ( end1 == null ? 0 : end1.getReadCount()) );
                     if ( minL == maxL ) out.println("; read length = "+minL);
                     else out.println("; WARNING: variable read length = "+minL+"-"+maxL);
+                    if ( HTML ) out.println("<br>");
 
                     out.print( "      End 2: "+ ( end2 == null ? 0 : end2.getReadCount()) );
                     minL = ( end2 == null ? 0 : end2.getMinReadLength() );
                     maxL = ( end2 == null ? 0 : end2.getMaxReadLength() );
                     if ( minL == maxL ) out.println("; read length = "+minL);
                     else out.println("; WARNING: variable read length = "+minL+"-"+maxL);
+                    if ( HTML ) out.println("<br>");
                 }
                 else {
                     out.println(": unpaired");
-                    out.print( "      Reads: "+ ( end1 == null ? 0 : end1.getReadCount()) );
+                    if ( HTML ) out.println("<br>");
+                    out.print( "      Reads analyzed: "+ ( end1 == null ? 0 : end1.getReadCount()) );
                     if ( minL == maxL ) out.println("; read length = "+minL);
                     else out.println("; WARNING: variable read length = "+minL+"-"+maxL);
+                    if ( HTML ) out.println("<br>");
                 }
 
                 w.write('\t') ;
@@ -294,6 +277,8 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
             int cycle = 0;
 
+            Map<String,List<PrimitivePair.Int>> problems = new HashMap<String,List<PrimitivePair.Int>>();
+
             while ( cycle < maxLength ) {
                 w.write(Integer.toString(cycle+1));
                 for ( String col : columns ) {
@@ -302,22 +287,94 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
                     CycleStats end1 = data[0];
                     w.write('\t');
                     if ( end1 == null || cycle >= end1.getMaxReadLength() ) w.write('.');
-                    else w.write(String.format("%.4f",end1.getAverageCycleQual(cycle)));
+                    else {
+                        double aq = end1.getAverageCycleQual(cycle);
+                        w.write(String.format("%.4f",aq));
+                        recordProblem(aq,cycle, problems,col+".End1");
+                    }
                     if ( data.length > 1 ) {
                         w.write('\t');
                         CycleStats end2 = data[1];
                         if ( end2 == null || cycle >= end2.getMaxReadLength() ) w.write('.');
-                        else w.write(String.format("%.4f",end2.getAverageCycleQual(cycle)));
+                        else {
+                            double aq = end2.getAverageCycleQual(cycle);
+                            w.write(String.format("%.4f",aq));
+                            recordProblem(aq,cycle, problems,col+".End2");
+                        }
                     }
                 }
                 w.write('\n');
                 cycle++;
             }
             w.close();
+
+            if ( HTML ) out.println("<hr>");
+
+            if ( HTML ) out.println("<br>");
+            out.println("\nOUTCOME:");
+            if ( HTML ) out.println("<br>");
+            for ( String col : columns ) {
+                List<PrimitivePair.Int> lp = problems.get(col+".End1");
+                out.print("  "+col+" End1:");
+                if ( lp == null ) {
+                    out.print(" GOOD");
+                } else {
+                    for ( PrimitivePair.Int p : lp ) {
+                        out.print(" "+(p.first+1)+"-");
+                        if ( p.second >= 0 ) out.print((p.second+1));
+                        else out.print("END");
+                    }
+                }
+                out.println();
+                if ( HTML ) out.println("<br>");
+
+                lp = problems.get(col+".End2");
+                out.print("  "+col+" End2:");
+                if ( lp == null ) {
+                    out.print(" GOOD");
+                } else {
+                    for ( PrimitivePair.Int p : lp ) {
+                        out.print(" "+(p.first+1)+"-");
+                        if ( p.second >= 0 ) out.print(p.second);
+                        else out.print("END");
+                    }
+                }
+                out.println();
+                if ( HTML ) out.println("<br>");
+            }
+
         } catch (IOException ioe) {
             throw new StingException("Failed to write report into the file "+f+":\n"+ioe.getMessage());
         }
     }
+
+
+    private void recordProblem(double q, int cycle, Map<String,List<PrimitivePair.Int>> problems, String name) {
+
+        PrimitivePair.Int p = null;
+        List<PrimitivePair.Int> lp = null;
+        if ( q < QTHRESHOLD ) { // there is a problem
+               if ( ! problems.containsKey(name) ) {
+                   lp = new ArrayList<PrimitivePair.Int>();
+                   p = new PrimitivePair.Int(cycle,-1);
+                   lp.add(p);
+                   problems.put(name,lp);
+               } else {
+                   lp = problems.get(name);
+                   p = lp.get(lp.size()-1);
+               }
+               if ( p.second != -1 ) { // if we are not already inside a run of bad qual bases
+                   lp.add(new PrimitivePair.Int(cycle,-1)); // start new run
+               }
+        } else { // good base
+              if ( problems.containsKey(name) ) { // only if we had problem intervals at all, we need to check if the last one needs to be closed
+                  lp = problems.get(name);
+                  p = lp.get(lp.size()-1);
+                  if ( p.second == -1 ) p.second = cycle - 1;
+              }
+        }
+    }
+
 
     static class CycleStats {
         private long readCount = 0;
