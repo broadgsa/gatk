@@ -33,3 +33,17 @@ axis(side=4,col="DarkGreen")
 mtext("Number of Variants", side=4, line=2, col="DarkGreen",cex=1.4)
 legend("topright", c("Known","Novel"), col=c("Green","DarkGreen"), pch=c(20,20),cex=0.7)
 dev.off()
+
+
+data2 = read.table(paste(input,".tranches",sep=""),sep=",",head=T)
+outfile = paste(input, ".FDRtranches.pdf", sep="")
+pdf(outfile, height=7, width=8)
+alpha = (data2$novelTITV - 0.5) / (targetTITV - 0.5);
+numGood = round(alpha * data2$numNovel);
+numBad = data2$numNovel - numGood;
+d=matrix(c(numGood,numBad),2,byrow=TRUE)
+barplot(d,horiz=TRUE,col=c(1,2),space=0.2,xlab="Number of Novel Variants",ylab="Novel Ti/Tv   -->   FDR (%)")
+legend('topright',c('implied TP','implied FP'),col=c(1,2),lty=1,lwd=16)
+axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche)
+axis(2,line=0.4,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$novelTITV)
+dev.off()

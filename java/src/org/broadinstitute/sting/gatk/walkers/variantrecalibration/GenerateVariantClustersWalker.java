@@ -102,6 +102,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
+        
         annotationKeys = new ExpandingArrayList<String>(Arrays.asList(USE_ANNOTATIONS));
 
         if( IGNORE_INPUT_FILTERS != null ) {

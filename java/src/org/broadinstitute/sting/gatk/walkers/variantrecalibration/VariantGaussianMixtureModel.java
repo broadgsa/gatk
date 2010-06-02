@@ -367,7 +367,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
        // BUGBUG: next output the actual cluster on top by integrating out every other annotation
     }
 
-    public final void outputOptimizationCurve( final VariantDatum[] data, final String outputPrefix, final int desiredNumVariants ) {
+    public final void outputOptimizationCurve( final VariantDatum[] data, final String outputPrefix,
+                                               final int desiredNumVariants, final Double[] FDRtranches ) {
 
         final int numVariants = data.length;
         final boolean[] markedVariant = new boolean[numVariants];
@@ -382,6 +383,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         final double novelTiTvAtCut[] = new double[NUM_BINS];
         final double theCut[] = new double[NUM_BINS];
 
+        final double fdrCutAsTiTv[] = new double[FDRtranches.length];
+        for( int iii = 0; iii < FDRtranches.length; iii++ ) {
+            fdrCutAsTiTv[iii] = (1.0 - FDRtranches[iii] / 100.0) * (targetTITV - 0.5) + 0.5;
+        }
+
         for( int iii = 0; iii < numVariants; iii++ ) {
             markedVariant[iii] = false;
         }
@@ -391,6 +397,13 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             outputFile = new PrintStream( outputPrefix + ".dat" );
         } catch (Exception e) {
             throw new StingException( "Unable to create output file: " + outputPrefix + ".dat" );
+        }
+        PrintStream tranchesOutputFile;
+        try {
+            tranchesOutputFile = new PrintStream( outputPrefix + ".dat.tranches" );
+            tranchesOutputFile.println("FDRtranche,novelTITV,pCut,numNovel,filterName");
+        } catch (Exception e) {
+            throw new StingException( "Unable to create output file: " + outputPrefix + ".dat.tranches" );
         }
 
         int numKnown = 0;
@@ -447,7 +460,16 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         // loop back through the data points looking for appropriate places to cut the data to get the target novel titv ratio
         int checkQuantile = 0;
+        int tranche = FDRtranches.length - 1;
         for( jjj = NUM_BINS-1; jjj >= 0; jjj-- ) {
+
+            if( tranche >= 0 && novelTiTvAtCut[jjj] >= fdrCutAsTiTv[tranche] ) {
+                tranchesOutputFile.println(String.format("%.2f,%.2f,%.2f,%d,FDRtranche%.2fto%.2f",
+                        FDRtranches[tranche],novelTiTvAtCut[jjj],theCut[jjj],numNovelAtCut[jjj],
+                        (tranche == 0 ? 0.0 : FDRtranches[tranche-1]) ,FDRtranches[tranche]));
+                tranche--;
+            }
+
             boolean foundCut = false;
             if( checkQuantile == 0 ) {
                 if( novelTiTvAtCut[jjj] >= 0.9 * targetTITV ) {
@@ -480,10 +502,12 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                                     String.format("%.2f",((double) numKnownAtCut[jjj] * 100.0) / ((double) numKnownAtCut[jjj] + numNovelAtCut[jjj]) ) + "%)");
                 logger.info("\t" + String.format("%.4f known Ti/Tv ratio", knownTiTvAtCut[jjj]));
                 logger.info("\t" + String.format("%.4f novel Ti/Tv ratio", novelTiTvAtCut[jjj]));
+                logger.info("\t" + String.format("--> with an implied novel FDR of %.2f percent", Math.abs(100.0 * (1.0-((novelTiTvAtCut[jjj] - 0.5) / (targetTITV - 0.5))))));
             }
         }
 
         outputFile.close();
+        tranchesOutputFile.close();
     }
 
 

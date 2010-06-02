@@ -81,6 +81,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
     private String CLUSTER_FILENAME = "optimizer.cluster";
+    @Argument(fullName="FDRtranche", shortName="tranche", doc="The levels of novel false discovery rate (FDR, implied by ti/tv) at which to slice the data. (in percent, that is 1.0 for 1 percent)", required=false)
+    private Double[] FDR_TRANCHES = null;
     //@Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
     private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
@@ -156,6 +158,19 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         if(!foundDBSNP) {
             throw new StingException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
+
+        // Set up default values for the FDR tranches if necessary
+        if( FDR_TRANCHES == null ) {
+            FDR_TRANCHES = new Double[3];
+            FDR_TRANCHES[0] = 12.5;
+            FDR_TRANCHES[1] = 20.0;
+            FDR_TRANCHES[2] = 30.0;
+            //FDR_TRANCHES[0] = 1.0;
+            //FDR_TRANCHES[1] = 5.0;
+            //FDR_TRANCHES[2] = 10.0;
+            //FDR_TRANCHES[3] = 20.0;
+            //FDR_TRANCHES[4] = 30.0;
+        }
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -226,7 +241,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        theModel.outputOptimizationCurve( dataManager.data, OUTPUT_PREFIX, DESIRED_NUM_VARIANTS );
+        theModel.outputOptimizationCurve( dataManager.data, OUTPUT_PREFIX, DESIRED_NUM_VARIANTS, FDR_TRANCHES );
 
         // Execute Rscript command to plot the optimization curve
         // Print out the command line to make it clear to the user what is being executed and how one might modify it
