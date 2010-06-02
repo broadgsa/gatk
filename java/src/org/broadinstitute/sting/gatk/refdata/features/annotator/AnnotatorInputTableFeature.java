@@ -29,8 +29,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.Map.Entry;
 
 import org.broad.tribble.Feature;
 
@@ -40,7 +38,7 @@ import org.broad.tribble.Feature;
 public class AnnotatorInputTableFeature implements Feature {
 
     private ArrayList<String> columnNames;
-    private HashMap<String, String> columnValues;
+    private HashMap<String, String> columnValues; //maps colum names to column values
 
     private String chr;
     private int start;
@@ -116,17 +114,6 @@ public class AnnotatorInputTableFeature implements Feature {
      */
     public Map<String,String> getColumnValues() {
         return Collections.unmodifiableMap(columnValues);
-    }
-
-
-    /**
-     * Returns the entry set of all column name-value pairs.
-     *
-     * @return
-     */
-    public Set<Entry<String, String>> getEntrySet() {
-
-        return columnValues.entrySet();
     }
 
 
@@ -254,6 +241,23 @@ public class AnnotatorInputTableFeature implements Feature {
     }
 
 
+
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        for(String columnName : columnNames ) {
+            if(sb.length() == 0) {
+                sb.append("[");
+            } else {
+                sb.append(", ");
+            }
+            sb.append(columnName + "=" + columnValues.get(columnName));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 
 
 
