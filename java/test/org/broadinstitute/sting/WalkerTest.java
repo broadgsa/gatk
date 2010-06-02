@@ -120,8 +120,8 @@ public class WalkerTest extends BaseTest {
                     System.out.printf("##### Test %s is going fail #####%n", name);
                     String pathToExpectedMD5File = getMD5Path(expectedMD5, "[No DB file found]");
                     String pathToFileMD5File = getMD5Path(filemd5sum, "[No DB file found]");
-                    System.out.printf("##### Path to expected file (MD5=%s): %s%n", expectedMD5, pathToExpectedMD5File);
-                    System.out.printf("##### Path to expected file (MD5=%s): %s%n", filemd5sum, pathToFileMD5File);
+                    System.out.printf("##### Path to expected   file (MD5=%s): %s%n", expectedMD5, pathToExpectedMD5File);
+                    System.out.printf("##### Path to calculated file (MD5=%s): %s%n", filemd5sum, pathToFileMD5File);
                     System.out.printf("##### Diff command: diff %s %s%n", pathToExpectedMD5File, pathToFileMD5File);
 
                     // todo -- add support for simple inline display of the first N differences for text file

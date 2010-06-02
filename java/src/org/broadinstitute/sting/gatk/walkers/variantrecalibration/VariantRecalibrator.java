@@ -89,6 +89,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
     private String PATH_TO_RESOURCES = "R/";
+    @Argument(fullName="quality_step", shortName="qStep", doc="Resolution in QUAL units for optimization and tranche calculations", required=false)
+    private double QUAL_STEP = 0.1;
 
     /////////////////////////////
     // Private Member Variables
@@ -241,7 +243,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        theModel.outputOptimizationCurve( dataManager.data, OUTPUT_PREFIX, DESIRED_NUM_VARIANTS, FDR_TRANCHES );
+        theModel.outputOptimizationCurve( dataManager.data, OUTPUT_PREFIX, DESIRED_NUM_VARIANTS, FDR_TRANCHES, QUAL_STEP );
 
         // Execute Rscript command to plot the optimization curve
         // Print out the command line to make it clear to the user what is being executed and how one might modify it

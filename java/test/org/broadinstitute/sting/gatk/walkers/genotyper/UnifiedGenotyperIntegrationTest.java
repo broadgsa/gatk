@@ -35,7 +35,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("d9d99c7ce4ea63a907183893de1dd905"));
+                Arrays.asList("4e403194fd00552804a0907bf905cffb"));
         executeTest("testMultiSamplePilot1 - Joint Estimate", spec);
     }
 
@@ -43,7 +43,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,050,000", 1,
-                Arrays.asList("23dfd7747ec6149e59abd753d2a8b00c"));
+                Arrays.asList("987aaf0268a364d35e4375bab2d69c9e"));
         executeTest("testMultiSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -85,8 +85,8 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "0ac7ab893a3f550cb1b8c34f28baedf6" );
-        e.put( "-all_bases", "40520c3020f6abcb60e8b632d9614554" );
+        e.put( "-genotype", "96106a735876dc4ca9aa839610bee56f" );
+        e.put( "-all_bases", "85b7bd300cc6852e25be430dd02e789f" );
         e.put( "--min_base_quality_score 26", "ecc1b0dd618eae9b9f62db2742ac3306" );
         e.put( "--min_mapping_quality_score 26", "75bd53d5070f1146350d633321a165e3" );
         e.put( "--max_mismatches_in_40bp_window 5", "8e1236b7f0f6c19a0be808b2d44e3255" );
@@ -127,7 +127,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -beagle %s" +
                         " -L 1:10,023,400-10,024,000",
                 1,
-                Arrays.asList("5077d80806e24865b5c12553843a5f85"));
+                Arrays.asList("0a6f06f1900c2b965a1d0ac413df8151"));
 
         executeTest(String.format("testOtherOutput"), spec);
     }

@@ -7,7 +7,9 @@ import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
 import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
+import org.broadinstitute.sting.gatk.filters.InAdaptorFilter;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorFilter;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 
@@ -60,8 +62,8 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
      * parts of the reads.
      * @return
      */
-    public EnumSet<LocusIteratorByState.Discard> getDiscards() {
-        return LocusIteratorByState.NO_DISCARDS;
-        //return EnumSet.of(LocusIteratorByState.Discard.ADAPTOR_BASES);
+    public List<LocusIteratorFilter> getDiscards() {
+        LocusIteratorFilter filter = new InAdaptorFilter();
+        return Arrays.asList(filter);
     }
 }

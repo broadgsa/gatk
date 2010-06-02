@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.*;
+import net.sf.picard.filter.SamRecordFilter;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -41,12 +42,16 @@ import java.util.*;
 
 /** Iterator that traverses a SAM File, accumulating information on a per-locus basis */
 public class LocusIteratorByState extends LocusIterator {
-    private static long discarded_adaptor_bases = 0L;
-    private static long discarded_overlapped_bases = 0L;
+    private static long discarded_bases = 0L;
     private static long observed_bases = 0L;
 
-    public enum Discard { ADAPTOR_BASES, SECOND_READ_OVERLAPPING_BASES }
-    public static final EnumSet<Discard> NO_DISCARDS = EnumSet.noneOf(Discard.class);
+    //
+    // todo -- eric, add your UG filters here
+    //
+    //public enum Discard { ADAPTOR_BASES }
+    //public static final EnumSet<Discard> NO_DISCARDS = EnumSet.noneOf(Discard.class);
+
+    public static final List<LocusIteratorFilter> NO_FILTERS = Arrays.asList();
 
     /**
      * the overflow tracker, which makes sure we get a limited number of warnings for locus pile-ups that
@@ -259,7 +264,7 @@ public class LocusIteratorByState extends LocusIterator {
     //final boolean DEBUG2 = false && DEBUG;
     private Reads readInfo;
     private AlignmentContext nextAlignmentContext;
-    private EnumSet<Discard> discards;
+    private List<LocusIteratorFilter> filters = new ArrayList<LocusIteratorFilter>();
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -267,13 +272,13 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
     public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation ) {
-        this(samIterator, readInformation, NO_DISCARDS);
+        this(samIterator, readInformation, NO_FILTERS);
     }
 
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation, EnumSet<Discard> discards ) {
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation, List<LocusIteratorFilter> filters ) {
         this.it = new PushbackIterator<SAMRecord>(samIterator);
         this.readInfo = readInformation;
-        this.discards = discards;
+        this.filters = filters;
         overflowTracker = new LocusOverflowTracker(readInformation.getMaxReadsAtLocus());
     }
 
@@ -401,18 +406,9 @@ public class LocusIteratorByState extends LocusIterator {
                 // todo -- performance problem -- should be lazy, really
                 for ( SAMRecordState state : readStates ) {
                     if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-                        ReadUtils.OverlapType overlapType = ReadUtils.readPairBaseOverlapType(state.getRead(), getLocation().getStart());
-                        if (discards.contains(Discard.ADAPTOR_BASES) &&
-                                overlapType == ReadUtils.OverlapType.IN_ADAPTOR ) {
-                            discarded_adaptor_bases++;
+                        if ( filterRead(state.getRead(), getLocation().getStart(), filters ) ) {
+                            discarded_bases++;
                             //printStatus("Adaptor bases", discarded_adaptor_bases);
-                            continue;
-                        } else if ( discards.contains(Discard.SECOND_READ_OVERLAPPING_BASES) &&
-                                overlapType == ReadUtils.OverlapType.OVERLAPPING &&
-                                state.getRead().getSecondOfPairFlag() ) {
-                            // only discard second bases in the base pair
-                            discarded_overlapped_bases++;
-                            //printStatus("Overlapping bases", discarded_overlapped_bases);
                             continue;
                         } else {
                             observed_bases++;
@@ -437,6 +433,16 @@ public class LocusIteratorByState extends LocusIterator {
                 if ( pile.size() != 0 ) nextAlignmentContext = new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions, nMQ0Reads));
             }
         }
+    }
+
+    private static boolean filterRead(SAMRecord rec, long pos, List<LocusIteratorFilter> filters) {
+        for ( LocusIteratorFilter filter : filters ) {
+            if ( filter.filterOut(rec, pos) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void printStatus(final String title, long n) {

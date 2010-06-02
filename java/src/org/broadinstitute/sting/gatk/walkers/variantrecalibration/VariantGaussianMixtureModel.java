@@ -368,13 +368,12 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     }
 
     public final void outputOptimizationCurve( final VariantDatum[] data, final String outputPrefix,
-                                               final int desiredNumVariants, final Double[] FDRtranches ) {
+                                               final int desiredNumVariants, final Double[] FDRtranches, double QUAL_STEP ) {
 
         final int numVariants = data.length;
         final boolean[] markedVariant = new boolean[numVariants];
 
         final double MAX_QUAL = 100.0;
-        final double QUAL_STEP = 0.1;
         final int NUM_BINS = (int) ((MAX_QUAL / QUAL_STEP) + 1);
 
         final int numKnownAtCut[] = new int[NUM_BINS];

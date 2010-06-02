@@ -107,15 +107,41 @@ public class ReadUtils {
      * @version 0.1
      */
 
-    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR, OVERLAPPING };
+    public enum OverlapType { NOT_OVERLAPPING, IN_ADAPTOR }
 
+    /**
+     * God, there's a huge information asymmetry in SAM format:
+     *
+     *      s1                      e1
+     *      |-----------------------> [record in hand]
+     *  s2
+     *  <-----------------------|
+     *
+     * s1, e1, and s2 are all in the record.  From isize we can can compute e2 as s1 + isize + 1
+     *
+     *      s2
+     *      |----------------------->
+     *  s1                      e1
+     *  <-----------------------|     [record in hand]
+     *
+     * Here we cannot calculate e2 since the record carries s2 and e1 + isize is s2 now!
+     *
+     * This makes the following code a little nasty, since we can only detect if a base is in the adaptor, but not
+     * if it overlaps the read.
+     *
+     * @param rec
+     * @param basePos
+     * @param adaptorLength
+     * @return
+     */
     public static OverlapType readPairBaseOverlapType(final SAMRecord rec, long basePos, final int adaptorLength) {
         OverlapType state = OverlapType.NOT_OVERLAPPING;
+
         long isize = rec.getInferredInsertSize();
-        if ( isize > 0 ) { // we're not an unmapped pair -- cannot filter out
+        if ( isize != 0 ) { // we're not an unmapped pair -- cannot filter out
             long adaptorStart, adaptorEnd;
             long mateStart = rec.getMateAlignmentStart();
-            long mateEnd = rec.getAlignmentStart() + isize;
+            long mateEnd = -1;
 
             if ( rec.getReadNegativeStrandFlag() ) {
                 // we are on the negative strand, so our mate is on the positive strand
@@ -123,20 +149,18 @@ public class ReadUtils {
                 adaptorEnd = mateStart - 1;
             } else {
                 // we are on the positive strand, so our mate is on the negative strand
+                mateEnd = rec.getAlignmentStart() + isize - 1;
                 adaptorStart = mateEnd + 1;
                 adaptorEnd = mateEnd + adaptorLength;
             }
 
-            boolean inMate = basePos >= mateStart && basePos <= mateEnd;
-            boolean inAdapator = basePos >= adaptorStart && basePos < adaptorEnd;
+            boolean inAdapator = basePos >= adaptorStart && basePos <= adaptorEnd;
 
-
-            if ( inAdapator ) state = OverlapType.IN_ADAPTOR;
-            else if ( inMate ) state = OverlapType.OVERLAPPING;
-
-//            if ( inMate || inAdapator )
-//                System.out.printf("baseOverlapState: %s start=%d base=%d mateStart=%d mateStop=%d adaptorStart=%d adaptorEnd=%d => %s%n",
-//                        rec.getReadName(), rec.getAlignmentStart(), basePos, mateStart, mateEnd, adaptorStart, adaptorEnd, state);
+            if ( inAdapator ) { 
+                state = OverlapType.IN_ADAPTOR;
+//                System.out.printf("baseOverlapState: %50s negStrand=%b base=%d start=%d stop=%d, mateStart=%d mateStop=%d adaptorStart=%d adaptorEnd=%d isize=%d => %s%n",
+//                        rec.getReadName(), rec.getReadNegativeStrandFlag(), basePos, rec.getAlignmentStart(), rec.getAlignmentEnd(), mateStart, mateEnd, adaptorStart, adaptorEnd, isize, state);
+            }
         }
 
         return state;

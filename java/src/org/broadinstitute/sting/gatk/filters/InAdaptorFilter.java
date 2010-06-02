@@ -26,6 +26,8 @@ package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorFilter;
 
 /**
  * Filters out read pairs where the reads are so long relative to the over fragment size that they are
@@ -61,24 +63,8 @@ import net.sf.samtools.SAMRecord;
  * @author depristo
  * @version 0.1
  */
-public class TinyFragmentFilter implements SamRecordFilter {
-    public boolean filterOut(final SAMRecord rec) {
-        long isize = rec.getInferredInsertSize();
-        if ( isize == 0 )
-            return false; // unmapped pair -- cannot filter out
-        else {
-            long start = rec.getAlignmentStart();
-            long end = rec.getAlignmentEnd();
-            long mateStart = rec.getMateAlignmentStart();
-            long mateEnd = rec.getAlignmentStart() + isize;
-            boolean bad = rec.getReadNegativeStrandFlag() ? start < mateStart : end > mateEnd;
-            System.out.printf("%s %d %d %d %d %d => %b%n", rec.getReadName(), start, end, mateStart, mateEnd, isize, bad);
-            if ( bad ) {
-                //System.out.printf("TinyFragment: " + rec.format());
-                return true;
-            } else {
-                return false;
-            }
-        }
+public class InAdaptorFilter implements LocusIteratorFilter {
+    public boolean filterOut(final SAMRecord rec, long basePos) {
+        return ReadUtils.readPairBaseOverlapType(rec, basePos) == ReadUtils.OverlapType.IN_ADAPTOR;
     }
 }

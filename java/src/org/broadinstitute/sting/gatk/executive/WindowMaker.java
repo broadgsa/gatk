@@ -62,7 +62,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * @param iterator The data source for this window.
      * @param intervals The set of intervals over which to traverse.
      */
-    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals, List<SamRecordFilter> filters, EnumSet<LocusIteratorByState.Discard> discards ) {
+    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals, List<SamRecordFilter> filters, List<LocusIteratorFilter> discards ) {
         this.sourceInfo = iterator.getSourceInfo();
         this.readIterator = iterator;
 
