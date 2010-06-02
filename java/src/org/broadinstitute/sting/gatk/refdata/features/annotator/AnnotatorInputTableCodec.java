@@ -32,6 +32,7 @@ import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.util.AsciiLineReader;
 import org.broad.tribble.util.LineReader;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -64,7 +65,6 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         return lineCounter[0];
     }
 
-    @Override
     public Class<AnnotatorInputTableFeature> getFeatureType() {
         return AnnotatorInputTableFeature.class;
     }
@@ -79,9 +79,9 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         final ArrayList<String> header = this.header; //optimization
         final ArrayList<String> values = Utils.split(line, DELIMITER, header.size());
 
-        //if ( values.size() > header.size()) {
-        //    throw new CodecLineParsingException(String.format("Encountered a line within " + file + " that has %d columns which is > the number of columns in the header which has %d columns.\nHeader: " + header + "\nLine: " + values, values.size(), header.size()));
-        //}
+        if ( values.size() != header.size()) {
+            throw new CodecLineParsingException(String.format("Encountered a line that has %d columns while the header has %d columns.\nHeader: " + header + "\nLine: " + values, values.size(), header.size()));
+        }
 
         final AnnotatorInputTableFeature feature = new AnnotatorInputTableFeature(header);
         for ( int i = 0; i < header.size(); i++ ) {
@@ -132,8 +132,7 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         String line = null;
         while( (line = source.readLine()) != null ) {
             numLines++;
-            line = line.trim();
-            if ( line.isEmpty() || line.startsWith("#") ) {
+            if ( line.trim().isEmpty() || line.startsWith("#") ) {
                 continue;
             }
 
@@ -150,7 +149,8 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         if(lineCounter != null) {
             lineCounter[0] = numLines;
         }
-        logger.info(String.format("Found header line containing %d columns:\n[%s]", header.size(), Utils.join("\t", header)));
+
+        logger.debug(String.format("Found header line containing %d columns:\n[%s]", header.size(), Utils.join("\t", header)));
 
         return header;
     }
