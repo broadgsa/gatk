@@ -63,7 +63,7 @@ public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
                 continue;
 
             if ( vc.isSNP() ) {
-                final String bases = new String(context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().getBases()).toUpperCase();
+                final String bases = new String(context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().getBases());
                 if ( bases.length() == 0 )
                     return null;
                 char refChr = vc.getReference().toString().charAt(0);

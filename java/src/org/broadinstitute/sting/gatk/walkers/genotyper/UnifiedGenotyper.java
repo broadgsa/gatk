@@ -115,7 +115,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( verboseWriter != null ) {
             StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
             for ( byte altAllele : BaseUtils.BASES ) {
-                //char base = Character.toUpperCase(altAllele);
                 header.append("POfDGivenAFFor" + (char)altAllele + "\t");
                 header.append("PosteriorAFFor" + (char)altAllele + "\t");
             }

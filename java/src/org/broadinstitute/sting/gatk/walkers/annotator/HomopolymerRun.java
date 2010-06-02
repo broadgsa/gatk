@@ -55,14 +55,14 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
         int leftRun = 0;
         for ( int i = refBasePos - 1; i >= 0; i--) {
-            if ( Character.toUpperCase(bases[i]) != altAllele )
+            if ( bases[i] != altAllele )
                 break;
             leftRun++;
         }
 
         int rightRun = 0;
         for ( int i = refBasePos + 1; i < bases.length; i++) {
-            if ( Character.toUpperCase(bases[i]) != altAllele )
+            if ( bases[i] != altAllele )
                 break;
             rightRun++;
         }

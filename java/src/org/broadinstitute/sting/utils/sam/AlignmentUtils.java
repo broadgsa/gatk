@@ -195,9 +195,6 @@ public class AlignmentUtils {
                         byte readChr = readBases[readIndex];
                         if ( readChr != refChr )
                             sum += (qualitySumInsteadOfMismatchCount) ? readQualities[readIndex] : 1;
-//                        char readChr = (char)readBases[readIndex];
-//                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
-//                            sum += (qualitySumInsteadOfMismatchCount) ? readQualities[readIndex] : 1;
                     }
                     break;
                 case I:
