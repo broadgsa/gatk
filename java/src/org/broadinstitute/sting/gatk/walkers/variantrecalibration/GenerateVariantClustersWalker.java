@@ -224,10 +224,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
             // Execute the RScript command to plot the table of truth values
             try {
-                final Process p = Runtime.getRuntime().exec( rScriptCommandLine );
-                p.waitFor();
-            } catch (InterruptedException e) {
-                throw new StingException(e.getMessage());
+                Runtime.getRuntime().exec( rScriptCommandLine );
             } catch ( IOException e ) {
                 throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
             }
