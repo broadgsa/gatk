@@ -33,9 +33,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.channels.FileChannel;
 import java.util.Map;
 
 
@@ -75,54 +74,135 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
 
     }
 
+
+    // test to make sure we delete the index and regenerate if it's out of date
     @Test
     public void testBuilderIndexOutOfDate() {
         Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
-        ValidationAppender appender = new ValidationAppender("Tribble index file /humgen/gsa-hpprojects/GATK/data/Validation_Data/ROD_validation/newerTribbleTrack.vcf.idx is older than the track file /humgen/gsa-hpprojects/GATK/data/Validation_Data/ROD_validation/newerTribbleTrack.vcf, this can lead to unexpected behavior");
-        logger.addAppender(appender);
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf");
+        File vcfFile = createOutofDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
         try {
             builder.loadIndex(vcfFile,new VCFCodec(), true);
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());
         }
-        // check to make sure the appender saw the target string 
-        Assert.assertTrue(appender.foundString());
+        //System.err.println("index : " + new File(vcfFile + ".idx").lastModified());
+        // System.err.println("vcf : " + vcfFile.lastModified());
 
+        // make sure that we removed and updated the index
+        Assert.assertTrue("VCF file index wasn't updated", new File(vcfFile + ".idx").lastModified() > vcfFile.lastModified());
     }
+
+    // test to make sure we delete the index and regenerate if it's out of date
+    @Test
+    public void testBuilderIndexGoodDate() {
+        Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
+        File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
+        Long indexTimeStamp = new File(vcfFile.getAbsolutePath() + ".idx").lastModified();
+        try {
+            builder.loadIndex(vcfFile,new VCFCodec(), true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Assert.fail("IO exception unexpected" + e.getMessage());
+        }
+        //System.err.println("index : " + new File(vcfFile + ".idx").lastModified());
+        //System.err.println("old : " + indexTimeStamp);
+
+        // make sure that we removed and updated the index
+        Assert.assertTrue("Fail: index file was modified", new File(vcfFile + ".idx").lastModified() == indexTimeStamp);
+    }
+
+    /**
+     * create a temporary file and an associated out of date index file
+     * @param tribbleFile the tribble file
+     * @return a file pointing to the new tmp location, with out of date index
+     */
+    private File createOutofDateIndexFile(File tribbleFile) {
+        try {
+            // first copy the tribble file to a temperary file
+            File tmpFile = File.createTempFile("TribbleUnitTestFile","");
+            logger.info("creating temp file " + tmpFile); 
+            // create a fake index, before we copy so it's out of date
+            File tmpIndex = new File(tmpFile.getAbsolutePath() + ".idx");
+            tmpIndex.deleteOnExit();
+
+            // sleep, to make sure the timestamps are different
+            Thread.sleep(1000);
+
+            // copy the vcf (tribble) file to the tmp file location
+            copyFile(tribbleFile,tmpFile);
+
+            // sleep again, to make sure the timestamps are different (vcf vrs updated index file)
+            Thread.sleep(1000);
+
+            return tmpFile;
+
+        } catch (IOException e) {
+            Assert.fail("Fail: Unable to create temperary file");
+        } catch (InterruptedException e) {
+            Assert.fail("Fail: Somehow our thread got interupted");
+        }
+        return null;
+    }
+
+    /**
+     * create a temporary file and an associated out of date index file
+     * @param tribbleFile the tribble file
+     * @return a file pointing to the new tmp location, with out of date index
+     */
+    private File createCorrectDateIndexFile(File tribbleFile) {
+        try {
+            // first copy the tribble file to a temperary file
+            File tmpFile = File.createTempFile("TribbleUnitTestFile","");
+            logger.info("creating temp file " + tmpFile);
+
+            // copy the vcf (tribble) file to the tmp file location
+            copyFile(tribbleFile,tmpFile);
+
+            // sleep again, to make sure the timestamps are different (vcf vrs updated index file)
+            Thread.sleep(1000);
+
+            // create a fake index, before we copy so it's out of date
+            File tmpIndex = new File(tmpFile.getAbsolutePath() + ".idx");
+            tmpIndex.deleteOnExit();
+
+            // copy the vcf (tribble) file to the tmp file location
+            copyFile(new File(tribbleFile + ".idx"),tmpIndex);
+
+            return tmpFile;
+
+        } catch (IOException e) {
+            Assert.fail("Unable to create temperary file");
+        } catch (InterruptedException e) {
+            Assert.fail("Somehow our thread got interupted");
+        }
+        return null;
+    }
+
+    /**
+     * copy a file, from http://www.exampledepot.com/egs/java.nio/File2File.html
+     * @param srFile the source file
+     * @param dtFile the destination file
+     */
+    private static void copyFile(File srFile, File dtFile) {
+        try {
+            // Create channel on the source
+            FileChannel srcChannel = new FileInputStream(srFile).getChannel();
+
+            // Create channel on the destination
+            FileChannel dstChannel = new FileOutputStream(dtFile).getChannel(); 
+
+            // Copy file contents from source to destination
+            dstChannel.transferFrom(srcChannel, 0, srcChannel.size());
+
+            // Close the channels
+            srcChannel.close();
+            dstChannel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Assert.fail("Unable to process copy " + e.getMessage());
+        }
+    }
+
 }
 
-/**
- * this appender looks for a specific message in the log4j stream.
- * It can be used to verify that a specific message was generated to the logging system.
- */
-class ValidationAppender extends AppenderSkeleton {
-
-    private boolean foundString = false;
-    private String targetString = "";
-
-    public ValidationAppender(String target) {
-        targetString = target;
-    }
-
-    @Override
-    protected void append(LoggingEvent loggingEvent) {
-        if (loggingEvent.getMessage().equals(targetString))
-            foundString = true;
-    }
-
-    @Override
-    public void close() {
-        // do nothing
-    }
-
-    @Override
-    public boolean requiresLayout() {
-        return false;
-    }
-
-    public boolean foundString() {
-        return foundString;
-    }
-}

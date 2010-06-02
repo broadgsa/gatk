@@ -1,6 +1,7 @@
 package org.broadinstitute.sting;
 
 import org.apache.log4j.*;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.*;
 
 import java.io.BufferedReader;
@@ -139,4 +140,39 @@ public abstract class BaseTest {
         return temp.exists();
 
     }
+    
+    /**
+     * this appender looks for a specific message in the log4j stream.
+     * It can be used to verify that a specific message was generated to the logging system.
+     */
+    public static class ValidationAppender extends AppenderSkeleton {
+
+        private boolean foundString = false;
+        private String targetString = "";
+
+        public ValidationAppender(String target) {
+            targetString = target;
+        }
+
+        @Override
+        protected void append(LoggingEvent loggingEvent) {
+            if (loggingEvent.getMessage().equals(targetString))
+                foundString = true;
+        }
+
+        @Override
+        public void close() {
+            // do nothing
+        }
+
+        @Override
+        public boolean requiresLayout() {
+            return false;
+        }
+
+        public boolean foundString() {
+            return foundString;
+        }
+    }
+
 }

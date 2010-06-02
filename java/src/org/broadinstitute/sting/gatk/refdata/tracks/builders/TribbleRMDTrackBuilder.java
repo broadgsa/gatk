@@ -170,19 +170,17 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         // acquire a lock on the file
         boolean obtainedLock = lock.lock();
         try {
-            // if the file exists, and we can read it, load the index from disk
+            // check to see if the index file is out of date
+            if (indexFile.exists() && indexFile.canRead() && obtainedLock && indexFile.lastModified() < inputFile.lastModified()) {
+                logger.warn("Tribble index file " + indexFile + " is older than the track file " + inputFile + ", deleting and regenerating");
+                indexFile.delete();
+            }
+            // if the file exists, and we can read it, load the index from disk (i.e. wasn't deleted in the last step).
             if (indexFile.exists() && indexFile.canRead() && obtainedLock) {
-
-                // check to see if the index file is out of date
-                if (indexFile.lastModified() < inputFile.lastModified())
-                    logger.warn("Tribble index file " + indexFile + " is older than the track file " + inputFile + ", this can lead to unexpected behavior");
-                
                 logger.info("Loading Tribble index from disk for file " + inputFile);
                 return LinearIndex.createIndex(indexFile);
             }
-            // else we need to create the index, and write it to disk if we can
-            else
-                return writeIndexToDisk(inputFile, codec, onDisk, indexFile, obtainedLock);            
+            return writeIndexToDisk(inputFile, codec, onDisk, indexFile, obtainedLock);
         }
         finally {
             lock.unlock();
