@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
@@ -159,21 +160,28 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      *
      * @return
      */
-    public static List<File> unpackList( List<File> inputFiles ) {
+    private static List<File> unpackList( List<File> inputFiles ) {
         List<File> unpackedReads = new ArrayList<File>();
         for( File inputFile: inputFiles ) {
-            if (inputFile.getName().endsWith(".list") ) {
+            if (inputFile.getName().toLowerCase().endsWith(".list") ) {
                 try {
-                    for( String fileName : new XReadLines(inputFile) )
-                        unpackedReads.add( new File(fileName) );
+                    for(String fileName : new XReadLines(inputFile))
+                        unpackedReads.addAll(Collections.singletonList(new File(fileName)));
                 }
                 catch( FileNotFoundException ex ) {
                     throw new StingException("Unable to find file while unpacking reads", ex);
                 }
             }
-            else
+            else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
                 unpackedReads.add( inputFile );
+            }
+            else {
+                Utils.scareUser(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
+                                              "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
+                                              "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
+            }
         }
         return unpackedReads;
     }
+
 }
