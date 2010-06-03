@@ -10,6 +10,10 @@ import java.util.*;
  * @author Mark DePristo
  */
 public class Genotype {
+
+    public final static String PHASED_ALLELE_SEPARATOR = "|";
+    public final static String UNPHASED_ALLELE_SEPARATOR = "/";
+
     protected InferredGeneticContext commonInfo;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
     protected List<Allele> alleles = new ArrayList<Allele>();
@@ -48,20 +52,6 @@ public class Genotype {
 
     public Allele getAllele(int i) {
         return alleles.get(i);
-    }
-
-    private final static String ALLELE_SEPARATOR = "/";
-
-    public String getGenotypeString() {
-        return Utils.join(ALLELE_SEPARATOR, getAllelesString());
-    }
-
-    private List<String> getAllelesString() {
-        List<String> al = new ArrayList<String>();
-        for ( Allele a : alleles )
-            al.add(new String(a.getBases()));
-
-        return al;
     }
 
     public boolean genotypesArePhased() { return genotypesArePhased; }
@@ -126,19 +116,33 @@ public class Genotype {
             throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
     }
 
-    private String haplotypesString() {
-        if ( genotypesArePhased() )
-            return Utils.join("|", getAlleles());
-        else
-            return Utils.join("/", Utils.sorted(getAlleles()));
+    public String getGenotypeString() {
+        return getGenotypeString(true);
+    }
+
+    public String getGenotypeString(boolean ignoreRefState) {
+        // Notes:
+        // 1. Make sure to use the appropriate separator depending on whether the genotype is phased
+        // 2. If ignoreRefState is true, then we want just the bases of the Alleles (ignoring the '*' indicating a ref Allele)
+        // 3. So that everything is deterministic with regards to integration tests, we sort Alleles (when the genotype isn't phased, of course)
+        return Utils.join(genotypesArePhased() ? PHASED_ALLELE_SEPARATOR : UNPHASED_ALLELE_SEPARATOR,
+                ignoreRefState ? getAlleleStrings() : (genotypesArePhased() ? getAlleles() : Utils.sorted(getAlleles())));
+    }
+
+    private List<String> getAlleleStrings() {
+        List<String> al = new ArrayList<String>();
+        for ( Allele a : alleles )
+            al.add(new String(a.getBases()));
+
+        return al;
     }
 
     public String toString() {
-        return String.format("[GT: %s %s %s Q%.2f %s]", getSampleName(), haplotypesString(), getType(), getPhredScaledQual(), Utils.sortedString(getAttributes()));
+        return String.format("[GT: %s %s %s Q%.2f %s]", getSampleName(), getGenotypeString(false), getType(), getPhredScaledQual(), Utils.sortedString(getAttributes()));
     }
 
     public String toBriefString() {
-        return String.format("%s:Q%.2f", haplotypesString(), getPhredScaledQual());
+        return String.format("%s:Q%.2f", getGenotypeString(false), getPhredScaledQual());
     }
 
     public boolean sameGenotype(Genotype other) {
