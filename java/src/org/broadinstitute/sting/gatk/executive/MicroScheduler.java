@@ -83,7 +83,9 @@ public abstract class MicroScheduler {
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
         if (walker instanceof TreeReducible && nThreadsToUse > 1) {
             if(walker.isReduceByInterval())
-                throw new StingException(String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+                throw new StingException(String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+            if(walker instanceof ReadWalker)
+                throw new StingException(String.format("The analysis %s is a read walker.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",nThreadsToUse));
             return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, nThreadsToUse);
         } else {
