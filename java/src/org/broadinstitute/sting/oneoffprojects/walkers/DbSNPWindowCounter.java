@@ -46,7 +46,7 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
     public void initialize() {
         TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
-        reader = builder.createFeatureReader(DbSNPCodec.class,myDbSNPFile);
+        reader = builder.createFeatureReader(DbSNPCodec.class,myDbSNPFile).first;
     }
 
 

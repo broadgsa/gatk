@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.FeatureReader;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
@@ -32,20 +33,22 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 
 
 /**
  * 
  * @author aaron 
  * 
- * Class FeatureReaderTrack
+ * Class TribbleTrack
  *
  * A feature reader track, implementing the RMDTrack for tracks that are generated out of Tribble
  */
-public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
+public class TribbleTrack extends RMDTrack implements QueryableTrack {
     // our feature reader - allows queries
     private FeatureReader reader;
+
+    // our sequence dictionary, which can be null
+    private final SAMSequenceDictionary dictionary;
 
     /**
      * Create a track
@@ -55,10 +58,12 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
      * @param name the name of this specific track
      * @param file the associated file, for reference or recreating the reader
      * @param reader the feature reader to use as the underlying data source
+     * @param dict the sam sequence dictionary
      */
-    public FeatureReaderTrack(Class type, Class recordType, String name, File file, FeatureReader reader) {
+    public TribbleTrack(Class type, Class recordType, String name, File file, FeatureReader reader, SAMSequenceDictionary dict) {
         super(type, recordType, name, file);
         this.reader = reader;
+        this.dictionary = dict;
     }
 
     /**
@@ -116,5 +121,13 @@ public class FeatureReaderTrack extends RMDTrack implements QueryableTrack {
 
     public FeatureReader getReader() {
         return reader;
+    }
+
+    /**
+     * get the sequence dictionary from the track, if available
+     * @return a SAMSequenceDictionary if available, null if unavailable
+     */
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return dictionary;
     }
 }

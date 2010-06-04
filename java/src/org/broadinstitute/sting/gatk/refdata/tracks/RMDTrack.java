@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 
@@ -112,4 +113,12 @@ public abstract class RMDTrack {
      * @return true if we can be cast to the QueryableTrack interface 
      */
     public abstract boolean supportsQuery();
+
+    /**
+     * get the sequence dictionary from the track, if available
+     * @return a SAMSequenceDictionary if available, null if unavailable
+     */
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return null;  // default, others can override this
+    }
 }

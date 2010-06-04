@@ -334,8 +334,6 @@ public class GenomeAnalysisEngine {
         validateSuppliedReferenceAgainstWalker(my_walker, argCollection);
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 
-        validateReadsAndReferenceAreCompatible(readsDataSource, referenceDataSource);
-
         //
         // please don't use these in the future, use the new syntax <- if we're not using these please remove them
         //
@@ -352,6 +350,9 @@ public class GenomeAnalysisEngine {
         RMDTrackManager manager = new RMDTrackManager();
         List<RMDTrack> tracks = manager.getReferenceMetaDataSources(argCollection.RODBindings);
         validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, tracks);
+
+        // validate all the sequence dictionaries against the reference
+        validateSourcesAgainstReference(readsDataSource, referenceDataSource, tracks);
 
         rodDataSources = getReferenceOrderedDataSources(my_walker, tracks);
     }
@@ -604,21 +605,15 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference.
+     * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference vrs the reference ordered data (if available).
      *
      * @param reads     Reads data source.
      * @param reference Reference data source.
+     * @param tracks    a collection of the reference ordered data tracks
      */
-    private void validateReadsAndReferenceAreCompatible(SAMDataSource reads, ReferenceSequenceFile reference) {
-        if (reads == null || reference == null)
+    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<RMDTrack> tracks) {
+        if ((reads == null && (tracks == null || tracks.isEmpty())) || reference == null )
             return;
-
-        // Compile a set of sequence names that exist in the BAM files.
-        SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
-
-        Set<String> readsSequenceNames = new TreeSet<String>();
-        for (SAMSequenceRecord dictionaryEntry : readsDictionary.getSequences())
-            readsSequenceNames.add(dictionaryEntry.getSequenceName());
 
         // Compile a set of sequence names that exist in the reference file.
         SAMSequenceDictionary referenceDictionary = reference.getSequenceDictionary();
@@ -627,32 +622,70 @@ public class GenomeAnalysisEngine {
         for (SAMSequenceRecord dictionaryEntry : referenceDictionary.getSequences())
             referenceSequenceNames.add(dictionaryEntry.getSequenceName());
 
-        if (readsSequenceNames.size() == 0) {
-            logger.info("Reads file is unmapped.  Skipping validation against reference.");
-            return;
+
+        if (reads != null) {
+            // Compile a set of sequence names that exist in the BAM files.
+            SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
+
+            Set<String> readsSequenceNames = new TreeSet<String>();
+            for (SAMSequenceRecord dictionaryEntry : readsDictionary.getSequences())
+                readsSequenceNames.add(dictionaryEntry.getSequenceName());
+
+
+            if (readsSequenceNames.size() == 0) {
+                logger.info("Reads file is unmapped.  Skipping validation against reference.");
+                return;
+            }
+
+            // compare the reads to the reference
+            compareTwoDictionaries("reads", readsDictionary, readsSequenceNames, referenceDictionary, referenceSequenceNames);
         }
 
+        // compare the tracks to the reference, if they have a sequence dictionary
+        for (RMDTrack track : tracks) {
+            SAMSequenceDictionary trackDict = track.getSequenceDictionary();
+            if (trackDict == null) {
+                logger.info("Track " + track.getName() + "doesn't have a sequence dictionary built in, skipping dictionary validation");
+                continue;
+            }
+            Set<String> trackSequences = new TreeSet<String>();
+            for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
+                trackSequences.add(dictionaryEntry.getSequenceName());
+            compareTwoDictionaries(track.getName(), trackDict, trackSequences, referenceDictionary, referenceSequenceNames);
+        }
+
+    }
+
+    /**
+     * compare two dictionaries, warning if one isn't a subset of the other, or erroring out if they have no overlap
+     * @param compareToName the name of the track or bam (used in the output to the user)
+     * @param comparedToDictionary the dictionary to compare to
+     * @param compareToSequenceNames the unique sequence names in the compared to dictionary
+     * @param referenceDictionary the reference dictionary
+     * @param referenceSequenceNames the reference unique sequence names
+     */
+    private void compareTwoDictionaries(String compareToName, SAMSequenceDictionary comparedToDictionary, Set<String> compareToSequenceNames, SAMSequenceDictionary referenceDictionary, Set<String> referenceSequenceNames) {
         // If there's no overlap between reads and reference, data will be bogus.  Throw an exception.
-        Set<String> intersectingSequenceNames = new HashSet<String>(readsSequenceNames);
+        Set<String> intersectingSequenceNames = new HashSet<String>(compareToSequenceNames);
         intersectingSequenceNames.retainAll(referenceSequenceNames);
         if (intersectingSequenceNames.size() == 0) {
             StringBuilder error = new StringBuilder();
-            error.append("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
+            error.append("No overlap exists between sequence dictionary of the " + compareToName + " and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
             error.append(System.getProperty("line.separator"));
-            error.append(String.format("Reads contigs:     %s%n", prettyPrintSequenceRecords(readsDictionary)));
+            error.append(String.format(compareToName + " contigs:     %s%n", prettyPrintSequenceRecords(comparedToDictionary)));
             error.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
             logger.error(error.toString());
-            Utils.scareUser("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.");
+            Utils.scareUser("No overlap exists between sequence dictionary of " + compareToName + " and the sequence dictionary of the reference.");
         }
 
         // If the two datasets are not equal and neither is a strict subset of the other, warn the user.
-        if (!readsSequenceNames.equals(referenceSequenceNames) &&
-                !readsSequenceNames.containsAll(referenceSequenceNames) &&
-                !referenceSequenceNames.containsAll(readsSequenceNames)) {
+        if (!compareToSequenceNames.equals(referenceSequenceNames) &&
+                !compareToSequenceNames.containsAll(referenceSequenceNames) &&
+                !referenceSequenceNames.containsAll(compareToSequenceNames)) {
             StringBuilder warning = new StringBuilder();
-            warning.append("Limited overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
+            warning.append("Limited overlap exists between sequence dictionary of the " + compareToName + " and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
             warning.append(System.getProperty("line.separator"));
-            warning.append(String.format("Reads contigs:     %s%n", prettyPrintSequenceRecords(readsDictionary)));
+            warning.append(String.format(compareToName + " contigs:     %s%n", prettyPrintSequenceRecords(comparedToDictionary)));
             warning.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
             logger.warn(warning.toString());
         }

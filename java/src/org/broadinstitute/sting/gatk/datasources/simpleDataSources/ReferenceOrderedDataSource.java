@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import org.broad.tribble.FeatureReader;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureReaderTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
@@ -15,8 +15,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 /**
  * User: hanna
@@ -52,7 +50,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     public ReferenceOrderedDataSource( Walker walker, RMDTrack rod) {
         this.rod = rod;
         if (rod.supportsQuery())
-            iteratorPool = new ReferenceOrderedQueryDataPool(new TribbleRMDTrackBuilder(), (FeatureReaderTrack)rod);
+            iteratorPool = new ReferenceOrderedQueryDataPool(new TribbleRMDTrackBuilder(), (TribbleTrack)rod);
         else
             iteratorPool = new ReferenceOrderedDataPool( walker, rod );
     }
@@ -187,7 +185,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
     // our tribble track builder
     private final TribbleRMDTrackBuilder builder;
 
-    public ReferenceOrderedQueryDataPool( TribbleRMDTrackBuilder builder, FeatureReaderTrack rod ) {
+    public ReferenceOrderedQueryDataPool( TribbleRMDTrackBuilder builder, TribbleTrack rod ) {
         this.rod = rod;
         this.builder = builder;
         // a little bit of a hack, but it saves us from re-reading the index from the file
@@ -196,7 +194,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
 
     @Override
     protected FeatureReader createNewResource() {
-        return builder.createFeatureReader(rod.getType(),rod.getFile());
+        return builder.createFeatureReader(rod.getType(),rod.getFile()).first;
     }
 
     @Override

@@ -71,7 +71,7 @@ public class RMDTrackManagerUnitTest extends BaseTest {
             int count = 0;
             Iterator<GATKFeature> fIter;
             try {
-                fIter = ((FeatureReaderTrack) t).query("1", 1, 5000);
+                fIter = ((TribbleTrack) t).query("1", 1, 5000);
             } catch (IOException e) {
                 throw new StingException("blah I/O exception");
             }
@@ -126,7 +126,7 @@ public class RMDTrackManagerUnitTest extends BaseTest {
                 long firstTime = System.currentTimeMillis();
                 long count = 0;
                 try {
-                    fIter = ((FeatureReaderTrack) t).query("1", x, x + intervalSize);
+                    fIter = ((TribbleTrack) t).query("1", x, x + intervalSize);
                 } catch (IOException e) {
                     throw new StingException("blah I/O exception");
                 }
