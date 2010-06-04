@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.oneoffprojects.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broad.tribble.vcf.VCFRecord;
 import org.broad.tribble.vcf.VCFGenotypeRecord;
@@ -47,6 +47,7 @@ import java.util.*;
 
 /**
  * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF file
+ * @help.summary Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF file
  */
 @Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFRecord.class))
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
@@ -61,7 +62,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         for ( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getType().equals(VCFRecord.class) ) {
+            if ( rod.getRecordType().equals(VCFRecord.class) ) {
                 final VCFReader reader = new VCFReader(rod.getFile());
                 final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
                 samples.addAll(vcfSamples);
@@ -89,6 +90,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 return 0;
             }
 
+             // Get Reference base for this site: will be output to screen, not directly used by Beagle but rather by output analysis tools
+       //     char re =  (char)ref.getBase();
+
             // output marker ID to Beagle input file
             beagleWriter.print(String.format("%s ",vc_eval.getLocation().toString()));
 
@@ -114,12 +118,12 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                     String[] glArray = genotype.getAttributeAsString(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY).split(",");
 
                     for (String gl : glArray) {
-                        Double d_gl = Math.pow(10, Double.valueOf(gl));
+                        Double d_gl = 100*Math.pow(10, Double.valueOf(gl));
                         beagleWriter.print(String.format("%5.2f ",d_gl));
                     }
                 }
                 else
-                    beagleWriter.print("0 0 0 "); // write 0 likelihoods for uncalled genotypes.
+                    beagleWriter.print("0.33 0.33 0.33 "); // write 1/3 likelihoods for uncalled genotypes.
 
             }
 
