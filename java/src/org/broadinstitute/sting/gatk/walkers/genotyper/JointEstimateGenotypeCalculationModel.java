@@ -379,9 +379,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // next, the variant context data (alleles, attributes, etc.)
         ArrayList<Allele> alleles = new ArrayList<Allele>();
-        alleles.add(new Allele(ref, true));
+        alleles.add(Allele.create(ref, true));
         if ( bestAFguess != 0 )
-            alleles.add(new Allele(bestAlternateAllele, false));
+            alleles.add(Allele.create(bestAlternateAllele, false));
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();

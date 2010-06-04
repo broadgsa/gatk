@@ -50,16 +50,16 @@ public class VariantContextUnitTest extends BaseTest {
 
     @Before
     public void before() {
-        del = new Allele("-");
-        delRef = new Allele("-", true);
+        del = Allele.create("-");
+        delRef = Allele.create("-", true);
 
-        A = new Allele("A");
-        Aref = new Allele("A", true);
-        T = new Allele("T");
-        Tref = new Allele("T", true);
+        A = Allele.create("A");
+        Aref = Allele.create("A", true);
+        T = Allele.create("T");
+        Tref = Allele.create("T", true);
 
-        ATC = new Allele("ATC");
-        ATCref = new Allele("ATC", true);
+        ATC = Allele.create("ATC");
+        ATCref = Allele.create("ATC", true);
     }
 
     @Test
@@ -101,8 +101,8 @@ public class VariantContextUnitTest extends BaseTest {
         VariantContext vc = new VariantContext("test", snpLoc, alleles);
         logger.warn("vc = " + vc);
 
-        Assert.assertEquals(vc.getLocation(), snpLoc);
-        Assert.assertEquals(vc.getType(), VariantContext.Type.NO_VARIATION);
+        Assert.assertEquals(snpLoc, vc.getLocation());
+        Assert.assertEquals(VariantContext.Type.NO_VARIATION, vc.getType());
         Assert.assertFalse(vc.isSNP());
         Assert.assertFalse(vc.isIndel());
         Assert.assertFalse(vc.isInsertion());

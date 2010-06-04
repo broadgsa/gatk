@@ -182,6 +182,12 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     protected final static Map<String, Genotype> NO_GENOTYPES = Collections.unmodifiableMap(new HashMap<String, Genotype>());
 
+    // a fast cached access point to the ref / alt alleles for biallelic case
+    private Allele REF = null;
+
+    // set to the alt allele when biallelic, otherwise == null
+    private Allele ALT = null;
+
     // ---------------------------------------------------------------------------------------------------------
     //
     // constructors
@@ -205,7 +211,16 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
         if ( genotypes == null ) { genotypes = NO_GENOTYPES; }
         this.genotypes = Collections.unmodifiableMap(genotypes);
-        calculateGenotypeCounts();
+
+        // cache the REF and ALT alleles
+        int nAlleles = alleles.size();
+        for ( Allele a : alleles ) {
+            if ( a.isReference() ) {
+                REF = a;
+            } else if ( nAlleles == 2 ) { // only cache ALT when biallelic
+                ALT = a;
+            }
+        }
 
         validate();
     }
@@ -371,6 +386,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     public enum Type {
         NO_VARIATION,
         SNP,
+        MNP,    // a multi-nucleotide polymorphism
         INDEL,
         MIXED,
     }
@@ -492,19 +508,23 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return the reference allele for this context
      */
     public Allele getReference() {
-        Allele ref = getReferenceWithoutError();
+        Allele ref = REF;
         if ( ref == null )
             throw new StingException("BUG: no reference allele found at " + this);
         return ref;
     }
 
     /** Private helper routine that grabs the reference allele but doesn't throw an error if there's no such allele */
-    private Allele getReferenceWithoutError() {
-        for ( Allele allele : getAlleles() )
-            if ( allele.isReference() )
-                return allele;
-        return null;
-    }
+
+//    private Allele getReferenceWithoutError() {
+//        for ( Allele allele : getAlleles() ) {
+//            if ( allele.isReference() ) {
+//                return allele;
+//            }
+//        }
+//
+//        return null;
+//    }
 
     /**
      * @return true if the context is strictly bi-allelic
@@ -542,6 +562,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     public boolean hasAllele(Allele allele, boolean ignoreRefState) {
+        if ( allele == REF || allele == ALT ) // optimization for cached cases
+            return true;
+
         for ( Allele a : getAlleles() ) {
             if ( a.equals(allele, ignoreRefState) )
                 return true;
@@ -750,19 +773,21 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     }
 
     private void calculateGenotypeCounts() {
-        genotypeCounts = new int[Genotype.Type.values().length];
+        if ( genotypeCounts == null ) {
+            genotypeCounts = new int[Genotype.Type.values().length];
 
-        for ( Genotype g : getGenotypes().values() ) {
-            if ( g.isNoCall() )
-                genotypeCounts[Genotype.Type.NO_CALL.ordinal()]++;
-            else if ( g.isHomRef() )
-                genotypeCounts[Genotype.Type.HOM_REF.ordinal()]++;
-            else if ( g.isHet() )
-                genotypeCounts[Genotype.Type.HET.ordinal()]++;
-            else if ( g.isHomVar() )
-                genotypeCounts[Genotype.Type.HOM_VAR.ordinal()]++;
-            else
-                throw new StingException("Genotype of unknown type: " + g);
+            for ( Genotype g : getGenotypes().values() ) {
+                if ( g.isNoCall() )
+                    genotypeCounts[Genotype.Type.NO_CALL.ordinal()]++;
+                else if ( g.isHomRef() )
+                    genotypeCounts[Genotype.Type.HOM_REF.ordinal()]++;
+                else if ( g.isHet() )
+                    genotypeCounts[Genotype.Type.HET.ordinal()]++;
+                else if ( g.isHomVar() )
+                    genotypeCounts[Genotype.Type.HOM_VAR.ordinal()]++;
+                else
+                    throw new StingException("Genotype of unknown type: " + g);
+            }
         }
     }
 
@@ -772,6 +797,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return number of no calls
      */
     public int getNoCallCount() {
+        calculateGenotypeCounts();
         return genotypeCounts[Genotype.Type.NO_CALL.ordinal()];
     }
 
@@ -781,6 +807,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return number of hom ref calls
      */
     public int getHomRefCount() {
+        calculateGenotypeCounts();
         return genotypeCounts[Genotype.Type.HOM_REF.ordinal()];
     }
 
@@ -790,6 +817,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return number of het calls
      */
     public int getHetCount() {
+        calculateGenotypeCounts();
         return genotypeCounts[Genotype.Type.HET.ordinal()];
     }
 
@@ -811,9 +839,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * To be called by any modifying routines
      */
-    //private void invalidate() { validatedP = false; }
-
-    public boolean validate() {
+    private boolean validate() {
         return validate(true);
     }
 
@@ -888,70 +914,40 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public static VariantContext simpleMerge(Set<VariantContext> VCs) {
-        if ( VCs == null || VCs.size() == 0 )
-            return null;
-
-        Iterator<VariantContext> iter = VCs.iterator();
-
-        // establish the baseline info from the first VC
-        VariantContext first = iter.next();
-        String name = first.getName();
-        GenomeLoc loc = first.getLocation();
-        Set<Allele> alleles = new HashSet<Allele>(first.getAlleles());
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(first.getGenotypes());
-        double negLog10PError = first.isVariant() ? first.getNegLog10PError() : -1;
-        Set<String> filters = new HashSet<String>(first.getFilters());
-        Map<String, String> attributes = new HashMap<String, String>();
-        int depth = 0;
-        if ( first.hasAttribute(VCFRecord.DEPTH_KEY) )
-            depth = Integer.valueOf(first.getAttribute(VCFRecord.DEPTH_KEY).toString());
-
-        // cycle through and add info from the other VCs, making sure the loc/reference matches
-        while ( iter.hasNext() ) {
-            VariantContext vc = iter.next();
-            if ( !loc.equals(vc.getLocation()) || !first.getReference().equals(vc.getReference()) )
-                return null;
-
-            alleles.addAll(vc.getAlleles());
-            genotypes.putAll(vc.getGenotypes());
-
-            negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
-
-            filters.addAll(vc.getFilters());
-            if ( vc.hasAttribute(VCFRecord.DEPTH_KEY) )
-                depth += Integer.valueOf(vc.getAttribute(VCFRecord.DEPTH_KEY).toString());
-        }
-
-        if ( depth > 0 )
-            attributes.put(VCFRecord.DEPTH_KEY, String.valueOf(depth));
-        return new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
-    }
-
     private void determineType() {
         if ( type == null ) {
-            if ( alleles.size() == 0 ) {
-                throw new StingException("Unexpected requested type of VariantContext with no alleles!" + this);
-            } else if ( alleles.size() == 1 ) {
-                type = Type.NO_VARIATION;
-                // note that this doesn't require a reference allele.  You can be monomorphic independent of having a
-                // reference allele
-            } else if ( isSNPAllele(alleles) ) {
-                type = Type.SNP;
-            } else if ( isDIPAllele(alleles) ) {
-                type = Type.INDEL;
-            } else {
-                type = Type.MIXED;
+            switch ( getNAlleles() ) {
+                case 0:
+                    throw new StingException("Unexpected requested type of VariantContext with no alleles!" + this);
+                case 1:
+                    type = Type.NO_VARIATION;
+                    // note that this doesn't require a reference allele.  You can be monomorphic independent of having a
+                    // reference allele
+                    break;
+                default:
+                    if ( isMNPAllele(alleles, 1) ) {
+                        type = Type.SNP;
+                    } else if ( isMNPAllele(alleles, -1) ) {
+                        type = Type.MNP;
+                    } else if ( isDIPAllele(alleles) ) {
+                        type = Type.INDEL;
+                    } else {
+                        type = Type.MIXED;
+                    }
             }
         }
     }
 
-    private static boolean isSNPAllele(Set<Allele> alleles) {
-        if ( alleles.size() < 2 )
-            return false;
+    private static boolean isMNPAllele(Set<Allele> alleles, int requiredLength ) { // requireLength == -1 if you don't care
+//        if ( alleles.size() < 2 )
+//            return false;
 
+        int l = requiredLength;
         for ( Allele allele : alleles ) {
-            if ( allele.length() != 1 )
+            if ( l == -1 ) // remember the length of the first allele
+                l = allele.length();
+
+            if ( allele.length() != l )
                 return false;
         }
 

@@ -529,7 +529,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
                     if ( PlinkRod.SEQUENOM_NO_CALL.equals(alleleString) )
                         allele = Allele.NO_CALL;
                     else
-                        allele = new Allele(alleleString);
+                        allele = Allele.create(alleleString);
                     alleles.put(alleleString, allele);
                 }
 

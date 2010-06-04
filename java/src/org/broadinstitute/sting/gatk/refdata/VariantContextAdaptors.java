@@ -52,26 +52,17 @@ public class VariantContextAdaptors {
         adaptors.put(RodGLF.class, new GLFAdaptor());
         adaptors.put(GeliTextFeature.class, new GeliTextAdaptor());
         adaptors.put(rodGELI.class, new GeliAdaptor());
+        adaptors.put(VariantContext.class, new VariantContextAdaptor());
     }
 
     public static boolean canBeConvertedToVariantContext(Object variantContainingObject) {
         return adaptors.containsKey(variantContainingObject.getClass());
-//        return convertToVariantContext(name, variantContainingObject) != null;
     }
 
     /** generic superclass */
     private static abstract class VCAdaptor {
-//        abstract VariantContext convert(String name, Object input);
         abstract VariantContext convert(String name, Object input, ReferenceContext ref);
     }
-
-//    public static VariantContext toVariantContext(String name, Object variantContainingObject) {
-//        if ( ! adaptors.containsKey(variantContainingObject.getClass()) )
-//            return null;
-//        else {
-//            return adaptors.get(variantContainingObject.getClass()).convert(name, variantContainingObject);
-//        }
-//    }
 
     public static VariantContext toVariantContext(String name, Object variantContainingObject, ReferenceContext ref) {
         if ( ! adaptors.containsKey(variantContainingObject.getClass()) )
@@ -87,7 +78,12 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-
+    private static class VariantContextAdaptor extends VCAdaptor {
+        // already a VC, just cast and return it
+        VariantContext convert(String name, Object input, ReferenceContext ref) {
+            return (VariantContext)input;
+        }
+    }
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -96,15 +92,11 @@ public class VariantContextAdaptors {
     // --------------------------------------------------------------------------------------------------------------
 
     private static class DBSnpAdaptor extends VCAdaptor {
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
-
         VariantContext convert(String name, Object input, ReferenceContext ref) {
             DbSNPFeature dbsnp = (DbSNPFeature)input;
             if ( ! Allele.acceptableAlleleBases(DbSNPHelper.getReference(dbsnp)) )
                 return null;
-            Allele refAllele = new Allele(DbSNPHelper.getReference(dbsnp), true);
+            Allele refAllele = Allele.create(DbSNPHelper.getReference(dbsnp), true);
 
             if ( DbSNPHelper.isSNP(dbsnp) || DbSNPHelper.isIndel(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
                 // add the reference allele
@@ -117,14 +109,13 @@ public class VariantContextAdaptors {
                         //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                         return null;
                     }
-                    alleles.add(new Allele(alt, false));
+                    alleles.add(Allele.create(alt, false));
                 }
 
                 Map<String, String> attributes = new HashMap<String, String>();
                 attributes.put("ID", dbsnp.getRsID());
                 Collection<Genotype> genotypes = null;
                 VariantContext vc = new VariantContext(name, GenomeLocParser.createGenomeLoc(dbsnp.getChr(),dbsnp.getStart(),dbsnp.getEnd()), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
-                vc.validate();
                 return vc;
             } else
                 return null; // can't handle anything else
@@ -165,9 +156,9 @@ public class VariantContextAdaptors {
                 if ( vcf.isDeletion() && refAllele.length() > alt.getLength() ) {
                     byte[] semiDeletion = new byte[refAllele.length() - alt.getLength()];
                     System.arraycopy(ref.getBases(), alt.getLength(), semiDeletion, 0, refAllele.length() - alt.getLength());
-                    allele = new Allele(String.valueOf(semiDeletion), false);
+                    allele = Allele.create(String.valueOf(semiDeletion), false);
                 } else {
-                    allele = new Allele(alt.getBases(), false);
+                    allele = Allele.create(alt.getBases(), false);
                 }
                 if ( ! allele.isNoCall() )
                     alleles.add(allele);
@@ -211,7 +202,6 @@ public class VariantContextAdaptors {
                 loc = GenomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), loc.getStart()+refAllele.length()-1);
 
             VariantContext vc = new VariantContext(name, loc, alleles, genotypes, qual, filters, attributes);
-            vc.validate();
             return vc;
         } else
             return null; // can't handle anything else
@@ -223,11 +213,11 @@ public class VariantContextAdaptors {
 
         Allele refAllele;
         if ( vcf.isInsertion() ) {
-            refAllele = new Allele(Allele.NULL_ALLELE_STRING, true);
+            refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
 //        } else if ( ref == null ) {
-//            refAllele = new Allele(vcf.getReference(), true);
+//            refAllele = Allele.create(vcf.getReference(), true);
         } else if ( !vcf.isIndel() ) {
-            refAllele = new Allele(ref.getBase(), true);
+            refAllele = Allele.create(ref.getBase(), true);
         } else if ( vcf.isDeletion() ) {
             int start = (int)(ref.getLocus().getStart() - ref.getWindow().getStart() + 1);
             int delLength = 0;
@@ -249,7 +239,7 @@ public class VariantContextAdaptors {
     private static Allele deletionAllele(ReferenceContext ref, int start, int len) {
         byte[] deletion = new byte[len];
         System.arraycopy(ref.getBases(), start, deletion, 0, len);
-        return new Allele(deletion, true);
+        return Allele.create(deletion, true);
     }
 
 
@@ -458,11 +448,11 @@ public class VariantContextAdaptors {
                             VCAllele = plinkAlleleToVCAllele.get(myPlinkAllele);
                         } else {
                             if ( !plink.isIndel() ) {
-                                VCAllele = new Allele(myPlinkAllele.getBases(), refAllele.equals(myPlinkAllele, true));
+                                VCAllele = Allele.create(myPlinkAllele.getBases(), refAllele.equals(myPlinkAllele, true));
                             } else if ( myPlinkAllele.isNull() ) {
-                                VCAllele = new Allele(Allele.NULL_ALLELE_STRING, plink.isInsertion());
+                                VCAllele = Allele.create(Allele.NULL_ALLELE_STRING, plink.isInsertion());
                             } else {
-                                VCAllele = new Allele(myPlinkAllele.getBases(), !plink.isInsertion());
+                                VCAllele = Allele.create(myPlinkAllele.getBases(), !plink.isInsertion());
                             }
                             plinkAlleleToVCAllele.put(myPlinkAllele, VCAllele);
                             VCAlleles.add(VCAllele);
@@ -480,7 +470,6 @@ public class VariantContextAdaptors {
             try {
                 GenomeLoc loc = GenomeLocParser.setStop(plink.getLocation(), plink.getLocation().getStop() + plink.getLength()-1);
                 VariantContext vc = new VariantContext(plink.getVariantName(), loc, VCAlleles, genotypes);
-                vc.validate();
                 return vc;
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(e.getMessage() + "; please make sure that e.g. a sample isn't present more than one time in your ped file");
@@ -490,9 +479,9 @@ public class VariantContextAdaptors {
         private Allele determineRefAllele(PlinkRod plink, ReferenceContext ref) {
             Allele refAllele;
             if ( !plink.isIndel() ) {
-                refAllele = new Allele(ref.getBase(), true);
+                refAllele = Allele.create(ref.getBase(), true);
             } else if ( plink.isInsertion() ) {
-                refAllele = new Allele(Allele.NULL_ALLELE_STRING, true);
+                refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
             } else {
                 long maxLength = ref.getWindow().getStop() - ref.getLocus().getStop();                
                 if ( plink.getLength() > maxLength )
@@ -532,7 +521,7 @@ public class VariantContextAdaptors {
 
             if ( ! Allele.acceptableAlleleBases(glf.getReference()) )
                 return null;
-            Allele refAllele = new Allele(glf.getReference(), true);
+            Allele refAllele = Allele.create(glf.getReference(), true);
 
             // make sure we can convert it
             if ( glf.isSNP() || glf.isIndel()) {
@@ -545,7 +534,7 @@ public class VariantContextAdaptors {
                     if ( ! Allele.acceptableAlleleBases(alt) ) {
                         return null;
                     }
-                    Allele allele = new Allele(alt, false);
+                    Allele allele = Allele.create(alt, false);
                     if (!alleles.contains(allele)) alleles.add(allele);
                 }
 
@@ -570,7 +559,6 @@ public class VariantContextAdaptors {
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
                 VariantContext vc = new VariantContext(name, glf.getLocation(), alleles, genotypes, glf.getNegLog10PError(), null, attributes);
-                vc.validate();
                 return vc;
             } else
                 return null; // can't handle anything else
@@ -605,7 +593,7 @@ public class VariantContextAdaptors {
             GeliTextFeature geli = (GeliTextFeature)input;
             if ( ! Allele.acceptableAlleleBases(String.valueOf(geli.getRefBase())) )
                 return null;
-            Allele refAllele = new Allele(String.valueOf(geli.getRefBase()), true);
+            Allele refAllele = Allele.create(String.valueOf(geli.getRefBase()), true);
 
             // make sure we can convert it
             if ( geli.getGenotype().isHet() || !geli.getGenotype().containsBase(geli.getRefBase())) {
@@ -617,7 +605,7 @@ public class VariantContextAdaptors {
                     if ( ! Allele.acceptableAlleleBases(String.valueOf(alt)) ) {
                         return null;
                     }
-                    Allele allele = new Allele(String.valueOf(alt), false);
+                    Allele allele = Allele.create(String.valueOf(alt), false);
                     if (!alleles.contains(allele) && !refAllele.basesMatch(allele.getBases())) alleles.add(allele);
 
                     // add the allele, first checking if it's reference or not
@@ -638,7 +626,6 @@ public class VariantContextAdaptors {
                 genotypes.add(call);
                 alleles.add(refAllele);
                 VariantContext vc = new VariantContext(name, GenomeLocParser.createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
-                vc.validate();
                 return vc;
             } else
                 return null; // can't handle anything else
@@ -673,7 +660,7 @@ public class VariantContextAdaptors {
             GenotypeLikelihoods geli = ((rodGELI)input).getGeliRecord();
             if ( ! Allele.acceptableAlleleBases(String.valueOf((char)geli.getReferenceBase())) )
                 return null;
-            Allele refAllele = new Allele(String.valueOf((char)geli.getReferenceBase()), true);
+            Allele refAllele = Allele.create(String.valueOf((char)geli.getReferenceBase()), true);
 
             // add the reference allele
             List<Allele> alleles = new ArrayList<Allele>();
@@ -683,14 +670,14 @@ public class VariantContextAdaptors {
             if (!Allele.acceptableAlleleBases(String.valueOf((char) geli.getBestGenotype().getAllele1()))) {
                 return null;
             }
-            Allele allele1 = new Allele(String.valueOf((char) geli.getBestGenotype().getAllele1()), false);
+            Allele allele1 = Allele.create(String.valueOf((char) geli.getBestGenotype().getAllele1()), false);
             if (!alleles.contains(allele1) && !allele1.equals(refAllele, true)) alleles.add(allele1);
 
             // add the two alt alleles
             if (!Allele.acceptableAlleleBases(String.valueOf((char) geli.getBestGenotype().getAllele2()))) {
                 return null;
             }
-            Allele allele2 = new Allele(String.valueOf((char) geli.getBestGenotype().getAllele2()), false);
+            Allele allele2 = Allele.create(String.valueOf((char) geli.getBestGenotype().getAllele2()), false);
             if (!alleles.contains(allele2) && !allele2.equals(refAllele, true)) alleles.add(allele2);
 
 
@@ -712,7 +699,6 @@ public class VariantContextAdaptors {
             // add the call to the genotype list, and then use this list to create a VariantContext
             genotypes.add(call);
             VariantContext vc = new VariantContext(name, ((rodGELI) input).getLocation(), alleles, genotypes, geli.getBestToReferenceLod(), null, attributes);
-            vc.validate();
             return vc;
 
         }
@@ -750,7 +736,7 @@ public class VariantContextAdaptors {
 
             // add the reference allele
             HashSet<Allele> alleles = new HashSet<Allele>();
-            Allele refAllele = new Allele(ref.getBase(), true);
+            Allele refAllele = Allele.create(ref.getBase(), true);
             alleles.add(refAllele);
 
             // make a mapping from sample to genotype
@@ -766,8 +752,8 @@ public class VariantContextAdaptors {
                 String a1 = genotypeStrings[i].substring(0,1);
                 String a2 = genotypeStrings[i].substring(1);
 
-                Allele allele1 = new Allele(a1, refAllele.basesMatch(a1));
-                Allele allele2 = new Allele(a2, refAllele.basesMatch(a2));
+                Allele allele1 = Allele.create(a1, refAllele.basesMatch(a1));
+                Allele allele2 = Allele.create(a2, refAllele.basesMatch(a2));
 
                 ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
                 myAlleles.add(allele1);
@@ -780,7 +766,6 @@ public class VariantContextAdaptors {
             }
 
             VariantContext vc = new VariantContext(name, hapmap.getLocation(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, new HashMap<String, String>());
-            vc.validate();
             return vc;
        }
     }

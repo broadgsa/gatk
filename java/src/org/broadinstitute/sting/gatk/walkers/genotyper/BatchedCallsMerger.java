@@ -28,6 +28,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -145,7 +146,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         }
 
         // merge the variant contexts
-        return VariantContext.simpleMerge(calls);
+        return VariantContextUtils.simpleMerge(calls);
     }
 
     private AlignmentContext filterForSamples(ReadBackedPileup pileup, Set<String> samples) {

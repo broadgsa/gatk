@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -87,20 +88,9 @@ public class Allele implements Comparable<Allele> {
     public final static String NULL_ALLELE_STRING = "-";
     public final static String NO_CALL_STRING = ".";
     /** A generic static NO_CALL allele for use */
-    public final static Allele NO_CALL = new Allele(NO_CALL_STRING);
 
-    /**
-     * Create a new Allele that includes bases and if tagged as the reference allele if isRef == true.  If bases
-     * == '-', a Null allele is created.  If bases ==  '.', a no call Allele is created.
-     *
-     * @param bases the DNA sequence of this variation, '-', of '.'
-     * @param isRef should we make this a reference allele?
-     * @throws IllegalArgumentException if bases contains illegal characters or is otherwise malformated
-     */
-    public Allele(byte[] bases, boolean isRef) {
-        if ( bases == null )
-            throw new IllegalArgumentException("Constructor: the Allele base string cannot be null; use new Allele() or new Allele(\"\") to create a Null allele");
-
+    // no public way to create an allele
+    private Allele(byte[] bases, boolean isRef) {
         // standardize our representation of null allele and bases
         if ( wouldBeNullAllele(bases) ) {
             bases = EMPTY_ALLELE_BASES;
@@ -110,8 +100,8 @@ public class Allele implements Comparable<Allele> {
             isNoCall = true;
             if ( isRef ) throw new IllegalArgumentException("Cannot tag a NoCall allele as the reference allele");
         }
-        else
-            bases = new String(bases).toUpperCase().getBytes(); // todo -- slow performance
+//        else
+//            bases = new String(bases).toUpperCase().getBytes(); // todo -- slow performance
 
         this.isRef = isRef;
         this.bases = bases;
@@ -120,9 +110,62 @@ public class Allele implements Comparable<Allele> {
             throw new IllegalArgumentException("Unexpected base in allele bases " + new String(bases));
     }
 
+    private Allele(String bases, boolean isRef) {
+        this(bases.getBytes(), isRef);
+    }
 
-    public Allele(byte base, boolean isRef) {
-        this( new byte[]{ base }, isRef);
+
+    private final static Allele REF_A = new Allele("A", true);
+    private final static Allele ALT_A = new Allele("A", false);
+    private final static Allele REF_C = new Allele("C", true);
+    private final static Allele ALT_C = new Allele("C", false);
+    private final static Allele REF_G = new Allele("G", true);
+    private final static Allele ALT_G = new Allele("G", false);
+    private final static Allele REF_T = new Allele("T", true);
+    private final static Allele ALT_T = new Allele("T", false);
+    private final static Allele REF_NULL = new Allele("-", true);
+    private final static Allele ALT_NULL = new Allele("-", false);
+    public final static Allele NO_CALL = new Allele(NO_CALL_STRING, false);
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // creation routines
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    /**
+     * Create a new Allele that includes bases and if tagged as the reference allele if isRef == true.  If bases
+     * == '-', a Null allele is created.  If bases ==  '.', a no call Allele is created.
+     *
+     * @param bases the DNA sequence of this variation, '-', of '.'
+     * @param isRef should we make this a reference allele?
+     * @throws IllegalArgumentException if bases contains illegal characters or is otherwise malformated
+     */
+    public static Allele create(byte[] bases, boolean isRef) {
+        if ( bases == null )
+            throw new IllegalArgumentException("create: the Allele base string cannot be null; use new Allele() or new Allele(\"\") to create a Null allele");
+
+        if ( bases.length == 1 ) {
+            // optimization to return a static constant Allele for each single base object
+            switch (bases[0]) {
+                case '.':
+                    if ( isRef ) throw new IllegalArgumentException("Cannot tag a NoCall allele as the reference allele");
+                    return NO_CALL;
+                case '-': return isRef ? REF_NULL : ALT_NULL;
+                case 'A': return isRef ? REF_A : ALT_A;
+                case 'C': return isRef ? REF_C : ALT_C;
+                case 'G': return isRef ? REF_G : ALT_G;
+                case 'T': return isRef ? REF_T : ALT_T;
+                default: throw new IllegalArgumentException("Illegal lower-case base: " + (char)bases[0]);
+            }
+        } else {
+            return new Allele(bases, isRef);
+        }
+    }
+
+    public static Allele create(byte base, boolean isRef) {
+//    public Allele(byte base, boolean isRef) {
+        return create( new byte[]{ base }, isRef);
     }
     
     /**
@@ -157,10 +200,14 @@ public class Allele implements Comparable<Allele> {
         if ( wouldBeNullAllele(bases) || wouldBeNoCallAllele(bases) )
             return true;
 
-        for ( byte b : bases ) {
-            if ( ! BaseUtils.isRegularBase(b) ) {
-                return false;
+        for ( int i = 0; i < bases.length; i++ ) {
+            switch (bases[i]) {
+                case 'A': case 'C': case 'G': case 'T': break;
+                default: return false;
             }
+//            if ( ! BaseUtils.isRegularBase(bases[i]) ) {
+//                return false;
+//            }
         }
 
         return true;
@@ -172,8 +219,9 @@ public class Allele implements Comparable<Allele> {
      * @param bases  bases representing an allele
      * @param isRef  is this the reference allele?
      */
-    public Allele(String bases, boolean isRef) {
-        this(bases.getBytes(), isRef);
+    public static Allele create(String bases, boolean isRef) {
+    //public Allele(String bases, boolean isRef) {
+        return create(bases.getBytes(), isRef);
     }
 
 
@@ -182,14 +230,19 @@ public class Allele implements Comparable<Allele> {
      *
      * @param bases  bases representing an allele
      */
-    public Allele(String bases) { this(bases, false); }
+    public static Allele create(String bases) {
+        return create(bases, false);
+    }
 
     /**
      * Creates a non-Ref allele.  @see Allele(byte[], boolean) for full information
      *
      * @param bases  bases representing an allele
      */
-    public Allele(byte[] bases) { this(bases, false); }
+    public static Allele create(byte[] bases) {
+        return create(bases, false);
+        //this(bases, false);
+    }
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -253,7 +306,7 @@ public class Allele implements Comparable<Allele> {
      * @return true if this and other are equal
      */
     public boolean equals(Allele other, boolean ignoreRefState) {
-        return (isRef == other.isRef || ignoreRefState) && isNull == other.isNull && isNoCall == other.isNoCall && basesMatch(other.getBases());
+        return this == other || (isRef == other.isRef || ignoreRefState) && isNull == other.isNull && isNoCall == other.isNoCall && basesMatch(other.getBases());
     }
 
     /**
@@ -315,7 +368,7 @@ public class Allele implements Comparable<Allele> {
 
             if ( allele == null ) {
                 if ( Allele.wouldBeNoCallAllele(alleleString.getBytes()) ) {
-                    allele = new Allele(alleleString);
+                    allele = create(alleleString);
                 } else {
                     throw new IllegalArgumentException("Allele " + alleleString + " not present in the list of alleles " + possibleAlleles);
                 }

@@ -53,17 +53,17 @@ public class AlleleUnitTest extends BaseTest {
     
     @Before
     public void before() {
-        del = new Allele("-");
-        delRef = new Allele("-", true);
+        del = Allele.create("-");
+        delRef = Allele.create("-", true);
 
-        A = new Allele("A");
-        ARef = new Allele("A", true);
-        T = new Allele("T");
+        A = Allele.create("A");
+        ARef = Allele.create("A", true);
+        T = Allele.create("T");
 
-        ATIns = new Allele("AT");
-        ATCIns = new Allele("ATC");
+        ATIns = Allele.create("AT");
+        ATCIns = Allele.create("ATC");
 
-        NoCall = new Allele(".");
+        NoCall = Allele.create(".");
     }
 
     @Test
@@ -126,10 +126,10 @@ public class AlleleUnitTest extends BaseTest {
     public void testConstructors1() {
         logger.warn("testConstructors1");
 
-        Allele a1 = new Allele("A");
-        Allele a2 = new Allele("A".getBytes());
-        Allele a3 = new Allele("a");
-        Allele a4 = new Allele("A", true);
+        Allele a1 = Allele.create("A");
+        Allele a2 = Allele.create("A".getBytes());
+        Allele a3 = Allele.create("A");
+        Allele a4 = Allele.create("A", true);
 
         Assert.assertTrue(a1.equals(a2));
         Assert.assertTrue(a1.equals(a3));
@@ -140,10 +140,10 @@ public class AlleleUnitTest extends BaseTest {
     public void testDelConstructors() {
         logger.warn("testDelConstructors");
 
-        Allele a1 = new Allele("-");
-        Allele a2 = new Allele("-".getBytes());
-        Allele a3 = new Allele("");
-        Allele a4 = new Allele("", true);
+        Allele a1 = Allele.create("-");
+        Allele a2 = Allele.create("-".getBytes());
+        Allele a3 = Allele.create("");
+        Allele a4 = Allele.create("", true);
 
         Assert.assertTrue(a1.equals(a2));
         Assert.assertTrue(a1.equals(a3));
@@ -154,10 +154,10 @@ public class AlleleUnitTest extends BaseTest {
     public void testInsConstructors() {
         logger.warn("testInsConstructors");
 
-        Allele a1 = new Allele("AC");
-        Allele a2 = new Allele("AC".getBytes());
-        Allele a3 = new Allele("Ac");
-        Allele a4 = new Allele("AC", true);
+        Allele a1 = Allele.create("AC");
+        Allele a2 = Allele.create("AC".getBytes());
+        Allele a3 = Allele.create("AC");
+        Allele a4 = Allele.create("AC", true);
 
         Assert.assertTrue(a1.equals(a2));
         Assert.assertTrue(a1.equals(a3));
@@ -188,38 +188,38 @@ public class AlleleUnitTest extends BaseTest {
         Assert.assertFalse(ATIns.basesMatch("A"));
         Assert.assertFalse(ATIns.basesMatch("ATC"));
 
-        Assert.assertTrue(ATIns.basesMatch("at"));
-        Assert.assertFalse(ATIns.basesMatch("atc"));
+        Assert.assertTrue(ATIns.basesMatch("AT"));
+        Assert.assertFalse(ATIns.basesMatch("ATC"));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs1() {
         logger.warn("testBadConstructorArgs1");
         byte[] foo = null;
-        new Allele(foo);
+        Allele.create(foo);
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs2() {
         logger.warn("testBadConstructorArgs2");
-        new Allele("x");
+        Allele.create("x");
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs3() {
         logger.warn("testBadConstructorArgs3");
-        new Allele("--");
+        Allele.create("--");
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs4() {
         logger.warn("testBadConstructorArgs4");
-        new Allele("-A");
+        Allele.create("-A");
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs5() {
         logger.warn("testBadConstructorArgs5");
-        new Allele("A A");
+        Allele.create("A A");
     }
 }

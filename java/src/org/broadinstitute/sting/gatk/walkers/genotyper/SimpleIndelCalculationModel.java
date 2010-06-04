@@ -63,12 +63,12 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
         List<Allele> alleles = new ArrayList<Allele>(2);
 
         if ( bestEvent.charAt(0) == '+') {
-            alleles.add( new Allele(Allele.NULL_ALLELE_STRING,true) );
-            alleles.add( new Allele(bestEvent.substring(1), false ));
+            alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
+            alleles.add( Allele.create(bestEvent.substring(1), false ));
         } else {
             if ( bestEvent.charAt(0) == '-' ) {
-                alleles.add( new Allele(Allele.NULL_ALLELE_STRING,false) );
-                alleles.add( new Allele(bestEvent.substring(1), true ));
+                alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
+                alleles.add( Allele.create(bestEvent.substring(1), true ));
                 loc = GenomeLocParser.setStop(loc, loc.getStop() + bestEvent.length()-2);
             } else
                 throw new StingException("Internal error (probably a bug): event does not conform to expected format: "+ bestEvent);

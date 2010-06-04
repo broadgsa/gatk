@@ -128,8 +128,8 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
         // set up some variables we'll need in the loop
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
-        Allele refAllele = new Allele(ref, true);
-        Allele altAllele = new Allele(alt, false);
+        Allele refAllele = Allele.create(ref, true);
+        Allele altAllele = Allele.create(alt, false);
         DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
         DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
         DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);

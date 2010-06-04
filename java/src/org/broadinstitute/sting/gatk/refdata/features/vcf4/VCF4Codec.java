@@ -14,9 +14,12 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.IOException;
 import java.util.*;
+
+import com.sun.xml.internal.ws.wsdl.parser.ParserUtil;
 
 /**
  * a feature codec for the VCF 4 specification.  Our aim is to read in the records and convert to VariantContext as
@@ -29,9 +32,11 @@ public class VCF4Codec implements FeatureCodec {
     private VCFHeader header = null;
 
     public VCF4Codec() {
-        throw new StingException("DON'T USE THIS");
+        this(true);
+        //throw new StingException("DON'T USE THIS");
     }
 
+    // todo -- remove me when done
     public VCF4Codec(boolean itsOKImTesting) {
         if ( ! itsOKImTesting )
             throw new StingException("DON'T USE THIS");
@@ -83,8 +88,6 @@ public class VCF4Codec implements FeatureCodec {
 
     private static Map<String, List<Allele>> alleleMap = new HashMap<String, List<Allele>>(3);
 
-    static long cacheHit = 0, gtParse = 0;
-
     private static List<Allele> parseGenotypeAlleles(String GT, List<Allele> alleles, Map<String, List<Allele>> cache) {
         // this should cache results [since they are immutable] and return a single object for each genotype
         if ( GT.length() != 3 ) throw new StingException("Unreasonable number of alleles"); // 0/1 => barf on 10/0
@@ -93,13 +96,6 @@ public class VCF4Codec implements FeatureCodec {
             GTAlleles = Arrays.asList(oneAllele(GT.charAt(0), alleles), oneAllele(GT.charAt(2), alleles));
             cache.put(GT, GTAlleles);
         }
-//        else {
-//            cacheHit++;
-//        }
-//        gtParse++;
-//
-//        if ( cacheHit % 10000 == 0 )
-//            System.out.printf("Cache hit %d %d %.2f%n", cacheHit, gtParse, (100.0*cacheHit) / gtParse);
 
         return GTAlleles;
     }
@@ -108,10 +104,11 @@ public class VCF4Codec implements FeatureCodec {
         Map<String, Object> attributes = new HashMap<String, Object>();
 
         if ( ! infoField.equals(".") ) { // empty info field
-            for ( String field : infoField.split(";") ) {
+            for ( String field : Utils.split(infoField, ";") ) {
+                String key;
+                Object value;
+
                 int eqI = field.indexOf("=");
-                String key = null;
-                Object value = null;
                 if ( eqI != -1 ) {
                     key = field.substring(0, eqI);
                     value = field.substring(eqI+1, field.length()); // todo -- needs to convert to int, double, etc
@@ -124,6 +121,7 @@ public class VCF4Codec implements FeatureCodec {
                 attributes.put(key, value);
             }
         }
+
         attributes.put("ID", id);
         return attributes;
     }
@@ -156,89 +154,121 @@ public class VCF4Codec implements FeatureCodec {
     }
 
     private static Double parseQual(String qualString) {
-        return qualString.equals("-1") ? VariantContext.NO_NEG_LOG_10PERROR : Double.valueOf(qualString) / 10;
+        // todo -- remove double once we deal with annoying VCFs from 1KG
+        return qualString.equals("-1") || qualString.equals("-1.0") ? VariantContext.NO_NEG_LOG_10PERROR : Double.valueOf(qualString) / 10;
     }
 
+    private List<Allele> parseAlleles(String ref, String alts) {
+        List<Allele> alleles = new ArrayList<Allele>(2); // we are almost always biallelic
+
+        // ref
+        checkAllele(ref);
+        Allele refAllele = Allele.create(ref, true);
+        alleles.add(refAllele);
+
+        if ( alts.indexOf(",") == -1 ) { // only 1 alternatives, don't call string split
+            parse1Allele(alleles, alts);
+        } else {
+            for ( String alt : Utils.split(alts, ",") ) {
+                parse1Allele(alleles, alt);
+            }
+        }
+
+        return alleles;
+    }
+
+    private static void checkAllele(String allele) {
+        if ( ! Allele.acceptableAlleleBases(allele) ) {
+            throw new StingException("Unparsable vcf record with allele " + allele);
+        }
+    }
+
+    private void parse1Allele(List<Allele> alleles, String alt) {
+        checkAllele(alt);
+
+        Allele allele = Allele.create(alt, false);
+        if ( ! allele.isNoCall() )
+            alleles.add(allele);
+    }
+
+    // todo -- check a static map from filter String to HashSets to reuse objects and avoid parsing
+    private Set<String> parseFilters(String filterString) {
+        if ( filterString.equals(".") )
+            return null;
+        else {
+            HashSet<String> s = new HashSet<String>(1);
+            if ( filterString.indexOf(";") == -1 ) {
+                s.add(filterString);
+            } else {
+                s.addAll(Utils.split(filterString, ";"));
+            }
+
+            return s;
+        }
+    }
+
+    private String[] GTKeys = new String[100];
+
     private VariantContext parseVCFLine(String[] parts, int nParts) {
-        // chr5        157273992       rs1211159       C       T       0.00    0       .       GT      0/0     0/0     0
         String contig = parts[0];
         long pos = Long.valueOf(parts[1]);
         String id = parts[2];
-        String ref = parts[3];
-        String alts = parts[4];
+        String ref = parts[3].toUpperCase();
+        String alts = parts[4].toUpperCase();
         Double qual = parseQual(parts[5]);
         String filter = parts[6];
         String info = parts[7];
         String GT = parts[8];
         int genotypesStart = 9;
 
-        // add the reference allele
-        if ( ! Allele.acceptableAlleleBases(ref) ) {
-            System.out.printf("Excluding vcf record %s%n", ref);
-            return null;
-        }
-
-        Set<String> filters = ! filter.equals(".") ? new HashSet<String>(Arrays.asList(filter.split(";"))) : null;
+        List<Allele> alleles = parseAlleles(ref, alts);
+        Set<String> filters = parseFilters(filter);
         Map<String, Object> attributes = parseInfo(info, id);
 
-        // add all of the alt alleles
-
-        // todo -- use Allele factor method, not new, so we can keep a cache of the alleles since they are always the same
-        List<Allele> alleles = new ArrayList<Allele>(2); // we are almost always biallelic
-        Allele refAllele = new Allele(ref, true);
-        alleles.add(refAllele);
-
-        for ( String alt : alts.split(",") ) {
-            if ( ! Allele.acceptableAlleleBases(alt) ) {
-                //System.out.printf("Excluding vcf record %s%n", vcf);
-                return null;
-            }
-
-            Allele allele = new Allele(alt, false);
-            if ( ! allele.isNoCall() )
-                alleles.add(allele);
-        }
-
-        String[] GTKeys = GT.split(":"); // to performance issue
-
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(nParts);
+        // parse genotypes
+        int nGTKeys = ParsingUtils.split(GT, GTKeys, ':');
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(Math.max(nParts - genotypesStart, 1));
         if ( parseGenotypesToo ) {
             alleleMap.clear();
             for ( int genotypeOffset = genotypesStart; genotypeOffset < nParts; genotypeOffset++ ) {
                 String sample = parts[genotypeOffset];
                 String[] GTValues = CachedGTValues;
-                ParsingUtils.split(sample, GTValues, ':'); // to performance issue
+                ParsingUtils.split(sample, GTValues, ':');
                 List<Allele> genotypeAlleles = parseGenotypeAlleles(GTValues[0], alleles, alleleMap);
                 double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
-                                
+                Set<String> genotypeFilters = null;
+
                 // todo -- the parsing of attributes could be made lazy for performance
                 Map<String, String> gtAttributes = null;
-                if ( GTKeys.length > 1 ) {
-                    gtAttributes = new HashMap<String, String>(GTKeys.length - 1);
-                    for ( int i = 1; i < GTKeys.length; i++ ) {
+                if ( nGTKeys > 1 ) {
+                    gtAttributes = new HashMap<String, String>(nGTKeys - 1);
+                    for ( int i = 1; i < nGTKeys; i++ ) {
                         if ( GTKeys[i].equals("GQ") ) {
                             GTQual = parseQual(GTValues[i]);
+                        } if ( GTKeys[i].equals("FL") ) { // deal with genotype filters here
+                            // todo -- get genotype filters working
+                            // genotypeFilters = new HashSet<String>();
+//            if ( vcfG.isFiltered() ) // setup the FL genotype filter fields
+//                genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFGenotypeRecord.GENOTYPE_FILTER_KEY).split(";")));
                         } else {
                             gtAttributes.put(GTKeys[i], GTValues[i]);
                         }
                     }
                 }
 
-                Set<String> genotypeFilters = null;
-                // genotypeFilters = new HashSet<String>();
-//            if ( vcfG.isFiltered() ) // setup the FL genotype filter fields
-//                genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFGenotypeRecord.GENOTYPE_FILTER_KEY).split(";")));
-
                 boolean phased = GTKeys[0].charAt(1) == '|';
+
+                // todo -- actually parse the header to get the sample name
                 Genotype g = new Genotype("X" + genotypeOffset, genotypeAlleles, GTQual, genotypeFilters, gtAttributes, phased);
                 genotypes.put(g.getSampleName(), g);
             }
         }
 
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(contig,pos,pos+refAllele.length()-1);
+        // todo -- doesn't work for indels [the whole reason for VCF4]
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(contig,pos,pos + ref.length() - 1);
 
+        // todo -- we need access to our track name to name the variant context
         VariantContext vc = new VariantContext("foo", loc, alleles, genotypes, qual, filters, attributes);
-        if ( validate ) vc.validate();
         return vc;
     }
 

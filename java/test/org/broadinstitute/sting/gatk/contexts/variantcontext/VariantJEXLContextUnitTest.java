@@ -80,16 +80,16 @@ public class VariantJEXLContextUnitTest extends BaseTest {
 
     @Before
     public void before() {
-        del = new Allele("-");
-        delRef = new Allele("-", true);
+        del = Allele.create("-");
+        delRef = Allele.create("-", true);
 
-        A = new Allele("A");
-        Aref = new Allele("A", true);
-        T = new Allele("T");
-        Tref = new Allele("T", true);
+        A = Allele.create("A");
+        Aref = Allele.create("A", true);
+        T = Allele.create("T");
+        Tref = Allele.create("T", true);
 
-        ATC = new Allele("ATC");
-        ATCref = new Allele("ATC", true);
+        ATC = Allele.create("ATC");
+        ATCref = Allele.create("ATC", true);
     }
 
 
