@@ -150,8 +150,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             }
 
             bglRecord.GenotypeProbabilities = genotypeProbabilities;
-            bglRecord.AlleleA = new Allele(alleleA);
-            bglRecord.AlleleB = new Allele(alleleB);
+            bglRecord.AlleleA = Allele.create(alleleA);
+            bglRecord.AlleleB = Allele.create(alleleB);
 
             beagleSampleRecords.put(markerKey,bglRecord);
         }
@@ -195,7 +195,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
             j = 2;
             for (String sample : samples) {
-                pair = new HaplotypePair(new Allele(phasedLine[j]), new Allele(phasedLine[j+1]));
+                pair = new HaplotypePair(Allele.create(phasedLine[j]), Allele.create(phasedLine[j+1]));
                 j = j+2;
                 haplotypePairs.put(sample,pair);
             }
@@ -404,7 +404,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
                 Boolean isRefA = (refByte  == rA);
 
-                Allele refAllele = new Allele(r, isRefA );
+                Allele refAllele = Allele.create(r, isRefA );
                 alleles.add(refAllele);
 
                 r = hp.AlleleB.getBases();
@@ -412,7 +412,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 //System.out.println((char)r[0]);
 
                 Boolean isRefB = (refByte  == rB);
-                Allele altAllele = new Allele(r,isRefB);
+                Allele altAllele = Allele.create(r,isRefB);
                 alleles.add(altAllele);
 
 
