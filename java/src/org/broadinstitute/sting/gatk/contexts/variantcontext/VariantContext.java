@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.Feature;
 
 import java.util.*;
 
@@ -160,7 +161,7 @@ import java.util.*;
  *
  * @author depristo
  */
-public class VariantContext {
+public class VariantContext implements Feature { // to enable tribble intergration
     protected InferredGeneticContext commonInfo = null;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
 
@@ -995,6 +996,26 @@ public class VariantContext {
         }
 
         return dest;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // tribble integration routines -- not for public consumption
+    //
+    // ---------------------------------------------------------------------------------------------------------
+    @Override
+    public String getChr() {
+        return getLocation().getContig();
+    }
+
+    @Override
+    public int getStart() {
+        return (int)getLocation().getStart();
+    }
+
+    @Override
+    public int getEnd() {
+        return (int)getLocation().getStop();
     }
 
 }

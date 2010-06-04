@@ -16,7 +16,7 @@ public class Genotype {
 
     protected InferredGeneticContext commonInfo;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
-    protected List<Allele> alleles = new ArrayList<Allele>();
+    protected List<Allele> alleles = null; // new ArrayList<Allele>();
     private boolean genotypesArePhased = false;
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean genotypesArePhased) {

@@ -13,10 +13,13 @@ import java.util.*;
 final class InferredGeneticContext {
     public static final double NO_NEG_LOG_10PERROR = -1.0;
 
+    private static Set<String> NO_FILTERS = Collections.unmodifiableSet(new HashSet<String>());
+    private static Map<String, Object> NO_ATTRIBUTES = Collections.unmodifiableMap(new HashMap<String, Object>());
+
     private double negLog10PError = NO_NEG_LOG_10PERROR;
     private String name = null;
-    private Set<String> filters = new HashSet<String>();
-    private Map<String, Object> attributes = new HashMap<String, Object>();
+    private Set<String> filters = NO_FILTERS;
+    private Map<String, Object> attributes = NO_ATTRIBUTES;
 
 //    public InferredGeneticContext(String name) {
 //        this.name = name;
@@ -73,6 +76,9 @@ final class InferredGeneticContext {
     }
 
     public void addFilter(String filter) {
+        if ( filters == NO_FILTERS ) // immutable -> mutable
+            filters = new HashSet<String>(filters);
+
         if ( filter == null ) throw new IllegalArgumentException("BUG: Attempting to add null filter " + this);
         if ( getFilters().contains(filter) ) throw new IllegalArgumentException("BUG: Attempting to add duplicate filter " + filter + " at " + this);
         filters.add(filter);
@@ -85,7 +91,10 @@ final class InferredGeneticContext {
     }
 
     public void clearFilters() {
-        filters.clear();
+        if ( filters == NO_FILTERS )
+            filters = new HashSet<String>();
+        else
+            filters.clear();
     }
 
     public void setFilters(Collection<String> filters) {
@@ -123,7 +132,10 @@ final class InferredGeneticContext {
     //
     // ---------------------------------------------------------------------------------------------------------
     public void clearAttributes() {
-        this.attributes.clear();
+        if ( attributes == NO_ATTRIBUTES )
+             attributes = new HashMap<String, Object>();
+         else 
+             this.attributes.clear();
     }
 
     /**
@@ -136,7 +148,7 @@ final class InferredGeneticContext {
     // todo -- define common attributes as enum
 
     public void setAttributes(Map<String, ?> map) {
-        this.attributes.clear();
+        clearAttributes();
         putAttributes(map);
     }
 
@@ -148,10 +160,15 @@ final class InferredGeneticContext {
         if ( hasAttribute(key) && ! allowOverwrites )
             throw new StingException("Attempting to overwrite key->value binding: key = " + key + " this = " + this);
 
+        if ( attributes == NO_ATTRIBUTES ) // immutable -> mutable
+            attributes = new HashMap<String, Object>(attributes);
+        
         this.attributes.put(key, value);
     }
 
     public void removeAttribute(String key) {
+        if ( attributes == NO_ATTRIBUTES ) // immutable -> mutable
+            attributes = new HashMap<String, Object>(attributes);
         this.attributes.remove(key);
     }
 
