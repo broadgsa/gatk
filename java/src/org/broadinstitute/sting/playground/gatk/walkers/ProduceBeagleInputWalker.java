@@ -90,9 +90,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 return 0;
             }
 
-             // Get Reference base for this site: will be output to screen, not directly used by Beagle but rather by output analysis tools
-       //     char re =  (char)ref.getBase();
-
             // output marker ID to Beagle input file
             beagleWriter.print(String.format("%s ",vc_eval.getLocation().toString()));
 
@@ -117,10 +114,21 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 if (genotype.isCalled() && genotype.hasAttribute(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY)) {
                     String[] glArray = genotype.getAttributeAsString(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY).split(",");
 
+                    Double maxLikelihood = -100.0;
+                    ArrayList<Double> likeArray = new ArrayList<Double>();
+
                     for (String gl : glArray) {
-                        Double d_gl = 100*Math.pow(10, Double.valueOf(gl));
-                        beagleWriter.print(String.format("%5.2f ",d_gl));
-                    }
+                        // need to normalize likelihoods to avoid precision loss. In worst case, if all 3 log-likelihoods are too
+                        // small, we could end up with linear likelihoods of form 0.00 0.00 0.00 which will mess up imputation.
+                        Double dg = Double.valueOf(gl);
+                        if (dg> maxLikelihood)
+                            maxLikelihood = dg;
+
+                        likeArray.add(dg);
+                     }
+
+                    for (Double likeVal: likeArray)
+                        beagleWriter.print(String.format("%5.4f ",Math.pow(10, likeVal-maxLikelihood)));
                 }
                 else
                     beagleWriter.print("0.33 0.33 0.33 "); // write 1/3 likelihoods for uncalled genotypes.

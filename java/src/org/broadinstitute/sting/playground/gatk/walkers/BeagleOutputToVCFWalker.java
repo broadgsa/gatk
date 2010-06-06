@@ -192,6 +192,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             String markerKey = phasedLine[1];
 
             HashMap<String,HaplotypePair> haplotypePairs = new HashMap<String,HaplotypePair>();
+            System.out.println(markerKey);
 
             j = 2;
             for (String sample : samples) {
@@ -235,30 +236,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         return allThere;
 
     }
- /*
 
 
-    private class MyFileReader {
-        private FileReader reader;
-        private String fileName;
-        public MyFileReader(String fileName) {
-            try{
-                reader = new FileReader(fileName);
-            } catch ( FileNotFoundException e) {
-                throw new StingException("Could not find required input file: " + fileName);
-            }
-
-            this.fileName = fileName;
-
-        }
-        public String GetNextLine() {
-            String line;
-            int x = reader.read();
-            line.
-            //reader.read()
-        }
-    }     */
-    
     private class BeagleFileReader {
         private String headerString;
         private BufferedReader reader;
