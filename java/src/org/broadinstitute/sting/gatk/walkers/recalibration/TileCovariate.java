@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
-import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
+import net.sf.picard.util.IlluminaUtil;
 
 /**
  * @author alecw@broadinstitute.org

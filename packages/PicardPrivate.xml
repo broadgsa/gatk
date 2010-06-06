@@ -7,7 +7,6 @@
       <class name="edu.mit.broad.picard.genotype.geli.GeliFileWriter" />
       <class name="edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods" />
       <class name="edu.mit.broad.picard.util.BasicTextFileParser" />
-      <class name="edu.mit.broad.picard.illumina.parser.IlluminaUtil" />
       <class name="edu.mit.broad.picard.util.PasteParser" />
       <class name="edu.mit.broad.picard.variation.KnownVariantCodecV2" />
       <class name="edu.mit.broad.picard.variation.KnownVariantCodec" />
@@ -21,6 +20,7 @@
       <class name="edu.mit.broad.picard.variation.KnownVariant" />
       <class name="edu.mit.broad.picard.variation.DbSnpFileReader" />
       <class name="edu.mit.broad.picard.variation.DbSnpFileGenerator" />
+      <class name="net.sf.picard.util.IlluminaUtil" />
     </dependencies>
   </executable>
 </package>
