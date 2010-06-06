@@ -192,7 +192,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             String markerKey = phasedLine[1];
 
             HashMap<String,HaplotypePair> haplotypePairs = new HashMap<String,HaplotypePair>();
-            System.out.println(markerKey);
 
             j = 2;
             for (String sample : samples) {
