@@ -17,6 +17,23 @@ public class
             " -B eval,VCF," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
             " -B comp_genotypes,VCF," + validationDataLocation + "yri.trio.gatk.ug.head.vcf -reportType Grep";
 
+
+    @Test
+    public void testSelect1() {
+        String extraArgs = "-L 1:1-10,000,000";
+        WalkerTestSpec spec = new WalkerTestSpec( withSelect(root, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
+                1, Arrays.asList("5a330d359b5c7ea0dfa6698b4830db82"));
+        executeTest("testSelect1", spec);
+    }
+
+    @Test
+    public void testSelect2() {
+        String extraArgs = "-L 1:1-10,000,000";
+        WalkerTestSpec spec = new WalkerTestSpec( withSelect(withSelect(root, "DP < 50", "DP50"), "set==\"Intersection\"", "intersection") + " " + extraArgs + " -o %s",
+                1, Arrays.asList("e39d6790e4ee8709dfa2eab8598b168e"));
+        executeTest("testSelect2", spec);
+    }
+
     @Test
     public void testVEGenotypeConcordance() {
         WalkerTestSpec spec = new WalkerTestSpec( cmdRoot + " -B eval,VCF," + validationDataLocation + "GenotypeConcordanceEval.vcf -B comp,VCF," + validationDataLocation + "GenotypeConcordanceComp.vcf -E GenotypeConcordance -reportType CSV -o %s",
@@ -73,5 +90,9 @@ public class
                 2,
                 Arrays.asList("521837758da151b84fca57fd1bb7dad1", "b4a42c90318adc88361691ece50426f2"));
         executeTest("testVEWriteVCF", spec);
+    }
+
+    private static String withSelect(String cmd, String select, String name) {
+        return String.format("%s -select '%s' -selectName %s", cmd, select, name);
     }
 }

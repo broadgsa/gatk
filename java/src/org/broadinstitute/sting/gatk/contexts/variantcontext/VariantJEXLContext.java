@@ -23,8 +23,9 @@
 
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
-import org.apache.commons.jexl.JexlContext;
-import org.apache.commons.jexl.JexlHelper;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.MapContext;
+//import org.apache.commons.jexl2.JexlHelper;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -44,24 +45,66 @@ import java.util.*;
 
 class VariantJEXLContext implements JexlContext {
     // our stored variant context
-    private final JEXLMap map;
+    private VariantContext vc;
+    private Genotype g;
 
-    public VariantJEXLContext(Collection<VariantContextUtils.JexlVCMatchExp> jexl, VariantContext vc) {
-        map = new JEXLMap(jexl, vc);
+    private interface AttributeGetter {
+        public Object get(VariantContext vc);
     }
 
-    public VariantJEXLContext(Collection<VariantContextUtils.JexlVCMatchExp> jexl, Genotype g) {
-        map = new JEXLMap(jexl, g);
+    private static Map<String, AttributeGetter> x = new HashMap<String, AttributeGetter>();
+
+    static {
+        x.put("CHROM",   new AttributeGetter() { public Object get(VariantContext vc) { return vc.getLocation().getContig(); }});
+        x.put("POS",     new AttributeGetter() { public Object get(VariantContext vc) { return vc.getLocation().getStart(); }});
+        x.put("TYPE",    new AttributeGetter() { public Object get(VariantContext vc) { return vc.getType().toString(); }});
+        x.put("QUAL",    new AttributeGetter() { public Object get(VariantContext vc) { return 10 * vc.getNegLog10PError(); }});
+        x.put("ALLELES", new AttributeGetter() { public Object get(VariantContext vc) { return vc.getAlleles(); }});
+        x.put("N_ALLELES", new AttributeGetter() { public Object get(VariantContext vc) { return vc.getNAlleles(); }});
+        x.put("FILTER",    new AttributeGetter() { public Object get(VariantContext vc) { return vc.isFiltered() ? "1" : "0"; }});
+
+//        x.put("GT",        new AttributeGetter() { public Object get(VariantContext vc) { return g.getGenotypeString(); }});
+//        x.put("isHomRef",  new AttributeGetter() { public Object get(VariantContext vc) { return g.isHomRef() ? "1" : "0"; }});
+//        x.put("isHet",     new AttributeGetter() { public Object get(VariantContext vc) { return g.isHet() ? "1" : "0"; }});
+//        x.put("isHomVar",  new AttributeGetter() { public Object get(VariantContext vc) { return g.isHomVar() ? "1" : "0"; }});
     }
 
-    public void setVars(Map map) {
-        throw new UnsupportedOperationException("this operation is unsupported");
+    public VariantJEXLContext(VariantContext vc) {
+        this(vc, null);
     }
 
-    public Map getVars() {
-        return map;
+
+    public VariantJEXLContext(VariantContext vc, Genotype g) {
+        this.vc = vc;
+        this.g = g;
+        //throw new UnsupportedOperationException("Cannot instantiate VariantJEXLContext");
+    }
+
+    public Object get(String name) {
+        Object result = null;
+        if ( x.containsKey(name) ) { // dynamic resolution of name -> value via map
+            result = x.get(name).get(vc);
+        } else if ( vc.hasAttribute(name)) {
+            result = vc.getAttribute(name);
+        } else if ( vc.getFilters().contains(name) ) {
+            result = "1";
+        }
+
+        //System.out.printf("dynamic lookup %s => %s%n", name, result);
+
+        return result;
+    }
+
+    public boolean has(String name) {
+        return get(name) != null;
+    }
+
+    public void	set(String name, Object value) {
+        throw new UnsupportedOperationException("remove() not supported on a VariantJEXLContext");
     }
 }
+
+
 
 
 /**
@@ -111,52 +154,60 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * should get added.
      *
      */
+    private static final boolean USE_VCONTEXT = true;
     private void createContext() {
+        if ( USE_VCONTEXT && g == null ) {
+            jContext = new VariantJEXLContext(vc, g);
+        } else {
 
-        Map<String, String> infoMap = new HashMap<String, String>();
+            Map<String, Object> infoMap = new HashMap<String, Object>();
 
-        if ( vc != null ) {
-            // create a mapping of what we know about the variant context, its Chromosome, positions, etc.
-            infoMap.put("CHROM", vc.getLocation().getContig());
-            infoMap.put("POS", String.valueOf(vc.getLocation().getStart()));
-            infoMap.put("TYPE", vc.getType().toString());
-            infoMap.put("QUAL", String.valueOf(10 * vc.getNegLog10PError()));
+            if ( vc != null ) {
+                // create a mapping of what we know about the variant context, its Chromosome, positions, etc.
+                infoMap.put("CHROM", vc.getLocation().getContig());
+                infoMap.put("POS", String.valueOf(vc.getLocation().getStart()));
+                infoMap.put("TYPE", vc.getType().toString());
+                infoMap.put("QUAL", String.valueOf(10 * vc.getNegLog10PError()));
 
-            // add alleles
-            infoMap.put("ALLELES", Utils.join(";", vc.getAlleles()));
-            infoMap.put("N_ALLELES", String.valueOf(vc.getNAlleles()));
+                // add alleles
+                infoMap.put("ALLELES", Utils.join(";", vc.getAlleles()));
+                infoMap.put("N_ALLELES", String.valueOf(vc.getNAlleles()));
 
-            // add attributes
-            addAttributesToMap(infoMap, vc.getAttributes());
+                // add attributes
+                addAttributesToMap(infoMap, vc.getAttributes());
 
-            // add filter fields
-            infoMap.put("FILTER", vc.isFiltered() ? "1" : "0");
-            for ( Object filterCode : vc.getFilters() ) {
-                infoMap.put(String.valueOf(filterCode), "1");
+                // add filter fields
+                infoMap.put("FILTER", vc.isFiltered() ? "1" : "0");
+                for ( Object filterCode : vc.getFilters() ) {
+                    infoMap.put(String.valueOf(filterCode), "1");
+                }
+
+                // add genotype-specific fields
+                // TODO -- implement me when we figure out a good way to represent this
+                //    for ( Genotype g : vc.getGenotypes().values() ) {
+                //        String prefix = g.getSampleName() + ".";
+                //        addAttributesToMap(infoMap, g.getAttributes(), prefix);
+                //        infoMap.put(prefix + "GT", g.getGenotypeString());
+                //    }
             }
 
-            // add genotype-specific fields
-            // TODO -- implement me when we figure out a good way to represent this
-            //    for ( Genotype g : vc.getGenotypes().values() ) {
-            //        String prefix = g.getSampleName() + ".";
-            //        addAttributesToMap(infoMap, g.getAttributes(), prefix);
-            //        infoMap.put(prefix + "GT", g.getGenotypeString());
-            //    }
-        }
-        
-        // add specific genotype if one is provided
-        if ( g != null ) {
-            infoMap.put("GT", g.getGenotypeString());
-            infoMap.put("isHomRef", g.isHomRef() ? "1" : "0");
-            infoMap.put("isHet", g.isHet() ? "1" : "0");
-            infoMap.put("isHomVar", g.isHomVar() ? "1" : "0");
-            for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() )
-                infoMap.put(e.getKey(), String.valueOf(e.getValue()));
-        }
+            // add specific genotype if one is provided
+            if ( g != null ) {
+                infoMap.put("GT", g.getGenotypeString());
+                infoMap.put("isHomRef", g.isHomRef() ? "1" : "0");
+                infoMap.put("isHet", g.isHet() ? "1" : "0");
+                infoMap.put("isHomVar", g.isHomVar() ? "1" : "0");
+                for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() )
+                    infoMap.put(e.getKey(), String.valueOf(e.getValue()));
+            }
 
-        // create the internal context that we can evaluate expressions against
-        jContext = JexlHelper.createContext();
-        jContext.setVars(infoMap);
+            // create the internal context that we can evaluate expressions against
+
+            jContext = new MapContext(infoMap);
+
+//            jContext = JexlHelper.createContext();
+//            jContext.setVars(infoMap);
+        }
     }
 
     /**
@@ -184,7 +235,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
 
         // try and cast the expression
         VariantContextUtils.JexlVCMatchExp e = (VariantContextUtils.JexlVCMatchExp) o;
-        evaulateExpression(e);
+        evaluateExpression(e);
         return jexl.get(e);
     }
 
@@ -206,7 +257,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
         // this is an expensive call
         for (VariantContextUtils.JexlVCMatchExp exp : jexl.keySet())
             if (jexl.get(exp) == null)
-                evaulateExpression(exp);
+                evaluateExpression(exp);
         return jexl.values();
     }
 
@@ -214,7 +265,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * evaulate a JexlVCMatchExp's expression, given the current context (and setup the context if it's null)
      * @param exp the JexlVCMatchExp to evaluate
      */
-    private void evaulateExpression(VariantContextUtils.JexlVCMatchExp exp) {
+    private void evaluateExpression(VariantContextUtils.JexlVCMatchExp exp) {
         // if the context is null, we need to create it to evaluate the JEXL expression
         if (this.jContext == null) createContext();
         try {
@@ -229,7 +280,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * @param infoMap the map
      * @param attributes the attributes
      */
-    private static void addAttributesToMap(Map<String, String> infoMap, Map<String, ?> attributes ) {
+    private static void addAttributesToMap(Map<String, Object> infoMap, Map<String, ?> attributes ) {
         for (Map.Entry<String, ?> e : attributes.entrySet()) {
             infoMap.put(e.getKey(), String.valueOf(e.getValue()));
         }

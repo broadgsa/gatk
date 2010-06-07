@@ -24,13 +24,15 @@
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import java.util.*;
-import org.apache.commons.jexl.*;
+import org.apache.commons.jexl2.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broad.tribble.vcf.VCFRecord;
 
 public class VariantContextUtils {
+    public static JexlEngine engine = new JexlEngine();
+
     /** 
      * A simple but common wrapper for matching VariantContext objects using JEXL expressions
      */
@@ -90,7 +92,7 @@ public class VariantContextUtils {
 
             if ( name == null || expStr == null ) throw new IllegalArgumentException("Cannot create null expressions : " + name +  " " + expStr);
             try {
-                Expression exp = ExpressionFactory.createExpression(expStr);
+                Expression exp = engine.createExpression(expStr);
                 exps.add(new JexlVCMatchExp(name, exp));
             } catch (Exception e) {
                 throw new StingException("Invalid expression used (" + expStr + "). Please see the JEXL docs for correct syntax.");
@@ -121,7 +123,7 @@ public class VariantContextUtils {
      * @return true if there is a match
      */
     public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Collection<JexlVCMatchExp> exps) {
-        return new VariantJEXLContext(exps,vc).getVars();
+        return new JEXLMap(exps,vc);
 
     }
 
@@ -146,14 +148,8 @@ public class VariantContextUtils {
      * @return true if there is a match
      */
     public static Map<JexlVCMatchExp, Boolean> match(Genotype g, Collection<JexlVCMatchExp> exps) {
-        return new VariantJEXLContext(exps,g).getVars();
+        return new JEXLMap(exps,g);
 
-    }
-
-    private static void addAttributesToMap(Map<String, String> infoMap, Map<String, ?> attributes, String prefix ) {
-        for (Map.Entry<String, ?> e : attributes.entrySet()) {
-            infoMap.put(prefix + String.valueOf(e.getKey()), String.valueOf(e.getValue()));
-        }
     }
 
     public static double computeHardyWeinbergPvalue(VariantContext vc) {

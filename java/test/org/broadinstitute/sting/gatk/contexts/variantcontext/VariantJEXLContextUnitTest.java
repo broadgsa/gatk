@@ -24,7 +24,6 @@
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import net.sf.samtools.SAMFileHeader;
-import org.apache.commons.jexl.ExpressionFactory;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -72,7 +71,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
         header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
         try {
-            exp = new VariantContextUtils.JexlVCMatchExp("name", ExpressionFactory.createExpression(expression));
+            exp = new VariantContextUtils.JexlVCMatchExp("name", VariantContextUtils.engine.createExpression(expression));
         } catch (Exception e) {
             Assert.fail("Unable to create expression" + e.getMessage());
         }
@@ -95,9 +94,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
 
     @Test
     public void testGetValue() {
-        VariantJEXLContext context = getVarContext();
-
-        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = context.getVars();
+        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         // make sure the context has a value
         Assert.assertTrue(!map.isEmpty());
@@ -109,36 +106,28 @@ public class VariantJEXLContextUnitTest extends BaseTest {
 
     @Test(expected=UnsupportedOperationException.class)
     public void testContainsValue() {
-        VariantJEXLContext context = getVarContext();
-
-        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = context.getVars();
+        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         map.containsValue(exp);
     }
 
     @Test(expected=UnsupportedOperationException.class)
     public void testRemove() {
-        VariantJEXLContext context = getVarContext();
-
-        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = context.getVars();
+        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         map.remove(exp);
     }
 
     @Test(expected=UnsupportedOperationException.class)
     public void testEntrySet() {
-        VariantJEXLContext context = getVarContext();
-
-        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = context.getVars();
+        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         map.entrySet();
     }
 
     @Test(expected=UnsupportedOperationException.class)
     public void testClear() {
-        VariantJEXLContext context = getVarContext();
-
-        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = context.getVars();
+        Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         map.clear();
     }
@@ -147,12 +136,11 @@ public class VariantJEXLContextUnitTest extends BaseTest {
      * helper method
      * @return a VariantJEXLContext
      */
-    private VariantJEXLContext getVarContext() {
+    private JEXLMap getVarContext() {
         List<Allele> alleles = Arrays.asList(Aref, T);
 
         VariantContext vc = new VariantContext("test", snpLoc, alleles);
-        VariantJEXLContext context = new VariantJEXLContext(Arrays.asList(exp),vc);
-        return context;
+        return new JEXLMap(Arrays.asList(exp),vc);
     }
 
 

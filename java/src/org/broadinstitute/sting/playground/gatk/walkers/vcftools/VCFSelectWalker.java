@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
-import org.apache.commons.jexl.Expression;
-import org.apache.commons.jexl.ExpressionFactory;
-import org.apache.commons.jexl.JexlContext;
-import org.apache.commons.jexl.JexlHelper;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.MapContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -43,7 +43,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 import java.util.*;
 
 /**
- * Selects variant calls for output from a user-supplied VCF file using a number of user-selectable, parameterizable criteria.
+ * Selects variant calls for output from a user-supplied VCF file using a number of user-selectable, parameterizable criteria.  [TODO -- update to new walker style]
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= VCFRecord.class))
 public class VCFSelectWalker extends RodWalker<Integer, Integer> {
@@ -85,7 +85,7 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
         for ( int i = 0; i < MATCH_STRINGS.length; i++ ) {
             if ( MATCH_STRINGS[i] != null )  {
                 try {
-                    Expression filterExpression = ExpressionFactory.createExpression(MATCH_STRINGS[i]);
+                    Expression filterExpression = VariantContextUtils.engine.createExpression(MATCH_STRINGS[i]);
                     matchExpressions.add(new MatchExp(String.format("match-%d", i), MATCH_STRINGS[i], filterExpression));
                 } catch (Exception e) {
                     throw new StingException("Invalid expression used (" + MATCH_STRINGS[i] + "). Please see the JEXL docs for correct syntax.");
@@ -115,11 +115,10 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
 
         boolean someoneMatched = false;
         for ( MatchExp exp : matchExpressions ) {
-            Map<String, String> infoMap = new HashMap<String, String>(variant.getInfoValues());
+            Map<String, Object> infoMap = new HashMap<String, Object>(variant.getInfoValues());
             infoMap.put("QUAL", String.valueOf(variant.getQual()));
 
-            JexlContext jContext = JexlHelper.createContext();
-            jContext.setVars(infoMap);
+            JexlContext jContext = new MapContext(infoMap);
 
             try {
                 //System.out.printf("Matching %s vs. %s%n", infoMap, exp.expStr);
