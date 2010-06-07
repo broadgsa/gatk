@@ -43,6 +43,15 @@ import java.util.*;
 
 /** Iterator that traverses a SAM File, accumulating information on a per-locus basis */
 public class DownsamplingLocusIteratorByState extends LocusIterator {
+    private static long discarded_bases = 0L;
+    private static long observed_bases = 0L;
+
+    //
+    // todo -- eric, add your UG filters here
+    //
+    //public enum Discard { ADAPTOR_BASES }
+    //public static final EnumSet<Discard> NO_DISCARDS = EnumSet.noneOf(Discard.class);
+    public static final List<LocusIteratorFilter> NO_FILTERS = Arrays.asList();
 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(DownsamplingLocusIteratorByState.class);
@@ -250,20 +259,25 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
     //final boolean DEBUG2 = false && DEBUG;
     private Reads readInfo;
     private AlignmentContext nextAlignmentContext;
+    private List<LocusIteratorFilter> filters = new ArrayList<LocusIteratorFilter>();    
 
     // -----------------------------------------------------------------------------------------------------------------
     //
     // constructors and other basic operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public DownsamplingLocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation) {
+    public DownsamplingLocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation ) {
+        this(samIterator, readInformation, NO_FILTERS);
+    }
+    
+    public DownsamplingLocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation, List<LocusIteratorFilter> filters ) {
         // Aggregate all sample names.
         // TODO: Push in header via constructor
         if(GenomeAnalysisEngine.instance.getDataSource() != null)
             sampleNames.addAll(SampleUtils.getSAMFileSamples(GenomeAnalysisEngine.instance.getSAMFileHeader()));
         readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod(),sampleNames);
         this.readInfo = readInformation;
-
+        this.filters = filters;
     }
 
     public Iterator<AlignmentContext> iterator() {
@@ -382,22 +396,27 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 // todo -- performance problem -- should be lazy, really
                 for ( SAMRecordState state : readStates ) {
                     if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-                        size++;
-                        PileupElement p = new PileupElement(state.getRead(), state.getReadOffset());
-                        pile.add(p);
+                        if ( filterRead(state.getRead(), getLocation().getStart(), filters ) ) {
+                            discarded_bases++;
+                            //printStatus("Adaptor bases", discarded_adaptor_bases);
+                            continue;
+                        } else {
+                            observed_bases++;
+                            pile.add(new PileupElement(state.getRead(), state.getReadOffset()));
+                            size++;
+                        }
                     } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
                         size++;
                         pile.add(new PileupElement(state.getRead(), -1));
                         nDeletions++;
                     }
 
+                    // todo -- this looks like a bug w.r.t. including reads with deletion at loci -- MAD 05/27/10
                     if ( state.getRead().getMappingQuality() == 0 ) {
                         nMQ0Reads++;
                     }
-
-//                if ( state.hadIndel() ) System.out.println("Indel at "+getLocation()+" in read "+state.getRead().getReadName()) ;
-
                 }
+
                 GenomeLoc loc = getLocation();
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
                 // if we got reads with non-D/N over the current position, we are done
@@ -406,44 +425,6 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         }
     }
 
-    // old implementation -- uses lists of reads and offsets
-//    public AlignmentContext next() {
-//        //if (DEBUG) {
-//        //    logger.debug("in Next:");
-//        //    printState();
-//        //}
-//
-//        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(readStates.size());
-//        ArrayList<Integer> offsets = new ArrayList<Integer>(readStates.size());
-//
-//        // keep iterating forward until we encounter a reference position that has something "real" hanging over it
-//        // (i.e. either a real base, or a real base or a deletion if includeReadsWithDeletion is true)
-//        while(true) {
-//            collectPendingReads(readInfo.getMaxReadsAtLocus());
-//
-//            // todo -- performance problem -- should be lazy, really
-//            for ( SAMRecordState state : readStates ) {
-//                if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-////                    System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
-//                    reads.add(state.getRead());
-//                    offsets.add(state.getReadOffset());
-//                } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
-//                    reads.add(state.getRead());
-//                    offsets.add(-1);
-//                }
-//            }
-//            GenomeLoc loc = getLocation();
-//
-//            updateReadStates(); // critical - must be called after we get the current state offsets and location
-//
-//        //if (DEBUG) {
-//        //    logger.debug("DONE WITH NEXT, updating read states, current state is:");
-//        //    printState();
-//        //}
-//            // if we got reads with non-D/N over the current position, we are done
-//            if ( reads.size() != 0 ) return new AlignmentContext(loc, reads, offsets);
-//        }
-//    }
 
     private void collectPendingReads(int maxReads) {
         readStates.collectPendingReads();
@@ -467,6 +448,19 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         }
     }
 
+    private static boolean filterRead(SAMRecord rec, long pos, List<LocusIteratorFilter> filters) {
+        for ( LocusIteratorFilter filter : filters ) {
+            if ( filter.filterOut(rec, pos) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void printStatus(final String title, long n) {
+        if ( n % 10000 == 0 )
+            System.out.printf("%s %d / %d = %.2f%n", title, n, observed_bases, 100.0 * n / (observed_bases + 1));
+    }
 
     private void updateReadStates() {
         Iterator<SAMRecordState> it = readStates.iterator();
