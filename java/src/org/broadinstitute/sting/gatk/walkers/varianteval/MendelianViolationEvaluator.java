@@ -157,6 +157,10 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         return isViolation(vc, momG.getAlleles(), dadG.getAlleles(), childG.getAlleles());
     }
 
+    public static boolean isViolation(VariantContext vc, TrioStructure trio ) {
+        return isViolation(vc, vc.getGenotype(trio.mom), vc.getGenotype(trio.dad), vc.getGenotype(trio.child) );
+    }
+
     public static boolean isViolation(VariantContext vc, List<Allele> momA, List<Allele> dadA, List<Allele> childA) {
         //VariantContext momVC = vc.subContextFromGenotypes(momG);
         //VariantContext dadVC = vc.subContextFromGenotypes(dadG);
