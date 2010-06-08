@@ -18,11 +18,16 @@ For example, '-l 2,3' means column #2 and column #3 contain coordinate info. COL
  3 numbers means column1 = choromosome, column2 = start position, column3 = stop position.""")
 
 parser.add_option("-c", "--input-coords", dest="coordinates", metavar="COORD-TYPE", help="""Specifies the coordinate system of INPUT-FILE's chromosome/position column(s). COORD-TYPE can be:\n
-  * ONE-BASED-HALF-OPEN   1-based half-open.\n
-  * POSITIONAL            same as ONE-BASED-HALF-OPEN
-  * ZERO-BASED-HALF-OPEN  0-based half-open.\n
-  * OFFSET                same as ZERO-BASED-HALF-OPEN.\n
-  * DONT-CHANGE           coordinates will be left as-is.\n
+  * DONT-CHANGE                      coordinates will be left as-is.\n
+  * ONE-BASED-INCLUSIVE              1-based inclusive. Behavior the same as for DONT-CHANGE.\n
+  * POSITIONAL                       same as ONE-BASED-INCLUSIVE.\n
+  * ADD-ONE-TO-START-COORDS          all start-coordinates will be incremented by one.
+  * ZERO-BASED-HALF-OPEN             0-based half-open. Behavior the same as for ADD-ONE-TO-START-COORDS\n
+  * OFFSET                           same as ZERO-BASED-HALF-OPEN.\n
+  * ADD-ONE-TO-START-AND-END-COORDS  all start and end coordinates will be incremented by one.
+  * ZERO-BASED-INCLSUIVE             0-based half-open. Behavior the same as for ADD-ONE-TO-START-COORDS\n
+  
+
 Note: This setting is used to convert all coordinates into 1-based half-open for the output.""")
 parser.add_option("-t", "--output-style", dest="sequence_build", metavar="BUILD",           help="Sets the output file's reference build type to either UCSC or NCBI. This should be set based on what reference file will be used when running the GenomicAnnotator. UCSC builds can be specified as either 'hgXX' (eg. hg18) or 'UCSC'. NCBI builds can be specified as 'bXX' (eg. b36) or 'NCBI'. The build type determines chromosome order and naming convention (eg. 'chr1' or '1').")
 #parser.add_option("-i", "--include-columns", dest="include_fields", metavar="COLUMNS",  help="A comma-separated listing of (1-based) column numbers of all columns to include in the outptut file. Any columns not in this list will be discarded.")
@@ -36,7 +41,7 @@ group.add_option("-a", "--haplotype-alternate-column", metavar="COLUMN", dest="h
 group.add_option("-s", "--haplotype-strand-column", metavar="COLUMN", dest="haplotype_strand_column",        help="1-based column number of the haplotypeStrand. Specifying this will rename the column to 'haplotypeStrand' in the header.")
 group.add_option("-k", "--keep-original-columns", action="store_true", default=False, dest="keep_copy",      help="This flag makes it so that the columns passed to -l, -r, -a, and -s args are not removed when their contents is used to generate the special columns (eg. 'chrpos', 'haplotypeReference', etc..).")
 group.add_option("-m", "--other-start-columns", metavar="COLUMNS", dest="other_start_columns",               help="Comma-separated list of 1 or more column numbers (1-based) representing other columns that contain start coordinates and need to be converted from the coordinate system specified by -c. For example, the refGene table has coordinates for cdsStart which need to be converted along with the chromosome, txStart, and txEnd columns.")
-#group.add_option("-n", "--other-end-columns", metavar="COLUMNS", dest="other_stop_columns",                  help="Comma-separated list of 1 or more column numbers (1-based) representing other columns that contain end coordinates and need to be converted from the coordinate system specified by -c. For example, the refGene table has coordinates for cdsEnd which need to be converted along with the chromosome, txStart, and txEnd columns.")
+group.add_option("-n", "--other-end-columns", metavar="COLUMNS", dest="other_end_columns",                   help="Comma-separated list of 1 or more column numbers (1-based) representing other columns that contain end coordinates and need to be converted from the coordinate system specified by -c")
 group.add_option("-v", "--verbose", action="store_true", default=False,                                      help="Verbose.")
 group.add_option("-d", "--delimiter",                                                                        help="The delimiter that separates values in a line of INPUT-FILE. Set to 'tab' to make it use tab [Default: spaces].")
 
@@ -122,6 +127,20 @@ def is_valid_chrpos(line):
         return False
 
 
+# Takes a string containing a list of numbers. Returns the same string with all numbers incremented by one.
+def increment_by_one(comma_separated_coords):
+    converted_coords_string = ""
+    for coord in comma_separated_coords.split(","):
+        if coord.strip() == "":
+            continue
+        
+        if len(converted_coords_string) > 0:
+            converted_coords_string += ","
+
+        converted_coords_string += str(long(coord) + 1)
+
+    return converted_coords_string
+
 
 
 
@@ -149,10 +168,15 @@ if len(args) < 1 or not os.access(args[0], os.R_OK):
 input_filename = args[0]
 
 
-if options.coordinates == "POSITIONAL" or options.coordinates == "ONE-BASED-HALF-OPEN" or options.coordinates == "DONT-CHANGE":
-    coords_type = 1
-elif options.coordinates == "OFFSET" or options.coordinates == "ZERO-BASED-HALF-OPEN":
-    coords_type = 0
+add_one_to_start_coords = False
+add_one_to_end_coords = False
+if options.coordinates == "DONT-CHANGE" or options.coordinates == "ONE-BASED-INCLUSIVE" or options.coordinates == "POSITIONAL":
+    pass
+elif options.coordinates == "ADD-ONE-TO-START-COORDS" or options.coordinates == "ZERO-BASED-HALF-OPEN" or options.coordinates == "OFFSET":
+    add_one_to_start_coords = True
+elif options.coordinates == "ADD-ONE-TO-START-AND-END-COORDS" or options.coordinates == "ZERO-BASED-INCLUSIVE":
+    add_one_to_start_coords = True
+    add_one_to_end_coords = True
 else:
     if not options.coordinates:
         error("-c arg must be specified")
@@ -240,6 +264,14 @@ if options.other_start_columns:
             other_start_columns += [int(c) - 1]
     except:
         error("-m COLUMNS - all elements in the comma-separated list must be integers.")
+
+other_end_columns = []
+if options.other_end_columns:
+    try:
+        for c in options.other_end_columns.split(","):
+            other_end_columns += [int(c) - 1]
+    except:
+        error("-n COLUMNS - all elements in the comma-separated list must be integers.")
 
 if verbose:
     print("  Input file: " + input_filename)
@@ -335,7 +367,7 @@ for line in open(input_filename):
             try: start_int = long(line_fields[start_column])
             except: error("Line #%d, Column %d: start coordinate value '%s' is not an integer." % (counter, start_column, line_fields[start_column]))
 
-            if coords_type == 0:
+            if add_one_to_start_coords:
                 start_int += 1 # Convert to 1-based coords
                 line_fields[start_column] = str(start_int) # Change the original column in case keep_copy is True
 
@@ -345,9 +377,9 @@ for line in open(input_filename):
                 try: stop_int = long(line_fields[stop_column])
                 except: error("Line #%d, Column %d: stop coordinate value '%s' is not an integer" % (counter, stop_column, line_fields[stop_column]))
 
-                #if coords_type == 0:
-                #    stop_int += 1
-                # Converting to 1-based inclusive, so don't need to add 1 here after all
+                if add_one_to_end_coords:
+                    stop_int += 1 # Convert to 1-based coords
+                    line_fields[stop_column] = str(stop_int) # Change the original column in case keep_copy is True
 
                 if stop_int != start_int: # If they are equal, chr1:x is the same as chr1:x-x
                     chrpos_value += "-%d" % stop_int
@@ -357,24 +389,25 @@ for line in open(input_filename):
                 error("Line #%d: Invalid chrpos [%s] in column %d" % (counter, line_fields[chr_column], chr_column ))
 
         # Handle the -m arg
-        if other_start_columns and coords_type == 0:
+        if other_start_columns and add_one_to_start_coords:
             for c in other_start_columns:
                 if c >= len(line_fields):
                     error("Line #%d: Found only %d fields. -m arg is out of range." % (counter, len(line_fields)) )
 
                 try:
-                    converted_coords_string = ""
-                    for coord in line_fields[c].split(","):
-                        if coord.strip() == "":
-                            continue
-
-                        if len(converted_coords_string) > 0:
-                            converted_coords_string += ","
-                        converted_coords_string += str(long(coord) + 1)
-
-                    line_fields[c] = converted_coords_string
+                    line_fields[c] = increment_by_one(line_fields[c])
                 except:
                     error( "Line #%d: Processing -m %s arg. Couldn't parse coordinates in column %d: [%s]." % (counter, str(other_start_columns), c, line_fields[c] ) )
+        # Handle the -n arg
+        if other_end_columns and add_one_to_end_coords:
+            for c in other_end_columns:
+                if c >= len(line_fields):
+                    error("Line #%d: Found only %d fields. -m arg is out of range." % (counter, len(line_fields)) )
+
+                try:
+                    line_fields[c] = increment_by_one(line_fields[c])
+                except:
+                    error( "Line #%d: Processing -m %s arg. Couldn't parse coordinates in column %d: [%s]." % (counter, str(other_end_columns), c, line_fields[c] ) )
 
 
         # Move the columns around as needed (eg. so that chrpos is in the 1th column and hap ref/alt/strand are 2nd,3rd,4th):
