@@ -284,7 +284,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod(),readInformation.getMaxReadsAtLocus(),sampleNames);
         this.readInfo = readInformation;
         this.filters = filters;
-        overflowTracker = new LocusOverflowTracker(readInformation.getMaxReadsAtLocus());        
+        overflowTracker = new LocusOverflowTracker(readInformation.getMaxReadsAtLocus());
     }
 
     public Iterator<AlignmentContext> iterator() {
@@ -534,11 +534,22 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         public ReadStateManager(Iterator<SAMRecord> source, DownsamplingMethod downsamplingMethod, int maxReadsAtLocus, Collection<String> sampleNames) {
             this.iterator = new PeekableIterator<SAMRecord>(source);
             this.downsamplingMethod = downsamplingMethod;
-            this.targetCoverage = downsamplingMethod.toCoverage != null ? downsamplingMethod.toCoverage : 1;
+            switch(downsamplingMethod.type) {
+                case EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR:
+                    this.targetCoverage = downsamplingMethod.toCoverage != null ? downsamplingMethod.toCoverage : 1;
+                    break;
+                case EXPERIMENTAL_BY_SAMPLE:
+                    if(downsamplingMethod.toCoverage == null)
+                        throw new StingException("Downsampling coverage (-dcov) must be specified when downsampling by sample");
+                    this.targetCoverage = downsamplingMethod.toCoverage;
+                    break;
+                default:
+                    this.targetCoverage = Integer.MAX_VALUE;
+            }
             this.maxReadsAtLocus = maxReadsAtLocus;
             if(downsamplingMethod.type == DownsampleType.NONE)
                 aggregatorsBySampleName.put(null,new ArrayList<SAMRecord>());
-            if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR)
+            else if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR)
                 aggregatorsBySampleName.put(null,new ReservoirDownsampler<SAMRecord>(targetCoverage));
             else {
                 for(String sampleName: sampleNames)
@@ -705,10 +716,10 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         }
 
         private Collection<SAMRecord> getAggregator(String sampleName) {
-            if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR)
-                return aggregatorsBySampleName.get(null);
-            else
+            if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_BY_SAMPLE)
                 return aggregatorsBySampleName.get(sampleName);
+            else
+                return aggregatorsBySampleName.get(null);
         }
 
         private int countReadsInHanger(final String sampleName) {
