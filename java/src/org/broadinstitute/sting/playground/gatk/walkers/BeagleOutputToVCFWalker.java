@@ -29,7 +29,6 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -38,8 +37,6 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
@@ -65,15 +62,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     @Argument(fullName="output_file", shortName="output", doc="VCF file to which output should be written", required=true)
     private String OUTPUT_FILE = null;
 
-    @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
-    protected String[] annotationsToUse = {"AlleleBalance"};
-
-    @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
-    protected String[] annotationClassesToUse = {};
-
-    @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
-    protected Boolean USE_ALL_ANNOTATIONS = false;
-
 
     public static final String INPUT_ROD_NAME = "inputvcf";
 
@@ -81,8 +69,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     protected static BeagleFileReader phasedReader = null;
     protected static BeagleFileReader likeReader = null;
     protected static BeagleFileReader r2Reader = null;
-
-    private VariantAnnotatorEngine engine;
 
     protected static String line = null;
 
@@ -95,10 +81,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     private final double MAX_GENOTYPE_QUALITY = 6.0;
 
     public void initialize() {
-        if ( USE_ALL_ANNOTATIONS )
-            engine = new VariantAnnotatorEngine(getToolkit());
-        else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
 
         // setup the header fields
 
@@ -106,7 +88,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "r2 Value reported by Beable on each site"));
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
-        hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
@@ -441,37 +422,19 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
                 altAlleleCountString.append(filteredVC.getChromosomeCount(allele));
             }
 
+            VCFRecord vcf = VariantContextAdaptors.toVCF(filteredVC, ref.getBase());
 
-            // if the reference base is not ambiguous, we can annotate
-            Collection<VariantContext> annotatedVCs = Arrays.asList(filteredVC);
-            Map<String, StratifiedAlignmentContext> stratifiedContexts;
-            if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
-                if ( ! context.hasExtendedEventPileup() ) {
-                    stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
-                } else {
-                    stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getExtendedEventPileup());
-                }
-                if ( stratifiedContexts != null ) {
-                    annotatedVCs = engine.annotateContext(tracker, ref, stratifiedContexts, filteredVC);
+            if ( filteredVC.getChromosomeCount() > 0 ) {
+                vcf.addInfoField(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
+                if ( altAlleleCountString.length() > 0 )  {
+                    vcf.addInfoField(VCFRecord.ALLELE_COUNT_KEY, altAlleleCountString.toString());
+                    vcf.addInfoField(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
+                            Double.valueOf(altAlleleCountString.toString())/(filteredVC.getChromosomeCount())));
                 }
             }
 
-
-            for(VariantContext annotatedVC : annotatedVCs ) {
-                VCFRecord vcf = VariantContextAdaptors.toVCF(filteredVC, ref.getBase());
-
-                if ( annotatedVC.getChromosomeCount() > 0 ) {
-                    vcf.addInfoField(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", annotatedVC.getChromosomeCount()));
-                    if ( altAlleleCountString.length() > 0 )  {
-                        vcf.addInfoField(VCFRecord.ALLELE_COUNT_KEY, altAlleleCountString.toString());
-                        vcf.addInfoField(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
-                                Double.valueOf(altAlleleCountString.toString())/(annotatedVC.getChromosomeCount())));
-                    }
-                }
-
-                vcf.addInfoField("R2", (bglRecord.getR2Value()).toString() );
-                vcfWriter.addRecord(vcf);
-            }
+            vcf.addInfoField("R2", (bglRecord.getR2Value()).toString() );
+            vcfWriter.addRecord(vcf);
         }
 
         return 1;
