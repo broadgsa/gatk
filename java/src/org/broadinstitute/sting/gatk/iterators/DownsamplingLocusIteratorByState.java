@@ -406,9 +406,10 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
 
                 // todo -- performance problem -- should be lazy, really
+                GenomeLoc location = getLocation();
                 for ( SAMRecordState state : readStates ) {
                     if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-                        if ( filterRead(state.getRead(), getLocation().getStart(), filters ) ) {
+                        if ( filterRead(state.getRead(), location.getStart(), filters ) ) {
                             discarded_bases++;
                             //printStatus("Adaptor bases", discarded_adaptor_bases);
                             continue;
@@ -429,10 +430,9 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     }
                 }
 
-                GenomeLoc loc = getLocation();
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
                 // if we got reads with non-D/N over the current position, we are done
-                if ( pile.size() != 0 ) nextAlignmentContext = new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions, nMQ0Reads));
+                if ( pile.size() != 0 ) nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileup(location, pile, size, nDeletions, nMQ0Reads));
             }
         }
     }
@@ -751,7 +751,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             List<SAMRecordState> readStatesBySample = new LinkedList<SAMRecordState>();
             int readCount = 0;
             for(SAMRecord read: reads) {
-                if(readCount < maxReads) {
+                if(readCount <=  maxReads) {
                     SAMRecordState state = new SAMRecordState(read, readInfo.generateExtendedEvents());
                     state.stepForwardOnGenome();
                     readStatesBySample.add(state);
