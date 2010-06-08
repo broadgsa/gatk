@@ -57,10 +57,10 @@ if ucsc:  # NCBI doesn't have the _random contigs
 
 dir_plus_prefix = os.path.join(directory,prefix)
 
-# Update the *-big-table-header.txt header file using the header from one of the single-contig files.
-#command = "head -n 1 " + dir_plus_prefix + ("-big-table-ucsc-%s.txt " % contigs[0]) + " > " + dir_plus_prefix + "-big-table-header.txt"
-#print(command)
-#os.system(command)
+# Update the *-big-table-header.txt header file using the header from one of the single-contig files - in case TranscriptToInfo was changed with columns being added or removed.
+command = "head -n 1 " + dir_plus_prefix + ("-big-table-ucsc-%s.txt " % contigs[0]) + " > " + dir_plus_prefix + "-big-table-header.txt"
+print(command)
+os.system(command)
 
 
 # Concatenate
