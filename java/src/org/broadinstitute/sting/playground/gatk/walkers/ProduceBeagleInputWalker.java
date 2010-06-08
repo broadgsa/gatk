@@ -40,6 +40,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 import java.io.PrintStream;
@@ -79,16 +80,12 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
          if( tracker != null ) {
-            EnumSet<VariantContext.Type> vc = EnumSet.of(VariantContext.Type.SNP);
             GenomeLoc loc = context.getLocation();
             VariantContext vc_eval;
 
-
-            try {
-                vc_eval = tracker.getVariantContext(ref,"vcf", vc, loc, true);
-            } catch (java.util.NoSuchElementException e) {
+            vc_eval = tracker.getVariantContext(ref,"vcf", null, loc, false);
+            if ( vc_eval == null || vc_eval.isFiltered() )
                 return 0;
-            }
 
             // output marker ID to Beagle input file
             beagleWriter.print(String.format("%s ",vc_eval.getLocation().toString()));
@@ -105,7 +102,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             }
 
             if ( !vc_eval.hasGenotypes() )
-                return null;
+                return 0;
 
             Map<String, Genotype> genotypes = vc_eval.getGenotypes();
             for ( String sample : samples ) {
@@ -123,7 +120,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                         Double dg = Double.valueOf(gl);
                         if (dg> maxLikelihood)
                             maxLikelihood = dg;
-
+                        
                         likeArray.add(dg);
                      }
 
