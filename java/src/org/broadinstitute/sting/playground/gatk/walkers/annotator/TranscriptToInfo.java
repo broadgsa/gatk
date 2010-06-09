@@ -398,7 +398,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
         if(isProteinCodingTranscript && parsedTranscriptRod.cdsSequence.length() % 3 != 0) {
             if (!isMitochondrialTranscript) {
-                logger.warn("WARNING: Transcript " + parsedTranscriptRod +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] has " + parsedTranscriptRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. Skipping...");
+                logger.error("ERROR: Transcript " + parsedTranscriptRod +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] has " + parsedTranscriptRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. Skipping...");
                 //discard transcripts where CDS length is not a multiple of 3
                 skippedTranscriptCounter++;
                 return;
@@ -426,7 +426,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     } while( parsedTranscriptRod.cdsSequence.length() % 3 != 0);
 
                 } else {
-                    logger.warn("WARNING: Mitochnodrial transcript " + parsedTranscriptRod +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] has " + parsedTranscriptRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. The CDS does not cover the entire transcript, so its not possible to use A's from the polyA tail. Skipping...");
+                    logger.error("ERROR: Mitochnodrial transcript " + parsedTranscriptRod +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] has " + parsedTranscriptRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. The CDS does not cover the entire transcript, so its not possible to use A's from the polyA tail. Skipping...");
                     skippedTranscriptCounter++;
                     return;
                 }
