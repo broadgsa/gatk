@@ -3,7 +3,7 @@ import os
 
 
 def print_help():
-    print("\n" + os.path.split(sys.argv[0])[1] + " [file1] [file2] \n" + \
+    sys.stderr.write("\n" + os.path.split(sys.argv[0])[1] + " [file1] [file2] \n" + \
         "     Takes two tab-delimited tables and merges them, so that the output is sorted by genomic position.\n" + \
         "     Both input files must be in AnnotatorInputTable format (http://www.broadinstitute.org/gsa/wiki/index.php/GenomicAnnotator#Data_Formats),\n" + \
         "     and must have identical headers.\n")
@@ -27,21 +27,23 @@ try:
     file1 = open(sys.argv[1])
     header1 = read_header(file1)
 except Exception, e:
-    print("ERROR: While reading header from file \"" + sys.argv[1] + "\": " + str(e))
+    sys.stderr.write("ERROR: While reading header from file \"" + sys.argv[1] + "\": " + str(e) + "\n")
     sys.exit(0)
 
 try:
     file2 = open(sys.argv[2])
     header2 = read_header(file2)
 except e:
-    print("ERROR: While reading header from file \"" + sys.argv[1] + "\": " + str(e))
+    sys.stderr.write("ERROR: While reading header from file \"" + sys.argv[1] + "\": " + str(e) + "\n")
     sys.exit(0)
 
+
+if len(header1) != len(header2):
+    sys.stderr.write("ERROR: The two files' headers are of different lengths: \n" + str(header1) + "\n" + str(header2) + "\n")
+    sys.exit(0)
 
 if header1 != header2:
-    print("ERROR: The two files have different headers: \n" + str(header1) + "\n" + str(header2))
-    sys.exit(0)
-
+    sys.stderr.write("WARNING: The two files' headers are of different lengths: \nHeader1: " + str(header1) + "\nHeader2: " + str(header2) + "\nUsing header1.\n")
 print("\t".join(header1))
 
 
@@ -95,7 +97,7 @@ def read_line(file_obj):
     except StopIteration:
         return (None, None)
     except Exception, e:
-        print("ERROR: While reading file \"" + sys.argv[1] + "\": " + str(e))
+        sys.stderr.write("ERROR: While reading file \"" + sys.argv[1] + "\": " + str(e) + "\n")
         sys.exit(0)
 
 
