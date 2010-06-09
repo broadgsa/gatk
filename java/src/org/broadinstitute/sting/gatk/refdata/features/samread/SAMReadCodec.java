@@ -61,6 +61,11 @@ public class SAMReadCodec implements FeatureCodec<SAMReadFeature> {
         return SAMReadFeature.class;
     }
 
+    @Override
+    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
+        return null;  // we haven't stored the header
+    }
+
     /**
      * Decode a single line in a SAM text file.
      * @param line line to decode.

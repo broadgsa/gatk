@@ -85,18 +85,6 @@ public abstract class RMDTrack {
     public abstract CloseableIterator<GATKFeature> getIterator();
 
     /**
-     * helper function for determining if we are the same track based on name and codec type
-     *
-     * @param name the name to match
-     * @param type the type to match
-     *
-     * @return true on a match, false if the name or type is different
-     */
-    public boolean matchesNameAndType(String name, Type type) {
-        return (name.equals(this.name) && (type.getClass().isAssignableFrom(this.type.getClass())));
-    }
-
-    /**
      * helper function for determining if we are the same track based on name and record type
      *
      * @param name the name to match
@@ -120,5 +108,16 @@ public abstract class RMDTrack {
      */
     public SAMSequenceDictionary getSequenceDictionary() {
         return null;  // default, others can override this
+    }
+
+    /**
+     * ask for the header, supplying the expected type.  Overridden in track types
+     * @param clazz the class of the expected type
+     * @param <HeaderType> the expected type
+     * @return a object of type HeaderType
+     * @throws ClassCastException if the class provided doesn't match our header type
+     */
+    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
+        return null;
     }
 }

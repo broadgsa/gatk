@@ -74,9 +74,7 @@ public class VCFUtils {
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getRecordType().equals(VCFRecord.class) ) {
-                VCFReader reader = new VCFReader(rod.getFile());
-                fields.addAll(reader.getHeader().getMetaData());
-                reader.close();
+                fields.addAll(rod.getHeader(VCFHeader.class).getMetaData());                
             }
         }
 

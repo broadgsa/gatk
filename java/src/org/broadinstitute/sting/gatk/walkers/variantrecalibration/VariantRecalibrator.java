@@ -92,6 +92,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="quality_step", shortName="qStep", doc="Resolution in QUAL units for optimization and tranche calculations", required=false)
     private double QUAL_STEP = 0.1;
 
+    // TODO: RYAN - remove me, even though this switch is apparently super awesome
+    private final static boolean AARONS_SUPER_AWESOME_SWITCH = true;
+
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
@@ -131,21 +134,30 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
-        hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
-        vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
         final TreeSet<String> samples = new TreeSet<String>();
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
-        for( final ReferenceOrderedDataSource source : dataSources ) {
-            final RMDTrack rod = source.getReferenceOrderedData();
-            if( rod.getRecordType().equals(VCFRecord.class) ) {
-                final VCFReader reader = new VCFReader(rod.getFile());
-                final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
-                samples.addAll(vcfSamples);
-                reader.close();
+
+        if (AARONS_SUPER_AWESOME_SWITCH) {
+            hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+            hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
+            hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
+            samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
+
+        } else {
+            hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+            hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
+            hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
+            for( final ReferenceOrderedDataSource source : dataSources ) {
+                final RMDTrack rod = source.getReferenceOrderedData();
+                if( rod.getRecordType().equals(VCFRecord.class) ) {
+                    final VCFReader reader = new VCFReader(rod.getFile());
+                    final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
+                    samples.addAll(vcfSamples);
+                    reader.close();
+                }
             }
         }
+        vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 

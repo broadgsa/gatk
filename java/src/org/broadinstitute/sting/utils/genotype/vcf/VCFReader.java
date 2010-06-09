@@ -69,7 +69,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         } catch (IOException e) {
             throw new StingException("Unable to read VCF File from " + vcfFile, e);
         }
-        mHeader = codec.getHeader();
+        mHeader = codec.getHeader(VCFHeader.class);
     }
 
     /**

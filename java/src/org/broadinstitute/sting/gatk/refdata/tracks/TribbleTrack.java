@@ -130,4 +130,15 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
     public SAMSequenceDictionary getSequenceDictionary() {
         return dictionary;
     }
+
+    /**
+     * ask for the header, supplying the expected type.  Overridden in track types
+     * @param clazz the class of the expected type
+     * @param <HeaderType> the expected type
+     * @return a object of type HeaderType
+     * @throws ClassCastException if the class provided doesn't match our header type
+     */
+    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
+        return (HeaderType) (reader).getHeader(clazz);
+    }
 }

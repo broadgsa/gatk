@@ -280,4 +280,9 @@ public class VCF4Codec implements FeatureCodec {
     public Class getFeatureType() {
         return VariantContext.class;
     }
+
+    @Override
+    public Object getHeader(Class clazz) throws ClassCastException {
+        return null;  // TODO: fix this Aaron
+    }
 }

@@ -69,6 +69,11 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         return AnnotatorInputTableFeature.class;
     }
 
+    @Override
+    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
+        return null;  // TODO: do we want the header to be a concrete type?
+    }
+
 
     /**
      * Parses the line into an AnnotatorInputTableFeature object.
