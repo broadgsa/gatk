@@ -279,7 +279,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
     public DownsamplingLocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation, List<LocusIteratorFilter> filters ) {
         // Aggregate all sample names.
         // TODO: Push in header via constructor
-        if(GenomeAnalysisEngine.instance.getDataSource() != null)
+        if(GenomeAnalysisEngine.instance != null && GenomeAnalysisEngine.instance.getDataSource() != null)
             sampleNames.addAll(SampleUtils.getSAMFileSamples(GenomeAnalysisEngine.instance.getSAMFileHeader()));
         readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod(),readInformation.getMaxReadsAtLocus(),sampleNames);
         this.readInfo = readInformation;
@@ -657,7 +657,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 int firstAlignmentStart = iterator.peek().getAlignmentStart();
                 while(iterator.hasNext() && iterator.peek().getReferenceIndex() == firstContigIndex && iterator.peek().getAlignmentStart() == firstAlignmentStart) {
                     SAMRecord read = iterator.next();
-                    getAggregator(read.getReadGroup().getSample()).add(read);
+                    Collection<SAMRecord> aggregator = getAggregator(read.getReadGroup()!=null ? read.getReadGroup().getSample() : null);
+                    aggregator.add(read);
                 }
             }
             else {
@@ -667,7 +668,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
                 while (iterator.hasNext() && !readIsPastCurrentPosition(iterator.peek())) {
                     SAMRecord read = iterator.next();
-                    getAggregator(read.getReadGroup().getSample()).add(read);
+                    Collection<SAMRecord> aggregator = getAggregator(read.getReadGroup()!=null ? read.getReadGroup().getSample() : null);
+                    aggregator.add(read);
                 }
             }
 
