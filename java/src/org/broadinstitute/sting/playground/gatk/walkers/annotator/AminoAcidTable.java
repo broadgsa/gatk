@@ -181,19 +181,40 @@ public class AminoAcidTable {
 
 
     /**
-     * Returns the the matching amino acid.
+     * Returns the amino acid encoded by the given codon in a eukaryotic genome.
      *
      * @param codon The 3-letter mRNA nucleotide codon 5' to 3'. Expects T's instead of U's. Not case sensitive.
-     * @param mitochondrial Whether this is from a mitochondrial gene (mitochondria have a slightly different codon table).
      *
      * @return The amino acid matching the given codon.
      */
-    public static AminoAcid getAA(String codon, boolean mitochondrial) {
+    public static AminoAcid getEukaryoticAA(String codon) {
         codon = codon.toUpperCase();
-        if(!aminoAcidTable.containsKey(codon)) {
+        final AminoAcid aa = aminoAcidTable.get(codon);
+        if(aa == null) {
             throw new IllegalArgumentException("Invalid codon: " + codon);
+        } else {
+            return aa;
         }
+    }
 
-        return aminoAcidTable.get(codon);
+
+    /**
+     * Returns the amino acid encoded by the given codon in a mitochondrial genome.
+     *
+     * @param codon The 3-letter mRNA nucleotide codon 5' to 3'. Expects T's instead of U's. Not case sensitive.
+     * @param isFirstCodon If this is the 1st codon in the gene, then "ATT" encodes Methyonine
+     *
+     * @return The amino acid matching the given codon in mitochondrial genes.
+     */
+    public static AminoAcid getMitochondrialAA(String codon, boolean isFirstCodon) {
+        codon = codon.toUpperCase();
+        final AminoAcid aa = mitochondrialAminoAcidTable.get(codon);
+        if(aa == null) {
+            throw new IllegalArgumentException("Invalid codon: " + codon);
+        } else if(isFirstCodon && codon.equals("ATT")) {
+            return METHIONINE; //special case - 'ATT' in the first codon of a mitochondrial gene codes for methionine instead of isoleucine
+        } else {
+            return aa;
+        }
     }
 }

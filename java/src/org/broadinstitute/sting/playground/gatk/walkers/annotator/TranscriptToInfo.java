@@ -88,8 +88,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     @Argument(fullName="unique-gene-name-columns", shortName="n", doc="Specifies which column(s) from the transcript table contains the gene name(s). For example, -B transcripts,AnnotatorInputTable,/data/refGene.txt -n name,name2  specifies that the name and name2 columns are gene names. WARNING: the gene names for each record, when taken together, should provide a unique id for that record relative to all other records in the file. If this is not the case, an error will be thrown. ", required=true)
     private String[] GENE_NAME_COLUMNS = {};
 
-
-
     private final char[] ALLELES = {'A','C','G','T'};
 
     /** Output columns */
@@ -134,6 +132,11 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     private String outputFilename = null;
 
     private int transcriptsProcessedCounter = 0;
+
+    private long transcriptsThatDontStartWithMethionineOrEndWithStopCodonCounter = 0;
+    private long transcriptsThatDontStartWithMethionineCounter = 0;
+    private long transcriptsThatDontEndWithStopCodonCounter = 0;
+    private long skippedTranscriptCounter = 0;
 
     private long skippedPositionsCounter = 0;
     private long totalPositionsCounter = 0;
@@ -283,7 +286,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
             //populate parsedTranscriptRod.txSequence
             if(parsedTranscriptRod.positiveStrand) {
-                parsedTranscriptRod.txSequence.append(ref.getBase());
+                parsedTranscriptRod.txSequence.append(ref.getBaseAsChar());
             } else {
                 final char complementBase = BaseUtils.simpleComplement(ref.getBaseAsChar());
                 parsedTranscriptRod.txSequence.insert(0, complementBase);
@@ -388,13 +391,69 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         //Transcripts that don't produce proteins are indicated in transcript by cdsStart == cdsEnd
         //These will be handled by generating only one record, with haplotypeAlternate == "*".
         final boolean isProteinCodingTranscript = parsedTranscriptRod.isProteinCodingTranscript();
+        final boolean isMitochondrialTranscript = parsedTranscriptRod.txChrom.toLowerCase().startsWith("chrm");
 
         final boolean positiveStrand = parsedTranscriptRod.positiveStrand; //alias
 
+
         if(isProteinCodingTranscript && parsedTranscriptRod.cdsSequence.length() % 3 != 0) {
-            logger.warn("WARNING: Transcript " + parsedTranscriptRod.geneNames.toString() +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] has " + parsedTranscriptRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. Skipping...");
-            //discard transcripts where CDS length is not a multiple of 3
-            return;
+            if (!isMitochondrialTranscript) {
+                logger.warn("WARNING: Transcript " + parsedTranscriptRod +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] has " + parsedTranscriptRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. Skipping...");
+                //discard transcripts where CDS length is not a multiple of 3
+                skippedTranscriptCounter++;
+                return;
+            } else {
+
+                //In mitochondrial genes, the polyA tail may complete the stop codon, allowing transcript . To check for this special case:
+                //1. check that the CDS covers the entire transcript
+                //2. add 1 or 2 A's to the 3' end of the transcript (as needed to make it divisible by 3)
+                //3. check whether the last 3 letters now form a stop codon using the mitochondrial AA table
+                //4. If not, skip this gene, else incorporate the A's and process it like any other gene.
+
+                if( parsedTranscriptRod.txSequence.length() == parsedTranscriptRod.cdsSequence.length()) {
+                    do { //append A's until sequence length is divisible by 3
+                        parsedTranscriptRod.txSequence.append('*');
+                        parsedTranscriptRod.cdsSequence.append('a');
+                        if(positiveStrand) {
+                            parsedTranscriptRod.txEnd++;
+                            parsedTranscriptRod.cdsEnd++;
+                            parsedTranscriptRod.exonEnds[0]++;
+                        } else {
+                            parsedTranscriptRod.txStart--;
+                            parsedTranscriptRod.cdsStart--;
+                            parsedTranscriptRod.exonStarts[0]--;
+                        }
+                    } while( parsedTranscriptRod.cdsSequence.length() % 3 != 0);
+
+                } else {
+                    logger.warn("WARNING: Mitochnodrial transcript " + parsedTranscriptRod +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] has " + parsedTranscriptRod.cdsSequence.length() + " nucleotides in its CDS region, which is not divisible by 3. The CDS does not cover the entire transcript, so its not possible to use A's from the polyA tail. Skipping...");
+                    skippedTranscriptCounter++;
+                    return;
+                }
+            }
+        }
+
+
+        //warn if the first codon isn't Methionine and/or the last codon isn't a stop codon.
+        if(isProteinCodingTranscript) {
+            final int cdsSequenceLength = parsedTranscriptRod.cdsSequence.length();
+
+            final String firstCodon = parsedTranscriptRod.cdsSequence.substring(0, 3);
+            final AminoAcid firstAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( firstCodon, true ) : AminoAcidTable.getEukaryoticAA( firstCodon ) ;
+
+            final String lastCodon = parsedTranscriptRod.cdsSequence.substring(cdsSequenceLength - 3, cdsSequenceLength);
+            final AminoAcid lastAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( lastCodon, false ) : AminoAcidTable.getEukaryoticAA( lastCodon ) ;
+
+            if( firstAA != AminoAcidTable.METHIONINE && !lastAA.isStop()) {
+                transcriptsThatDontStartWithMethionineOrEndWithStopCodonCounter++;
+                logger.warn("WARNING: The CDS of transcript " + parsedTranscriptRod.geneNames[0] +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] does not start with Methionine or end in a stop codon. The first codon is: " + firstCodon + " (" + firstAA + "). The last codon is: " + lastCodon + " (" + lastAA + "). NOTE: This is just a warning - the transcript will be included in the output.");
+            } else if( firstAA != AminoAcidTable.METHIONINE) {
+                transcriptsThatDontStartWithMethionineCounter++;
+                logger.warn("WARNING: The CDS of transcript " + parsedTranscriptRod.geneNames[0] +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] does not start with Methionine. The first codon is: " + firstCodon + " (" + firstAA + "). NOTE: This is just a warning - the transcript will be included in the output.");
+            } else if(!lastAA.isStop()) {
+                transcriptsThatDontEndWithStopCodonCounter++;
+                logger.warn("WARNING: The CDS of transcript " + parsedTranscriptRod.geneNames[0] +" at position ["+ parsedTranscriptRod.txChrom + ":" +parsedTranscriptRod.txStart + "-" + parsedTranscriptRod.txEnd + "] does not end in a stop codon. The last codon is: " + lastCodon + " (" + lastAA + "). NOTE: This is just a warning - the transcript will be included in the output.");
+            }
         }
 
         final int txStart_5prime = positiveStrand ? parsedTranscriptRod.txStart : parsedTranscriptRod.txEnd; //1-based, inclusive
@@ -410,13 +469,13 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         int utr5Count_from5 = 0;
         char[] utr5NucBuffer_5to3 = null; //used to find uORFs - size = 5 because to hold the 3 codons that overlap any given position: [-2,-1,0], [-1,0,1], and [0,1,2]
 
-        int codonCount_from5 = 1; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand - counts the number of codons
+        int codonCount_from5 = 1; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand - counts the number of codons - 1-based
         int codingCoord_from5 = isProteinCodingTranscript ? parsedTranscriptRod.computeInitialCodingCoord() : -1; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand
         boolean codingCoordResetForCDS = false;
         boolean codingCoordResetForUtr3 = false;
         final char[] currentCodon_5to3 = isProteinCodingTranscript ? new char[3] : null; //holds the current RNA codon - 5' to 3'
 
-        final boolean mitochondrial = parsedTranscriptRod.txChrom.toLowerCase().startsWith("chrm");
+
 
         PositionType positionType = null;
         boolean isWithinIntronAndFarFromSpliceJunction = false;
@@ -588,12 +647,13 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     haplotypeReference = BaseUtils.simpleComplement(haplotypeReference); //txSequence contents depend on whether its +/- strand
                 }
 
-                if(!BaseUtils.isRegularBase(haplotypeReference)) {
+                if(!BaseUtils.isRegularBase(haplotypeReference) && haplotypeReference != '*') { //* is special case for mitochondrial genes where polyA tail completes the last codon
                     //check for bad bases
                     logger.debug("Skipping current position [" + parsedTranscriptRod.txChrom + ":" +txCoord_5to3 + "] in transcript " + parsedTranscriptRod.geneNames.toString() + ". The reference contains an irregular base:" + haplotypeReference); // +". Transcript is: " + parsedTranscriptRod);
                     ++skippedPositionsCounter;
                     continue;
                 }
+
 
                 for(char haplotypeAlternate : ALLELES )
                 {
@@ -647,25 +707,25 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     //compute OUTPUT_UORF_CHANGE
                     if(positionType == PositionType.utr5)
                     {
-                        String refCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + utr5NucBuffer_5to3[2]).toLowerCase();
-                        String refCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(utr5NucBuffer_5to3[2]) + utr5NucBuffer_5to3[3]).toLowerCase();
-                        String refCodon3 = (Character.toString(utr5NucBuffer_5to3[2]) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toLowerCase();
+                        String refCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + utr5NucBuffer_5to3[2]).toUpperCase();
+                        String refCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(utr5NucBuffer_5to3[2]) + utr5NucBuffer_5to3[3]).toUpperCase();
+                        String refCodon3 = (Character.toString(utr5NucBuffer_5to3[2]) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toUpperCase();
 
-                        String varCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + haplotypeAlternate).toLowerCase();
-                        String varCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(haplotypeAlternate) + utr5NucBuffer_5to3[3]).toLowerCase();
-                        String varCodon3 = (Character.toString(haplotypeAlternate) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toLowerCase();
+                        String varCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + haplotypeAlternate).toUpperCase();
+                        String varCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(haplotypeAlternate) + utr5NucBuffer_5to3[3]).toUpperCase();
+                        String varCodon3 = (Character.toString(haplotypeAlternate) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toUpperCase();
 
                         //check for +1 (eg. addition of new ATG uORF) and -1 (eg. disruption of existing ATG uORF)
                         String uORFChangeStr = null;
-                        if( (refCodon1.equals("atg") && !varCodon1.equals("atg")) ||
-                            (refCodon2.equals("atg") && !varCodon2.equals("atg")) ||
-                            (refCodon3.equals("atg") && !varCodon3.equals("atg")))
+                        if( (refCodon1.equals("ATG") && !varCodon1.equals("ATG")) ||
+                            (refCodon2.equals("ATG") && !varCodon2.equals("ATG")) ||
+                            (refCodon3.equals("ATG") && !varCodon3.equals("ATG")))
                         {
                             uORFChangeStr = "-1";
                         }
-                        else if((varCodon1.equals("atg") && !refCodon1.equals("atg")) ||
-                                (varCodon2.equals("atg") && !refCodon2.equals("atg")) ||
-                                (varCodon3.equals("atg") && !refCodon3.equals("atg")))
+                        else if((varCodon1.equals("ATG") && !refCodon1.equals("ATG")) ||
+                                (varCodon2.equals("ATG") && !refCodon2.equals("ATG")) ||
+                                (varCodon3.equals("ATG") && !refCodon3.equals("ATG")))
                         {
                             uORFChangeStr = "+1";
                         }
@@ -679,14 +739,14 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                         outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame) );
                         outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5) );
 
-                        final AminoAcid refAA = AminoAcidTable.getAA(referenceCodon, mitochondrial);
+                        final AminoAcid refAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( referenceCodon, codonCount_from5 == 1 ) : AminoAcidTable.getEukaryoticAA( referenceCodon ) ;
                         outputLineFields.put(OUTPUT_REFERENCE_CODON, referenceCodon );
                         outputLineFields.put(OUTPUT_REFERENCE_AA, refAA.getCode());
 
                         final char temp = currentCodon_5to3[frame];
                         currentCodon_5to3[frame] = haplotypeAlternate;
                         final String variantCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
-                        final AminoAcid variantAA = AminoAcidTable.getAA(variantCodon, mitochondrial);
+                        final AminoAcid variantAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( variantCodon, codonCount_from5 == 1 ) : AminoAcidTable.getEukaryoticAA( variantCodon ) ;
                         outputLineFields.put(OUTPUT_VARIANT_CODON, variantCodon );
                         outputLineFields.put(OUTPUT_VARIANT_AA, variantAA.getCode());
 
@@ -715,7 +775,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     {
                         //compute coding coord
                         final StringBuilder codingCoordStr = new StringBuilder();
-                        codingCoordStr.append( mitochondrial ? "m." : "c." );
+                        codingCoordStr.append( isMitochondrialTranscript ? "m." : "c." );
                         if(positionType == PositionType.utr3) {
                             codingCoordStr.append( '*' );
                         }
@@ -876,7 +936,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         }
 
         //move the fully merged temp file to the output file.
-        logger.info("Writing " + result.size() + " lines to: " + outputFilename + ". Average of " + (10*result.size()/totalPositionsCounter)/10.0f + " lines per genomic position.");
+        logger.info("Writing " + result.size() + " lines to: " + outputFilename + ". Average of " + (totalPositionsCounter == 0 ? 0 : (10*result.size()/totalPositionsCounter)/10.0f) + " lines per genomic position.");
         BufferedWriter fileWriter  = null;
         try {
             fileWriter = new BufferedWriter(new FileWriter(outputFilename));
@@ -895,7 +955,12 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             }
         }
 
-        logger.info("Skipped " + skippedPositionsCounter + " in-transcript genomic positions out of "+ totalPositionsCounter + " total (" + (100*skippedPositionsCounter)/totalPositionsCounter + "%)");
+        logger.info("Skipped " + skippedPositionsCounter + " in-transcript genomic positions out of "+ totalPositionsCounter + " total (" + ( totalPositionsCounter == 0 ? 0 : (100*skippedPositionsCounter)/totalPositionsCounter) + "%)");
+        logger.info("Skipped " + skippedTranscriptCounter + " transcripts out of "+ transcriptsProcessedCounter + " total (" + ( transcriptsProcessedCounter == 0 ? 0 : (100*skippedTranscriptCounter)/transcriptsProcessedCounter) + "%)");
+        logger.info("Protein-coding transcripts (eg. with a CDS region) that don't start with Methionine or end in a stop codon: " + transcriptsThatDontStartWithMethionineOrEndWithStopCodonCounter + " transcripts out of "+ transcriptsProcessedCounter + " total (" + ( transcriptsProcessedCounter == 0 ? 0 : (100*transcriptsThatDontStartWithMethionineOrEndWithStopCodonCounter)/transcriptsProcessedCounter) + "%)");
+        logger.info("Protein-coding transcripts (eg. with a CDS region) that don't start with Methionine: " + transcriptsThatDontStartWithMethionineCounter + " transcripts out of "+ transcriptsProcessedCounter + " total (" + ( transcriptsProcessedCounter == 0 ? 0 : (100*transcriptsThatDontStartWithMethionineCounter)/transcriptsProcessedCounter) + "%)");
+        logger.info("Protein-coding transcripts (eg. with a CDS region) that don't end in a stop codon: " + transcriptsThatDontEndWithStopCodonCounter + " transcripts out of "+ transcriptsProcessedCounter + " total (" + ( transcriptsProcessedCounter == 0 ? 0 : (100*transcriptsThatDontEndWithStopCodonCounter)/transcriptsProcessedCounter) + "%)");
+
         logger.info("Deleting temp files..");
     }
 
@@ -906,8 +971,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     protected static class TranscriptTableRecord
     {
         public static final String STRAND_COLUMN = "strand";  //eg. +
-        public static final String TXSTART_COLUMN = "txStart";
-        public static final String TXEND_COLUMN = "txEnd";
         public static final String CDS_START_COLUMN = "cdsStart";
         public static final String CDS_END_COLUMN = "cdsEnd";
         public static final String EXON_COUNT_COLUMN = "exonCount";
