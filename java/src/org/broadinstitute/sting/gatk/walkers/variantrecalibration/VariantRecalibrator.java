@@ -93,7 +93,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private double QUAL_STEP = 0.1;
 
     // TODO: RYAN - remove me, even though this switch is apparently super awesome
-    private final static boolean AARONS_SUPER_AWESOME_SWITCH = true;
+    private final static boolean AARONS_SUPER_AWESOME_SWITCH = false;
 
     /////////////////////////////
     // Private Member Variables
