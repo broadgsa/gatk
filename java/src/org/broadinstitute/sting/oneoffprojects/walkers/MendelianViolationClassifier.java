@@ -62,32 +62,11 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             homozygousRegions.put(dad,null);
             homozygousRegionCounts.put(child,0);
             homozygousRegionCounts.put(mom,0);
+            homozygousRegionCounts.put(dad,0);
             regionKeys = new HashMap<String,MendelianInfoKey>(3);
             regionKeys.put(child,MendelianInfoKey.ChildHomozygosityRegion);
             regionKeys.put(mom,MendelianInfoKey.MotherHomozygosityRegion);
             regionKeys.put(dad,MendelianInfoKey.FatherHomozygosityRegion);
-        }
-
-        public void updateHomozygosityRegions(Map<String,Genotype> genotypes, GenomeLoc loc) {
-            for ( Map.Entry<String,Genotype> memberGenotype : genotypes.entrySet() ) {
-                if ( homozygousRegions.get(memberGenotype.getKey()) == null ) {
-                    // currently in a heterozygous region, update if possible
-                    if ( memberGenotype.getValue().isHom() ) {
-                        homozygousRegionCounts.put(memberGenotype.getKey(),homozygousRegionCounts.get(memberGenotype.getKey())+1);
-                        homozygousRegions.put(memberGenotype.getKey(),new HomozygosityRegion(loc));
-                    }
-                } else {
-                    // potentially breaking a homozygous region
-                    if ( memberGenotype.getValue().isHom() ) {
-                        // no break, continuing
-                        homozygousRegions.get(memberGenotype.getKey()).callsWithinRegion++;
-                    } else {
-                        // break of homozygosity, reset region to null, print to file, do not update the count yet
-
-                        homozygousRegions.put(memberGenotype.getKey(),null);
-                    }
-                }
-            }
         }
 
         public void updateHomozygosityRegions(MendelianViolation v, PrintStream output) {
@@ -329,6 +308,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         uac.STANDARD_CONFIDENCE_FOR_CALLING = 30;
         engine = new UnifiedGenotyperEngine(getToolkit(),uac);
         logger.info("Mom: "+trioStructure.mom+" Dad: "+trioStructure.dad+" Child: "+trioStructure.child);
+        bedOutput.printf("%s%n",getBedFileHeader());
     }
 
     /*
@@ -349,20 +329,33 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     }
 
     /*
+     ***************** FILTER
+     */
+    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        return tracker != null;
+    }
+
+    /*
      *************** MAP
      */
     public MendelianViolation map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( tracker == null ) {
-            return null;
+        return assessViolation(tracker.getVariantContext(ref,"trio", EnumSet.of(VariantContext.Type.SNP),ref.getLocus(),true),tracker,ref,context);
+    }
+
+    private boolean isComplete(VariantContext vc) {
+        for ( Genotype g : vc.getGenotypes().values() ) {
+            if ( g.isNoCall() || g.isFiltered() ) {
+                return false;
+            }
         }
 
-        return assessViolation(tracker.getVariantContext(ref,"trio", EnumSet.of(VariantContext.Type.SNP),ref.getLocus(),true),tracker,ref,context);
+        return true;
     }
 
     private MendelianViolation assessViolation(VariantContext varContext, RefMetaDataTracker tracker, ReferenceContext reference, AlignmentContext context) {
         MendelianViolation violation;
         if ( varContext != null ) {
-            if ( MendelianViolationEvaluator.isViolation(varContext,trioStructure) ) {
+            if ( isComplete(varContext) && MendelianViolationEvaluator.isViolation(varContext,trioStructure) ) {
                 if ( isDeNovo(varContext) ) {
                     violation = assessDeNovo(varContext,tracker,reference,context);
                 } else if ( isOppositeHomozygote(varContext) ) {
@@ -410,19 +403,24 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
 
         if ( ! trio.isFiltered() ) {
             Allele parental = trio.getGenotype(trioStructure.mom).getAllele(0); // guaranteed homozygous
+            if ( parental.getBases().length < 1 ) {
+                throw new StingException("Parental bases have length zero at "+trio.toString());
+            }
             int numParental = 0;
             int total = 0;
-            for ( PileupElement e : StratifiedAlignmentContext.splitContextBySample(context.getBasePileup()).get(trioStructure.child).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup() ) {
-                if ( e.getQual() >= 10 && e.getMappingQual() >= 10 ) {
-                    total++;
-                    if ( e.getBase() == parental.getBases()[0] ) {
-                        numParental++;
+            StratifiedAlignmentContext childCon = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup()).get(trioStructure.child);
+            if ( childCon != null ) {
+                for ( PileupElement e : childCon.getPileupElements(StratifiedAlignmentContext.StratifiedContextType.COMPLETE) ) {
+                    if ( e.getQual() >= 10 && e.getMappingQual() >= 10 ) {
+                        total++;
+                        if ( e.getBase() == parental.getBases()[0] ) {
+                            numParental++;
+                        }
                     }
                 }
+                violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), ((double) numParental)/total);
             }
-            violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), ((double) numParental)/total);
         }
-
         return violation;
     }
 
@@ -439,7 +437,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             Allele alt = null;
             for ( Map.Entry<String,StratifiedAlignmentContext> stratifiedEntry : stratCon.entrySet() ) {
                 VariantCallContext call = engine.runGenotyper(tracker,ref,stratifiedEntry.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE));
-                if ( call != null && call.confidentlyCalled ) {
+                if ( call != null && call.confidentlyCalled && call.vc != null) {
                     if ( call.vc.isSNP() ) {
                         if ( ! call.vc.getAlternateAllele(0).basesMatch(trio.getAlternateAllele(0)) ) {
                             if ( alt == null ) {
