@@ -38,6 +38,8 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -51,7 +53,7 @@ public class ProportionOfSNPSecondBasesSupportingRef implements InfoFieldAnnotat
     public boolean USE_MAPQ0_READS = false;
     public String debug_file = "/humgen/gsa-scr1/chartl/temporary/ProportionOfRefSecondBasesSupportingSNP.debug.txt";
 
-    public String getKeyName() { return KEY_NAME; }
+    public List<String> getKeyNames() { return Arrays.asList(KEY_NAME); }
 
     public boolean useZeroQualityReads() { return USE_MAPQ0_READS; }
 
@@ -70,7 +72,7 @@ public class ProportionOfSNPSecondBasesSupportingRef implements InfoFieldAnnotat
         
         double p = getProportionOfSNPSecondaryBasesSupportingRef(totalAndSNPSupporting);
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%f", p ));
+        map.put(getKeyNames().get(0), String.format("%f", p ));
         return map;
     }
 
@@ -102,9 +104,9 @@ public class ProportionOfSNPSecondBasesSupportingRef implements InfoFieldAnnotat
         return BaseUtils.isRegularBase(e.getSecondBase());
     }
 
-    public VCFInfoHeaderLine getDescription() {
-        return new VCFInfoHeaderLine(KEY_NAME,
-                        1,VCFInfoHeaderLine.INFO_TYPE.Float,"Simple proportion of second best base calls for SNP base that support the Ref base");
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME,
+                        1,VCFInfoHeaderLine.INFO_TYPE.Float,"Simple proportion of second best base calls for SNP base that support the Ref base"));
     }
 
 

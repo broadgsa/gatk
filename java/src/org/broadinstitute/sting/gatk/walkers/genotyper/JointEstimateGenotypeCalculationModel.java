@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -385,8 +384,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();
-        if ( bestAFguess != 0 )
-            attributes.put(VCFRecord.ALLELE_FREQUENCY_KEY, new Double((double)bestAFguess / (double)(frequencyEstimationPoints-1)));
 
         DbSNPFeature dbsnp = getDbSNP(tracker);
         if ( dbsnp != null )

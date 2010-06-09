@@ -7,16 +7,17 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 
 import java.util.Map;
+import java.util.List;
 
 public interface InfoFieldAnnotation {
 
     // return annotations for the given contexts split by sample
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc);
 
-    // return the INFO key
-    public String getKeyName();
+    // return the INFO keys
+    public List<String> getKeyNames();
 
-    // return the description used for the VCF INFO meta field
-    public VCFInfoHeaderLine getDescription();
+    // return the descriptions used for the VCF INFO meta field
+    public List<VCFInfoHeaderLine> getDescriptions();
 
 }

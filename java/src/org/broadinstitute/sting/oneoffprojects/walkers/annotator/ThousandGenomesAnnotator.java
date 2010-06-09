@@ -10,6 +10,8 @@ import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Arrays;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -19,13 +21,13 @@ import java.util.Map;
  */
 public class ThousandGenomesAnnotator implements InfoFieldAnnotation {
 
-    public String getKeyName() {
-        return "1KG";
+    public List<String> getKeyNames() {
+        return Arrays.asList("1KG");
     }
 
-    public VCFInfoHeaderLine getDescription() {
-        return new VCFInfoHeaderLine(getKeyName(),
-                1,VCFInfoHeaderLine.INFO_TYPE.String,"Is this site seen in Pilot1 or Pilot2 of 1KG?");
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0),
+                1,VCFInfoHeaderLine.INFO_TYPE.String,"Is this site seen in Pilot1 or Pilot2 of 1KG?"));
     }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
@@ -49,7 +51,7 @@ public class ThousandGenomesAnnotator implements InfoFieldAnnotation {
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), result);
+        map.put(getKeyNames().get(0), result);
         return map;
     }
 }

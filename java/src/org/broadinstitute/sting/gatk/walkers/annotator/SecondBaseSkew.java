@@ -38,6 +38,8 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class SecondBaseSkew implements InfoFieldAnnotation, ExperimentalAnnotation {
@@ -46,16 +48,16 @@ public class SecondBaseSkew implements InfoFieldAnnotation, ExperimentalAnnotati
     private final static double[] UNIFORM_ON_OFF_RATIO = {1.0/3.0, 2.0/3.0};
     private double[] proportionExpectations = UNIFORM_ON_OFF_RATIO;
 
-    public String getKeyName() { return KEY_NAME; }
+    public List<String> getKeyNames() { return Arrays.asList(KEY_NAME); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Chi-square Secondary Base Skew"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Chi-square Secondary Base Skew")); }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         String annotation = getAnnotation(ref, stratifiedContexts, vc);
         if ( annotation == null )
             return null;
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), annotation);            
+        map.put(getKeyNames().get(0), annotation);            
         return map;
     }
 

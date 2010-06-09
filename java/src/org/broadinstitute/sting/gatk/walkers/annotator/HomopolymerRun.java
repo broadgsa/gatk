@@ -11,6 +11,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
@@ -32,13 +34,13 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
         }
         
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%d", run));
+        map.put(getKeyNames().get(0), String.format("%d", run));
         return map;
     }
 
-    public String getKeyName() { return "HRun"; }
+    public List<String> getKeyNames() { return Arrays.asList("HRun"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("HRun", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Largest Contiguous Homopolymer Run of Variant Allele In Either Direction"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HRun", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Largest Contiguous Homopolymer Run of Variant Allele In Either Direction")); }
 
     public boolean useZeroQualityReads() { return false; }
 

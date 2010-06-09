@@ -5,24 +5,24 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.List;
+import java.util.Arrays;
 
 
 public class BaseQualityRankSumTest /*extends RankSumTest*/ {
     // todo -- seems math in this test is dubious, need to recheck and verify (p-values wildly divergent from R or MATLAB)
-    public String getKeyName() { return "BaseQRankSum"; }
+    public List<String> getKeyNames() { return Arrays.asList("BaseQRankSum"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("BaseQRankSum", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities")); }
 
-    protected void fillQualsFromPileup(char ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
+    protected void fillQualsFromPileup(byte ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
         for ( PileupElement p : pileup ) {
             // ignore deletions
             if ( p.isDeletion() )
                 continue;
 
-            char base = (char)p.getBase();
-            if ( base == ref )
+            if ( p.getBase() == ref )
                 refQuals.add((int)p.getQual());
-            else if ( base == alt )
+            else if ( (char)p.getBase() == alt )
                 altQuals.add((int)p.getQual());
         }
     }

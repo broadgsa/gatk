@@ -13,20 +13,19 @@ import java.util.*;
 public class DepthPerAlleleBySample implements GenotypeAnnotation, ExperimentalAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
-        // for now, we don't support indels
         if ( g == null || !g.isCalled() )
             return null;
 
         if ( vc.isSNP() ) {
-            return annotateSNP(tracker,ref,stratifiedContext,vc,g);
+            return annotateSNP(stratifiedContext, vc);
         } else if ( vc.isIndel() ) {
-            return annotateIndel(tracker,ref,stratifiedContext,vc,g);
+            return annotateIndel(stratifiedContext, vc);
         } else {
             return null;
         }
     }
 
-    public Map<String,Object> annotateSNP(RefMetaDataTracker tracker, ReferenceContext ref, StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    private Map<String,Object> annotateSNP(StratifiedAlignmentContext stratifiedContext, VariantContext vc) {
 
         Set<Allele> altAlleles = vc.getAlternateAlleles();
         if ( altAlleles.size() == 0 )
@@ -53,11 +52,11 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, ExperimentalA
         }
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), sb.toString());
+        map.put(getKeyNames().get(0), sb.toString());
         return map;
     }
 
-    public Map<String,Object> annotateIndel(RefMetaDataTracker tracker, ReferenceContext ref, StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    private Map<String,Object> annotateIndel(StratifiedAlignmentContext stratifiedContext, VariantContext vc) {
         ReadBackedExtendedEventPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getExtendedEventPileup();
         if ( pileup == null ) {
             return null;
@@ -88,11 +87,11 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, ExperimentalA
         }
 
         Map<String,Object> map = new HashMap<String,Object>();
-        map.put(getKeyName(),sb.toString());
+        map.put(getKeyNames().get(0),sb.toString());
         return map;
     }
 
-    public String getKeyName() { return "AD"; }
+    public List<String> getKeyNames() { return Arrays.asList("AD"); }
 
-    public VCFFormatHeaderLine getDescription() { return new VCFFormatHeaderLine(getKeyName(), 1, VCFFormatHeaderLine.FORMAT_TYPE.Integer, "Depth in genotypes for each ALT allele, in the same order as listed"); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), -1, VCFFormatHeaderLine.FORMAT_TYPE.Integer, "Depth in genotypes for each ALT allele, in the same order as listed")); }
 }

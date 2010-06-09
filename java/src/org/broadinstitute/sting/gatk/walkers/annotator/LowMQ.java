@@ -11,6 +11,8 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class LowMQ implements InfoFieldAnnotation {
@@ -30,11 +32,11 @@ public class LowMQ implements InfoFieldAnnotation {
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.04f,%.04f,%.00f", mq0/total, mq10/total, total));
+        map.put(getKeyNames().get(0), String.format("%.04f,%.04f,%.00f", mq0/total, mq10/total, total));
         return map;
     }
 
-    public String getKeyName() { return "LowMQ"; }
+    public List<String> getKeyNames() { return Arrays.asList("LowMQ"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "3-tuple: <fraction of reads with MQ=0>,<fraction of reads with MQ<=10>,<total nubmer of reads>"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 3, VCFInfoHeaderLine.INFO_TYPE.Integer, "3-tuple: <fraction of reads with MQ=0>,<fraction of reads with MQ<=10>,<total nubmer of reads>")); }
 }

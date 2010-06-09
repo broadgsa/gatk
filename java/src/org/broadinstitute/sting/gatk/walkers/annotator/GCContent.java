@@ -10,6 +10,8 @@ import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class GCContent implements InfoFieldAnnotation, ExperimentalAnnotation {
@@ -17,13 +19,13 @@ public class GCContent implements InfoFieldAnnotation, ExperimentalAnnotation {
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         double content = computeGCContent(ref);
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.2f", content));
+        map.put(getKeyNames().get(0), String.format("%.2f", content));
         return map;
     }
 
-    public String getKeyName() { return "GC"; }
+    public List<String> getKeyNames() { return Arrays.asList("GC"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("GC", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "GC content within 20 bp +/- the variant"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("GC", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "GC content within 20 bp +/- the variant")); }
 
     public boolean useZeroQualityReads() { return false; }
 

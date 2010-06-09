@@ -11,6 +11,8 @@ import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotation {
@@ -55,11 +57,11 @@ public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotat
         double pvalue = HardyWeinbergCalculation.hwCalculate(refCount, hetCount, homCount);
         //System.out.println(refCount + " " + hetCount + " " + homCount + " " + pvalue);
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue)));
+        map.put(getKeyNames().get(0), String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
     }
 
-    public String getKeyName() { return "HW"; }
+    public List<String> getKeyNames() { return Arrays.asList("HW"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("HW", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value for Hardy-Weinberg violation"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HW", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value for Hardy-Weinberg violation")); }
 }

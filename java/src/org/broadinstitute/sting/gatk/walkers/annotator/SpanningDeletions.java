@@ -11,6 +11,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class SpanningDeletions implements InfoFieldAnnotation, StandardAnnotation {
@@ -24,11 +26,11 @@ public class SpanningDeletions implements InfoFieldAnnotation, StandardAnnotatio
             depth += pileup.size();
         }
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.2f", depth == 0 ? 0.0 : (double)deletions/(double)depth));
+        map.put(getKeyNames().get(0), String.format("%.2f", depth == 0 ? 0.0 : (double)deletions/(double)depth));
         return map;
     }
 
-    public String getKeyName() { return "Dels"; }
+    public List<String> getKeyNames() { return Arrays.asList("Dels"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("Dels", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Fraction of Reads Containing Spanning Deletions"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("Dels", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Fraction of Reads Containing Spanning Deletions")); }
 }

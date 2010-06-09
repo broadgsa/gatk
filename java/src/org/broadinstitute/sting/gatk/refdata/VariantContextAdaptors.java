@@ -383,7 +383,17 @@ public class VariantContextAdaptors {
             result = VCFGenotypeRecord.getMissingFieldValue(key);
         else if ( val instanceof Double )
             result = String.format("%.2f", (Double)val);
-        else
+        else if ( val instanceof List ) {
+            List list = (List)val;
+            if ( list.size() == 0 )
+                return formatVCFField(key, null);
+            StringBuffer sb = new StringBuffer(formatVCFField(key, list.get(0)));
+            for ( int i = 1; i < list.size(); i++) {
+                sb.append(",");
+                sb.append(formatVCFField(key, list.get(i)));
+            }
+            result = sb.toString();
+        } else
             result = val.toString();
 
         return result;

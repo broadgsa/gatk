@@ -146,7 +146,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Frequency"));
         if ( UG_engine.annotateDbsnp )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP Membership"));
         if ( UG_engine.annotateHapmap2 )
@@ -158,8 +157,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         // FORMAT and INFO fields
         headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
-        headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
-        headerInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total number of alleles in called genotypes"));
 
         // all of the arguments from the argument collection
         Set<Object> args = new HashSet<Object>();

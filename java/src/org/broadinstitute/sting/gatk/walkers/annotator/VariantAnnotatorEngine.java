@@ -182,9 +182,9 @@ public class VariantAnnotatorEngine {
         Set<VCFHeaderLine> descriptions = new HashSet<VCFHeaderLine>();
 
         for ( InfoFieldAnnotation annotation : requestedInfoAnnotations )
-            descriptions.add(annotation.getDescription());
+            descriptions.addAll(annotation.getDescriptions());
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
-            descriptions.add(annotation.getDescription());
+            descriptions.addAll(annotation.getDescriptions());
         if ( annotateDbsnp )
             descriptions.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP Membership"));
         if ( annotateHapmap2 )

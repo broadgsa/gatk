@@ -5,7 +5,6 @@ import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.apache.log4j.Logger;
 
@@ -94,19 +93,6 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
         VCFRecord call = VariantContextAdaptors.toVCF(vc, (byte)refAllele.charAt(0), allowedGenotypeFormatStrings, false, false);
-
-        Set<Allele> altAlleles = vc.getAlternateAlleles();
-        StringBuffer altAlleleCountString = new StringBuffer();
-        for ( Allele allele : altAlleles ) {
-            if ( altAlleleCountString.length() > 0 )
-                altAlleleCountString.append(",");
-            altAlleleCountString.append(vc.getChromosomeCount(allele));
-        }
-        if ( vc.getChromosomeCount() > 0 ) {
-            call.addInfoField(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", vc.getChromosomeCount()));
-            if ( altAlleleCountString.length() > 0 )
-                call.addInfoField(VCFRecord.ALLELE_COUNT_KEY, altAlleleCountString.toString());
-        }
 
         mWriter.addRecord(call, validationStringency);
     }

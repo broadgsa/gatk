@@ -37,7 +37,7 @@ public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgress
                 if ( context == null )
                     continue;
 
-                fillQualsFromPileup(ref.getBaseAsChar(), vc.getAlternateAllele(0).toString().charAt(0), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
+                fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
             }
         }
 
@@ -65,9 +65,9 @@ public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgress
             pvalue = minPValue;
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue)));
+        map.put(getKeyNames().get(0), String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
     }
 
-    protected abstract void fillQualsFromPileup(char ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals);
+    protected abstract void fillQualsFromPileup(byte ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals);
 }

@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
@@ -37,6 +36,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
@@ -46,10 +47,8 @@ public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
         if ( !vc.isBiallelic() )
             return null;
         final Map<String, Genotype> genotypes = vc.getGenotypes();
-        if ( genotypes == null || genotypes.size() == 0 ) {
-            System.out.println("No genotypes for vc at "+ref.getLocus().toString());
+        if ( !vc.hasGenotypes() )
             return null;
-        }
 
         double ratio = 0.0;
         double totalWeights = 0.0;
@@ -102,11 +101,11 @@ public class AlleleBalance implements InfoFieldAnnotation, StandardAnnotation {
             return null;
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.2f", (ratio / totalWeights)));
+        map.put(getKeyNames().get(0), String.format("%.2f", (ratio / totalWeights)));
         return map;
     }
 
-    public String getKeyName() { return "AB"; }
+    public List<String> getKeyNames() { return Arrays.asList("AB"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("AB", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Balance for hets (ref/(ref+alt))"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("AB", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Allele Balance for hets (ref/(ref+alt))")); }
 }

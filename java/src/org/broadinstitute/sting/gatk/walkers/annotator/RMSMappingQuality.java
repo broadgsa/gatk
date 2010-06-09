@@ -12,9 +12,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 
 public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotation {
@@ -32,11 +30,11 @@ public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotatio
             quals[index++] = i;
         double rms = MathUtils.rms(quals);
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.2f", rms));
+        map.put(getKeyNames().get(0), String.format("%.2f", rms));
         return map;
     }
 
-    public String getKeyName() { return VCFRecord.RMS_MAPPING_QUALITY_KEY; }
+    public List<String> getKeyNames() { return Arrays.asList(VCFRecord.RMS_MAPPING_QUALITY_KEY); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "RMS Mapping Quality"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "RMS Mapping Quality")); }
 }

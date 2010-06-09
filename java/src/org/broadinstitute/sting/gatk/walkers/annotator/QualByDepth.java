@@ -10,6 +10,8 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnota
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
@@ -26,13 +28,13 @@ public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
 
         double QbyD = 10.0 * vc.getNegLog10PError() / (double)qDepth;
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.2f", QbyD));
+        map.put(getKeyNames().get(0), String.format("%.2f", QbyD));
         return map;
     }
 
-    public String getKeyName() { return "QD"; }
+    public List<String> getKeyNames() { return Arrays.asList("QD"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Variant Confidence/Quality by Depth"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Variant Confidence/Quality by Depth")); }
 
     private int variationQualByDepth(final Map<String, Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
         int depth = 0;

@@ -38,6 +38,8 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -50,7 +52,7 @@ public class ProportionOfRefSecondBasesSupportingSNP implements InfoFieldAnnotat
     private String KEY_NAME = "ref_2bb_snp_prop";
     private boolean USE_MAPQ0_READS = false;
 
-    public String getKeyName() { return KEY_NAME; }
+    public List<String> getKeyNames() { return Arrays.asList(KEY_NAME); }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
         if ( ! vc.isSNP() || ! vc.isBiallelic() )
@@ -67,7 +69,7 @@ public class ProportionOfRefSecondBasesSupportingSNP implements InfoFieldAnnotat
         
         double p = getProportionOfRefSecondaryBasesSupportingSNP(totalAndSNPSupporting);
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%f", p ));
+        map.put(getKeyNames().get(0), String.format("%f", p ));
         return map;
     }
 
@@ -94,8 +96,8 @@ public class ProportionOfRefSecondBasesSupportingSNP implements InfoFieldAnnotat
         return refAndSNPCounts;
     }
 
-    public VCFInfoHeaderLine getDescription() {
-        return new VCFInfoHeaderLine(KEY_NAME,
-                        1,VCFInfoHeaderLine.INFO_TYPE.Float,"Simple proportion of second best base calls for reference base that support the SNP base");
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME,
+                        1,VCFInfoHeaderLine.INFO_TYPE.Float,"Simple proportion of second best base calls for reference base that support the SNP base"));
     }
 }

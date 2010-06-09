@@ -10,6 +10,8 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class DepthOfCoverage implements InfoFieldAnnotation, StandardAnnotation {
@@ -19,11 +21,11 @@ public class DepthOfCoverage implements InfoFieldAnnotation, StandardAnnotation 
         for ( String sample : stratifiedContexts.keySet() )
             depth += stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%d", depth));
+        map.put(getKeyNames().get(0), String.format("%d", depth));
         return map;
     }
 
-    public String getKeyName() { return VCFRecord.DEPTH_KEY; }
+    public List<String> getKeyNames() { return Arrays.asList(VCFRecord.DEPTH_KEY); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total Depth"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total Depth")); }
 }

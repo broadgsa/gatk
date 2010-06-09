@@ -56,7 +56,7 @@ import java.util.*;
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
-public class VariantAnnotator extends LocusWalker<Integer, Integer> {
+public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;

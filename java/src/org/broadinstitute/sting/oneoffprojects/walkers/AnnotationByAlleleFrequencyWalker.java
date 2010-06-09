@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.playground.gatk.walkers.annotator.GenomicAnnotation;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
@@ -183,7 +182,7 @@ public class AnnotationByAlleleFrequencyWalker  extends RodWalker<Integer, Integ
             for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations )
             {
 
-                String key = annotationType.getKeyName();
+                String key = annotationType.getKeyNames().get(0);
                 String value_str = vc_eval.getAttributeAsString(key);
                 System.out.format("%s: %s ", key, value_str);
             }

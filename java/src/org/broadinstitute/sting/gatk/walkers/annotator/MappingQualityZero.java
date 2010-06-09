@@ -12,6 +12,8 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotation {
@@ -26,11 +28,11 @@ public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotati
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%d", mq0));
+        map.put(getKeyNames().get(0), String.format("%d", mq0));
         return map;
     }
 
-    public String getKeyName() { return "MQ0"; }
+    public List<String> getKeyNames() { return Arrays.asList("MQ0"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total Mapping Quality Zero Reads"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total Mapping Quality Zero Reads")); }
 }

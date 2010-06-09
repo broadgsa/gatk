@@ -25,11 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
@@ -258,12 +254,12 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
 
 
 
-    public VCFInfoHeaderLine getDescription() {
-        return new VCFInfoHeaderLine("GenericAnnotation", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "For each variant in the 'variants' ROD, finds all entries in the other -B files that overlap the variant's position. ");
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(new VCFInfoHeaderLine("GenericAnnotation", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "For each variant in the 'variants' ROD, finds all entries in the other -B files that overlap the variant's position. "));
     }
 
-    public String getKeyName() {
-        return "GenericAnnotation";
+    public List<String> getKeyNames() {
+        return Arrays.asList("GenericAnnotation");
     }
 
 }

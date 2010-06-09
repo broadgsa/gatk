@@ -10,6 +10,8 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnot
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class Alignability implements InfoFieldAnnotation {
@@ -29,11 +31,11 @@ public class Alignability implements InfoFieldAnnotation {
         int value = Integer.parseInt(record.get("alignability"));
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%d", value));
+        map.put(getKeyNames().get(0), String.format("%d", value));
         return map;
     }
 
-    public String getKeyName() { return "Alignability"; }
+    public List<String> getKeyNames() { return Arrays.asList("Alignability"); }
 
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Alignability according to a mask file (3 is best, 0 is worst)"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Alignability according to a mask file (3 is best, 0 is worst)")); }
 }

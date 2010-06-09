@@ -69,7 +69,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 
         // return the score
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyName(), String.format("%.2f", score));
+        map.put(getKeyNames().get(0), String.format("%.2f", score));
         return map;
     }
 
@@ -281,6 +281,6 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         return new ReadBackedPileup(pileup.getLocation(), filteredPileup);
     }
 
-    public String getKeyName() { return "HaplotypeScore"; }
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine("HaplotypeScore", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Consistency of the site with two (and only two) segregating haplotypes"); }
+    public List<String> getKeyNames() { return Arrays.asList("HaplotypeScore"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HaplotypeScore", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Consistency of the site with two (and only two) segregating haplotypes")); }
 }

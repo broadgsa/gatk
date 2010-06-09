@@ -10,6 +10,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Arrays;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -19,8 +21,8 @@ import java.util.Map;
  */
 public class InsertSizeDistribution implements InfoFieldAnnotation {
     private final long INSERT_SIZE_LOWER_BOUND = 500;
-    public String getKeyName() { return "INSIZE"; }
-    public VCFInfoHeaderLine getDescription() { return new VCFInfoHeaderLine(getKeyName(),1,VCFInfoHeaderLine.INFO_TYPE.Integer,"Do not use this if your name is not Chris"); }
+    public List<String> getKeyNames() { return Arrays.asList("INSIZE"); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0),1,VCFInfoHeaderLine.INFO_TYPE.Integer,"Do not use this if your name is not Chris")); }
 
     public Map<String,Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext variant) {
         int weirdInsertSizeReads = 0;
@@ -34,7 +36,7 @@ public class InsertSizeDistribution implements InfoFieldAnnotation {
         }
 
         Map<String,Object> toReturn = new HashMap<String,Object>();
-        toReturn.put(getKeyName(),String.format("%d",weirdInsertSizeReads));
+        toReturn.put(getKeyNames().get(0),String.format("%d",weirdInsertSizeReads));
         return toReturn;
     }
 }
