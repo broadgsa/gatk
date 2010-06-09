@@ -25,24 +25,25 @@
 
 package org.broadinstitute.sting.utils;
 
+import net.sf.picard.util.IntervalList;
+import net.sf.picard.util.Interval;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.utils.bed.BedParser;
+import org.broadinstitute.sting.utils.text.XReadLines;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalList;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
-
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.utils.bed.BedParser;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,7 +55,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 public class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
-    //private static final Pattern mPattern = Pattern.compile("([\\p{Print}&&[^:]]+):*([\\d,]+)?([\\+-])?([\\d,]+)?$");  // matches case 3
+    private static final Pattern mPattern = Pattern.compile("([\\p{Print}&&[^:]]+):*([\\d,]+)?([\\+-])?([\\d,]+)?$");  // matches case 3
 
 
     // --------------------------------------------------------------------------------------------------------------
@@ -136,7 +137,7 @@ public class GenomeLocParser {
      /**
      * parse a genome interval, from a location string
      *
-     * Performs interval-style validation:
+     * Performs interval-style validation:                                                                                                                                     
      *
      * contig is valid; start and stop less than the end; start <= sto
      * @param str the string to parse
@@ -153,8 +154,8 @@ public class GenomeLocParser {
 
     /**
      * parse a genome location, from a location string
-     *
-     * Performs read-style validation:
+     *               
+     * Performs read-style validation:    
      * checks that start and stop are positive, start < stop, and the contig is valid
      * does not check that genomeLoc is actually on the contig
      *
@@ -166,41 +167,40 @@ public class GenomeLocParser {
     public static GenomeLoc parseGenomeLoc(final String str) {
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         //System.out.printf("Parsing location '%s'%n", str);
-
+        
         String contig = null;
         long start = 1;
         long stop = -1;
+        boolean bad = false;
 
-        final int colonIndex = str.indexOf(":");
-        if(colonIndex == -1) {
-            contig = str.substring(0, str.length());  // chr1
-            stop = Integer.MAX_VALUE;
-        } else {
-            contig = str.substring(0, colonIndex);
-            final int dashIndex = str.indexOf('-', colonIndex);
-            try {
-                if(dashIndex == -1) {
-                    if(str.charAt(str.length() - 1) == '+') {
-                        start = parsePosition(str.substring(colonIndex + 1, str.length() - 1));  // chr:1+
-                        stop = Integer.MAX_VALUE;
-                    } else {
-                        start = parsePosition(str.substring(colonIndex + 1));   // chr1:1
-                        stop = start;
-                    }
-                } else {
-                    start = parsePosition(str.substring(colonIndex + 1, dashIndex));  // chr1:1-1
-                    stop = parsePosition(str.substring(dashIndex + 1));
+        Matcher match = mPattern.matcher(str);
+		try {
+            if (match.matches() && match.groupCount() == 4) {
+                if (match.group(1) != null) contig = match.group(1);
+                if (match.group(2) != null) start = parsePosition(match.group(2));
+                if ((match.group(3) != null && match.group(3).equals("+")) ||							// chr:1+
+                        (match.group(3) == null && match.group(4) == null && match.group(2) == null)) 		// chr1
+                    stop = Integer.MAX_VALUE;
+                else if (match.group(3) != null && match.group(3).equals("-")) 							// chr1:1-1
+                    stop = parsePosition(match.group(4));
+                else if (match.group(3) == null && match.group(4) == null)								// chr1:1
+                    stop = start;
+                else {
+                    bad = true;
                 }
-            } catch(Exception e) {
-                throw new StingException("Failed to parse Genome Location string: " + str, e);
             }
+        } catch (Exception e) {
+			bad = true;
         }
+
+        if (bad)
+		    throw new StingException("Failed to parse Genome Location string: " + str);
 
         // is the contig valid?
         if (!isContigValid(contig))
-            throw new StingException("Contig '" + contig + "' does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
+            throw new StingException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
 
-        if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
+		if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
             // lookup the actually stop position!
             stop = getContigInfo(contig).getSequenceLength();
 
@@ -214,24 +214,9 @@ public class GenomeLocParser {
     // Parsing string representations
     //
     // --------------------------------------------------------------------------------------------------------------
-    /**
-     * Parses a number like 1,000,000 into a long.
-     * @param pos
-     */
     private static long parsePosition(final String pos) {
-        //String x = pos.replaceAll(",", "");  - this was replaced because it uses regexps
-        if(pos.indexOf(',') != -1) {
-            final StringBuilder buffer = new StringBuilder();
-            for(int i = 0; i < pos.length(); i++) {
-                final char c = pos.charAt(i);
-                if(c != ',') {
-                    buffer.append(c);
-                }
-            }
-            return Long.parseLong(buffer.toString());
-        } else {
-            return Long.parseLong(pos);
-        }
+        String x = pos.replaceAll(",", "");
+        return Long.parseLong(x);
     }
 
 
@@ -472,11 +457,11 @@ public class GenomeLocParser {
     /**
      * verify the specified genome loc is valid, if it's not, throw an exception
      * Will not verify the location against contig bounds.
+     *     
      *
-     *
-     * Validation:
-     * checks that start and stop are positive, start < stop, and the contig is valid
-     * does not check that genomeLoc is actually on the contig, so start could be > end of contig
+     * Validation:  
+     * checks that start and stop are positive, start < stop, and the contig is valid                                                                      
+     * does not check that genomeLoc is actually on the contig, so start could be > end of contig  
      *
      * @param toReturn the genome loc we're about to return
      *
