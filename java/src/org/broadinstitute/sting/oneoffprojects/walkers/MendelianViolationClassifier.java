@@ -5,6 +5,8 @@ import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -12,13 +14,16 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 
+import java.io.PrintStream;
 import java.util.*;
 
 
@@ -33,14 +38,17 @@ import java.util.*;
 public class MendelianViolationClassifier extends LocusWalker<MendelianViolationClassifier.MendelianViolation, VCFWriter> {
     @Argument(shortName="f",fullName="familyPattern",required=true,doc="Pattern for the family structure (usage: mom+dad=child)")
     String familyStr = null;
+    @Argument(shortName="ob",fullName="outputBed",required=true,doc="Output file to write the homozygous region information to")
+    PrintStream bedOutput = null;
 
     /*
-     ****** PRIVATE CLASSES
+     *********** PRIVATE CLASSES
      */
 
     public class ExtendedTrioStructure extends MendelianViolationEvaluator.TrioStructure {
         public HashMap<String,HomozygosityRegion> homozygousRegions;
         public HashMap<String,Integer> homozygousRegionCounts;
+        public HashMap<String,MendelianInfoKey> regionKeys;
 
         public ExtendedTrioStructure(String family) {
             MendelianViolationEvaluator.TrioStructure struct = MendelianViolationEvaluator.parseTrioDescription(family);
@@ -54,30 +62,144 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             homozygousRegions.put(dad,null);
             homozygousRegionCounts.put(child,0);
             homozygousRegionCounts.put(mom,0);
-            homozygousRegionCounts.put(dad,0);
+            regionKeys = new HashMap<String,MendelianInfoKey>(3);
+            regionKeys.put(child,MendelianInfoKey.ChildHomozygosityRegion);
+            regionKeys.put(mom,MendelianInfoKey.MotherHomozygosityRegion);
+            regionKeys.put(dad,MendelianInfoKey.FatherHomozygosityRegion);
+        }
+
+        public void updateHomozygosityRegions(Map<String,Genotype> genotypes, GenomeLoc loc) {
+            for ( Map.Entry<String,Genotype> memberGenotype : genotypes.entrySet() ) {
+                if ( homozygousRegions.get(memberGenotype.getKey()) == null ) {
+                    // currently in a heterozygous region, update if possible
+                    if ( memberGenotype.getValue().isHom() ) {
+                        homozygousRegionCounts.put(memberGenotype.getKey(),homozygousRegionCounts.get(memberGenotype.getKey())+1);
+                        homozygousRegions.put(memberGenotype.getKey(),new HomozygosityRegion(loc));
+                    }
+                } else {
+                    // potentially breaking a homozygous region
+                    if ( memberGenotype.getValue().isHom() ) {
+                        // no break, continuing
+                        homozygousRegions.get(memberGenotype.getKey()).callsWithinRegion++;
+                    } else {
+                        // break of homozygosity, reset region to null, print to file, do not update the count yet
+
+                        homozygousRegions.put(memberGenotype.getKey(),null);
+                    }
+                }
+            }
+        }
+
+        public void updateHomozygosityRegions(MendelianViolation v, PrintStream output) {
+            if ( ! v.siteIsFiltered() ) {
+                ArrayList<HomozygosityRegion> brokenRegions = new ArrayList<HomozygosityRegion>(3);
+                // can only enter or break regions at unfiltered calls
+                for( Map.Entry<String,Genotype> memberGenotype : v.getUnderlyingGenotypes().entrySet() ) {
+                    // for each family member
+                    if ( homozygousRegions.get(memberGenotype.getKey()) == null ) {
+                        // currently in a heterozygous region, update if possible
+                        if ( memberGenotype.getValue().isHom() ) {
+                            homozygousRegionCounts.put(memberGenotype.getKey(),homozygousRegionCounts.get(memberGenotype.getKey())+1);
+                            homozygousRegions.put(memberGenotype.getKey(),new HomozygosityRegion(v.getLocus()));
+                            if ( v.type != MendelianViolationType.NONE ) {
+                                v.addAttribute(regionKeys.get(memberGenotype.getKey()).getKey(),homozygousRegionCounts.get(memberGenotype.getKey()));
+                            }
+                        }
+                    } else {
+                        // potentially breaking a homozygous region
+                        if ( memberGenotype.getValue().isHom() ) {
+                            // no break, update the region
+                            HomozygosityRegion r = homozygousRegions.get(memberGenotype.getKey());
+                            r.lastSeen = v.getLocus();
+                            r.callsWithinRegion++;
+                            if ( v.type != MendelianViolationType.NONE ) {
+                                v.addAttribute(regionKeys.get(memberGenotype.getKey()).getKey(),homozygousRegionCounts.get(memberGenotype.getKey()));
+                                if ( v.type == MendelianViolationType.DE_NOVO_SNP ) {
+                                    r.deNovoSNPsInRegion++;
+                                } else if ( v.type == MendelianViolationType.OPPOSITE_HOMOZYGOTE ) {
+                                    r.oppositeHomsInRegion++;
+                                }
+                            }
+                        } else if ( memberGenotype.getValue().isHet() ) {
+                            // explicitly check for hets -- no calls are not counted -- this breaks a region so we print it
+                            homozygousRegions.get(memberGenotype.getKey()).finalize(v.getLocus(),memberGenotype.getKey(),homozygousRegionCounts.get(memberGenotype.getKey()));
+                            brokenRegions.add(homozygousRegions.get(memberGenotype.getKey()));
+                            homozygousRegions.put(memberGenotype.getKey(),null);
+                        }
+                    }
+                }
+
+                if ( brokenRegions.size() > 0 ) {
+                    Collections.sort(brokenRegions);
+                }
+
+                for ( HomozygosityRegion r : brokenRegions ) {
+                    output.printf("%s%n",r);
+                }
+            }
         }
     }
 
-    public class HomozygosityRegion {
+    public class HomozygosityRegion implements Comparable{
         public GenomeLoc regionStart;
+        public GenomeLoc lastSeen;
+        public GenomeLoc endedBy;
         public int callsWithinRegion;
+        public int oppositeHomsInRegion;
+        public int deNovoSNPsInRegion;
+        private String parent;
+        private int id;
 
         public HomozygosityRegion(GenomeLoc start) {
             regionStart = start;
+            lastSeen = start;
+            endedBy = null;
             callsWithinRegion = 0;
+            oppositeHomsInRegion = 0;
+            deNovoSNPsInRegion = 0;
         }
+
+        public void finalize(GenomeLoc regionEnd,String parent, int id) {
+            endedBy = regionEnd;
+            this.parent = parent;
+            this.id = id;
+        }
+
+        private int getSizeLowerBound() {
+            return lastSeen.distance(regionStart);
+        }
+
+        private int getSizeOfFirstHomToFirstHet() {
+            return endedBy.distance(regionStart);
+        }
+
+        public String toString() {
+            return String.format("%s\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d",regionStart.getContig(),regionStart.getStart(),lastSeen.getStart(),
+                    parent,id,getSizeLowerBound(),getSizeOfFirstHomToFirstHet(),callsWithinRegion,oppositeHomsInRegion,deNovoSNPsInRegion);
+        }
+
+        public int compareTo(Object o) {
+            if ( ! ( o instanceof HomozygosityRegion) ) {
+                return Integer.MIN_VALUE;
+            }
+
+            return this.regionStart.compareTo(((HomozygosityRegion) o).regionStart);
+        }
+
     }
 
     public class MendelianViolation {
         private VariantContext trio;
         public MendelianViolationType type;
         private HashMap<String,Object> newAttributes;
+        private HashMap<String,Integer> homozygosityRegions;
 
         public MendelianViolation(VariantContext context, MendelianViolationType violationType) {
             trio = context;
             type = violationType;
             newAttributes = new HashMap<String,Object>();
             newAttributes.put(MendelianInfoKey.ViolationType.getKey(),type);
+            homozygosityRegions = new HashMap<String,Integer>(3);
         }
 
         public void addAttribute(String key, Object val) {
@@ -93,10 +215,49 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             return trio.isFiltered();
         }
 
+        public void addRegions(HashMap<String,Integer> regionIDsByName ) {
+            for ( Map.Entry<String,Integer> e : regionIDsByName.entrySet() ) {
+                setRegion(e.getKey(),e.getValue());
+            }
+        }
+
+        public void setRegion(String parent, int regionID) {
+            homozygosityRegions.put(parent,regionID);
+        }
+
+        public boolean isInPreviousRegions(Map<String,Integer> otherRegions) {
+            for ( String s : otherRegions.keySet() ) {
+                if ( homozygosityRegions.get(s) >= otherRegions.get(s) ) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public Map<String,Genotype> getUnderlyingGenotypes() {
+            return trio.getGenotypes();
+        }
+
+        public GenomeLoc getLocus() {
+            return trio.getLocation();
+        }
+
+        public byte getRefBase() {
+            return trio.getReference().getBases()[0];
+        }
+
+        public Object getAttribute(String key) {
+            if ( newAttributes.keySet().contains(key) ) {
+                return newAttributes.get(key);
+            } else {
+                return trio.getAttribute(key);
+            }
+        }
     }
 
     /*
-     ********** PRIVATE ENUMS
+     *************** PRIVATE ENUMS
      */
 
     public enum MendelianViolationType {
@@ -118,16 +279,18 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     public enum MendelianInfoKey {
         ViolationType("MVT","String","\"The Mendelian violation type\""),
         ParentalDeletion("deletedParent","String","\"The parent from whom the child (putatively) inherited a deletion at opposite homozygous sites\""),
-        ChildHomozygosityRegion("CHR","Integer","\"An identifier for the region of homozygosity in the child in which the opposite homozygote is located\""),
-        ChildHomozygosityRegionSize("CHRS","Integer","\"The size of the region of homozygosity in the child in which the opposite homozygote is located\""),
-        OppositeHomozygotesInRegion("CHROH","Integer","\"The number of opposite-homozygotes located in the region of homozygosity\""),
         TriAllelicQuality("TriAlQ","Integer","\"The variant quality of the third allele at putative tri-allelic sites\""),
         TriAllelicBase("TriAlB","String","\"The third allele at putative tri-allelic sites\""),
-        NumCallsInRegion("REGION_NCALLS","Integer","\"The number of SNP calls found in the homozygosity region\""),
-        ParentHomozygosityRegion("PHR","String","\"An identifier for the parent, and the region number, for the homozygosity region where the deNovo SNP is located\""),
+        MotherHomozygosityRegion("MHR","String","\"An identifier for the mother's homozygosity region where the violation is located\""),
+        FatherHomozygosityRegion("FHR","String","\"An identifier for the father's homozygosity region where the violation is located\""),
+        ChildHomozygosityRegion("CHR","Integer","\"An identifier for the child's homozygosity region where the violation is located\""),
+        ProportionOfParentAllele("PropParent","Double","\"The proportion of bases in the child that were the parent allele at deNovo SNP sites\""),
+        /* ***************************************** UNUSED ************************************************ */
+        NumCallsInRegion("REGION_NCALLS","Integer","\"The number of unfiltered SNP calls found in the homozygosity region\""),
+        ChildHomozygosityRegionSize("CHRS","Integer","\"The size of the region of homozygosity in the child in which the opposite homozygote is located\""),
+        OppositeHomozygotesInRegion("CHROH","Integer","\"The number of opposite-homozygotes located in the region of homozygosity\""),
         ParentHomozygosityRegionSize("PHRS","Integer","\"The size of the parental homozygosity region where the deNovo SNP is located\""),
-        DeNovoSNPsInRegion("PHRDN","Integer","\"The number of deNovo SNP events located in the same region of parental homozygosity where the deNovo SNP is located\""),
-        ProportionOfParentAllele("PropParent","Double","\"The proportion of bases in the child that were the parent allele at deNovo SNP sites\"");
+        DeNovoSNPsInRegion("PHRDN","Integer","\"The number of deNovo SNP events located in the same region of parental homozygosity where the deNovo SNP is located\"");
 
 
         String keyName;
@@ -150,23 +313,22 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     }
 
     /*
-     *********** PRIVATE DATA
+     **************** PRIVATE DATA
      */
     private ExtendedTrioStructure trioStructure;
     private UnifiedGenotyperEngine engine;
-    private ArrayList<VariantContext> contextBuffer;
 
     /*
-     *********** INITIALIZE
+     ***************** INITIALIZE
      */
     public void initialize() {
         trioStructure = new ExtendedTrioStructure(familyStr);
-        contextBuffer = new ArrayList<VariantContext>(5000);
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.MIN_BASE_QUALTY_SCORE = 10;
         uac.MIN_MAPPING_QUALTY_SCORE = 10;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = 30;
         engine = new UnifiedGenotyperEngine(getToolkit(),uac);
+        logger.info("Mom: "+trioStructure.mom+" Dad: "+trioStructure.dad+" Child: "+trioStructure.child);
     }
 
     /*
@@ -187,7 +349,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     }
 
     /*
-     *********** MAP
+     *************** MAP
      */
     public MendelianViolation map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null ) {
@@ -199,16 +361,20 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
 
     private MendelianViolation assessViolation(VariantContext varContext, RefMetaDataTracker tracker, ReferenceContext reference, AlignmentContext context) {
         MendelianViolation violation;
-        if ( MendelianViolationEvaluator.isViolation(varContext,trioStructure) ) {
-            if ( isDeNovo(varContext) ) {
-                violation = assessDeNovo(varContext,tracker,reference,context);
-            } else if ( isOppositeHomozygote(varContext) ) {
-                violation = assessOppositeHomozygote(varContext,tracker,reference,context);
+        if ( varContext != null ) {
+            if ( MendelianViolationEvaluator.isViolation(varContext,trioStructure) ) {
+                if ( isDeNovo(varContext) ) {
+                    violation = assessDeNovo(varContext,tracker,reference,context);
+                } else if ( isOppositeHomozygote(varContext) ) {
+                    violation = assessOppositeHomozygote(varContext,tracker,reference,context);
+                } else {
+                    throw new StingException("Mendelian violation that is neither deNovo nor opposite homozygote. Should never see this.");
+                }
             } else {
-                throw new StingException("Mendelian violation that is neither deNovo nor opposite homozygote. Should never see this.");
+                violation = new MendelianViolation(varContext,MendelianViolationType.NONE);
             }
         } else {
-            violation = new MendelianViolation(varContext,MendelianViolationType.NONE);
+            violation = null;
         }
 
         return violation;
@@ -232,26 +398,93 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         return true;
     }
 
+    /*
+     ************ ASSESS DE NOVO AND OPPOSITE HOMOZYGOTES
+     */
+
     private MendelianViolation assessDeNovo(VariantContext trio, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        // todo -- implement me
-        return new MendelianViolation(trio,MendelianViolationType.DE_NOVO_SNP);
+        MendelianViolation violation = new MendelianViolation(trio,MendelianViolationType.DE_NOVO_SNP);
+
+        // look for mis-genotyped sites by examining the proportion of the parent-allele bases in the child --
+        // as a spoeedup we do this only at non-filtered sites
+
+        if ( ! trio.isFiltered() ) {
+            Allele parental = trio.getGenotype(trioStructure.mom).getAllele(0); // guaranteed homozygous
+            int numParental = 0;
+            int total = 0;
+            for ( PileupElement e : StratifiedAlignmentContext.splitContextBySample(context.getBasePileup()).get(trioStructure.child).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup() ) {
+                if ( e.getQual() >= 10 && e.getMappingQual() >= 10 ) {
+                    total++;
+                    if ( e.getBase() == parental.getBases()[0] ) {
+                        numParental++;
+                    }
+                }
+            }
+            violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), ((double) numParental)/total);
+        }
+
+        return violation;
     }
 
     private MendelianViolation assessOppositeHomozygote(VariantContext trio, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        // todo -- implement me
-        return new MendelianViolation(trio,MendelianViolationType.OPPOSITE_HOMOZYGOTE);
+        MendelianViolation violation = new MendelianViolation(trio,MendelianViolationType.OPPOSITE_HOMOZYGOTE);
+        logger.debug(getParentalDeletion(trio));
+        violation.addAttribute(MendelianInfoKey.ParentalDeletion.getKey(),getParentalDeletion(trio));
+
+        // look for tri-allelic sites mis-called as hom -- as a speedup we do this only at non-filtered, non genotype error sites
+
+        if ( ! trio.isFiltered() && ! violation.getAttribute(MendelianInfoKey.ParentalDeletion.getKey()).equals("genotypeError") ) {
+            Map<String, StratifiedAlignmentContext> stratCon = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+            int conf = 0;
+            Allele alt = null;
+            for ( Map.Entry<String,StratifiedAlignmentContext> stratifiedEntry : stratCon.entrySet() ) {
+                VariantCallContext call = engine.runGenotyper(tracker,ref,stratifiedEntry.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE));
+                if ( call != null && call.confidentlyCalled ) {
+                    if ( call.vc.isSNP() ) {
+                        if ( ! call.vc.getAlternateAllele(0).basesMatch(trio.getAlternateAllele(0)) ) {
+                            if ( alt == null ) {
+                                alt = call.vc.getAlternateAllele(0);
+                                conf = (int) Math.floor(10*call.vc.getNegLog10PError());
+                            } else {
+                                conf += (int) Math.floor(10*call.vc.getNegLog10PError());
+                            }
+                        }
+                    }
+                }
+            }
+            if ( alt != null ) {
+                violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),alt.toString());
+                violation.addAttribute(MendelianInfoKey.TriAllelicQuality.getKey(),conf);
+            }
+        }
+
+        return violation;
+    }
+
+    private String getParentalDeletion(VariantContext trio) {
+        // case 1, mom and dad are both hom, so missing is the one whose alleles don't match the child
+        if ( trio.getGenotype(trioStructure.mom).isHom() && trio.getGenotype(trioStructure.dad).isHom() ) {
+            if ( trio.getGenotype(trioStructure.mom).isHomRef() == trio.getGenotype(trioStructure.child).isHomRef() ) {
+                // mom and child both hom ref or hom var
+                return trioStructure.dad;
+            } else if ( trio.getGenotype(trioStructure.dad).isHomRef() == trio.getGenotype(trioStructure.child).isHomRef() ) {
+                return trioStructure.mom;
+            } else {
+                // child matches neither parent
+                return "genotypeError";
+            }
+        } else { // case 2, either mom or dad is het - the hom must be the missing allele
+            return trio.getGenotype(trioStructure.mom).isHet() ? trioStructure.dad : trioStructure.mom;  
+        }
     }
 
     /*
-     *********** REDUCE
+     *************** REDUCE
      */
     public VCFWriter reduce(MendelianViolation variant, VCFWriter writer) {
         if ( variant != null ) {
-            if ( ! variant.siteIsFiltered() ) {
-                // todo -- fill me in
-            } else { /* just add filtered variants to output if they're wanted */
-                contextBuffer.add(variant.toVariantContext());
-            }
+            trioStructure.updateHomozygosityRegions(variant,bedOutput);
+            writer.addRecord(VariantContextAdaptors.toVCF(variant.toVariantContext(),variant.getRefBase()));
         }
 
         return writer;
@@ -261,9 +494,24 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
      ********** ON TRAVERSAL DONE
      */
     public void onTraversalDone(VCFWriter writer) {
-        while ( contextBuffer.size() > 0 ) {
-            VariantContext vc = contextBuffer.remove(0);
-            writer.addRecord(VariantContextAdaptors.toVCF(vc,vc.getReference().getBases()[0]));
+        Map<String,HomozygosityRegion> regions = trioStructure.homozygousRegions;
+        Map<String,Integer> counts = trioStructure.homozygousRegionCounts;
+        for ( Map.Entry<String,HomozygosityRegion> entryRegion : regions.entrySet() ) {
+            if ( entryRegion.getValue() != null ) {
+                logger.info("---------------- REGION NOT FINALIZED -----------------");
+                logger.info(String.format("%s,%s,%s,%d,%d",entryRegion.getKey(),entryRegion.getValue().regionStart,entryRegion.getValue().lastSeen,
+                        entryRegion.getValue().deNovoSNPsInRegion,entryRegion.getValue().oppositeHomsInRegion));
+            }
         }
+    }
+
+    /*
+     ***************** STATIC METHODS
+     */
+
+    public static String getBedFileHeader() {
+        return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s","Chrom","first_seen_hom","last_seen_hom","first_seen_het",
+                "sample_name","region_id","homozygous_region_size", "size_to_first_het","calls_within_region",
+                "opposite_homozygotes_in_region","deNovo_SNPs_in_region");
     }
 }
