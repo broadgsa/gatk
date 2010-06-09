@@ -19,7 +19,9 @@ public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgress
     private static final double minPValue = 1e-10;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
-
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+         
         if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
         

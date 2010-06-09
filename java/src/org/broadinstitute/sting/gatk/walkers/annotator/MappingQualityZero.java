@@ -19,6 +19,9 @@ import java.util.Arrays;
 public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+
         int mq0 = 0;
         for ( String sample : stratifiedContexts.keySet() ) {
             ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();

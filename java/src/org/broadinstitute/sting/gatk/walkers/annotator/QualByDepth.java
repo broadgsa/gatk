@@ -17,6 +17,9 @@ import java.util.Arrays;
 public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+
         final Map<String, Genotype> genotypes = vc.getGenotypes();
         if ( genotypes == null || genotypes.size() == 0 )
             return null;

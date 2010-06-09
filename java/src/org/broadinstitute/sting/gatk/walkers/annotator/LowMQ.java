@@ -18,6 +18,9 @@ import java.util.Arrays;
 public class LowMQ implements InfoFieldAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+
         double mq0 = 0;
 		double mq10 = 0;
 		double total = 0;

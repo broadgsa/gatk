@@ -53,6 +53,9 @@ public class SecondBaseSkew implements InfoFieldAnnotation, ExperimentalAnnotati
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Chi-square Secondary Base Skew")); }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+
         String annotation = getAnnotation(ref, stratifiedContexts, vc);
         if ( annotation == null )
             return null;

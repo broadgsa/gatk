@@ -110,4 +110,11 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         executeTest("test file doesn't have annotations, asking for annotations, #2", spec);
     }
 
+    @Test
+    public void testNoReads() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -L 1:10,000,000-10,050,000", 1,
+                Arrays.asList("07af9983127c62e96accc03db2fb523e"));
+        executeTest("test file doesn't have annotations, not passing it any reads", spec);
+    }
 }

@@ -17,6 +17,9 @@ import java.util.Arrays;
 public class DepthOfCoverage implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+
         int depth = 0;
         for ( String sample : stratifiedContexts.keySet() )
             depth += stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();

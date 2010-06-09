@@ -18,6 +18,9 @@ import java.util.*;
 public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+
         ArrayList<Integer> qualities = new ArrayList<Integer>();
         for ( String sample : stratifiedContexts.keySet() ) {
             ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();

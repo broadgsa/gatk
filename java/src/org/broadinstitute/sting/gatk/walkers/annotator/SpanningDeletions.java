@@ -18,6 +18,9 @@ import java.util.Arrays;
 public class SpanningDeletions implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( stratifiedContexts.size() == 0 )
+            return null;
+
         int deletions = 0;
         int depth = 0;
         for ( String sample : stratifiedContexts.keySet() ) {
