@@ -521,7 +521,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         private final int targetCoverage;
         private final int maxReadsAtLocus;
 
-        private final Deque<Map<String,List<SAMRecordState>>> readStatesByAlignmentStart;
+        private final Map<String,Deque<List<SAMRecordState>>> readStatesBySample;
         private int totalReadStatesInHanger = 0;
 
         /**
@@ -547,35 +547,40 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     this.targetCoverage = Integer.MAX_VALUE;
             }
             this.maxReadsAtLocus = maxReadsAtLocus;
-            if(downsamplingMethod.type == DownsampleType.NONE)
+            this.readStatesBySample = new HashMap<String,Deque<List<SAMRecordState>>>();
+
+            if(downsamplingMethod.type == DownsampleType.NONE) {
                 aggregatorsBySampleName.put(null,new ArrayList<SAMRecord>());
-            else if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR)
-                aggregatorsBySampleName.put(null,new ReservoirDownsampler<SAMRecord>(targetCoverage));
-            else {
-                for(String sampleName: sampleNames)
-                    aggregatorsBySampleName.put(sampleName,new ReservoirDownsampler<SAMRecord>(targetCoverage));
+                readStatesBySample.put(null,new LinkedList<List<SAMRecordState>>());                
             }
-            this.readStatesByAlignmentStart = new LinkedList<Map<String,List<SAMRecordState>>>();
+            else if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR) {
+                aggregatorsBySampleName.put(null,new ReservoirDownsampler<SAMRecord>(targetCoverage));
+                readStatesBySample.put(null,new LinkedList<List<SAMRecordState>>());                
+            }
+            else {
+                for(String sampleName: sampleNames) {
+                    aggregatorsBySampleName.put(sampleName,new ReservoirDownsampler<SAMRecord>(targetCoverage));
+                    readStatesBySample.put(sampleName,new LinkedList<List<SAMRecordState>>());
+                }
+            }
         }
 
         public Iterator<SAMRecordState> iterator() {
             return new Iterator<SAMRecordState>() {
-                private Iterator<Map<String,List<SAMRecordState>>> alignmentStartIterator;
-                private Map<String,List<SAMRecordState>> currentAlignmentStart;
-
+                private final Iterator<Iterator<List<SAMRecordState>>> sampleIterators;
                 private Iterator<List<SAMRecordState>> sampleIterator;
-                private List<SAMRecordState> currentSample;
-
-                private Iterator<SAMRecordState> readStateIterator;
+                private List<SAMRecordState> currentAlignmentStart;
+                private Iterator<SAMRecordState> alignmentStartIterator;
                 private SAMRecordState nextReadState;
+                
                 private int readsInHanger = totalReadStatesInHanger;
 
                 {
-                    alignmentStartIterator = readStatesByAlignmentStart.iterator();
-                    currentAlignmentStart = alignmentStartIterator.hasNext() ? alignmentStartIterator.next() : null;
-                    sampleIterator = currentAlignmentStart!=null ? currentAlignmentStart.values().iterator() : null;
-                    currentSample = sampleIterator!=null && sampleIterator.hasNext() ? sampleIterator.next() : null;
-                    readStateIterator = currentSample!=null ? currentSample.iterator() : null;
+                    List<Iterator<List<SAMRecordState>>> sampleIteratorList = new LinkedList<Iterator<List<SAMRecordState>>>();
+                    for(Deque<List<SAMRecordState>> hanger: readStatesBySample.values())
+                        sampleIteratorList.add(hanger.iterator());
+                    sampleIterators = sampleIteratorList.iterator();
+                    advance();
                 }
 
                 public boolean hasNext() {
@@ -589,49 +594,50 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                         return nextReadState;
                     }
                     finally {
+                        readsInHanger--;
                         nextReadState = null;
                     }
                 }
 
                 public void remove() {
-                    if(readStateIterator == null)
-                        throw new StingException("Attempted to remove read, but no previous read was found.");
-                    readStateIterator.remove();
-                    if(currentSample.isEmpty()) sampleIterator.remove();
-                    if(currentAlignmentStart.isEmpty()) alignmentStartIterator.remove();
+                    if(alignmentStartIterator == null)
+                        throw new StingException("Cannot remove read -- iterator is in an invalid state.");
+                    alignmentStartIterator.remove();
+                    if(currentAlignmentStart.isEmpty())
+                        sampleIterator.remove();
                     totalReadStatesInHanger--;
                 }
 
                 private void advance() {
-                    nextReadState = null;
-                    if(readStateIterator!=null && readStateIterator.hasNext())
-                        nextReadState = readStateIterator.next();
-                    else if(sampleIterator!=null && sampleIterator.hasNext()) {
-                        currentSample = sampleIterator.next();
-                        readStateIterator = currentSample.iterator();
-                        nextReadState = readStateIterator.hasNext() ? readStateIterator.next() : null;
+                    // nextReadState != null indicates that we haven't returned this value from the next() method yet. 
+                    if(nextReadState != null)
+                        return;
+                    if(alignmentStartIterator!=null&&alignmentStartIterator.hasNext()) {
+                        nextReadState = alignmentStartIterator.next();
                     }
-                    else if(alignmentStartIterator!=null && alignmentStartIterator.hasNext()) {
-                        currentAlignmentStart = alignmentStartIterator.next();
-                        sampleIterator = currentAlignmentStart != null ? currentAlignmentStart.values().iterator() : null;
-                        currentSample = (sampleIterator!=null && sampleIterator.hasNext()) ? sampleIterator.next() : null;
-                        readStateIterator = currentSample!=null ? currentSample.iterator() : null;
-                        nextReadState = (readStateIterator!=null && readStateIterator.hasNext()) ? readStateIterator.next() : null;
+                    else if(sampleIterator!=null&&sampleIterator.hasNext()) {
+                        currentAlignmentStart = sampleIterator.next();
+                        alignmentStartIterator = currentAlignmentStart!=null ? currentAlignmentStart.iterator() : null;
+                        nextReadState = alignmentStartIterator!=null&&alignmentStartIterator.hasNext() ? alignmentStartIterator.next() : null;
                     }
-
-                    if(nextReadState != null) readsInHanger--;
+                    else if(sampleIterators.hasNext()) {
+                        sampleIterator = sampleIterators.next();
+                        currentAlignmentStart = sampleIterator!=null&&sampleIterator.hasNext() ? sampleIterator.next() : null;
+                        alignmentStartIterator = currentAlignmentStart!=null ? currentAlignmentStart.iterator() : null;
+                        nextReadState = alignmentStartIterator!=null&&alignmentStartIterator.hasNext() ? alignmentStartIterator.next() : null;
+                    }
                 }
             };
         }
 
         public boolean isEmpty() {
-            return readStatesByAlignmentStart.isEmpty();
+            return readStatesBySample.isEmpty();
         }
 
         public int size() {
             int size = 0;
-            for(Map<String,List<SAMRecordState>> readStatesBySample: readStatesByAlignmentStart) {
-                for(Collection<SAMRecordState> readStates: readStatesBySample.values())
+            for(Deque<List<SAMRecordState>> readStatesByAlignmentStart: readStatesBySample.values()) {
+                for(Collection<SAMRecordState> readStates: readStatesByAlignmentStart)
                     size += readStates.size();
             }
             return size;
@@ -642,7 +648,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         }
 
         public boolean hasNext() {
-            return !readStatesByAlignmentStart.isEmpty() || iterator.hasNext();
+            return totalReadStatesInHanger > 0 || iterator.hasNext();
         }
 
         public void collectPendingReads() {
@@ -665,7 +671,6 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 }
             }
 
-            Map<String,List<SAMRecordState>> culledReadStatesBySample = new HashMap<String,List<SAMRecordState>>();
             int readStatesInHangerEntry = 0;
 
             for(Map.Entry<String,Collection<SAMRecord>> entry: aggregatorsBySampleName.entrySet()) {
@@ -674,6 +679,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
                 Collection<SAMRecord> newReads = new ArrayList<SAMRecord>(aggregator);
                 aggregator.clear();
+
+                Deque<List<SAMRecordState>> hanger = readStatesBySample.get(sampleName);
                 int readsInHanger = countReadsInHanger(sampleName);
 
                 if(readsInHanger+newReads.size()<=targetCoverage || downsamplingMethod.type==DownsampleType.NONE || downsamplingMethod.type==DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR) {
@@ -683,15 +690,15 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                         readLimit = maxReadsAtLocus-totalReadStatesInHanger;
                         mrlViolation = true;
                     }
-                    readStatesInHangerEntry += addReadsToHanger(culledReadStatesBySample,sampleName,newReads,readLimit,mrlViolation);
+                    readStatesInHangerEntry += addReadsToHanger(hanger,newReads,readLimit,mrlViolation);
                 }
                 else {
-                    Iterator<Map<String,List<SAMRecordState>>> backIterator = readStatesByAlignmentStart.descendingIterator();
+                    Iterator<List<SAMRecordState>> backIterator = hanger.descendingIterator();
                     boolean readPruned = true;
                     while(readsInHanger+newReads.size()>targetCoverage && readPruned) {
                         readPruned = false;
                         while(readsInHanger+newReads.size()>targetCoverage && backIterator.hasNext()) {
-                            List<SAMRecordState> readsAtLocus = backIterator.next().get(sampleName);
+                            List<SAMRecordState> readsAtLocus = backIterator.next();
                             if(readsAtLocus.size() > 1) {
                                 readsAtLocus.remove(downsampleRandomizer.nextInt(readsAtLocus.size()));
                                 readPruned = true;
@@ -701,16 +708,13 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     }
 
                     if(readsInHanger == targetCoverage) {
-                        Collection<SAMRecordState> firstHangerForSample = readStatesByAlignmentStart.getFirst().get(sampleName);
-                        readsInHanger -= firstHangerForSample.size();
-                        firstHangerForSample.clear();
+                        List<SAMRecordState> readsInFirstHanger = hanger.remove();
+                        readsInHanger -= readsInFirstHanger.size();
                     }
 
-                    readStatesInHangerEntry += addReadsToHanger(culledReadStatesBySample,sampleName,newReads,targetCoverage-readsInHanger,false);
+                    readStatesInHangerEntry += addReadsToHanger(hanger,newReads,targetCoverage-readsInHanger,false);
                 }
-            }
-            if(!culledReadStatesBySample.isEmpty()) {
-                readStatesByAlignmentStart.add(culledReadStatesBySample);
+
                 totalReadStatesInHanger += readStatesInHangerEntry;
             }
         }
@@ -724,9 +728,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
         private int countReadsInHanger(final String sampleName) {
             int count = 0;
-            for(Map<String,List<SAMRecordState>> hangerEntry: readStatesByAlignmentStart) {
-                if(sampleName == null && hangerEntry.containsKey(sampleName))
-                    count += hangerEntry.get(sampleName).size();
+            for(List<SAMRecordState> hangerEntry: readStatesBySample.get(sampleName)) {
+                count += hangerEntry.size();
             }
             return count;
         }
@@ -734,12 +737,11 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
         /**
          * Add reads with the given sample name to the given hanger entry.
          * @param newHangerEntry The hanger entry to add.
-         * @param sampleName Sample name of the given reads.  Should match the entry in each read's read group.
          * @param reads Reads to add.  Selected reads will be pulled from this source.
          * @param maxReads Maximum number of reads to add.
          * @return Total number of reads added.
          */
-        private int addReadsToHanger(final Map<String,List<SAMRecordState>> newHangerEntry, final String sampleName, final Collection<SAMRecord> reads, final int maxReads, boolean atMaxReadsAtLocusLimit) {
+        private int addReadsToHanger(final Deque<List<SAMRecordState>> newHangerEntry, final Collection<SAMRecord> reads, final int maxReads, boolean atMaxReadsAtLocusLimit) {
             if(reads.isEmpty())
                 return 0;
 
@@ -748,13 +750,13 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             // the farthest right a read extends
             Integer rightMostEnd = -1;            
 
-            List<SAMRecordState> readStatesBySample = new LinkedList<SAMRecordState>();
+            List<SAMRecordState> readStates = new LinkedList<SAMRecordState>();
             int readCount = 0;
             for(SAMRecord read: reads) {
                 if(readCount <=  maxReads) {
                     SAMRecordState state = new SAMRecordState(read, readInfo.generateExtendedEvents());
                     state.stepForwardOnGenome();
-                    readStatesBySample.add(state);
+                    readStates.add(state);
                     // TODO: What if we downsample the extended events away?
                     if (state.hadIndel()) hasExtendedEvents = true;
                     readCount++;
@@ -765,7 +767,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     rightMostEnd = (read.getAlignmentEnd() > rightMostEnd) ? read.getAlignmentEnd() : rightMostEnd;                    
                 }
             }
-            newHangerEntry.put(sampleName,readStatesBySample);
+            newHangerEntry.add(readStates);
 
             if (location != null)
                 overflowTracker.exceeded(GenomeLocParser.createGenomeLoc(location.getContigIndex(),location.getStart(),rightMostEnd),
