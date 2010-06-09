@@ -30,7 +30,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.annotator;
  */
 public class AminoAcid {
     private String name;
-    private String code;
+    private String threeLetterCode;
     private String letter;
 
 
@@ -43,7 +43,7 @@ public class AminoAcid {
      */
     public AminoAcid( String letter, String name, String code) {
         this.name = name;
-        this.code = code;
+        this.threeLetterCode = code;
         this.letter = letter;
     }
 
@@ -74,11 +74,15 @@ public class AminoAcid {
     /**
      * Returns the 3 letter code.
      */
-    public String getCode() { return code; }
+    public String getCode() { return threeLetterCode; }
 
 
     /** Returns true if the amino acid is really just a stop codon. */
     public boolean isStop() {
         return "*".equals(getLetter());
+    }
+
+    public String toString() {
+        return name;
     }
 }
