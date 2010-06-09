@@ -120,7 +120,7 @@ for contig in contigs:
         print("Executing: " + command)
         if run_locally:
             #execute(command, os.path.join(logs_dir,contig+"_log.txt"))
-            execute(command + " >& " + os.path.join(logs_dir,contig+"_log.txt"))
+            os.system(command + " >& " + os.path.join(logs_dir,contig+"_log.txt"))
         else:
             os.system(command)
     else:
