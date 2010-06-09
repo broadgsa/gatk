@@ -17,13 +17,21 @@ public class
             " -B eval,VCF," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
             " -B comp_genotypes,VCF," + validationDataLocation + "yri.trio.gatk.ug.head.vcf -reportType Grep";
 
+    private static String rootGZ = cmdRoot +
+                " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                " -B eval,VCF," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf.gz" +
+                " -B comp_genotypes,VCF," + validationDataLocation + "yri.trio.gatk.ug.head.vcf.gz -reportType Grep";
+
+    private static String[] testsEnumerations = {root, rootGZ};
 
     @Test
     public void testSelect1() {
         String extraArgs = "-L 1:1-10,000,000";
-        WalkerTestSpec spec = new WalkerTestSpec( withSelect(root, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
-                1, Arrays.asList("5a330d359b5c7ea0dfa6698b4830db82"));
-        executeTest("testSelect1", spec);
+        for (String tests : testsEnumerations) {
+            WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
+                    1, Arrays.asList("5a330d359b5c7ea0dfa6698b4830db82"));
+            executeTest("testSelect1", spec);
+        }
     }
 
     @Test
@@ -36,10 +44,14 @@ public class
 
     @Test
     public void testVEGenotypeConcordance() {
-        WalkerTestSpec spec = new WalkerTestSpec( cmdRoot + " -B eval,VCF," + validationDataLocation + "GenotypeConcordanceEval.vcf -B comp,VCF," + validationDataLocation + "GenotypeConcordanceComp.vcf -E GenotypeConcordance -reportType CSV -o %s",
-                1, // just one output file
-                Arrays.asList("608b32189818df7271c546dd5f257033"));
-        executeTest("testVEGenotypeConcordance", spec);
+        String vcfFiles[] = {"GenotypeConcordanceEval.vcf", "GenotypeConcordanceEval.vcf.gz"};
+        for (String vcfFile : vcfFiles) {
+            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B eval,VCF," + validationDataLocation + vcfFile + " -B comp,VCF," + validationDataLocation + "GenotypeConcordanceComp.vcf -E GenotypeConcordance -reportType CSV -o %s",
+                    1,
+                    Arrays.asList("608b32189818df7271c546dd5f257033"));
+            executeTest("testVEGenotypeConcordance" + vcfFile, spec);
+        }
+
     }
 
     @Test
@@ -51,11 +63,12 @@ public class
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
             String md5 = entry.getValue();
-
-            WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s",
+            for (String tests : testsEnumerations) {
+                WalkerTestSpec spec = new WalkerTestSpec( tests + " " + extraArgs + " -o %s",
                     1, // just one output file
                     Arrays.asList(md5));
-            executeTest("testVESimple", spec);
+                executeTest("testVESimple", spec);
+            }
         }
     }
 
@@ -71,25 +84,28 @@ public class
         expectations.put("", matchingMD5);
         expectations.put(" -known comp_hapmap -known dbsnp", matchingMD5);
         expectations.put(" -known comp_hapmap", "fd9cd9970f7e509ca476502869063929");
+        for (String tests : testsEnumerations) {
+            for (Map.Entry<String, String> entry : expectations.entrySet()) {
+                String extraArgs2 = entry.getKey();
+                String md5 = entry.getValue();
 
-        for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
-            String extraArgs2 = entry.getKey();
-            String md5 = entry.getValue();
-
-            WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs1 + extraArgs2 + " -o %s",
-                    1, // just one output file
-                    Arrays.asList(md5));
-            executeTest("testVEComplex", spec);
+                WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs1 + extraArgs2 + " -o %s",
+                        1, // just one output file
+                        Arrays.asList(md5));
+                executeTest("testVEComplex", spec);
+            }
         }
     }
 
     @Test
     public void testVEWriteVCF() {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
-        WalkerTestSpec spec = new WalkerTestSpec( root + " " + extraArgs + " -o %s -outputVCF %s",
-                2,
-                Arrays.asList("521837758da151b84fca57fd1bb7dad1", "b4a42c90318adc88361691ece50426f2"));
-        executeTest("testVEWriteVCF", spec);
+        for (String tests : testsEnumerations) {
+            WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
+                    2,
+                    Arrays.asList("521837758da151b84fca57fd1bb7dad1", "b4a42c90318adc88361691ece50426f2"));
+            executeTest("testVEWriteVCF", spec);
+        }
     }
 
     private static String withSelect(String cmd, String select, String name) {
