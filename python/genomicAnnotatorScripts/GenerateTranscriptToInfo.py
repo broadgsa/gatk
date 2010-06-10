@@ -26,6 +26,7 @@ parser.add_option("-R", "--reference", metavar="PATH", dest="reference", help="S
 parser.add_option("-n", "--gene-name-columns", dest="gene_name_columns", metavar="GENE_NAMES", help="Comma-separated list of column names that contain gene names. This arg is passed through to the GenomicAnnotator. The GenomicAnnotator docs have more details on this.")
 parser.add_option("-q", "--queue", dest="queue", metavar="QUEUE", help="Specifies the LSF queue to use.", default="solexa")
 parser.add_option("-s", "--num-parallel-processes", dest="num_parallel_processes", metavar="SLOTS", help="How many processes to launch simultaneously. This is only used when the -l option is set.", default="1")
+parser.add_option("-w", "--filter-out-chromosomes", dest="filter", metavar="FILTER", help="Skips these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
 
 (options, args) = parser.parse_args()
 
@@ -60,8 +61,23 @@ if not os.access(reference, os.R_OK):
 queue = options.queue
 num_parallel_processes = int(options.num_parallel_processes)
 
+chr_filter = options.filter
+if chr_filter:
+    try:
+        chr_filter = eval(chr_filter)                
+    except Exception, e:
+        error("Invalid -f filter string: " + chr_filter + " " + str(e))
+
+    if type(chr_filter) != type([]):
+        error(" -f filter string doesn't evaluate to a list: " + chr_filter)
+
+
+
 transcript_dir = os.path.dirname(transcript_table)
 logs_dir = os.path.join(transcript_dir,"logs")
+
+
+
 
 contig_chars = ["M"] + range(1,23) + ["X", "Y"]
 
@@ -69,6 +85,17 @@ contigs = []
 contigs += [ "chr" + str(x) for x in contig_chars ] 
 contigs += [ "chr" + str(x) + "_random" for x in set( contig_chars ).difference(set(['M',12,14,20,'X','Y']))  ]    # There are no "_random" chromosomes for chrM,12,14,20,Y
 
+if chr_filter:
+    contigs = [ x for x in set( contigs ).difference(set(chr_filter))  ]    # Filter out contigs    
+
+    while True:
+        input_str = raw_input("Filtered out: " + str(chr_filter) + "\nWill process: " + str(contigs) + ".\n Proceed [Y/N]? ")
+        if input_str.upper() == "Y":
+            break
+        elif input_str.upper() == "N":
+            sys.exit(0)
+        else:
+            print("Please enter Y or N")
 
 
 
