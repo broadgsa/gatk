@@ -612,15 +612,15 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                     // nextReadState != null indicates that we haven't returned this value from the next() method yet. 
                     if(nextReadState != null)
                         return;
-                    if(alignmentStartIterator!=null&&alignmentStartIterator.hasNext()) {
+                    while(alignmentStartIterator!=null&&alignmentStartIterator.hasNext()) {
                         nextReadState = alignmentStartIterator.next();
                     }
-                    else if(sampleIterator!=null&&sampleIterator.hasNext()) {
+                    while(nextReadState==null&&sampleIterator!=null&&sampleIterator.hasNext()) {
                         currentAlignmentStart = sampleIterator.next();
                         alignmentStartIterator = currentAlignmentStart!=null ? currentAlignmentStart.iterator() : null;
                         nextReadState = alignmentStartIterator!=null&&alignmentStartIterator.hasNext() ? alignmentStartIterator.next() : null;
                     }
-                    else if(sampleIterators.hasNext()) {
+                    while(nextReadState==null&&sampleIterators.hasNext()) {
                         sampleIterator = sampleIterators.next();
                         currentAlignmentStart = sampleIterator!=null&&sampleIterator.hasNext() ? sampleIterator.next() : null;
                         alignmentStartIterator = currentAlignmentStart!=null ? currentAlignmentStart.iterator() : null;
