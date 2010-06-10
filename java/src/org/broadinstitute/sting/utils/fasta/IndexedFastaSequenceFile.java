@@ -64,6 +64,24 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         sanityCheckDictionaryAgainstIndex();
     }
 
+
+    /**
+     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+     * @param file The file to open.
+     * @param sequenceIndex FastaSequenceIndex that was previously created
+     * @throws FileNotFoundException If the fasta or any of its supporting files cannot be found.
+     */
+    public IndexedFastaSequenceFile(File file, FastaSequenceIndex sequenceIndex) throws FileNotFoundException {
+        this.file = file;
+        FileInputStream in = new FileInputStream(file);
+        channel = in.getChannel();
+
+        loadDictionary(file);
+        // Temporary change: sequenceIndex is passed in directly. See comments in ReferenceDataSource. 
+        index = sequenceIndex;
+        sanityCheckDictionaryAgainstIndex();
+    }
+
     /**
      * Loads a dictionary, if available.
      * @param fastaFile File to check for a match.

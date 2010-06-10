@@ -52,10 +52,8 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 public class GenomeAnalysisEngine {
@@ -72,7 +70,7 @@ public class GenomeAnalysisEngine {
     /**
      * Accessor for sharded reference data.
      */
-    private IndexedFastaSequenceFile referenceDataSource = null;
+    private ReferenceDataSource referenceDataSource = null;
 
     /**
      * Accessor for sharded reference-ordered data.
@@ -192,7 +190,7 @@ public class GenomeAnalysisEngine {
         else {
             // if include argument isn't given, create new set of all possible intervals
             GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
-                    GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getSequenceDictionary()) :
+                    GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
                     loadIntervals(argCollection.intervals,
                                   argCollection.intervalMerging,
                                   GenomeLocParser.mergeIntervalLocations(checkRODToIntervalArgument(),argCollection.intervalMerging)));
@@ -352,7 +350,7 @@ public class GenomeAnalysisEngine {
         validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, tracks);
 
         // validate all the sequence dictionaries against the reference
-        validateSourcesAgainstReference(readsDataSource, referenceDataSource, tracks);
+        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), tracks);
 
         rodDataSources = getReferenceOrderedDataSources(my_walker, tracks);
     }
@@ -373,7 +371,7 @@ public class GenomeAnalysisEngine {
             Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
         }
 
-        return MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource,rodDataSources,argCollection.numberOfThreads);
+        return MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource.getReference(),rodDataSources,argCollection.numberOfThreads);
     }
 
     /**
@@ -762,14 +760,14 @@ public class GenomeAnalysisEngine {
                         ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
                         ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource,
+                        referenceDataSource.getReference(),
                         !argCollection.disableExperimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource,
+                        referenceDataSource.getReference(),
                         !argCollection.disableExperimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
@@ -782,14 +780,14 @@ public class GenomeAnalysisEngine {
 
             if (intervals != null && !intervals.isEmpty()) {
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource,
+                        referenceDataSource.getReference(),
                         shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else {
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                        referenceDataSource,
+                        referenceDataSource.getReference(),
                         shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
@@ -803,7 +801,7 @@ public class GenomeAnalysisEngine {
                 Utils.scareUser("Pairs traversal cannot be used in conjunction with intervals.");
 
             shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
-                    referenceDataSource,
+                    referenceDataSource.getReference(),
                     ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                     drivingDataSource.getSequenceDictionary(),
                     SHARD_SIZE, maxIterations);
@@ -839,15 +837,9 @@ public class GenomeAnalysisEngine {
      * @param refFile Handle to a reference sequence file.  Non-null.
      * @return A thread-safe file wrapper.
      */
-    private IndexedFastaSequenceFile openReferenceSequenceFile(File refFile) {
-        IndexedFastaSequenceFile ref = null;
-        try {
-            ref = new IndexedFastaSequenceFile(refFile);
-        }
-        catch (FileNotFoundException ex) {
-            throw new StingException("I/O error while opening fasta file: " + ex.getMessage(), ex);
-        }
-        GenomeLocParser.setupRefContigOrdering(ref);
+    private ReferenceDataSource openReferenceSequenceFile(File refFile) {
+        ReferenceDataSource ref = new ReferenceDataSource(refFile);
+        GenomeLocParser.setupRefContigOrdering(ref.getReference());
         return ref;
     }
 

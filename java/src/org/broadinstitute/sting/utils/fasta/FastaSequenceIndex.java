@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils.fasta;
 
 import net.sf.picard.PicardException;
@@ -18,19 +43,26 @@ public class FastaSequenceIndex implements Iterable {
     /**
      * Store the entries.  Use a LinkedHashMap for consistent iteration in insertion order.
      */
-    private Map<String,FastaSequenceIndexEntry> sequenceEntries = new LinkedHashMap<String,FastaSequenceIndexEntry>();
+    private final Map<String,FastaSequenceIndexEntry> sequenceEntries = new LinkedHashMap<String,FastaSequenceIndexEntry>();
 
     /**
      * Build a sequence index from the specified file.
      * @param indexFile File to open.
      * @throws FileNotFoundException if the index file cannot be found.
      */
-    public FastaSequenceIndex( File indexFile ) throws FileNotFoundException {
+    protected FastaSequenceIndex( File indexFile ) throws FileNotFoundException {
         if(!indexFile.exists())
             throw new FileNotFoundException(String.format("Fasta index file is missing: %s",indexFile.getAbsolutePath()));
 
         IoUtil.assertFileIsReadable(indexFile);
         parseIndexFile(indexFile);
+    }
+
+     /**
+     * Build an empty sequence index. Entries can be added later.
+     */
+    protected FastaSequenceIndex() {
+
     }
 
     /**
@@ -102,17 +134,46 @@ public class FastaSequenceIndex implements Iterable {
     public int size() {
         return sequenceEntries.size();
     }
+
+    /**
+     * Adds entry to index. Used by Fai file generator to create index entry on the fly.
+     * @param contig The name of the contig
+     * @param location Byte-referenced location of contig in file
+     * @param size Number of bases in contig
+     * @param basesPerLine Number of bases in each line. Must be uniform.
+     * @param bytesPerLine Number of bytes in each line. Must be uniform.
+     */
+    public void addIndexEntry(String contig, long location, long size, int basesPerLine, int bytesPerLine) {
+        sequenceEntries.put( contig,new FastaSequenceIndexEntry(contig,location,size,basesPerLine,bytesPerLine) );
+    }
+
+    /**
+     * Compare two FastaSequenceIndex objects. Built for use in testing. No hash function has been created.
+     * @param other Another FastaSequenceIndex to compare
+     * @return True if index has the same entries as other instance, in the same order
+     */
+    public boolean equals(FastaSequenceIndex other) {
+        Iterator<FastaSequenceIndexEntry> iter = this.iterator();
+        Iterator<FastaSequenceIndexEntry> otherIter = other.iterator();
+        while (iter.hasNext()) {
+            if (!otherIter.hasNext())
+                return false;
+            if (!iter.next().equals(otherIter.next()))
+                return false;
+        }
+        return true;
+    }
 }
 
 /**
  * Hold an individual entry in a fasta sequence index file.
  */
 class FastaSequenceIndexEntry {
-    private String contig;
-    private long location;
-    private long size;
-    private int basesPerLine;
-    private int bytesPerLine;
+    private final String contig;
+    private final long location;
+    private final long size;
+    private final int basesPerLine;
+    private final int bytesPerLine;
 
     /**
      * Create a new entry with the given parameters.
@@ -185,5 +246,23 @@ class FastaSequenceIndexEntry {
                                                                                                   size,
                                                                                                   basesPerLine,
                                                                                                   bytesPerLine );
+    }
+
+    /**
+     * Print string in format of fai file line
+     * @return Contig as one line in a fai file
+     */
+    public String toIndexFileLine() {
+        return String.format("%s\t%d\t%d\t%d\t%d", contig, size, location, basesPerLine, bytesPerLine);
+    }
+
+    /**
+     * Compare entry to another instance
+     * @param other another FastaSequenceIndexEntry
+     * @return True if each has the same name, location, size, basesPerLine and bytesPerLine
+     */
+    public boolean equals(FastaSequenceIndexEntry other) {
+        return (contig.equals(other.contig) && size == other.size && location == other.location
+        && basesPerLine == other.basesPerLine && bytesPerLine == other.bytesPerLine);
     }
 }
