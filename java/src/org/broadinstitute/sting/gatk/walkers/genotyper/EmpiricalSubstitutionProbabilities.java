@@ -38,6 +38,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         bind("454", SequencerPlatform.ROCHE454);
         bind("ILLUMINA", SequencerPlatform.SOLEXA);
         bind("solid", SequencerPlatform.SOLID);
+        bind("abi_solid", SequencerPlatform.SOLID);
         bind("CG", SequencerPlatform.CG);
     }
 
