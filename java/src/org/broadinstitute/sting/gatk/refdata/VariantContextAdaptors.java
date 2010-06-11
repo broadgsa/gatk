@@ -156,7 +156,7 @@ public class VariantContextAdaptors {
                 if ( vcf.isDeletion() && refAllele.length() > alt.getLength() ) {
                     byte[] semiDeletion = new byte[refAllele.length() - alt.getLength()];
                     System.arraycopy(ref.getBases(), alt.getLength(), semiDeletion, 0, refAllele.length() - alt.getLength());
-                    allele = Allele.create(String.valueOf(semiDeletion), false);
+                    allele = Allele.create(new String(semiDeletion), false);
                 } else {
                     allele = Allele.create(alt.getBases(), false);
                 }
