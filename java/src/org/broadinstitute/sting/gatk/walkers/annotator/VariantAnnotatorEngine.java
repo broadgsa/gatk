@@ -186,11 +186,11 @@ public class VariantAnnotatorEngine {
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
         if ( annotateDbsnp )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP Membership"));
+            descriptions.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Flag, "dbSNP Membership"));
         if ( annotateHapmap2 )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 2 Membership"));
+            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Flag, "Hapmap 2 Membership"));
         if ( annotateHapmap3 )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Hapmap 3 Membership"));
+            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Flag, "Hapmap 3 Membership"));
 
         return descriptions;
     }
@@ -202,7 +202,7 @@ public class VariantAnnotatorEngine {
         // annotate dbsnp occurrence
         if ( annotateDbsnp ) {
             DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-            infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? "0" : "1");
+            infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? false : true);
             // annotate dbsnp id if available and not already there
             if ( dbsnp != null && (!vc.hasAttribute("ID") || vc.getAttribute("ID").equals(VCFRecord.EMPTY_ID_FIELD)) )
                 infoAnnotations.put("ID", dbsnp.getRsID());
@@ -210,12 +210,12 @@ public class VariantAnnotatorEngine {
 
         if ( annotateHapmap2 ) {
             List<Object> hapmap2 = tracker.getReferenceMetaData("hapmap2");
-            infoAnnotations.put(VCFRecord.HAPMAP2_KEY, hapmap2.size() == 0 ? "0" : "1");
+            infoAnnotations.put(VCFRecord.HAPMAP2_KEY, hapmap2.size() == 0 ?  false : true);
         }
 
         if ( annotateHapmap3 ) {
             List<Object> hapmap3 = tracker.getReferenceMetaData("hapmap3");
-            infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3.size() == 0 ? "0" : "1");
+            infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3.size() == 0 ?  false : true);
         }
 
         //Process the info field

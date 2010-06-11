@@ -383,6 +383,8 @@ public class VariantContextAdaptors {
             result = VCFGenotypeRecord.getMissingFieldValue(key);
         else if ( val instanceof Double )
             result = String.format("%.2f", (Double)val);
+        else if ( val instanceof Boolean )
+            result = (Boolean)val ? "" : null; // empty string for true, null for false
         else if ( val instanceof List ) {
             List list = (List)val;
             if ( list.size() == 0 )

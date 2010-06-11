@@ -73,6 +73,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
     protected Boolean LIST = false;
 
+    @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
+    protected String ASSUME_SINGLE_SAMPLE = null;
+
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
 
@@ -196,9 +199,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         Map<String, StratifiedAlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             if ( ! context.hasExtendedEventPileup() ) {
-                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(), ASSUME_SINGLE_SAMPLE, null);
             } else {
-                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getExtendedEventPileup());
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE, null);
             }
             if ( stratifiedContexts != null ) {
                 annotatedVCs = engine.annotateContext(tracker, ref, stratifiedContexts, vc);
@@ -206,7 +209,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         }
 
         if ( ! indelsOnly ) {
-
             if ( variant instanceof VCFRecord ) {
                 for(VariantContext annotatedVC : annotatedVCs ) {
                     vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));

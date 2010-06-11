@@ -113,8 +113,16 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testNoReads() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -L 1:10,000,000-10,050,000", 1,
+                baseTestString() + " -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
                 Arrays.asList("07af9983127c62e96accc03db2fb523e"));
-        executeTest("test file doesn't have annotations, not passing it any reads", spec);
+        executeTest("not passing it any reads", spec);
+    }
+
+    @Test
+    public void testDBTag() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -D " + GATKDataLocation + "dbsnp_129_b36.rod -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
+                Arrays.asList("286887826ab99bb2864f7f4db195e59e"));
+        executeTest("getting DB tag", spec);
     }
 }
