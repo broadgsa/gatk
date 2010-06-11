@@ -26,7 +26,8 @@ parser.add_option("-R", "--reference", metavar="PATH", dest="reference", help="S
 parser.add_option("-n", "--gene-name-columns", dest="gene_name_columns", metavar="GENE_NAMES", help="Comma-separated list of column names that contain gene names. This arg is passed through to the GenomicAnnotator. The GenomicAnnotator docs have more details on this.")
 parser.add_option("-q", "--queue", dest="queue", metavar="QUEUE", help="Specifies the LSF queue to use.", default="solexa")
 parser.add_option("-s", "--num-parallel-processes", dest="num_parallel_processes", metavar="SLOTS", help="How many processes to launch simultaneously. This is only used when the -l option is set.", default="1")
-parser.add_option("-w", "--filter-out-chromosomes", dest="filter", metavar="FILTER", help="Skips these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
+parser.add_option("-v", "--filter-in-chromosomes", dest="filterin", metavar="FILTER", help="Only process these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
+parser.add_option("-w", "--filter-out-chromosomes", dest="filterout", metavar="FILTER", help="Skip these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
 
 (options, args) = parser.parse_args()
 
@@ -61,15 +62,26 @@ if not os.access(reference, os.R_OK):
 queue = options.queue
 num_parallel_processes = int(options.num_parallel_processes)
 
-chr_filter = options.filter
+
+if options.filterout and options.filterin:
+    error("Either -v or -w filters can be specified, but not both")
+elif options.filterout:
+    filter_out = True
+    chr_filter = options.filterout
+elif options.filterin:
+    filter_out = False
+    chr_filter = options.filterin
+else:
+    chr_filter = None
+
 if chr_filter:
     try:
         chr_filter = eval(chr_filter)                
     except Exception, e:
-        error("Invalid -f filter string: " + chr_filter + " " + str(e))
+        error("Invalid filter string: " + chr_filter + " " + str(e))
 
     if type(chr_filter) != type([]):
-        error(" -f filter string doesn't evaluate to a list: " + chr_filter)
+        error("Filter string doesn't evaluate to a list: " + chr_filter)
 
 
 
@@ -86,10 +98,13 @@ contigs += [ "chr" + str(x) for x in contig_chars ]
 contigs += [ "chr" + str(x) + "_random" for x in set( contig_chars ).difference(set(['M',12,14,20,'X','Y']))  ]    # There are no "_random" chromosomes for chrM,12,14,20,Y
 
 if chr_filter:
-    contigs = [ x for x in set( contigs ).difference(set(chr_filter))  ]    # Filter out contigs    
+    if filter_out:
+        contigs = [ x for x in contigs if x in set( contigs ).difference(set(chr_filter))  ]    # Filter out contigs    
+    else:
+        contigs = chr_filter   # Only process these contigs    
 
     while True:
-        input_str = raw_input("Filtered out: " + str(chr_filter) + "\nWill process: " + str(contigs) + ".\n Proceed [Y/N]? ")
+        input_str = raw_input("Filter applied: " + str(chr_filter) + "\nWill process: " + str(contigs) + ".\n Proceed [Y/N]? ")
         if input_str.upper() == "Y":
             break
         elif input_str.upper() == "N":
