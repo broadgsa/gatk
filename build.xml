@@ -175,24 +175,6 @@
           </manifest>
         </jar>
 
-        <jar jarfile="${dist.dir}/MarkAllAlignmentsAsPrimary.jar" whenmanifestonly="skip">
-          <fileset dir="build">
-            <include name="**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.oneoffprojects.tools.MarkAllAlignmentsAsPrimary" />
-          </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/RepairSeattleBAM.jar" whenmanifestonly="skip">
-          <fileset dir="build">
-            <include name="**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.oneoffprojects.tools.RepairSeattleBAM" />
-          </manifest>
-        </jar>
-
 	   <jar jarfile="${dist.dir}/VCFTool.jar" whenmanifestonly="skip">
           <fileset dir="build">
             <include name="**/*.class"/>
@@ -238,17 +220,6 @@
             </manifest>
         </jar>
 
-        <jar jarfile="${dist.dir}/MarkAllAlignmentsAsPrimary.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/RepairSeattleBAM.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
     </target>
 
     <target name="core" description="force a build of the Sting core code">
