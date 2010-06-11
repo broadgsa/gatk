@@ -72,7 +72,7 @@ public class BedParser {
      * @param line the line, as a string
      * @return a parsed genome loc
      */
-    private GenomeLoc parseLocation(String line) {
+    public static GenomeLoc parseLocation(String line) {
         String contig;
         int start;
         int stop;
