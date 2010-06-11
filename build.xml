@@ -15,9 +15,6 @@
     false means it goes to the screen (default) true to file -->
     <property name="usefile" value="false" />
 
-    <!-- should our junit tests use XML? default is no -->
-    <property name="testOutput" value="brief" />
-
     <!-- If running the 'package' task, this property controls the name of the xml file to package -->
     <property name="executable" value="GenomeAnalysisTK" />
 
@@ -385,7 +382,9 @@
             <mkdir dir="${report}"/>
             <echo message="Sting: Running @{testtype} test cases!"/>
             <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
-                <formatter type="${testOutput}" usefile="${usefile}" />
+                <formatter type="brief" usefile="false" />
+                <formatter type="xml"/> 
+                
                 <classpath>
                     <pathelement location="build"/>
                     <path refid="runtime.dependencies"/>
