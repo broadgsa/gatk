@@ -13,7 +13,7 @@ import java.util.*;
  * @author mhanna
  * @version 0.1
  */
-public class ReservoirDownsampler<T> implements Collection<T> {
+public class ReservoirDownsampler<T> {
     /**
      * Create a random number generator with a random, but reproducible, seed.
      */
@@ -40,31 +40,35 @@ public class ReservoirDownsampler<T> implements Collection<T> {
         this.maxElements = maxElements;
     }
 
-    @Override
-    public boolean add(T element) {
+    /**
+     * Returns the eliminated element.
+     * @param element Eliminated element; null if no element has been eliminated.
+     * @return
+     */
+    public T add(T element) {
         if(maxElements <= 0)
-            return false;
+            return element;
         else if(reservoir.size() < maxElements) {
             reservoir.add(element);
-            return true;
+            return null;
         }
         else {
             // Get a uniformly distributed int. If the chosen slot lives within the partition, replace the entry in that slot with the newest entry.
             int slot = random.nextInt(maxElements);
             if(slot >= 0 && slot < maxElements) {
+                T displaced = reservoir.get(slot);
                 reservoir.set(slot,element);
-                return true;
+                return displaced;
             }
             else
-                return false;
+                return element;
         }
     }
 
-    @Override
     public boolean addAll(Collection<? extends T> elements) {
         boolean added = false;
         for(T element: elements)
-            added |= add(element);
+            added |= (add(element) != null);
         return added;
     }
 
@@ -73,62 +77,51 @@ public class ReservoirDownsampler<T> implements Collection<T> {
      * @return The downsampled contents of this reservoir.
      */
     public Collection<T> getDownsampledContents() {
-        return (Collection<T>)reservoir.clone();
+        return reservoir;
     }
 
-    @Override
     public void clear() {
         reservoir.clear();
     }
 
-    @Override
     public boolean isEmpty() {
         return reservoir.isEmpty();
     }
 
-    @Override
     public int size() {
         return reservoir.size();
     }
 
-    @Override
     public Iterator<T> iterator() {
         return reservoir.iterator();
     }
 
-    @Override
     public boolean contains(Object o) {
         return reservoir.contains(o);
     }
 
-    @Override
     public boolean containsAll(Collection<?> elements) {
         return reservoir.containsAll(elements);
     }
 
-    @Override
     public boolean retainAll(Collection<?> elements) {
         return reservoir.retainAll(elements);
     }
 
-    @Override
     public boolean remove(Object o) {
         return reservoir.remove(o);
     }
 
-    @Override
     public boolean removeAll(Collection<?> elements) {
         return reservoir.removeAll(elements);
     }
 
-    @Override
     public Object[] toArray() {
         Object[] contents = new Object[reservoir.size()];
         reservoir.toArray(contents);
         return contents;
     }
 
-    @Override
     public <T> T[] toArray(T[] array) {
         return reservoir.toArray(array);
     }

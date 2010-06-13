@@ -45,10 +45,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.*;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -241,7 +238,7 @@ public class UnifiedGenotyperEngine {
                   AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
                 filteredPileup.add(p);
         }
-        return new ReadBackedPileup(pileup.getLocation(), filteredPileup);
+        return new UnifiedReadBackedPileup(pileup.getLocation(), filteredPileup);
     }
 
     // filter based on maximum mismatches and bad mates
@@ -253,7 +250,7 @@ public class UnifiedGenotyperEngine {
                   AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
                 filteredPileup.add(p);
         }
-        return new ReadBackedExtendedEventPileup(pileup.getLocation(), filteredPileup);
+        return new UnifiedReadBackedExtendedEventPileup(pileup.getLocation(), filteredPileup);
     }
 
     private static boolean isValidDeletionFraction(double d) {

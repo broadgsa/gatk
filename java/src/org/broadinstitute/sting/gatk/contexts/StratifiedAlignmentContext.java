@@ -90,9 +90,9 @@ public class StratifiedAlignmentContext {
         int index = type.ordinal();
         if ( contexts[index] == null ) {
             if ( isExtended ) {
-                contexts[index] = new AlignmentContext(loc , new ReadBackedExtendedEventPileup(loc, (ArrayList<ExtendedEventPileupElement>)((ArrayList<? extends PileupElement>)getPileupElements(type))));
+                contexts[index] = new AlignmentContext(loc , new UnifiedReadBackedExtendedEventPileup(loc, (ArrayList<ExtendedEventPileupElement>)((ArrayList<? extends PileupElement>)getPileupElements(type))));
             } else {
-                contexts[index] = new AlignmentContext(loc, new ReadBackedPileup(loc, getPileupElements(type)));
+                contexts[index] = new AlignmentContext(loc, new UnifiedReadBackedPileup(loc, getPileupElements(type)));
             }
         }
         return contexts[index];
@@ -300,7 +300,7 @@ public class StratifiedAlignmentContext {
 
         // dirty trick below. generics do not allow to cast pe (ArrayList<PileupElement>) directly to ArrayList<ExtendedEventPileupElement>,
         // so we first cast to "? extends" wildcard, then to what we actually need.
-        if ( isExtended ) return new AlignmentContext(loc, new ReadBackedExtendedEventPileup(loc, (ArrayList< ExtendedEventPileupElement>)((ArrayList<? extends PileupElement>)pe)) );
-        else return new AlignmentContext(loc, new ReadBackedPileup(loc,pe));
+        if ( isExtended ) return new AlignmentContext(loc, new UnifiedReadBackedExtendedEventPileup(loc, (ArrayList< ExtendedEventPileupElement>)((ArrayList<? extends PileupElement>)pe)) );
+        else return new AlignmentContext(loc, new UnifiedReadBackedPileup(loc,pe));
     }
 }

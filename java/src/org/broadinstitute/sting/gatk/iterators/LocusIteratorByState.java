@@ -33,10 +33,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
+import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
 
@@ -399,7 +396,7 @@ public class LocusIteratorByState extends LocusIterator {
                 GenomeLoc loc = GenomeLocParser.incPos(our1stState.getLocation(),-1);
 //                System.out.println("Indel(s) at "+loc);
 //               for ( ExtendedEventPileupElement pe : indelPile ) { if ( pe.isIndel() ) System.out.println("  "+pe.toString()); }
-                nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileup(loc, indelPile, size, maxDeletionLength, nInsertions, nDeletions, nMQ0Reads));
+                nextAlignmentContext = new AlignmentContext(loc, new UnifiedReadBackedExtendedEventPileup(loc, indelPile, size, maxDeletionLength, nInsertions, nDeletions, nMQ0Reads));
             }  else {
                 ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
 
@@ -430,7 +427,7 @@ public class LocusIteratorByState extends LocusIterator {
                 GenomeLoc loc = getLocation();
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
                 // if we got reads with non-D/N over the current position, we are done
-                if ( pile.size() != 0 ) nextAlignmentContext = new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions, nMQ0Reads));
+                if ( pile.size() != 0 ) nextAlignmentContext = new AlignmentContext(loc, new UnifiedReadBackedPileup(loc, pile, size, nDeletions, nMQ0Reads));
             }
         }
     }
