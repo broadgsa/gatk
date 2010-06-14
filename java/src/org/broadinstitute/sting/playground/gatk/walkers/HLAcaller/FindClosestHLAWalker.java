@@ -60,10 +60,15 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
     
-    String HLAdatabaseFile              = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_DICTIONARY.txt";
-    String PolymorphicSitesFile         = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_POLYMORPHIC_SITES.txt";
-    String AlleleFrequencyFile          = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_FREQUENCIES.txt";
+    @Argument(fullName = "HLAfrequencies", shortName = "HLAfrequencies", doc = "HLA allele frequencies file", required = true)
+    public String AlleleFrequencyFile = "HLA_FREQUENCIES.txt";
 
+    @Argument(fullName = "HLAdictionary", shortName = "HLAdictionary", doc = "HLA dictionary file", required = true)
+    public String HLAdatabaseFile = "HLA_DICTIONARY.txt";
+
+    @Argument(fullName = "PolymorphicSites", shortName = "PolymorphicSites", doc = "file containing polymorphic sites within the HLA", required = true)
+    public String PolymorphicSitesFile = "HLA_POLYMORPHIC_SITES.txt";
+    
     HLAFileReader HLADictionaryReader = new HLAFileReader();    
 
     boolean DatabaseLoaded = false;

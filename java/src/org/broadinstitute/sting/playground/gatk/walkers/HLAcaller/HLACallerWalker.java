@@ -69,12 +69,14 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "minRequiredMatches", shortName = "minRequiredMatches", doc = "Min number of matches required per read (default 7)", required = false)
     public int MINREQUIREDMATCHES = 5;
 
+    @Argument(fullName = "HLAfrequencies", shortName = "HLAfrequencies", doc = "HLA allele frequencies file", required = true)
+    public String AlleleFrequencyFile = "HLA_FREQUENCIES.txt";
+
+    @Argument(fullName = "HLAdictionary", shortName = "HLAdictionary", doc = "HLA dictionary file", required = true)
+    public String HLAdatabaseFile = "HLA_DICTIONARY.txt";
+
     GATKArgumentCollection args = this.getToolkit().getArguments();
     
-    String AlleleFrequencyFile          = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_FREQUENCIES.txt";
-    String PolymorphicSitesfile         = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_POLYMORPHIC_SITES.txt";
-    String HLAdatabaseFile              = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_DICTIONARY.txt";
-
     // Initializing variables
     
     HLAFileReader HLADictionaryReader = new HLAFileReader();

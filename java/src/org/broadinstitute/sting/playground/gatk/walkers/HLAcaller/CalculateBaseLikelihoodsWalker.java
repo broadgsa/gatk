@@ -58,17 +58,6 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
     @Argument(fullName = "minRequiredMatches", shortName = "minRequiredMatches", doc = "Min number of matches required per read (default 7)", required = false)
     public int MINREQUIREDMATCHES = 0;
 
-    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_DICTIONARY.sam";
-    String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_Caucasians.freq";
-    String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
-    String AlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
-    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
-    SAMFileReader HLADictionaryReader = new SAMFileReader();
-    String[] HLAreads, HLAnames;
-    Integer[] HLAstartpos, HLAstoppos;
-
-    Hashtable AlleleFrequencies,UniqueAlleles;
-
     int[][] LOD, LikelihoodScores;
     ArrayList<String> ReadsToDiscard = new ArrayList<String>();
 
