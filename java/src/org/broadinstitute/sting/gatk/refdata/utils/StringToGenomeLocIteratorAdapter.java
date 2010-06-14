@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.refdata.utils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.bed.BedParser;
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 
 import java.util.Iterator;
 
@@ -42,18 +43,19 @@ import java.util.Iterator;
 /**
  * Wrap this adapter around Iterator<String> to get Iterator<GenomLoc>. Each string coming from the underlying
  * iterator is parsed and converted to GenomeLoc on the fly and the latter is returned on each call to next().
+ * This adaptor silently skips empty lines received from the underlying string iterator.
  * Two string formats are currently supported: BED and GATK. This iterator will throw an exception if it fails
  * to parse a string.
  */
 public class StringToGenomeLocIteratorAdapter implements Iterator<GenomeLoc> {
-    private Iterator<String> it = null;
+    private PushbackIterator<String> it = null;
 
     public enum FORMAT { BED, GATK };
 
     FORMAT myFormat = FORMAT.GATK;
 
     public StringToGenomeLocIteratorAdapter(Iterator<String> it, FORMAT format) {
-        this.it = it;
+        this.it = new PushbackIterator<String>(it);
         myFormat = format;
     }
 
@@ -61,9 +63,24 @@ public class StringToGenomeLocIteratorAdapter implements Iterator<GenomeLoc> {
         this(it,FORMAT.GATK);
     }
 
-    public boolean hasNext() { return it.hasNext(); }
+    public boolean hasNext() {
+        String s = null;
+        boolean success = false;
+
+        // skip empty lines:
+        while ( it.hasNext() ) {
+            s = it.next();
+            if ( s.length() != 0 && ! s.matches("^\\s+$")) {
+                success = true;
+                it.pushback(s);
+                break;
+            }
+        }
+        return success;
+    }
 
     public GenomeLoc next() {
+
         if ( myFormat == FORMAT.GATK ) return GenomeLocParser.parseGenomeInterval( it.next() );
         return BedParser.parseLocation( it.next() );
     }
