@@ -52,8 +52,11 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
     public String ethnicity = "CaucasianUSA";
     @Argument(fullName = "filter", shortName = "filter", doc = "file containing reads to exclude", required = false)
     public String filterFile = "";
-    @Argument(fullName = "minAllowedMismatches", shortName = "minAllowedMismatches", doc = "Min number of mismatches tolerated per read (default 7)", required = false)
-    public int MINALLOWEDMISMATCHES = 7;
+    @Argument(fullName = "maxAllowedMismatches", shortName = "maxAllowedMismatches", doc = "Max number of mismatches tolerated per read (default 7)", required = false)
+    public int MAXALLOWEDMISMATCHES = 6;
+
+    @Argument(fullName = "minRequiredMatches", shortName = "minRequiredMatches", doc = "Min number of matches required per read (default 7)", required = false)
+    public int MINREQUIREDMATCHES = 0;
 
     String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_DICTIONARY.sam";
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_Caucasians.freq";
@@ -83,7 +86,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             if (!filterFile.equals("")){
                 out.printf("INFO  Reading properties file ... ");
                 SimilarityFileReader similarityReader = new SimilarityFileReader();
-                similarityReader.ReadFile(filterFile,MINALLOWEDMISMATCHES);
+                similarityReader.ReadFile(filterFile,MAXALLOWEDMISMATCHES,MINREQUIREDMATCHES);
                 ReadsToDiscard = similarityReader.GetReadsToDiscard();
                 out.printf("Done! Found %s misaligned reads to discard.\n",ReadsToDiscard.size());
                 for (int i = 0; i < ReadsToDiscard.size(); i++){

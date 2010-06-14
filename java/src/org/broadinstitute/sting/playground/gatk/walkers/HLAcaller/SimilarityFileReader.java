@@ -53,7 +53,7 @@ public class SimilarityFileReader {
         return NumMismatches;
     }
 
-    public void ReadFile(String filename, int minAllowedMismatches){
+    public void ReadFile(String filename, int minAllowedMismatches, int minRequiredMatches){
         try{
             FileInputStream fstream = new FileInputStream(filename);
             DataInputStream in = new DataInputStream(fstream);
@@ -70,7 +70,7 @@ public class SimilarityFileReader {
                     Concordance.put(s[0],matchFraction);
                     NumMatches.put(s[0], s[4]);
                     NumMismatches.put(s[0], numMismatches);
-                    if ((matchFraction < 0.8 && numMismatches > 3) || (numMismatches > minAllowedMismatches) || numMatches < 10){
+                    if ((matchFraction < 0.8 && numMismatches > 3) || (numMismatches > minAllowedMismatches) || numMatches < minRequiredMatches){
                         ReadsToDiscard.add(s[0]);
                     }else{
                         Hashtable fourDigitAlleles = new Hashtable();

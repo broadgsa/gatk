@@ -36,7 +36,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /**
- * Calculates the likelihood of observing data given phase info from pairs of HLA alleles. Note: Run FindClosestAlleleWalker first! Usage: java -jar $GATK -T CalculatePhaseLikelihoods -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -phaseInterval /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl IMPUT.baselikelihoods [-filter $ID.filter -minAllowe\
+ * Calculates the likelihood of observing data given phase info from pairs of HLA alleles. Note: Run FindClosestAlleleWalker first! Usage: java -jar $GATK -T HLACaller -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -phaseInterval /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl IMPUT.baselikelihoods [-filter $ID.filter -minAllowe\
 dMismatches 7] -ethnicity Caucasian | grep -v "INFO"  | grep -v "DEBUG" | grep -v "DONE!" > OUTPUT.phaselikelihoods
  * @author shermanjia
  */
@@ -63,8 +63,11 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
 
-    @Argument(fullName = "minAllowedMismatches", shortName = "minAllowedMismatches", doc = "Min number of mismatches tolerated per read (default 7)", required = false)
-    public int MINALLOWEDMISMATCHES = 7;
+    @Argument(fullName = "maxAllowedMismatches", shortName = "maxAllowedMismatches", doc = "Max number of mismatches tolerated per read (default 7)", required = false)
+    public int MAXALLOWEDMISMATCHES = 6;
+
+    @Argument(fullName = "minRequiredMatches", shortName = "minRequiredMatches", doc = "Min number of matches required per read (default 7)", required = false)
+    public int MINREQUIREDMATCHES = 5;
 
     GATKArgumentCollection args = this.getToolkit().getArguments();
     
@@ -113,15 +116,34 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
             HLAstoppos = HLADictionaryReader.GetStopPositions();
 
             //Load pre-processing file for misaligned reads and list of alleles to search
-            
-            SimilarityFileReader similarityReader = new SimilarityFileReader();
-            similarityReader.ReadFile(filterFile,MINALLOWEDMISMATCHES);
-            ReadsToDiscard = similarityReader.GetReadsToDiscard();
-            AllelesToSearch = similarityReader.GetAllelesToSearch();
-            AlleleCount = similarityReader.GetAlleleCount();
-            LocusCount = similarityReader.GetLocusCount();
-            for (int i = 0; i < AllelesToSearch.size(); i++){
-                out.printf("INFO\tAllelesToSearch\t%s\t%s\n",AllelesToSearch.get(i),AlleleCount.get(AllelesToSearch.get(i)));
+
+            if (!filterFile.equals("")){
+                //If pre-processing file exists, load contents
+                SimilarityFileReader similarityReader = new SimilarityFileReader();
+                similarityReader.ReadFile(filterFile,MAXALLOWEDMISMATCHES,MINREQUIREDMATCHES);
+                ReadsToDiscard = similarityReader.GetReadsToDiscard();
+                AllelesToSearch = similarityReader.GetAllelesToSearch();
+                AlleleCount = similarityReader.GetAlleleCount();
+                LocusCount = similarityReader.GetLocusCount();
+                for (int i = 0; i < AllelesToSearch.size(); i++){
+                    out.printf("INFO\tAllelesToSearch\t%s\t%s\n",AllelesToSearch.get(i),AlleleCount.get(AllelesToSearch.get(i)));
+                }
+            }else{
+                ReadsToDiscard = new ArrayList<String>();
+                AlleleCount = new Hashtable();
+                String name, d4_name; String [] n;
+                for (int i = 0; i < HLAnames.length; i++){
+                    name = HLAnames[i].substring(4);
+                    n = name.split("\\*");
+                    d4_name = n[0] + "*" + n[1].substring(0, 4);
+                    if (!AllelesToSearch.contains(d4_name)){
+                        AllelesToSearch.add(d4_name);
+                        AlleleCount.put(d4_name, 0);
+                    }
+                    if (!LocusCount.containsKey(n[0])){
+                        LocusCount.put(n[0], 0);
+                    }
+                }
             }
 
             //Load genotypes and find polymorphic sites (sites that differ from reference)

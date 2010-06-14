@@ -17,8 +17,11 @@ public class ClusterReadsWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "filter", shortName = "filter", doc = "file containing reads to exclude", required = false)
     public String filterFile = "";
 
-    @Argument(fullName = "minAllowedMismatches", shortName = "minAllowedMismatches", doc = "Min number of mismatches tolerated per read (default 7)", required = false)
-    public int MINALLOWEDMISMATCHES = 5;
+    @Argument(fullName = "maxAllowedMismatches", shortName = "maxAllowedMismatches", doc = "Max number of mismatches tolerated per read (default 7)", required = false)
+    public int MAXALLOWEDMISMATCHES = 7;
+
+    @Argument(fullName = "minRequiredMatches", shortName = "minRequiredMatches", doc = "Min number of matches required per read (default 7)", required = false)
+    public int MINREQUIREDMATCHES = 0;
 
     String UniqueAllelesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
 
@@ -70,7 +73,7 @@ public class ClusterReadsWalker extends ReadWalker<Integer, Integer> {
             if (!filterFile.equals("")){
                 out.printf("INFO  Reading properties file ... ");
                 SimilarityFileReader similarityReader = new SimilarityFileReader();
-                similarityReader.ReadFile(filterFile,MINALLOWEDMISMATCHES);
+                similarityReader.ReadFile(filterFile,MAXALLOWEDMISMATCHES,MINREQUIREDMATCHES);
                 ReadsToDiscard = similarityReader.GetReadsToDiscard();
                 MaxNumMatches = similarityReader.GetNumMatches();
                 MaxConcordance = similarityReader.GetConcordance();
