@@ -53,24 +53,25 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
     
     @Argument(fullName = "ethnicity", shortName = "ethnicity", doc = "Use allele frequencies for this ethnic group", required = false)
     public String ethnicity = "Caucasian";
+    
+    @Argument(fullName = "useInterval", shortName = "useInterval", doc = "Use only these intervals", required = false)
+    public String intervalFile = "";
 
     @Argument(fullName = "dictionary", shortName = "dictionary", doc = "bam file of HLA ditionary", required = false)
     public String HLAdictionaryFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.sam";
 
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
+    
+    String HLAdatabaseFile              = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_DICTIONARY.txt";
+    String PolymorphicSitesFile         = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_POLYMORPHIC_SITES.txt";
+    String AlleleFrequencyFile          = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_FREQUENCIES.txt";
 
-    SAMFileReader HLADictionaryReader = new SAMFileReader();
-
-    String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_Caucasians.freq";
-    String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
-    String AlleleFrequencyFile;
-    String UniqueAllelesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
-
-    String PolymorphicSitesFile = "/humgen/gsa-scr1/GSA/sjia/Sting/HLA.polymorphic.sites";
+    HLAFileReader HLADictionaryReader = new HLAFileReader();    
 
     boolean DatabaseLoaded = false;
     boolean DEBUG = false;
+    ArrayList<String> ClosestAlleles = new ArrayList<String>();
 
     String[] HLAnames, HLAreads;
     Integer[] HLAstartpos, HLAstoppos, PolymorphicSites,NonPolymorphicSites;
@@ -88,6 +89,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
     Hashtable AlleleFrequencies = new Hashtable();
     int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
     CigarParser formatter = new CigarParser();
+    int [][] intervals; int numIntervals;
 
     public Integer reduceInit() { 
         if (!DatabaseLoaded){
@@ -96,9 +98,9 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
             //Load HLA dictionary
             out.printf("INFO  Loading HLA dictionary ... ");
 
-            HLADictionaryReader.ReadFile(HLAdictionaryFile);
-            HLAreads = HLADictionaryReader.GetReads();
-            HLAnames = HLADictionaryReader.GetReadNames();
+            HLADictionaryReader.ReadFile(HLAdatabaseFile);
+            HLAreads = HLADictionaryReader.GetSequences();
+            HLAnames = HLADictionaryReader.GetNames();
             HLAstartpos = HLADictionaryReader.GetStartPositions();
             HLAstoppos = HLADictionaryReader.GetStopPositions();
             minstartpos = HLADictionaryReader.GetMinStartPos();
@@ -110,26 +112,27 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
             concordance = new double[HLAreads.length];
             numcompared = new double[HLAreads.length];
 
-            //Read allele frequencies
-            if (ethnicity.equals("Black")){
-                AlleleFrequencyFile = BlackAlleleFrequencyFile;
-            }else{
-                AlleleFrequencyFile = CaucasianAlleleFrequencyFile;
-            }
-            out.printf("INFO  Reading HLA allele frequencies ... ");
-            FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
-            HLAfreqReader.ReadFile(AlleleFrequencyFile,UniqueAllelesFile);
-            AlleleFrequencies = HLAfreqReader.GetAlleleFrequencies();
-            out.printf("Done! Frequencies for %s HLA alleles loaded.\n",AlleleFrequencies.size());
-
-            //FindPolymorphicSites(minstartpos,maxstoppos);
-            
+            //Load list of polymorphic sites
             PolymorphicSitesFileReader siteFileReader = new PolymorphicSitesFileReader();
             siteFileReader.ReadFile(PolymorphicSitesFile);
             PolymorphicSites = siteFileReader.GetPolymorphicSites();
             NonPolymorphicSites = siteFileReader.GetNonPolymorphicSites();
             numpolymorphicsites = PolymorphicSites.length;
             numnonpolymorphicsites = NonPolymorphicSites.length;
+
+            if (!intervalFile.equals("")){
+                TextFileReader fileReader = new TextFileReader();
+                fileReader.ReadFile(intervalFile);
+                String[] lines = fileReader.GetLines();
+                intervals = new int[lines.length][2];
+                for (int i = 0; i < lines.length; i++) {
+                    String[] s = lines[i].split(":");
+                    String[] intervalPieces = s[1].split("-");
+                    intervals[i][0] = Integer.valueOf(intervalPieces[0]);
+                    intervals[i][1] = Integer.valueOf(intervalPieces[1]);
+                }
+                numIntervals = intervals.length;
+            }
             
             out.printf("INFO  %s polymorphic and %s non-polymorphic sites found in HLA dictionary\n",PolymorphicSites.length,NonPolymorphicSites.length);
             out.printf("INFO  Comparing reads to database ...\n");
@@ -167,7 +170,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                 //Polymorphic sites: always increment denominator, increment numerator when bases are concordant
                 for (int j = 0; j < numpolymorphicsites; j++){
                     pos = PolymorphicSites[j];
-                    if (pos >= readstart && pos <= readstop && pos >= allelestart && pos <= allelestop){
+                    if (pos >= readstart && pos <= readstop && pos >= allelestart && pos <= allelestop && IsWithinInterval(pos)){
                         c1 = s1.charAt(pos-readstart);
                         c2 = s2.charAt(pos-allelestart);
                         if (c1 != 'D' && c2 != 'D'){//allow for deletions (sequencing errors)
@@ -176,7 +179,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                                 nummatched[i]++;
                             }else{
                                 if (debugRead.equals(read.getReadName()) && debugAllele.equals(HLAnames[i])){
-                                    out.printf("%s\t%s\t%s\t%s\t%s\n",read.getReadName(), HLAnames[i], j, c1,c2);
+                                    out.printf("DEBUG\t%s\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(), HLAnames[i], j, pos,c1,c2);
                                 }
                             }
                         }
@@ -187,13 +190,13 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                 if (numcompared[i] > 0){
                     for (int j = 0; j < numnonpolymorphicsites; j++){
                         pos = NonPolymorphicSites[j];
-                        if (pos >= readstart && pos <= readstop && pos >= allelestart && pos <= allelestop){
+                        if (pos >= readstart && pos <= readstop && pos >= allelestart && pos <= allelestop && IsWithinInterval(pos)){
                             c1 = s1.charAt(pos-readstart);
                             c2 = s2.charAt(pos-allelestart);
                             if (c1 != c2 && c1 != 'D' && c2 != 'D'){//allow for deletions (sequencing errors)
                                 numcompared[i]++;
                                 if (debugRead.equals(read.getReadName()) && debugAllele.equals(HLAnames[i])){
-                                    out.printf("%s\t%s\t%s\t%s\t%s\n",read.getReadName(), HLAnames[i], j, c1,c2);
+                                    out.printf("DEBUG\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(), HLAnames[i], j, c1,c2);
                                 }
                             }
                         }
@@ -205,7 +208,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
             concordance[i]=nummatched[i]/numcompared[i];
             if (concordance[i] > maxConcordance){maxConcordance = concordance[i];}
             if (debugRead.equals(read.getReadName()) && debugAllele.equals(HLAnames[i])){
-                out.printf("%s\t%s\t%s\t%s\t%s\n",read.getReadName(),HLAnames[i],concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
+                out.printf("DEBUG\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(),HLAnames[i],concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
             }
             if (findFirst && (concordance[i] == 1)){
                 break;
@@ -228,32 +231,42 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
         return maxFreq;
     }
 
+    private boolean IsWithinInterval(int pos){
+        boolean isWithinInterval = false;
+        for (int i = 0; i < numIntervals; i++){
+            if (pos >= intervals[i][0] && pos <= intervals[i][1]){
+                isWithinInterval = true;
+                break;
+            }
+        }
+        return isWithinInterval;
+    }
+    
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         //Calculate concordance for this read and all overlapping reads
         if (read.getMappingQuality() > 0){
             double maxConcordance = CalculateConcordance(read);
-
+            String stats = "", topAlleles = "";
             if (maxConcordance > 0){
                 String readname = read.getReadName(), allelename = ""; double freq;
                 //For input bam files that contain HLA alleles, find and print allele frequency
-                //freq = GetAlleleFrequency(readname);
                 out.printf("%s\t%s-%s", readname,read.getAlignmentStart(),read.getAlignmentEnd());
-
-                //Find the maximum frequency of the alleles most concordant with the read
-                //double maxFreq = FindMaxAlleleFrequency(maxConcordance);
 
                 //Print concordance statistics between this read and the most similar HLA allele(s)
 
                 for (int i = 0; i < HLAreads.length; i++){
                     if (concordance[i] == maxConcordance){
-                        freq = GetAlleleFrequency(HLAnames[i]);
-                        //if (freq == maxFreq){
-                            out.printf("\t%s\t%.4f\t%.3f\t%.0f\t%.0f",HLAnames[i],freq,concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
-                        //}
-                        break;
+                        //freq = GetAlleleFrequency(HLAnames[i]);
+                        if (topAlleles.equals("")){
+                            topAlleles = HLAnames[i];
+                        }else{
+                            topAlleles = topAlleles + "," + HLAnames[i];
+                        }
+                        stats = String.format("%.1f\t%.3f\t%.0f\t%.0f",1.0,concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
+                        
                     }
                 }
-                out.print("\n");
+                out.printf("\t%s\t%s\n",stats,topAlleles);
             }
         }
         return 1;

@@ -72,34 +72,13 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
     ArrayList<SAMRecord> AllReads = new ArrayList<SAMRecord>();
     ArrayList<String> AllReadNames = new ArrayList<String>();
 
-    boolean HLAdataLoaded = false;
+    boolean dataLoaded = false;
 
 
-    //Loads HLA dictionary, allele frequencies, and reads to filter
+    //Loads reads to filter
     public Pair<Long, Long> reduceInit() {
-        if (!HLAdataLoaded){
-            HLAdataLoaded = true;
-            
-            out.printf("INFO  Reading HLA database ... ");
-            HLADictionaryReader.ReadFile(HLAdatabaseFile);
-            HLAreads = HLADictionaryReader.GetReads();
-            HLAnames = HLADictionaryReader.GetReadNames();
-            HLAstartpos = HLADictionaryReader.GetStartPositions();
-            HLAstoppos = HLADictionaryReader.GetStopPositions();
-            InitializeVariables(HLAreads.length);
-            out.printf("Done! %s HLA alleles loaded.\n",HLAreads.length);
-
-
-
-            if (!ethnicity.equals("CaucasianUSA")){
-                AlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_" + ethnicity + ".freq";
-            }
-            out.printf("INFO  Reading HLA allele frequencies ... ");
-            FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
-            HLAfreqReader.ReadFile(AlleleFrequencyFile,UniqueAllelesFile);
-            AlleleFrequencies = HLAfreqReader.GetAlleleFrequencies();
-            out.printf("Done! Frequencies for %s HLA alleles loaded.\n",AlleleFrequencies.size());
-
+        if (!dataLoaded){
+            dataLoaded = true;
             
             if (!filterFile.equals("")){
                 out.printf("INFO  Reading properties file ... ");
@@ -137,7 +116,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
 
             int numAs = 0, numCs = 0, numGs = 0, numTs = 0;
             //if (DEBUG){
-                out.printf("%s\t%s\t", context.getLocation(),ref.getBase());
+                out.printf("%s\t%s\t", context.getLocation(),(char)ref.getBase());
             //}
 
             //Calculate posterior probabilities

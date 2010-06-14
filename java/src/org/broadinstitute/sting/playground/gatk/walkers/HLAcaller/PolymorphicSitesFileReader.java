@@ -24,6 +24,14 @@ public class PolymorphicSitesFileReader {
         return NonPolymorphicSites.toArray(new Integer[NonPolymorphicSites.size()]);
     }
 
+    public void AddSites(Integer [] sites){
+        for (int i = 0; i < sites.length; i++){
+            if (!PolymorphicSites.contains(sites[i])){
+                PolymorphicSites.add(sites[i]);
+            }
+        }
+    }
+
     public void ReadFile(String filename){
         try{
             FileInputStream fstream = new FileInputStream(filename);
@@ -34,10 +42,10 @@ public class PolymorphicSitesFileReader {
             int i = 0;
             while ((strLine = br.readLine()) != null)   {
                 s = strLine.split("\\t");
-                if (s[0].equals("POLYMORPHIC")){
-                    PolymorphicSites.add(Integer.valueOf(s[2]));
+                if (Double.valueOf(s[8]) > 0.1){
+                    PolymorphicSites.add(Integer.valueOf(s[0]));
                 }else{
-                    NonPolymorphicSites.add(Integer.valueOf(s[2]));
+                    NonPolymorphicSites.add(Integer.valueOf(s[0]));
                 }
             }
             in.close();

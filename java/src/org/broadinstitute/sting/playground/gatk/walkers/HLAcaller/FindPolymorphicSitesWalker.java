@@ -29,18 +29,12 @@ public class FindPolymorphicSitesWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
 
-    //String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.imputed.4digit.sam";
-    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_DICTIONARY.sam";
-    
-    SAMFileReader HLADictionaryReader = new SAMFileReader();
+    String AlleleFrequencyFile  = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_FREQUENCIES.txt";
+    String UniqueAllelesFile    = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
 
-    //String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
-    String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_Caucasians.freq";
-    String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
-    String AlleleFrequencyFile;
-    String UniqueAllelesFile               = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/UniqueAlleles";
-
-    String PolymorphicSitesFile = "/humgen/gsa-scr1/GSA/sjia/Sting/HLA.polymorphic.sites";
+    String PolymorphicSitesFile = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_POLYMORPHIC_SITES.txt";
+    String HLAdatabaseFile      = "/humgen/gsa-scr1/GSA/sjia/HLA_CALLER/HLA_DICTIONARY.txt";
+    HLAFileReader HLADictionaryReader = new HLAFileReader();
 
     boolean DatabaseLoaded = false;
     boolean DEBUG = false;
@@ -69,8 +63,8 @@ public class FindPolymorphicSitesWalker extends ReadWalker<Integer, Integer> {
             out.printf("INFO  Loading HLA dictionary ... ");
 
             HLADictionaryReader.ReadFile(HLAdatabaseFile);
-            HLAreads = HLADictionaryReader.GetReads();
-            HLAnames = HLADictionaryReader.GetReadNames();
+            HLAreads = HLADictionaryReader.GetSequences();
+            HLAnames = HLADictionaryReader.GetNames();
             HLAstartpos = HLADictionaryReader.GetStartPositions();
             HLAstoppos = HLADictionaryReader.GetStopPositions();
             minstartpos = HLADictionaryReader.GetMinStartPos();
@@ -81,18 +75,6 @@ public class FindPolymorphicSitesWalker extends ReadWalker<Integer, Integer> {
             nummatched = new double[HLAreads.length];
             concordance = new double[HLAreads.length];
             numcompared = new double[HLAreads.length];
-
-            //Read allele frequencies
-            if (ethnicity.equals("Black")){
-                AlleleFrequencyFile = BlackAlleleFrequencyFile;
-            }else{
-                AlleleFrequencyFile = CaucasianAlleleFrequencyFile;
-            }
-            out.printf("INFO  Reading HLA allele frequencies ... ");
-            FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
-            HLAfreqReader.ReadFile(AlleleFrequencyFile,UniqueAllelesFile);
-            AlleleFrequencies = HLAfreqReader.GetAlleleFrequencies();
-            out.printf("Done! Frequencies for %s HLA alleles loaded.\n",AlleleFrequencies.size());
 
             FindPolymorphicSites(minstartpos,maxstoppos);
 
@@ -108,13 +90,15 @@ public class FindPolymorphicSitesWalker extends ReadWalker<Integer, Integer> {
 
     private void FindPolymorphicSites(int start, int stop){
         boolean initialized, polymorphic, examined;
-        char c = ' ';
+        char c = ' ', ch = ' ';
+        int A = 0, C = 0, G = 0, T = 0;
         ArrayList<Integer> polymorphicsites = new ArrayList<Integer>();
         ArrayList<Integer> nonpolymorphicsites = new ArrayList<Integer>();
         //Find polymorphic sites in dictionary
         for (int pos = start; pos <= stop; pos++){
             initialized = false; polymorphic = false; examined = false;
             //look across all alleles at specific position to see if it is polymorphic
+            A = 0; C = 0; G = 0; T = 0;
             for (int i = 0; i < HLAreads.length; i++){
                 if (pos >= HLAstartpos[i] && pos <= HLAstoppos[i]){
                     if (!initialized){
@@ -122,19 +106,28 @@ public class FindPolymorphicSitesWalker extends ReadWalker<Integer, Integer> {
                         initialized = true;
                         examined = true;
                     }
-                    if (HLAreads[i].charAt(pos-HLAstartpos[i]) != c){
-                        polymorphicsites.add(pos);
-                        out.printf("POLYMORPHIC\t6\t%s\n", pos);
+                    ch = HLAreads[i].charAt(pos-HLAstartpos[i]);
+                    if (ch == 'A'){A++;}
+                    else if (ch == 'C'){C++;}
+                    else if (ch == 'T'){T++;}
+                    else if (ch == 'G'){G++;}
+
+                    if (ch != c){
+                    //    polymorphicsites.add(pos);
+                    //    out.printf("POLYMORPHIC\t6\t%s\n", pos);
                         polymorphic = true;
-                        break;
+                    //    break;
                     }
                 }
+            }
+            if (polymorphic){
+                out.printf("%s\t%s\t%s\t%s\t%s\n",pos,A,C,G,T);
+            }
+            //if (!polymorphic && examined){
+            //    nonpolymorphicsites.add(pos);
+            //    out.printf("CONSERVED\t6\t%s\n", pos);
+            //}
 
-            }
-            if (!polymorphic && examined){
-                nonpolymorphicsites.add(pos);
-                out.printf("CONSERVED\t6\t%s\n", pos);
-            }
         }
         PolymorphicSites = polymorphicsites.toArray(new Integer[polymorphicsites.size()]);
         NonPolymorphicSites = nonpolymorphicsites.toArray(new Integer[nonpolymorphicsites.size()]);
