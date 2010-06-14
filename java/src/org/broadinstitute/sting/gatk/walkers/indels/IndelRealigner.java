@@ -32,11 +32,11 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -56,6 +56,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
+
+    @Argument(fullName="targetIntervalsSorted", shortName="targetSorted",doc="If specified, the tool assumes that target interval list is sorted"+
+                " (can save considerable chunk of memory); if the list turns out to be unsorted, the computation will abort")
+    protected boolean TARGET_SORTED = false;
 
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     protected double LOD_THRESHOLD = 5.0;
@@ -157,12 +161,17 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
-        // read in the intervals for cleaning
-        GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile)),
+        if ( TARGET_SORTED && IntervalUtils.isIntervalFile(intervalsFile)) {
+            // prepare to read intervals one-by-one, as needed (assuming they are sorted). 
+            intervals = new IntervalFileMergingIterator( new java.io.File(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
+        } else {
+            // read in the whole list of intervals for cleaning
+            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile)),
                                                                       IntervalMergingRule.OVERLAPPING_ONLY);
-        intervals = locs.iterator();
+            intervals = locs.iterator();
+        }
         currentInterval = intervals.hasNext() ? intervals.next() : null;
-
+ System.out.println("Interval: "+currentInterval);
         // set up the output writer(s)
         if ( baseWriterFilename != null ) {
             writers = new HashMap<String, SAMFileWriter>();
@@ -353,6 +362,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         do {
             currentInterval = intervals.hasNext() ? intervals.next() : null;
+    System.out.println("Interval: "+currentInterval);
         } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
 
         // call back into map now that the state has been updated
