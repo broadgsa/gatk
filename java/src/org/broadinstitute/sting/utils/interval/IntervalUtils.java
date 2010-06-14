@@ -47,7 +47,7 @@ public class IntervalUtils {
                 for (String fileOrInterval : argument.split(";")) {
 
                     // if it's a file, add items to raw interval list
-                    if (isFile(fileOrInterval))
+                    if (isIntervalFile(fileOrInterval))
                         rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval));
 
                         // otherwise treat as an interval -> parse and add to raw interval list
@@ -85,7 +85,7 @@ public class IntervalUtils {
      * @param str token to identify as a filename.
      * @return true if the token looks like a filename, or false otherwise.
      */
-    private static boolean isFile(String str) {
+    public static boolean isIntervalFile(String str) {
         // should we define list of file extensions as a public array somewhere?
         // is regex or endsiwth better?
         if (str.toUpperCase().endsWith(".BED") || str.toUpperCase().endsWith(".LIST") ||
@@ -99,5 +99,8 @@ public class IntervalUtils {
                                      "Please rename your file with the appropriate extension.");
 
         else return false;
-    }    
+    }
+
 }
+
+
