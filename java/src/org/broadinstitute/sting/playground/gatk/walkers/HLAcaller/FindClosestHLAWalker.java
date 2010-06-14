@@ -46,13 +46,10 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
     public boolean findFirst = false;
 
     @Argument(fullName = "DEBUG", shortName = "DEBUG", doc = "Debug walker", required = false)
-    public boolean debug = false;
+    public boolean DEBUG = false;
     
     @Argument(fullName = "debugAllele", shortName = "debugAllele", doc = "Print match score for allele", required = false)
     public String debugAllele = "";
-    
-    @Argument(fullName = "ethnicity", shortName = "ethnicity", doc = "Use allele frequencies for this ethnic group", required = false)
-    public String ethnicity = "Caucasian";
     
     @Argument(fullName = "useInterval", shortName = "useInterval", doc = "Use only these intervals", required = false)
     public String intervalFile = "";
@@ -70,7 +67,6 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
     HLAFileReader HLADictionaryReader = new HLAFileReader();    
 
     boolean DatabaseLoaded = false;
-    boolean DEBUG = false;
     ArrayList<String> ClosestAlleles = new ArrayList<String>();
 
     String[] HLAnames, HLAreads;
@@ -83,9 +79,6 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
     int maxstoppos = 0;
     int numpolymorphicsites = 0, numnonpolymorphicsites = 0, pos =0;
 
-    int HLA_A_start = 30018310;
-    int HLA_A_end = 30021211;
-    
     Hashtable AlleleFrequencies = new Hashtable();
     int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
     CigarParser formatter = new CigarParser();
@@ -134,7 +127,7 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
                 numIntervals = intervals.length;
             }
             
-            out.printf("INFO  %s polymorphic and %s non-polymorphic sites found in HLA dictionary\n",PolymorphicSites.length,NonPolymorphicSites.length);
+            out.printf("INFO  %s polymorphic and %s non-polymorphic sites found in HLA dictionary\n",numpolymorphicsites,numnonpolymorphicsites);
             out.printf("INFO  Comparing reads to database ...\n");
 
             if (DEBUG){
@@ -170,6 +163,9 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
                 //Polymorphic sites: always increment denominator, increment numerator when bases are concordant
                 for (int j = 0; j < numpolymorphicsites; j++){
                     pos = PolymorphicSites[j];
+                    if (DEBUG == true){
+                        out.printf("DEBUG\tPOS\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(),HLAnames[i],pos,allelestart,allelestop,IsWithin(pos,readstart,readstop), IsWithin(pos,allelestart,allelestop),IsWithinInterval(pos));
+                    }
                     if (pos >= readstart && pos <= readstop && pos >= allelestart && pos <= allelestop && IsWithinInterval(pos)){
                         c1 = s1.charAt(pos-readstart);
                         c2 = s2.charAt(pos-allelestart);
@@ -202,16 +198,19 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
                         }
                     }
                 }
-            }
-
-            //Update concordance array
-            concordance[i]=nummatched[i]/numcompared[i];
-            if (concordance[i] > maxConcordance){maxConcordance = concordance[i];}
-            if (debugRead.equals(read.getReadName()) && debugAllele.equals(HLAnames[i])){
-                out.printf("DEBUG\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(),HLAnames[i],concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
-            }
-            if (findFirst && (concordance[i] == 1)){
-                break;
+            
+                //Update concordance array
+                concordance[i]=nummatched[i]/numcompared[i];
+                if (concordance[i] > maxConcordance){maxConcordance = concordance[i];}
+                if (DEBUG == true){
+                    out.printf("DEBUG\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(),HLAnames[i],concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
+                }
+                if (debugRead.equals(read.getReadName()) && debugAllele.equals(HLAnames[i])){
+                    out.printf("DEBUG\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(),HLAnames[i],concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
+                }
+                if (findFirst && (concordance[i] == 1)){
+                    break;
+                }
             }
         
         }
@@ -231,6 +230,10 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
         return maxFreq;
     }
 
+    private boolean IsWithin(int pos, int start, int stop){
+        return pos >= start && pos <= stop;
+    }
+
     private boolean IsWithinInterval(int pos){
         boolean isWithinInterval = false;
         for (int i = 0; i < numIntervals; i++){
@@ -244,10 +247,13 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
     
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         //Calculate concordance for this read and all overlapping reads
-        if (read.getMappingQuality() > 0){
+        if (DEBUG == true){
+            out.printf("%s\t%s\n",read.getReadName(),read.getMappingQuality());
+        }
+        if (read.getMappingQuality() > 0 || DEBUG == true){
             double maxConcordance = CalculateConcordance(read);
             String stats = "", topAlleles = "";
-            if (maxConcordance > 0){
+            if (maxConcordance > 0 || DEBUG == true){
                 String readname = read.getReadName(), allelename = ""; double freq;
                 //For input bam files that contain HLA alleles, find and print allele frequency
                 out.printf("%s\t%s-%s", readname,read.getAlignmentStart(),read.getAlignmentEnd());
@@ -266,7 +272,7 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
                         
                     }
                 }
-                out.printf("\t%s\t%s\n",stats,topAlleles);
+                out.printf("\t%s\t%s\t%s\n",stats,topAlleles,maxConcordance);
             }
         }
         return 1;
