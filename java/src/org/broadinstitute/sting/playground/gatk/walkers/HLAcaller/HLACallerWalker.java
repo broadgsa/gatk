@@ -57,8 +57,8 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "debugAlleles", shortName = "debugAlleles", doc = "Print likelihood scores for these alleles", required = false)
     public String debugAlleles = "";
 
-    @Argument(fullName = "phaseInterval", shortName = "phaseInterval", doc = "Use only these intervals in phase calculation", required = false)
-    public String phaseIntervalFile = "";
+    @Argument(fullName = "useInterval", shortName = "useInterval", doc = "Use only these intervals in phase calculation", required = false)
+    public String IntervalsFile = "";
 
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
@@ -174,9 +174,9 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
 
             //Load genomic intervals for bam file
             
-            if (!phaseIntervalFile.equals("")){
+            if (!IntervalsFile.equals("")){
                 TextFileReader fileReader = new TextFileReader();
-                fileReader.ReadFile(phaseIntervalFile);
+                fileReader.ReadFile(IntervalsFile);
                 String[] lines = fileReader.GetLines();
                 intervals = new int[lines.length][2];
                 for (int i = 0; i < lines.length; i++) {

@@ -48,13 +48,10 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
     public boolean DEBUG = false;
     @Argument(fullName = "debugAlleles", shortName = "debugAlleles", doc = "Print likelihood scores for these alleles", required = false)
     public String inputAlleles = "";
-    @Argument(fullName = "ethnicity", shortName = "ethnicity", doc = "Use allele frequencies for this ethnic group", required = false)
-    public String ethnicity = "CaucasianUSA";
     @Argument(fullName = "filter", shortName = "filter", doc = "file containing reads to exclude", required = false)
     public String filterFile = "";
     @Argument(fullName = "maxAllowedMismatches", shortName = "maxAllowedMismatches", doc = "Max number of mismatches tolerated per read (default 7)", required = false)
     public int MAXALLOWEDMISMATCHES = 6;
-
     @Argument(fullName = "minRequiredMatches", shortName = "minRequiredMatches", doc = "Min number of matches required per read (default 7)", required = false)
     public int MINREQUIREDMATCHES = 0;
 

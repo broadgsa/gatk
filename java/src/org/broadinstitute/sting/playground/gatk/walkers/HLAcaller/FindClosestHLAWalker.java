@@ -60,9 +60,6 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
     
-    @Argument(fullName = "HLAfrequencies", shortName = "HLAfrequencies", doc = "HLA allele frequencies file", required = true)
-    public String AlleleFrequencyFile = "HLA_FREQUENCIES.txt";
-
     @Argument(fullName = "HLAdictionary", shortName = "HLAdictionary", doc = "HLA dictionary file", required = true)
     public String HLAdatabaseFile = "HLA_DICTIONARY.txt";
 
