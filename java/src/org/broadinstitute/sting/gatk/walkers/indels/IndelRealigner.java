@@ -171,7 +171,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             intervals = locs.iterator();
         }
         currentInterval = intervals.hasNext() ? intervals.next() : null;
- System.out.println("Interval: "+currentInterval);
+
         // set up the output writer(s)
         if ( baseWriterFilename != null ) {
             writers = new HashMap<String, SAMFileWriter>();
@@ -362,7 +362,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         do {
             currentInterval = intervals.hasNext() ? intervals.next() : null;
-    System.out.println("Interval: "+currentInterval);
         } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
 
         // call back into map now that the state has been updated
