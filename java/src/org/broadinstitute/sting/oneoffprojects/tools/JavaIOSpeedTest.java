@@ -21,7 +21,7 @@ import org.broadinstitute.sting.commandline.CommandLineProgram;
 public class JavaIOSpeedTest extends CommandLineProgram {
 
     @Argument(fullName = "input", shortName = "i", doc = "file to read", required = true) public String filename;
-    @Argument(fullName = "buffer_size", shortName = "s", doc = "read buffer size", required=false) public int bufferSize = -1;
+    @Argument(fullName = "buffer_size", shortName = "s", doc = "read buffer size in mb", required=false) public int bufferSize = -1;
 
     @Override
     protected int execute() {
@@ -37,7 +37,7 @@ public class JavaIOSpeedTest extends CommandLineProgram {
 
             final BufferedReader br;
             if(bufferSize != -1) {
-                br = new BufferedReader(reader, bufferSize);
+                br = new BufferedReader(reader, bufferSize * 1000000);
             } else {
                 br = new BufferedReader(reader);
             }
@@ -50,7 +50,7 @@ public class JavaIOSpeedTest extends CommandLineProgram {
                 br.readLine();
                 if(++counter == next) {
                     next += incr;
-                    System.err.println(new Date() + ": " + filename + " - read " + counter + " lines...");
+                    System.err.println(new Date() + " - file: " + filename + ",  buffer size: " + bufferSize + "mb,  read " + counter + " lines...");
                 }
             }
 
