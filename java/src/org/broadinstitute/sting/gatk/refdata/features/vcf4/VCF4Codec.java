@@ -19,7 +19,6 @@ import org.broadinstitute.sting.utils.Utils;
 import java.io.IOException;
 import java.util.*;
 
-import com.sun.xml.internal.ws.wsdl.parser.ParserUtil;
 
 /**
  * a feature codec for the VCF 4 specification.  Our aim is to read in the records and convert to VariantContext as
