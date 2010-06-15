@@ -311,7 +311,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
             if ( HTML ) out.println("<hr>");
 
             if ( HTML ) out.println("<br>");
-            out.println("\nOUTCOME:");
+            out.println("\nOUTCOME (threshold at Q="+QTHRESHOLD+"):");
             if ( HTML ) out.println("<br>");
             for ( String col : columns ) {
                 List<PrimitivePair.Int> lp = problems.get(col+".End1");
