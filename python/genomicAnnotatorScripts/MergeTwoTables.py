@@ -33,7 +33,7 @@ except Exception, e:
 try:
     file2 = open(sys.argv[2])
     header2 = read_header(file2)
-except e:
+except Exception, e:
     sys.stderr.write("ERROR: While reading header from file \"" + sys.argv[1] + "\": " + str(e) + "\n")
     sys.exit(0)
 
