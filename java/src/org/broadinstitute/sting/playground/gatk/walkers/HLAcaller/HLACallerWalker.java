@@ -60,8 +60,8 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "useInterval", shortName = "useInterval", doc = "Use only these intervals in phase calculation", required = false)
     public String IntervalsFile = "";
 
-    @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
-    public boolean ONLYFREQUENT = false;
+    @Argument(fullName = "minFreq", shortName = "minFreq", doc = "only consider alleles greater than this frequency", required = false)
+    public double minFrequency = 0.0;
 
     @Argument(fullName = "maxAllowedMismatches", shortName = "maxAllowedMismatches", doc = "Max number of mismatches tolerated per read (default 7)", required = false)
     public int MAXALLOWEDMISMATCHES = 6;
@@ -208,7 +208,7 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
 
     public void onTraversalDone(Integer numreads) {
         String name1, name2, d4_name1, d4_name2, d2_name1, d2_name2;
-        Double frq1 = 0.0, frq2 = 0.0, log1 = 0.0, log2 = 0.0,alleleLikelihood= 0.0, phaseLikelihood=0.0, minfrq = 0.0, likelihood = 0.0;
+        Double frq1 = 0.0, frq2 = 0.0, log1 = 0.0, log2 = 0.0,alleleLikelihood= 0.0, phaseLikelihood=0.0, likelihood = 0.0;
         int numCombinations = 0;
 
         //For debugging specific alleles
@@ -221,10 +221,6 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
                 alleleLikelihood = CalculateAlleleLikelihood(index1,index2,HLAreads,true);
                 phaseLikelihood = CalculatePhaseLikelihood(index1,index2,true,false);
             }
-        }
-
-        if (ONLYFREQUENT){
-            minfrq = 0.0001;
         }
 
         double max;
@@ -240,7 +236,7 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
             String [] n1 = name1.split("\\*");
             d4_name1 = n1[0] + "*" + n1[1].substring(0, 4);
             d2_name1 = n1[0] + "*" + n1[1].substring(0, 2);
-            if (AllelesToSearch.contains(d4_name1)){// || CommonAlleles.contains(d4_name1)
+            if (AllelesToSearch.contains(d4_name1)){
                 
                 if (MaxFrequencies.containsKey(d4_name1)){
                     frq1 = Double.parseDouble(MaxFrequencies.get(d4_name1).toString());
@@ -248,44 +244,51 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
                     if (n1[1].length() > 4){if (n1[1].substring(4, 5).equals("N")){frq1 = .00000005;}else{frq1 = .000001;}}else{frq1 = .000001;}
                 }
 
-                // Allele 2
+                if (frq1 > minFrequency){
+                    
+                    // Allele 2
 
-                for (int j = i; j < HLAnames.length; j++){
-                    name2 = HLAnames[j].substring(4);
-                    String [] n2 = name2.split("\\*");
-                    d4_name2 = n2[0] + "*" + n2[1].substring(0, 4);
-                    d2_name2 = n2[0] + "*" + n2[1].substring(0, 2);
-                    if (n1[0].equals(n2[0]) && (AllelesToSearch.contains(d4_name2))){// || CommonAlleles.contains(d4_name2)
-                        if (MaxFrequencies.containsKey(d4_name2)){
-                            frq2 = Double.parseDouble(MaxFrequencies.get(d4_name2).toString());
-                        }else{
-                            if (n2[1].length() > 4){if (n2[1].substring(4, 5).equals("N")){frq2 = .00000005;}else{frq2 = .000001;}}else{frq2 = .000001;}
-                        }
-                        //Calculate allele and phase likelihoods for each allele pair
-                        alleleLikelihood = CalculateAlleleLikelihood(i,j,HLAreads,false);
-                        numCombinations++;
-
-                        //If there is data at the allele pair, continue with other calculations
-
-                        if (alleleLikelihood < 0){
-                            phaseLikelihood = CalculatePhaseLikelihood(i,j,false,false);
-                            log1=Math.log10(frq1);
-                            log2=Math.log10(frq2);
-
-                            //sum likelihoods
-
-                            likelihood = alleleLikelihood+phaseLikelihood+log1+log2;
-                            if (!MaxLikelihoods.containsKey(n1[0])){MaxLikelihoods.put(n1[0], likelihood);}
-
-                            if (likelihood > (Double) MaxLikelihoods.get(n1[0])) {
-                                MaxLikelihoods.put(n1[0], likelihood);
+                    for (int j = i; j < HLAnames.length; j++){
+                        name2 = HLAnames[j].substring(4);
+                        String [] n2 = name2.split("\\*");
+                        d4_name2 = n2[0] + "*" + n2[1].substring(0, 4);
+                        d2_name2 = n2[0] + "*" + n2[1].substring(0, 2);
+                        if (n1[0].equals(n2[0]) && (AllelesToSearch.contains(d4_name2))){
+                            if (MaxFrequencies.containsKey(d4_name2)){
+                                frq2 = Double.parseDouble(MaxFrequencies.get(d4_name2).toString());
+                            }else{
+                                if (n2[1].length() > 4){if (n2[1].substring(4, 5).equals("N")){frq2 = .00000005;}else{frq2 = .000001;}}else{frq2 = .000001;}
                             }
-                            Likelihoods.add(likelihood);
-                            String data = String.format("%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f",n1[0],name1,name2,alleleLikelihood,phaseLikelihood,log1,log2,likelihood);
-                            Output.add(data);
-                            out.printf("INFO\t%s\n",data);
-                            if (DEBUG){
+
+                            if (frq2 > minFrequency){
                                 
+                            //Calculate allele and phase likelihoods for each allele pair
+                                alleleLikelihood = CalculateAlleleLikelihood(i,j,HLAreads,false);
+                                numCombinations++;
+
+                                //If there is data at the allele pair, continue with other calculations
+
+                                if (alleleLikelihood < 0){
+                                    phaseLikelihood = CalculatePhaseLikelihood(i,j,false,false);
+                                    log1=Math.log10(frq1);
+                                    log2=Math.log10(frq2);
+
+                                    //sum likelihoods
+
+                                    likelihood = alleleLikelihood+phaseLikelihood+log1+log2;
+                                    if (!MaxLikelihoods.containsKey(n1[0])){MaxLikelihoods.put(n1[0], likelihood);}
+
+                                    if (likelihood > (Double) MaxLikelihoods.get(n1[0])) {
+                                        MaxLikelihoods.put(n1[0], likelihood);
+                                    }
+                                    Likelihoods.add(likelihood);
+                                    String data = String.format("%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f",n1[0],name1,name2,alleleLikelihood,phaseLikelihood,log1,log2,likelihood);
+                                    Output.add(data);
+                                    out.printf("INFO\t%s\n",data);
+                                    if (DEBUG){
+
+                                    }
+                                }
                             }
                         }
                     }
