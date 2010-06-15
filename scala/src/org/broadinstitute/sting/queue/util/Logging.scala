@@ -7,7 +7,7 @@ import org.apache.log4j._
  */
 trait Logging {
   private val className = this.getClass.getName
-  lazy val logger = configuredLogger
+  protected lazy val logger = configuredLogger
 
   def configuredLogger = {
     Logging.configureLogging

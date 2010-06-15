@@ -42,8 +42,8 @@
     <dependency org="commons-io" name="commons-io" rev="1.3.2" conf="default"/>
      
     <!-- Scala dependancies -->
-    <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.0.RC2" conf="scala->default"/>
-    <dependency org="org.scala-lang" name="scala-library" rev="2.8.0.RC2" conf="scala->default"/>
+    <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.0.RC5" conf="scala->default"/>
+    <dependency org="org.scala-lang" name="scala-library" rev="2.8.0.RC5" conf="scala->default"/>
 
     <!-- Queue additional dependencies -->
     <dependency org="commons-lang" name="commons-lang" rev="2.5" conf="queue->default"/>

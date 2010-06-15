@@ -1,0 +1,31 @@
+package org.broadinstitute.sting.queue.engine
+
+import org.jgrapht.traverse.TopologicalOrderIterator
+import org.jgrapht.event.{EdgeTraversalEvent, TraversalListenerAdapter}
+import collection.JavaConversions._
+import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.sting.queue.function.{MappingFunction, CommandLineFunction, DispatchFunction, QFunction}
+
+/**
+ * Loops over the job graph running jobs as the edges are traversed
+ */
+abstract class TopologicalJobScheduler(private val qGraph: QGraph)
+    extends CommandLineRunner with DispatchJobRunner with Logging {
+
+  protected val iterator = new TopologicalOrderIterator(this.qGraph.jobGraph)
+
+  iterator.addTraversalListener(new TraversalListenerAdapter[QNode, QFunction] {
+    override def edgeTraversed(event: EdgeTraversalEvent[QNode, QFunction]) = event.getEdge match {
+      case f: DispatchFunction if (TopologicalJobScheduler.this.qGraph.bsubAllJobs) => dispatch(f, qGraph)
+      case f: CommandLineFunction => run(f, qGraph)
+      case f: MappingFunction => /* do nothing for mapping functions */
+    }
+  })
+
+  def runJobs = {
+    logger.info("Number of jobs: %s".format(this.qGraph.numJobs))
+    for (target <- iterator) {
+      // Do nothing for now, let event handler respond
+    }
+  }
+}

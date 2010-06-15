@@ -3,6 +3,7 @@ package org.broadinstitute.sting.queue.util
 import org.broadinstitute.sting.utils.text.XReadLines
 import collection.mutable.ListBuffer
 import collection.JavaConversions._
+import java.io.File
 
 object ProcessUtils extends Logging {
 
@@ -15,10 +16,10 @@ object ProcessUtils extends Logging {
 
   val running = new ListBuffer[Process]() 
 
-  def runCommandAndWait(command: String) = {
+  def runCommandAndWait(command: String, directory: File) = {
     logger.debug("Running command: " + command)
 
-    var builder = new ProcessBuilder("sh", "-c", command)
+    var builder = new ProcessBuilder("sh", "-c", command).directory(directory)
 
     var process = builder.start
     running += process

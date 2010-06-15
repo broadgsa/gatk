@@ -13,6 +13,7 @@ object QCommandLine extends Application with Logging {
       new QArguments(args)
     } catch {
       case exception => {
+        println(exception)
         println(usage)
         System.exit(-1)
       }
@@ -34,20 +35,13 @@ object QCommandLine extends Application with Logging {
       System.exit(-1)
     }
 
-    if (qArgs.inputPaths.size == 0) {
-      println("Error: No inputs specified")
-      println(usage)
-      System.exit(-1)
-    }
-
-
     val newArgs = new ListBuffer[String]
     newArgs.appendAll(args)
     QArguments.strip(newArgs, "-S")
     newArgs.prepend("-nocompdaemon", "-classpath", ClasspathUtils.manifestAwareClassPath, qArgs.scripts.head)
     MainGenericRunner.main(newArgs.toArray)
 
-    // NOTE: This line is not reached because something in MainGenericRunner is exiting the VM.
+    // NOTE: This line is not reached because the MainGenericRunner exits the VM.
     logger.debug("exiting")
   }
 }

@@ -8,13 +8,13 @@ import java.io.{FileInputStream, File}
 import java.util.Properties
 
 class QArguments(args: Array[String]) {
-  var useBsub = false
+  var bsubAllJobs = false
   var dryRun = false
   val scripts = new ListBuffer[String]
   var inputPaths = List.empty[File]
   var argMap = Map.empty[String, String]
 
-  parseArgs(args)
+  val userArgs = parseArgs(args)
 
   private def parseArgs(args: Array[String]) = {
     var filtered = new ListBuffer[String]
@@ -26,13 +26,15 @@ class QArguments(args: Array[String]) {
     if (isFlagged(filtered, "-dry"))
       dryRun = true
     if (isFlagged(filtered, "-bsub"))
-      useBsub = true
+      bsubAllJobs = true
     for (arg <- getArgs(filtered, "-P"))
       addArg(arg)
     for (arg <- getArgs(filtered, "-I"))
       addFile(arg)
     for (arg <- getArgs(filtered, "-S"))
       scripts.append(arg)
+
+    List(filtered:_*)
   }
 
   private def isFlagged(filtered: ListBuffer[String], search: String) = {
@@ -65,22 +67,24 @@ class QArguments(args: Array[String]) {
     var file = new File(arg)
     if (arg.contains("=") && !file.exists) {
       val tokens = arg.split("=", 2)
-      argMap = argMap.updated(tokens(0), tokens(1))
-    } else if (file.exists && arg.endsWith(".properties")) {
+      argMap += tokens(0) -> tokens(1)
+    } else if (arg.endsWith(".properties")) {
+      if (!file.exists)
+        throw new QException("File not found: " + file.getAbsolutePath)
       var props = new Properties
       props.load(new FileInputStream(file))
       for ((name, value) <- props)
-        argMap = argMap.updated(name, value)
+        argMap += name -> value
+    } else {
+      throw new QException("Invalid property: " + arg)
     }
   }
 
   def addFile(arg: String): Unit = {
     var file = new File(arg)
-    if (arg.endsWith(".list")) {
+    inputPaths :+= file
+    if (arg.endsWith(".list"))
       new XReadLines(file).iterator.foreach(addFile(_))
-    } else {
-      inputPaths = inputPaths ::: List(file)
-    }
   }
 }
 
