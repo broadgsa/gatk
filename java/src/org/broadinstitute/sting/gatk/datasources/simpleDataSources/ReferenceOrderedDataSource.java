@@ -214,7 +214,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
                 return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.iterator(),rod.getName()));
             }
         } catch (IOException e) {
-            throw new StingException("Unable to create iterator for rod named " + rod.getName());
+            throw new StingException("Unable to create iterator for rod named " + rod.getName(),e);
         }
     }
 
@@ -223,7 +223,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
         try {
             resource.close();
         } catch (IOException e) {
-            throw new StingException("Unable to close reader for rod named " + rod.getName());
+            throw new StingException("Unable to close reader for rod named " + rod.getName(),e);
         }
     }
 }
