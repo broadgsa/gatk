@@ -29,7 +29,7 @@ public class
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
-                    1, Arrays.asList("5a330d359b5c7ea0dfa6698b4830db82"));
+                    1, Arrays.asList("97d2471ed6ee79d70ce5bd9cc0be2239"));
             executeTest("testSelect1", spec);
         }
     }
@@ -38,7 +38,7 @@ public class
     public void testSelect2() {
         String extraArgs = "-L 1:1-10,000,000";
         WalkerTestSpec spec = new WalkerTestSpec( withSelect(withSelect(root, "DP < 50", "DP50"), "set==\"Intersection\"", "intersection") + " " + extraArgs + " -o %s",
-                1, Arrays.asList("e39d6790e4ee8709dfa2eab8598b168e"));
+                1, Arrays.asList("e3366d73ee7cdf630c29809ce230e32e"));
         executeTest("testSelect2", spec);
     }
 
@@ -48,7 +48,7 @@ public class
         for (String vcfFile : vcfFiles) {
             WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B eval,VCF," + validationDataLocation + vcfFile + " -B comp,VCF," + validationDataLocation + "GenotypeConcordanceComp.vcf -E GenotypeConcordance -reportType CSV -o %s",
                     1,
-                    Arrays.asList("608b32189818df7271c546dd5f257033"));
+                    Arrays.asList("51574b4ab0b381c5a01268f91e78b25c"));
             executeTest("testVEGenotypeConcordance" + vcfFile, spec);
         }
 
@@ -57,8 +57,8 @@ public class
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "08b93c2561742dc480534ae16d2d0508");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "65bf329cf1499544d1eb28de786a4561");
+        expectations.put("-L 1:1-10,000,000", "8f76d8c0e3a8a5836bb5bf423e04c268");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "6b128bacbd0402471bd6d4e3f9283c47");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -80,10 +80,10 @@ public class
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
-        String matchingMD5 = "fc1d4d2aca0667605a6b4d486fcbedf2";
+        String matchingMD5 = "aca5a64a0e4850906db2bd820253b784";
         expectations.put("", matchingMD5);
         expectations.put(" -known comp_hapmap -known dbsnp", matchingMD5);
-        expectations.put(" -known comp_hapmap", "fd9cd9970f7e509ca476502869063929");
+        expectations.put(" -known comp_hapmap", "442213609c2866f7a90cbc4b3486441a");
         for (String tests : testsEnumerations) {
             for (Map.Entry<String, String> entry : expectations.entrySet()) {
                 String extraArgs2 = entry.getKey();
@@ -103,7 +103,7 @@ public class
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
                     2,
-                    Arrays.asList("521837758da151b84fca57fd1bb7dad1", "b4a42c90318adc88361691ece50426f2"));
+                    Arrays.asList("dc53aaf7db9f05e3b0a38bf5efe3fbbe", "cd8616aca14eb77bd90732fbfce038d5"));
             executeTest("testVEWriteVCF", spec);
         }
     }

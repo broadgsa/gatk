@@ -230,7 +230,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     private boolean warnedAboutValidationData = false;
 
     public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        final String interesting = null;
+        String interesting = null;
 
         // sanity check that we at least have either eval or validation data
         if (eval == null && !isValidVC(validation)) {
@@ -266,12 +266,14 @@ public class GenotypeConcordance extends VariantEvaluator {
             }
         }
 
-        determineStats(eval, validation);
+        interesting = determineStats(eval, validation);
 
         return interesting; // we don't capture any interesting sites
     }
 
-    private void determineStats(final VariantContext eval, final VariantContext validation) {
+    private String determineStats(final VariantContext eval, final VariantContext validation) {
+
+        String interesting = null;
 
         final boolean validationIsValidVC = isValidVC(validation);
 
@@ -285,6 +287,8 @@ public class GenotypeConcordance extends VariantEvaluator {
                     truth = Genotype.Type.NO_CALL;
                 } else {
                     truth = validation.getGenotype(sample).getType();
+                    // TODO -- capture "interesting" sites here, for example:
+                    // interesting = "ConcordanceStatus=FP";
                 }
 
                 sampleStats.incrValue(sample, truth, called);
@@ -327,6 +331,8 @@ public class GenotypeConcordance extends VariantEvaluator {
             }
 
         }
+
+        return interesting;
     }
 
     private static boolean isValidVC(final VariantContext vc) {
@@ -429,9 +435,9 @@ class SampleSummaryStats implements TableType {
             "percent_comp_het_called_var",
             "percent_comp_hom_called_hom",
             "percent_comp_hom_called_var",
-            "percent_variant_sensitivity",
-            "percent_genotype_concordance",
-            "percent_genotype_error_rate"};
+            "percent_non-reference_sensitivity",
+            "percent_overall_genotype_concordance",
+            "percent_non-reference_discrepancy_rate"};
 
     // sample to concordance stats object
     private final HashMap<String, double[]> concordanceSummary = new HashMap<String, double[]>();
@@ -547,18 +553,18 @@ class SampleSummaryStats implements TableType {
             updateSummaries(3, summary,  numer, denom);
 
             // Summary 4: % non-ref called as non-ref
-            // MAD: this is known as the variant sensitivity (# non-ref according to comp found in eval / # non-ref in comp)
+            // MAD: this is known as the non-reference sensitivity (# non-ref according to comp found in eval / # non-ref in comp)
             numer = sumStatsAllPairs(stats, allVariantGenotypes, allVariantGenotypes);
             denom = sumStatsAllPairs(stats, allVariantGenotypes, allGenotypes);
             updateSummaries(4, summary,  numer, denom);
 
-            // Summary 5: genotype concordance of sites called in eval track
+            // Summary 5: overall genotype concordance of sites called in eval track
             // MAD: this is the tradition genotype concordance
             numer = sumStatsDiag(stats, allCalledGenotypes);
             denom = sumStatsAllPairs(stats, allCalledGenotypes, allCalledGenotypes);
             updateSummaries(5, summary,  numer, denom);
 
-            // Summary 6: genotype concordance of sites called non-ref in eval track
+            // Summary 6: overall genotype concordance of sites called non-ref in eval track
             long homrefConcords = stats[Genotype.Type.HOM_REF.ordinal()][Genotype.Type.HOM_REF.ordinal()];
             long diag = sumStatsDiag(stats, allVariantGenotypes);
             long allNoHomRef = sumStatsAllPairs(stats, allCalledGenotypes, allCalledGenotypes) - homrefConcords;
