@@ -73,11 +73,27 @@ public class SampleUtils {
      * @return the set of unique samples
      */
     public static Set<String> getUniqueSamplesFromRods(GenomeAnalysisEngine toolkit) {
+        return getUniqueSamplesFromRods(toolkit, null);
+    }
+
+    /**
+     * Gets all of the unique sample names from the set of provided VCF rod names input by the user
+     *
+     * @param toolkit    GATK engine
+     * @param rodNames   list of rods to use; if null, uses all VCF rods
+     *
+     * @return the set of unique samples
+     */
+    public static Set<String> getUniqueSamplesFromRods(GenomeAnalysisEngine toolkit, Set<String> rodNames) {
         Set<String> samples = new TreeSet<String>();
 
         // iterate to get all of the sample names
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
+            // ignore the rod if it's not in our list
+            if ( rodNames != null && !rodNames.contains(source.getName()) )
+                continue;
+
             RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getRecordType().equals(VCFRecord.class) )
                 samples.addAll(rod.getHeader(VCFHeader.class).getGenotypeSamples());
