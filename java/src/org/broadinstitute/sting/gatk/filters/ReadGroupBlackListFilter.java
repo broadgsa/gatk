@@ -58,7 +58,11 @@ public class ReadGroupBlackListFilter implements SamRecordFilter {
 
             SAMReadGroupRecord samReadGroupRecord = samRecord.getReadGroup();
             if (samReadGroupRecord != null) {
-                Object attribute = samReadGroupRecord.getAttribute(attributeType);
+                Object attribute;
+                if ("ID".equals(attributeType) || "RG".equals(attributeType))
+                    attribute = samReadGroupRecord.getId();
+                else
+                    attribute = samReadGroupRecord.getAttribute(attributeType);
                 if (attribute != null && filterEntry.getValue().contains(attribute))
                     return true;
             }
