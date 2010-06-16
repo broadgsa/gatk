@@ -658,13 +658,13 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 int numReads = statesBySample.size();
 
                 if(numReads+newReads.size()<=targetCoverage || downsamplingMethod.type==DownsampleType.NONE || downsamplingMethod.type==DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR) {
-                    int readLimit = newReads.size();
+                    long readLimit = aggregator.getNumReadsSeen();
                     boolean mrlViolation = false;
                     if(readLimit > maxReadsAtLocus-totalReadStates) {
                         readLimit = maxReadsAtLocus-totalReadStates;
                         mrlViolation = true;
                     }
-                    totalReadStates += addReadsToSample(statesBySample,newReads,readLimit,mrlViolation);
+                    addReadsToSample(statesBySample,newReads,readLimit,mrlViolation);
                 }
                 else {
                     int[] counts = statesBySample.getCountsPerAlignmentStart();
@@ -701,7 +701,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                         readOffset += counts[i];
                     }
                     statesBySample.purge(toPurge);
-                    totalReadStates += addReadsToSample(statesBySample,newReads,targetCoverage-numReads,false);
+                    addReadsToSample(statesBySample,newReads,targetCoverage-numReads,false);
                 }
             }
             chainedReadSelector.reset();
@@ -712,11 +712,10 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
          * @param readStates The list of read states to add this collection of reads.
          * @param reads Reads to add.  Selected reads will be pulled from this source.
          * @param maxReads Maximum number of reads to add.
-         * @return Total number of reads added.
          */
-        private int addReadsToSample(final PerSampleReadStateManager readStates, final Collection<SAMRecord> reads, final int maxReads, boolean atMaxReadsAtLocusLimit) {
+        private void addReadsToSample(final PerSampleReadStateManager readStates, final Collection<SAMRecord> reads, final long maxReads, boolean atMaxReadsAtLocusLimit) {
             if(reads.isEmpty())
-                return 0;
+                return;
 
             GenomeLoc location = null;
 
@@ -744,9 +743,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
             if (location != null)
                 overflowTracker.exceeded(GenomeLocParser.createGenomeLoc(location.getContigIndex(),location.getStart(),rightMostEnd),
-                                         readCount);            
-
-            return readCount;
+                                         totalReadStates);            
         }
 
         private class PerSampleReadStateManager implements Iterable<SAMRecordState> {
@@ -756,6 +753,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             public void addStatesAtNextAlignmentStart(Collection<SAMRecordState> states) {
                 readStates.addAll(states);
                 readStateCounter.add(new Counter(states.size()));
+                totalReadStates += states.size();
             }
 
             public boolean isEmpty() {
@@ -926,7 +924,7 @@ class FirstNReadSelector implements ReadSelector {
     }
 
     public void submitRead(SAMRecord read) {
-        if(readsSeen > readLimit) {
+        if(readsSeen < readLimit) {
             selectedReads.add(read);
             if(chainedSelector != null)
                 chainedSelector.submitRead(read);
