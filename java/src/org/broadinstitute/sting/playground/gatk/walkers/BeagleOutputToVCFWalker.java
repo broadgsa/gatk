@@ -61,9 +61,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
     private VCFWriter vcfWriter;
 
-    @Argument(fullName="input_prefix", shortName="input", doc="The prefix added to input Beagle files gprobs, r2, ...", required=true)
-    private String INPUT_PREFIX = "beagle";
-
     @Argument(fullName="output_file", shortName="output", doc="VCF file to which output should be written", required=true)
     private String OUTPUT_FILE = null;
 
