@@ -28,7 +28,6 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
-import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 
 import java.io.File;
 import java.util.HashMap;
@@ -61,7 +60,6 @@ public class RODTrackBuilder implements RMDTrackBuilder {
         Types.put("Intervals", IntervalRod.class);
         Types.put("GLF", RodGLF.class);
         Types.put("PicardDbSNP", rodPicardDbSNP.class);
-        Types.put("HapmapVCF", HapmapVCFROD.class);
         Types.put("Beagle", BeagleROD.class);
         Types.put("Plink", PlinkRod.class);        
     }

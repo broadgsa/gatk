@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.oneoffprojects.refdata.HapmapVCFROD;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,17 +34,17 @@ public class ThousandGenomesAnnotator implements InfoFieldAnnotation {
         if ( tracker == null )
             return null;
 
-        HapmapVCFROD pilot1 = tracker.lookup("pilot1",HapmapVCFROD.class);
-        HapmapVCFROD pilot2 = tracker.lookup("pilot2",HapmapVCFROD.class);
+        VCFRecord pilot1 = tracker.lookup("pilot1", VCFRecord.class);
+        VCFRecord pilot2 = tracker.lookup("pilot2", VCFRecord.class);
 
         String result;
 
         if ( pilot1 == null && pilot2 == null) {
             result = "0";
         } else {
-            if ( pilot1 != null && ! pilot1.getRecord().isFiltered() ) {
+            if ( pilot1 != null && ! pilot1.isFiltered() ) {
                 result = "1";
-            } else if ( pilot2 != null && !pilot2.getRecord().isFiltered() ) {
+            } else if ( pilot2 != null && !pilot2.isFiltered() ) {
                 result = "1";
             } else {
                 result = "0";
