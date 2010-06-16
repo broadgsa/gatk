@@ -278,7 +278,17 @@ public abstract class LocusViewTemplate extends BaseTest {
                 return dictionary;
             }
 
+            public boolean isIndexed() { return false; }
+
             public ReferenceSequence nextSequence() {
+                throw new UnsupportedOperationException("Fake implementation doesn't support a getter");
+            }
+
+            public ReferenceSequence getSequence( String contig ) {
+                throw new UnsupportedOperationException("Fake implementation doesn't support a getter");
+            }
+
+            public ReferenceSequence getSubsequenceAt( String contig, long start, long stop ) {
                 throw new UnsupportedOperationException("Fake implementation doesn't support a getter");
             }
 

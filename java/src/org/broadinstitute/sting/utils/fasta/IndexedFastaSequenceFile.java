@@ -83,6 +83,14 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     }
 
     /**
+     * Always returns true for this implementation.
+     * @return True.
+     */
+    public boolean isIndexed() {
+        return true;
+    }
+
+    /**
      * Loads a dictionary, if available.
      * @param fastaFile File to check for a match.
      */
