@@ -173,7 +173,7 @@ public class GATKArgumentCollection {
     public boolean disableExperimentalSharding = false;
 
     @ElementList(required = false)
-    @Argument(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read with read groups matching <TAG>:<SUBSTRING> or a .txt file containing the filter strings one per line.", required = false)
+    @Argument(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
 
     @Element(required = false)
