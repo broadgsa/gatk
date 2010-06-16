@@ -31,9 +31,12 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -52,6 +55,8 @@ import static java.lang.Math.log10;
  * Takes files produced by Beagle imputation engine and creates a vcf with modified annotations.
  */
 @Requires(value={},referenceMetaData=@RMD(name=BeagleOutputToVCFWalker.INPUT_ROD_NAME,type= VCFRecord.class))
+//@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="r2",type= ReferenceOrderedDatum.class), @RMD(name="beagleR2",type= BeagleR2ROD.class)})
+
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
     private VCFWriter vcfWriter;
@@ -65,14 +70,16 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
     public static final String INPUT_ROD_NAME = "inputvcf";
 
+/*
     protected static BeagleFileReader gprobsReader = null;
+
     protected static BeagleFileReader phasedReader = null;
     protected static BeagleFileReader likeReader = null;
     protected static BeagleFileReader r2Reader = null;
-
+    */
     protected static String line = null;
 
-    protected HashMap<String,BeagleSampleRecord> beagleSampleRecords;
+    // protected HashMap<String,BeagleSampleRecord> beagleSampleRecords;
 
     final TreeSet<String> samples = new TreeSet<String>();
 
@@ -107,335 +114,147 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 
-        // Open Beagle files for processing
-        gprobsReader = new BeagleFileReader(INPUT_PREFIX.concat(".gprobs"));
-        likeReader = new BeagleFileReader(INPUT_PREFIX.concat(".like"));
-        phasedReader = new BeagleFileReader(INPUT_PREFIX.concat(".phased"));
-        r2Reader = new BeagleFileReader(INPUT_PREFIX.concat(".r2"));
-
-        if (!CheckAllSamplesAreInList(likeReader.getHeaderString().split(" "), samples, 3, 3))
-            throw new StingException("Inconsistent list of samples in File: " + likeReader.getFileName());
-
-        if (!CheckAllSamplesAreInList(gprobsReader.getHeaderString().split(" "), samples, 3, 3))
-            throw new StingException("Inconsistent list of samples in File: " + gprobsReader.getFileName());
-
-        if (!CheckAllSamplesAreInList(phasedReader.getHeaderString().split(" "), samples, 2, 2))
-            throw new StingException("Inconsistent list of samples in File: " + phasedReader.getFileName());
-
-
-        beagleSampleRecords = new HashMap<String,BeagleSampleRecord>();
-
-        // OK, now that we have all data in string array format inside readers, process each array individually,
-        for(String[] gprobLine: gprobsReader.getDataSet())
-        {
-            int j;
-            BeagleSampleRecord bglRecord = new BeagleSampleRecord();
-            LikelihoodTrios ltrio;
-
-            String markerKey = gprobLine[0];
-            String alleleA = gprobLine[1];
-            String alleleB = gprobLine[2];
-
-            HashMap<String,LikelihoodTrios> genotypeProbabilities = new HashMap<String,LikelihoodTrios>();
-
-            j = 3;
-            for (String sample : samples) {
-                ltrio = new LikelihoodTrios(new Double(gprobLine[j]), new Double(gprobLine[j+1]),
-                        new Double(gprobLine[j+2]));
-                j = j+3;
-                genotypeProbabilities.put(sample,ltrio);
-            }
-
-            bglRecord.GenotypeProbabilities = genotypeProbabilities;
-            bglRecord.AlleleA = Allele.create(alleleA);
-            bglRecord.AlleleB = Allele.create(alleleB);
-
-            beagleSampleRecords.put(markerKey,bglRecord);
-        }
-
-        // now fill in input likelihood info in the same way
-        for (String[] likeLine: likeReader.getDataSet())
-        {
-            int j;
-
-            LikelihoodTrios ltrio;
-
-            String markerKey = likeLine[0];
-
-            HashMap<String,LikelihoodTrios> genotypeLikelihoods = new HashMap<String,LikelihoodTrios>();
-
-            j = 3;
-            for (String sample : samples) {
-                ltrio = new LikelihoodTrios(new Double(likeLine[j]), new Double(likeLine[j+1]),
-                        new Double(likeLine[j+2]));
-                j = j+3;
-                genotypeLikelihoods.put(sample,ltrio);
-            }
-
-            BeagleSampleRecord bglRecord = beagleSampleRecords.get(markerKey);
-            bglRecord.InputLikelihoods = genotypeLikelihoods;
-            beagleSampleRecords.put(markerKey,bglRecord);
-
-        }
-
-        for (String[] phasedLine: phasedReader.getDataSet())
-        {
-            int j;
-
-            HaplotypePair pair;
-
-            String markerKey = phasedLine[1];
-
-            HashMap<String,HaplotypePair> haplotypePairs = new HashMap<String,HaplotypePair>();
-
-            j = 2;
-            for (String sample : samples) {
-                pair = new HaplotypePair(Allele.create(phasedLine[j]), Allele.create(phasedLine[j+1]));
-                j = j+2;
-                haplotypePairs.put(sample,pair);
-            }
-
-            BeagleSampleRecord bglRecord = beagleSampleRecords.get(markerKey);
-            bglRecord.PhasedHaplotypes = haplotypePairs;
-            beagleSampleRecords.put(markerKey,bglRecord);
-
-        }
-
-        for (String[] r2Line: r2Reader.getDataSet())
-        {
-
-            String[] vals = r2Line[0].split("\t");
-            String markerKey = vals[0];
-
-            BeagleSampleRecord bglRecord = beagleSampleRecords.get(markerKey);
-            bglRecord.setR2Value(Double.valueOf(vals[1]));
-            beagleSampleRecords.put(markerKey,bglRecord);
-
-        }
-    }
-
-    private boolean CheckAllSamplesAreInList(String[] stringArray, TreeSet<String> samples, int valsPerSample, int initMarkers)
-    {
-        boolean allThere = true;
-
-        if (stringArray.length != valsPerSample*samples.size()+initMarkers) {
-            allThere = false;
-        }
-
-        for (int k=initMarkers; k < stringArray.length; k++)
-            if (!samples.contains(stringArray[k]))
-                allThere = false;
-
-        return allThere;
-
     }
 
 
-    private class BeagleFileReader {
-        private String headerString;
-        private BufferedReader reader;
-        private String fileName;
-        private HashSet<String[]> dataSet;
-
-        public String getHeaderString() {
-            return headerString;
-        }
-        public BufferedReader getReader() {
-            return reader;
-        }
-        public String getFileName() {
-            return fileName;
-        }
-        public HashSet<String[]> getDataSet() {
-            return dataSet;
-        }
-
-        public BeagleFileReader(String fileName) {
-            String curLine;
-
-            try{
-                reader = new BufferedReader(new FileReader(fileName));
-            } catch ( FileNotFoundException e) {
-                throw new StingException("Could not find required input file: " + fileName);
-            }
-
-            this.fileName = fileName;
-
-            try {
-                headerString = reader.readLine();
-
-                dataSet = new HashSet<String[]>();
-                while (( curLine = reader.readLine()) != null){
-                    // Split current line along white spaces, ignore multiple white spaces
-                    String lineTokens[] = curLine.split(" +");
-
-                    dataSet.add(lineTokens);
-                }
-                reader.close();
-            }
-            catch (IOException e) {
-                throw new StingException("Failed while reading data from input file: " + fileName);
-            }
-
-        }
-
-    }
-
-    private class LikelihoodTrios {
-        public double HomRefLikelihood;
-        public double HetLikelihood;
-        public double HomVarLikelihood;
-
-        public LikelihoodTrios(double hr, double het, double hv) {
-            this.HomRefLikelihood = hr;
-            this.HetLikelihood = het;
-            this.HomVarLikelihood = hv;
-        }
-
-    }
-
-    private class HaplotypePair {
-        public Allele AlleleA;
-        public Allele AlleleB;
-
-        public HaplotypePair(Allele a, Allele b) {
-            this.AlleleA = a;
-            this.AlleleB = b;
-        }
-    }
-
-    private class BeagleSampleRecord {
-        // class containing, for each marker, all information necessary for Beagle input/output
-        public Allele AlleleA;
-        public Allele AlleleB;
-        private double r2Value;
-        public HashMap<String,LikelihoodTrios> GenotypeProbabilities;
-        public HashMap<String,LikelihoodTrios> InputLikelihoods;
-        public HashMap<String,HaplotypePair> PhasedHaplotypes;
-
-        public Double getR2Value() {
-            return r2Value;
-        }
-
-        public void setR2Value(Double x) {
-            this.r2Value = x;
-        }
-    }
-
-
-    public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
+     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
         if ( tracker == null )
             return 0;
 
-        EnumSet<VariantContext.Type> vc = EnumSet.of(VariantContext.Type.SNP);
         GenomeLoc loc = context.getLocation();
-        VariantContext vc_input;
-
-
-        try {
-            vc_input = tracker.getVariantContext(ref,"inputvcf", vc, loc, true);
-        } catch (java.util.NoSuchElementException e) {
+        VariantContext vc_input = tracker.getVariantContext(ref,"inputvcf", null, loc, false);
+        if ( vc_input == null  )
             return 0;
+
+
+        List<Object> likerods = tracker.getReferenceMetaData("beagleLike");
+        // ignore places where we don't have a variant
+        if ( likerods.size() == 0 )
+            return 0;
+
+        BeagleFeature beagleLikeFeature = (BeagleFeature)likerods.get(0);
+  
+        List<Object> r2rods = tracker.getReferenceMetaData("beagleR2");
+
+        // ignore places where we don't have a variant
+        if ( r2rods.size() == 0 )
+            return 0;
+
+        BeagleFeature beagleR2Feature = (BeagleFeature)r2rods.get(0);
+
+        List<Object> gProbsrods = tracker.getReferenceMetaData("beagleProbs");
+
+        // ignore places where we don't have a variant
+        if ( gProbsrods.size() == 0 )
+            return 0;
+
+        BeagleFeature beagleProbsFeature = (BeagleFeature)gProbsrods.get(0);
+
+        List<Object> gPhasedrods = tracker.getReferenceMetaData("beaglePhased");
+
+        // ignore places where we don't have a variant
+        if ( gPhasedrods.size() == 0 )
+            return 0;
+
+        BeagleFeature beaglePhasedFeature = (BeagleFeature)gPhasedrods.get(0);
+
+        // get reference base for current position
+        byte refByte = ref.getBase();
+
+        // make new Genotypes based on Beagle results
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc_input.getGenotypes().size());
+
+
+        // for each genotype, create a new object with Beagle information on it
+        for ( Map.Entry<String, Genotype> genotype : vc_input.getGenotypes().entrySet() ) {
+
+
+            Genotype g = genotype.getValue();
+            Set<String> filters = new LinkedHashSet<String>(g.getFilters());
+
+            boolean genotypeIsPhased = true;
+            String sample = g.getSampleName();
+
+            ArrayList<String> beagleProbabilities = beagleProbsFeature.getProbLikelihoods().get(sample);
+            ArrayList<String> beagleGenotypePairs = beaglePhasedFeature.getGenotypes().get(sample);
+
+
+            // We have phased genotype in hp. Need to set the isRef field in the allele.
+            List<Allele> alleles = new ArrayList<Allele>();
+
+            String alleleA = beagleGenotypePairs.get(0);
+            String alleleB = beagleGenotypePairs.get(1);
+
+            byte[] r = alleleA.getBytes();
+            byte rA = r[0];
+
+            Boolean isRefA = (refByte  == rA);
+
+            Allele refAllele = Allele.create(r, isRefA );
+            alleles.add(refAllele);
+
+            r = alleleB.getBytes();
+            byte rB = r[0];
+
+            Boolean isRefB = (refByte  == rB);
+            Allele altAllele = Allele.create(r,isRefB);
+            alleles.add(altAllele);
+
+            // Compute new GQ field = -10*log10Pr(Genotype call is wrong)
+            // Beagle gives probability that genotype is AA, AB and BB.
+            // Which, by definition, are prob of hom ref, het and hom var.
+            Double probWrongGenotype, genotypeQuality;
+            Double homRefProbability = Double.valueOf(beagleProbabilities.get(0));
+            Double hetProbability = Double.valueOf(beagleProbabilities.get(1));
+            Double homVarProbability = Double.valueOf(beagleProbabilities.get(2));
+
+            if (isRefA && isRefB) // HomRef call
+                probWrongGenotype = hetProbability + homVarProbability;
+            else if ((isRefB && !isRefA) || (isRefA && !isRefB))
+                probWrongGenotype = homRefProbability + homVarProbability;
+            else // HomVar call
+                probWrongGenotype = hetProbability + homRefProbability;
+
+
+            if (probWrongGenotype < MIN_PROB_ERROR)
+                genotypeQuality = MAX_GENOTYPE_QUALITY;
+            else
+                genotypeQuality = -log10(probWrongGenotype);
+
+            Genotype imputedGenotype = new Genotype(genotype.getKey(), alleles, genotypeQuality, filters, g.getAttributes(), genotypeIsPhased);
+
+
+            genotypes.put(genotype.getKey(), imputedGenotype);
+
         }
 
 
-
-        if (beagleSampleRecords.containsKey(loc.toString())) {
-            // Get record associated with this marker from output Beagle data
-            BeagleSampleRecord bglRecord = beagleSampleRecords.get(loc.toString());
-
-            // get reference base for current position
-            byte refByte = ref.getBase();
-
-            // make new Genotypes based on Beagle results
-            Map<String, Genotype> genotypes;
-
-            genotypes = new HashMap<String, Genotype>(vc_input.getGenotypes().size());
-
-            // for each genotype, create a new object with Beagle information on it
-            for ( Map.Entry<String, Genotype> genotype : vc_input.getGenotypes().entrySet() ) {
-
-                Genotype g = genotype.getValue();
-                Set<String> filters = new LinkedHashSet<String>(g.getFilters());
-
-                // modify g here with Beagle info
-                boolean genotypeIsPhased = true;
-                String sample = g.getSampleName();
-
-                LikelihoodTrios gtprobs = bglRecord.GenotypeProbabilities.get(sample);
-//                LikelihoodTrios inplike = bglRecord.InputLikelihoods.get(sample);
-                HaplotypePair hp = bglRecord.PhasedHaplotypes.get(sample);
-
-                // We have phased genotype in hp. Need to set the isRef field in the allele.
-                List<Allele> alleles = new ArrayList<Allele>();
-
-                byte r[] = hp.AlleleA.getBases();
-                byte rA = r[0];
-
-                Boolean isRefA = (refByte  == rA);
-
-                Allele refAllele = Allele.create(r, isRefA );
-                alleles.add(refAllele);
-
-                r = hp.AlleleB.getBases();
-                byte rB = r[0];
-
-                Boolean isRefB = (refByte  == rB);
-                Allele altAllele = Allele.create(r,isRefB);
-                alleles.add(altAllele);
+        VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getLocation(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.getFilters(), vc_input.getAttributes());
 
 
-
-                // Compute new GQ field = -10*log10Pr(Genotype call is wrong)
-                // Beagle gives probability that genotype is AA, AB and BB.
-                // Which, by definition, are prob of hom ref, het and hom var.
-                Double probWrongGenotype, genotypeQuality;
-
-                if (isRefA && isRefB) // HomRef call
-                    probWrongGenotype = gtprobs.HetLikelihood + gtprobs.HomVarLikelihood;
-                else if ((isRefB && !isRefA) || (isRefA && !isRefB))
-                    probWrongGenotype = gtprobs.HomRefLikelihood + gtprobs.HomVarLikelihood;
-                else // HomVar call
-                    probWrongGenotype = gtprobs.HetLikelihood + gtprobs.HomRefLikelihood;
-
-
-                if (probWrongGenotype < MIN_PROB_ERROR)
-                    genotypeQuality = MAX_GENOTYPE_QUALITY;
-                else
-                    genotypeQuality = -log10(probWrongGenotype);
-
-                Genotype imputedGenotype = new Genotype(genotype.getKey(), alleles, genotypeQuality, filters, g.getAttributes(), genotypeIsPhased);
-
-                genotypes.put(genotype.getKey(), imputedGenotype);
-            }
-
-
-            VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getLocation(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.getFilters(), vc_input.getAttributes());
-
-
-            Set<Allele> altAlleles = filteredVC.getAlternateAlleles();
-            StringBuffer altAlleleCountString = new StringBuffer();
-            for ( Allele allele : altAlleles ) {
-                if ( altAlleleCountString.length() > 0 )
-                    altAlleleCountString.append(",");
-                altAlleleCountString.append(filteredVC.getChromosomeCount(allele));
-            }
-
-            VCFRecord vcf = VariantContextAdaptors.toVCF(filteredVC, ref.getBase());
-
-            if ( filteredVC.getChromosomeCount() > 0 ) {
-                vcf.addInfoField(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
-                if ( altAlleleCountString.length() > 0 )  {
-                    vcf.addInfoField(VCFRecord.ALLELE_COUNT_KEY, altAlleleCountString.toString());
-                    vcf.addInfoField(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
-                            Double.valueOf(altAlleleCountString.toString())/(filteredVC.getChromosomeCount())));
-                }
-            }
-
-            vcf.addInfoField("R2", (bglRecord.getR2Value()).toString() );
-            vcfWriter.addRecord(vcf);
+        Set<Allele> altAlleles = filteredVC.getAlternateAlleles();
+        StringBuffer altAlleleCountString = new StringBuffer();
+        for ( Allele allele : altAlleles ) {
+            if ( altAlleleCountString.length() > 0 )
+                altAlleleCountString.append(",");
+            altAlleleCountString.append(filteredVC.getChromosomeCount(allele));
         }
+
+        VCFRecord vcf = VariantContextAdaptors.toVCF(filteredVC, ref.getBase());
+
+        if ( filteredVC.getChromosomeCount() > 0 ) {
+            vcf.addInfoField(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
+            if ( altAlleleCountString.length() > 0 )  {
+                vcf.addInfoField(VCFRecord.ALLELE_COUNT_KEY, altAlleleCountString.toString());
+                vcf.addInfoField(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
+                        Double.valueOf(altAlleleCountString.toString())/(filteredVC.getChromosomeCount())));
+            }
+        }
+
+        vcf.addInfoField("R2", beagleR2Feature.getR2value().toString() );
+        vcfWriter.addRecord(vcf);
+
 
         return 1;
 
@@ -448,22 +267,22 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     /**
      * Increment the number of loci processed.
      *
-      * @param value result of the map.
-      * @param sum   accumulator for the reduce.
-      * @return the new number of loci processed.
-      */
-     public Integer reduce(Integer value, Integer sum) {
-         return sum + value;
-     }
+     * @param value result of the map.
+     * @param sum   accumulator for the reduce.
+     * @return the new number of loci processed.
+     */
+    public Integer reduce(Integer value, Integer sum) {
+        return sum + value;
+    }
 
-     /**
-      * Tell the user the number of loci processed and close out the new variants file.
-      *
-      * @param result  the number of loci seen.
-      */
-     public void onTraversalDone(Integer result) {
-         out.printf("Processed %d loci.\n", result);
+    /**
+     * Tell the user the number of loci processed and close out the new variants file.
+     *
+     * @param result  the number of loci seen.
+     */
+    public void onTraversalDone(Integer result) {
+        out.printf("Processed %d loci.\n", result);
 
-         vcfWriter.close();
-     }
- }
+        vcfWriter.close();
+    }
+}
