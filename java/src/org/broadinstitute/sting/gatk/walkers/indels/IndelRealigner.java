@@ -183,7 +183,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 List<SAMReaderID> ids = getToolkit().getDataSource().getReaderIDs();
                 for ( SAMReaderID id: ids ) {
                     File file = getToolkit().getDataSource().getSAMFile(id);
-                    SAMFileHeader header = getToolkit().getSAMFileHeader(id);
+                    SAMFileHeader header = getToolkit().getSAMFileHeader();
                     String newFileName = file.getName().substring(0, file.getName().length()-3) + outputSuffix + ".bam";
                     File newFile = new File(baseWriterFilename, newFileName);
                     SAMFileWriter writer = makeWriter(factory, header, newFile);

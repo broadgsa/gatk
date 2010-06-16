@@ -32,10 +32,10 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
                  Arrays.asList("bd42a4fa66d7ec7a480c2b94313a78d3"));
         File file1 = new File("/tmp/" + filename1 + ".cleaned.bam");
         file1.deleteOnExit();
-        spec3.addAuxFile("7e1c5a74e572c3e0fbc14f98021e04b4", file1);
+        spec3.addAuxFile("1ceae553c8aa20681ed0736d4d2b4541", file1);
         File file2 = new File("/tmp/" + filename2 + ".cleaned.bam");
         file2.deleteOnExit();
-        spec3.addAuxFile("7a796195c3f13a3c84cd7209f3030d85", file2);
+        spec3.addAuxFile("ce8ddeae5a5aab836ac1dde9448ccb66", file2);
         executeTest("test NWay", spec3);
     }
 }
