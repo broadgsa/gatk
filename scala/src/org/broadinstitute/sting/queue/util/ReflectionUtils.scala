@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.queue.util
 
-import java.lang.reflect.Field
 import org.broadinstitute.sting.queue.QException
 import java.lang.annotation.Annotation
 import scala.concurrent.JavaConversions
 import scala.concurrent.JavaConversions._
 import scala.collection.immutable.ListMap
+import java.lang.reflect.{ParameterizedType, Field}
 
 object ReflectionUtils {
   def getField(obj: AnyRef, name: String) = getAllFields(obj.getClass).find(_.getName == name)
@@ -41,10 +41,7 @@ object ReflectionUtils {
 
     if (classOf[Seq[_]].isAssignableFrom(field.getType)) {
 
-      if (!field.isAnnotationPresent(classOf[ClassType]))
-        throw new QException("@ClassType must be specified due to type erasure for field: " + field)
-
-      val fieldType = field.getAnnotation(classOf[ClassType]).asInstanceOf[ClassType].value
+      val fieldType = getCollectionType(field)
       val typeValue = coerce(fieldType, value)
 
       var list = getter.invoke(obj).asInstanceOf[Seq[_]]
@@ -53,10 +50,7 @@ object ReflectionUtils {
 
     } else if (classOf[Option[_]].isAssignableFrom(field.getType)) {
 
-      if (!field.isAnnotationPresent(classOf[ClassType]))
-        throw new QException("@ClassType must be specified due to type erasure for field: " + field)
-
-      val fieldType = field.getAnnotation(classOf[ClassType]).asInstanceOf[ClassType].value
+      val fieldType = getCollectionType(field)
       val typeValue = coerce(fieldType, value)
 
       setter.invoke(obj, Some(typeValue))
@@ -68,6 +62,29 @@ object ReflectionUtils {
 
       setter.invoke(obj, typeValue.asInstanceOf[AnyRef])
     }
+  }
+
+  private def getCollectionType(field: Field) = {
+    getGenericTypes(field) match {
+      case Some(classes) =>
+        if (classes.length > 1)
+          throw new IllegalArgumentException("Field contains more than one generic type: " + field)
+        classes(0)
+      case None =>
+        if (!field.isAnnotationPresent(classOf[ClassType]))
+          throw new QException("@ClassType must be specified for unparameterized field: " + field)
+        field.getAnnotation(classOf[ClassType]).asInstanceOf[ClassType].value
+    }
+  }
+
+  private def getGenericTypes(field: Field) = {
+    // TODO: Refactor: based on java code in org.broadinstitute.sting.commandline.ArgumentTypeDescriptor
+    // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
+    if (field.getGenericType.isInstanceOf[ParameterizedType]) {
+      val parameterizedType = field.getGenericType.asInstanceOf[ParameterizedType]
+      Some(parameterizedType.getActualTypeArguments.map(_.asInstanceOf[Class[_]]))
+    }
+    else None
   }
 
   private[util] def fieldGetter(field: Field) = field.getDeclaringClass.getMethod(field.getName)

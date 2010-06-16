@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.queue.function.gatk
 
 import java.io.File
-import org.broadinstitute.sting.queue.util.{ClassType, Input, Optional}
+import org.broadinstitute.sting.queue.util.{Input, Optional}
 import org.broadinstitute.sting.queue.function.{MemoryLimitedFunction, IntervalFunction, CommandLineFunction}
 
 trait GatkFunction extends CommandLineFunction with MemoryLimitedFunction with IntervalFunction {
@@ -17,7 +17,6 @@ trait GatkFunction extends CommandLineFunction with MemoryLimitedFunction with I
 
   @Input
   @Optional
-  @ClassType(classOf[File])
   var bamFiles: List[File] = Nil
 
   @Input

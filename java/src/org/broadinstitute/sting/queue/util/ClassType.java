@@ -27,8 +27,7 @@ package org.broadinstitute.sting.queue.util;
 import java.lang.annotation.*;
 
 /**
- * Specifies the type of an input our output field.
- * Retains it during runtime to work around type erasure.
+ * Specifies the type of an input or output field.
  * Written in java because scala doesn't support RetentionPolicy.RUNTIME
  */
 @Documented

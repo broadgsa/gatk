@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.queue.function
 
-import org.broadinstitute.sting.queue.util.{Input, Optional, ClassType}
+import org.broadinstitute.sting.queue.util.{Input, Optional}
 
 trait MemoryLimitedFunction {
   @Input
   @Optional
-  @ClassType(classOf[Int])
   var memoryLimit: Option[Int] = None
 }
