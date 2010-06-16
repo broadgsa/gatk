@@ -37,13 +37,9 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 /**
- * Removes records matching the read group tag and match string.
- * For example each of the filter values:
+ * Removes records matching the read group tag and exact match string.
+ * For example, this filter value:
  *   PU:1000G-mpimg-080821-1_1
- *   PU:1000G-mpimg-080821
- *   PU:mpimg-080821-1_1
- *   PU:mpimg-080821
- *
  * would filter out a read with the read group PU:1000G-mpimg-080821-1_1
  */
 public class ReadGroupBlackListFilter implements SamRecordFilter {
@@ -60,18 +56,12 @@ public class ReadGroupBlackListFilter implements SamRecordFilter {
         for (Entry<String, Collection<String>> filterEntry : filterEntries) {
             String attributeType = filterEntry.getKey();
 
-            Object attribute = samRecord.getAttribute(attributeType);
-            if (attribute == null) {
-                SAMReadGroupRecord samReadGroupRecord = samRecord.getReadGroup();
-                if (samReadGroupRecord != null) {
-                    attribute = samReadGroupRecord.getAttribute(attributeType);
-                }
+            SAMReadGroupRecord samReadGroupRecord = samRecord.getReadGroup();
+            if (samReadGroupRecord != null) {
+                Object attribute = samReadGroupRecord.getAttribute(attributeType);
+                if (attribute != null && filterEntry.getValue().contains(attribute))
+                    return true;
             }
-
-            if (attribute != null)
-                for (String filterValue : filterEntry.getValue())
-                    if (attribute.toString().contains(filterValue))
-                        return true;
         }
 
         return false;
