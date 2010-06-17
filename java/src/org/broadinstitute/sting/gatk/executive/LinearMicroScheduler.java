@@ -57,7 +57,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         for (Shard shard : shardStrategy) {
             // New experimental code for managing locus intervals.
-            if(shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) {
+            if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 LocusWalker lWalker = (LocusWalker)walker;
                 WindowMaker windowMaker = new WindowMaker(getReadIterator(shard), shard.getGenomeLocs(), walker.getMandatoryReadFilters(), lWalker.getDiscards());
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {

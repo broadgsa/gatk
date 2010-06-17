@@ -7,7 +7,6 @@ import net.sf.samtools.SAMRecord;
 import java.util.List;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.gatk.iterators.QueryIterator;
 
 
 /*
@@ -42,7 +41,7 @@ import org.broadinstitute.sting.gatk.iterators.QueryIterator;
  * to test out classes that use specific itervals.  The reads returned will
  * all lie in order in the specified interval.
  */
-public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements QueryIterator {
+public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
 
     // get the next positon
     protected int finalPos = 0;

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import net.sf.picard.sam.MergingSamRecordIterator;
 
 import java.util.Iterator;
 
@@ -87,8 +88,8 @@ public class BoundedReadIterator implements StingSAMIterator {
     public SAMFileHeader getHeader() {
         // todo: this is bad, we need an iterface out there for samrecords that supports getting the header,
         // regardless of the merging
-        if (iterator instanceof MergingSamRecordIterator2)
-            return ((MergingSamRecordIterator2)iterator).getHeader();
+        if (iterator instanceof MergingSamRecordIterator)
+            return ((MergingSamRecordIterator)iterator).getMergedHeader();
         else
             return null;
     }

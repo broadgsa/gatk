@@ -50,7 +50,7 @@ import java.util.List;
 public class SAMBAMDataSourceUnitTest extends BaseTest {
 
     private List<File> fl;
-    private ReferenceSequenceFile seq;
+    private IndexedFastaSequenceFile seq;
 
     /**
      * This function does the setup of our parser, before each method call.
@@ -88,8 +88,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         Reads reads = new Reads(fl);
 
         // the sharding strat.
-        SAMDataSource data = new IndexDrivenSAMDataSource(reads);
-        ShardStrategy strat = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        SAMDataSource data = new BlockDrivenSAMDataSource(reads);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
         int count = 0;
 
         try {
@@ -133,8 +133,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         Reads reads = new Reads(fl);                   
 
         // the sharding strat.
-        SAMDataSource data = new IndexDrivenSAMDataSource(reads);
-        ShardStrategy strat = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        SAMDataSource data = new BlockDrivenSAMDataSource(reads);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();
@@ -176,8 +176,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         count = 0;
         // the sharding strat.
-        data = new IndexDrivenSAMDataSource(reads);
-        strat = ShardStrategyFactory.shatter(data,null,ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
+        data = new BlockDrivenSAMDataSource(reads);
+        strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
 
         logger.debug("Pile two:");
         try {

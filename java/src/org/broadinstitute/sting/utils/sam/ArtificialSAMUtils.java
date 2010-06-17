@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.iterators.QueryIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -203,7 +203,7 @@ public class ArtificialSAMUtils {
      *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static QueryIterator mappedReadIterator( int startingChr, int endingChr, int readCount ) {
+    public static StingSAMIterator mappedReadIterator( int startingChr, int endingChr, int readCount ) {
         SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, 0, header);
@@ -219,7 +219,7 @@ public class ArtificialSAMUtils {
      *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static ArtificialSAMIterator mappedAndUnmappedReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
+    public static StingSAMIterator mappedAndUnmappedReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
         SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
@@ -250,7 +250,7 @@ public class ArtificialSAMUtils {
      *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static ArtificialSAMQueryIterator queryReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
+    public static StingSAMIterator queryReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
         SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);

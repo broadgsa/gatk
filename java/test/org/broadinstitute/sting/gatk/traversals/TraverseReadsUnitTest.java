@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.IndexDrivenSAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -103,54 +103,6 @@ public class TraverseReadsUnitTest extends BaseTest {
 
     }
 
-
-    /** Test out that we can shard the file and iterate over every read */
-    @Test
-    public void testMappedReadCount() {
-
-        IndexedFastaSequenceFile ref = null;
-        try {
-            ref = new IndexedFastaSequenceFile(refFile);
-        }
-        catch (FileNotFoundException ex) {
-            throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
-        }
-        GenomeLocParser.setupRefContigOrdering(ref);
-
-        SAMDataSource dataSource = new IndexDrivenSAMDataSource(new Reads(bamList));
-        dataSource.viewUnmappedReads(false);
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS,
-                ref.getSequenceDictionary(),
-                readSize);
-
-        countReadWalker.initialize();
-        Object accumulator = countReadWalker.reduceInit();
-
-        while (shardStrategy.hasNext()) {
-            Shard shard = shardStrategy.next();
-
-            if (shard == null) {
-                fail("Shard == null");
-            }
-
-            ShardDataProvider dataProvider = new ReadShardDataProvider(shard,dataSource.seek(shard),null,null);
-            accumulator = traversalEngine.traverse(countReadWalker, dataProvider, accumulator);
-            dataProvider.close();
-
-        }
-
-        traversalEngine.printOnTraversalDone("reads", accumulator);
-        countReadWalker.onTraversalDone(accumulator);
-
-        if (!(accumulator instanceof Integer)) {
-            fail("Count read walker should return an interger.");
-        }
-        if (((Integer) accumulator) != 9721) {
-            fail("there should be 9721 mapped reads in the index file, there was " + ((Integer) accumulator) );
-        }
-    }
-
-
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testUnmappedReadCount() {
@@ -163,9 +115,8 @@ public class TraverseReadsUnitTest extends BaseTest {
         }
         GenomeLocParser.setupRefContigOrdering(ref);
 
-        SAMDataSource dataSource = new IndexDrivenSAMDataSource(new Reads(bamList));
-        dataSource.viewUnmappedReads(true);
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS,
+        SAMDataSource dataSource = new BlockDrivenSAMDataSource(new Reads(bamList));
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                 ref.getSequenceDictionary(),
                 readSize);
 

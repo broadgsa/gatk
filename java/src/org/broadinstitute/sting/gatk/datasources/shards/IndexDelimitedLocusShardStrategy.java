@@ -127,7 +127,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
     public IndexDelimitedLocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
         Map<SAMReaderID,SAMFileSpan> fileSpansBounding = nextFilePointer.fileSpans != null ? nextFilePointer.fileSpans : null;
-        return new IndexDelimitedLocusShard(nextFilePointer.locations,fileSpansBounding,Shard.ShardType.LOCUS_INTERVAL);
+        return new IndexDelimitedLocusShard(nextFilePointer.locations,fileSpansBounding);
     }
 
     /** we don't support the remove command */

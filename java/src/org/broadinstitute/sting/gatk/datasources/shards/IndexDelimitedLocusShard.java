@@ -47,23 +47,13 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
     private final Map<SAMReaderID,SAMFileSpan> fileSpans;
 
     /**
-     * An IndexDelimitedLocusShard can be used either for LOCUS or LOCUS_INTERVAL shard types.
-     * Track which type is being used.
-     */
-    private final ShardType shardType;
-
-    /**
      * Create a new locus shard, divided by index.
      * @param intervals List of intervals to process.
      * @param fileSpans File spans associated with that interval.
-     * @param shardType Type of the shard; must be either LOCUS or LOCUS_INTERVAL.
      */
-    IndexDelimitedLocusShard(List<GenomeLoc> intervals, Map<SAMReaderID,SAMFileSpan> fileSpans, ShardType shardType) {
+    IndexDelimitedLocusShard(List<GenomeLoc> intervals, Map<SAMReaderID,SAMFileSpan> fileSpans) {
         super(intervals);
         this.fileSpans = fileSpans;
-        if(shardType != ShardType.LOCUS && shardType != ShardType.LOCUS_INTERVAL)
-            throw new StingException("Attempted to create an IndexDelimitedLocusShard with invalid shard type: " + shardType);
-        this.shardType = shardType;
     }
 
     /**
@@ -125,6 +115,6 @@ public class IndexDelimitedLocusShard extends LocusShard implements BAMFormatAwa
      */
     @Override
     public ShardType getShardType() {
-        return shardType;
+        return ShardType.LOCUS;
     }
 }

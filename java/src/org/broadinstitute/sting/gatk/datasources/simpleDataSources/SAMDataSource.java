@@ -168,18 +168,6 @@ public abstract class SAMDataSource implements SimpleDataSource {
     public abstract StingSAMIterator seek(Shard shard);
 
     /**
-     * If we're in by-read mode, this indicates if we want
-     * to see unmapped reads too.  Only seeing mapped reads
-     * is much faster, but most BAM files have significant
-     * unmapped read counts.
-     *
-     * @param seeUnMappedReads true to see unmapped reads, false otherwise
-     */
-    public void viewUnmappedReads( boolean seeUnMappedReads ) {
-        includeUnmappedReads = seeUnMappedReads;
-    }
-
-    /**
      * Filter reads based on user-specified criteria.
      *
      * @param enableVerification Verify the order of reads.

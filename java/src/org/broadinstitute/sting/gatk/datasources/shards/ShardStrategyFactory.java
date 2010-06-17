@@ -38,9 +38,6 @@ import java.io.File;
  */
 public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
-        LINEAR,
-        READS,
-        INTERVAL,
         MONOLITHIC,   // Put all of the available data into one shard.
         LOCUS_EXPERIMENTAL,
         READS_EXPERIMENTAL
@@ -72,12 +69,6 @@ public class ShardStrategyFactory {
      */
     static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
         switch (strat) {
-            case LINEAR:
-                return new LinearLocusShardStrategy(dic, startingSize, limitByCount);
-            case READS:
-                return new ReadDelimitedReadShardStrategy(startingSize, limitByCount);
-            case INTERVAL:
-                throw new StingException("Requested trategy: " + strat + " doesn't work with the limiting count (-M) command line option");
             case LOCUS_EXPERIMENTAL:
                 return new IndexDelimitedLocusShardStrategy(readsDataSource,referenceDataSource,null);
             case READS_EXPERIMENTAL:
@@ -116,12 +107,6 @@ public class ShardStrategyFactory {
      */
     static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
         switch (strat) {
-            case LINEAR:
-                return new LinearLocusShardStrategy(dic, startingSize, lst, limitDataCount);
-            case INTERVAL:
-                return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.LOCUS_INTERVAL);
-            case READS:
-                return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.READ_INTERVAL);
             case LOCUS_EXPERIMENTAL:
                 return new IndexDelimitedLocusShardStrategy(readsDataSource,referenceDataSource,lst);
             case READS_EXPERIMENTAL:

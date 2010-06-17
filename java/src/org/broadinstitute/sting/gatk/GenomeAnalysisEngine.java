@@ -726,7 +726,7 @@ public class GenomeAnalysisEngine {
                                              ValidationExclusion exclusions) {
         // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
         // sharding system; it's required with the new sharding system only for locus walkers.
-        if(readsDataSource != null && !readsDataSource.hasIndex() && (argCollection.disableExperimentalSharding || walker instanceof LocusWalker)) {
+        if(readsDataSource != null && !readsDataSource.hasIndex() && walker instanceof LocusWalker) {
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM) || intervals != null)
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
@@ -756,27 +756,21 @@ public class GenomeAnalysisEngine {
                 if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     Utils.scareUser("Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file.");
 
-                shardType = (walker.isReduceByInterval()) ?
-                        ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
-                        ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
-                        !argCollection.disableExperimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : shardType,
+                        ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
                         intervals, maxIterations);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
-                        !argCollection.disableExperimentalSharding ? ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                        ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
         } else if (walker instanceof ReadWalker ||
                 walker instanceof DuplicateWalker) {
-            if(!argCollection.disableExperimentalSharding)
-                shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL;
-            else
-                shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
+            shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL;
 
             if (intervals != null && !intervals.isEmpty()) {
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
@@ -793,8 +787,6 @@ public class GenomeAnalysisEngine {
                         SHARD_SIZE, maxIterations);
             }
         } else if (walker instanceof ReadPairWalker) {
-            if(argCollection.disableExperimentalSharding)
-                Utils.scareUser("Pairs traversal cannot be used in conjunction with the old sharding system.");
             if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
                 Utils.scareUser("Read pair walkers can only walk over query name-sorted data.  Please resort your input BAM file.");            
             if(intervals != null && !intervals.isEmpty())
@@ -822,13 +814,7 @@ public class GenomeAnalysisEngine {
         if (reads.getReadsFiles().size() == 0)
             return null;
 
-        SAMDataSource dataSource = null;
-        if(!argCollection.disableExperimentalSharding)
-            dataSource = new BlockDrivenSAMDataSource(reads);
-        else
-            dataSource = new IndexDrivenSAMDataSource(reads);
-
-        return dataSource;
+        return new BlockDrivenSAMDataSource(reads);
     }
 
     /**

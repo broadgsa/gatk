@@ -168,10 +168,6 @@ public class GATKArgumentCollection {
 //    @Argument(fullName = "enableRodWalkers", shortName = "erw", doc = "Enable experimental rodWalker support.  TEMPORARY HACK TO ALLOW EXPERIMENTATION WITH ROD WALKERS.  [default is false]}.", required = false)
 //    public boolean enableRodWalkers = false;
 
-    @Element(required = false)
-    @Argument(fullName = "disable_experimental_sharding",shortName="ds", doc="Disable the experimental sharding strategy.", required = false)
-    public boolean disableExperimentalSharding = false;
-
     @ElementList(required = false)
     @Argument(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
