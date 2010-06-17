@@ -4,9 +4,8 @@ import org.junit.Test;
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.shards.LocusShard;
+import org.broadinstitute.sting.gatk.datasources.shards.MockLocusShard;
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
@@ -57,7 +56,7 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
 
     @Test
     public void testOverlappingReferenceBases() {
-        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length())));
+        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length())));
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
@@ -74,7 +73,7 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
     /** Queries outside the bounds of the shard should result in reference context window trimmed at the shard boundary. */
     @Test
     public void testBoundsFailure() {
-        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, 1, 50)));
+        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, 1, 50)));
 
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
@@ -94,7 +93,7 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
      * @param loc
      */
     protected void validateLocation( GenomeLoc loc ) {
-        Shard shard = new LocusShard(Collections.singletonList(loc));
+        Shard shard = new MockLocusShard(Collections.singletonList(loc));
         GenomeLocusIterator shardIterator = new GenomeLocusIterator(loc);
 
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, loc, null, sequenceFile, null);

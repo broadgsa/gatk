@@ -1,22 +1,5 @@
-package org.broadinstitute.sting.gatk.datasources.shards;
-
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
-
-import java.util.*;
-
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMFileSpan;
-
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2010, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -29,7 +12,6 @@ import net.sf.samtools.SAMFileSpan;
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -40,15 +22,29 @@ import net.sf.samtools.SAMFileSpan;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+package org.broadinstitute.sting.gatk.datasources.shards;
+
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+
+import java.util.*;
+
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMFileSpan;
 
 /**
  * A sharding strategy for loci based on reading of the index.
  */
-public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
+public class LocusShardStrategy implements ShardStrategy {
     /**
      * The data source to use when performing this sharding.
      */
-    private final BlockDrivenSAMDataSource reads;
+    private final SAMDataSource reads;
 
     /**
      * An iterator through the available file pointers.
@@ -60,13 +56,8 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      * @param reads Data source from which to load index data.
      * @param locations List of locations for which to load data.
      */
-    IndexDelimitedLocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocSortedSet locations) {
+    LocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocSortedSet locations) {
         if(reads != null) {
-            // Shard based on reads.
-            // TODO: Push this sharding into the data source.
-            if(!(reads instanceof BlockDrivenSAMDataSource))
-                throw new StingException("Cannot power an IndexDelimitedLocusShardStrategy with this data source.");
-
             List<GenomeLoc> intervals;
             if(locations == null) {
                 // If no locations were passed in, shard the entire BAM file.
@@ -86,7 +77,7 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
             else
                 intervals = locations.toList();
 
-            this.reads = (BlockDrivenSAMDataSource)reads;
+            this.reads = reads;
             this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);
         }
         else {
@@ -124,10 +115,10 @@ public class IndexDelimitedLocusShardStrategy implements ShardStrategy {
      *
      * @return the next shard
      */
-    public IndexDelimitedLocusShard next() {
+    public LocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
         Map<SAMReaderID,SAMFileSpan> fileSpansBounding = nextFilePointer.fileSpans != null ? nextFilePointer.fileSpans : null;
-        return new IndexDelimitedLocusShard(nextFilePointer.locations,fileSpansBounding);
+        return new LocusShard(nextFilePointer.locations,fileSpansBounding);
     }
 
     /** we don't support the remove command */

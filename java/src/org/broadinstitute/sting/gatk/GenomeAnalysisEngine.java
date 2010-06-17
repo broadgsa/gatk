@@ -814,7 +814,7 @@ public class GenomeAnalysisEngine {
         if (reads.getReadsFiles().size() == 0)
             return null;
 
-        return new BlockDrivenSAMDataSource(reads);
+        return new SAMDataSource(reads);
     }
 
     /**

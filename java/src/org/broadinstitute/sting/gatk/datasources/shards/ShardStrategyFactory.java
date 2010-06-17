@@ -1,13 +1,10 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-
-import java.io.File;
 
 /**
  *
@@ -70,9 +67,9 @@ public class ShardStrategyFactory {
     static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
         switch (strat) {
             case LOCUS_EXPERIMENTAL:
-                return new IndexDelimitedLocusShardStrategy(readsDataSource,referenceDataSource,null);
+                return new LocusShardStrategy(readsDataSource,referenceDataSource,null);
             case READS_EXPERIMENTAL:
-                return new BlockDelimitedReadShardStrategy(readsDataSource,null);
+                return new ReadShardStrategy(readsDataSource,null);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
@@ -108,9 +105,9 @@ public class ShardStrategyFactory {
     static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
         switch (strat) {
             case LOCUS_EXPERIMENTAL:
-                return new IndexDelimitedLocusShardStrategy(readsDataSource,referenceDataSource,lst);
+                return new LocusShardStrategy(readsDataSource,referenceDataSource,lst);
             case READS_EXPERIMENTAL:
-                return new BlockDelimitedReadShardStrategy(readsDataSource,lst);
+                return new ReadShardStrategy(readsDataSource,lst);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented");
         }

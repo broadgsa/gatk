@@ -27,8 +27,8 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -45,7 +45,7 @@ import net.sf.picard.util.PeekableIterator;
 public class IntervalSharder {
     private static Logger logger = Logger.getLogger(IntervalSharder.class);
 
-    public static Iterator<FilePointer> shardIntervals(final BlockDrivenSAMDataSource dataSource, final List<GenomeLoc> loci) {
+    public static Iterator<FilePointer> shardIntervals(final SAMDataSource dataSource, final List<GenomeLoc> loci) {
         return new FilePointerIterator(dataSource,loci);
     }
 
@@ -53,11 +53,11 @@ public class IntervalSharder {
      * A lazy-loading iterator over file pointers.
      */
     private static class FilePointerIterator implements Iterator<FilePointer> {
-        final BlockDrivenSAMDataSource dataSource;
+        final SAMDataSource dataSource;
         final PeekableIterator<GenomeLoc> locusIterator;
         final Queue<FilePointer> cachedFilePointers = new LinkedList<FilePointer>();
 
-        public FilePointerIterator(final BlockDrivenSAMDataSource dataSource, final List<GenomeLoc> loci) {
+        public FilePointerIterator(final SAMDataSource dataSource, final List<GenomeLoc> loci) {
             this.dataSource = dataSource;
             locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
             advance();
@@ -98,7 +98,7 @@ public class IntervalSharder {
         }
     }
     
-    private static List<FilePointer> shardIntervalsOnContig(final BlockDrivenSAMDataSource dataSource, final String contig, final List<GenomeLoc> loci) {
+    private static List<FilePointer> shardIntervalsOnContig(final SAMDataSource dataSource, final String contig, final List<GenomeLoc> loci) {
         // Gather bins for the given loci, splitting loci as necessary so that each falls into exactly one lowest-level bin.
         List<FilePointer> filePointers = new ArrayList<FilePointer>();
         FilePointer lastFilePointer = null;

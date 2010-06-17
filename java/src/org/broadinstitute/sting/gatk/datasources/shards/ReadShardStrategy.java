@@ -1,11 +1,5 @@
-package org.broadinstitute.sting.gatk.datasources.shards;
-
-import net.sf.samtools.SAMSequenceDictionary;
-
-import java.util.Iterator;
-
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2010, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -18,7 +12,6 @@ import java.util.Iterator;
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -29,22 +22,155 @@ import java.util.Iterator;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+package org.broadinstitute.sting.gatk.datasources.shards;
+
+import net.sf.samtools.SAMFileSpan;
+import net.sf.picard.filter.SamRecordFilter;
+
+import java.util.*;
+
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 /**
+ * The sharding strategy for reads using a simple counting mechanism.  Each read shard
+ * has a specific number of reads (default to 10K) which is configured in the constructor.
  * @author aaron
  * @version 1.0
  * @date Apr 14, 2009
- * <p/>
- * Class ReadShardStrategy
- * <p/>
- * The sharding strategy for reads using a simple counting mechanism.  Each read shard
- * has a specific number of reads (default to 100K) which is configured in the constructor.
  */
-public abstract class ReadShardStrategy implements ShardStrategy {
+public class ReadShardStrategy implements ShardStrategy {
+    /**
+     * What is the maximum number of reads which should go into a read shard.
+     */
+    protected static final int MAX_READS = 10000;
 
-    // do we use unmapped reads in the sharding strategy
-    private boolean unMappedReads = true;
+    /**
+     * The data source used to shard.
+     */
+    private final SAMDataSource dataSource;
 
+    /**
+     * The intervals to be processed.
+     */
+    private final GenomeLocSortedSet locations;
+
+    /**
+     * The cached shard to be returned next.  Prefetched in the peekable iterator style.
+     */
+    private Shard nextShard = null;
+
+    /** our storage of the genomic locations they'd like to shard over */
+    private final List<FilePointer> filePointers = new ArrayList<FilePointer>();
+
+    /**
+     * Iterator over the list of file pointers.
+     */
+    private final Iterator<FilePointer> filePointerIterator;
+
+    /**
+     * The file pointer currently being processed.
+     */
+    private FilePointer currentFilePointer;
+
+    /**
+     * Ending position of the last shard in the file.
+     */
+    private Map<SAMReaderID,SAMFileSpan> position;
+
+    /**
+     * Create a new read shard strategy, loading read shards from the given BAM file.
+     * @param dataSource Data source from which to load shards.
+     * @param locations intervals to use for sharding.
+     */
+    public ReadShardStrategy(SAMDataSource dataSource, GenomeLocSortedSet locations) {
+        this.dataSource = dataSource;
+        this.position = this.dataSource.getCurrentPosition();
+        this.locations = locations;
+
+        if(locations != null)
+            filePointerIterator = IntervalSharder.shardIntervals(this.dataSource,locations.toList());
+        else
+            filePointerIterator = filePointers.iterator();
+
+        if(filePointerIterator.hasNext())
+            currentFilePointer = filePointerIterator.next();
+
+        advance();
+    }
+
+    /**
+     * do we have another read shard?
+     * @return True if any more data is available.  False otherwise.
+     */
+    public boolean hasNext() {
+        return nextShard != null;
+    }
+
+    /**
+     * Retrieves the next shard, if available.
+     * @return The next shard, if available.
+     * @throws java.util.NoSuchElementException if no such shard is available.
+     */
+    public Shard next() {
+        if(!hasNext())
+            throw new NoSuchElementException("No next read shard available");
+        Shard currentShard = nextShard;
+        advance();
+        return currentShard;
+    }
+
+    public void advance() {
+        Map<SAMReaderID,SAMFileSpan> shardPosition = new HashMap<SAMReaderID,SAMFileSpan>();
+        nextShard = null;
+        SamRecordFilter filter = null;
+
+        if(locations != null) {
+            Map<SAMReaderID,SAMFileSpan> selectedReaders = new HashMap<SAMReaderID,SAMFileSpan>();
+            while(selectedReaders.size() == 0 && currentFilePointer != null) {
+                shardPosition = currentFilePointer.fileSpans;
+                for(SAMReaderID id: shardPosition.keySet()) {
+                    SAMFileSpan fileSpan = shardPosition.get(id).removeContentsBefore(position.get(id));
+                    if(!fileSpan.isEmpty())
+                        selectedReaders.put(id,fileSpan);
+                }
+
+                if(selectedReaders.size() > 0) {
+                    filter = new ReadOverlapFilter(currentFilePointer.locations);
+                    BAMFormatAwareShard shard = new ReadShard(dataSource.getReadsInfo(),selectedReaders,filter);
+                    dataSource.fillShard(shard);
+
+                    if(!shard.isBufferEmpty()) {
+                        nextShard = shard;
+                        break;
+                    }
+                }
+
+                selectedReaders.clear();
+                currentFilePointer = filePointerIterator.hasNext() ? filePointerIterator.next() : null;
+            }
+        }
+        else {
+            BAMFormatAwareShard shard = new ReadShard(dataSource.getReadsInfo(),position,filter);
+            dataSource.fillShard(shard);
+            nextShard = !shard.isBufferEmpty() ? shard : null;
+        }
+
+        this.position = dataSource.getCurrentPosition();
+    }
+
+    /**
+     * @throws UnsupportedOperationException always.
+     */
+    public void remove() {
+        throw new UnsupportedOperationException("Remove not supported");
+    }
+
+    /**
+     * Convenience method for using ShardStrategy in an foreach loop.
+     * @return A iterator over shards.
+     */
     public Iterator<Shard> iterator() {
         return this;
     }

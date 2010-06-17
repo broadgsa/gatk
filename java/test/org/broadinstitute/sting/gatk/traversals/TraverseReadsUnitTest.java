@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.BlockDrivenSAMDataSource;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -115,7 +114,7 @@ public class TraverseReadsUnitTest extends BaseTest {
         }
         GenomeLocParser.setupRefContigOrdering(ref);
 
-        SAMDataSource dataSource = new BlockDrivenSAMDataSource(new Reads(bamList));
+        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                 ref.getSequenceDictionary(),
                 readSize);

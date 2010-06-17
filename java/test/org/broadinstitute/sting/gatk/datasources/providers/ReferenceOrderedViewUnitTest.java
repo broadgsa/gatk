@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.LocusShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.shards.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
@@ -53,7 +54,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     @Test
     public void testNoBindings() {
-        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
+        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
         LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
@@ -70,7 +71,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedData rod = new ReferenceOrderedData("tableTest", file, TabularROD.class);
         ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(null, new RODRMDTrack(TabularROD.class,"tableTest",file,rod));
 
-        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
+        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
         LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.singletonList(dataSource));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
@@ -96,7 +97,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(null,new RODRMDTrack(TabularROD.class,"tableTest2",file,rod2));;
 
 
-        Shard shard = new LocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
+        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
         LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Arrays.asList(dataSource1,dataSource2));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
