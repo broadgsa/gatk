@@ -55,7 +55,6 @@ import static java.lang.Math.log10;
  * Takes files produced by Beagle imputation engine and creates a vcf with modified annotations.
  */
 @Requires(value={},referenceMetaData=@RMD(name=BeagleOutputToVCFWalker.INPUT_ROD_NAME,type= VCFRecord.class))
-//@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="r2",type= ReferenceOrderedDatum.class), @RMD(name="beagleR2",type= BeagleR2ROD.class)})
 
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
@@ -67,13 +66,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
     public static final String INPUT_ROD_NAME = "inputvcf";
 
-/*
-    protected static BeagleFileReader gprobsReader = null;
-
-    protected static BeagleFileReader phasedReader = null;
-    protected static BeagleFileReader likeReader = null;
-    protected static BeagleFileReader r2Reader = null;
-    */
     protected static String line = null;
 
     // protected HashMap<String,BeagleSampleRecord> beagleSampleRecords;
@@ -125,13 +117,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             return 0;
 
 
-        List<Object> likerods = tracker.getReferenceMetaData("beagleLike");
-        // ignore places where we don't have a variant
-        if ( likerods.size() == 0 )
-            return 0;
-
-        BeagleFeature beagleLikeFeature = (BeagleFeature)likerods.get(0);
-  
         List<Object> r2rods = tracker.getReferenceMetaData("beagleR2");
 
         // ignore places where we don't have a variant
