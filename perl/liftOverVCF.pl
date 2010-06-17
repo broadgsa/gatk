@@ -55,7 +55,7 @@ while ( $inHeader == 1 ) {
 }
 close(UNSORTED);
 
-$cmd = "grep \"^#\" -v $unsorted_vcf | sort -n +1 -T $tmp | $gatk/perl/sortByRef.pl --tmp $tmp - $newRef.fasta.fai";
+$cmd = "grep \"^#\" -v $unsorted_vcf | sort -n -k2 -T $tmp | $gatk/perl/sortByRef.pl --tmp $tmp - $newRef.fasta.fai";
 print SORTED `$cmd`;
 close(SORTED);
 
