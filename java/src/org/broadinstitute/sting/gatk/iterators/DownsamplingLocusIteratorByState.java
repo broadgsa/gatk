@@ -276,8 +276,11 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
     public DownsamplingLocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation, List<LocusIteratorFilter> filters ) {
         // Aggregate all sample names.
         // TODO: Push in header via constructor
-        if(GenomeAnalysisEngine.instance != null && GenomeAnalysisEngine.instance.getDataSource() != null)
+        if(GenomeAnalysisEngine.instance != null && GenomeAnalysisEngine.instance.getDataSource() != null) {
             sampleNames.addAll(SampleUtils.getSAMFileSamples(GenomeAnalysisEngine.instance.getSAMFileHeader()));
+        }
+        // Add a null sample name as a catch-all for reads without samples
+        if(!sampleNames.contains(null)) sampleNames.add(null);        
         readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod(),readInformation.getMaxReadsAtLocus(),sampleNames);
         this.readInfo = readInformation;
         this.filters = filters;
