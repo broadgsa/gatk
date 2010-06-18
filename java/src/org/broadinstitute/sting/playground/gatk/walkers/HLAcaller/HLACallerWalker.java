@@ -75,6 +75,9 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "HLAdictionary", shortName = "HLAdictionary", doc = "HLA dictionary file", required = true)
     public String HLAdatabaseFile = "HLA_DICTIONARY.txt";
 
+    @Argument(fullName = "turnOffVerboseOutput", shortName = "noVerbose", doc = "Do not output verbose probability descriptions (INFO lines) ", required = false)
+    protected boolean NO_VERBOSE = false;
+
     GATKArgumentCollection args = this.getToolkit().getArguments();
     
     // Initializing variables
@@ -127,8 +130,10 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
                 AllelesToSearch = similarityReader.GetAllelesToSearch();
                 AlleleCount = similarityReader.GetAlleleCount();
                 LocusCount = similarityReader.GetLocusCount();
-                for (int i = 0; i < AllelesToSearch.size(); i++){
-                    out.printf("INFO\tAllelesToSearch\t%s\t%s\n",AllelesToSearch.get(i),AlleleCount.get(AllelesToSearch.get(i)));
+                if (!NO_VERBOSE) {
+                    for (int i = 0; i < AllelesToSearch.size(); i++){
+                        out.printf("INFO\tAllelesToSearch\t%s\t%s\n",AllelesToSearch.get(i),AlleleCount.get(AllelesToSearch.get(i)));
+                    }
                 }
             }else{
                 ReadsToDiscard = new ArrayList<String>();
@@ -155,7 +160,9 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
             baseLikelihoods = baseLikelihoodsReader.GetBaseLikelihoods();
             positions = baseLikelihoodsReader.GetPositions();
             PolymorphicSites = baseLikelihoodsReader.GetPolymorphicSites();
-            out.printf("INFO\t%s polymorphic sites found\n",PolymorphicSites.length);
+            if (!NO_VERBOSE) {
+                out.printf("INFO\t%s polymorphic sites found\n",PolymorphicSites.length);
+            }
 
             int l = PolymorphicSites.length;
             SNPnumInRead = new int[l];
@@ -284,7 +291,9 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
                                     Likelihoods.add(likelihood);
                                     String data = String.format("%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f",n1[0],name1,name2,alleleLikelihood,phaseLikelihood,log1,log2,likelihood);
                                     Output.add(data);
-                                    out.printf("INFO\t%s\n",data);
+                                    if (!NO_VERBOSE) {
+                                        out.printf("INFO\t%s\n",data);
+                                    }
                                     if (DEBUG){
 
                                     }
@@ -424,7 +433,9 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
                 }
                 out.print("\n");
             }
-            out.printf("INFO\t%s\t%s\t%s\t%.1f\t%.1f\t%.2f\t%.2f\t%.1f\t%.2f\t%.0f\t%.0f\t%.0f\t%.2f",s1[0],name1,name2,aLikelihood4/count,pLikelihood4/count,f1,f2,likelihood/count,prob,count1,count2,locusCount,accountedFor);
+            if (!NO_VERBOSE) {
+                out.printf("INFO\t%s\t%s\t%s\t%.1f\t%.1f\t%.2f\t%.2f\t%.1f\t%.2f\t%.0f\t%.0f\t%.0f\t%.2f",s1[0],name1,name2,aLikelihood4/count,pLikelihood4/count,f1,f2,likelihood/count,prob,count1,count2,locusCount,accountedFor);
+            }
             for (int i = 0; i < Populations.length; i++){
                 if (AlleleFrequencies[i].containsKey(s[0])){f1 = Double.valueOf(AlleleFrequencies[i].get(s[0]).toString());}else{f1=.000001;}
                 if (AlleleFrequencies[i].containsKey(s[1])){f2 = Double.valueOf(AlleleFrequencies[i].get(s[1]).toString());}else{f2=.000001;}
@@ -583,7 +594,7 @@ private int GenotypeIndex(char a, char b){
                 index = GenotypeIndex(read1.charAt(pos-start1),read2.charAt(pos-start2));
                 if (index > -1){
                     likelihood = likelihood + baseLikelihoods[i][index];
-                    if (debug){
+                    if (!NO_VERBOSE || debug){
                         c1 = read1.charAt(pos-start1);
                         c2 = read2.charAt(pos-start2);
                         out.printf("INFO: DEBUG %s\t%s\t%s\t%s\t%s\t%s\t%.2f\n",HLAnames[a1],HLAnames[a2],pos,c1,c2,index,likelihood);
@@ -747,9 +758,11 @@ private int GenotypeIndex(char a, char b){
             for (Map.Entry<String, Double> entry : entries) {
                 if (num <= Math.max(5,entries.size()/8)){
                     AllelesToSearch.add(entry.getKey());
-                    out.printf("INFO\t%s\t%.2f\t%.2f\n",entry.getKey(),entry.getValue(),Phase2Digit.get(entry.getKey()));
+                    if (!NO_VERBOSE) {
+                        out.printf("INFO\t%s\t%.2f\t%.2f\n",entry.getKey(),entry.getValue(),Phase2Digit.get(entry.getKey()));
+                    }
                     num++;
-                }else{
+                }else if (!NO_VERBOSE) {
                     if (!AllelesToSearch.contains(entry.getKey())){
                         out.printf("INFO\t%s\t%.2f\t%.2f\tNotSearched\n",entry.getKey(),entry.getValue(),Phase2Digit.get(entry.getKey()));
                     }else{
@@ -758,7 +771,9 @@ private int GenotypeIndex(char a, char b){
                 }
             }
 
-            out.printf("INFO\n");
+            if (!NO_VERBOSE) {
+                out.printf("INFO\n");
+            }
         }
     }
 }
