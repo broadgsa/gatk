@@ -17,8 +17,10 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -40,6 +42,17 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     String familyStr = null;
     @Argument(shortName="ob",fullName="outputBed",required=true,doc="Output file to write the homozygous region information to")
     PrintStream bedOutput = null;
+    @Argument(fullName="deNovoTriAllelicQ",required=false,doc="Cutoff for quality scores of 3rd allele at denovo mendelian violations to remove it from the denovo set; e.g. Q40 = need Q40 evidence for 3rd allele to toss out deNovo")
+    int deNovoTriQ = 20;
+    @Argument(fullName="deNovoParentalAllele",required=false,doc="Range for the parental allele at denovo sites to be kept in denovo set, e.g. 0.4-0.6 will toss out denovo sites with parental allele proportions of <0.4 and >0.6")
+    String deNovoParentalAllele = "-0.1-1.1";
+    @Argument(fullName="oppositeHomozygoteTriAllelicQ",required=false,doc="Cutoff for quality scores of 3rd allele at opposite homozygote sites to remove it from the violation set")
+    int opHomTriQ = 20;
+    @Argument(fullName="oppositeHomozygoteParentAllele",required=false,doc="Range for the parental allele in the parents at opposite homozygote sites for it to be kept in violation set")
+    String opHomParentAllele = "-0.1-1.1";
+    @Argument(fullName="oppositeHomozygoteChildAllele",required=false,doc="Range for the parental allele in the child at opposite homozygote sites for it to be kept in violation set")
+    String opHomChildAllele = "-0.1-1.1";
+
 
     /*
      *********** PRIVATE CLASSES
@@ -91,7 +104,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                             HomozygosityRegion r = homozygousRegions.get(memberGenotype.getKey());
                             r.lastSeen = v.getLocus();
                             r.callsWithinRegion++;
-                            if ( v.type != MendelianViolationType.NONE ) {
+                            if ( v.type != MendelianViolationType.NONE && ! v.type.isFiltered() ) {
                                 v.addAttribute(regionKeys.get(memberGenotype.getKey()).getKey(),homozygousRegionCounts.get(memberGenotype.getKey()));
                                 if ( v.type == MendelianViolationType.DE_NOVO_SNP ) {
                                     r.deNovoSNPsInRegion++;
@@ -153,8 +166,9 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         }
 
         public String toString() {
-            return String.format("%s\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d",regionStart.getContig(),regionStart.getStart(),lastSeen.getStart(),
-                    parent,id,getSizeLowerBound(),getSizeOfFirstHomToFirstHet(),callsWithinRegion,oppositeHomsInRegion,deNovoSNPsInRegion);
+            return String.format("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d",regionStart.getContig(),regionStart.getStart(),
+                    lastSeen.getStart(),endedBy.getStart(),parent,id,getSizeLowerBound(),getSizeOfFirstHomToFirstHet(),
+                    callsWithinRegion,oppositeHomsInRegion,deNovoSNPsInRegion);
         }
 
         public int compareTo(Object o) {
@@ -165,6 +179,9 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             return this.regionStart.compareTo(((HomozygosityRegion) o).regionStart);
         }
 
+        public String getContigStr() {
+            return regionStart.getContig();
+        }
     }
 
     public class MendelianViolation {
@@ -235,6 +252,28 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         }
     }
 
+    public class Range {
+        private double upper;
+        private double lower;
+        private double epsilon = 10e-3;
+
+        Range(String rangeStr) {
+            String rs = rangeStr.substring(0); // don't clobber original string
+            boolean startIsNegative = rangeStr.startsWith("-");
+            if ( startIsNegative ) {
+                rs = rs.substring(1);
+            }
+            String[] lu = rs.split("-");
+            lower = startIsNegative ? -1*Double.parseDouble(lu[0]) : Double.parseDouble(lu[0]);
+            upper = Double.parseDouble(lu[1]);
+            //System.out.printf("Lower: %.2f, Upper: %.2f",lower,upper);
+        }
+
+        public boolean contains(double p) {
+            return p > lower-epsilon && p < upper+epsilon;
+        }
+    }
+
     /*
      *************** PRIVATE ENUMS
      */
@@ -245,13 +284,22 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         NONE("none");
 
         private String infoString;
+        private Boolean isFiltered = false;
 
         MendelianViolationType(String typeName) {
             infoString=typeName;
         }
 
         public String toString() {
-            return infoString;
+            return isFiltered ? "Filtered_"+infoString : infoString;
+        }
+
+        public void filter() {
+            isFiltered = true;
+        }
+
+        public boolean isFiltered() {
+            return isFiltered;
         }
     }
 
@@ -296,16 +344,22 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
      */
     private ExtendedTrioStructure trioStructure;
     private UnifiedGenotyperEngine engine;
+    private Range deNovoRange;
+    private Range opHomParentRange;
+    private Range opHomChildRange;
 
     /*
      ***************** INITIALIZE
      */
     public void initialize() {
         trioStructure = new ExtendedTrioStructure(familyStr);
+        deNovoRange = new Range(deNovoParentalAllele);
+        opHomParentRange = new Range(opHomParentAllele);
+        opHomChildRange = new Range(opHomChildAllele);
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.MIN_BASE_QUALTY_SCORE = 10;
         uac.MIN_MAPPING_QUALTY_SCORE = 10;
-        uac.STANDARD_CONFIDENCE_FOR_CALLING = 30;
+        uac.STANDARD_CONFIDENCE_FOR_CALLING = Math.min(deNovoTriQ,opHomTriQ);
         engine = new UnifiedGenotyperEngine(getToolkit(),uac);
         logger.info("Mom: "+trioStructure.mom+" Dad: "+trioStructure.dad+" Child: "+trioStructure.child);
         bedOutput.printf("%s%n",getBedFileHeader());
@@ -366,6 +420,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             } else {
                 violation = new MendelianViolation(varContext,MendelianViolationType.NONE);
             }
+
         } else {
             violation = null;
         }
@@ -406,21 +461,29 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             if ( parental.getBases().length < 1 ) {
                 throw new StingException("Parental bases have length zero at "+trio.toString());
             }
-            int numParental = 0;
-            int total = 0;
-            StratifiedAlignmentContext childCon = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup()).get(trioStructure.child);
-            if ( childCon != null ) {
-                for ( PileupElement e : childCon.getPileupElements(StratifiedAlignmentContext.StratifiedContextType.COMPLETE) ) {
-                    if ( e.getQual() >= 10 && e.getMappingQual() >= 10 ) {
-                        total++;
-                        if ( e.getBase() == parental.getBases()[0] ) {
-                            numParental++;
-                        }
-                    }
+
+            Map<String,StratifiedAlignmentContext> splitContext = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+            Double proportion = getAlleleProportion(parental,splitContext.get(trioStructure.child));
+            if ( proportion != null ) {
+                violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), proportion);
+                if ( ! deNovoRange.contains(proportion) ) {
+                    violation.type.filter();
                 }
-                violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), ((double) numParental)/total);
             }
+
+            Pair<Allele,Integer> triAl = getTriAllelicQuality(tracker,ref,trio,splitContext);
+            if ( triAl != null ) {
+                violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),triAl.first.toString());
+                violation.addAttribute(MendelianInfoKey.TriAllelicQuality.getKey(),triAl.second);
+                if ( triAl.second >= deNovoTriQ ) {
+                    violation.type.filter();
+                }
+            }
+
+        } else {
+            violation.type.filter();
         }
+
         return violation;
     }
 
@@ -431,32 +494,85 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
 
         // look for tri-allelic sites mis-called as hom -- as a speedup we do this only at non-filtered, non genotype error sites
 
-        if ( ! trio.isFiltered() && ! violation.getAttribute(MendelianInfoKey.ParentalDeletion.getKey()).equals("genotypeError") ) {
-            Map<String, StratifiedAlignmentContext> stratCon = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
-            int conf = 0;
-            Allele alt = null;
-            for ( Map.Entry<String,StratifiedAlignmentContext> stratifiedEntry : stratCon.entrySet() ) {
-                VariantCallContext call = engine.runGenotyper(tracker,ref,stratifiedEntry.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE));
-                if ( call != null && call.confidentlyCalled && call.vc != null) {
-                    if ( call.vc.isSNP() ) {
-                        if ( ! call.vc.getAlternateAllele(0).basesMatch(trio.getAlternateAllele(0)) ) {
-                            if ( alt == null ) {
-                                alt = call.vc.getAlternateAllele(0);
-                                conf = (int) Math.floor(10*call.vc.getNegLog10PError());
-                            } else {
-                                conf += (int) Math.floor(10*call.vc.getNegLog10PError());
-                            }
+        if ( ! trio.isFiltered()  ) {
+            Map<String,StratifiedAlignmentContext> splitCon = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+            Pair<Allele,Integer> triAl = getTriAllelicQuality(tracker, ref, trio, splitCon);
+            if ( triAl != null ) {
+                violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),triAl.first.toString());
+                violation.addAttribute(MendelianInfoKey.TriAllelicQuality.getKey(),triAl.second);
+                if ( triAl.second >= opHomTriQ ) {
+                    violation.type.filter();
+                }
+            }
+
+            Double childProp = getAlleleProportion(trio.getGenotype(trioStructure.mom).getAllele(0),splitCon.get(trioStructure.child));
+            Double motherProp = getAlleleProportion(trio.getGenotype(trioStructure.mom).getAllele(0),splitCon.get(trioStructure.mom));
+            Double fatherProp = getAlleleProportion(trio.getGenotype(trioStructure.mom).getAllele(0),splitCon.get(trioStructure.dad));
+            if ( childProp != null ) {
+                violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(),childProp);
+                if ( ! opHomChildRange.contains(childProp) ) {
+                    violation.type.filter();
+                }
+            }
+
+            if ( motherProp != null && ! opHomParentRange.contains(motherProp) ) {
+                violation.type.filter();
+            }
+
+            if ( fatherProp != null && ! opHomParentRange.contains(fatherProp) ) {
+                violation.type.filter();
+            }
+        } else {
+            violation.type.filter();
+        }
+
+        return violation;
+    }
+
+    private Double getAlleleProportion(Allele a, StratifiedAlignmentContext context) {
+        int numParental = 0;
+        int total = 0;
+        if ( context != null ) {
+            for ( PileupElement e : context.getPileupElements(StratifiedAlignmentContext.StratifiedContextType.COMPLETE)) {
+                if ( e.getQual() >= 10 && e.getMappingQual() >= 10 ) {
+                    total++;
+                    if ( e.getBase() == a.getBases()[0]) {
+                        numParental ++;
+                    }
+                }
+            }
+            return ( (double) numParental )/total;
+        } else {
+            return null;
+        }
+
+
+    }
+
+    private Pair<Allele,Integer> getTriAllelicQuality(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext var, Map<String,StratifiedAlignmentContext> strat) {
+        int conf = 0;
+        Allele alt = null;
+        for ( Map.Entry<String,StratifiedAlignmentContext> sEntry : strat.entrySet() ) {
+            VariantCallContext call = engine.runGenotyper(tracker, ref, sEntry.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE));
+            if ( call != null && call.confidentlyCalled && call.vc != null ) {
+                if ( call.vc.isSNP() ) {
+                    if ( ! call.vc.getAlternateAllele(0).basesMatch(var.getAlternateAllele(0))) {
+                        if ( alt == null ) {
+                            alt = call.vc.getAlternateAllele(0);
+                            conf = (int) Math.floor(10*call.vc.getNegLog10PError());
+                        } else {
+                            conf += (int) Math.floor(10*call.vc.getNegLog10PError());
                         }
                     }
                 }
             }
-            if ( alt != null ) {
-                violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),alt.toString());
-                violation.addAttribute(MendelianInfoKey.TriAllelicQuality.getKey(),conf);
-            }
         }
 
-        return violation;
+        if ( alt == null ) {
+            return null;
+        } else {
+            return new Pair<Allele,Integer>(alt,conf);
+        }
     }
 
     private String getParentalDeletion(VariantContext trio) {
@@ -494,12 +610,21 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     public void onTraversalDone(VCFWriter writer) {
         Map<String,HomozygosityRegion> regions = trioStructure.homozygousRegions;
         Map<String,Integer> counts = trioStructure.homozygousRegionCounts;
+        List<HomozygosityRegion> to_print = new ArrayList<HomozygosityRegion>(3);
         for ( Map.Entry<String,HomozygosityRegion> entryRegion : regions.entrySet() ) {
             if ( entryRegion.getValue() != null ) {
                 logger.info("---------------- REGION NOT FINALIZED -----------------");
                 logger.info(String.format("%s,%s,%s,%d,%d",entryRegion.getKey(),entryRegion.getValue().regionStart,entryRegion.getValue().lastSeen,
                         entryRegion.getValue().deNovoSNPsInRegion,entryRegion.getValue().oppositeHomsInRegion));
+                int chr_end = getToolkit().getSAMFileHeader().getSequenceDictionary().getSequence(entryRegion.getValue().getContigStr()).getSequenceLength();
+                entryRegion.getValue().endedBy = GenomeLocParser.createGenomeLoc(entryRegion.getValue().getContigStr(),chr_end,chr_end);
+                to_print.add(entryRegion.getValue());
             }
+        }
+
+        Collections.sort(to_print);
+        for ( HomozygosityRegion hr : to_print ) {
+            bedOutput.printf("%s%n",hr);
         }
     }
 
