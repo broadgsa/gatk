@@ -1,5 +1,5 @@
 #Before executing this file, save squid files as csv, then as tab deliminated files with only the column values as the header, change the format of all cells to numbers. Assign the path to these files to "samples" and "lanes" respectively. 
-
+#testcomment
 args<-commandArgs(TRUE)
 lanes<-args[1]
 samples<-args[2]
@@ -152,8 +152,8 @@ if(is.na(sample_sets)){
 			print(paste("Read Legnths: ", mean.mrl.samp, " +/- ", sd.mrl.samp, sep=""), quote = FALSE);
 			print(paste("Reads per lane: ", mean.read.lane, " +/- ", sd.read.lane, sep=""), quote = FALSE);
 			print(paste("Reads per sample: ", mean.read.samp, " +/- ", sd.read.samp, sep=""), quote = FALSE);
-			print(paste("Used bases per lane: ", mean.read.lane, " +/- ", sd.read.lane, sep=""), quote = FALSE);
-			print(paste("Used bases per sample: ", mean.read.samp, " +/- ", sd.read.samp, sep=""), quote = FALSE)
+			print(paste("Used bases per lane: ", mean.ub.lane, " +/- ", sd.ub.lane, sep=""), quote = FALSE);
+			print(paste("Used bases per sample: ", mean.ub.samp, " +/- ", sd.ub.samp, sep=""), quote = FALSE)
 			print(paste("Average target coverage per lane: ", mean.cov.lane, " +/- ", sd.cov.lane, sep=""), quote = FALSE);
 			print(paste("Average target coverage per sample: ", mean.cov.samp, " +/- ", sd.cov.samp, sep=""), quote = FALSE);
 			print(paste("% loci covered to 10x per lane: ", mean.10x.lane, "% +/- ", sd.10x.lane, "%", sep=""), quote = FALSE)
