@@ -29,6 +29,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Collection;
 
 import net.sf.samtools.SAMRecord;
 
@@ -57,6 +58,19 @@ public interface ReadBackedExtendedEventPileup extends Iterable<ExtendedEventPil
      * @return
      */
     public ReadBackedExtendedEventPileup getDownsampledPileup(int desiredCoverage);
+
+    /**
+     * Gets a list of all the samples stored in this pileup.
+     * @return List of samples in this pileup.
+     */
+    public Collection<String> getSamples();
+
+    /**
+     * Gets the particular subset of this pileup with the given sample name.
+     * @param sampleName Name of the sample to use.
+     * @return A subset of this pileup containing only reads with the given sample.
+     */
+    public ReadBackedExtendedEventPileup getPileupForSample(String sampleName);    
 
     /**
      * Returns the number of deletion events in this pileup

@@ -194,6 +194,34 @@ public class UnifiedReadBackedExtendedEventPileup implements ReadBackedExtendedE
         return new UnifiedReadBackedExtendedEventPileup(getLocation(), downsampledPileup);
     }
 
+    @Override
+    public Collection<String> getSamples() {
+        Collection<String> sampleNames = new HashSet<String>();
+        for(PileupElement p: this) {
+            SAMRecord read = p.getRead();
+            String sampleName = read.getReadGroup() != null ? read.getReadGroup().getSample() : null;
+            sampleNames.add(sampleName);
+        }
+        return sampleNames;
+    }
+
+    @Override
+    public ReadBackedExtendedEventPileup getPileupForSample(String sampleName) {
+        List<ExtendedEventPileupElement> filteredPileup = new ArrayList<ExtendedEventPileupElement>();
+        for(ExtendedEventPileupElement p: this) {
+            SAMRecord read = p.getRead();
+            if(sampleName != null) {
+                if(read.getReadGroup() != null && sampleName.equals(read.getReadGroup().getSample()))
+                    filteredPileup.add(p);
+            }
+            else {
+                if(read.getReadGroup() == null || read.getReadGroup().getSample() == null)
+                    filteredPileup.add(p);
+            }
+        }
+        return filteredPileup.size()>0 ? new UnifiedReadBackedExtendedEventPileup(loc,filteredPileup) : null;
+    }
+
     // --------------------------------------------------------
     //
     // iterators

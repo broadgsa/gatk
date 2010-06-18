@@ -226,6 +226,10 @@ public class SampleSplitReadBackedPileup implements ReadBackedPileup {
         return downsampledPileup;
     }
 
+    public Collection<String> getSamples() {
+        return pileupBySample.keySet();
+    }
+
     @Override
     public ReadBackedPileup getPileupForSample(String sampleName) {
         return pileupBySample.containsKey(sampleName) ? pileupBySample.get(sampleName) : null;

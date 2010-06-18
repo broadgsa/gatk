@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.iterators.IterableIterator;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.util.Collection;
 
 /**
  * A data retrieval interface for accessing parts of the pileup.
@@ -94,6 +95,12 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
      * @return
      */
     public ReadBackedPileup getDownsampledPileup(int desiredCoverage);
+
+    /**
+     * Gets a collection of all the samples stored in this pileup.
+     * @return Collection of samples in this pileup.
+     */
+    public Collection<String> getSamples();
 
     /**
      * Gets the particular subset of this pileup with the given sample name.

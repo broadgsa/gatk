@@ -300,6 +300,17 @@ public class UnifiedReadBackedPileup implements ReadBackedPileup {
     }
 
     @Override
+    public Collection<String> getSamples() {
+        Collection<String> sampleNames = new HashSet<String>();
+        for(PileupElement p: this) {
+            SAMRecord read = p.getRead();
+            String sampleName = read.getReadGroup() != null ? read.getReadGroup().getSample() : null;
+            sampleNames.add(sampleName);
+        }
+        return sampleNames;
+    }
+
+    @Override
     public ReadBackedPileup getPileupForSample(String sampleName) {
         List<PileupElement> filteredPileup = new ArrayList<PileupElement>();
         for(PileupElement p: this) {

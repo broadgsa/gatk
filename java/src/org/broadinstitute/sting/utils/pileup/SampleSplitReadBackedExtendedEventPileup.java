@@ -151,6 +151,24 @@ public class SampleSplitReadBackedExtendedEventPileup implements ReadBackedExten
         return downsampledPileup;
     }
 
+    /**
+     * Gets a list of all the samples stored in this pileup.
+     * @return List of samples in this pileup.
+     */
+    public Collection<String> getSamples() {
+        return pileupBySample.keySet();
+    }
+
+    /**
+     * Gets the particular subset of this pileup with the given sample name.
+     * @param sampleName Name of the sample to use.
+     * @return A subset of this pileup containing only reads with the given sample.
+     */
+    public ReadBackedExtendedEventPileup getPileupForSample(String sampleName) {
+        return pileupBySample.get(sampleName);
+    }
+
+
     @Override
     public Iterator<ExtendedEventPileupElement> iterator() {
         return new ExtendedEventCastingIterator(new MergingPileupElementIterator(pileupBySample));
