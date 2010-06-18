@@ -103,7 +103,7 @@ import java.util.*;
 
 
 /**
- * Test routine for new VariantContext object
+ * General-purpose tool for variant evaluation (% in dbSNP, genotype concordance, Ts/Tv ratios, and a lot more)
  */
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantEvalWalker extends RodWalker<Integer, Integer> {
@@ -388,6 +388,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     private List<EvaluationContext> initializeEvaluationContexts(Set<String> evalNames, Set<String> compNames, List<VariantContextUtils.JexlVCMatchExp> selectExps) {
         List<EvaluationContext> contexts = new ArrayList<EvaluationContext>();
+
+        // todo -- add another for loop for each sample (be smart about the selection here -
+        // honor specifications of just one or a few samples), and put an "all" in here so
+        // that we don't lose multi-sample evaluations
 
         selectExps = append(selectExps, null);
         for ( String evalName : evalNames ) {

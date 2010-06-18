@@ -98,6 +98,21 @@ public class
     }
 
     @Test
+    public void testVEGenomicallyAnnotated() {
+        String vecmd = "-T VariantEval " +
+                       "-R " + oneKGLocation + "reference/human_b36_both.fasta " +
+                       "-L 21 " +
+                       "-D " + GATKDataLocation + "dbsnp_129_b36.rod " +
+                       "-E CountFunctionalClasses " +
+                       "-B eval,VCF," + validationDataLocation + "test.filtered.maf_annotated.vcf " +
+                       "-o %s";
+        String md5 = "d41d8cd98f00b204e9800998ecf8427e";
+
+        WalkerTestSpec spec = new WalkerTestSpec(vecmd, 1, Arrays.asList(md5));
+        executeTest("testVEGenomicallyAnnotated", spec);
+    }
+
+    @Test
     public void testVEWriteVCF() {
         String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
         for (String tests : testsEnumerations) {
