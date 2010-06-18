@@ -1,9 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broad.tribble.vcf.VCFFormatHeaderLine;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.apache.log4j.Logger;
@@ -57,7 +54,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
 
         // set up the header fields
         Set<VCFHeaderLine> hInfo = new TreeSet<VCFHeaderLine>();
-        hInfo.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
+        hInfo.add(new VCFHeaderLine(VCFHeaderVersion.VCF3_3.getFormatString(), VCFHeaderVersion.VCF3_3.getVersionString()));
 
         // set up the allowed genotype format fields
         if ( headerInfo != null ) {

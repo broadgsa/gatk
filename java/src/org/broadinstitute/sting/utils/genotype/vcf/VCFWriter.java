@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFHeaderVersion;
 import org.broad.tribble.vcf.VCFRecord;
 
 import java.io.*;
@@ -52,11 +53,11 @@ public class VCFWriter {
             // the fileformat field needs to be written first
             TreeSet<VCFHeaderLine> nonFormatMetaData = new TreeSet<VCFHeaderLine>();
             for ( VCFHeaderLine line : header.getMetaData() ) {
-                if ( line.getKey().equals(VCFHeader.FILE_FORMAT_KEY) ) {
+                if ( line.getKey().equals(VCFHeaderVersion.VCF3_3.getFormatString()) ) {
                     mWriter.write(VCFHeader.METADATA_INDICATOR + line.toString() + "\n");
                 }
-                else if ( line.getKey().equals(VCFHeader.OLD_FILE_FORMAT_KEY) ) {
-                    mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeader.FILE_FORMAT_KEY + line.toString().substring(VCFHeader.OLD_FILE_FORMAT_KEY.length()) + "\n");
+                else if ( line.getKey().equals(VCFHeaderVersion.VCF3_2.getFormatString()) ) {
+                    mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF3_2.getFormatString() + "=" + VCFHeaderVersion.VCF3_2.getVersionString() + "\n");
                 } else {
                     nonFormatMetaData.add(line);
                 }

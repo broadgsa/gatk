@@ -70,7 +70,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingVCFInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("92d661a3789e55078197666eb9ee7020");
+        md5.add("3f920c6a443764b183e4765b4e4d00b0");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +

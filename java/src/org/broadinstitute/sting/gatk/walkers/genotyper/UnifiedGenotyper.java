@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broad.tribble.vcf.VCFGenotypeRecord;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -156,7 +153,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
 
         // FORMAT and INFO fields
-        headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
+        headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings(VCFHeaderVersion.VCF3_3));
 
         // all of the arguments from the argument collection
         Set<Object> args = new HashSet<Object>();

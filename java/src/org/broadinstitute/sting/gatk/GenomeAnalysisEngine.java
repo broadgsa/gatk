@@ -252,6 +252,7 @@ public class GenomeAnalysisEngine {
 
             for (String str : rodNames.keySet())
                 if (str.equals(rodName)) {
+                    logger.info("Adding interval list from track (ROD) named " + rodName);
                     RMDIntervalGenerator intervalGenerator = new RMDIntervalGenerator(rodNames.get(str).getReferenceOrderedData());
                     ret.addAll(intervalGenerator.toGenomeLocList());
                 }

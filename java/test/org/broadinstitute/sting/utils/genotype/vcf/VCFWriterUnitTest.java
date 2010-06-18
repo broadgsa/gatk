@@ -66,8 +66,8 @@ public class VCFWriterUnitTest extends BaseTest {
      * @return a fake VCF header
      */
     public static VCFHeader createFakeHeader(Set<VCFHeaderLine> metaData, Set<String> additionalColumns) {
-        metaData.add(new VCFHeaderLine(VCFHeader.FILE_FORMAT_KEY, VCFHeader.VCF_VERSION));
-        metaData.add(new VCFHeaderLine("two", "2"));
+        metaData.add(new VCFHeaderLine(VCFHeaderVersion.VCF3_3.getFormatString(), VCFHeaderVersion.VCF3_3.getVersionString(),VCFHeaderVersion.VCF3_3));
+        metaData.add(new VCFHeaderLine("two", "2",VCFHeaderVersion.VCF3_3));
         additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
