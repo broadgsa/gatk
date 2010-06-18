@@ -10,6 +10,5 @@ package org.broadinstitute.sting.gatk;
 public enum DownsampleType {
     NONE,
     ALL_READS,
-    EXPERIMENTAL_BY_SAMPLE,
-    EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR
+    EXPERIMENTAL_BY_SAMPLE
 }

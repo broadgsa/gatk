@@ -29,7 +29,7 @@ public class DownsamplingMethod {
         // Do some basic sanity checks on the downsampling parameters passed in.
 
         // Can't leave toFraction and toCoverage null unless type is experimental naive duplicate eliminator.
-        if(type != DownsampleType.NONE && type != DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR && toFraction == null && toCoverage == null)
+        if(type != DownsampleType.NONE && toFraction == null && toCoverage == null)
             throw new StingException("Must specify either toFraction or toCoverage when downsampling.");
 
         // Fraction and coverage cannot both be specified.

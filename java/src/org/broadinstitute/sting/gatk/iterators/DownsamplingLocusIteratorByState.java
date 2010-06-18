@@ -552,20 +552,10 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
 
         private int totalReadStates = 0;
 
-        /**
-         * Store a random number generator with a consistent seed for consistent downsampling from run to run.
-         * Note that each shard will be initialized with the same random seed; this will ensure consistent results
-         * across parallelized runs, at the expense of decreasing our level of randomness.
-         */
-        private Random downsampleRandomizer = new Random(38148309L);
-
         public ReadStateManager(Iterator<SAMRecord> source, DownsamplingMethod downsamplingMethod, int maxReadsAtLocus, Collection<String> sampleNames) {
             this.iterator = new PeekableIterator<SAMRecord>(source);
             this.downsamplingMethod = downsamplingMethod;
             switch(downsamplingMethod.type) {
-                case EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR:
-                    this.targetCoverage = downsamplingMethod.toCoverage != null ? downsamplingMethod.toCoverage : 1;
-                    break;
                 case EXPERIMENTAL_BY_SAMPLE:
                     if(downsamplingMethod.toCoverage == null)
                         throw new StingException("Downsampling coverage (-dcov) must be specified when downsampling by sample");
@@ -580,12 +570,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             for(String sampleName: sampleNames)
                 readStatesBySample.put(sampleName,new PerSampleReadStateManager());
 
-            ReadSelector primaryReadSelector;
-            if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR) {
-                primaryReadSelector = new NRandomReadSelector(samplePartitioner,targetCoverage);
-            }
-            else
-                primaryReadSelector = samplePartitioner;
+            ReadSelector primaryReadSelector= samplePartitioner;
 
             chainedReadSelector = maxReadsAtLocus!=Integer.MAX_VALUE ? new FirstNReadSelector(primaryReadSelector,maxReadsAtLocus) : primaryReadSelector;
         }
@@ -660,7 +645,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 PerSampleReadStateManager statesBySample = readStatesBySample.get(sampleName);
                 int numReads = statesBySample.size();
 
-                if(numReads+newReads.size()<=targetCoverage || downsamplingMethod.type==DownsampleType.NONE || downsamplingMethod.type==DownsampleType.EXPERIMENTAL_NAIVE_DUPLICATE_ELIMINATOR) {
+                if(numReads+newReads.size()<=targetCoverage || downsamplingMethod.type==DownsampleType.NONE) {
                     long readLimit = aggregator.getNumReadsSeen();
                     boolean mrlViolation = false;
                     if(readLimit > maxReadsAtLocus-totalReadStates) {
