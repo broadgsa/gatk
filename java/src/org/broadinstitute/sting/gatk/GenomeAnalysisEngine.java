@@ -644,7 +644,7 @@ public class GenomeAnalysisEngine {
         for (RMDTrack track : tracks) {
             SAMSequenceDictionary trackDict = track.getSequenceDictionary();
             if (trackDict == null) {
-                logger.info("Track " + track.getName() + "doesn't have a sequence dictionary built in, skipping dictionary validation");
+                logger.info("Track " + track.getName() + " doesn't have a sequence dictionary built in, skipping dictionary validation");
                 continue;
             }
             Set<String> trackSequences = new TreeSet<String>();

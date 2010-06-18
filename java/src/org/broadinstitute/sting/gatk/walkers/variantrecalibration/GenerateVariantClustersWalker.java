@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -65,23 +66,32 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
     private String CLUSTER_FILENAME = "optimizer.cluster";
     @Argument(fullName="numGaussians", shortName="nG", doc="The number of Gaussians to be used when clustering", required=false)
-    private int NUM_GAUSSIANS = 6;
-    @Argument(fullName="numIterations", shortName="nI", doc="The number of iterations to be performed when clustering", required=false)
-    private int NUM_ITERATIONS = 10;
-    @Argument(fullName="minVarInCluster", shortName="minVar", doc="The minimum number of variants in a cluster to be considered a valid cluster. It can be used to prevent overfitting.", required=false)
+    private int NUM_GAUSSIANS = 4;
+    @Argument(fullName="maxIterations", shortName="mI", doc="The maximum number of iterations to be performed when clustering. Clustering will normally end when convergence is detected.", required=false)
+    private int MAX_ITERATIONS = 200;
+    //@Argument(fullName="minVarInCluster", shortName="minVar", doc="The minimum number of variants in a cluster to be considered a valid cluster. It can be used to prevent overfitting.", required=false)
     private int MIN_VAR_IN_CLUSTER = 0;
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-    private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
+    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
     private String PATH_TO_RESOURCES = "R/";
+    @Argument(fullName="weightNovels", shortName="weightNovels", doc="The weight for novel variants during clustering", required=false)
+    private double WEIGHT_NOVELS = 0.0;
     @Argument(fullName="weightKnowns", shortName="weightKnowns", doc="The weight for known variants during clustering", required=false)
-    private double WEIGHT_KNOWNS = 8.0;
+    private double WEIGHT_KNOWNS = 0.0;
     @Argument(fullName="weightHapMap", shortName="weightHapMap", doc="The weight for known HapMap variants during clustering", required=false)
-    private double WEIGHT_HAPMAP = 120.0;
+    private double WEIGHT_HAPMAP = 100.0;
     @Argument(fullName="weight1000Genomes", shortName="weight1000Genomes", doc="The weight for known 1000 Genomes Project variants during clustering", required=false)
-    private double WEIGHT_1000GENOMES = 12.0;
+    private double WEIGHT_1000GENOMES = 1.0;
     @Argument(fullName="weightMQ1", shortName="weightMQ1", doc="The weight for MQ1 dbSNP variants during clustering", required=false)
-    private double WEIGHT_MQ1 = 10.0;
+    private double WEIGHT_MQ1 = 0.0;
+    @Argument(fullName="forceIndependent", shortName="forceIndependent", doc="Force off-diagonal entries in the covariance matrix to be zero.", required=false)
+    private boolean FORCE_INDEPENDENT = false;
+    @Argument(fullName="stdThreshold", shortName="std", doc="If a variant has annotations more than -std standard deviations away from mean then don't use it for clustering.", required=false)
+    private double STD_THRESHOLD = 6.0;
+    @Argument(fullName="qualThreshold", shortName="qual", doc="If a known variant has raw QUAL value less than -qual then don't use it for clustering.", required=false)
+    private double QUAL_THRESHOLD = 300.0;
+
 
     //@Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
     //private int NUM_KNN = 2000;
@@ -94,6 +104,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     private ExpandingArrayList<String> annotationKeys;
     private Set<String> ignoreInputFilterSet = null;
     private int maxAC = 0;
+    private PrintStream outFile;
+    private final static boolean FXYZ_FILE = false; // Debug argument
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -121,6 +133,14 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
         if(!foundDBSNP) {
             throw new StingException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
+        }
+
+        if(FXYZ_FILE) {
+            try {
+                outFile = new PrintStream("variants.filtered.xyz");
+            } catch(Exception e) {
+                throw new StingException("Can't create file!");
+            }
         }
     }
 
@@ -158,15 +178,19 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                     }
 
                     variantDatum.isKnown = false;
-                    variantDatum.weight = 1.0;
+                    variantDatum.weight = WEIGHT_NOVELS;
+                    variantDatum.knownStatus = VariantDatum.NOVEL;
+                    variantDatum.qual = vc.getPhredScaledQual();
 
                     final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                     if( dbsnp != null ) {
                         variantDatum.isKnown = true;
                         variantDatum.weight = WEIGHT_KNOWNS;
-                        if( DbSNPHelper.isHapmap( dbsnp ) ) { variantDatum.weight = WEIGHT_HAPMAP; }
-                        else if( DbSNPHelper.is1000genomes( dbsnp ) ) { variantDatum.weight = WEIGHT_1000GENOMES; }
-                        else if( DbSNPHelper.isMQ1( dbsnp ) ) { variantDatum.weight = WEIGHT_MQ1; }
+                        variantDatum.knownStatus = VariantDatum.KNOWN_MQ0;
+
+                        if( DbSNPHelper.isHapmap( dbsnp ) ) { variantDatum.weight = WEIGHT_HAPMAP; variantDatum.knownStatus = VariantDatum.KNOWN_HAPMAP; }
+                        else if( DbSNPHelper.is1000genomes( dbsnp ) ) { variantDatum.weight = WEIGHT_1000GENOMES; variantDatum.knownStatus = VariantDatum.KNOWN_1KG; }
+                        else if( DbSNPHelper.isMQ1( dbsnp ) ) { variantDatum.weight = WEIGHT_MQ1; variantDatum.knownStatus = VariantDatum.KNOWN_MQ1; }
                     }
                     
                     mapList.add( variantDatum );
@@ -201,12 +225,19 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         logger.info( "The annotations are: " + annotationKeys );
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
-        
+
+        if(FXYZ_FILE) { // Debug output
+            for(final VariantDatum datum : dataManager.data) {
+                outFile.println(String.format("%f,%f,%f,%d,%f",datum.annotations[0], datum.annotations[1], datum.weight, datum.knownStatus, datum.qual));
+            }
+            outFile.close();
+        }
+
         // Create either the Gaussian Mixture Model or the Nearest Neighbors model and run it
         VariantGaussianMixtureModel theModel;
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( dataManager, NUM_GAUSSIANS, NUM_ITERATIONS, MIN_VAR_IN_CLUSTER, maxAC );
+                theModel = new VariantGaussianMixtureModel( dataManager, NUM_GAUSSIANS, MAX_ITERATIONS, MIN_VAR_IN_CLUSTER, maxAC, FORCE_INDEPENDENT, STD_THRESHOLD, QUAL_THRESHOLD );
                 break;
             //case K_NEAREST_NEIGHBORS:
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
@@ -222,7 +253,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
             // Execute Rscript command to plot the optimization curve
             // Print out the command line to make it clear to the user what is being executed and how one might modify it
             final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_ClusterReport.R" + " " + CLUSTER_FILENAME + "." + annotation + ".dat " + annotation;
-            System.out.println( rScriptCommandLine );
+            logger.info( rScriptCommandLine );
 
             // Execute the RScript command to plot the table of truth values
             try {

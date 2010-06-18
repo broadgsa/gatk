@@ -64,7 +64,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="target_titv", shortName="titv", doc="The expected Ti/Tv ratio to display on optimization curve output figures. (~~2.1 for whole genome experiments)", required=false)
     private double TARGET_TITV = 2.1;
     @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by spreading out the Gaussians.", required=false)
-    private double BACKOFF_FACTOR = 1.0;
+    private double BACKOFF_FACTOR = 1.4;
     @Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
     private int DESIRED_NUM_VARIANTS = 0;
     @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
@@ -76,7 +76,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="novel_prior", shortName="novelPrior", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
     private int NOVEL_QUAL_PRIOR = 2;
     @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
-    private double QUALITY_SCALE_FACTOR = 50.0;
+    private double QUALITY_SCALE_FACTOR = 200.0;
     @Argument(fullName="output_prefix", shortName="output", doc="The prefix added to output VCF file name and optimization curve pdf file name", required=false)
     private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
@@ -85,15 +85,12 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private Double[] FDR_TRANCHES = null;
     //@Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
     private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-    private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
+    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
     private String PATH_TO_RESOURCES = "R/";
     @Argument(fullName="quality_step", shortName="qStep", doc="Resolution in QUAL units for optimization and tranche calculations", required=false)
     private double QUAL_STEP = 0.1;
-
-    // TODO: RYAN - remove me, even though this switch is apparently super awesome
-    private final static boolean AARONS_SUPER_AWESOME_SWITCH = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -136,27 +133,11 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         final TreeSet<String> samples = new TreeSet<String>();
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
+        hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
+        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
 
-        if (AARONS_SUPER_AWESOME_SWITCH) {
-            hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-            hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
-            hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
-            samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
-
-        } else {
-            hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-            hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
-            hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
-            for( final ReferenceOrderedDataSource source : dataSources ) {
-                final RMDTrack rod = source.getReferenceOrderedData();
-                if( rod.getRecordType().equals(VCFRecord.class) ) {
-                    final VCFReader reader = new VCFReader(rod.getFile());
-                    final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
-                    samples.addAll(vcfSamples);
-                    reader.close();
-                }
-            }
-        }
         vcfWriter = new VCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
@@ -209,11 +190,11 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                     final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                     variantDatum.isKnown = dbsnp != null;
-                    variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes
+                    variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes. Also, what to do about tri-allelic sites?
 
-                    final double acPrior =  theModel.getAlleleCountPrior( variantDatum.alleleCount );
-                    final double knownPrior = ( variantDatum.isKnown ? QualityUtils.qualToProb(KNOWN_QUAL_PRIOR) : QualityUtils.qualToProb(NOVEL_QUAL_PRIOR) );                        
-                    final double pTrue = theModel.evaluateVariant( vc ) * acPrior * knownPrior;
+                    final double acPriorLog10 =  Math.log10(theModel.getAlleleCountPrior( variantDatum.alleleCount ));
+                    final double knownPriorLog10 = Math.log10( variantDatum.isKnown ? QualityUtils.qualToProb(KNOWN_QUAL_PRIOR) : QualityUtils.qualToProb(NOVEL_QUAL_PRIOR) );
+                    final double pTrue = Math.pow(10.0, theModel.evaluateVariantLog10( vc ) + acPriorLog10 + knownPriorLog10);
 
                     variantDatum.qual = QUALITY_SCALE_FACTOR * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) ); // BUGBUG: don't have a normalizing constant, so need to scale up qual scores arbitrarily
                     mapList.add( variantDatum );
@@ -260,7 +241,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         // Execute Rscript command to plot the optimization curve
         // Print out the command line to make it clear to the user what is being executed and how one might modify it
         final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
-        System.out.println( rScriptCommandLine );
+        logger.info( rScriptCommandLine );
 
         // Execute the RScript command to plot the table of truth values
         try {

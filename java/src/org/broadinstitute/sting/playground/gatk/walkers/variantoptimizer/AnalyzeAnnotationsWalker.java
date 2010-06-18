@@ -50,8 +50,8 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
     /////////////////////////////
     @Argument(fullName = "output_prefix", shortName = "output", doc = "The output path and name to prepend to all plots and intermediate data files", required = false)
     private String OUTPUT_PREFIX = "analyzeAnnotations/";
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is probably /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-    private String PATH_TO_RSCRIPT = "/broad/tools/apps/R-2.6.0/bin/Rscript";
+    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
     private String PATH_TO_RESOURCES = "R/";
     @Argument(fullName = "min_variants_per_bin", shortName = "minBinSize", doc = "The minimum number of variants in a bin in order to calculate truth metrics.", required = false)

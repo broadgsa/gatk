@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -51,36 +52,43 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     
     public final VariantDataManager dataManager;
     private final int numGaussians;
-    private final int numIterations;
+    private final int maxIterations;
     private final static long RANDOM_SEED = 91801305;
     private final static Random rand = new Random( RANDOM_SEED );
-    private final double MIN_PROB = 1E-7;
-    private final double MIN_SIGMA = 1E-5;
-    private final double MIN_DETERMINANT = 1E-5;
+    private final double MIN_SIGMA = 1E-10;
+    private final double MIN_DETERMINANT = 1E-3;
+    private final double MIN_PROB_CONVERGENCE = 1E-5;
+    private final boolean FORCE_INDEPENDENT_ANNOTATIONS;
 
     private final double[][] mu; // The means for each cluster
     private final Matrix[] sigma; // The covariance matrix for each cluster
     private final Matrix[] sigmaInverse;
-    private final double[] pCluster;
+    private double[] pClusterLog10;
     private final double[] determinant;
     private final double[] alleleCountFactorArray;
     private final int minVarInCluster;
+    private final double stdThreshold;
+    private final double qualThreshold;
 
     private static final Pattern ANNOTATION_PATTERN = Pattern.compile("^@!ANNOTATION.*");
     private static final Pattern ALLELECOUNT_PATTERN = Pattern.compile("^@!ALLELECOUNT.*");
     private static final Pattern CLUSTER_PATTERN = Pattern.compile("^@!CLUSTER.*");
 
-    public VariantGaussianMixtureModel( final VariantDataManager _dataManager, final int _numGaussians, final int _numIterations, final int _minVarInCluster, final int maxAC ) {
+    public VariantGaussianMixtureModel( final VariantDataManager _dataManager, final int _numGaussians, final int _maxIterations, final int _minVarInCluster,
+                                        final int maxAC, final boolean _forceIndependent, final double _stdThreshold, final double _qualThreshold ) {
         dataManager = _dataManager;
         numGaussians = _numGaussians;
-        numIterations = _numIterations;
+        maxIterations = _maxIterations;
 
         mu = new double[numGaussians][];
         sigma = new Matrix[numGaussians];
         determinant = new double[numGaussians];
-        pCluster = new double[numGaussians];
+        pClusterLog10 = new double[numGaussians];
         alleleCountFactorArray = new double[maxAC + 1];
         minVarInCluster = _minVarInCluster;
+        stdThreshold = _stdThreshold;
+        qualThreshold = _qualThreshold;
+        FORCE_INDEPENDENT_ANNOTATIONS = _forceIndependent;
         sigmaInverse = null; // This field isn't used during VariantOptimizer pass
     }
 
@@ -108,16 +116,19 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         dataManager = new VariantDataManager( annotationLines );
         // Several of the clustering parameters aren't used the second time around in ApplyVariantClusters
-        numIterations = 0;
+        maxIterations = 0;
         minVarInCluster = 0;
+        stdThreshold = 0.0;
+        qualThreshold = 0.0;
+        FORCE_INDEPENDENT_ANNOTATIONS = false;
 
         // BUGBUG: move this parsing out of the constructor
         numGaussians = clusterLines.size();
         mu = new double[numGaussians][dataManager.numAnnotations];
-        double sigmaVals[][][] = new double[numGaussians][dataManager.numAnnotations][dataManager.numAnnotations];
+        final double sigmaVals[][][] = new double[numGaussians][dataManager.numAnnotations][dataManager.numAnnotations];
         sigma = new Matrix[numGaussians];
         sigmaInverse = new Matrix[numGaussians];
-        pCluster = new double[numGaussians];
+        pClusterLog10 = new double[numGaussians];
         determinant = new double[numGaussians];
 
         alleleCountFactorArray = new double[alleleCountLines.size() + 1];
@@ -129,7 +140,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         int kkk = 0;
         for( final String line : clusterLines ) {
             final String[] vals = line.split(",");
-            pCluster[kkk] = Double.parseDouble(vals[1]); // BUGBUG: #define these magic index numbers, very easy to make a mistake here
+            pClusterLog10[kkk] = Math.log10( Double.parseDouble(vals[1]) ); // BUGBUG: #define these magic index numbers, very easy to make a mistake here
             for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
                 mu[kkk][jjj] = Double.parseDouble(vals[2+jjj]);
                 for( int ppp = 0; ppp < dataManager.numAnnotations; ppp++ ) {
@@ -143,7 +154,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             kkk++;
         }
 
-        logger.info("Found " + numGaussians + " clusters and using " + dataManager.numAnnotations + " annotations: " + dataManager.annotationKeys);
+        logger.info("Found " + numGaussians + " clusters using " + dataManager.numAnnotations + " annotations: " + dataManager.annotationKeys);
     }
     
     public final void run( final String clusterFileName ) {
@@ -151,9 +162,68 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         // Initialize the Allele Count prior
         generateAlleleCountPrior();
 
+        int numValid = 0;
+        int numOutlier = 0;
+        int numBadQual = 0;
+        int numZeroWeight = 0;
+
+        // Only cluster with a good set of knowns. Filter based on being too many std's away from the mean annotation value or having low quality score
+        for( final VariantDatum datum : dataManager.data ) {
+            boolean goodVar = true;
+            if(!(datum.weight > 0.0)) {
+                goodVar = false;
+                numZeroWeight++;
+            }
+            if(goodVar) {
+                for( final double val : datum.annotations ) {
+                    if( Math.abs(val) > stdThreshold ) {
+                        goodVar = false;
+                        numOutlier++;
+                        break;
+                    }
+                }
+            }
+            if(goodVar) {
+                if( datum.qual < qualThreshold ) {
+                    goodVar = false;
+                    numBadQual++;
+                }
+            }
+            if(goodVar) { numValid++; }
+        }
+
+        final VariantDatum data[] = new VariantDatum[numValid];
+        int iii = 0;
+        for( final VariantDatum datum : dataManager.data ) {
+            boolean goodVar = true;
+            if(!(datum.weight > 0.0)) {
+                goodVar = false;
+            }
+            if(goodVar) {
+                for( final double val : datum.annotations ) {
+                    if( Math.abs(val) > stdThreshold ) {
+                        goodVar = false;
+                        break;
+                    }
+                }
+            }
+            if(goodVar) {
+                if( datum.qual < qualThreshold ) {
+                    goodVar = false;
+                }
+            }
+            if(goodVar) { data[iii++] = datum; }
+        }
+
+        logger.info("Clustering with " + data.length + " valid variants.");
+        logger.info("  " + numZeroWeight + " variants were removed from clustering due to having zero clustering weight.");
+        logger.info("  " + numOutlier + " variants were removed due to having annotations that were more than " + stdThreshold + " standard deviations away from the mean annotation value.");
+        logger.info("  " + numBadQual + " variants were removed because raw QUAL value was less than threshold (" + qualThreshold + ").");
+        createClusters( data, 0, numGaussians, clusterFileName );
+
         // Simply cluster with all the variants. The knowns have been given more weight than the novels
-        logger.info("Clustering with " + dataManager.data.length + " variants.");
-        createClusters( dataManager.data, 0, numGaussians, clusterFileName, false );
+        //logger.info("Clustering with " + dataManager.data.length + " variants.");
+        //createClusters( dataManager.data, 0, numGaussians, clusterFileName );
     }
 
     private void generateAlleleCountPrior() {
@@ -169,13 +239,13 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
         for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
             acExpectation[iii] /= sumExpectation; // Turn acExpectation into a probability distribution
-            alleleCount[iii] = 0;
+            alleleCount[iii] = 1; // Start off with one count to smooth the estimate
         }
         for( final VariantDatum datum : dataManager.data ) {
             alleleCount[datum.alleleCount]++;
         }
         for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
-            acActual[iii] = ((double)alleleCount[iii]) / ((double)dataManager.data.length); // Turn acActual into a probability distribution
+            acActual[iii] = ((double)alleleCount[iii]) / ((double) (dataManager.data.length+(alleleCountFactorArray.length-1))); // Turn acActual into a probability distribution
         }
         for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
             alleleCountFactorArray[iii] = acExpectation[iii] / acActual[iii]; // Prior is (expected / observed)
@@ -186,7 +256,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         return alleleCountFactorArray[alleleCount];
     }
 
-    public final void createClusters( final VariantDatum[] data, final int startCluster, final int stopCluster, final String clusterFileName, final boolean useTITV ) {
+    public final void createClusters( final VariantDatum[] data, final int startCluster, final int stopCluster, final String clusterFileName ) {
 
         final int numVariants = data.length;
         final int numAnnotations = data[0].annotations.length;
@@ -202,14 +272,27 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         // Set up the initial random Gaussians
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            pCluster[kkk] = 1.0 / ((double) (stopCluster - startCluster));
+            pClusterLog10[kkk] = Math.log10(1.0 / ((double) (stopCluster - startCluster)));
             mu[kkk] = data[rand.nextInt(numVariants)].annotations;
             final double[][] randSigma = new double[numAnnotations][numAnnotations];
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
-                    randSigma[ppp][jjj] = 0.5 + 0.5 * rand.nextDouble(); // data has been normalized so sigmas are centered at 1.0
-                    if(jjj != ppp) { randSigma[jjj][ppp] = 0.0; } // Sigma is a symmetric, positive-definite matrix
+                    randSigma[ppp][jjj] = 0.55 + 1.25 * rand.nextDouble();
+                    if(rand.nextBoolean()) {
+                        randSigma[ppp][jjj] *= -1.0;
+                    }
+                    if(jjj != ppp) { randSigma[jjj][ppp] = 0.0; } // Sigma is a symmetric, positive-definite matrix created by taking a lower diagonal matrix and multiplying by its transpose
                 }
+            }
+            if( FORCE_INDEPENDENT_ANNOTATIONS ) {
+                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                    for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                        if(jjj!=ppp) {
+                            randSigma[jjj][ppp] = 0.0;
+                        }
+                    }
+                }
+
             }
             Matrix tmp = new Matrix(randSigma);
             tmp = tmp.times(tmp.transpose());
@@ -218,12 +301,15 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
 
         // The EM loop
-        for( int ttt = 0; ttt < numIterations; ttt++ ) {
+        double previousLikelihood = -1E20;
+        double currentLikelihood;
+        int ttt = 1;
+        while( ttt < maxIterations ) {
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // Expectation Step (calculate the probability that each data point is in each cluster)
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            evaluateGaussians( data, pVarInCluster, startCluster, stopCluster );
+            currentLikelihood = evaluateGaussians( data, pVarInCluster, startCluster, stopCluster );
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // Maximization Step (move the clusters to maximize the sum probability of each data point)
@@ -233,9 +319,15 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // Output cluster parameters at each iteration
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            printClusterParameters( clusterFileName + "." + (ttt+1) );
+            printClusterParameters( clusterFileName + "." + ttt );
 
-            logger.info("Finished iteration " + (ttt+1) );
+            logger.info("Finished iteration " + ttt );
+            ttt++;
+            if( currentLikelihood - previousLikelihood < MIN_PROB_CONVERGENCE) {
+                logger.info("Convergence!");
+                break;
+            }
+            previousLikelihood = currentLikelihood;
         }
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -256,10 +348,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             final int numAnnotations = mu[0].length;
             final int numVariants = dataManager.numVariants;
             for( int kkk = 0; kkk < numGaussians; kkk++ ) {
-                if( pCluster[kkk] * numVariants > minVarInCluster ) {
+                if( Math.pow(10.0, pClusterLog10[kkk]) * numVariants > minVarInCluster ) {
                     final double sigmaVals[][] = sigma[kkk].getArray();
                     outputFile.print("@!CLUSTER,");
-                    outputFile.print(pCluster[kkk] + ",");
+                    outputFile.print(Math.pow(10.0, pClusterLog10[kkk]) + ",");
                     for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
                         outputFile.print(mu[kkk][jjj] + ",");
                     }
@@ -295,7 +387,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         return value;
     }
 
-    public final double evaluateVariant( final VariantContext vc ) {
+    public final double evaluateVariantLog10( final VariantContext vc ) {
         final double[] pVarInCluster = new double[numGaussians];
         final double[] annotations = new double[dataManager.numAnnotations];
 
@@ -310,7 +402,13 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         for( int kkk = 0; kkk < numGaussians; kkk++ ) {
             sum += pVarInCluster[kkk]; // * clusterTruePositiveRate[kkk];
         }
-        return sum;
+
+        double sumLog10 = Math.log10(sum);
+        if( Double.isInfinite(sumLog10) || Double.isNaN(sumLog10) ) {
+            //logger.warn("pTrueLog10 = -Infinity, capped at -20");
+            sumLog10 = -20;
+        }
+        return sumLog10;
     }
 
    public final void outputClusterReports( final String outputPrefix ) {
@@ -330,7 +428,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
         }
 
-        for( VariantDatum datum : dataManager.data ) {
+        for( final VariantDatum datum : dataManager.data ) {
             final int isKnown = ( datum.isKnown ? 1 : 0 );
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 int histBin = (int)Math.round((datum.annotations[jjj]-MIN_STD) * (1.0 / STD_STEP));
@@ -368,7 +466,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     }
 
     public final void outputOptimizationCurve( final VariantDatum[] data, final String outputPrefix,
-                                               final int desiredNumVariants, final Double[] FDRtranches, double QUAL_STEP ) {
+                                               final int desiredNumVariants, final Double[] FDRtranches, final double QUAL_STEP ) {
 
         final int numVariants = data.length;
         final boolean[] markedVariant = new boolean[numVariants];
@@ -510,19 +608,27 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     }
 
 
-    private void evaluateGaussians( final VariantDatum[] data, final double[][] pVarInCluster, final int startCluster, final int stopCluster ) {
+    private double evaluateGaussians( final VariantDatum[] data, final double[][] pVarInCluster, final int startCluster, final int stopCluster ) {
 
         final int numAnnotations = data[0].annotations.length;
         double likelihood = 0.0;
         final double sigmaVals[][][] = new double[numGaussians][][];
-        final double denom[] = new double[numGaussians];
+        final double denomLog10[] = new double[numGaussians];
+        final double pVarInClusterLog10[] = new double[numGaussians];
+        double pVarInClusterReals[];
+
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
             sigmaVals[kkk] = sigma[kkk].inverse().getArray();
-            denom[kkk] = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(Math.abs(determinant[kkk]), 0.5);
+            denomLog10[kkk] = Math.log10(Math.pow(2.0 * Math.PI, ((double)numAnnotations) / 2.0)) + Math.log10(Math.pow(determinant[kkk], 0.5));
+            if( Double.isInfinite(denomLog10[kkk]) ) {
+                throw new StingException("Numerical Instability! Determinant value is too small: " + determinant[kkk] +
+                        "Try running with fewer annotations and then with fewer Gaussians.");
+            }
         }
         final double mult[] = new double[numAnnotations];
+        double sumWeight = 0.0;
         for( int iii = 0; iii < data.length; iii++ ) {
-            double sumProb = 0.0;
+            sumWeight += data[iii].weight;
             for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
                 double sum = 0.0;
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
@@ -535,47 +641,40 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     sum += mult[jjj] * (data[iii].annotations[jjj] - mu[kkk][jjj]);
                 }
 
-                pVarInCluster[kkk][iii] = pCluster[kkk] * (Math.exp( -0.5 * sum ) / denom[kkk]);
-                likelihood += pVarInCluster[kkk][iii];
-                if(Double.isNaN(denom[kkk]) || determinant[kkk] < 0.5 * MIN_DETERMINANT) {
-                    System.out.println("det = " + sigma[kkk].det());
-                    System.out.println("denom = " + denom[kkk]);
-                    System.out.println("sumExp = " + sum);
-                    System.out.println("pVar = " + pVarInCluster[kkk][iii]);
-                    System.out.println("=-------=");
-                    throw new StingException("Numerical Instability! determinant of covariance matrix <= 0. Try running with fewer clusters and then with better behaved annotation values.");
-                }
-                if(sum < 0.0) {
-                    System.out.println("det = " + sigma[kkk].det());
-                    System.out.println("denom = " + denom[kkk]);
-                    System.out.println("sumExp = " + sum);
-                    System.out.println("pVar = " + pVarInCluster[kkk][iii]);
-                    System.out.println("=-------=");
-                    throw new StingException("Numerical Instability! covariance matrix no longer positive definite. Try running with fewer clusters and then with better behaved annotation values.");
-                }
-                if(pVarInCluster[kkk][iii] > 1.0) {
-                    System.out.println("det = " + sigma[kkk].det());
-                    System.out.println("denom = " + denom[kkk]);
-                    System.out.println("sumExp = " + sum);
-                    System.out.println("pVar = " + pVarInCluster[kkk][iii]);
-                    System.out.println("=-------=");
-                    throw new StingException("Numerical Instability! probability distribution returns > 1.0. Try running with fewer clusters and then with better behaved annotation values.");
-                }
+                pVarInClusterLog10[kkk] = pClusterLog10[kkk] + (( -0.5 * sum )/Math.log(10.0)) - denomLog10[kkk];
+                final double pVar = Math.pow(10.0, pVarInClusterLog10[kkk]);
+                likelihood += pVar * data[iii].weight;
 
-                if( pVarInCluster[kkk][iii] < MIN_PROB ) { // Very small numbers are a very big problem
-                    pVarInCluster[kkk][iii] = MIN_PROB; // + MIN_PROB * rand.nextDouble();
-                }
+                if( pVarInClusterLog10[kkk] > 0.0 || Double.isNaN(pVarInClusterLog10[kkk]) || Double.isInfinite(pVarInClusterLog10[kkk]) ) {
+                    logger.warn("det = " + sigma[kkk].det());
+                    logger.warn("denom = " + denomLog10[kkk]);
+                    logger.warn("sumExp = " + sum);
+                    logger.warn("pVar = " + pVar);
+                    for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                        for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                            logger.warn(sigmaVals[kkk][ppp][jjj]);
+                        }
+                    }
 
-                sumProb += pVarInCluster[kkk][iii];
+                    logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
+                            "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
+                    throw new StingException("Numerical Instability! Found NaN after performing log10: " + pVarInClusterLog10[kkk] + ", cluster = " + kkk + ", variant index = " + iii);
+                }
             }
 
+            pVarInClusterReals = MathUtils.normalizeFromLog10( pVarInClusterLog10 );
             for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-                pVarInCluster[kkk][iii] /= sumProb;
-                pVarInCluster[kkk][iii] *= data[iii].weight;
+                pVarInCluster[kkk][iii] = pVarInClusterReals[kkk] * data[iii].weight;
+                if( Double.isNaN(pVarInCluster[kkk][iii]) ) {
+                    logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
+                            "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
+                    throw new StingException("Numerical Instability! Found NaN after rescaling log10 values: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
+                }
             }
         }
 
-        logger.info("Explained likelihood = " + String.format("%.5f",likelihood / data.length));
+        logger.info("Explained likelihood = " + String.format("%.5f",likelihood / sumWeight));
+        return likelihood / sumWeight;
     }
 
 
@@ -596,8 +695,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 sum += mult[jjj] * (annotations[jjj] - mu[kkk][jjj]);
             }
 
-            final double denom = Math.pow(2.0 * 3.14159, ((double)numAnnotations) / 2.0) * Math.pow(determinant[kkk], 0.5);
-            pVarInCluster[kkk] =  pCluster[kkk] * (Math.exp( -0.5 * sum )) / denom;
+            final double denomLog10 = Math.log10(Math.pow(2.0 * Math.PI, ((double)numAnnotations) / 2.0)) + Math.log10(Math.pow(determinant[kkk], 0.5));
+            pVarInCluster[kkk] = Math.pow(10.0, pClusterLog10[kkk] + (( -0.5 * sum ) / Math.log(10.0)) - denomLog10);
         }
     }
 
@@ -607,10 +706,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         final int numVariants = data.length;
         final int numAnnotations = data[0].annotations.length;
         final double sigmaVals[][][] = new double[numGaussians][numAnnotations][numAnnotations];
+        final double meanVals[][] = new double[numGaussians][numAnnotations];
 
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                mu[kkk][jjj] = 0.0;
+                meanVals[kkk][jjj] = 0.0;
                 for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
                     sigmaVals[kkk][jjj][ppp] = 0.0;
                 }
@@ -621,29 +721,34 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             double sumProb = 0.0;
             for( int iii = 0; iii < numVariants; iii++ ) {
                 final double prob = pVarInCluster[kkk][iii];
+                if( Double.isNaN(prob) ) {
+                    logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
+                            "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
+                    throw new StingException("Numerical Instability! Found NaN in M-step: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
+                }
                 sumProb += prob;
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    mu[kkk][jjj] +=  prob * data[iii].annotations[jjj];
+                    meanVals[kkk][jjj] +=  prob * data[iii].annotations[jjj];
                 }
             }
 
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                mu[kkk][jjj] /=  sumProb;
+                meanVals[kkk][jjj] /=  sumProb;
             }
 
             for( int iii = 0; iii < numVariants; iii++ ) {
                 final double prob = pVarInCluster[kkk][iii];
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                     for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
-                        sigmaVals[kkk][jjj][ppp] +=  prob * (data[iii].annotations[jjj]-mu[kkk][jjj]) * (data[iii].annotations[ppp]-mu[kkk][ppp]);
+                        sigmaVals[kkk][jjj][ppp] +=  prob * (data[iii].annotations[jjj]-meanVals[kkk][jjj]) * (data[iii].annotations[ppp]-meanVals[kkk][ppp]);
                     }
                 }
             }
 
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
-                    if( sigmaVals[kkk][jjj][ppp] < MIN_SIGMA ) { // Very small numbers are a very big problem
-                        sigmaVals[kkk][jjj][ppp] = MIN_SIGMA;// + MIN_SIGMA * rand.nextDouble();
+                    if( sigmaVals[kkk][jjj][ppp] < MIN_SIGMA && sigmaVals[kkk][jjj][ppp] > -MIN_SIGMA ) { // Very small numbers are a very big problem
+                        logger.warn("The sigma values look exceptionally small.... Probably about to crash due to numeric instability.");
                     }
                     sigmaVals[kkk][ppp][jjj] = sigmaVals[kkk][jjj][ppp]; // sigma must be a symmetric matrix
                 }
@@ -651,103 +756,41 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                    sigmaVals[kkk][jjj][ppp] /=  sumProb;
+                    sigmaVals[kkk][jjj][ppp] /= sumProb;
                 }
             }
 
-            sigma[kkk] = new Matrix(sigmaVals[kkk]);
-            determinant[kkk] = sigma[kkk].det();
-
-            pCluster[kkk] = sumProb / numVariants;
-            sumPK += pCluster[kkk];
-        }
-
-        // ensure pCluster sums to one, it doesn't automatically due to very small numbers getting capped
-        for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            pCluster[kkk] /= sumPK;
-        }
-
-        /*
-        // Clean up extra big or extra small clusters
-        for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            if( pCluster[kkk] > 0.45 ) { // This is a very large cluster compared to all the others
-                System.out.println("!! Found very large cluster! Busting it up into smaller clusters.");
-                final int numToReplace = 3;
-                final Matrix savedSigma = sigma[kkk];
-                for( int rrr = 0; rrr < numToReplace; rrr++ ) {
-                    // Find an example variant in the large cluster, drawn randomly
-                    int randVarIndex = -1;
-                    boolean foundVar = false;
-                    while( !foundVar ) {
-                        randVarIndex = rand.nextInt( numVariants );
-                        final double probK = pVarInCluster[kkk][randVarIndex];
-                        boolean inClusterK = true;
-                        for( int ccc = startCluster; ccc < stopCluster; ccc++ ) {
-                            if( pVarInCluster[ccc][randVarIndex] > probK ) {
-                                inClusterK = false;
-                                break;
-                            }
-                        }
-                        if( inClusterK ) { foundVar = true; }
-                    }
-
-                    // Find a place to put the example variant
-                    if( rrr == 0 ) { // Replace the big cluster that kicked this process off
-                        mu[kkk] = data[randVarIndex].annotations;
-                        pCluster[kkk] = 1.0 / ((double) (stopCluster-startCluster));
-                    } else { // Replace the cluster with the minimum prob
-                        double minProb = pCluster[startCluster];
-                        int minClusterIndex = startCluster;
-                        for( int ccc = startCluster; ccc < stopCluster; ccc++ ) {
-                            if( pCluster[ccc] < minProb ) {
-                                minProb = pCluster[ccc];
-                                minClusterIndex = ccc;
-                            }
-                        }
-                        mu[minClusterIndex] = data[randVarIndex].annotations;
-                        sigma[minClusterIndex] = savedSigma;
-                        //for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        //    for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                        //        sigma[minClusterIndex].set(jjj, ppp, sigma[minClusterIndex].get(jjj, ppp) - 0.06 + 0.12 * rand.nextDouble());
-                        //    }
-                        //}
-                        pCluster[minClusterIndex] = 0.5 / ((double) (stopCluster-startCluster));
-                    }
-                }
-            }
-        }
-        */
-
-        /*
-        // Replace extremely small clusters with another random draw from the dataset
-        for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            if( pCluster[kkk] < 0.0005 * (1.0 / ((double) (stopCluster-startCluster))) ||
-                    determinant[kkk] < MIN_DETERMINANT ) { // This is a very small cluster compared to all the others
-                logger.info("!! Found singular cluster! Initializing a new random cluster.");
-                pCluster[kkk] = 0.1 / ((double) (stopCluster-startCluster)); 
-                mu[kkk] = data[rand.nextInt(numVariants)].annotations;
-                final double[][] randSigma = new double[numAnnotations][numAnnotations];
+            if( FORCE_INDEPENDENT_ANNOTATIONS ) {
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
-                        randSigma[ppp][jjj] = 0.50 + 0.5 * rand.nextDouble(); // data is normalized so this is centered at 1.0
-                        if(jjj != ppp) { randSigma[jjj][ppp] = 0.0; } // Sigma is a symmetric, positive-definite matrix
+                    for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                        if(jjj!=ppp) {
+                            sigmaVals[kkk][jjj][ppp] = 0.0;
+                        }
                     }
                 }
-                Matrix tmp = new Matrix(randSigma);
-                tmp = tmp.times(tmp.transpose());
-                sigma[kkk] = tmp;
-                determinant[kkk] = sigma[kkk].det();
+
             }
+            
+            final Matrix tmpMatrix = new Matrix(sigmaVals[kkk]);
+            if( tmpMatrix.det() > MIN_DETERMINANT ) {
+                sigma[kkk] = new Matrix(sigmaVals[kkk]);
+                determinant[kkk] = sigma[kkk].det();
+
+                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                    mu[kkk][jjj] = meanVals[kkk][jjj];
+                }
+            } else {
+                logger.warn("Tried to create a covariance matrix with exceptionally small determinant.");
+            }
+
+            pClusterLog10[kkk] = sumProb;
+            sumPK += sumProb;
         }
 
-        // renormalize pCluster since things might have changed due to the previous step
-        sumPK = 0.0;
         for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            sumPK += pCluster[kkk];
+           pClusterLog10[kkk] = Math.log10( pClusterLog10[kkk] / sumPK );
         }
-        for( int kkk = startCluster; kkk < stopCluster; kkk++ ) {
-            pCluster[kkk] /= sumPK;
-        }
-        */
+
+        pClusterLog10 = MathUtils.normalizeFromLog10( pClusterLog10, true );
     }
 }
