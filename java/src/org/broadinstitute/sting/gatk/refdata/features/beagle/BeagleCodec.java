@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata.features.beagle;
 
+import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTableFeature;
 /*
@@ -57,6 +58,10 @@ public class BeagleCodec implements FeatureCodec<BeagleFeature> {
 
     private static final String delimiterRegex = "\\s+";
 
+    public Feature decodeLoc(String line) {
+        return decode(line);
+    }
+    
     public static String[] readHeader(final File source) throws IOException {
         FileInputStream is = new FileInputStream(source);
         try {

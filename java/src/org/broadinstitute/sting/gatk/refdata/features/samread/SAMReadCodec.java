@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.features.samread;
 
+import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.util.ParsingUtils;
@@ -64,6 +65,10 @@ public class SAMReadCodec implements FeatureCodec<SAMReadFeature> {
     @Override
     public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
         return null;  // we haven't stored the header
+    }
+
+    public Feature decodeLoc(String line) {
+        return decode(line);
     }
 
     /**

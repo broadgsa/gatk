@@ -135,6 +135,10 @@ public class VCF4Codec implements FeatureCodec {
     // a key optimization -- we need a per thread string parts array, so we don't allocate a big array over and over
     private String[] parts = null;
 
+    public Feature decodeLoc(String line) {
+        return decode(line);
+    }
+
     public Feature decode(String line) {
         if ( parts == null )
             parts = REQUIRE_HEADER ? new String[header.getColumnCount()] : new String[10000];    // todo -- remove require header

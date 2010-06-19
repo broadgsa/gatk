@@ -76,6 +76,10 @@ public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
         return null;  // we don't have a header
     }
 
+    public Feature decodeLoc(String line) {
+        return decode(line);
+    }
+
     public SAMPileupFeature decode(String line) {
 //       0          1             2         3                  4         5            6         7
 //*     chrX     466           T         Y                170      170       88      32 ... (piles of read bases  and quals follow)

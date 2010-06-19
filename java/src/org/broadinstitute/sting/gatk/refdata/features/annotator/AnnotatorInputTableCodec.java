@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.util.AsciiLineReader;
@@ -74,7 +75,11 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         return null;  // TODO: do we want the header to be a concrete type?
     }
 
-
+    // todo -- probably worth implementing for performance reasons
+    public Feature decodeLoc(String line) {
+        return decode(line);
+    }
+    
     /**
      * Parses the line into an AnnotatorInputTableFeature object.
      *
