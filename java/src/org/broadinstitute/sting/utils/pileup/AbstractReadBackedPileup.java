@@ -113,6 +113,16 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
         calculateCachedData();
     }
 
+    protected AbstractReadBackedPileup(GenomeLoc loc, Map<String,AbstractReadBackedPileup<RBP,PE>> pileupsBySample) {
+        this.loc = loc;
+        PerSamplePileupElementTracker<PE> tracker = new PerSamplePileupElementTracker<PE>();
+        for(Map.Entry<String,AbstractReadBackedPileup<RBP,PE>> pileupEntry: pileupsBySample.entrySet()) {
+            tracker.addElements(pileupEntry.getKey(),pileupEntry.getValue().pileupElementTracker);
+            addPileupToCumulativeStats(pileupEntry.getValue());
+        }
+        this.pileupElementTracker = tracker;
+    }
+
     /**
      * Calculate cached sizes, nDeletion, and base counts for the pileup.  This calculation is done upfront,
      * so you pay the cost at the start, but it's more efficient to do this rather than pay the cost of calling
@@ -132,6 +142,12 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
                 nMQ0Reads++;
             }
         }
+    }
+
+    protected void addPileupToCumulativeStats(AbstractReadBackedPileup<RBP,PE> pileup) {
+        size += pileup.size();
+        nDeletions += pileup.getNumberOfDeletions();
+        nMQ0Reads += pileup.getNumberOfMappingQualityZeroReads();
     }
 
     /**

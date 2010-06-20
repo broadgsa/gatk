@@ -32,8 +32,8 @@ import java.util.*;
 import net.sf.samtools.SAMRecord;
 
 public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<ReadBackedExtendedEventPileup, ExtendedEventPileupElement> implements ReadBackedExtendedEventPileup {
-    private int nInsertions = 0;
-    private int maxDeletionLength = 0;      // cached value of the length of the longest deletion observed at the site
+    private int nInsertions;
+    private int maxDeletionLength;      // cached value of the length of the longest deletion observed at the site
 
     public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, List<ExtendedEventPileupElement> pileupElements) {
         super(loc,pileupElements);
@@ -55,8 +55,8 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
         this.nInsertions = nInsertions;
     }
 
-    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<String,AbstractReadBackedPileup<?,ExtendedEventPileupElement>> pileupElementsBySample) {
-        super(loc,new PerSamplePileupElementTracker<ExtendedEventPileupElement>(pileupElementsBySample));
+    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<String,AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement>> pileupElementsBySample) {
+        super(loc,pileupElementsBySample);
     }
 
     /**
@@ -68,15 +68,26 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
     protected void calculateCachedData() {
         super.calculateCachedData();
 
-        nDeletions = 0;
-        maxDeletionLength = 0;
-        for ( ExtendedEventPileupElement p : this.toExtendedIterable()) {
+        nInsertions = 0;
+        nMQ0Reads = 0;
+
+        for ( ExtendedEventPileupElement p : this.toExtendedIterable() ) {
+
             if ( p.isDeletion() ) {
-                nDeletions++;
                 maxDeletionLength = Math.max(maxDeletionLength, p.getEventLength());
+            } else {
+                if ( p.isInsertion() ) nInsertions++;
             }
         }
-    }    
+    }
+
+    @Override
+    protected void addPileupToCumulativeStats(AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement> pileup) {
+        super.addPileupToCumulativeStats(pileup);
+        ReadBackedExtendedEventPileup extendedEventPileup = ((ReadBackedExtendedEventPileup)pileup);
+        this.nInsertions += extendedEventPileup.getNumberOfInsertions();
+        this.maxDeletionLength += extendedEventPileup.getMaxDeletionLength();
+    }
 
     @Override
     protected ReadBackedExtendedEventPileup createNewPileup(GenomeLoc loc, PileupElementTracker<ExtendedEventPileupElement> tracker) {

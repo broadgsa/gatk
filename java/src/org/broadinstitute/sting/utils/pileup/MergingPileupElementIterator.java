@@ -44,7 +44,7 @@ class MergingPileupElementIterator<PE extends PileupElement> implements Iterator
         for(String sampleName: tracker.getSamples()) {
             PileupElementTracker<PE> trackerPerSample = tracker.getElements(sampleName);
             if(trackerPerSample.size() != 0)
-                perSampleIterators.add(new PeekableIterator<PE>(tracker.iterator()));
+                perSampleIterators.add(new PeekableIterator<PE>(trackerPerSample.iterator()));
         }
     }
 

@@ -47,8 +47,8 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
         super(loc,pileupElements);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, Map<String,AbstractReadBackedPileup<?,PileupElement>> pileupElementsBySample) {
-        super(loc,new PerSamplePileupElementTracker<PileupElement>(pileupElementsBySample));
+    public ReadBackedPileupImpl(GenomeLoc loc, Map<String,AbstractReadBackedPileup<ReadBackedPileup,PileupElement>> pileupElementsBySample) {
+        super(loc,pileupElementsBySample);
     }
 
     /**

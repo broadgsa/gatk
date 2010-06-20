@@ -359,7 +359,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             // In this case, the subsequent call to next() will emit the normal pileup at the current base
             // and shift the position.
             if (readInfo.generateExtendedEvents() && hasExtendedEvents) {
-                Map<String,AbstractReadBackedPileup<?,ExtendedEventPileupElement>> fullExtendedEventPileup = new HashMap<String,AbstractReadBackedPileup<?,ExtendedEventPileupElement>>();
+                Map<String,AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement>> fullExtendedEventPileup =
+                        new HashMap<String,AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement>>();
 
                 SAMRecordState our1stState = readStates.getFirst();
                 // get current location on the reference and decrement it by 1: the indels we just stepped over
@@ -411,9 +412,8 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                         if ( state.getRead().getMappingQuality() == 0 ) {
                             nMQ0Reads++;
                         }
-                        // TODO: sample split!
-                        if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new ReadBackedExtendedEventPileupImpl(loc,indelPile,size,maxDeletionLength,nDeletions,nInsertions,nMQ0Reads));
                     }
+                    if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new ReadBackedExtendedEventPileupImpl(loc,indelPile,size,maxDeletionLength,nInsertions,nDeletions,nMQ0Reads));                    
                 }
                 hasExtendedEvents = false; // we are done with extended events prior to current ref base
 //                System.out.println("Indel(s) at "+loc);
@@ -421,7 +421,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                 nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup));
             }  else {
                 GenomeLoc location = getLocation();
-                Map<String,AbstractReadBackedPileup<?,PileupElement>> fullPileup = new HashMap<String,AbstractReadBackedPileup<?,PileupElement>>();
+                Map<String,AbstractReadBackedPileup<ReadBackedPileup,PileupElement>> fullPileup = new HashMap<String,AbstractReadBackedPileup<ReadBackedPileup,PileupElement>>();
 
                 // todo -- performance problem -- should be lazy, really
                 for(String sampleName: sampleNames) {
