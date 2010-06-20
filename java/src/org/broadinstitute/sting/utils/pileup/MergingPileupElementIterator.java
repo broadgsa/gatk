@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils.pileup;
 import net.sf.picard.util.PeekableIterator;
 
 import java.util.PriorityQueue;
-import java.util.Map;
 import java.util.Comparator;
 import java.util.Iterator;
 
@@ -37,22 +36,15 @@ import java.util.Iterator;
  * @author mhanna
  * @version 0.1
  */
-class MergingPileupElementIterator implements Iterator<PileupElement> {
-    private final PriorityQueue<PeekableIterator<? extends PileupElement>> perSampleIterators;
+class MergingPileupElementIterator<PE extends PileupElement> implements Iterator<PE> {
+    private final PriorityQueue<PeekableIterator<PE>> perSampleIterators;
 
-    public MergingPileupElementIterator(Map<String,? extends Object> pileupsPerSample) {
-        perSampleIterators = new PriorityQueue<PeekableIterator<? extends PileupElement>>(pileupsPerSample.size(),new PileupElementIteratorComparator());
-        for(Object pileupForSample: pileupsPerSample.values()) {
-            if(pileupForSample instanceof ReadBackedPileup) {
-                ReadBackedPileup pileup = (ReadBackedPileup)pileupForSample;
-                if(pileup.size() != 0)
-                    perSampleIterators.add(new PeekableIterator<PileupElement>(pileup.iterator()));
-            }
-            else if(pileupForSample instanceof ReadBackedExtendedEventPileup) {
-                ReadBackedExtendedEventPileup pileup = (ReadBackedExtendedEventPileup)pileupForSample;
-                if(pileup.size() != 0)
-                    perSampleIterators.add(new PeekableIterator<ExtendedEventPileupElement>(pileup.iterator()));
-            }
+    public MergingPileupElementIterator(PerSamplePileupElementTracker<PE> tracker) {
+        perSampleIterators = new PriorityQueue<PeekableIterator<PE>>(tracker.getSamples().size(),new PileupElementIteratorComparator());
+        for(String sampleName: tracker.getSamples()) {
+            PileupElementTracker<PE> trackerPerSample = tracker.getElements(sampleName);
+            if(trackerPerSample.size() != 0)
+                perSampleIterators.add(new PeekableIterator<PE>(tracker.iterator()));
         }
     }
 
@@ -60,9 +52,9 @@ class MergingPileupElementIterator implements Iterator<PileupElement> {
         return !perSampleIterators.isEmpty();
     }
 
-    public PileupElement next() {
-        PeekableIterator<? extends PileupElement> currentIterator = perSampleIterators.remove();
-        PileupElement current = currentIterator.next();
+    public PE next() {
+        PeekableIterator<PE> currentIterator = perSampleIterators.remove();
+        PE current = currentIterator.next();
         if(currentIterator.hasNext())
             perSampleIterators.add(currentIterator);
         return current;
@@ -75,8 +67,8 @@ class MergingPileupElementIterator implements Iterator<PileupElement> {
     /**
      * Compares two peekable iterators consisting of pileup elements.
      */
-    private class PileupElementIteratorComparator implements Comparator<PeekableIterator<? extends PileupElement>> {
-        public int compare(PeekableIterator<? extends PileupElement> lhs, PeekableIterator<? extends PileupElement> rhs) {
+    private class PileupElementIteratorComparator implements Comparator<PeekableIterator<PE>> {
+        public int compare(PeekableIterator<PE> lhs, PeekableIterator<PE> rhs) {
             return rhs.peek().getOffset() - lhs.peek().getOffset();
         }
     }

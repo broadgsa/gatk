@@ -145,7 +145,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
      */
     public boolean hasSecondaryBases();
 
-    public String getPileupString(char ref);
+    public String getPileupString(Character ref);
 
     /**
      * Returns a list of the reads in this pileup. Note this call costs O(n) and allocates fresh lists each time

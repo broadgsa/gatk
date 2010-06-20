@@ -33,8 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.MergingIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.UnifiedReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
 
 import java.util.*;
@@ -137,7 +136,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         // calculate the number of skipped bases, and update lastLoc so we can do that again in the next()
         long skippedBases = getSkippedBases( rodSite );
         lastLoc = site;
-        return new AlignmentContext(site, new UnifiedReadBackedPileup(site), skippedBases);
+        return new AlignmentContext(site, new ReadBackedPileupImpl(site), skippedBases);
     }
 
     public LocusOverflowTracker getLocusOverflowTracker() {

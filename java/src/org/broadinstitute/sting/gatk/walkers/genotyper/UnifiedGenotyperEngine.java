@@ -238,19 +238,19 @@ public class UnifiedGenotyperEngine {
                   AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
                 filteredPileup.add(p);
         }
-        return new UnifiedReadBackedPileup(pileup.getLocation(), filteredPileup);
+        return new ReadBackedPileupImpl(pileup.getLocation(), filteredPileup);
     }
 
     // filter based on maximum mismatches and bad mates
     private ReadBackedExtendedEventPileup filterPileup(ReadBackedExtendedEventPileup pileup, ReferenceContext refContext) {
 
         ArrayList<ExtendedEventPileupElement> filteredPileup = new ArrayList<ExtendedEventPileupElement>();
-        for ( ExtendedEventPileupElement p : pileup ) {
+        for ( ExtendedEventPileupElement p : pileup.toExtendedIterable() ) {
             if  ( (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
                   AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
                 filteredPileup.add(p);
         }
-        return new UnifiedReadBackedExtendedEventPileup(pileup.getLocation(), filteredPileup);
+        return new ReadBackedExtendedEventPileupImpl(pileup.getLocation(), filteredPileup);
     }
 
     private static boolean isValidDeletionFraction(double d) {

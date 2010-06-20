@@ -11,8 +11,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.UnifiedReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
 /**
  * A simple solution to iterating over all reference positions over a series of genomic locations.
@@ -93,7 +92,7 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
             long nSkipped = rodLocusView.getLastSkippedBases();
             if ( nSkipped > 0 ) {
                 GenomeLoc site = rodLocusView.getLocOneBeyondShard();
-                AlignmentContext ac = new AlignmentContext(site, new UnifiedReadBackedPileup(site), nSkipped);
+                AlignmentContext ac = new AlignmentContext(site, new ReadBackedPileupImpl(site), nSkipped);
                 M x = walker.map(null, null, ac);
                 sum = walker.reduce(x, sum);
             }

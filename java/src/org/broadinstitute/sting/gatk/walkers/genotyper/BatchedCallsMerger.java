@@ -38,7 +38,7 @@ import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.UnifiedReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broad.tribble.vcf.VCFHeaderLine;
 
 import java.util.*;
@@ -159,7 +159,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
             if ( readGroup != null && samples.contains(readGroup.getSample()) )
                 newPileup.add(p);
         }
-        return new AlignmentContext(pileup.getLocation(), new UnifiedReadBackedPileup(pileup.getLocation(), newPileup));
+        return new AlignmentContext(pileup.getLocation(), new ReadBackedPileupImpl(pileup.getLocation(), newPileup));
 
     }
 

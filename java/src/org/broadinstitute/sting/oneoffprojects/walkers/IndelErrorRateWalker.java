@@ -86,7 +86,7 @@ public class IndelErrorRateWalker extends LocusWalker<Integer,Integer> {
     }
 
     private void countIndels(ReadBackedExtendedEventPileup p) {
-        for ( ExtendedEventPileupElement pe : p ) {
+        for ( ExtendedEventPileupElement pe : p.toExtendedIterable() ) {
             if ( ! pe.isIndel() ) continue;
             if ( pe.getEventLength() > MAX_LENGTH ) continue;
             if ( pe.isInsertion() ) insCounts[pe.getEventLength()-1]++;

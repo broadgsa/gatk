@@ -30,7 +30,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.UnifiedReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
 import java.util.List;
 import java.util.Arrays;
@@ -115,7 +115,7 @@ public class DupUtils {
 
     private static Pair<Byte, Byte> combineBaseProbs(List<SAMRecord> duplicates, int readOffset, int maxQScore) {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(duplicates.get(0));
-        ReadBackedPileup pileup = new UnifiedReadBackedPileup(loc, duplicates, readOffset);
+        ReadBackedPileup pileup = new ReadBackedPileupImpl(loc, duplicates, readOffset);
 
         final boolean debug = false;
 

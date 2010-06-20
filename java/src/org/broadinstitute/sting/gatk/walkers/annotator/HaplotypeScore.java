@@ -34,10 +34,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.ExtendedPileupElement;
-import org.broadinstitute.sting.utils.pileup.UnifiedReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
 import net.sf.samtools.SAMRecord;
@@ -266,7 +263,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             }
         }
 
-        return new UnifiedReadBackedPileup(pileup.getLocation(), reads, offsets);
+        return new ReadBackedPileupImpl(pileup.getLocation(), reads, offsets);
     }
 
     private static ReadBackedPileup getPileupOfAllele( Allele allele, ReadBackedPileup pileup ) {
@@ -279,7 +276,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             }
         }
 
-        return new UnifiedReadBackedPileup(pileup.getLocation(), filteredPileup);
+        return new ReadBackedPileupImpl(pileup.getLocation(), filteredPileup);
     }
 
     public List<String> getKeyNames() { return Arrays.asList("HaplotypeScore"); }

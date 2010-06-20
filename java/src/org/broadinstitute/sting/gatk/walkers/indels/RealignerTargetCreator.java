@@ -91,7 +91,7 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
             if ( pileup.getNumberOfInsertions() > 0 ) {
                 hasIndel = hasInsertion = true;
                 // check the ends of the reads to see how far they extend
-                for (ExtendedEventPileupElement p : pileup )
+                for (ExtendedEventPileupElement p : pileup.toExtendedIterable() )
                     furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
             }
         }

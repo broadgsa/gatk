@@ -359,7 +359,7 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
             // In this case, the subsequent call to next() will emit the normal pileup at the current base
             // and shift the position.
             if (readInfo.generateExtendedEvents() && hasExtendedEvents) {
-                Map<String,ReadBackedExtendedEventPileup> fullExtendedEventPileup = new HashMap<String,ReadBackedExtendedEventPileup>();
+                Map<String,AbstractReadBackedPileup<?,ExtendedEventPileupElement>> fullExtendedEventPileup = new HashMap<String,AbstractReadBackedPileup<?,ExtendedEventPileupElement>>();
 
                 SAMRecordState our1stState = readStates.getFirst();
                 // get current location on the reference and decrement it by 1: the indels we just stepped over
@@ -412,16 +412,16 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                             nMQ0Reads++;
                         }
                         // TODO: sample split!
-                        if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new UnifiedReadBackedExtendedEventPileup(loc,indelPile,size,maxDeletionLength,nDeletions,nInsertions,nMQ0Reads));
+                        if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new ReadBackedExtendedEventPileupImpl(loc,indelPile,size,maxDeletionLength,nDeletions,nInsertions,nMQ0Reads));
                     }
                 }
                 hasExtendedEvents = false; // we are done with extended events prior to current ref base
 //                System.out.println("Indel(s) at "+loc);
 //               for ( ExtendedEventPileupElement pe : indelPile ) { if ( pe.isIndel() ) System.out.println("  "+pe.toString()); }
-                nextAlignmentContext = new AlignmentContext(loc, new SampleSplitReadBackedExtendedEventPileup(loc, fullExtendedEventPileup));
+                nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup));
             }  else {
                 GenomeLoc location = getLocation();
-                Map<String,ReadBackedPileup> fullPileup = new HashMap<String,ReadBackedPileup>();
+                Map<String,AbstractReadBackedPileup<?,PileupElement>> fullPileup = new HashMap<String,AbstractReadBackedPileup<?,PileupElement>>();
 
                 // todo -- performance problem -- should be lazy, really
                 for(String sampleName: sampleNames) {
@@ -456,12 +456,12 @@ public class DownsamplingLocusIteratorByState extends LocusIterator {
                             nMQ0Reads++;
                         }
                     }
-                    if( pile.size() != 0 ) fullPileup.put(sampleName,new UnifiedReadBackedPileup(location,pile,size,nDeletions,nMQ0Reads));
+                    if( pile.size() != 0 ) fullPileup.put(sampleName,new ReadBackedPileupImpl(location,pile,size,nDeletions,nMQ0Reads));
                 }
 
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
                 // if we got reads with non-D/N over the current position, we are done
-                if ( !fullPileup.isEmpty() ) nextAlignmentContext = new AlignmentContext(location, new SampleSplitReadBackedPileup(location, fullPileup));
+                if ( !fullPileup.isEmpty() ) nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location,fullPileup));
             }
         }
     }

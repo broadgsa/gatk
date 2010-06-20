@@ -30,7 +30,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-import org.broadinstitute.sting.utils.pileup.UnifiedReadBackedPileup;
+    import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
 
 import java.util.*;
@@ -81,7 +81,7 @@ public class AlignmentContext {
         if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
 
         this.loc = loc;
-        this.basePileup = new UnifiedReadBackedPileup(loc, reads, offsets);
+        this.basePileup = new ReadBackedPileupImpl(loc, reads, offsets);
         this.skippedBases = skippedBases;
     }
 

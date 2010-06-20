@@ -38,7 +38,7 @@ import java.util.*;
  * User: ebanks
  * Modified: chartl (split by read group)
  */
-public class StratifiedAlignmentContext {
+public class StratifiedAlignmentContext<PE extends PileupElement> {
 
     // Definitions:
     //   COMPLETE = full alignment context
@@ -55,7 +55,7 @@ public class StratifiedAlignmentContext {
 //    private ArrayList<SAMRecord>[] reads = new ArrayList[StratifiedContextType.values().length];
 //    private ArrayList<Integer>[] offsets = new ArrayList[StratifiedContextType.values().length];
 
-    private ArrayList<PileupElement>[] pileupElems = new ArrayList[StratifiedContextType.values().length];
+    private ArrayList<PE>[] pileupElems = new ArrayList[StratifiedContextType.values().length];
     //
     // accessors
     //
@@ -63,7 +63,7 @@ public class StratifiedAlignmentContext {
 //    public ArrayList<SAMRecord> getReads(StratifiedContextType type) { return reads[type.ordinal()]; }
 //    public ArrayList<Integer> getOffsets(StratifiedContextType type) { return offsets[type.ordinal()]; }
 
-    public ArrayList<PileupElement> getPileupElements(StratifiedContextType type) {
+    public ArrayList<PE> getPileupElements(StratifiedContextType type) {
         return pileupElems[type.ordinal()];
     }
 
@@ -81,8 +81,8 @@ public class StratifiedAlignmentContext {
         this.loc = loc;
         this.isExtended = isExtended;
         for ( int i = 0; i < StratifiedContextType.values().length; i++) {
-            if ( isExtended ) pileupElems[i] = new ArrayList<PileupElement>();
-            else pileupElems[i] = new ArrayList<PileupElement>();
+            if ( isExtended ) pileupElems[i] = new ArrayList<PE>();
+            else pileupElems[i] = new ArrayList<PE>();
         }
     }
 
@@ -90,9 +90,9 @@ public class StratifiedAlignmentContext {
         int index = type.ordinal();
         if ( contexts[index] == null ) {
             if ( isExtended ) {
-                contexts[index] = new AlignmentContext(loc , new UnifiedReadBackedExtendedEventPileup(loc, (ArrayList<ExtendedEventPileupElement>)((ArrayList<? extends PileupElement>)getPileupElements(type))));
+                contexts[index] = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc,(List<ExtendedEventPileupElement>)getPileupElements(type)));
             } else {
-                contexts[index] = new AlignmentContext(loc, new UnifiedReadBackedPileup(loc, getPileupElements(type)));
+                contexts[index] = new AlignmentContext(loc, new ReadBackedPileupImpl(loc,(List<PileupElement>)getPileupElements(type)));
             }
         }
         return contexts[index];
@@ -101,14 +101,14 @@ public class StratifiedAlignmentContext {
     public void add(SAMRecord read, int offset) {
         if ( isExtended ) throw new StingException("Can not add read/offset without event type specified to the context holding extended events");
         if ( read.getReadNegativeStrandFlag() ) {
-            pileupElems[StratifiedContextType.REVERSE.ordinal()].add(new PileupElement(read,offset));
+            pileupElems[StratifiedContextType.REVERSE.ordinal()].add((PE)new PileupElement(read,offset));
         } else {
-            pileupElems[StratifiedContextType.FORWARD.ordinal()].add(new PileupElement(read,offset));
+            pileupElems[StratifiedContextType.FORWARD.ordinal()].add((PE)new PileupElement(read,offset));
         }
-        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add(new PileupElement(read,offset));
+        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add((PE)new PileupElement(read,offset));
      }
 
-    public void add(PileupElement p) {
+    public void add(PE p) {
 //        if ( isExtended ) throw new StingException("Can not add simple pileup element to the context holding extended events");
         SAMRecord read = p.getRead();
         if ( read.getReadNegativeStrandFlag() ) {
@@ -122,11 +122,11 @@ public class StratifiedAlignmentContext {
     public void add(SAMRecord read, int offset, int length, byte [] bases) {
         if ( ! isExtended ) throw new StingException("Can not add read/offset with event type specified to the context holding simple events");
         if ( read.getReadNegativeStrandFlag() ) {
-            pileupElems[StratifiedContextType.REVERSE.ordinal()].add(new ExtendedEventPileupElement(read,offset,length,bases));
+            pileupElems[StratifiedContextType.REVERSE.ordinal()].add((PE)new ExtendedEventPileupElement(read,offset,length,bases));
         } else {
-            pileupElems[StratifiedContextType.FORWARD.ordinal()].add(new ExtendedEventPileupElement(read,offset,length,bases));
+            pileupElems[StratifiedContextType.FORWARD.ordinal()].add((PE)new ExtendedEventPileupElement(read,offset,length,bases));
         }
-        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add(new ExtendedEventPileupElement(read,offset,length,bases));
+        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add((PE)new ExtendedEventPileupElement(read,offset,length,bases));
      }
 
 //    public void add(ExtendedEventPileupElement p) {
@@ -276,8 +276,8 @@ public class StratifiedAlignmentContext {
         return contexts;
     }
 
-    public static AlignmentContext joinContexts(Collection<StratifiedAlignmentContext> contexts, StratifiedContextType type) {
-        ArrayList<PileupElement> pe = new ArrayList();
+    public static <PE> AlignmentContext joinContexts(Collection<StratifiedAlignmentContext> contexts, StratifiedContextType type) {
+        ArrayList<PE> pe = new ArrayList<PE>();
 
         if ( contexts.size() == 0  )
             throw new StingException("BUG: joinContexts requires at least one context to join");
@@ -300,7 +300,7 @@ public class StratifiedAlignmentContext {
 
         // dirty trick below. generics do not allow to cast pe (ArrayList<PileupElement>) directly to ArrayList<ExtendedEventPileupElement>,
         // so we first cast to "? extends" wildcard, then to what we actually need.
-        if ( isExtended ) return new AlignmentContext(loc, new UnifiedReadBackedExtendedEventPileup(loc, (ArrayList< ExtendedEventPileupElement>)((ArrayList<? extends PileupElement>)pe)) );
-        else return new AlignmentContext(loc, new UnifiedReadBackedPileup(loc,pe));
+        if ( isExtended ) return new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc,(List<ExtendedEventPileupElement>)pe) );
+        else return new AlignmentContext(loc, new ReadBackedPileupImpl(loc,(List<PileupElement>)pe));
     }
 }

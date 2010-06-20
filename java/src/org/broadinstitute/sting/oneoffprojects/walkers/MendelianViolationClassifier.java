@@ -529,7 +529,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         return violation;
     }
 
-    private Double getAlleleProportion(Allele a, StratifiedAlignmentContext context) {
+    private Double getAlleleProportion(Allele a, StratifiedAlignmentContext<PileupElement> context) {
         int numParental = 0;
         int total = 0;
         if ( context != null ) {

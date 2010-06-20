@@ -36,8 +36,7 @@ import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.UnifiedReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
 import java.util.*;
 
@@ -184,7 +183,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
             if ( DEBUG ) logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d read sets", site, readSets.size()));
 
             // Jump forward in the reference to this locus location
-            AlignmentContext locus = new AlignmentContext(site, new UnifiedReadBackedPileup(site));
+            AlignmentContext locus = new AlignmentContext(site, new ReadBackedPileupImpl(site));
 
             // update the number of duplicate sets we've seen
             TraversalStatistics.nRecords++;

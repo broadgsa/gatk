@@ -39,7 +39,26 @@ import net.sf.samtools.SAMRecord;
  * @author mhanna
  * @version 0.1
  */
-public interface ReadBackedExtendedEventPileup extends Iterable<ExtendedEventPileupElement> {
+public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
+    /**
+     * Returns a new ReadBackedPileup that is free of deletion spanning reads in this pileup.  Note that this
+     * does not copy the data, so both ReadBackedPileups should not be changed.  Doesn't make an unnecessary copy
+     * of the pileup (just returns this) if there are no deletions in the pileup.
+     *
+     * @return
+     */
+    public ReadBackedExtendedEventPileup getPileupWithoutDeletions();
+
+    /**
+     * Returns a new ReadBackedPileup where only one read from an overlapping read
+     * pair is retained.  If the two reads in question disagree to their basecall,
+     * neither read is retained.  If they agree on the base, the read with the higher
+     * quality observation is retained
+     *
+     * @return the newly filtered pileup
+     */
+    public ReadBackedExtendedEventPileup getOverlappingFragmentFilteredPileup();    
+    
     /**
      * Returns a new ReadBackedPileup that is free of mapping quality zero reads in this pileup.  Note that this
      * does not copy the data, so both ReadBackedPileups should not be changed.  Doesn't make an unnecessary copy
@@ -49,6 +68,26 @@ public interface ReadBackedExtendedEventPileup extends Iterable<ExtendedEventPil
      */
     public ReadBackedExtendedEventPileup getPileupWithoutMappingQualityZeroReads();
     
+    /** Returns subset of this pileup that contains only bases with quality >= minBaseQ, coming from
+     * reads with mapping qualities >= minMapQ. This method allocates and returns a new instance of ReadBackedPileup.
+     * @param minBaseQ
+     * @param minMapQ
+     * @return
+     */
+    public ReadBackedExtendedEventPileup getBaseAndMappingFilteredPileup( int minBaseQ, int minMapQ );
+
+    /** Returns subset of this pileup that contains only bases with quality >= minBaseQ.
+     * This method allocates and returns a new instance of ReadBackedPileup.
+     * @param minBaseQ
+     * @return
+     */
+    public ReadBackedExtendedEventPileup getBaseFilteredPileup( int minBaseQ );
+
+    /** Returns subset of this pileup that contains only bases coming from reads with mapping quality >= minMapQ.
+     * This method allocates and returns a new instance of ReadBackedPileup.
+     * @param minMapQ
+     * @return
+     */
     public ReadBackedExtendedEventPileup getMappingFilteredPileup( int minMapQ );
 
     /**
@@ -70,7 +109,9 @@ public interface ReadBackedExtendedEventPileup extends Iterable<ExtendedEventPil
      * @param sampleName Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedExtendedEventPileup getPileupForSample(String sampleName);    
+    public ReadBackedExtendedEventPileup getPileupForSample(String sampleName);
+
+    public Iterable<ExtendedEventPileupElement> toExtendedIterable();
 
     /**
      * Returns the number of deletion events in this pileup
@@ -110,8 +151,6 @@ public interface ReadBackedExtendedEventPileup extends Iterable<ExtendedEventPil
      */
     public GenomeLoc getLocation();
 
-    public String getShortPileupString();
-
     /**
      * Returns a list of the reads in this pileup. Note this call costs O(n) and allocates fresh lists each time
      * @return
@@ -146,6 +185,8 @@ public interface ReadBackedExtendedEventPileup extends Iterable<ExtendedEventPil
      * gives the number of reads, in which that event was observed
      */
     public List<Pair<String,Integer>> getEventStringsWithCounts(byte[] refBases);
+
+    public String getShortPileupString();    
 
     /**
      * Get an array of the mapping qualities

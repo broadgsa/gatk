@@ -68,7 +68,7 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, ExperimentalA
             countsBySize.put(al.length(),0);
         }
 
-        for ( ExtendedEventPileupElement e : pileup ) {
+        for ( ExtendedEventPileupElement e : pileup.toExtendedIterable() ) {
             if ( countsBySize.keySet().contains(e.getEventLength()) ) { // if proper length
                 if ( e.isDeletion() && vc.isDeletion() || e.isInsertion() && vc.isInsertion() ) {
                     countsBySize.put(e.getEventLength(),countsBySize.get(e.getEventLength())+1);
