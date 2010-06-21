@@ -47,8 +47,16 @@ public class IntervalUtils {
                 for (String fileOrInterval : argument.split(";")) {
 
                     // if it's a file, add items to raw interval list
-                    if (isIntervalFile(fileOrInterval))
-                        rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval));
+                    if (isIntervalFile(fileOrInterval)) {
+                        try {
+                            rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval));
+                        }
+                        catch (Exception e) {
+                            throw new StingException(String.format("Interval file %s could not be parsed in either format. " +
+                                    "The problem is:%n%s",
+                                    fileOrInterval, e.getMessage()), e);
+                        }
+                    }
 
                         // otherwise treat as an interval -> parse and add to raw interval list
                     else {
@@ -88,15 +96,21 @@ public class IntervalUtils {
     public static boolean isIntervalFile(String str) {
         // should we define list of file extensions as a public array somewhere?
         // is regex or endsiwth better?
+        File file = new File(str);
         if (str.toUpperCase().endsWith(".BED") || str.toUpperCase().endsWith(".LIST") ||
                 str.toUpperCase().endsWith(".PICARD") || str.toUpperCase().endsWith(".INTERVAL_LIST")
-                || str.toUpperCase().endsWith(".INTERVALS"))
-            return true;
+                || str.toUpperCase().endsWith(".INTERVALS")) {
+            if (file.exists())
+                return true;
+            else
+                throw new StingException(String.format("The interval file %s does not exist.", file.getAbsolutePath()));
+        }
 
-        if(new File(str).exists())
-            throw new StingException("Interval argument looks like a filename, but does not have one of " +
-                                     "the supported extensions (.bed, .list, .picard, .interval_list, or .intervals).  " +
-                                     "Please rename your file with the appropriate extension.");
+        if(file.exists())
+            throw new StingException(String.format("The interval file %s does not have one of " +
+                    "the supported extensions (.bed, .list, .picard, .interval_list, or .intervals). " +
+                    "Please rename your file with the appropriate extension. If %s is NOT supposed to be a file, " +
+                    "please move or rename the file at location %s", str, str, file.getAbsolutePath()));
 
         else return false;
     }

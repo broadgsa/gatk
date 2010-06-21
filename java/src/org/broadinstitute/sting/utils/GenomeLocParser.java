@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -314,7 +315,7 @@ public class GenomeLocParser {
      * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
      *
      * @param file_name
-     * @param rule also merge abutting intervals
+     * @return List<GenomeLoc> List of Genome Locs that have been parsed from file
      */
     public static List<GenomeLoc> intervalFileToList(final String file_name) {
         // try to open file
@@ -368,22 +369,15 @@ public class GenomeLocParser {
                 List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
                 XReadLines reader = new XReadLines(new File(file_name));
                 for(String line: reader) {
-                    try {
                         ret.add(parseGenomeInterval(line));
-                    }
-                    catch (Exception e2) {
-                        throw new StingException(String.format("Unable to parse interval: %s in file: %s", line, file_name));
-                    }
                 }
                 reader.close();
 
                 // always return null instead of empty list
                 return ret.isEmpty() ? null : ret;
             }
-            catch (Exception e2) {
-                logger.error("Attempt to parse interval file in GATK format failed: " + e2.getMessage());
-                e2.printStackTrace();
-                throw new StingException("Unable to parse out interval file in either format", e);
+            catch (IOException e2) {
+                throw new StingException("An I/O error occurred while reading the interval file.", e);
             }
         }
     }
