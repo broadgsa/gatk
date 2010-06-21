@@ -39,7 +39,6 @@ import java.util.Iterator;
 public class FastaSequenceIndexBuilder {
     public File fastaFile;
     ReferenceDataSourceProgressListener progress;  // interface that provides a method for updating user on progress of reading file
-    public FastaSequenceIndex sequenceIndex = new FastaSequenceIndex();
 
     // keep track of location in file
     long bytesRead, endOfLastLine, lastTimestamp, fileLength;  // initialized to -1 to keep 0-indexed position in file;
@@ -57,13 +56,13 @@ public class FastaSequenceIndexBuilder {
         this.progress = progress;
         this.fastaFile = fastaFile;
         fileLength = fastaFile.length();
-        parseFastaFile();
     }
 
     /**
      * Creates fasta sequence index from fasta file
+     * @return FastaSequenceIndex that is read from file
      */
-    private void parseFastaFile() {
+    public FastaSequenceIndex createIndex() {    // should this be static?
         bytesRead = -1;
         endOfLastLine = -1;
         contig = "";
@@ -73,6 +72,7 @@ public class FastaSequenceIndexBuilder {
         basesPerLine = 0;
         basesThisLine = 0;
         lastTimestamp = System.currentTimeMillis();
+        FastaSequenceIndex sequenceIndex = new FastaSequenceIndex();
 
         // initialize input stream
         DataInputStream in;
@@ -156,7 +156,7 @@ public class FastaSequenceIndexBuilder {
 
                                 // if next char is ';' or '>', then there is only one contig =>
                                 if (nextByte == ';' || nextByte == '>')
-                                    finishReadingContig();
+                                    finishReadingContig(sequenceIndex);
                             }
                         }
 
@@ -183,7 +183,7 @@ public class FastaSequenceIndexBuilder {
 
                                 // if comment or new contig, definitely end of sequence
                                 if (nextByte == ';' || nextByte == '>')
-                                    finishReadingContig();
+                                    finishReadingContig(sequenceIndex);
 
                                     // if this line has different # of bases OR same # of bases and different # of bytes:
                                     // error if next char is a valid base, end of contig otherwise
@@ -192,7 +192,7 @@ public class FastaSequenceIndexBuilder {
                                         throw new StingException(String.format("An invalid line was found in the contig: %s", contig));
                                     }
                                     else
-                                        finishReadingContig();
+                                        finishReadingContig(sequenceIndex);
                                 }
                                 endOfLastLine = bytesRead;
                             }
@@ -206,6 +206,7 @@ public class FastaSequenceIndexBuilder {
                         break;
                 }
             }
+            return sequenceIndex;
         }
         catch (IOException e) {
             throw new StingException(String.format("Could not read fasta file %s", fastaFile.getAbsolutePath()), e);        }
@@ -239,7 +240,7 @@ public class FastaSequenceIndexBuilder {
      * When reader reaches the end of a contig
      * Reset iterators and add contig to sequence index
      */
-    private void finishReadingContig() {
+    private void finishReadingContig(FastaSequenceIndex sequenceIndex) {
         sequenceIndex.addIndexEntry(contig, location, size, (int) basesPerLine, (int) bytesPerLine);
         status = Status.NONE;
         contig = "";
@@ -256,22 +257,18 @@ public class FastaSequenceIndexBuilder {
     /**
      * Stores FastaSequenceIndex as a .fasta.fai file on local machine
      * Although method is public it cannot be called on any old FastaSequenceIndex - must be created by a FastaSequenceIndexBuilder
+     * @param sequenceIndex sequenceIndex to be saved
+     * @param faiFile file where we should store index
      */
-    public void saveAsFaiFile() {
-        File indexFile  = new File(fastaFile.getAbsolutePath() + ".fai");
-
-        if (indexFile.exists()) {
-            throw new StingException(String.format("Fai file could not be created, because a file with name %s already exists." +
-                    "Please delete or rename this file and try again.", indexFile.getAbsolutePath()));
-        }
+    public static void saveAsFaiFile(FastaSequenceIndex sequenceIndex, File faiFile) {
 
         BufferedWriter out;
         try {
-            out = new BufferedWriter(new FileWriter(indexFile));
+            out = new BufferedWriter(new FileWriter(faiFile));
         }
         catch (Exception e) {
             throw new StingException(String.format("Could not open file %s for writing. Check that GATK is permitted to write to disk.",
-                    indexFile.getAbsolutePath()), e);   
+                    faiFile.getAbsolutePath()), e);
         }
 
         Iterator<FastaSequenceIndexEntry> iter = sequenceIndex.iterator();
