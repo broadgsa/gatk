@@ -86,8 +86,8 @@ public abstract class ParsingMethod {
         return argumentMatch;
     }
 
-    public static ParsingMethod FullNameParsingMethod = new ParsingMethod(Pattern.compile("\\s*--([\\w\\.\\-]+)\\s*"),
+    public static ParsingMethod FullNameParsingMethod = new ParsingMethod(Pattern.compile("\\s*--([A-Za-z_][\\w\\-\\.]*)\\s*"),
                                                                           ArgumentDefinitions.FullNameDefinitionMatcher) {};
-    public static ParsingMethod ShortNameParsingMethod = new ParsingMethod(Pattern.compile("\\s*-([\\w\\-]+)\\s*"),
+    public static ParsingMethod ShortNameParsingMethod = new ParsingMethod(Pattern.compile("\\s*-([A-Za-z_][\\w\\-]*)\\s*"),
                                                                            ArgumentDefinitions.ShortNameDefinitionMatcher) {};
 }
