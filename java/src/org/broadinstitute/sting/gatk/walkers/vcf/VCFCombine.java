@@ -116,7 +116,7 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
 
     private void validateAnnotateUnionArguments(String[] priority) {
         Set<RMDTrack> rods = VCFUtils.getRodVCFs(getToolkit());
-        if ( rods.size() != priority.length ) {
+        if ( priority == null || rods.size() != priority.length ) {
             throw new StingException("A complete priority list must be provided when annotateUnion is provided");
         }
         if ( priority.length != 2 ) {
