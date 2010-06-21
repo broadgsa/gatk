@@ -68,13 +68,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
 
         LocusIterator locusIterator;
         Iterator<SAMRecord> wrappedIterator = TraversalEngine.addMandatoryFilteringIterators(iterator, filters);
-        if(sourceInfo.getDownsamplingMethod() != null &&
-          (sourceInfo.getDownsamplingMethod().type == DownsampleType.EXPERIMENTAL_BY_SAMPLE)) {
-            if ( discards.size() > 0 )
-                throw new StingException("Experimental downsampling iterator doesn't support base discarding at this point; complain to Matt Hanna");
-            locusIterator = new DownsamplingLocusIteratorByState(wrappedIterator,sourceInfo);
-        } else
-            locusIterator = new LocusIteratorByState(wrappedIterator,sourceInfo, discards);
+        locusIterator = new LocusIteratorByState(wrappedIterator,sourceInfo,discards);
 
         this.locusOverflowTracker = locusIterator.getLocusOverflowTracker();
 
