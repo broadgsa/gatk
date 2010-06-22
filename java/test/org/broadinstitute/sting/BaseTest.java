@@ -2,12 +2,13 @@ package org.broadinstitute.sting;
 
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
+import org.broadinstitute.sting.utils.StingException;
 import org.junit.*;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 
 /**
@@ -174,5 +175,52 @@ public abstract class BaseTest {
             return foundString;
         }
     }
+
+    /**
+     * a little utility function for all tests to md5sum a file
+     * Shameless taken from:
+     *
+     * http://www.javalobby.org/java/forums/t84420.html
+     *
+     * @param file the file
+     * @return a string
+     */
+    public static String md5SumFile(File file) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new StingException("Unable to find MD5 digest");
+        }
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            throw new StingException("Unable to open file " + file);
+        }
+        byte[] buffer = new byte[8192];
+        int read = 0;
+        try {
+            while ((read = is.read(buffer)) > 0) {
+                digest.update(buffer, 0, read);
+            }
+            byte[] md5sum = digest.digest();
+            BigInteger bigInt = new BigInteger(1, md5sum);
+            return bigInt.toString(16);
+
+        }
+        catch (IOException e) {
+            throw new StingException("Unable to process file for MD5", e);
+        }
+        finally {
+            try {
+                is.close();
+            }
+            catch (IOException e) {
+                throw new StingException("Unable to close input stream for MD5 calculation", e);
+            }
+        }
+    }
+
 
 }

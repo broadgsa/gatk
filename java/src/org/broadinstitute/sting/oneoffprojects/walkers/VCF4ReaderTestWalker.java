@@ -91,7 +91,7 @@ public class VCF4ReaderTestWalker extends RodWalker<VCFRecord,Long> {
 
     String[] parts = new String[10000];
     public void onTraversalDone(Long num){
-        VCF4Codec vcf4codec = new VCF4Codec(true);
+        VCF4Codec vcf4codec = new VCF4Codec();
         VCF4Codec.parseGenotypesToo = splitFile == ParsingStatus.GENOTYPES;
         VCF4Codec.validate = ! DontValidate;
 
