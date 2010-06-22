@@ -121,7 +121,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testOtherFormat() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "GLF", "ddb1074b6f4a0fd1e15e4381476f1055" );
+        e.put( "GLF", "b3d463eb0b7e59604296747e1eb7103c" );
         e.put( "GELI_BINARY", "764a0fed1b3cf089230fd91f3be9c2df" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {

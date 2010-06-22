@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.util.CloseableIterator;
 
 import java.io.InputStream;
@@ -51,7 +53,7 @@ public class ArtificialSAMFileReader extends SAMFileReader {
      * @{inheritDoc}
      */
     @Override
-    public CloseableIterator<SAMRecord> query(final String sequence, final int start, final int end, final boolean contained) {
+    public SAMRecordIterator query(final String sequence, final int start, final int end, final boolean contained) {
         GenomeLoc region = GenomeLocParser.createGenomeLoc(sequence, start, end);
         List<SAMRecord> coveredSubset = new ArrayList<SAMRecord>();
 
@@ -62,17 +64,25 @@ public class ArtificialSAMFileReader extends SAMFileReader {
         }
 
         final Iterator<SAMRecord> iterator = coveredSubset.iterator();
-        return new CloseableIterator<SAMRecord>() {
+        return new SAMRecordIterator() {
             public boolean hasNext() { return iterator.hasNext(); }
             public SAMRecord next() { return iterator.next(); }
             public void close() {}
-            public void remove() { iterator.remove(); } 
+            public void remove() { iterator.remove(); }
+            public SAMRecordIterator assertSorted(SAMFileHeader.SortOrder sortOrder) { return this; }
         };
     }
 
     @Override
-    public CloseableIterator<SAMRecord> iterator() {
-        return StingSAMIteratorAdapter.adapt( new Reads( Collections.<File>emptyList() ), reads.iterator() );    
+    public SAMRecordIterator iterator() {
+        return new SAMRecordIterator() {
+            private final Iterator<SAMRecord> iterator = reads.iterator();
+            public boolean hasNext() { return iterator.hasNext(); }
+            public SAMRecord next() { return iterator.next(); }
+            public void close() {}
+            public void remove() { iterator.remove(); }
+            public SAMRecordIterator assertSorted(SAMFileHeader.SortOrder sortOrder) { return this; }
+        };
     }
 
     /**
