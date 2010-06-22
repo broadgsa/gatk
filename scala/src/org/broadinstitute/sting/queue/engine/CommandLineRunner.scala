@@ -8,8 +8,11 @@ import org.broadinstitute.sting.queue.function.CommandLineFunction
  */
 trait CommandLineRunner extends Logging {
   def run(function: CommandLineFunction, qGraph: QGraph) = {
-    var commandLine = function.commandLine
-    logger.info(commandLine)
+    if (logger.isDebugEnabled) {
+      logger.debug(function.commandDirectory + " > " + function.commandLine)
+    } else {
+      logger.info(function.commandLine)
+    }
 
     if (!qGraph.dryRun)
       ProcessUtils.runCommandAndWait(function.commandLine, function.commandDirectory)

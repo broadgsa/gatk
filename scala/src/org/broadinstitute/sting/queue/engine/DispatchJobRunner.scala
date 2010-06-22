@@ -1,17 +1,11 @@
 package org.broadinstitute.sting.queue.engine
 
-import edu.mit.broad.core.lsf.LocalLsfJob
 import collection.JavaConversions._
-import management.ManagementFactory
-import java.io.File
-import java.util.ArrayList
 import org.broadinstitute.sting.queue.function.{DispatchFunction, QFunction}
 
 trait DispatchJobRunner {
   type DispatchJobType
   private var dispatchJobs = Map.empty[DispatchFunction, DispatchJobType]
-
-  protected def newJobName = DispatchJobRunner.nextJobName
 
   def dispatch(function: DispatchFunction, qGraph: QGraph)
 
@@ -32,25 +26,9 @@ trait DispatchJobRunner {
         case dispatchFunction: DispatchFunction => previous :+= dispatchJobs(dispatchFunction)
 
         // For any other type of edge find the LSF jobs preceding the edge
-        case qFunction: QFunction => previous :::= previousJobs(qFunction, qGraph)
+        case qFunction: QFunction => previous = previousJobs(qFunction, qGraph) ::: previous
       }
     }
     previous
-  }
-}
-
-object DispatchJobRunner {
-  private val jobNamePrefix = "Q-" + {
-    var prefix = ManagementFactory.getRuntimeMXBean.getName
-    val index = prefix.indexOf(".")
-    if (index >= 0)
-      prefix = prefix.substring(0, index)
-    prefix
-  }
-  private var jobIndex = 0
-
-  private def nextJobName = {
-    jobIndex += 1
-    jobNamePrefix + "-" + jobIndex
   }
 }

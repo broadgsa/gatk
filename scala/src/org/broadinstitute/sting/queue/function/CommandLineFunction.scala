@@ -3,20 +3,9 @@ package org.broadinstitute.sting.queue.function
 import java.io.File
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.queue.engine.{CommandLineRunner, QGraph}
+import java.lang.reflect.Field
 
-trait CommandLineFunction extends QFunction with DispatchFunction {
-
-  /**
-   * The command line to run locally or via grid computing.
-   */
-  def commandLine: String
-
-  /**
-   * The directory where the command should run.
-   */
-  @Internal
-  var commandDirectory: File = new File(".")
-
+trait CommandLineFunction extends InputOutputFunction with DispatchFunction {
   /**
    * Repeats parameters with a prefix/suffix if they are set otherwise returns "".
    * Skips null, Nil, None.  Unwraps Some(x) to x.  Everything else is called with x.toString.
@@ -31,49 +20,24 @@ trait CommandLineFunction extends QFunction with DispatchFunction {
   protected def optional(prefix: String, param: Any, suffix: String = "") =
     if (hasValue(param)) prefix + toValue(param) + suffix else ""
 
-  /**
-   * Sets a field value using the name of the field.
-   * Field must be annotated with @Input, @Output, or @Internal
-   * @returns true if the value was found and set
-   */
-  def setValue(name: String, value: String) = {
-    ReflectionUtils.getField(this, name) match {
-      case Some(field) =>
-        val isInput = ReflectionUtils.hasAnnotation(field, classOf[Input])
-        val isOutput = ReflectionUtils.hasAnnotation(field, classOf[Output])
-        val isInternal = ReflectionUtils.hasAnnotation(field, classOf[Internal])
-        if (isInput || isOutput || isInternal) {
-          ReflectionUtils.setValue(this, field, value)
-        }
-        true
-      case None => false
-    }
-  }
-
-  private lazy val fields = ReflectionUtils.getAllFields(this.getClass)
-  private def internals = ReflectionUtils.getFieldsAnnotatedWith(this, fields, classOf[Internal])
-  def inputs = ReflectionUtils.getFieldsAnnotatedWith(this, fields, classOf[Input])
-  def outputs = ReflectionUtils.getFieldsAnnotatedWith(this, fields, classOf[Output])
-
-  override def missingValues = {
-    val missingInputs = missingFields(inputs)
-    val missingOutputs = missingFields(outputs)
+  def missingValues = {
+    val missingInputs = missingFields(inputFields)
+    val missingOutputs = missingFields(outputFields)
     missingInputs | missingOutputs
   }
 
-  private def missingFields(fields: Map[String, Any]) = {
+  private def missingFields(fields: List[Field]) = {
     var missing = Set.empty[String]
-    for ((name, value) <- fields) {
-      val isOptional = ReflectionUtils.getField(this, name) match {
-        case Some(field) => ReflectionUtils.hasAnnotation(field, classOf[Optional])
-        case None => false
-      }
+    for (field <- fields) {
+      val isOptional = ReflectionUtils.hasAnnotation(field, classOf[Optional])
       if (!isOptional)
-        if (!hasValue(value))
-          missing += name
+        if (!hasValue(ReflectionUtils.getValue(this, field)))
+          missing += field.getName
     }
     missing
   }
+
+  protected def hasFieldValue(field: Field) = hasValue(this.getFieldValue(field))
 
   private def hasValue(param: Any) = param match {
     case null => false

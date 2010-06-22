@@ -3,9 +3,10 @@
 
     <property name="build.sysclasspath" value="first" />
 
-    <property name="source.dir" value="java/src" />
     <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
+    <property name="java.source.dir" value="java/src" />
+    <property name="java.classes" value="${build.dir}/java/classes" />
     <property name="resource.file" value="StingText.properties" />
 
     <!-- do we want to halt on failure of a junit test? default to yes (Bamboo uses 'no') -->
@@ -22,7 +23,7 @@
     <property environment="env"/>
     <property name="target" value="${env.STING_BUILD_TYPE}" />
 
-    <dirset id="source.files" dir="${source.dir}">
+    <dirset id="java.source.files" dir="${java.source.dir}">
       <patternset>
 	<include name="org/broadinstitute/sting/**"/>
 	<exclude name="**/playground/**" unless="include.playground" />
@@ -33,7 +34,7 @@
     <!-- the path for resources that need to go into the GATK jar;
          any additional resources should go into this set. -->
     <path id="gatk.resources">
-        <fileset dir="${source.dir}">
+        <fileset dir="${java.source.dir}">
             <include name="**/**/templates/*" />
         </fileset>
     </path>
@@ -51,7 +52,7 @@
 
     <path id="classpath">
       <path refid="runtime.dependencies" />
-      <pathelement location="build" />
+      <pathelement location="${java.classes}" />
     </path>
 
     <!-- ivy properties -->
@@ -101,30 +102,31 @@
       </condition>
       
       <!-- Create the build directory structure used by compile -->
-      <mkdir dir="build"/>
+      <mkdir dir="${build.dir}"/>
+      <mkdir dir="${java.classes}"/>
     </target>
 
-    <target name="compile" depends="init,resolve"
+    <target name="java.compile" depends="init,resolve"
             description="compile the source">
       <!-- Compile the java code from ${src} into build -->
-      <javac srcdir="${source.dir}" destdir="build" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
+      <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
         <exclude name="**/playground/**" unless="include.playground"/>
         <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
       </javac>
     </target>
 
-    <target name="extracthelp" depends="init,compile" 
+    <target name="extracthelp" depends="init,java.compile" 
 	    description="Extract help key/value pair file from the JavaDoc tags."
 	    unless="disable.help">
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
 	       docletpathref="classpath"
 	       classpathref="runtime.dependencies"
-	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${build.dir}/${resource.file}">
-	<packageset refid="source.files"/>
+	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${java.classes}/${resource.file}">
+	<packageset refid="java.source.files"/>
       </javadoc>
     </target>
 
-    <target name="dist" depends="compile,extracthelp"
+    <target name="dist" depends="java.compile,extracthelp"
             description="generate the distribution">
         <mkdir dir="${dist.dir}"/>
         <delete>
@@ -136,12 +138,12 @@
         </copy>
 
         <jar jarfile="${dist.dir}/StingUtils.jar">
-            <fileset dir="build" includes="**/utils/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/utils/**/*.class"/>
         </jar>
 
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <path refid="gatk.resources"/>
-            <fileset dir="build">
+            <fileset dir="${java.classes}">
 	          <include name="${resource.file}" />
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
@@ -153,11 +155,11 @@
         </jar>
 
 	<jar jarfile="${dist.dir}/Aligner.jar">
-	  <fileset dir="build" includes="**/alignment/**/*.class" />
+	  <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
 	</jar>
 
         <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" whenmanifestonly="skip">
-          <fileset dir="build">
+          <fileset dir="${java.classes}">
             <include name="**/analyzecovariates/**/*.class" />
             <include name="**/gatk/walkers/recalibration/*.class" />
           </fileset>
@@ -167,7 +169,7 @@
         </jar>
 
         <jar jarfile="${dist.dir}/CGUtilities.jar" whenmanifestonly="skip">
-          <fileset dir="build">
+          <fileset dir="${java.classes}">
             <include name="**/*.class" />
           </fileset>
           <manifest>
@@ -176,7 +178,7 @@
         </jar>
 
 	   <jar jarfile="${dist.dir}/VCFTool.jar" whenmanifestonly="skip">
-          <fileset dir="build">
+          <fileset dir="${java.classes}">
             <include name="**/*.class"/>
           </fileset>
           <manifest>
@@ -240,14 +242,14 @@
       </antcall>
     </target>
 
-    <target name="test.compile" depends="oneoffs">
+    <target name="java.test.compile" depends="oneoffs">
         <echo message="Sting: Compiling test cases!"/>
-        <mkdir dir="${test.classes}"/>
-        <javac destdir="${test.classes}" debug="true" optimize="on">
-            <src path="${test.sources}"/>
+        <mkdir dir="${java.test.classes}"/>
+        <javac destdir="${java.test.classes}" debug="true" optimize="on">
+            <src path="${java.test.sources}"/>
             <classpath>
                 <path refid="runtime.dependencies" />
-                <pathelement location="build"/>
+                <pathelement location="${java.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
         </javac>
@@ -260,8 +262,8 @@
         <param name="ivy.conf" value="scala"/>
       </antcall>
         <antcall target="dist"/>    
-      <property name="scala.src" value="scala/src" />
-      <property name="scala.classes" value="scala/classes" />
+      <property name="scala.source.dir" value="scala/src" />
+      <property name="scala.classes" value="build/scala" />
       
       <path id="scala.classpath">
 	<fileset dir="lib">
@@ -279,7 +281,7 @@
       </taskdef>
       <mkdir dir="${scala.classes}"/>
       <echo>Building Scala...</echo>
-      <scalac srcdir="${scala.src}" destdir="${scala.classes}" classpathref="scala.classpath" force="changed">
+      <scalac srcdir="${scala.source.dir}" destdir="${scala.classes}" classpathref="scala.classpath" force="changed">
         <include name="*.scala"/>
       </scalac>
       
@@ -296,33 +298,28 @@
       <antcall target="resolve">
         <param name="ivy.conf" value="queue"/>
       </antcall>
-      <antcall target="dist"/>
-      <property name="queue.src" value="scala/src" />
-      <property name="queue.classes" value="scala/classes" />
-      <pathconvert property="queuejar.classpath" pathsep=" ">
-        <flattenmapper/>
-        <fileset dir="${dist.dir}" includes="*.jar"/>
-      </pathconvert>
+      <!-- Call dist so jar files are picked up for manifest. -->
+      <antcall target="dist" />
+      <property name="queue.source.dir" value="scala/src" />
+      <property name="queue.classes" value="${build.dir}/scala/classes" />
       
       <path id="queue.classpath">
-	<fileset dir="lib">
-          <include name="scala-compiler-*.jar"/>
-          <include name="scala-library-*.jar"/>
-	</fileset>
-        <fileset dir="${dist.dir}">
-          <patternset>
-            <include name="*.jar"/>
-          </patternset>
-        </fileset>
+	<path refid="runtime.dependencies" />
+	<pathelement location="${java.classes}" />
       </path>
       <taskdef resource="scala/tools/ant/antlib.xml">
         <classpath refid="queue.classpath"/>
       </taskdef>
       <mkdir dir="${queue.classes}"/>
       <echo>Building Queue...</echo>
-      <scalac srcdir="${queue.src}" destdir="${queue.classes}" classpathref="queue.classpath">
+      <scalac srcdir="${queue.source.dir}" destdir="${queue.classes}" classpathref="queue.classpath">
         <include name="org/broadinstitute/sting/queue/**/*.scala"/>
       </scalac>
+
+      <pathconvert property="queuejar.classpath" pathsep=" ">
+        <flattenmapper/>
+        <fileset dir="${dist.dir}" includes="*.jar"/>
+      </pathconvert>
 
       <jar jarfile="${dist.dir}/Queue.jar">
         <fileset dir="${queue.classes}">
@@ -340,9 +337,9 @@
     <!-- ***************************************************************************** -->
     <!-- where to put reports and tests-->
     <property name="report" value="${build.dir}/report"/>
-    <property name="test.classes" value="${build.dir}/testclasses"/>
+    <property name="java.test.classes" value="${java.classes}/testclasses"/>
     <property name="test.output" value="${dist.dir}/test"/>
-    <property name="test.sources" value="java/test"/>
+    <property name="java.test.sources" value="java/test"/>
     <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
     <property name="test.maxmemory" value="2g"/>
 
@@ -357,14 +354,14 @@
                 <formatter type="xml"/> 
                 
                 <classpath>
-                    <pathelement location="build"/>
+                    <pathelement location="${java.classes}"/>
                     <path refid="runtime.dependencies"/>
-                    <pathelement location="${test.classes}"/>
+                    <pathelement location="${java.test.classes}"/>
                     <pathelement location="lib/junit-4.4.jar"/>
                 </classpath>
 
                 <batchtest fork="yes" todir="${report}">
-                    <fileset dir="${test.classes}">
+                    <fileset dir="${java.test.classes}">
                         <include name="**/@{testtype}.class"/>
                         <exclude name="**/BaseTest.class"/>
                     </fileset>
@@ -376,19 +373,19 @@
 
 
     <!-- our three different test conditions: Test, IntegrationTest, PerformanceTest -->
-    <target name="test" depends="test.compile" description="Run unit tests">
+    <target name="test" depends="java.test.compile" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${ttype}"/>
     </target>
-    <target name="integrationtest" depends="test.compile" description="Run unit tests">
+    <target name="integrationtest" depends="java.test.compile" description="Run unit tests">
         <condition property="itype" value="*IntegrationTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${itype}"/>
     </target>
-    <target name="performancetest" depends="test.compile" description="Run unit tests">
+    <target name="performancetest" depends="java.test.compile" description="Run unit tests">
        <condition property="ptype" value="*PerformanceTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
@@ -401,7 +398,7 @@
       <mkdir dir="javadoc"/>
       <javadoc destdir="javadoc"
                classpathref="runtime.dependencies">
-        <packageset refid="source.files"/>
+        <packageset refid="java.source.files"/>
       </javadoc>
     </target>
 
@@ -454,7 +451,7 @@
 
     <target name="clean" description="clean up">
         <delete dir="out"/>
-        <delete dir="build"/>
+        <delete dir="${build.dir}"/>
         <delete dir="lib"/>
         <delete dir="staging"/>
         <delete dir="${dist.dir}"/>

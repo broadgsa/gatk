@@ -15,6 +15,11 @@ object QScript {
   type ClassType = org.broadinstitute.sting.queue.util.ClassType
   type CommandLineFunction = org.broadinstitute.sting.queue.function.CommandLineFunction
   type GatkFunction = org.broadinstitute.sting.queue.function.gatk.GatkFunction
+  type ScatterGatherableFunction = org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
+  type Scatter = org.broadinstitute.sting.queue.util.Scatter
+  type Gather = org.broadinstitute.sting.queue.util.Gather
+  type BamGatherFunction = org.broadinstitute.sting.queue.function.scattergather.BamGatherFunction
+  type SimpleTextGatherFunction = org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction
 
   // The arguments for executing pipelines
   private var qArgs: QArguments = _
@@ -85,7 +90,7 @@ object QScript {
      * Sets the @Input and @Output values for a single function
      */
     def setParams(function: CommandLineFunction): Unit =
-      for ((name, value) <- qArgs.argMap) function.setValue(name, value)
+      for ((name, value) <- qArgs.argMap) function.addOrUpdateWithStringValue(name, value)
 
     /**
      * Executes functions that have been added to the pipeline.

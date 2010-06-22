@@ -1,11 +1,12 @@
 package org.broadinstitute.sting.queue.function.gatk
 
 import java.io.File
-import org.broadinstitute.sting.queue.util.{Input, Optional}
-import org.broadinstitute.sting.queue.function.{MemoryLimitedFunction, IntervalFunction, CommandLineFunction}
+import org.broadinstitute.sting.queue.function.IntervalFunction
+import org.broadinstitute.sting.queue.util.{Scatter, Internal, Input, Optional}
+import org.broadinstitute.sting.queue.function.scattergather.{ScatterGatherableFunction, IntervalScatterFunction}
 
-trait GatkFunction extends CommandLineFunction with MemoryLimitedFunction with IntervalFunction {
-  @Input
+trait GatkFunction extends ScatterGatherableFunction with IntervalFunction {
+  @Internal
   @Optional
   var javaTmpDir: String = _
 
@@ -13,7 +14,7 @@ trait GatkFunction extends CommandLineFunction with MemoryLimitedFunction with I
   var gatkJar: String = _
 
   @Input
-  var referenceFile: String = _
+  var referenceFile: File = _
 
   @Input
   @Optional
@@ -21,14 +22,15 @@ trait GatkFunction extends CommandLineFunction with MemoryLimitedFunction with I
 
   @Input
   @Optional
-  var dbsnp: File = _
+  @Scatter(classOf[IntervalScatterFunction])
+  var intervals: File = _
 
   @Input
   @Optional
-  var intervals: Intervals = new Intervals("all")
+  var dbsnp: File = _
 
   protected def gatkCommandLine(walker: String) =
-    "java%s%s -jar %s -T %s -R %s%s%s "
+    "java%s%s -jar %s -T %s -R %s%s%s%s "
     .format(optional(" -Xmx", memoryLimit, "g"), optional(" -Djava.io.tmpdir=", javaTmpDir),
       gatkJar, walker, referenceFile, repeat(" -I ", bamFiles), optional(" -D ", dbsnp), optional(" -L ", intervals))
 }

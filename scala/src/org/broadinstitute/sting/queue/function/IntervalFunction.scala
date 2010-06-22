@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.queue.function
 
-trait IntervalFunction {
-  type Intervals = String
-  var intervals: Intervals
+import java.io.File
+
+trait IntervalFunction extends InputOutputFunction {
+  var referenceFile: File
+  var intervals: File
 }

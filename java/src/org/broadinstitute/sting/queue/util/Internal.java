@@ -27,9 +27,11 @@ package org.broadinstitute.sting.queue.util;
 import java.lang.annotation.*;
 
 /**
- * Specifies an internal setting for a QueueFunction.
+ * Specifies an internal setting for a QFunction.
  * Not an input or output but should be copied with a function.
  * Internals should have default values that should be handled, i.e. they are always @Optional
+ * A common use for @Internal is to specify WHERE a function runs: farm queue, directory, etc.
+ * or to name part of a function: farm job name
  * Written in java because scala doesn't support RetentionPolicy.RUNTIME
  */
 @Documented

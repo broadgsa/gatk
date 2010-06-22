@@ -27,7 +27,7 @@ package org.broadinstitute.sting.queue.util;
 import java.lang.annotation.*;
 
 /**
- * Specifies an input to a QueueFunction
+ * Specifies an input to a QFunction
  * Written in java because scala doesn't support RetentionPolicy.RUNTIME
  */
 @Documented

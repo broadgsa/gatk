@@ -26,13 +26,10 @@ package org.broadinstitute.sting.queue.util;
 
 import java.lang.annotation.*;
 
-/**
- * Specifies an input or output to a QFunction is optional
- * Written in java because scala doesn't support RetentionPolicy.RUNTIME
- */
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
-public @interface Optional {
+public @interface Scatter {
+    Class value();
 }

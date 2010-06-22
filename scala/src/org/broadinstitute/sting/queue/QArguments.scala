@@ -21,8 +21,9 @@ class QArguments(args: Array[String]) {
     filtered.appendAll(args)
 
     if (isFlagged(filtered, "-debug"))
-      Logging.enableDebug
-
+      Logging.setDebug
+    if (isFlagged(filtered, "-trace"))
+      Logging.setTrace
     if (isFlagged(filtered, "-dry"))
       dryRun = true
     if (isFlagged(filtered, "-bsub"))

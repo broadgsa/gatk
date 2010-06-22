@@ -8,13 +8,20 @@ import scala.collection.immutable.ListMap
 import java.lang.reflect.{ParameterizedType, Field}
 
 object ReflectionUtils {
-  def getField(obj: AnyRef, name: String) = getAllFields(obj.getClass).find(_.getName == name)
-
   def hasAnnotation(field: Field, annotation: Class[_ <: Annotation]) = field.getAnnotation(annotation) != null
+
+  def getAnnotation[T <: Annotation](field: Field, annotation: Class[T]): T = {
+    if (!hasAnnotation(field, annotation))
+      throw new QException("Field %s is missing annotation %s".format(field, annotation))
+    field.getAnnotation(annotation).asInstanceOf[T]
+  }
   
-  def getFieldsAnnotatedWith(obj: AnyRef, fields: List[Field], annotation: Class[_ <: Annotation]) =
-    ListMap(fields.filter(field => hasAnnotation(field, annotation))
-      .map(field => (field.getName -> fieldGetter(field).invoke(obj))) :_*)
+  def getAllFields(clazz: Class[_]) = getAllTypes(clazz).map(_.getDeclaredFields).flatMap(_.toList)
+
+  def filterFields(fields: List[Field], annotation: Class[_ <: Annotation]) = fields.filter(field => hasAnnotation(field, annotation))
+
+  def getFieldNamesValues(obj: AnyRef, fields: List[Field]) =
+    ListMap(fields.map(field => (field.getName -> fieldGetter(field).invoke(obj))) :_*)
 
   def getAllTypes(clazz: Class[_]) = {
     var types = List.empty[Class[_]]
@@ -26,18 +33,12 @@ object ReflectionUtils {
     types
   }
 
-  def getAllFields(clazz: Class[_]) = getAllTypes(clazz).map(_.getDeclaredFields).flatMap(_.toList)
+  def getValue(obj: AnyRef, field: Field) = fieldGetter(field).invoke(obj)
+  def setValue(obj: AnyRef, field: Field, value: Any) = fieldSetter(field).invoke(obj, value.asInstanceOf[AnyRef])
 
-  def setValue(obj: AnyRef, field: Field, value: String) = {
-
+  def addOrUpdateWithStringValue(obj: AnyRef, field: Field, value: String) = {
     val getter = fieldGetter(field)
     val setter = fieldSetter(field)
-
-    if (getter == null)
-      throw new QException("Field may be private?  Unable to find getter for field: " + field)
-
-    if (getter == null)
-      throw new QException("Field may be a val instead of var?  Unable to find setter for field: " + field)
 
     if (classOf[Seq[_]].isAssignableFrom(field.getType)) {
 
@@ -87,8 +88,19 @@ object ReflectionUtils {
     else None
   }
 
-  private[util] def fieldGetter(field: Field) = field.getDeclaringClass.getMethod(field.getName)
-  private[util] def fieldSetter(field: Field) = field.getDeclaringClass.getMethod(field.getName+"_$eq", field.getType)
+  private def fieldGetter(field: Field) =
+    try {
+      field.getDeclaringClass.getMethod(field.getName)
+    } catch {
+      case e: NoSuchMethodException => throw new QException("Field may be private?  Unable to find getter for field: " + field)
+    }
+
+  private def fieldSetter(field: Field) =
+    try {
+      field.getDeclaringClass.getMethod(field.getName+"_$eq", field.getType)
+    } catch {
+      case e: NoSuchMethodException => throw new QException("Field may be a val instead of var?  Unable to find setter for field: " + field)
+    }
 
   private def coerce(clazz: Class[_], value: String) = {
     if (classOf[String] == clazz) value

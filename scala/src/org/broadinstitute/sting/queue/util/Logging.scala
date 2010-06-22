@@ -7,9 +7,7 @@ import org.apache.log4j._
  */
 trait Logging {
   private val className = this.getClass.getName
-  protected lazy val logger = configuredLogger
-
-  def configuredLogger = {
+  protected lazy val logger = {
     Logging.configureLogging
     Logger.getLogger(className)
   }
@@ -17,15 +15,17 @@ trait Logging {
 
 object Logging {
   private var configured = false
-  private var isDebug = false
+  private var level = Level.INFO
   def configureLogging = {
     if (!configured) {
       var root = Logger.getRootLogger
       root.addAppender(new ConsoleAppender(new PatternLayout("%-5p %d{HH:mm:ss,SSS} - %m %n")))
-      root.setLevel(if(isDebug) Level.DEBUG else Level.INFO)
+      root.setLevel(level)
       configured = true
     }
   }
 
-  def enableDebug = {isDebug = true; Logger.getRootLogger.setLevel(Level.DEBUG)}
+  def setDebug = setLevel(Level.DEBUG)
+  def setTrace = setLevel(Level.TRACE)
+  private def setLevel(level: Level) = {this.level = level; Logger.getRootLogger.setLevel(level)}
 }
