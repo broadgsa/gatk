@@ -28,37 +28,38 @@ public class VCF4Codec implements FeatureCodec {
     // we have to store the list of strings that make up the header until they're needed
     private VCFHeader header = null;
 
-    // used to subtract from the 
+    // used to convert the index of the alternate allele in genotypes to a integer index
     private static int ZERO_CHAR = (byte)'0';
 
     // a mapping of the allele
     private static Map<String, List<Allele>> alleleMap = new HashMap<String, List<Allele>>(3);
 
-    //private static String[] CachedGTKey = new String[100];
+    // cache the genotyope values
     private static String[] CachedGTValues = new String[100];
-
-    // for performance testing purposes
-    public static boolean parseGenotypesToo = true;
 
     // for performance testing purposes
     public static boolean validate = true;
 
     // a key optimization -- we need a per thread string parts array, so we don't allocate a big array over and over
+    // todo: make this thread safe?
     private String[] parts = null;
 
     // for performance we cache the hashmap of filter encodings for quick lookup
     private HashMap<String,LinkedHashSet<String>> filterHash = new HashMap<String,LinkedHashSet<String>>();
 
-    // a set of the genotype keys?  TODO: rename to something better
-    private String[] GTKeys = new String[100];
+    // a set of the genotype keys?
+    private String[] genotypeKeyArray = new String[100];
 
-    // a list of the info fields, filter fields, and format fields
+    // a list of the info fields, filter fields, and format fields, for quick lookup to validate against
     ArrayList<String> infoFields = new ArrayList<String>();
     ArrayList<String> formatFields = new ArrayList<String>();
     ArrayList<String> filterFields = new ArrayList<String>();
 
     // do we want to validate the info, format, and filter fields
     private final boolean validateFromHeader = true;
+
+    // we store a name to give to each of the variant contexts we emit
+    private String name = "Unkown";
 
     /**
      * this method is a big hack, since I haven't gotten to updating the VCF header for the 4.0 updates
@@ -76,27 +77,7 @@ public class VCF4Codec implements FeatureCodec {
                     headerStrings.add(line);
                 }
                 else if (line.startsWith("#")) {
-                    headerStrings.add(line);
-                    header = VCFReaderUtils.createHeader(headerStrings, VCFHeaderVersion.VCF4_0);
-
-                    // load the parsing fields
-                    Set<VCFHeaderLine> headerLines = header.getMetaData();
-
-                    // setup our look-up lists for validation
-                    for (VCFHeaderLine hl : headerLines) {
-                        if (hl.getClass() == VCFFilterHeaderLine.class)
-                            this.filterFields.add(((VCFFilterHeaderLine)hl).getmName());
-                        if (hl.getClass() == VCFFormatHeaderLine.class)
-                                                    this.formatFields.add(((VCFFormatHeaderLine)hl).getmName());
-                        if (hl.getClass() == VCFInfoHeaderLine.class)
-                                                    this.infoFields.add(((VCFInfoHeaderLine)hl).getmName());
-                    }
-                    // sort the lists
-                    Collections.sort(filterFields);
-                    Collections.sort(formatFields);
-                    Collections.sort(infoFields);
-
-                    return headerStrings.size();
+                    return createHeader(headerStrings, line);
                 }
                 else {
                     throw new CodecLineParsingException("We never saw the required header line (starting with one #) for the input VCF file");
@@ -110,6 +91,41 @@ public class VCF4Codec implements FeatureCodec {
 
     }
 
+    /**
+     * create a VCF header
+     * @param headerStrings a list of strings that represent all the ## entries
+     * @param line the single # line (column names)
+     * @return the count of header lines
+     */
+    private int createHeader(List<String> headerStrings, String line) {
+        headerStrings.add(line);
+        header = VCFReaderUtils.createHeader(headerStrings, VCFHeaderVersion.VCF4_0);
+
+        // load the parsing fields
+        Set<VCFHeaderLine> headerLines = header.getMetaData();
+
+        // setup our look-up lists for validation
+        for (VCFHeaderLine hl : headerLines) {
+            if (hl.getClass() == VCFFilterHeaderLine.class)
+                this.filterFields.add(((VCFFilterHeaderLine)hl).getmName());
+            if (hl.getClass() == VCFFormatHeaderLine.class)
+                                        this.formatFields.add(((VCFFormatHeaderLine)hl).getmName());
+            if (hl.getClass() == VCFInfoHeaderLine.class)
+                                        this.infoFields.add(((VCFInfoHeaderLine)hl).getmName());
+        }
+        // sort the lists so we can binary search them later on
+        Collections.sort(filterFields);
+        Collections.sort(formatFields);
+        Collections.sort(infoFields);
+
+        return headerStrings.size();
+    }
+
+    /**
+     * the fast decode function
+     * @param line the line of text for the record
+     * @return a feature, (not guaranteed complete) that has the correct start and stop
+     */
     public Feature decodeLoc(String line) {
         return decode(line);
     }
@@ -205,6 +221,11 @@ public class VCF4Codec implements FeatureCodec {
         return attributes;
     }
 
+    /**
+     * validate the attributes against the stored fields of the appopriate type
+     * @param attributes the list of fields to check for inclusion against the field array
+     * @param fields the master list; all attributes must be in this list to validate
+     */
     private void validateFields(Set<String> attributes, List<String> fields) {
         // validate the info fields
         if (validateFromHeader) {
@@ -234,15 +255,15 @@ public class VCF4Codec implements FeatureCodec {
     private List<Allele> parseAlleles(String ref, String alts) {
         List<Allele> alleles = new ArrayList<Allele>(2); // we are almost always biallelic
         // ref
-        checkAllele(ref);
+        checkAllele(ref, true);
         Allele refAllele = Allele.create(ref, true);
         alleles.add(refAllele);
 
         if ( alts.indexOf(",") == -1 ) // only 1 alternatives, don't call string split
-            parseSingleAllele(alleles, alts);
+            parseSingleAllele(alleles, alts, false);
         else
             for ( String alt : Utils.split(alts, ",") )
-                parseSingleAllele(alleles, alt);
+                parseSingleAllele(alleles, alt, false);
 
         return alleles;
     }
@@ -250,9 +271,10 @@ public class VCF4Codec implements FeatureCodec {
     /**
      * check to make sure the allele is an acceptable allele
      * @param allele the allele to check
+     * @param isRef are we the reference allele?
      */
-    private static void checkAllele(String allele) {
-        if ( ! Allele.acceptableAlleleBases(allele) ) {
+    private static void checkAllele(String allele,boolean isRef) {
+        if ( ! Allele.acceptableAlleleBases(allele,isRef) ) {
             throw new StingException("Unparsable vcf record with allele " + allele);
         }
     }
@@ -261,9 +283,10 @@ public class VCF4Codec implements FeatureCodec {
      * parse a single allele, given the allele list
      * @param alleles the alleles available
      * @param alt the allele to parse
+     * @param isRef are we the reference allele?
      */
-    private void parseSingleAllele(List<Allele> alleles, String alt) {
-        checkAllele(alt);
+    private void parseSingleAllele(List<Allele> alleles, String alt, boolean isRef) {
+        checkAllele(alt,isRef);
 
         Allele allele = Allele.create(alt, false);
         if ( ! allele.isNoCall() )
@@ -304,10 +327,12 @@ public class VCF4Codec implements FeatureCodec {
 
     /**
      * parse out the VCF line
+     *
      * @param parts the parts split up
      * @return a variant context object
      */
     private VariantContext parseVCFLine(String[] parts) {
+        // parse out the required fields
         String contig = parts[0];
         long pos = Long.valueOf(parts[1]);
         String id = parts[2];
@@ -316,26 +341,31 @@ public class VCF4Codec implements FeatureCodec {
         Double qual = parseQual(parts[5]);
         String filter = parts[6];
         String info = parts[7];
-        String GT = parts[8];
-        int genotypesStart = 9;
 
-        List<Allele> alleles  = parseAlleles(ref, alts);
+
+        List<Allele> alleles = parseAlleles(ref, alts);
         Set<String> filters = parseFilters(filter);
         Map<String, Object> attributes = parseInfo(info, id);
 
-        // parse genotypes
-        int nGTKeys = ParsingUtils.split(GT, GTKeys, ':');
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(Math.max(parts.length - genotypesStart, 1));
-        Iterator<String> iter = header.getGenotypeSamples().iterator();
+        // find out our current location, and clip the alleles down to their minimum length
+        Pair<GenomeLoc, List<Allele>> locAndAlleles = (ref.length() > 1) ?
+                clipAlleles(contig, pos, ref, alleles) :
+                new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
 
-        Pair<GenomeLoc,List<Allele>> locAndAlleles = (ref.length() > 1) ?
-                        clipAlleles(contig,pos,ref,alleles) :
-                        new Pair<GenomeLoc,List<Allele>>(GenomeLocParser.createGenomeLoc(contig,pos),alleles);
+        // a map to store our genotypes
+        Map<String, Genotype> genotypes = null;
 
+        // do we have genotyping data
+        if (parts.length > 8) {
+            String GT = parts[8];
+            int genotypesStart = 9;
+            // parse genotypes
+            int nGTKeys = ParsingUtils.split(GT, genotypeKeyArray, ':');
+            genotypes = new HashMap<String, Genotype>(Math.max(parts.length - genotypesStart, 1));
+            Iterator<String> iter = header.getGenotypeSamples().iterator();
 
-        if ( parseGenotypesToo ) {
             alleleMap.clear();
-            for ( int genotypeOffset = genotypesStart; genotypeOffset < parts.length; genotypeOffset++ ) {
+            for (int genotypeOffset = genotypesStart; genotypeOffset < parts.length; genotypeOffset++) {
                 String sample = parts[genotypeOffset];
                 String[] GTValues = CachedGTValues;
                 ParsingUtils.split(sample, GTValues, ':');
@@ -345,30 +375,30 @@ public class VCF4Codec implements FeatureCodec {
 
                 // todo -- the parsing of attributes could be made lazy for performance
                 Map<String, String> gtAttributes = null;
-                if ( nGTKeys > 1 ) {
+                if (nGTKeys > 1) {
                     gtAttributes = new HashMap<String, String>(nGTKeys - 1);
-                    for ( int i = 1; i < nGTKeys; i++ ) {
-                        if ( GTKeys[i].equals("GQ") ) {
+                    for (int i = 1; i < nGTKeys; i++) {
+                        if (genotypeKeyArray[i].equals("GQ")) {
                             GTQual = parseQual(GTValues[i]);
-                        } if ( GTKeys[i].equals("FL") ) { // deal with genotype filters here
+                        }
+                        if (genotypeKeyArray[i].equals("FL")) { // deal with genotype filters here
                             genotypeFilters.addAll(parseFilters(GTValues[i]));
                         } else {
-                            gtAttributes.put(GTKeys[i], GTValues[i]);
+                            gtAttributes.put(genotypeKeyArray[i], GTValues[i]);
                         }
                     }
                     // validate the format fields
-                    validateFields(gtAttributes.keySet(),formatFields);
+                    validateFields(gtAttributes.keySet(), formatFields);
                 }
 
-                boolean phased = GTKeys[0].charAt(1) == '|';
+                boolean phased = genotypeKeyArray[0].charAt(1) == '|';
 
                 Genotype g = new Genotype(iter.next(), genotypeAlleles, GTQual, genotypeFilters, gtAttributes, phased);
                 genotypes.put(g.getSampleName(), g);
             }
         }
-
         // todo -- we need access to our track name to name the variant context
-        return new VariantContext("foo", locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);        
+        return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
     }
 
     /**
@@ -433,5 +463,21 @@ public class VCF4Codec implements FeatureCodec {
     public VCFHeader getHeader(Class clazz) throws ClassCastException {
         if (clazz != VCFHeader.class) throw new ClassCastException("expecting class " + clazz + " but VCF4Codec provides " + VCFHeader.class);
         return this.header;
+    }
+
+    /**
+     * get the name of this codec
+     * @return our set name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * set the name of this codec
+     * @param name
+     */
+    public void setName(String name) {
+        this.name = name;
     }
 }

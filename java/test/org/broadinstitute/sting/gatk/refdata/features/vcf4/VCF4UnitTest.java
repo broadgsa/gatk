@@ -26,7 +26,8 @@ import java.util.Set;
  * test out pieces of the VCF 4 codec.
  */
 public class VCF4UnitTest extends BaseTest {
-    File vcfFile = new File("testdata/vcfExmaple.vcf4");
+    File vcfGenotypeFile = new File("testdata/vcf/vcfWithGenotypes.vcf");
+    File vcfNoGenotypeFile = new File("testdata/vcf/vcfWithoutGenotypes.vcf");
 
     // setup the contig ordering
     @BeforeClass
@@ -42,7 +43,7 @@ public class VCF4UnitTest extends BaseTest {
 
     @Test
     public void testReadBasicHeader() {
-        TestSetup testSetup = new TestSetup().invoke(vcfFile);
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
 
         int seenRecords = 0;
 
@@ -95,7 +96,7 @@ public class VCF4UnitTest extends BaseTest {
 
     @Test
     public void testOutputHeader() {
-        TestSetup testSetup = new TestSetup().invoke(vcfFile);
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
 
         File tempFile = null;
         try {
@@ -115,9 +116,8 @@ public class VCF4UnitTest extends BaseTest {
 
     @Test
     public void testCountVCF4Records() {
-        TestSetup testSetup = new TestSetup().invoke(vcfFile);
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         AsciiLineReader reader = testSetup.getReader();
-        VCF4Codec codec = testSetup.getCodec();
 
         // now parse the lines
         String line = null;
@@ -139,6 +139,33 @@ public class VCF4UnitTest extends BaseTest {
                 Assert.fail("Failed to read a line");
             }
         }
+        Assert.assertEquals(7,recordCount);
+    }
+
+    @Test
+    public void testCountVCF4RecordsWithoutGenotypes() {
+        TestSetup testSetup = new TestSetup().invoke(vcfNoGenotypeFile);
+        AsciiLineReader reader = testSetup.getReader();
+
+        // now parse the lines
+        String line = null;
+        try {
+            line = reader.readLine();
+        } catch (IOException e) {
+            Assert.fail("Failed to read a line");
+        }
+
+        // our record count
+        int recordCount = 0;
+        while (line != null) {
+            try {
+                recordCount++;
+                testSetup.codec.decode(line);
+                line = reader.readLine();
+            } catch (IOException e) {
+                Assert.fail("Failed to read a line");
+            }
+        }
         Assert.assertEquals(6,recordCount);
     }
 
@@ -150,25 +177,25 @@ public class VCF4UnitTest extends BaseTest {
 
     @Test
     public void testCheckInfoValidation() {
-        TestSetup testSetup = new TestSetup().invoke(vcfFile);
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(regularLine);
     }
 
     @Test
     public void testCheckTwoFewInfoValidation() {
-        TestSetup testSetup = new TestSetup().invoke(vcfFile);
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(twoFewInfoLine);
     }
 
     @Test(expected=StingException.class)
     public void testCheckTwoManyInfoValidation() {
-        TestSetup testSetup = new TestSetup().invoke(vcfFile);
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(twoManyInfoLine);
     }
 
-    //File largeVCF = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesTable1/dindel-v2/CEU.low_coverage.2010_06.indel.genotypes.vcf");
+   /* File largeVCF = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesTable1/dindel-v2/CEU.low_coverage.2010_06.indel.genotypes.vcf");
 
-    /*@Test
+    @Test
     public void checkLargeVCF() {
         TestSetup testSetup = new TestSetup().invoke(largeVCF);
         AsciiLineReader reader = testSetup.getReader();

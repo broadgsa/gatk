@@ -106,7 +106,7 @@ public class Allele implements Comparable<Allele> {
         this.isRef = isRef;
         this.bases = bases;
 
-        if ( ! acceptableAlleleBases(bases) )
+        if ( ! acceptableAlleleBases(bases,isRef) )
             throw new IllegalArgumentException("Unexpected base in allele bases " + new String(bases));
     }
 
@@ -186,24 +186,29 @@ public class Allele implements Comparable<Allele> {
 
     /**
      * @param bases  bases representing an allele
+     * @param reference is this the reference allele
      * @return true if the bases represent the well formatted allele
      */
-    public static boolean acceptableAlleleBases(String bases) {
-        return acceptableAlleleBases(bases.getBytes());
+    public static boolean acceptableAlleleBases(String bases, boolean reference) {
+        return acceptableAlleleBases(bases.getBytes(),reference);
     }
 
     /**
      * @param bases  bases representing an allele
+     * @param reference are we the reference (we allow n's in the reference allele)
      * @return true if the bases represent the well formatted allele
      */
-    public static boolean acceptableAlleleBases(byte[] bases) {
+    public static boolean acceptableAlleleBases(byte[] bases, boolean reference) {
         if ( wouldBeNullAllele(bases) || wouldBeNoCallAllele(bases) )
             return true;
 
         for ( int i = 0; i < bases.length; i++ ) {
             switch (bases[i]) {
                 case 'A': case 'C': case 'G': case 'T': break;
-                default: return false;
+                case 'N': if(!reference)
+                    return false; break;
+                default:
+                    return false;
             }
 //            if ( ! BaseUtils.isRegularBase(bases[i]) ) {
 //                return false;
