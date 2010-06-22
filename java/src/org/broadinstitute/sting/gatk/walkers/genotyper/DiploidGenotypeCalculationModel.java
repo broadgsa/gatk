@@ -167,24 +167,6 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             calls.put(sample, cg);
         }
 
-        // output to beagle file if requested
-        if ( beagleWriter != null ) {
-            for ( String sample : samples ) {
-                GenotypeLikelihoods gl = GLs.get(sample);
-                if ( gl == null ) {
-                    beagleWriter.print(" 0.0 0.0 0.0");
-                    continue;
-                }
-                double[] likelihoods = gl.getLikelihoods();
-                beagleWriter.print(' ');
-                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[refGenotype.ordinal()])));
-                beagleWriter.print(' ');
-                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[hetGenotype.ordinal()])));
-                beagleWriter.print(' ');
-                beagleWriter.print(String.format("%.6f", Math.pow(10, likelihoods[homGenotype.ordinal()])));
-            }
-        }
-
         return calls;
     }
 

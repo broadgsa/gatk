@@ -360,21 +360,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( !UAC.ALL_BASES_MODE && !passesEmitThreshold(phredScaledConfidence, bestAFguess) )
             return new VariantCallContext(passesCallThreshold(phredScaledConfidence));
 
-        // output to beagle file if requested
-        if ( beagleWriter != null ) {
-            beagleWriter.print(loc);
-            beagleWriter.print(' ');
-            beagleWriter.print((char)ref);
-            beagleWriter.print(' ');
-            beagleWriter.print((char)((byte)bestAlternateAllele));
-        }
-
         // populate the sample-specific data (output it to beagle also if requested)
         Map<String, Genotype> genotypes = makeGenotypeCalls(ref, bestAlternateAllele, bestAFguess, contexts, loc);
-
-        // close beagle record (if requested)
-        if ( beagleWriter != null )
-            beagleWriter.println();
 
         // next, the variant context data (alleles, attributes, etc.)
         ArrayList<Allele> alleles = new ArrayList<Allele>();

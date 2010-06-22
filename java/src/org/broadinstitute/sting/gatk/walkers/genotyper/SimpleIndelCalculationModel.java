@@ -9,8 +9,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.util.*;
 
-import net.sf.samtools.util.SequenceUtil;
-
 public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
 
     private int MIN_COVERAGE = 6;

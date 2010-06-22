@@ -75,27 +75,25 @@ public class UnifiedGenotyperEngine {
     protected Logger logger = null;
     protected GenotypeWriter genotypeWriter = null;
     protected PrintStream verboseWriter = null;
-    protected PrintStream beagleWriter = null;
 
     // samples in input
     protected Set<String> samples = new HashSet<String>();
 
 
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        initialize(toolkit, UAC, null, null, null, null, null);
+        initialize(toolkit, UAC, null, null, null, null);
     }
 
-    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, PrintStream beagleWriter, VariantAnnotatorEngine engine) {
-        initialize(toolkit, UAC, logger, genotypeWriter, verboseWriter, beagleWriter, engine);
+    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, VariantAnnotatorEngine engine) {
+        initialize(toolkit, UAC, logger, genotypeWriter, verboseWriter, engine);
 
     }
 
-    private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, PrintStream beagleWriter, VariantAnnotatorEngine engine) {
+    private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, VariantAnnotatorEngine engine) {
         this.UAC = UAC;
         this.logger = logger;
         this.genotypeWriter = genotypeWriter;
         this.verboseWriter = verboseWriter;
-        this.beagleWriter = beagleWriter;
         this.annotationEngine = engine;
 
         // deal with input errors
@@ -153,7 +151,7 @@ public class UnifiedGenotyperEngine {
                 else
                     throw new StingException("Unsupported genotype format: " + genotypeWriter.getClass().getName());
             }
-            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format, verboseWriter, beagleWriter));
+            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format, verboseWriter));
         }
 
         byte ref = refContext.getBase();
@@ -212,7 +210,7 @@ public class UnifiedGenotyperEngine {
             if ( stratifiedContexts == null )
                 return null;
 
-            DiploidGenotypePriors priors = new DiploidGenotypePriors((byte)ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
+            DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_REFERENCE_ERROR);
             call = gcm.get().callLocus(tracker, ref, rawContext.getLocation(), stratifiedContexts, priors);
 
             // annotate the call, if possible

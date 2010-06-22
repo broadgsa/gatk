@@ -57,9 +57,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     public PrintStream verboseWriter = null;
 
-    @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = false)
-    public PrintStream beagleWriter = null;
-
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected String[] annotationsToUse = {};
 
@@ -106,7 +103,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public void initialize() {
 
         annotationEngine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, beagleWriter, annotationEngine);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, annotationEngine);
 
         // initialize the writers
         if ( verboseWriter != null ) {
@@ -116,12 +113,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
                 header.append("PosteriorAFFor" + (char)altAllele + "\t");
             }
             verboseWriter.println(header);
-        }
-        if ( beagleWriter != null ) {
-            beagleWriter.print("marker alleleA alleleB");
-            for ( String sample : UG_engine.samples )
-                beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
-            beagleWriter.println();
         }
 
         // initialize the header

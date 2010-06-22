@@ -31,7 +31,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected Logger logger;
     protected GenotypeWriterFactory.GENOTYPE_FORMAT OUTPUT_FORMAT;
     protected PrintStream verboseWriter;
-    protected PrintStream beagleWriter;
 
     /**
      * Create a new GenotypeCalculationModel object
@@ -47,20 +46,17 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param UAC           unified arg collection
      * @param outputFormat  output format
      * @param verboseWriter verbose writer
-     * @param beagleWriter  beagle writer
      */
     protected void initialize(Set<String> samples,
                               Logger logger,
                               UnifiedArgumentCollection UAC,
                               GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
-                              PrintStream verboseWriter,
-                              PrintStream beagleWriter) {
+                              PrintStream verboseWriter) {
         this.UAC = UAC.clone();
         this.samples = new TreeSet<String>(samples);
         OUTPUT_FORMAT = outputFormat;
         this.logger = logger;
         this.verboseWriter = verboseWriter;
-        this.beagleWriter = beagleWriter;
     }
 
     /**

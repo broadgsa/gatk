@@ -104,7 +104,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         }
 
         // update the engine
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, null, null, null);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, null, null);
         UG_engine.samples = samples;        
 
         // initialize the header
