@@ -31,7 +31,6 @@ import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -67,26 +66,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
 
-    @Argument(fullName="output", shortName="O", required=false, doc="Output bam (or directory if using --NwayOutput)")
-    protected String baseWriterFilename = null;
-
-    @Argument(fullName="NWayOutput", shortName="nway", required=false, doc="Should the reads be emitted in a separate bam file for each one of the input bams? [default:no]")
-    protected boolean NWAY_OUTPUT = false;
-
-    @Argument(fullName="outputSuffix", shortName="suffix", required=false, doc="Suffix to append to output bams (when using --NwayOutput) [default:'.cleaned']")
-    protected String outputSuffix = "cleaned";
+    @Argument(fullName="output", shortName="O", required=false, doc="Output bam")
+    protected String writerFilename = null;
 
     @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
     protected Integer compressionLevel = 5;
 
-    public enum RealignerSortingStrategy {
-        NO_SORT,
-        ON_DISK,
-        IN_MEMORY
-    }
-
-    @Argument(fullName="sortStrategy", shortName="sort", required=false, doc="What type of sorting strategy should we use?  Options include NO_SORT, ON_DISK, and IN_MEMORY.  Sorting in memory is much faster than on disk but should be used with care - with too much coverage or with long reads it might generate failures [default:ON_DISK]")
-    protected RealignerSortingStrategy SORTING_STRATEGY = RealignerSortingStrategy.ON_DISK;
+    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
+                "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
+    protected int MAX_RECORDS_IN_RAM = 500000;
 
     // ADVANCED OPTIONS FOLLOW
 
@@ -109,14 +97,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                        "if this value is exceeded, realignment is not attempted and the reads are passed to the output file(s) as-is", required=false)
     protected int MAX_READS = 20000;
 
-    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time "+
-                "when using ON_DISK sorting option. If too low, the tool may run out of system file descriptors needed to perform sorting; "+
-            "if too high, the tool may run out of memory in the regions of unusually deep coverage (consider also increasing VM heap size if this happens)",
-            required=false)
-    protected int MAX_RECORDS_IN_RAM = 500000;
-
-    @Argument(fullName="writerWindowSize", shortName="writerWindowSize", doc="the window over which the writer will store reads when --sortInMemory is enabled", required=false)
-    protected int SORTING_WRITER_WINDOW = 300;
+    @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", required=false, doc="Should we sort the final bam in coordinate order even though it will be malformed because mate pairs of realigned reads will contain inaccurate information?")
+    protected boolean SORT_IN_COORDINATE_ORDER = false;
 
     @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     protected boolean NO_PG_TAG = false;
@@ -133,7 +115,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private final IdentityHashMap<Object, VariantContext> knownIndelsToTry = new IdentityHashMap<Object, VariantContext>();
 
     // the wrapper around the SAM writer
-    private Map<String, SAMFileWriter> writers = null;
+    private SAMFileWriter writer = null;
 
     // random number generator
     private static final long RANDOM_SEED = 1252863495;
@@ -173,32 +155,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
         // set up the output writer(s)
-        if ( baseWriterFilename != null ) {
-            writers = new HashMap<String, SAMFileWriter>();
-            Map<File, Set<String>> readGroupMap = getToolkit().getFileToReadGroupIdMapping();
+        if ( writerFilename != null ) {
             SAMFileWriterFactory factory = new SAMFileWriterFactory();
             factory.setMaxRecordsInRam(MAX_RECORDS_IN_RAM);
 
-            if ( NWAY_OUTPUT ) {
-                List<SAMReaderID> ids = getToolkit().getDataSource().getReaderIDs();
-                for ( SAMReaderID id: ids ) {
-                    File file = getToolkit().getDataSource().getSAMFile(id);
-                    SAMFileHeader header = getToolkit().getSAMFileHeader();
-                    String newFileName = file.getName().substring(0, file.getName().length()-3) + outputSuffix + ".bam";
-                    File newFile = new File(baseWriterFilename, newFileName);
-                    SAMFileWriter writer = makeWriter(factory, header, newFile);
-                    for ( String rg : readGroupMap.get(file) )
-                        writers.put(rg, writer);
-                }
-            } else {
-                SAMFileHeader header = getToolkit().getSAMFileHeader();
-                File file = new File(baseWriterFilename);
-                SAMFileWriter writer = makeWriter(factory, header, file);
-                for ( Set<String> set : readGroupMap.values() ) {
-                    for ( String rg : set )
-                        writers.put(rg, writer);                                     
-                }
-            }
+            SAMFileHeader header = getToolkit().getSAMFileHeader();
+            File file = new File(writerFilename);
+            writer = makeWriter(factory, header, file);
         }
 
         if ( OUT_INDELS != null ) {
@@ -231,8 +194,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private SAMFileWriter makeWriter(SAMFileWriterFactory factory, SAMFileHeader header, File file) {
-        if ( SORTING_STRATEGY == RealignerSortingStrategy.NO_SORT )
-            header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+        if ( SORT_IN_COORDINATE_ORDER )
+            header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+        else
+            header.setSortOrder(SAMFileHeader.SortOrder.queryname);
 
         if ( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord("GATK IndelRealigner");
@@ -241,60 +206,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             header.addProgramRecord( programRecord );
         }
 
-        SAMFileWriter writer = factory.makeBAMWriter(header, SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY, file, compressionLevel);
-
-        if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
-            writer = new SortingSAMFileWriter(writer, SORTING_WRITER_WINDOW);
+        SAMFileWriter writer = factory.makeBAMWriter(header, false, file, compressionLevel);
 
         return writer;
     }
 
     private void emit(final SAMRecord read) {
-        if ( writers != null ) {
-            SAMReadGroupRecord readGroup = read.getReadGroup();
-            if ( readGroup == null || readGroup.getReadGroupId() == null ) {
-                if ( writers.size() > 1 )
-                    throw new StingException("There are multiple output writers but read " + read.toString() + " has no read group");
-                writers.values().iterator().next().addAlignment(read);
-            } else {
-                writers.get(readGroup.getReadGroupId()).addAlignment(read);
-            }
-        }
+        if ( writer != null )
+            writer.addAlignment(read);
     }
 
     private void emit(final List<SAMRecord> reads) {
-        if ( writers == null )
-            return;
-
-        // break out the reads into sets for their respective writers
-        Map<SAMFileWriter, Set<SAMRecord>> bins = new HashMap<SAMFileWriter, Set<SAMRecord>>();
-        for ( SAMFileWriter writer : writers.values() )
-            bins.put(writer, new HashSet<SAMRecord>());
-
-        for ( SAMRecord read : reads ) {
-            SAMReadGroupRecord readGroup = read.getReadGroup();
-            if ( readGroup == null || readGroup.getReadGroupId() == null ) {
-                if ( writers.size() > 1 )
-                    throw new StingException("There are multiple output writers but read " + read.toString() + " has no read group");
-                bins.get(writers.values().iterator().next()).add(read);
-            } else {
-                bins.get(writers.get(readGroup.getReadGroupId())).add(read);
-            }
-        }
-
-        for ( Map.Entry<SAMFileWriter, Set<SAMRecord>> entry : bins.entrySet() ) {
-            if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY ) {
-                // we can be efficient in this case by batching the reads all together
-                ((SortingSAMFileWriter)entry.getKey()).addAlignments(entry.getValue());
-            } else {
-                for ( SAMRecord read : entry.getValue() )
-                    entry.getKey().addAlignment(read);
-            }
+        if ( writer != null ) {
+            for ( SAMRecord read : reads )
+                writer.addAlignment(read);
         }
     }
-
-    long nPerfectMatches = 0;
-    long nReadsToClean = 0;
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( currentInterval == null ) {
@@ -328,7 +255,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 readsNotToClean.add(read);
             }
             else {
-                nReadsToClean++;
                 readsToClean.add(read, ref.getBases());
                 // add the rods to the list of known variants
                 populateKnownIndels(metaDataTracker, null);
@@ -386,14 +312,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             emit(readsNotToClean);
         }
 
-        if ( writers != null ) {
-            HashSet<SAMFileWriter> uniqueWriters = new HashSet<SAMFileWriter>(writers.values());
-            for ( SAMFileWriter writer : uniqueWriters ) {
-                writer.close();
-                if ( SORTING_STRATEGY == RealignerSortingStrategy.IN_MEMORY )
-                    ((SortingSAMFileWriter)writer).getBaseWriter().close();
-            }
-        }
+        if ( writer != null )
+            writer.close();
 
         if ( OUT_INDELS != null ) {
             try {
@@ -536,11 +456,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
             // otherwise, we can emit it as is
             else {
-//                nPerfectMatches++;
-//                if ( nPerfectMatches % 1000 == 0 ) {
-//                    logger.info(String.format("Perfect matching fraction: %d %d => %.2f", nPerfectMatches, nReadsToClean, 100.0 * nPerfectMatches / ( nReadsToClean + 1)));
-//                }
-
                 // if ( debugOn ) System.out.println("Emitting as is...");
                 //logger.debug("Adding " + aRead.getRead().getReadName() + " with raw mismatch score " + rawMismatchScore + " to ref reads");
                 refReads.add(read);
