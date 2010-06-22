@@ -114,26 +114,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing beagle output
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void testOtherOutput() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper" +
-                        " -R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam" +
-                        " -varout /dev/null" +
-                        " -beagle %s" +
-                        " -L 1:10,023,400-10,024,000",
-                1,
-                Arrays.asList("0a6f06f1900c2b965a1d0ac413df8151"));
-
-        executeTest(String.format("testOtherOutput"), spec);
-    }
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
     // testing other output formats
     //
     // --------------------------------------------------------------------------------------------------------------

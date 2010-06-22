@@ -81,7 +81,7 @@ public class TrioGenotyperWalker extends RefWalker<VariantContext, Integer>{
     private VCFWriter writer = null;
 
     public void initialize() {
-        UGEngine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, null, null);
+        UGEngine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, null);
         // initialize the header
         FAMILY_MEMBERS = Arrays.asList(mom, dad, kid);
 
