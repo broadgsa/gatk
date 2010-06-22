@@ -199,8 +199,7 @@ public class VCF4UnitTest extends BaseTest {
     public void checkLargeVCF() {
         TestSetup testSetup = new TestSetup().invoke(largeVCF);
         AsciiLineReader reader = testSetup.getReader();
-        VCF4Codec codec = testSetup.getCodec();
-
+        
         // now parse the lines
         String line = null;
         try {
@@ -303,6 +302,30 @@ public class VCF4UnitTest extends BaseTest {
      * test out the clipping of alleles (removing extra context provided by VCF implementation).
      */
     @Test
+    public void testClippingManyPotentialFrontClippedBases() {
+        String ref = "GGGGTT";
+        ArrayList<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(Allele.create(ref,true));
+        alleles.add(Allele.create("GGGGAATT",false));
+        alleles.add(Allele.create("GGGT",false));
+
+        Pair<GenomeLoc, List<Allele>> locAndList = VCF4Codec.clipAlleles("1",1,ref,alleles);
+        Assert.assertTrue(locAndList.first.equals(GenomeLocParser.createGenomeLoc("1",2,5)));
+
+        // we know the ordering
+        //System.err.println(locAndList.second.get(0).toString());
+        //System.err.println(locAndList.second.get(1).toString());
+        //System.err.println(locAndList.second.get(2).toString());
+        Assert.assertTrue(locAndList.second.get(0).toString().equals("GGGT*"));
+        Assert.assertTrue(locAndList.second.get(0).isReference());
+        Assert.assertTrue(locAndList.second.get(1).toString().equals("GGGAAT"));
+        Assert.assertTrue(locAndList.second.get(2).toString().equals("GG"));
+    }
+
+    /**
+     * test out the clipping of alleles (removing extra context provided by VCF implementation).
+     */
+    @Test
     public void testClippingOfAllelesLongRefRepeat() {
         String ref = "GGGG";
         ArrayList<Allele> alleles = new ArrayList<Allele>();
@@ -322,6 +345,7 @@ public class VCF4UnitTest extends BaseTest {
 
     /**
      * test out the clipping of alleles (removing extra context provided by VCF implementation).
+     * TODO - this is kind of a tricky test... we don't know which way clipped the reads, but the position should be accurate
      */
     @Test
     public void testClippingOfAllelesLongRefRepeatClippable() {
@@ -332,7 +356,7 @@ public class VCF4UnitTest extends BaseTest {
         alleles.add(Allele.create("GGG",false));
 
         Pair<GenomeLoc, List<Allele>> locAndList = VCF4Codec.clipAlleles("1",1,ref,alleles);
-        Assert.assertTrue(locAndList.first.equals(GenomeLocParser.createGenomeLoc("1",3,5)));
+        Assert.assertTrue(locAndList.first.equals(GenomeLocParser.createGenomeLoc("1",2,4)));
 
         // we know the ordering
         Assert.assertTrue(locAndList.second.get(0).toString().equals("GGG*"));

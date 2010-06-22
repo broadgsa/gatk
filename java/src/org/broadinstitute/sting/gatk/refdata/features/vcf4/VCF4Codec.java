@@ -409,44 +409,29 @@ public class VCF4Codec implements FeatureCodec {
     static Pair<GenomeLoc,List<Allele>> clipAlleles(String contig, long position, String ref, List<Allele> unclippedAlleles) {
         List<Allele> newAlleleList = new ArrayList<Allele>();
 
-        // find the smallest allele
-        int minimumAllele = (unclippedAlleles.size() > 0) ? unclippedAlleles.get(0).length() : Integer.MAX_VALUE;
-        for (Allele smallest : unclippedAlleles)
-            if (smallest.length() < minimumAllele)
-                minimumAllele = smallest.length();
-
-
         // find the preceeding string common to all alleles and the reference
-        int forwardClipped = 0;
         boolean clipping = true;
-        while (clipping) {
-            for (Allele a : unclippedAlleles)
-                if (forwardClipped > ref.length() - 1)
-                    clipping = false;
-                else if (a.length() <= forwardClipped || (a.getBases()[forwardClipped] != ref.getBytes()[forwardClipped])) {
+        for (Allele a : unclippedAlleles)
+                if (a.length() < 1 || (a.getBases()[0] != ref.getBytes()[0])) {
                     clipping = false;
                 }
-            if (clipping) forwardClipped++;
-        }
+        int forwardClipping = (clipping) ? 1 : 0;
 
         int reverseClipped = 0;
         clipping = true;
         while (clipping) {
             for (Allele a : unclippedAlleles)
-                if (a.length() - reverseClipped < 0 || a.length() - forwardClipped == 0)
+                if (a.length() - reverseClipped <= forwardClipping || a.length() - forwardClipping == 0)
                     clipping = false;
                 else if (a.getBases()[a.length()-reverseClipped-1] != ref.getBytes()[ref.length()-reverseClipped-1])
                     clipping = false;
             if (clipping) reverseClipped++;
         }
 
-        // check to see if we're about to clip all the bases from the reference, if so back off the front clip a base
-        //if (forwardClipped + reverseClipped >= ref.length() || forwardClipped + reverseClipped >= minimumAllele)
-        //    forwardClipped--;
-
+        
         for (Allele a : unclippedAlleles)
-            newAlleleList.add(Allele.create(Arrays.copyOfRange(a.getBases(),forwardClipped,a.getBases().length-reverseClipped),a.isReference()));
-        return new Pair<GenomeLoc,List<Allele>>(GenomeLocParser.createGenomeLoc(contig,position+forwardClipped,(position+ref.length()-reverseClipped-1)),
+            newAlleleList.add(Allele.create(Arrays.copyOfRange(a.getBases(),forwardClipping,a.getBases().length-reverseClipped),a.isReference()));
+        return new Pair<GenomeLoc,List<Allele>>(GenomeLocParser.createGenomeLoc(contig,position+forwardClipping,(position+ref.length()-reverseClipped-1)),
                                                 newAlleleList);
     }
 
