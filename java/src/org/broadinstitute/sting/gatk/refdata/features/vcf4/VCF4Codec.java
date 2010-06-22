@@ -409,6 +409,13 @@ public class VCF4Codec implements FeatureCodec {
     static Pair<GenomeLoc,List<Allele>> clipAlleles(String contig, long position, String ref, List<Allele> unclippedAlleles) {
         List<Allele> newAlleleList = new ArrayList<Allele>();
 
+        // find the smallest allele
+        int minimumAllele = (unclippedAlleles.size() > 0) ? unclippedAlleles.get(0).length() : Integer.MAX_VALUE;
+        for (Allele smallest : unclippedAlleles)
+            if (smallest.length() < minimumAllele)
+                minimumAllele = smallest.length();
+
+
         // find the preceeding string common to all alleles and the reference
         int forwardClipped = 0;
         boolean clipping = true;
@@ -434,8 +441,8 @@ public class VCF4Codec implements FeatureCodec {
         }
 
         // check to see if we're about to clip all the bases from the reference, if so back off the front clip a base
-        if (forwardClipped + reverseClipped >= ref.length())
-            forwardClipped--;
+        //if (forwardClipped + reverseClipped >= ref.length() || forwardClipped + reverseClipped >= minimumAllele)
+        //    forwardClipped--;
 
         for (Allele a : unclippedAlleles)
             newAlleleList.add(Allele.create(Arrays.copyOfRange(a.getBases(),forwardClipped,a.getBases().length-reverseClipped),a.isReference()));

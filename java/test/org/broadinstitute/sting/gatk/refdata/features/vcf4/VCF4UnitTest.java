@@ -193,9 +193,9 @@ public class VCF4UnitTest extends BaseTest {
         testSetup.codec.decode(twoManyInfoLine);
     }
 
-   /* File largeVCF = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesTable1/dindel-v2/CEU.low_coverage.2010_06.indel.genotypes.vcf");
+    File largeVCF = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesTable1/dindel-v2/CEU.low_coverage.2010_06.indel.genotypes.vcf");
 
-    @Test
+    //@Test
     public void checkLargeVCF() {
         TestSetup testSetup = new TestSetup().invoke(largeVCF);
         AsciiLineReader reader = testSetup.getReader();
@@ -212,6 +212,7 @@ public class VCF4UnitTest extends BaseTest {
         // our record count
         int recordCount = 0;
         int badRecordCount = 0;
+        long milliseconds = System.currentTimeMillis();
         while (line != null) {
             try {
                 recordCount++;
@@ -229,10 +230,51 @@ public class VCF4UnitTest extends BaseTest {
                 Assert.fail("Failed to read a line");
             }
         }
+        System.err.println("Total time = " + (System.currentTimeMillis() - milliseconds));
         Assert.assertEquals(0,badRecordCount);
         Assert.assertEquals(728075,recordCount);
     }
-*/
+
+    //@Test
+    public void checkBobsCNVVCF() {
+        TestSetup testSetup = new TestSetup().invoke(new File("bobs.vcf"));
+        AsciiLineReader reader = testSetup.getReader();
+        VCF4Codec codec = testSetup.getCodec();
+
+        // now parse the lines
+        String line = null;
+        try {
+            line = reader.readLine();
+        } catch (IOException e) {
+            Assert.fail("Failed to read a line");
+        }
+
+        // our record count
+        int recordCount = 0;
+        int badRecordCount = 0;
+        long milliseconds = System.currentTimeMillis();
+        while (line != null) {
+            try {
+                recordCount++;
+                 try {
+                     testSetup.codec.decode(line);
+                 } catch (Exception e) {
+                     System.err.println(e.getMessage() + " -> " + line);
+                     System.err.println(line);
+                     badRecordCount++;
+                 }
+                line = reader.readLine();
+                if (recordCount % 1000 == 0)
+                    System.err.println("record count == " + recordCount);
+            } catch (IOException e) {
+                Assert.fail("Failed to read a line");
+            }
+        }
+        System.err.println("Total time = " + (System.currentTimeMillis() - milliseconds));
+        Assert.assertEquals(0,badRecordCount);
+        Assert.assertEquals(15947,recordCount);
+    }
+
     /**
      * test out the clipping of alleles (removing extra context provided by VCF implementation).
      */
@@ -270,6 +312,27 @@ public class VCF4UnitTest extends BaseTest {
 
         Pair<GenomeLoc, List<Allele>> locAndList = VCF4Codec.clipAlleles("1",1,ref,alleles);
         Assert.assertTrue(locAndList.first.equals(GenomeLocParser.createGenomeLoc("1",2,4)));
+
+        // we know the ordering
+        Assert.assertTrue(locAndList.second.get(0).toString().equals("GGG*"));
+        Assert.assertTrue(locAndList.second.get(0).isReference());
+        Assert.assertTrue(locAndList.second.get(1).toString().equals("-"));
+        Assert.assertTrue(locAndList.second.get(2).toString().equals("G"));
+    }
+
+    /**
+     * test out the clipping of alleles (removing extra context provided by VCF implementation).
+     */
+    @Test
+    public void testClippingOfAllelesLongRefRepeatClippable() {
+        String ref = "GGGGG";
+        ArrayList<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(Allele.create(ref,true));
+        alleles.add(Allele.create("GG",false));
+        alleles.add(Allele.create("GGG",false));
+
+        Pair<GenomeLoc, List<Allele>> locAndList = VCF4Codec.clipAlleles("1",1,ref,alleles);
+        Assert.assertTrue(locAndList.first.equals(GenomeLocParser.createGenomeLoc("1",3,5)));
 
         // we know the ordering
         Assert.assertTrue(locAndList.second.get(0).toString().equals("GGG*"));
