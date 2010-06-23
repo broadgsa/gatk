@@ -56,10 +56,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
 
-    @Argument(fullName="targetIntervalsSorted", shortName="targetSorted",doc="If specified, the tool assumes that target interval list is sorted"+
-                " (can save considerable chunk of memory); if the list turns out to be unsorted, the computation will abort")
-    protected boolean TARGET_SORTED = false;
-
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     protected double LOD_THRESHOLD = 5.0;
 
@@ -103,6 +99,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     protected boolean NO_PG_TAG = false;
 
+    @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.  Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.")
+    protected boolean TARGET_NOT_SORTED = false;
+
     // the intervals input by the user
     private Iterator<GenomeLoc> intervals = null;
 
@@ -143,13 +142,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
-        if ( TARGET_SORTED && IntervalUtils.isIntervalFile(intervalsFile)) {
+        if ( !TARGET_NOT_SORTED && IntervalUtils.isIntervalFile(intervalsFile)) {
             // prepare to read intervals one-by-one, as needed (assuming they are sorted). 
             intervals = new IntervalFileMergingIterator( new java.io.File(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
         } else {
             // read in the whole list of intervals for cleaning
-            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile)),
-                                                                      IntervalMergingRule.OVERLAPPING_ONLY);
+            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile)), IntervalMergingRule.OVERLAPPING_ONLY);
             intervals = locs.iterator();
         }
         currentInterval = intervals.hasNext() ? intervals.next() : null;
