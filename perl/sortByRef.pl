@@ -86,6 +86,7 @@ while ( <$INPUT> ) {
     my $order;
     if ( defined $ref_order{$contig} ) { $order = $ref_order{$contig}; }
     else {
+        $ref_order{$contig} = $n;
         $order = $n; # input line has contig that was not in the dict; 
         $n++; # this contig will go at the end of the output, 
               # after all known contigs
