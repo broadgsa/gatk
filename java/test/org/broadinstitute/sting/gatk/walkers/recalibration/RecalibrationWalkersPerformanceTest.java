@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 
+
 public class RecalibrationWalkersPerformanceTest extends WalkerTest {
 
     @Test
@@ -52,6 +53,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
         try {
             executeTest("testTableRecalibratorWholeGenome", spec);
         } catch (RuntimeException e) {
+            System.out.println("TODO: this is actually an acceptable/expected exception (trying to close dev/null/), so let's get on Picard to fix it...");
             // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it
         }
     }
@@ -71,6 +73,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
         try {
             executeTest("testTableRecalibratorWholeExome", spec);
         } catch (RuntimeException e) {
+            System.out.println("TODO: this is actually an acceptable/expected exception (trying to close dev/null/), so let's get on Picard to fix it...");
             // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it
         }
     }

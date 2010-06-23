@@ -21,11 +21,8 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -targetIntervals " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.realigner.intervals",
                  0,
                 new ArrayList<String>(0));
-        try {
-            executeTest("testIndelRealignerWholeGenome", spec1);
-        } catch (RuntimeException e) {
-            // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it         
-        }
+        executeTest("testIndelRealignerWholeGenome", spec1);
+
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
                         " -T IndelRealigner" +
@@ -38,10 +35,6 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -targetIntervals " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.realigner.intervals",
                  0,
                 new ArrayList<String>(0));
-        try {
-            executeTest("testIndelRealignerWholeExome", spec2);
-        } catch (RuntimeException e) {
-            // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it
-        }
+        executeTest("testIndelRealignerWholeExome", spec2);
     }
 }
