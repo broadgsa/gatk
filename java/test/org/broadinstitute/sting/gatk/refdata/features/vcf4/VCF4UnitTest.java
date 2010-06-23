@@ -4,6 +4,8 @@ import org.broad.tribble.util.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -20,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -170,27 +173,52 @@ public class VCF4UnitTest extends BaseTest {
     }
 
 
-    // two constants for testing
+    // test too many info fields 
+    String twoManyInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2;HH\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
+    @Test(expected=StingException.class)
+    public void testCheckTooManyInfoFields() {
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
+        testSetup.codec.decode(twoManyInfoLine);
+    }
+    // test a regular line
     String regularLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
-    String twoFewInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
-    String twoManyInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2;HG=12\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
-
     @Test
     public void testCheckInfoValidation() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(regularLine);
     }
-
+    // test too few info lines, we don't provide the DP in this line
+    String twoFewInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
     @Test
     public void testCheckTwoFewInfoValidation() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(twoFewInfoLine);
     }
 
-    @Test(expected=StingException.class)
-    public void testCheckTwoManyInfoValidation() {
+    // test that we're getting the right genotype for a multi-base polymorphism
+    String MNPLine = "20\t14370\trs6054257\tGG\tAT\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
+    @Test
+    public void testMNPValidation() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
-        testSetup.codec.decode(twoManyInfoLine);
+        VariantContext vc = (VariantContext)testSetup.codec.decode(MNPLine);
+        Map<String, Genotype> genotypes = vc.getGenotypes();
+        Assert.assertTrue(genotypes.containsKey("NA00003"));
+        Genotype g = genotypes.get("NA00003");
+        Assert.assertTrue("Expected AT genotype, saw = " + g.getAllele(0),"AT".equals(g.getAllele(0).toString()));
+        Assert.assertTrue(vc.getType()== VariantContext.Type.MNP);
+    }
+
+    // test that we're getting the right genotype for what appears to be a multi-base polymorphism, but is really just a SNP
+    String MNPLine2 = "20\t14370\trs6054257\tGT\tAT\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
+    @Test
+    public void testMNP2Validation() {
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
+        VariantContext vc = (VariantContext)testSetup.codec.decode(MNPLine2);
+        Map<String, Genotype> genotypes = vc.getGenotypes();
+        Assert.assertTrue(genotypes.containsKey("NA00003"));
+        Genotype g = genotypes.get("NA00003");
+        Assert.assertTrue("Expected A genotype, saw = " + g.getAllele(0),"A".equals(g.getAllele(0).toString()));
+        Assert.assertTrue(vc.getType()== VariantContext.Type.SNP);
     }
 
     File largeVCF = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesTable1/dindel-v2/CEU.low_coverage.2010_06.indel.genotypes.vcf");
@@ -218,8 +246,9 @@ public class VCF4UnitTest extends BaseTest {
                  try {
                      testSetup.codec.decode(line);
                  } catch (Exception e) {
-                     System.err.println(e.getMessage() + " -> " + line);
-                     System.err.println(line);
+                     //System.err.println(e.getMessage() + " -> " + line);
+                     //System.err.println(line);
+                     Assert.fail("Bad record from line " + line + " message = " + e.getMessage());
                      badRecordCount++;
                  }
                 line = reader.readLine();
