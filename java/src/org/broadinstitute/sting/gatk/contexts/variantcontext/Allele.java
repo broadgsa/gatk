@@ -123,6 +123,7 @@ public class Allele implements Comparable<Allele> {
     private final static Allele ALT_G = new Allele("G", false);
     private final static Allele REF_T = new Allele("T", true);
     private final static Allele ALT_T = new Allele("T", false);
+    private final static Allele REF_N = new Allele("N", true);
     private final static Allele REF_NULL = new Allele("-", true);
     private final static Allele ALT_NULL = new Allele("-", false);
     public final static Allele NO_CALL = new Allele(NO_CALL_STRING, false);
@@ -156,7 +157,8 @@ public class Allele implements Comparable<Allele> {
                 case 'C': return isRef ? REF_C : ALT_C;
                 case 'G': return isRef ? REF_G : ALT_G;
                 case 'T': return isRef ? REF_T : ALT_T;
-                default: throw new IllegalArgumentException("Illegal lower-case base: " + (char)bases[0]);
+                case 'N': if (isRef) return REF_N;
+                default: throw new IllegalArgumentException("Illegal base: " + (char)bases[0]);
             }
         } else {
             return new Allele(bases, isRef);
@@ -205,8 +207,10 @@ public class Allele implements Comparable<Allele> {
         for ( int i = 0; i < bases.length; i++ ) {
             switch (bases[i]) {
                 case 'A': case 'C': case 'G': case 'T': break;
-                case 'N': if(!reference)
-                    return false; break;
+                case 'N':
+                    if (!reference)
+                        return false;
+                    break;
                 default:
                     return false;
             }
