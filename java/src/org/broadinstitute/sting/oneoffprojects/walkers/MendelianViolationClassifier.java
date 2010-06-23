@@ -48,10 +48,8 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     String deNovoParentalAllele = "-0.1-1.1";
     @Argument(fullName="oppositeHomozygoteTriAllelicQ",required=false,doc="Cutoff for quality scores of 3rd allele at opposite homozygote sites to remove it from the violation set")
     int opHomTriQ = 20;
-    @Argument(fullName="oppositeHomozygoteParentAllele",required=false,doc="Range for the parental allele in the parents at opposite homozygote sites for it to be kept in violation set")
-    String opHomParentAllele = "-0.1-1.1";
-    @Argument(fullName="oppositeHomozygoteChildAllele",required=false,doc="Range for the parental allele in the child at opposite homozygote sites for it to be kept in violation set")
-    String opHomChildAllele = "-0.1-1.1";
+    @Argument(fullName="oppositeHomozygoteAlleleProportion",required=false,doc="Range for the parental allele in the parents at opposite homozygote sites for it to be kept in violation set")
+    String opHomAlleleProp = "-0.1-1.1";
 
 
     /*
@@ -104,7 +102,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                             HomozygosityRegion r = homozygousRegions.get(memberGenotype.getKey());
                             r.lastSeen = v.getLocus();
                             r.callsWithinRegion++;
-                            if ( v.type != MendelianViolationType.NONE && ! v.type.isFiltered() ) {
+                            if ( v.type != MendelianViolationType.NONE && ! v.violationIsFiltered() ) {
                                 v.addAttribute(regionKeys.get(memberGenotype.getKey()).getKey(),homozygousRegionCounts.get(memberGenotype.getKey()));
                                 if ( v.type == MendelianViolationType.DE_NOVO_SNP ) {
                                     r.deNovoSNPsInRegion++;
@@ -189,6 +187,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         public MendelianViolationType type;
         private HashMap<String,Object> newAttributes;
         private HashMap<String,Integer> homozygosityRegions;
+        private boolean filtered = false;
 
         public MendelianViolation(VariantContext context, MendelianViolationType violationType) {
             trio = context;
@@ -250,6 +249,19 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 return trio.getAttribute(key);
             }
         }
+
+        public void filter() {
+            filtered = true;
+            newAttributes.put(MendelianInfoKey.ViolationType.getKey(),"Filtered_"+newAttributes.get(MendelianInfoKey.ViolationType.getKey()));
+        }
+
+        public String getType() {
+            return filtered ? "Filtered_"+type.toString() : type.toString();
+        }
+
+        public boolean violationIsFiltered() {
+            return filtered;
+        }
     }
 
     public class Range {
@@ -284,22 +296,13 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         NONE("none");
 
         private String infoString;
-        private Boolean isFiltered = false;
 
         MendelianViolationType(String typeName) {
             infoString=typeName;
         }
 
         public String toString() {
-            return isFiltered ? "Filtered_"+infoString : infoString;
-        }
-
-        public void filter() {
-            isFiltered = true;
-        }
-
-        public boolean isFiltered() {
-            return isFiltered;
+            return infoString;
         }
     }
 
@@ -345,8 +348,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     private ExtendedTrioStructure trioStructure;
     private UnifiedGenotyperEngine engine;
     private Range deNovoRange;
-    private Range opHomParentRange;
-    private Range opHomChildRange;
+    private Range opHomRange;
 
     /*
      ***************** INITIALIZE
@@ -354,8 +356,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     public void initialize() {
         trioStructure = new ExtendedTrioStructure(familyStr);
         deNovoRange = new Range(deNovoParentalAllele);
-        opHomParentRange = new Range(opHomParentAllele);
-        opHomChildRange = new Range(opHomChildAllele);
+        opHomRange = new Range(opHomAlleleProp);
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.MIN_BASE_QUALTY_SCORE = 10;
         uac.MIN_MAPPING_QUALTY_SCORE = 10;
@@ -372,7 +373,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         VCFWriter writer = new VCFWriter(out);
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFHeaderLine("source", "OppositeHomozygoteClassifier"));
+        hInfo.add(new VCFHeaderLine("source", "MendelianViolationClassifier"));
         for ( MendelianInfoKey key : EnumSet.allOf(MendelianInfoKey.class) ) {
             hInfo.add( new VCFHeaderLine("INFO",key.toString()));
         }
@@ -467,7 +468,8 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             if ( proportion != null ) {
                 violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), proportion);
                 if ( ! deNovoRange.contains(proportion) ) {
-                    violation.type.filter();
+                    //System.out.println("Filtering deNovo by proportion: is "+proportion+" should be in range "+deNovoRange.lower+"-"+deNovoRange.upper);
+                    violation.filter();
                 }
             }
 
@@ -476,12 +478,12 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),triAl.first.toString());
                 violation.addAttribute(MendelianInfoKey.TriAllelicQuality.getKey(),triAl.second);
                 if ( triAl.second >= deNovoTriQ ) {
-                    violation.type.filter();
+                    violation.filter();
                 }
             }
 
         } else {
-            violation.type.filter();
+            violation.filter();
         }
 
         return violation;
@@ -501,29 +503,29 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),triAl.first.toString());
                 violation.addAttribute(MendelianInfoKey.TriAllelicQuality.getKey(),triAl.second);
                 if ( triAl.second >= opHomTriQ ) {
-                    violation.type.filter();
+                    violation.filter();
                 }
             }
 
-            Double childProp = getAlleleProportion(trio.getGenotype(trioStructure.mom).getAllele(0),splitCon.get(trioStructure.child));
+            Double childProp = getAlleleProportion(trio.getGenotype(trioStructure.child).getAllele(0),splitCon.get(trioStructure.child));
             Double motherProp = getAlleleProportion(trio.getGenotype(trioStructure.mom).getAllele(0),splitCon.get(trioStructure.mom));
-            Double fatherProp = getAlleleProportion(trio.getGenotype(trioStructure.mom).getAllele(0),splitCon.get(trioStructure.dad));
+            Double fatherProp = getAlleleProportion(trio.getGenotype(trioStructure.dad).getAllele(0),splitCon.get(trioStructure.dad));
             if ( childProp != null ) {
                 violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(),childProp);
-                if ( ! opHomChildRange.contains(childProp) ) {
-                    violation.type.filter();
+                if ( ! opHomRange.contains(childProp) ) {
+                    violation.filter();
                 }
             }
 
-            if ( motherProp != null && ! opHomParentRange.contains(motherProp) ) {
-                violation.type.filter();
+            if ( motherProp != null && ! opHomRange.contains(motherProp) ) {
+                violation.filter();
             }
 
-            if ( fatherProp != null && ! opHomParentRange.contains(fatherProp) ) {
-                violation.type.filter();
+            if ( fatherProp != null && ! opHomRange.contains(fatherProp) ) {
+                violation.filter();
             }
         } else {
-            violation.type.filter();
+            violation.filter();
         }
 
         return violation;

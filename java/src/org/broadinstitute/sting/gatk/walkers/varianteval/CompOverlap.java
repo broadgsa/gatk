@@ -41,8 +41,11 @@ public class CompOverlap extends VariantEvaluator {
     @DataPoint(name = "% concordant", description = "the concordance rate")
     double concordantRate = 0.0;
 
+    private boolean expectingIndels = false;
+
     public CompOverlap(VariantEvalWalker parent) {
         super(parent);
+        expectingIndels = parent.dels;
     }
 
     public String getName() {
@@ -84,10 +87,10 @@ public class CompOverlap extends VariantEvaluator {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        boolean compIsGood = comp != null && comp.isSNP() && comp.isNotFiltered();
-        boolean evalIsGood = eval != null && eval.isSNP();
+        boolean compIsGood = expectingIndels ? comp != null && comp.isNotFiltered() && comp.isIndel() : comp != null && comp.isNotFiltered() && comp.isSNP() ;
+        boolean evalIsGood = expectingIndels ? eval != null && eval.isIndel() : eval != null && eval.isSNP() ;
 
-        if (compIsGood) nCompSNPs++;           // count the number of comp events
+        if ( compIsGood ) nCompSNPs++;           // count the number of comp events
         if (evalIsGood) nEvalSNPs++;           // count the number of eval events
 
         if (compIsGood && evalIsGood) {
@@ -99,4 +102,6 @@ public class CompOverlap extends VariantEvaluator {
 
         return null; // we don't capture any interesting sites
     }
+
+
 }
