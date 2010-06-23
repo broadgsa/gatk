@@ -58,7 +58,6 @@ public class RODTrackBuilder implements RMDTrackBuilder {
         Types.put("Table", TabularROD.class);
         Types.put("HapMap", HapMapROD.class);
         Types.put("Intervals", IntervalRod.class);
-        Types.put("GLF", RodGLF.class);
         Types.put("PicardDbSNP", rodPicardDbSNP.class);
         Types.put("Beagle", BeagleROD.class);
         Types.put("Plink", PlinkRod.class);        

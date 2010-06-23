@@ -211,7 +211,7 @@ public class VCF4UnitTest extends BaseTest {
     // test that we're getting the right genotype for what appears to be a multi-base polymorphism, but is really just a SNP
     String MNPLine2 = "20\t14370\trs6054257\tGT\tAT\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
     @Test
-    public void testMNP2Validation() {
+    public void testMNPWannabeButReallyASNPValidation() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         VariantContext vc = (VariantContext)testSetup.codec.decode(MNPLine2);
         Map<String, Genotype> genotypes = vc.getGenotypes();
@@ -287,8 +287,7 @@ public class VCF4UnitTest extends BaseTest {
                  try {
                      testSetup.codec.decode(line);
                  } catch (Exception e) {
-                     System.err.println(e.getMessage() + " -> " + line);
-                     System.err.println(line);
+                     Assert.fail("Bad record from line " + line + " message = " + e.getMessage());
                      badRecordCount++;
                  }
                 line = reader.readLine();

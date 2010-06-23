@@ -49,7 +49,6 @@ public class VariantContextAdaptors {
         adaptors.put(VCFRecord.class, new VCFRecordAdaptor());
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
         adaptors.put(HapMapROD.class, new HapMapAdaptor());
-        adaptors.put(RodGLF.class, new GLFAdaptor());
         adaptors.put(GeliTextFeature.class, new GeliTextAdaptor());
         adaptors.put(rodGELI.class, new GeliAdaptor());
         adaptors.put(VariantContext.class, new VariantContextAdaptor());
@@ -505,77 +504,6 @@ public class VariantContextAdaptors {
         }
     }
 
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // GLF to VariantContext
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    private static class GLFAdaptor extends VCAdaptor {
-        /**
-         * convert to a Variant Context, given:
-         * @param name the name of the ROD
-         * @param input the Rod object, in this case a RodGLF
-         * @return a VariantContext object
-         */
-        VariantContext convert(String name, Object input) {
-            return convert(name, input, null);
-        }
-
-        /**
-         * convert to a Variant Context, given:
-         * @param name the name of the ROD
-         * @param input the Rod object, in this case a RodGLF
-         * @param ref the reference context
-         * @return a VariantContext object
-         */
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
-            RodGLF glf = (RodGLF)input;
-
-            if ( ! Allele.acceptableAlleleBases(glf.getReference(),true) )
-                return null;
-            Allele refAllele = Allele.create(glf.getReference(), true);
-
-            // make sure we can convert it
-            if ( glf.isSNP() || glf.isIndel()) {
-                // add the reference allele
-                List<Allele> alleles = new ArrayList<Allele>();
-                alleles.add(refAllele);
-
-                // add all of the alt alleles
-                for ( String alt : glf.getAlternateAlleleList() ) {
-                    if ( ! Allele.acceptableAlleleBases(alt,false) ) {
-                        return null;
-                    }
-                    Allele allele = Allele.create(alt, false);
-                    if (!alleles.contains(allele)) alleles.add(allele);
-                }
-
-
-                Map<String, String> attributes = new HashMap<String, String>();
-                Collection<Genotype> genotypes = new ArrayList<Genotype>();
-                MutableGenotype call = new MutableGenotype(name, alleles);
-
-                if (glf.mRecord instanceof GLFSingleCall) {
-                    // transform the likelihoods from negative log (positive double values) to log values (negitive values)
-                    LikelihoodObject obj = new LikelihoodObject(((GLFSingleCall)glf.mRecord).getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
-                    obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-
-                    // set the likelihoods, depth, and RMS mapping quality values
-                    call.putAttribute(CalledGenotype.LIKELIHOODS_ATTRIBUTE_KEY,obj.toDoubleArray());
-                    call.putAttribute(VCFGenotypeRecord.DEPTH_KEY,(glf.mRecord.getReadDepth()));
-                    call.putAttribute(GLFWriter.RMS_MAPPING_QUAL, (double) glf.mRecord.getRmsMapQ());
-                } else {
-                    throw new UnsupportedOperationException("We don't currenly support indel calls");
-                }
-
-                // add the call to the genotype list, and then use this list to create a VariantContext
-                genotypes.add(call);
-                VariantContext vc = new VariantContext(name, glf.getLocation(), alleles, genotypes, glf.getNegLog10PError(), null, attributes);
-                return vc;
-            } else
-                return null; // can't handle anything else
-        }
-    }
 
     // --------------------------------------------------------------------------------------------------------------
     //
