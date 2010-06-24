@@ -21,7 +21,7 @@ parser.add_option("-i", "--transcript-table", metavar="PATH", dest="transcript_t
 parser.add_option("-f", "--output-filename-prefix", metavar="PREFIX", dest="prefix", help="Output filename prefix (eg. refGene)")
 parser.add_option("-p", "--print", dest="justprint", action="store_true", default=False, help="Only print the commands to standard out, don't actually execute them yet.")
 parser.add_option("-e", "--execute", dest="execute", action="store_true", default=False, help="Executes the commands. This flag acts as a confirmation that you want to proceed with launching the processes.")
-parser.add_option("-l", "--locally", dest="run_locally", action="store_true", default=False, help="Don't submit the commands to LSF. Run them sequentially on the current machine.")
+parser.add_option("-l", "--run-locally", dest="run_locally", action="store_true", default=False, help="Don't submit the commands to LSF. Run them sequentially on the current machine.")
 parser.add_option("-R", "--reference", metavar="PATH", dest="reference", help="Specifies the path of the reference file to use.", default="/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta")
 parser.add_option("-n", "--gene-name-columns", dest="gene_name_columns", metavar="GENE_NAMES", help="Comma-separated list of column names that contain gene names. This arg is passed through to the GenomicAnnotator. The GenomicAnnotator docs have more details on this.")
 parser.add_option("-q", "--queue", dest="queue", metavar="QUEUE", help="Specifies the LSF queue to use.", default="solexa")
