@@ -126,7 +126,7 @@ running_processes = []
 def execute(command, stdout_filename=None):
 
     # Wait until a slot becomes open
-    while len( running_processes ) + 1 >= num_parallel_processes:
+    while len( running_processes ) >= num_parallel_processes:
         # Check if any have ended
         for process in running_processes:
             if process.poll() != None:
@@ -142,6 +142,7 @@ def execute(command, stdout_filename=None):
         stdout = open(stdout_filename, "w+")
         
 
+    print("Executing: " + command)    
     p = subprocess.Popen(shlex.split(command), stdout=stdout, stderr=subprocess.STDOUT)
     running_processes.append(p)
 
@@ -163,10 +164,10 @@ for contig in contigs:
         command = "bsub "+EXCLUSIVE+" -q " + queue + " -R \"rusage[mem="+str(MEMORY_USAGE)+"]\" -o " + os.path.join(logs_dir,contig+"_log.txt") + " "  + command
         
     if run:
-        print("Executing: " + command)
         if run_locally and num_parallel_processes > 1:
             execute(command, os.path.join(logs_dir,contig+"_log.txt"))
         else:
+            print("Executing: " + command)
             os.system(command)
     else:
         print(command)
