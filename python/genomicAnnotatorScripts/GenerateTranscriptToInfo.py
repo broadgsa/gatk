@@ -25,9 +25,9 @@ parser.add_option("-l", "--locally", dest="run_locally", action="store_true", de
 parser.add_option("-R", "--reference", metavar="PATH", dest="reference", help="Specifies the path of the reference file to use.", default="/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta")
 parser.add_option("-n", "--gene-name-columns", dest="gene_name_columns", metavar="GENE_NAMES", help="Comma-separated list of column names that contain gene names. This arg is passed through to the GenomicAnnotator. The GenomicAnnotator docs have more details on this.")
 parser.add_option("-q", "--queue", dest="queue", metavar="QUEUE", help="Specifies the LSF queue to use.", default="solexa")
-parser.add_option("-s", "--num-parallel-processes", dest="num_parallel_processes", metavar="SLOTS", help="How many processes to launch simultaneously. This is only used when the -l option is set.", default="1")
 parser.add_option("-v", "--filter-in-chromosomes", dest="filterin", metavar="FILTER", help="Only process these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
 parser.add_option("-w", "--filter-out-chromosomes", dest="filterout", metavar="FILTER", help="Skip these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
+parser.add_option("-s", "--num-threads", dest="num_parallel_processes", metavar="SLOTS", help="How many threads to use within each TranscriptToInfo instance. This is only used when the -l option is set.", default="1")
 
 (options, args) = parser.parse_args()
 
