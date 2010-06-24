@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import net.sf.samtools.util.CloseableIterator;
+import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -74,7 +75,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             ReferenceOrderedData snp_mask;
             if ( SNP_MASK.contains(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME)) {
                 TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
-                CloseableIterator<GATKFeature> iter = builder.createInstanceOfTrack(DbSNPFeature.class,"snp_mask",new java.io.File(SNP_MASK)).getIterator();
+                CloseableIterator<GATKFeature> iter = builder.createInstanceOfTrack(DbSNPCodec.class,"snp_mask",new java.io.File(SNP_MASK)).getIterator();
                 snpMaskIterator = new SeekableRODIterator(iter);
                 
             } else {
