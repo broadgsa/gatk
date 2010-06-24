@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -44,12 +45,25 @@ import java.util.LinkedList;
  * Prints out counts of the number of reference ordered data objects are
  * each locus for debugging RodWalkers.
  */
-public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> {
+public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>> {
     @Argument(fullName = "verbose", shortName = "v", doc="If true, Countrod will print out detailed information about the rods it finds and locations", required = false)
     public boolean verbose = false;
 
     @Argument(fullName = "showSkipped", shortName = "s", doc="If true, CountRod will print out the skippped locations", required = false)
     public boolean showSkipped = false;
+
+    @Override
+    public Pair<ExpandingArrayList<Long>, Long> treeReduce(Pair<ExpandingArrayList<Long>, Long> lhs, Pair<ExpandingArrayList<Long>, Long> rhs) {
+        ExpandingArrayList<Long> nt = new ExpandingArrayList<Long>();
+        nt.addAll(lhs.first);
+        int index = 0;
+        for (Long l : rhs.first)
+            if (nt.get(index) == null)
+                nt.add(l);
+            else
+                nt.set(index,nt.get(index) + l);
+        return new Pair<ExpandingArrayList<Long>, Long>(nt, lhs.second + rhs.second);
+    }
 
     public class Datum {
         public long nRodsAtThisLocation = 0;

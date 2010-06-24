@@ -35,7 +35,7 @@ public class VCF4Codec implements FeatureCodec {
     private static Map<String, List<Allele>> alleleMap = new HashMap<String, List<Allele>>(3);
 
     // cache the genotyope values
-    private static String[] CachedGTValues = new String[100];
+    private static String[] GTValueArray = new String[100];
 
     // for performance testing purposes
     public static boolean validate = true;
@@ -56,7 +56,7 @@ public class VCF4Codec implements FeatureCodec {
     ArrayList<String> filterFields = new ArrayList<String>();
 
     // do we want to validate the info, format, and filter fields
-    private final boolean validateFromHeader = true;
+    private final boolean validateFromHeader = false;
 
     // we store a name to give to each of the variant contexts we emit
     private String name = "Unkown";
@@ -377,47 +377,70 @@ public class VCF4Codec implements FeatureCodec {
 
         // do we have genotyping data
         if (parts.length > 8) {
-            String GT = parts[8];
             int genotypesStart = 9;
-            // parse genotypes
-            int nGTKeys = ParsingUtils.split(GT, genotypeKeyArray, ':');
-            genotypes = new HashMap<String, Genotype>(Math.max(parts.length - genotypesStart, 1));
-            Iterator<String> iter = header.getGenotypeSamples().iterator();
-
-            alleleMap.clear();
-            for (int genotypeOffset = genotypesStart; genotypeOffset < parts.length; genotypeOffset++) {
-                String sample = parts[genotypeOffset];
-                String[] GTValues = CachedGTValues;
-                ParsingUtils.split(sample, GTValues, ':');
-                List<Allele> genotypeAlleles = parseGenotypeAlleles(GTValues[0], locAndAlleles.second, alleleMap);
-                double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
-                Set<String> genotypeFilters = null;
-
-                // todo -- the parsing of attributes could be made lazy for performance
-                Map<String, String> gtAttributes = null;
-                if (nGTKeys > 1) {
-                    gtAttributes = new HashMap<String, String>(nGTKeys - 1);
-                    for (int i = 1; i < nGTKeys; i++) {
-                        if (genotypeKeyArray[i].equals("GQ")) {
-                            GTQual = parseQual(GTValues[i]);
-                        }
-                        if (genotypeKeyArray[i].equals("FL")) { // deal with genotype filters here
-                            genotypeFilters.addAll(parseFilters(GTValues[i]));
-                        } else {
-                            gtAttributes.put(genotypeKeyArray[i], GTValues[i]);
-                        }
-                    }
-                    // validate the format fields
-                    validateFields(gtAttributes.keySet(), new ArrayList(formatFields.keySet()));
-                }
-
-                boolean phased = genotypeKeyArray[0].charAt(1) == '|';
-
-                Genotype g = new Genotype(iter.next(), genotypeAlleles, GTQual, genotypeFilters, gtAttributes, phased);
-                genotypes.put(g.getSampleName(), g);
-            }
+            genotypes = createGenotypeMap(parts, locAndAlleles, genotypesStart);
         }
         return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
+    }
+
+    /**
+     * create a genotype map
+     * @param parts the string parts
+     * @param locAndAlleles the locations and the list of alleles
+     * @param genotypesStart the position in the parts array that the genotype strings start
+     * @return a mapping of sample name to genotype object
+     */
+    private Map<String, Genotype> createGenotypeMap(String[] parts, Pair<GenomeLoc, List<Allele>> locAndAlleles, int genotypesStart) {
+        Map<String, Genotype> genotypes = new LinkedHashMap<String, Genotype>(Math.max(parts.length - genotypesStart, 1));
+
+        // get the format keys
+        int nGTKeys = ParsingUtils.split(parts[8], genotypeKeyArray, ':');
+
+        // cycle through the sample names
+        Iterator<String> sampleNameIterator = header.getGenotypeSamples().iterator();
+
+        // clear out our allele mapping
+        alleleMap.clear();
+
+        // cycle through the genotype strings
+        for (int genotypeOffset = genotypesStart; genotypeOffset < parts.length; genotypeOffset++) {
+            int GTValueSplitSize = ParsingUtils.split(parts[genotypeOffset], GTValueArray, ':');
+            List<Allele> genotypeAlleles = parseGenotypeAlleles(GTValueArray[0], locAndAlleles.second, alleleMap);
+            double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
+            Set<String> genotypeFilters = null;
+            String sampleName = sampleNameIterator.next();
+
+
+            // todo -- the parsing of attributes could be made lazy for performance
+            Map<String, String> gtAttributes = null;
+
+            // check to see if the value list is longer than the key list, which is a problem
+            if (nGTKeys < GTValueSplitSize)
+                throw new StingException("Too few keys for compared to the value string " + sampleName + ", keys = " + parts[8] + " values = " + parts[genotypeOffset]);
+
+            if (nGTKeys > 1) {
+                gtAttributes = new HashMap<String, String>(nGTKeys - 1);
+                for (int i = 1; i < nGTKeys; i++) {
+                    if (i >= GTValueSplitSize)
+                        gtAttributes.put(genotypeKeyArray[i],".");
+                    else if (genotypeKeyArray[i].equals("GQ"))
+                        GTQual = parseQual(GTValueArray[i]);
+                    else if (genotypeKeyArray[i].equals("FL")) // deal with genotype filters here
+                        genotypeFilters.addAll(parseFilters(GTValueArray[i]));
+                    else
+                        gtAttributes.put(genotypeKeyArray[i], GTValueArray[i]);
+
+                }
+                // validate the format fields
+                validateFields(gtAttributes.keySet(), new ArrayList(formatFields.keySet()));
+            }
+
+            boolean phased = genotypeKeyArray[0].charAt(1) == '|';
+
+            Genotype g = new Genotype(sampleName, genotypeAlleles, GTQual, genotypeFilters, gtAttributes, phased);
+            genotypes.put(g.getSampleName(), g);
+        }
+        return genotypes;
     }
 
     /**

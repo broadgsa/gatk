@@ -1,21 +1,15 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broad.tribble.bed.BEDFeature;
-import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
 
@@ -31,7 +25,7 @@ import java.util.*;
 public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
 
     private HashMap<GenomeLoc,IntervalInfoBuilder> intervalBuffer = new HashMap<GenomeLoc,IntervalInfoBuilder>();
-    private HashSet<rodRefSeq> refseqBuffer = new HashSet<rodRefSeq>();
+    private HashSet<RefSeqFeature> refseqBuffer = new HashSet<RefSeqFeature>();
     private HashMap<String,BEDFeature> currentBedFeatures = new HashMap<String,BEDFeature>();
 
     public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -59,8 +53,8 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
 
         if ( refseqList != null && refseqList.size() > 0 ) {
             for ( Object seq : refseqList ) {
-                if ( ! refseqBuffer.contains( (rodRefSeq) seq) ) {
-                    refseqBuffer.add( (rodRefSeq) seq );
+                if ( ! refseqBuffer.contains( (RefSeqFeature) seq) ) {
+                    refseqBuffer.add( (RefSeqFeature) seq );
                 }
             }
         }
@@ -84,7 +78,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
     private long process() {
         long nUpdate = 0l;
         for ( GenomeLoc interval : intervalBuffer.keySet() ) {
-            for ( rodRefSeq refseq : refseqBuffer ) {
+            for ( RefSeqFeature refseq : refseqBuffer ) {
                 if ( interval.overlapsP(refseq.getLocation()) &&
                      ! intervalBuffer.get(interval).geneNames.contains(refseq.getTranscriptUniqueGeneName()) ) {
                     // if the interval overlaps the gene transcript; and the gene is not already represented in the interval
@@ -119,14 +113,14 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
      * @return diddly
      */
     public void cleanup(ReferenceContext ref) {
-        List<rodRefSeq> toRemove = new ArrayList<rodRefSeq>();
-        for ( rodRefSeq refseq : refseqBuffer ) {
+        List<RefSeqFeature> toRemove = new ArrayList<RefSeqFeature>();
+        for ( RefSeqFeature refseq : refseqBuffer ) {
             if ( refseq.getLocation().isBefore(ref.getLocus()) ) {
                 toRemove.add(refseq);
             }
         }
 
-        for ( rodRefSeq refseq : toRemove ) {
+        for ( RefSeqFeature refseq : toRemove ) {
             refseqBuffer.remove(refseq);
         }
 

@@ -31,21 +31,22 @@ import net.sf.picard.util.IntervalList;
 import net.sf.picard.util.OverlapDetector;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
+import org.broad.tribble.FeatureReader;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
+import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.utils.*;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
@@ -108,10 +109,15 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     @Override
     public void initialize() {
         if ( REFSEQ_FILE != null ) {
-            ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
-                    new java.io.File(REFSEQ_FILE), rodRefSeq.class);
+            TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
+            FeatureReader refseq = builder.createFeatureReader(RefSeqCodec.class, new File(REFSEQ_FILE)).first;
 
-            refseqIterator = new SeekableRODIterator(new GATKFeatureIterator(refseq.iterator()));
+            try {
+                refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(), "refseq"));
+            } catch (IOException e) {
+                throw new StingException("Unable to open file " + REFSEQ_FILE, e);
+            }
+
             logger.info("Using RefSeq annotations from "+REFSEQ_FILE);
         }
 
@@ -282,8 +288,8 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
         if (annotationList == null) { return "UNKNOWN"; }
         
         for(GATKFeature rec : annotationList) {
-            if ( ((rodRefSeq)rec.getUnderlyingObject()).overlapsExonP(target) ) {
-                return ((rodRefSeq)rec.getUnderlyingObject()).getGeneName();
+            if ( ((RefSeqFeature)rec.getUnderlyingObject()).overlapsExonP(target) ) {
+                return ((RefSeqFeature)rec.getUnderlyingObject()).getGeneName();
             }
         }
 

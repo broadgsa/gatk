@@ -173,9 +173,9 @@ public class VCF4UnitTest extends BaseTest {
     }
 
 
-    // test too many info fields 
+    // test too many info fields - NOT a valid test with validation turned off in the VCF4 reader
     String twoManyInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2;HH\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
-    @Test(expected=StingException.class)
+    //@Test(expected=StingException.class)
     public void testCheckTooManyInfoFields() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(twoManyInfoLine);

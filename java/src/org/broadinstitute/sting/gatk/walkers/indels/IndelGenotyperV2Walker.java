@@ -29,11 +29,18 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.FeatureReader;
+import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
+import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
@@ -46,6 +53,7 @@ import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.commandline.Argument;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -136,11 +144,15 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 		normal_context = new WindowContext(0,WINDOW_SIZE);
 
 		if ( RefseqFileName != null ) {
-			ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
-					new java.io.File(RefseqFileName), rodRefSeq.class);
+			TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
+            FeatureReader refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
-			refseqIterator = new SeekableRODIterator(new GATKFeatureIterator(refseq.iterator()));
-			logger.info("Using RefSeq annotations from "+RefseqFileName);
+            try {
+                refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
+            } catch (IOException e) {
+                throw new StingException("Unable to open file " + RefseqFileName, e);
+            }
+            logger.info("Using RefSeq annotations from "+RefseqFileName);
 		}
 
 		if ( refseqIterator == null ) logger.info("No annotations available");
@@ -627,11 +639,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         else {
             StringBuilder b = new StringBuilder();
 
-            if ( rodRefSeq.isExon(ann) ) {
-                if ( rodRefSeq.isCodingExon(ann) ) b.append(annCoding); // both exon and coding = coding exon sequence
+            if ( RefSeqFeature.isExon(ann) ) {
+                if ( RefSeqFeature.isCodingExon(ann) ) b.append(annCoding); // both exon and coding = coding exon sequence
                 else b.append(annUTR); // exon but not coding = UTR
             } else {
-                if ( rodRefSeq.isCoding(ann) ) b.append(annIntron); // not in exon, but within the coding region = intron
+                if ( RefSeqFeature.isCoding(ann) ) b.append(annIntron); // not in exon, but within the coding region = intron
                 else b.append(annUnknown); // we have no idea what this is. this may actually happen when we have a fully non-coding exon...
             }
             b.append('\t');
