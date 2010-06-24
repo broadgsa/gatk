@@ -86,7 +86,7 @@ if chr_filter:
 
 
 transcript_dir = os.path.dirname(transcript_table)
-logs_dir = os.path.join(transcript_dir,"logs")
+logs_dir = os.path.join(transcript_dir,"logs/"+time.strftime("%Y-%m-%d"))
 
 
 
@@ -116,7 +116,7 @@ if chr_filter:
 
 if run:
     print("Deleting any previous logs...")
-    os.system("rm " + os.path.join(logs_dir,"bsub_*_log.txt"))
+    os.system("rm " + os.path.join(logs_dir,"*_log.txt"))
     os.system("mkdir " + logs_dir)
 
 
