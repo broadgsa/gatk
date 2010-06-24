@@ -27,7 +27,8 @@ parser.add_option("-n", "--gene-name-columns", dest="gene_name_columns", metavar
 parser.add_option("-q", "--queue", dest="queue", metavar="QUEUE", help="Specifies the LSF queue to use.", default="solexa")
 parser.add_option("-v", "--filter-in-chromosomes", dest="filterin", metavar="FILTER", help="Only process these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
 parser.add_option("-w", "--filter-out-chromosomes", dest="filterout", metavar="FILTER", help="Skip these chromosomes - specified by a python expression which must evaluate to a list (eg. ['chr1', 'chr2', 'chr3'] or ['chr'+x for x in range(1, 10)].")
-parser.add_option("-s", "--num-threads", dest="num_parallel_processes", metavar="SLOTS", help="How many threads to use within each TranscriptToInfo instance. This is only used when the -l option is set.", default="1")
+parser.add_option("-s", "--num-threads", dest="num_parallel_threads", metavar="SLOTS", help="How many threads to use within each TranscriptToInfo instance. This is only used when the -l option is set.", default="1")
+parser.add_option("-t", "--num-processes", dest="num_parallel_processes", metavar="PROCESSES", help="How many TranscriptToInfo instances to start simultaneously. This is only used when the -l option is set.", default="1")
 
 (options, args) = parser.parse_args()
 
@@ -60,6 +61,7 @@ if not os.access(reference, os.R_OK):
     error("Couldn't access reference file: "+ reference)
 
 queue = options.queue
+num_parallel_threads = int(options.num_parallel_threads)
 num_parallel_processes = int(options.num_parallel_processes)
 
 
@@ -154,15 +156,16 @@ for contig in contigs:
             MEMORY_USAGE = 32
         EXCLUSIVE = ""
             
-    command = "java -Xmx"+str(MEMORY_USAGE)+"g -jar dist/GenomeAnalysisTK.jar -T TranscriptToInfo -l info -nt " + str(num_parallel_processes) + " -R " + reference + " -B transcripts,AnnotatorInputTable,"+transcript_table+" -n "+gene_name_columns+" -o "+ os.path.join(transcript_dir,output_file_prefix) +"-big-table-ucsc-%s.txt -L %s:1+ " % (contig, contig)
-    if not run_locally:
+    command = "java -Xmx"+str(MEMORY_USAGE)+"g -jar dist/GenomeAnalysisTK.jar -T TranscriptToInfo -l info -nt " + str(num_parallel_threads) + " -R " + reference + " -B transcripts,AnnotatorInputTable,"+transcript_table+" -n "+gene_name_columns+" -o "+ os.path.join(transcript_dir,output_file_prefix) +"-big-table-ucsc-%s.txt -L %s:1+ " % (contig, contig)
+    if run_locally and  num_parallel_processes == 1:
+        command += " >& " + os.path.join(logs_dir,contig+"_log.txt")
+    elif not run_locally:
         command = "bsub "+EXCLUSIVE+" -q " + queue + " -R \"rusage[mem="+str(MEMORY_USAGE)+"]\" -o " + os.path.join(logs_dir,contig+"_log.txt") + " "  + command
-    
+        
     if run:
         print("Executing: " + command)
-        if run_locally:
-            #execute(command, os.path.join(logs_dir,contig+"_log.txt"))
-            os.system(command + " >& " + os.path.join(logs_dir,contig+"_log.txt"))
+        if run_locally and num_parallel_processes > 1:
+            execute(command, os.path.join(logs_dir,contig+"_log.txt"))
         else:
             os.system(command)
     else:
