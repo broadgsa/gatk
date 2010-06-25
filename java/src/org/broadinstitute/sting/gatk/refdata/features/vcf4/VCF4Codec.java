@@ -61,6 +61,8 @@ public class VCF4Codec implements FeatureCodec {
     // we store a name to give to each of the variant contexts we emit
     private String name = "Unkown";
 
+    private int lineNo = 0;
+
     /**
      * this method is a big hack, since I haven't gotten to updating the VCF header for the 4.0 updates
      * @param reader the line reader to take header lines from
@@ -73,6 +75,7 @@ public class VCF4Codec implements FeatureCodec {
         String line = "";
         try {
             while ((line = reader.readLine()) != null) {
+                lineNo++;
                 if (line.startsWith("##")) {
                     headerStrings.add(line);
                 }
@@ -125,7 +128,7 @@ public class VCF4Codec implements FeatureCodec {
      * @return a feature, (not guaranteed complete) that has the correct start and stop
      */
     public Feature decodeLoc(String line) {
-        return decode(line);
+        return reallyDecode(line, false);
     }
 
     /**
@@ -134,6 +137,10 @@ public class VCF4Codec implements FeatureCodec {
      * @return a VariantContext
      */
     public Feature decode(String line) {
+        return reallyDecode(line, true);
+    }
+
+    private Feature reallyDecode(String line, boolean parseGenotypes) {
         if (parts == null)
             parts = new String[header.getColumnCount()];
 
@@ -147,7 +154,7 @@ public class VCF4Codec implements FeatureCodec {
             throw new IllegalArgumentException("we expected " + header.getColumnCount() + " columns and we got " + nParts + " for line " + line);
 
 
-        return parseVCFLine(parts);
+        return parseVCFLine(parts, parseGenotypes);
     }
 
     /**
@@ -175,11 +182,14 @@ public class VCF4Codec implements FeatureCodec {
      */
     private static List<Allele> parseGenotypeAlleles(String GT, List<Allele> alleles, Map<String, List<Allele>> cache) {
         // this should cache results [since they are immutable] and return a single object for each genotype
-        if ( GT.length() != 3 )
-            throw new StingException("Unreasonable number of alleles"); // 0/1 => barf on 10/0
+        if ( GT.length() != 3 && GT.length() != 1 )
+            throw new StingException("Unreasonable number of alleles: " + "GT=" + GT + " length=" + GT.length()); // 0/1 => barf on 10/0
+
         List<Allele> GTAlleles = cache.get(GT);
+
         if ( GTAlleles == null ) {
-            GTAlleles = Arrays.asList(oneAllele(GT.charAt(0), alleles), oneAllele(GT.charAt(2), alleles));
+            Allele allele1 = oneAllele(GT.charAt(0), alleles);
+            GTAlleles = GT.length() == 3 ? Arrays.asList(allele1, oneAllele(GT.charAt(2), alleles)) : Arrays.asList(allele1);
             cache.put(GT, GTAlleles);
         }
 
@@ -245,7 +255,7 @@ public class VCF4Codec implements FeatureCodec {
             int count = 0;
             for (String attr : attributes)
                 if (Collections.binarySearch(fields,attr) < 0)
-                    throw new StingException("Unable to find field descibing attribute " + attr);
+                    throw new StingException("Unable to find field describing attribute " + attr);
         }
     }
 
@@ -352,35 +362,42 @@ public class VCF4Codec implements FeatureCodec {
      * @param parts the parts split up
      * @return a variant context object
      */
-    private VariantContext parseVCFLine(String[] parts) {
-        // parse out the required fields
-        String contig = parts[0];
-        long pos = Long.valueOf(parts[1]);
-        String id = parts[2];
-        String ref = parts[3].toUpperCase();
-        String alts = parts[4].toUpperCase();
-        Double qual = parseQual(parts[5]);
-        String filter = parts[6];
-        String info = parts[7];
+    private VariantContext parseVCFLine(String[] parts, boolean parseGenotypes) {
+        try {
+            lineNo++;
+            
+            // parse out the required fields
+            String contig = parts[0];
+            long pos = Long.valueOf(parts[1]);
+            String id = parts[2];
+            String ref = parts[3].toUpperCase();
+            String alts = parts[4].toUpperCase();
+            Double qual = parseQual(parts[5]);
+            String filter = parts[6];
+            String info = parts[7];
 
 
-        List<Allele> alleles = parseAlleles(ref, alts);
-        Set<String> filters = parseFilters(filter);
-        Map<String, Object> attributes = parseInfo(info, id);
+            List<Allele> alleles = parseAlleles(ref, alts);
+            Set<String> filters = parseFilters(filter);
+            Map<String, Object> attributes = parseInfo(info, id);
 
-        // find out our current location, and clip the alleles down to their minimum length
-        Pair<GenomeLoc, List<Allele>> locAndAlleles = (ref.length() > 1) ?
-                clipAlleles(contig, pos, ref, alleles) :
-                new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
+            // find out our current location, and clip the alleles down to their minimum length
+            Pair<GenomeLoc, List<Allele>> locAndAlleles = (ref.length() > 1) ?
+                    clipAlleles(contig, pos, ref, alleles) :
+                    new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
 
-        // a map to store our genotypes
-        Map<String, Genotype> genotypes = null;
+            // a map to store our genotypes
+            Map<String, Genotype> genotypes = null;
 
-        // do we have genotyping data
-        if (parts.length > 8) {
-            genotypes = createGenotypeMap(parts, locAndAlleles, 8);
+            // do we have genotyping data
+            if (parts.length > 8 && parseGenotypes) {
+                genotypes = createGenotypeMap(parts, locAndAlleles, 8);
+            }
+
+            return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
+        } catch ( Exception e ) {
+            throw new RuntimeException("Line " + lineNo + " generated parser exception " + e.getMessage() + "\nLine: " + Utils.join("\t", parts), e);
         }
-        return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
     }
 
     /**
@@ -443,8 +460,8 @@ public class VCF4Codec implements FeatureCodec {
             // check to make sure we found a gentoype field
             if (genotypeAlleleLocation < 0) throw new StingException("Unable to find required field GT for record " + locAndAlleles.first);
 
-            // assuming allele list length in the single digits, could be bad
-            boolean phased = GTValueArray[genotypeAlleleLocation].charAt(1) == '|';
+            // assuming allele list length in the single digits, could be bad.  Check for > 1 for haploid genotypes
+            boolean phased = GTValueArray[genotypeAlleleLocation].length() > 1 && GTValueArray[genotypeAlleleLocation].charAt(1) == '|';
 
             // add it to the list
             genotypes.put(sampleName, new Genotype(sampleName,
