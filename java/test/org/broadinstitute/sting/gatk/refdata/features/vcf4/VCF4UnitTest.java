@@ -221,9 +221,9 @@ public class VCF4UnitTest extends BaseTest {
         Assert.assertTrue(vc.getType()== VariantContext.Type.SNP);
     }
 
-    File largeVCF = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesTable1/dindel-v2/CEU.low_coverage.2010_06.indel.genotypes.vcf");
+    File largeVCF = new File("yri.vcf"); // change to whatever file you'd like to test in the following test
 
-    //@Test
+    // @Test uncomment to re-enable testing
     public void checkLargeVCF() {
         TestSetup testSetup = new TestSetup().invoke(largeVCF);
         AsciiLineReader reader = testSetup.getReader();
@@ -433,6 +433,20 @@ public class VCF4UnitTest extends BaseTest {
         Assert.assertTrue(locAndList.second.get(0).isReference());
         Assert.assertTrue(locAndList.second.get(1).toString().equals("CTTTTT"));
         Assert.assertTrue(locAndList.second.get(2).toString().equals("GGGGGG"));
+    }
+
+    @Test
+    public void testGenotypeConversionPhasing() {
+        String[] parts = {"GT:GD:DP", "0|0", "0|1", "1\\1"};
+        List<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(Allele.create("A", true));
+        alleles.add(Allele.create("G", false));
+        Pair<GenomeLoc, List<Allele>> locAndAlleles = new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc("1",1),alleles);
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
+        Map<String, Genotype> genotypes = testSetup.getCodec().createGenotypeMap(parts, locAndAlleles,0);
+        // assert the first genotype is phased, and the third is not
+        Assert.assertTrue(genotypes.get("NA00001").genotypesArePhased());
+        Assert.assertTrue(!genotypes.get("NA00003").genotypesArePhased());
     }
 
     /**

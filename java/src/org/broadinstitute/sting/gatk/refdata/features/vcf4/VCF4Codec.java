@@ -175,7 +175,8 @@ public class VCF4Codec implements FeatureCodec {
      */
     private static List<Allele> parseGenotypeAlleles(String GT, List<Allele> alleles, Map<String, List<Allele>> cache) {
         // this should cache results [since they are immutable] and return a single object for each genotype
-        if ( GT.length() != 3 ) throw new StingException("Unreasonable number of alleles"); // 0/1 => barf on 10/0
+        if ( GT.length() != 3 )
+            throw new StingException("Unreasonable number of alleles"); // 0/1 => barf on 10/0
         List<Allele> GTAlleles = cache.get(GT);
         if ( GTAlleles == null ) {
             GTAlleles = Arrays.asList(oneAllele(GT.charAt(0), alleles), oneAllele(GT.charAt(2), alleles));
@@ -377,8 +378,7 @@ public class VCF4Codec implements FeatureCodec {
 
         // do we have genotyping data
         if (parts.length > 8) {
-            int genotypesStart = 9;
-            genotypes = createGenotypeMap(parts, locAndAlleles, genotypesStart);
+            genotypes = createGenotypeMap(parts, locAndAlleles, 8);
         }
         return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
     }
@@ -387,14 +387,14 @@ public class VCF4Codec implements FeatureCodec {
      * create a genotype map
      * @param parts the string parts
      * @param locAndAlleles the locations and the list of alleles
-     * @param genotypesStart the position in the parts array that the genotype strings start
+     * @param formatFieldLocation the position in the parts array that the genotype strings start
      * @return a mapping of sample name to genotype object
      */
-    private Map<String, Genotype> createGenotypeMap(String[] parts, Pair<GenomeLoc, List<Allele>> locAndAlleles, int genotypesStart) {
-        Map<String, Genotype> genotypes = new LinkedHashMap<String, Genotype>(Math.max(parts.length - genotypesStart, 1));
+    protected Map<String, Genotype> createGenotypeMap(String[] parts, Pair<GenomeLoc, List<Allele>> locAndAlleles, int formatFieldLocation) {
+        Map<String, Genotype> genotypes = new LinkedHashMap<String, Genotype>(Math.max(parts.length - formatFieldLocation, 1));
 
         // get the format keys
-        int nGTKeys = ParsingUtils.split(parts[8], genotypeKeyArray, ':');
+        int nGTKeys = ParsingUtils.split(parts[formatFieldLocation], genotypeKeyArray, ':');
 
         // cycle through the sample names
         Iterator<String> sampleNameIterator = header.getGenotypeSamples().iterator();
@@ -403,9 +403,9 @@ public class VCF4Codec implements FeatureCodec {
         alleleMap.clear();
 
         // cycle through the genotype strings
-        for (int genotypeOffset = genotypesStart; genotypeOffset < parts.length; genotypeOffset++) {
+        for (int genotypeOffset = formatFieldLocation + 1; genotypeOffset < parts.length; genotypeOffset++) {
             int GTValueSplitSize = ParsingUtils.split(parts[genotypeOffset], GTValueArray, ':');
-            List<Allele> genotypeAlleles = parseGenotypeAlleles(GTValueArray[0], locAndAlleles.second, alleleMap);
+
             double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
             Set<String> genotypeFilters = null;
             String sampleName = sampleNameIterator.next();
@@ -418,11 +418,17 @@ public class VCF4Codec implements FeatureCodec {
             if (nGTKeys < GTValueSplitSize)
                 throw new StingException("Too few keys for compared to the value string " + sampleName + ", keys = " + parts[8] + " values = " + parts[genotypeOffset]);
 
+            int genotypeAlleleLocation = -1;
             if (nGTKeys > 1) {
                 gtAttributes = new HashMap<String, String>(nGTKeys - 1);
-                for (int i = 1; i < nGTKeys; i++) {
+                for (int i = 0; i < nGTKeys; i++) {
                     if (i >= GTValueSplitSize)
                         gtAttributes.put(genotypeKeyArray[i],".");
+                    else if (genotypeKeyArray[i].equals("GT"))
+                        if (genotypeAlleleLocation >= 0)
+                            throw new StingException("Saw two GT fields in record at position " + locAndAlleles.first);
+                        else
+                            genotypeAlleleLocation = i;
                     else if (genotypeKeyArray[i].equals("GQ"))
                         GTQual = parseQual(GTValueArray[i]);
                     else if (genotypeKeyArray[i].equals("FL")) // deal with genotype filters here
@@ -434,11 +440,20 @@ public class VCF4Codec implements FeatureCodec {
                 // validate the format fields
                 validateFields(gtAttributes.keySet(), new ArrayList(formatFields.keySet()));
             }
+            // check to make sure we found a gentoype field
+            if (genotypeAlleleLocation < 0) throw new StingException("Unable to find required field GT for record " + locAndAlleles.first);
 
-            boolean phased = genotypeKeyArray[0].charAt(1) == '|';
+            // assuming allele list length in the single digits, could be bad
+            boolean phased = GTValueArray[genotypeAlleleLocation].charAt(1) == '|';
 
-            Genotype g = new Genotype(sampleName, genotypeAlleles, GTQual, genotypeFilters, gtAttributes, phased);
-            genotypes.put(g.getSampleName(), g);
+            // add it to the list
+            genotypes.put(sampleName, new Genotype(sampleName,
+                                      parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], locAndAlleles.second, alleleMap),
+                                      GTQual,
+                                      genotypeFilters, 
+                                      gtAttributes,
+                                      phased));
+
         }
         return genotypes;
     }
