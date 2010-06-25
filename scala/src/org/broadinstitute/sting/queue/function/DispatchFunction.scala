@@ -10,6 +10,7 @@ trait DispatchFunction extends InputOutputFunction {
 
   @Input
   @Optional
+  @ClassType(classOf[Int])
   var memoryLimit: Option[Int] = None
 
   /**
