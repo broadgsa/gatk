@@ -362,7 +362,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     {
         final String geneNamePortionOfSortKey = computeGeneNamePortionOfSortKey(parsedTranscriptRod.geneNames);
         final TranscriptTableRecord collisionRecord = keyChecker.get( geneNamePortionOfSortKey );
-        System.err.println("Checking key: " + geneNamePortionOfSortKey + " - got record: " + collisionRecord);
         if(collisionRecord != null /* && new Interval(     - don't allow collitions even if positions are different.
                 collisionRecord.txChrom,
                 (int) collisionRecord.txStart,
@@ -482,6 +481,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         int frame = 0; //the frame of the current position
         int txOffset_from5 = 1; //goes from txStart 5' to txEnd 3' for both + and - strand
         int utr5Count_from5 = 0;
+        int mrnaCoord_from5 = 1; //goes from txStart 5' to txEnd 3' for both + and - strand, but only counts bases within exons.
         char[] utr5NucBuffer_5to3 = null; //used to find uORFs - size = 5 because to hold the 3 codons that overlap any given position: [-2,-1,0], [-1,0,1], and [0,1,2]
 
         int codonCount_from5 = 1; //goes from cdsStart 5' to cdsEnd 3' for both + and - strand - counts the number of codons - 1-based
@@ -686,10 +686,12 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     outputLineFields.put(OUTPUT_HAPLOTYPE_STRAND, positiveStrand ? "+" : "-");
                     for(int i = 0; i < GENE_NAME_COLUMNS.length; i++) {
                         outputLineFields.put(GENE_NAME_COLUMNS[i], parsedTranscriptRod.geneNames[i] );
-                   }
+                    }
 
                     outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
-                    outputLineFields.put(OUTPUT_MRNA_COORD, Integer.toString(txOffset_from5) );
+                    if(isWithinExon) {
+                        outputLineFields.put(OUTPUT_MRNA_COORD, Integer.toString(mrnaCoord_from5) );
+                    }
                     outputLineFields.put(OUTPUT_SPLICE_DISTANCE, Integer.toString(distanceToNearestSpliceSite) );
 
                     //compute OUTPUT_SPLICE_INFO
@@ -832,6 +834,9 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             {
                 //increment coords
                 txOffset_from5++;
+                if(isWithinExon) {
+                    mrnaCoord_from5++;
+                }
 
                 if(positionType == PositionType.utr5) {
                     utr5Count_from5++;
@@ -963,7 +968,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             return;
         }
 
-        //move the fully merged temp file to the output file.
         logger.info("Writing " + result.size() + " lines to: " + outputFilename + ". Average of " + (totalPositionsCounter == 0 ? 0 : (10*result.size()/totalPositionsCounter)/10.0f) + " lines per genomic position.");
         BufferedWriter fileWriter  = null;
         try {
@@ -988,8 +992,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         logger.info("Protein-coding transcripts (eg. with a CDS region) that don't start with Methionine or end in a stop codon: " + transcriptsThatDontStartWithMethionineOrEndWithStopCodonCounter + " transcripts out of "+ transcriptsProcessedCounter + " total (" + ( transcriptsProcessedCounter == 0 ? 0 : (100*transcriptsThatDontStartWithMethionineOrEndWithStopCodonCounter)/transcriptsProcessedCounter) + "%)");
         logger.info("Protein-coding transcripts (eg. with a CDS region) that don't start with Methionine: " + transcriptsThatDontStartWithMethionineCounter + " transcripts out of "+ transcriptsProcessedCounter + " total (" + ( transcriptsProcessedCounter == 0 ? 0 : (100*transcriptsThatDontStartWithMethionineCounter)/transcriptsProcessedCounter) + "%)");
         logger.info("Protein-coding transcripts (eg. with a CDS region) that don't end in a stop codon: " + transcriptsThatDontEndWithStopCodonCounter + " transcripts out of "+ transcriptsProcessedCounter + " total (" + ( transcriptsProcessedCounter == 0 ? 0 : (100*transcriptsThatDontEndWithStopCodonCounter)/transcriptsProcessedCounter) + "%)");
-
-        logger.info("Deleting temp files..");
     }
 
 
