@@ -174,21 +174,30 @@ public class VCF4UnitTest extends BaseTest {
 
 
     // test too many info fields - NOT a valid test with validation turned off in the VCF4 reader
-    String twoManyInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2;HH\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
+    String twoManyInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2;HH\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:0,0";
     //@Test(expected=StingException.class)
     public void testCheckTooManyInfoFields() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(twoManyInfoLine);
     }
     // test a regular line
-    String regularLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
+    String regularLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:0,0";
     @Test
     public void testCheckInfoValidation() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(regularLine);
     }
     // test too few info lines, we don't provide the DP in this line
-    String twoFewInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5:.,.";
+    // test GT field in the incorrect position (!= 0)
+    String GTFieldInTheWrongPosition = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGQ:DP:HQ:GT\t48:1:51,51:0|0\t48:8:51,51:0|0\t43:5:0,0:0|0";
+    @Test(expected=StingException.class)
+    public void testCheckGTFieldOrdering() {
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
+        testSetup.codec.decode(GTFieldInTheWrongPosition);
+    }
+    
+    // test too few info lines, we don't provide the DP in this line
+    String twoFewInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t0|0:48:1:51,51\t0|0:48:1:51,51";
     @Test
     public void testCheckTwoFewInfoValidation() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);

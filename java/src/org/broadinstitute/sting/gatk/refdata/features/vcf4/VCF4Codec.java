@@ -425,8 +425,8 @@ public class VCF4Codec implements FeatureCodec {
                     if (i >= GTValueSplitSize)
                         gtAttributes.put(genotypeKeyArray[i],".");
                     else if (genotypeKeyArray[i].equals("GT"))
-                        if (genotypeAlleleLocation >= 0)
-                            throw new StingException("Saw two GT fields in record at position " + locAndAlleles.first);
+                        if (i != 0)
+                            throw new StingException("Saw GT at position " + i + ", it must be at the first position for genotypes. At location = " + locAndAlleles.first);
                         else
                             genotypeAlleleLocation = i;
                     else if (genotypeKeyArray[i].equals("GQ"))
