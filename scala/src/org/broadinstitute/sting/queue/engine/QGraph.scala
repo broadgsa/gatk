@@ -3,7 +3,6 @@ package org.broadinstitute.sting.queue.engine
 import org.jgrapht.graph.SimpleDirectedGraph
 import scala.collection.JavaConversions
 import scala.collection.JavaConversions._
-import scala.collection.immutable.ListMap
 import org.broadinstitute.sting.queue.function.{MappingFunction, CommandLineFunction, QFunction}
 import org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
 import org.broadinstitute.sting.queue.util.{CollectionUtils, Logging}
@@ -18,7 +17,7 @@ class QGraph extends Logging {
   def numJobs = JavaConversions.asSet(jobGraph.edgeSet).filter(_.isInstanceOf[CommandLineFunction]).size
 
   def add(command: CommandLineFunction) {
-    add(command, true)
+    addFunction(command)
   }
 
   /**
@@ -27,20 +26,8 @@ class QGraph extends Logging {
   def fillIn = {
     // clone since edgeSet is backed by the graph
     for (function <- JavaConversions.asSet(jobGraph.edgeSet).clone) {
-      val inputs = function.inputs
-      val outputs = function.outputs
-
-      for ((name, input) <- inputs) {
-        addCollectionInputs(name, input)
-        if (inputs.size > 1)
-          addMappingEdge(ListMap(name -> input), inputs)
-      }
-
-      for ((name, output) <- outputs) {
-        addCollectionOutputs(name, output)
-        if (outputs.size > 1)
-          addMappingEdge(outputs, ListMap(name -> output))
-      }
+      addCollectionOutputs(function.outputs)
+      addCollectionInputs(function.inputs)
     }
 
     var pruning = true
@@ -85,9 +72,9 @@ class QGraph extends Logging {
   }
 
   private def newGraph = new SimpleDirectedGraph[QNode, QFunction](new EdgeFactory[QNode, QFunction] {
-    def createEdge(input: QNode, output: QNode) = new MappingFunction(input.valueMap, output.valueMap)})
+    def createEdge(input: QNode, output: QNode) = new MappingFunction(input.items, output.items)})
 
-  private def add(f: QFunction, replace: Boolean): Unit = {
+  private def addFunction(f: QFunction): Unit = {
     try {
       f.freeze
 
@@ -96,13 +83,13 @@ class QGraph extends Logging {
           val functions = scatterGather.generateFunctions()
           if (logger.isTraceEnabled)
             logger.trace("Scattered into %d parts: %s".format(functions.size, functions))
-          functions.foreach(add(_))
+          functions.foreach(addFunction(_))
         case _ =>
-          val inputs = QNode(f.inputs.values.filter(_ != null).toSet)
-          val outputs = QNode(f.outputs.values.filter(_ != null).toSet)
+          val inputs = QNode(f.inputs)
+          val outputs = QNode(f.outputs)
           val newSource = jobGraph.addVertex(inputs)
           val newTarget = jobGraph.addVertex(outputs)
-          val removedEdges = if (replace) jobGraph.removeAllEdges(inputs, outputs) else Nil
+          val removedEdges = jobGraph.removeAllEdges(inputs, outputs)
           val added = jobGraph.addEdge(inputs, outputs, f)
           if (logger.isTraceEnabled) {
             logger.trace("Mapped from:   " + inputs)
@@ -120,43 +107,39 @@ class QGraph extends Logging {
     }
   }
 
-  private def addCollectionInputs(name: String, value: Any): Unit = {
+  private def addCollectionInputs(value: Any): Unit = {
     CollectionUtils.foreach(value, (item, collection) =>
-      addMappingEdge(ListMap(name -> item), ListMap(name -> collection)))
+      addMappingEdge(item, collection))
   }
 
-  private def addCollectionOutputs(name: String, value: Any): Unit = {
+  private def addCollectionOutputs(value: Any): Unit = {
     CollectionUtils.foreach(value, (item, collection) =>
-      addMappingEdge(ListMap(name -> collection), ListMap(name -> item)))
+      addMappingEdge(collection, item))
   }
 
-  private def addMappingEdge(input: ListMap[String, Any], output: ListMap[String, Any]) =
-    add(new MappingFunction(input, output), false)
+  private def addMappingEdge(input: Any, output: Any) = {
+    val inputSet = asSet(input)
+    val outputSet = asSet(output)
+    val hasEdge = inputSet == outputSet ||
+            jobGraph.getEdge(QNode(inputSet), QNode(outputSet)) != null ||
+            jobGraph.getEdge(QNode(outputSet), QNode(inputSet)) != null
+    if (!hasEdge)
+      addFunction(new MappingFunction(inputSet, outputSet))
+  }
+
+  private def asSet(value: Any): Set[Any] = if (value.isInstanceOf[Set[_]]) value.asInstanceOf[Set[Any]] else Set(value)
 
   private def isMappingEdge(edge: QFunction) =
     edge.isInstanceOf[MappingFunction]
 
   private def isFiller(edge: QFunction) = {
     if (isMappingEdge(edge)) {
-      val source = jobGraph.getEdgeSource(edge)
-      val target = jobGraph.getEdgeTarget(edge)
-      if (jobGraph.outgoingEdgesOf(target).size == 0 || jobGraph.incomingEdgesOf(source).size == 0)
+      if (jobGraph.outgoingEdgesOf(jobGraph.getEdgeTarget(edge)).size == 0)
         true
-      else if (isLoopback(source) || isLoopback(target))
+      else if (jobGraph.incomingEdgesOf(jobGraph.getEdgeSource(edge)).size == 0)
         true
       else false
     } else false
-  }
-
-  private def isLoopback(node: QNode) = {
-    var loopback = false
-    val incoming = jobGraph.incomingEdgesOf(node)
-    val outgoing = jobGraph.outgoingEdgesOf(node)
-    if (incoming.size == 1 && outgoing.size == 1)
-      if (isMappingEdge(incoming.head) && isMappingEdge(outgoing.head))
-        if (jobGraph.getEdgeSource(incoming.head) == jobGraph.getEdgeTarget(outgoing.head))
-          loopback = true
-    loopback
   }
 
   private def isOrphan(node: QNode) =

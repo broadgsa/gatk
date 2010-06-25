@@ -4,9 +4,11 @@ import org.broadinstitute.sting.queue.function.CommandLineFunction
 import java.lang.reflect.Field
 import java.io.File
 import org.broadinstitute.sting.queue.util._
+import org.broadinstitute.sting.commandline.Input
 
 trait ScatterGatherableFunction extends CommandLineFunction {
-  @Internal
+
+  @Input(doc="Number of parts to scatter the function into")
   var scatterCount: Int = 1
 
   def scatterField = this.inputFields.find(field => ReflectionUtils.hasAnnotation(field, classOf[Scatter])).get
@@ -48,7 +50,7 @@ object ScatterGatherableFunction {
 
     // Create the gather functions for each output field
     var gatherFunctions = Map.empty[Field, GatherFunction]
-    for (outputField <- originalFunction.outputFields) {
+    for (outputField <- originalFunction.outputFieldsWithValues) {
 
       // Create the gather function based on @Gather
       val gatherFunction = getGatherFunction(outputField)
@@ -60,7 +62,7 @@ object ScatterGatherableFunction {
       gatherFunction.originalOutput = gatheredValue
 
       tempDirectories :+= gatherFunction.commandDirectory
-      cleanupFunction.originalOutputs :+= gatheredValue
+      cleanupFunction.originalOutputs += gatheredValue
 
       functions :+= gatherFunction
 
@@ -97,8 +99,8 @@ object ScatterGatherableFunction {
     initializeFunction.jobNamePrefix = originalFunction.jobNamePrefix
     initializeFunction.commandDirectory = originalFunction.commandDirectory
 
-    for (inputField <- originalFunction.inputFields)
-      initializeFunction.originalInputs :+= originalFunction.getFieldValue(inputField)
+    for (inputField <- originalFunction.inputFieldsWithValues)
+      initializeFunction.originalInputs += originalFunction.getFieldValue(inputField)
 
     initializeFunction.tempDirectories = tempDirectories
     scatterFunction.tempDirectories = tempDirectories

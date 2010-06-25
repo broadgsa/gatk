@@ -25,11 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.commandline.ArgumentMatches;
-import org.broadinstitute.sting.commandline.ArgumentDefinition;
-import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
@@ -53,7 +49,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
 
     /**
      * Create a new GenotypeWriter argument, notifying the given engine when that argument has been created.
-     * @param engine
+     * @param engine the engine to be notified.
      */
     public GenotypeWriterArgumentTypeDescriptor(GenomeAnalysisEngine engine) {
         this.engine = engine;
@@ -104,7 +100,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
     /**
      * Convert the given argument matches into a single object suitable for feeding into the ArgumentSource.
      * @param source Source for this argument.
-     * @param type
+     * @param type not used
      * @param matches Matches that match with this argument.
      * @return Transform from the matches into the associated argument.
      */
@@ -127,7 +123,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
         }
 
         // Create a stub for the given object.
-        GenotypeWriterStub stub = null;
+        GenotypeWriterStub stub;
         switch(genotypeFormat) {
             case GELI:
                 stub = (writerFile != null) ? new GeliTextGenotypeWriterStub(engine, writerFile) : new GeliTextGenotypeWriterStub(engine,System.out);
@@ -158,7 +154,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createGenotypeFileArgumentDefinition(ArgumentSource source) {
-        Argument description = this.getArgumentDescription(source);
+        ArgumentDescription description = this.getArgumentDescription(source);
 
         boolean isFullNameProvided = description.fullName().trim().length() > 0;
         boolean isShortNameProvided = description.shortName().trim().length() > 0;
@@ -175,7 +171,8 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
         else
             shortName = null;
 
-        return new ArgumentDefinition( fullName,
+        return new ArgumentDefinition( getIOType(source),
+                                       fullName,
                                        shortName,
                                        getDoc(source),
                                        isRequired(source),
@@ -192,7 +189,8 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createGenotypeFormatArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( "variant_output_format",
+        return new ArgumentDefinition( getIOType(source),
+                                       "variant_output_format",
                                        "vf",
                                        "Format to be used to represent variants; default is VCF",
                                        false,

@@ -9,15 +9,13 @@ import org.broadinstitute.sting.queue.engine.QGraph
 object QScript {
   // Type aliases so users don't have to import
   type File = java.io.File
-  type Input = org.broadinstitute.sting.queue.util.Input
-  type Output = org.broadinstitute.sting.queue.util.Output
-  type Optional = org.broadinstitute.sting.queue.util.Optional
-  type ClassType = org.broadinstitute.sting.queue.util.ClassType
+  type Input = org.broadinstitute.sting.commandline.Input
+  type Output = org.broadinstitute.sting.commandline.Output
   type CommandLineFunction = org.broadinstitute.sting.queue.function.CommandLineFunction
   type GatkFunction = org.broadinstitute.sting.queue.function.gatk.GatkFunction
   type ScatterGatherableFunction = org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
-  type Scatter = org.broadinstitute.sting.queue.util.Scatter
-  type Gather = org.broadinstitute.sting.queue.util.Gather
+  type Scatter = org.broadinstitute.sting.queue.function.scattergather.Scatter
+  type Gather = org.broadinstitute.sting.queue.function.scattergather.Gather
   type BamGatherFunction = org.broadinstitute.sting.queue.function.scattergather.BamGatherFunction
   type SimpleTextGatherFunction = org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction
 

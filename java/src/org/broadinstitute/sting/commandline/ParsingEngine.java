@@ -46,11 +46,6 @@ public class ParsingEngine {
     CommandLineProgram clp = null;
 
     /**
-     * A collection of all the source fields which define command-line arguments.
-     */
-    List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
-
-    /**
      * A list of defined arguments against which command lines are matched.
      * Package protected for testing access.
      */
@@ -125,8 +120,6 @@ public class ParsingEngine {
      * command-line arguments to the arguments that are actually
      * required.
      * @param tokens Tokens passed on the command line.
-     * @return A object indicating which matches are best.  Might return
-     *         an empty object, but will never return null.
      */
     public void parse( String[] tokens ) {
         argumentMatches = new ArgumentMatches();
@@ -315,7 +308,7 @@ public class ParsingEngine {
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();
             for( Field field: fields ) {
-                if( field.isAnnotationPresent(Argument.class) )
+                if( ArgumentTypeDescriptor.isArgumentDescriptionPresent(field) )
                     argumentSources.add( new ArgumentSource(sourceClass,field) );
                 if( field.isAnnotationPresent(ArgumentCollection.class) )
                     argumentSources.addAll( extractArgumentSources(field.getType()) );

@@ -1,11 +1,8 @@
 package org.broadinstitute.sting.queue.function
 
-import scala.collection.immutable.ListMap
-
 /**
  * The base interface for all functions in Queue.
- * Inputs and outputs are specified as ListMaps of name -> value.
- * The names are used for debugging.
+ * Inputs and outputs are specified as Sets of values.
  * Inputs are matched to other outputs by using .equals()
  */
 trait QFunction {
@@ -17,12 +14,12 @@ trait QFunction {
   def freeze = {}
 
   /**
-   * ListMap of name -> value inputs for this function.
+   * Set of inputs for this function.
    */
-  def inputs: ListMap[String, Any]
+  def inputs: Set[Any]
 
   /**
-   * ListMap of name -> value outputs for this function.
+   * Set of outputs for this function.
    */
-  def outputs: ListMap[String, Any]
+  def outputs: Set[Any]
 }

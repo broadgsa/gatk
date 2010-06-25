@@ -22,17 +22,18 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.util;
+package org.broadinstitute.sting.queue.function.scattergather;
 
 import java.lang.annotation.*;
 
 /**
- * Specifies an input or output to a QFunction is optional
+ * Specifies the class type of the CommandLineFunction to gather an @Output
  * Written in java because scala doesn't support RetentionPolicy.RUNTIME
  */
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
-public @interface Optional {
+public @interface Gather {
+    Class value();
 }

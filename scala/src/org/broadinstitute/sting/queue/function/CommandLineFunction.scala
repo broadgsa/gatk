@@ -1,11 +1,14 @@
 package org.broadinstitute.sting.queue.function
 
-import java.io.File
 import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.queue.engine.{CommandLineRunner, QGraph}
 import java.lang.reflect.Field
+import java.lang.annotation.Annotation
+import org.broadinstitute.sting.commandline.{Input, Output, ArgumentDescription}
 
 trait CommandLineFunction extends InputOutputFunction with DispatchFunction {
+  def inputFieldsWithValues = inputFields.filter(hasFieldValue(_))
+  def outputFieldsWithValues = outputFields.filter(hasFieldValue(_))
+
   /**
    * Repeats parameters with a prefix/suffix if they are set otherwise returns "".
    * Skips null, Nil, None.  Unwraps Some(x) to x.  Everything else is called with x.toString.
@@ -21,21 +24,23 @@ trait CommandLineFunction extends InputOutputFunction with DispatchFunction {
     if (hasValue(param)) prefix + toValue(param) + suffix else ""
 
   def missingValues = {
-    val missingInputs = missingFields(inputFields)
-    val missingOutputs = missingFields(outputFields)
+    val missingInputs = missingFields(inputFields, classOf[Input])
+    val missingOutputs = missingFields(outputFields, classOf[Output])
     missingInputs | missingOutputs
   }
 
-  private def missingFields(fields: List[Field]) = {
+  private def missingFields(fields: List[Field], annotation: Class[_ <: Annotation]) = {
     var missing = Set.empty[String]
     for (field <- fields) {
-      val isOptional = ReflectionUtils.hasAnnotation(field, classOf[Optional])
-      if (!isOptional)
+      if (isRequired(field, annotation))
         if (!hasValue(ReflectionUtils.getValue(this, field)))
           missing += field.getName
     }
     missing
   }
+
+  private def isRequired(field: Field, annotation: Class[_ <: Annotation]) =
+    new ArgumentDescription(field.getAnnotation(annotation)).required
 
   protected def hasFieldValue(field: Field) = hasValue(this.getFieldValue(field))
 

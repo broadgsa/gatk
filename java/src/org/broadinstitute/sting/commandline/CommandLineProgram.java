@@ -46,7 +46,7 @@ public abstract class CommandLineProgram {
     private static Logger logger = Logger.getRootLogger();
 
     /** the default log level */
-    @Argument(fullName = "logging_level",
+    @Input(fullName = "logging_level",
               shortName = "l",
               doc = "Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging.",
               required = false)
@@ -54,28 +54,28 @@ public abstract class CommandLineProgram {
 
 
     /** where to send the output of our logger */
-    @Argument(fullName = "log_to_file",
+    @Output(fullName = "log_to_file",
               shortName = "log",
               doc = "Set the logging location",
               required = false)
     protected String toFile = null;
 
     /** do we want to silence the command line output */
-    @Argument(fullName = "quiet_output_mode",
+    @Input(fullName = "quiet_output_mode",
               shortName = "quiet",
               doc = "Set the logging to quiet mode, no output to stdout",
               required = false)
     protected Boolean quietMode = false;
 
     /** do we want to generate debugging information with the logs */
-    @Argument(fullName = "debug_mode",
+    @Input(fullName = "debug_mode",
               shortName = "debug",
               doc = "Set the logging file string to include a lot of debugging information (SLOW!)",
               required = false)
     protected Boolean debugMode = false;
 
     /** this is used to indicate if they've asked for help */
-    @Argument(fullName = "help", shortName = "h", doc = "Generate this help message", required = false)
+    @Input(fullName = "help", shortName = "h", doc = "Generate this help message", required = false)
     public Boolean help = false;
 
     /** our logging output patterns */

@@ -1,15 +1,15 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import org.broadinstitute.sting.queue.function.{CommandLineFunction}
-import org.broadinstitute.sting.queue.util.{Input, Output}
+import org.broadinstitute.sting.commandline.{Input, Output}
 
 trait GatherFunction extends CommandLineFunction {
   type GatherType
 
-  @Input
+  @Input(doc="Parts to gather back into the original output")
   var gatherParts: List[GatherType] = Nil
 
-  @Output
+  @Output(doc="The original output of the scattered function")
   var originalOutput: GatherType = _
 
   def setOriginalFunction(originalFunction: ScatterGatherableFunction) = {}

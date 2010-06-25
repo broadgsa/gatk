@@ -1,4 +1,6 @@
 package org.broadinstitute.sting.queue
 
+import org.broadinstitute.sting.utils.StingException
+
 class QException(private val message: String, private val throwable: Throwable = null)
-  extends RuntimeException(message, throwable)
+  extends StingException(message, throwable)

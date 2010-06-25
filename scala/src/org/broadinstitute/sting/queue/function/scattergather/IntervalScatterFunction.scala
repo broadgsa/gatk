@@ -1,13 +1,13 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import java.io.File
-import org.broadinstitute.sting.queue.util.Input
+import org.broadinstitute.sting.commandline.Input
 import org.broadinstitute.sting.queue.function.IntervalFunction
 
 class IntervalScatterFunction extends ScatterFunction {
   type ScatterType = File
 
-  @Input
+  @Input(doc="Reference file to scatter")
   var referenceFile: File = _
 
   override def setOriginalFunction(originalFunction: ScatterGatherableFunction) = {

@@ -2,9 +2,7 @@ package org.broadinstitute.sting.queue.util
 
 import org.broadinstitute.sting.queue.QException
 import java.lang.annotation.Annotation
-import scala.concurrent.JavaConversions
 import scala.concurrent.JavaConversions._
-import scala.collection.immutable.ListMap
 import java.lang.reflect.{ParameterizedType, Field}
 
 object ReflectionUtils {
@@ -20,8 +18,7 @@ object ReflectionUtils {
 
   def filterFields(fields: List[Field], annotation: Class[_ <: Annotation]) = fields.filter(field => hasAnnotation(field, annotation))
 
-  def getFieldNamesValues(obj: AnyRef, fields: List[Field]) =
-    ListMap(fields.map(field => (field.getName -> fieldGetter(field).invoke(obj))) :_*)
+  def getFieldValues(obj: AnyRef, fields: List[Field]) = fields.map(field => fieldGetter(field).invoke(obj))
 
   def getAllTypes(clazz: Class[_]) = {
     var types = List.empty[Class[_]]
@@ -65,16 +62,14 @@ object ReflectionUtils {
     }
   }
 
-  private def getCollectionType(field: Field) = {
+  def getCollectionType(field: Field) = {
     getGenericTypes(field) match {
       case Some(classes) =>
         if (classes.length > 1)
           throw new IllegalArgumentException("Field contains more than one generic type: " + field)
         classes(0)
       case None =>
-        if (!field.isAnnotationPresent(classOf[ClassType]))
-          throw new QException("@ClassType must be specified for unparameterized field: " + field)
-        field.getAnnotation(classOf[ClassType]).asInstanceOf[ClassType].value
+        throw new QException("Generic type not set for collection: " + field)
     }
   }
 

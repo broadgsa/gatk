@@ -39,6 +39,7 @@ import java.util.*;
  * @version 0.1
  */
 public abstract class ArgumentTypeDescriptor {
+    private static Class[] ARGUMENT_ANNOTATIONS = {Input.class, Output.class, Argument.class};
 
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
@@ -121,7 +122,8 @@ public abstract class ArgumentTypeDescriptor {
      * @return The default definition for this argument source.
      */
     protected ArgumentDefinition createDefaultArgumentDefinition( ArgumentSource source ) {
-        return new ArgumentDefinition( getFullName(source),
+        return new ArgumentDefinition( getIOType(source),
+                                       getFullName(source),
                                        getShortName(source),
                                        getDoc(source),
                                        isRequired(source),
@@ -132,7 +134,17 @@ public abstract class ArgumentTypeDescriptor {
                                        getValidOptions(source) );
     }
 
-    protected abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
+    public abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
+
+    /**
+     * Specifies other arguments which cannot be used in conjunction with tihs argument.  Comma-separated list.
+     * @param source Original field specifying command-line arguments.
+     * @return A comma-separated list of exclusive arguments, or null if none are present.
+     */
+    protected ArgumentIOType getIOType( ArgumentSource source ) {
+        ArgumentDescription description = getArgumentDescription(source);
+        return description.getIOType();
+    }
 
     /**
      * Retrieves the full name of the argument, specifiable with the '--' prefix.  The full name can be
@@ -141,7 +153,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return full name of the argument.  Never null.
      */
     protected String getFullName( ArgumentSource source ) {
-        Argument description = getArgumentDescription(source);
+        ArgumentDescription description = getArgumentDescription(source);
         return description.fullName().trim().length() > 0 ? description.fullName().trim() : source.field.getName().toLowerCase();
     }
 
@@ -152,7 +164,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return short name of the argument.  Null if no short name exists.
      */
     protected String getShortName( ArgumentSource source ) {
-        Argument description = getArgumentDescription(source);
+        ArgumentDescription description = getArgumentDescription(source);
         return description.shortName().trim().length() > 0 ? description.shortName().trim() : null;
     }
 
@@ -162,7 +174,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return Documentation for this argument.
      */
     protected String getDoc( ArgumentSource source ) {
-        Argument description = getArgumentDescription(source);
+        ArgumentDescription description = getArgumentDescription(source);
         return description.doc();
     }
 
@@ -172,7 +184,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return True if the field is mandatory and not a boolean flag.  False otherwise.
      */
     protected boolean isRequired( ArgumentSource source ) {
-        Argument description = getArgumentDescription(source);
+        ArgumentDescription description = getArgumentDescription(source);
         return description.required() && !source.isFlag();
     }
 
@@ -182,7 +194,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return A comma-separated list of exclusive arguments, or null if none are present.
      */
     protected String getExclusiveOf( ArgumentSource source ) {
-        Argument description = getArgumentDescription(source);
+        ArgumentDescription description = getArgumentDescription(source);
         return description.exclusiveOf().trim().length() > 0 ? description.exclusiveOf().trim() : null;
     }
 
@@ -192,15 +204,15 @@ public abstract class ArgumentTypeDescriptor {
      * @return a JVM regex-compatible regular expression, or null to permit any possible value.
      */
     protected String getValidationRegex( ArgumentSource source ) {
-        Argument description = getArgumentDescription(source);
+        ArgumentDescription description = getArgumentDescription(source);
         return description.validation().trim().length() > 0 ? description.validation().trim() : null;
     }
 
     /**
      * If the argument source only accepts a small set of options, populate the returned list with
      * those options.  Otherwise, leave the list empty.
-     * @param source 
-     * @return
+     * @param source Original field specifying command-line arguments.
+     * @return A list of valid options.
      */
     protected List<String> getValidOptions( ArgumentSource source ) {
         if(!source.field.getType().isEnum())
@@ -246,11 +258,21 @@ public abstract class ArgumentTypeDescriptor {
      * @param source source of the argument.
      * @return Argument description annotation associated with the given field.
      */
-    protected Argument getArgumentDescription( ArgumentSource source ) {
-        if( !source.field.isAnnotationPresent(Argument.class) )
-            throw new StingException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
-        return source.field.getAnnotation(Argument.class);
-    }    
+    @SuppressWarnings("unchecked")
+    protected ArgumentDescription getArgumentDescription( ArgumentSource source ) {
+        for (Class annotation: ARGUMENT_ANNOTATIONS)
+            if (source.field.isAnnotationPresent(annotation))
+                return new ArgumentDescription(source.field.getAnnotation(annotation));
+        throw new StingException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static boolean isArgumentDescriptionPresent(Field field) {
+        for (Class annotation: ARGUMENT_ANNOTATIONS)
+            if (field.isAnnotationPresent(annotation))
+                return true;
+        return false;
+    }
 }
 
 /**
@@ -276,7 +298,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    protected Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
+    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
         String value = getArgumentValue( createDefaultArgumentDefinition(source), matches );
 
         // lets go through the types we support
@@ -345,9 +367,10 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )
     {
-        Class componentType = null;
+        Class componentType;
 
         if( Collection.class.isAssignableFrom(type) ) {
 
@@ -372,7 +395,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
             ArgumentTypeDescriptor componentArgumentParser = ArgumentTypeDescriptor.create( componentType );
 
-            Collection collection = null;
+            Collection collection;
             try {
                 collection = (Collection)type.newInstance();
             }

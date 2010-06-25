@@ -34,6 +34,11 @@ import java.util.List;
  */
 public class ArgumentDefinition {
     /**
+     * Whether an argument is an input or an output.
+     */
+    public final ArgumentIOType ioType;
+
+    /**
      * Full name of the argument.  Must have a value.
      */
     public final String fullName;
@@ -80,6 +85,7 @@ public class ArgumentDefinition {
 
     /**
      * Creates a new argument definition.
+     * @param ioType Whether the argument is an input or an output.
      * @param fullName Full name for this argument definition.
      * @param shortName Short name for this argument definition.
      * @param doc Doc string for this argument.
@@ -90,7 +96,8 @@ public class ArgumentDefinition {
      * @param validation A regular expression for command-line argument validation.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null. 
      */
-    public ArgumentDefinition( String fullName,
+    public ArgumentDefinition( ArgumentIOType ioType,
+                               String fullName,
                                String shortName,
                                String doc,
                                boolean required,
@@ -99,6 +106,7 @@ public class ArgumentDefinition {
                                String exclusiveOf,
                                String validation,
                                List<String> validOptions) {
+        this.ioType = ioType;
         this.fullName = fullName;
         this.shortName = shortName;
         this.doc = doc;

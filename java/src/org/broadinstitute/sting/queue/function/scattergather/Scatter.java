@@ -22,18 +22,18 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.util;
+package org.broadinstitute.sting.queue.function.scattergather;
 
 import java.lang.annotation.*;
 
 /**
- * Specifies the type of an input or output field.
+ * Specifies the class type of the CommandLineFunction to scatter an @Input
  * Written in java because scala doesn't support RetentionPolicy.RUNTIME
  */
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
-public @interface ClassType {
+public @interface Scatter {
     Class value();
 }
