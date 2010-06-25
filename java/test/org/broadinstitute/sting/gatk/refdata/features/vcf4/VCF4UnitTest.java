@@ -190,7 +190,7 @@ public class VCF4UnitTest extends BaseTest {
     // test too few info lines, we don't provide the DP in this line
     // test GT field in the incorrect position (!= 0)
     String GTFieldInTheWrongPosition = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGQ:DP:HQ:GT\t48:1:51,51:0|0\t48:8:51,51:0|0\t43:5:0,0:0|0";
-    @Test(expected=StingException.class)
+    @Test(expected=RuntimeException.class)
     public void testCheckGTFieldOrdering() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(GTFieldInTheWrongPosition);
