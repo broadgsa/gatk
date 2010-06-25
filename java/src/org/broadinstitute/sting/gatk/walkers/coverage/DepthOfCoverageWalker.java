@@ -26,16 +26,16 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broad.tribble.FeatureReader;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
+import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.utils.*;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
@@ -414,8 +414,8 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         if (annotationList == null) { return "UNKNOWN"; }
 
         for(GATKFeature rec : annotationList) {
-            if ( ((rodRefSeq)rec.getUnderlyingObject()).overlapsExonP(target) ) {
-                return ((rodRefSeq)rec.getUnderlyingObject()).getGeneName();
+            if ( ((RefSeqFeature)rec.getUnderlyingObject()).overlapsExonP(target) ) {
+                return ((RefSeqFeature)rec.getUnderlyingObject()).getGeneName();
             }
         }
 
@@ -424,9 +424,13 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
     }
 
     private LocationAwareSeekableRODIterator initializeRefSeq() {
-        ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
-                refSeqGeneList, rodRefSeq.class);
-        return new SeekableRODIterator(new GATKFeatureIterator(refseq.iterator()));
+        TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
+        FeatureReader refseq = builder.createFeatureReader(RefSeqCodec.class,refSeqGeneList).first;
+        try {
+            return new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
+        } catch (IOException e) {
+            throw new StingException("Unable to open file " + refSeqGeneList, e);
+        }
     }
 
     private void printTargetSummary(PrintStream output, Pair<?,DepthOfCoverageStats> intervalStats) {
