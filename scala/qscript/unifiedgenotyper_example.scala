@@ -11,7 +11,7 @@ for (bam <- inputs("bam")) {
     def commandLine = gatkCommandLine("VariantEval") + "-B eval,VCF,%s -o %s".format(vcfFile, evalFile)
   }
 
-  // Make sure the Sting/scripts folder is in your path to use mergeText.sh and splitIntervals.sh.
+  // Make sure the Sting/shell folder is in your path to use mergeText.sh and splitIntervals.sh.
   ug.scatterCount = 3
   ug.bamFiles :+= bam
   ug.vcfFile = swapExt(bam, "bam", "unfiltered.vcf")
