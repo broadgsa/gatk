@@ -50,12 +50,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -outputBam /dev/null",
                 0,
                 new ArrayList<String>(0));
-        try {
-            executeTest("testTableRecalibratorWholeGenome", spec);
-        } catch (RuntimeException e) {
-            System.out.println("TODO: this is actually an acceptable/expected exception (trying to close dev/null/), so let's get on Picard to fix it...");
-            // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it
-        }
+        executeTest("testTableRecalibratorWholeGenome", spec);
     }
 
     @Test
@@ -70,11 +65,6 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -outputBam /dev/null",
                 0,
                 new ArrayList<String>(0));
-        try {
-            executeTest("testTableRecalibratorWholeExome", spec);
-        } catch (RuntimeException e) {
-            System.out.println("TODO: this is actually an acceptable/expected exception (trying to close dev/null/), so let's get on Picard to fix it...");
-            // using /dev/null as an output source causes samtools to fail when it closes the stream, we shouldn't sweat it
-        }
+        executeTest("testTableRecalibratorWholeExome", spec);
     }
 }
