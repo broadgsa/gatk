@@ -18,6 +18,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
                         " -L chr1:1-5,650,000" +
+                        " --realignReadsWithBadMates" +
                         " -targetIntervals " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.realigner.intervals",
                  0,
                 new ArrayList<String>(0));
@@ -32,6 +33,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
                         " -I " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.bam" +
                         " -L chr1:1-150,000,000" +
+                        " --realignReadsWithBadMates" +
                         " -targetIntervals " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.realigner.intervals",
                  0,
                 new ArrayList<String>(0));
