@@ -9,6 +9,7 @@ import java.util.Properties
 
 class QArguments(args: Array[String]) {
   var bsubAllJobs = false
+  var bsubWaitJobs = false
   var dryRun = false
   val scripts = new ListBuffer[String]
   var inputPaths = List.empty[File]
@@ -28,6 +29,8 @@ class QArguments(args: Array[String]) {
       dryRun = true
     if (isFlagged(filtered, "-bsub"))
       bsubAllJobs = true
+    if (isFlagged(filtered, "-bsubWait"))
+      bsubWaitJobs = true
     for (arg <- getArgs(filtered, "-P"))
       addProperties(arg)
     for (arg <- getArgs(filtered, "-I"))

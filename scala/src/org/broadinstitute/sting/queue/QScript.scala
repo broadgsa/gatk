@@ -97,6 +97,8 @@ object QScript {
       val qGraph = new QGraph
       qGraph.dryRun = qArgs.dryRun
       qGraph.bsubAllJobs = qArgs.bsubAllJobs
+      qGraph.bsubWaitJobs = qArgs.bsubWaitJobs
+      qGraph.properties = qArgs.properties
       for (function <- functions)
         qGraph.add(function)
       qGraph.fillIn

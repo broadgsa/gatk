@@ -13,6 +13,8 @@ import org.jgrapht.EdgeFactory
 class QGraph extends Logging {
   var dryRun = true
   var bsubAllJobs = false
+  var bsubWaitJobs = false
+  var properties = Map.empty[String, String]
   val jobGraph = newGraph
   def numJobs = JavaConversions.asSet(jobGraph.edgeSet).filter(_.isInstanceOf[CommandLineFunction]).size
 

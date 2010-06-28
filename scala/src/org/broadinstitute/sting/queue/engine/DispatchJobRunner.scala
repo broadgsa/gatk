@@ -2,15 +2,28 @@ package org.broadinstitute.sting.queue.engine
 
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.function.{DispatchFunction, QFunction}
+import scala.collection.immutable.ListSet
 
 trait DispatchJobRunner {
   type DispatchJobType
   private var dispatchJobs = Map.empty[DispatchFunction, DispatchJobType]
+  private var waitJobsByGraph = Map.empty[QGraph, ListSet[DispatchJobType]]
 
+  /**
+   * Dispatches a function to the queue and returns immediately, unless the function is a DispatchWaitFunction
+   * in which case it waits for all other terminal functions to complete.
+   */
   def dispatch(function: DispatchFunction, qGraph: QGraph)
 
-  protected def addJob(function: DispatchFunction, dispatchJob: DispatchJobType) =
+  protected def addJob(function: DispatchFunction, qGraph: QGraph,
+      dispatchJob: DispatchJobType, previousJobs: List[DispatchJobType]) = {
     dispatchJobs += function -> dispatchJob
+    var waitJobs = getWaitJobs(qGraph)
+    for (previousJob <- previousJobs)
+      waitJobs -= previousJob
+    waitJobs += dispatchJob
+    waitJobsByGraph += qGraph -> waitJobs
+  }
 
   /**
    * Walks up the graph looking for the previous LsfJobs
@@ -30,5 +43,14 @@ trait DispatchJobRunner {
       }
     }
     previous
+  }
+
+  /**
+   * Returns a set of jobs that have no following jobs in the graph.
+   */
+  protected def getWaitJobs(qGraph: QGraph) = {
+    if (!waitJobsByGraph.contains(qGraph))
+      waitJobsByGraph += qGraph -> ListSet.empty[DispatchJobType]
+    waitJobsByGraph(qGraph)
   }
 }

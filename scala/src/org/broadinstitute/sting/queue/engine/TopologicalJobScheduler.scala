@@ -4,7 +4,7 @@ import org.jgrapht.traverse.TopologicalOrderIterator
 import org.jgrapht.event.{EdgeTraversalEvent, TraversalListenerAdapter}
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.util.Logging
-import org.broadinstitute.sting.queue.function.{MappingFunction, CommandLineFunction, DispatchFunction, QFunction}
+import org.broadinstitute.sting.queue.function._
 
 /**
  * Loops over the job graph running jobs as the edges are traversed
@@ -35,5 +35,13 @@ abstract class TopologicalJobScheduler(private val qGraph: QGraph)
     }
     if (logger.isTraceEnabled)
       logger.trace("Done walking %s nodes.".format(numNodes))
+
+    if (qGraph.bsubAllJobs && qGraph.bsubWaitJobs) {
+      logger.info("Waiting for jobs to complete.")
+      val wait = new DispatchWaitFunction
+      wait.properties = qGraph.properties
+      wait.freeze
+      dispatch(wait, qGraph)
+    }
   }
 }
