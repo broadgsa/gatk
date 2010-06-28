@@ -96,6 +96,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", required=false, doc="Should we sort the final bam in coordinate order even though it will be malformed because mate pairs of realigned reads will contain inaccurate information?")
     protected boolean SORT_IN_COORDINATE_ORDER = false;
 
+    @Argument(fullName="realignReadsWithBadMates", required=false, doc="Should we try to realign paired-end reads whose mates map to other chromosomes?")
+    protected boolean REALIGN_BADLY_MATED_READS = false;
+
     @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     protected boolean NO_PG_TAG = false;
 
@@ -246,13 +249,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return 0;
         }
         else if ( readLoc.overlapsP(currentInterval) ) {
-            if ( read.getReadUnmappedFlag() ||
-                    read.getNotPrimaryAlignmentFlag() ||
-                    read.getMappingQuality() == 0 ||
-                    read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
+            if ( doNotTryToClean(read) ) {
                 readsNotToClean.add(read);
-            }
-            else {
+            } else {
                 readsToClean.add(read, ref.getBases());
                 // add the rods to the list of known variants
                 populateKnownIndels(metaDataTracker, null);
@@ -272,6 +271,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         return 0;
+    }
+
+    private boolean doNotTryToClean(SAMRecord read) {
+        return read.getReadUnmappedFlag() ||
+                read.getNotPrimaryAlignmentFlag() ||
+                read.getMappingQuality() == 0 ||
+                read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
+                (!REALIGN_BADLY_MATED_READS && read.getReadPairedFlag() && !read.getMateUnmappedFlag() && read.getMateReferenceIndex() != read.getReferenceIndex());
     }
 
     private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
