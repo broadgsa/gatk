@@ -1,7 +1,9 @@
 #!/usr/bin/perl -w
 
 use strict;
-use lib "$ENV{'STING_DIR'}/perl";
+use FindBin;
+use lib "$FindBin::Bin/../../";
+
 use StingArgs;
 use DistributedMake;
 use Data::Dumper;
