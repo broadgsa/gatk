@@ -41,7 +41,7 @@ public class VCF4UnitTest extends BaseTest {
         } catch (FileNotFoundException e) {
             throw new StingException("unable to load the sequence dictionary");
         }
-        GenomeLocParser.setupRefContigOrdering(seq);
+        GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 
     @Test
@@ -197,11 +197,31 @@ public class VCF4UnitTest extends BaseTest {
     }
     
     // test too few info lines, we don't provide the DP in this line
-    String twoFewInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t0|0:48:1:51,51\t0|0:48:1:51,51";
+    String twoFewInfoLine = "20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;AF=0.5;DB\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t0|0:48:1:51,51\t0|0:48:1:51,51";
     @Test
     public void testCheckTwoFewInfoValidation() {
         TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
         testSetup.codec.decode(twoFewInfoLine);
+    }
+
+    // test that the variant context adds attributes for the original alleles when clipped
+    String clippedAlleleLine = "20\t14370\trs6054257\tGGG\tG\t29\tPASS\tNS=3;AF=0.5;DB;H2\tGT:GQ:DP:HQ\t0|1:48:1:51,51\t0|0:48:1:51,51\t0|0:48:1:51,51";
+    @Test
+    public void testClippedAllelesAddedAsAnnotation() {
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
+        VariantContext context = (VariantContext)testSetup.codec.decode(clippedAlleleLine);
+        Assert.assertTrue(context.hasAttribute(VCF4Codec.ORIGINAL_ALLELE_LIST));
+        List<Allele> alleles = (List<Allele>)context.getAttribute(VCF4Codec.ORIGINAL_ALLELE_LIST);
+        Assert.assertEquals("Expected allele list of 2, got " + alleles.size(),2,alleles.size());
+        Assert.assertTrue(alleles.get(0).basesMatch("GGG"));
+        Assert.assertTrue(alleles.get(1).basesMatch("G"));
+    }
+    // test that when we don't clip the alleles, we don't see the annotation
+    @Test
+    public void testNoClippedAllelesNoAddedAsAnnotation() {
+        TestSetup testSetup = new TestSetup().invoke(vcfGenotypeFile);
+        VariantContext context = (VariantContext)testSetup.codec.decode(twoFewInfoLine);
+        Assert.assertTrue(!context.hasAttribute(VCF4Codec.ORIGINAL_ALLELE_LIST));
     }
 
     // test that we're getting the right genotype for a multi-base polymorphism

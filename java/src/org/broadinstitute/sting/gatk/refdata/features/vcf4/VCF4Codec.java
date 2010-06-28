@@ -25,6 +25,9 @@ import java.util.*;
  */
 public class VCF4Codec implements FeatureCodec {
 
+    // a variant context flag for original allele strings
+    public static final String ORIGINAL_ALLELE_LIST = "ORIGINAL_ALLELE_LIST";
+
     // we have to store the list of strings that make up the header until they're needed
     private VCFHeader header = null;
 
@@ -364,6 +367,7 @@ public class VCF4Codec implements FeatureCodec {
      */
     private VariantContext parseVCFLine(String[] parts, boolean parseGenotypes) {
         try {
+            // increment the line count
             lineNo++;
             
             // parse out the required fields
@@ -376,15 +380,19 @@ public class VCF4Codec implements FeatureCodec {
             String filter = parts[6];
             String info = parts[7];
 
-
+            // get our alleles, filters, and setup an attribute map
             List<Allele> alleles = parseAlleles(ref, alts);
             Set<String> filters = parseFilters(filter);
             Map<String, Object> attributes = parseInfo(info, id);
 
             // find out our current location, and clip the alleles down to their minimum length
-            Pair<GenomeLoc, List<Allele>> locAndAlleles = (ref.length() > 1) ?
-                    clipAlleles(contig, pos, ref, alleles) :
-                    new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
+            Pair<GenomeLoc, List<Allele>> locAndAlleles;
+            if (ref.length() > 1) {
+                    attributes.put(ORIGINAL_ALLELE_LIST,alleles);
+                    locAndAlleles = clipAlleles(contig, pos, ref, alleles);
+            } else {
+                    locAndAlleles = new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
+            }
 
             // a map to store our genotypes
             Map<String, Genotype> genotypes = null;
@@ -477,7 +485,11 @@ public class VCF4Codec implements FeatureCodec {
 
     /**
      * clip the alleles, based on the reference
-     * @param unclippedAlleles the list of alleles
+     *
+     * @param contig our contig position
+     * @param position the unadjusted start position (pre-clipping)
+     * @param ref the reference string
+     * @param unclippedAlleles the list of unclipped alleles
      * @return a list of alleles, clipped to the reference
      */
     static Pair<GenomeLoc,List<Allele>> clipAlleles(String contig, long position, String ref, List<Allele> unclippedAlleles) {
@@ -502,7 +514,6 @@ public class VCF4Codec implements FeatureCodec {
             if (clipping) reverseClipped++;
         }
 
-        
         for (Allele a : unclippedAlleles)
             newAlleleList.add(Allele.create(Arrays.copyOfRange(a.getBases(),forwardClipping,a.getBases().length-reverseClipped),a.isReference()));
 
