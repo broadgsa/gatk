@@ -1,8 +1,5 @@
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.StingException;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -124,6 +121,7 @@ public class Allele implements Comparable<Allele> {
     private final static Allele REF_T = new Allele("T", true);
     private final static Allele ALT_T = new Allele("T", false);
     private final static Allele REF_N = new Allele("N", true);
+    private final static Allele ALT_N = new Allele("N", false);
     private final static Allele REF_NULL = new Allele("-", true);
     private final static Allele ALT_NULL = new Allele("-", false);
     public final static Allele NO_CALL = new Allele(NO_CALL_STRING, false);
@@ -157,7 +155,7 @@ public class Allele implements Comparable<Allele> {
                 case 'C': return isRef ? REF_C : ALT_C;
                 case 'G': return isRef ? REF_G : ALT_G;
                 case 'T': return isRef ? REF_T : ALT_T;
-                case 'N': if (isRef) return REF_N;
+                case 'N': return isRef ? REF_N : ALT_N;
                 default: throw new IllegalArgumentException("Illegal base: " + (char)bases[0]);
             }
         } else {
@@ -206,17 +204,10 @@ public class Allele implements Comparable<Allele> {
 
         for ( int i = 0; i < bases.length; i++ ) {
             switch (bases[i]) {
-                case 'A': case 'C': case 'G': case 'T': break;
-                case 'N':
-                    if (!reference)
-                        return false;
-                    break;
+                case 'A': case 'C': case 'G': case 'T': case 'N' : break;
                 default:
                     return false;
             }
-//            if ( ! BaseUtils.isRegularBase(bases[i]) ) {
-//                return false;
-//            }
         }
 
         return true;
