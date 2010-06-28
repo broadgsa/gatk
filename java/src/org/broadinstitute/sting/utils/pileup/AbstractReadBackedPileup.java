@@ -46,6 +46,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
     protected int size = 0;                   // cached value of the size of the pileup
     protected int nDeletions = 0;             // cached value of the number of deletions
     protected int nMQ0Reads = 0;              // cached value of the number of MQ0 reads
+    protected boolean hasPileupBeenDownsampled;
 
     /**
      * Create a new version of a read backed pileup at loc, using the reads and their corresponding
@@ -95,7 +96,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
      * @param loc
      * @param pileup
      */
-    public AbstractReadBackedPileup(GenomeLoc loc, List<PE> pileup, int size, int nDeletions, int nMQ0Reads ) {
+    public AbstractReadBackedPileup(GenomeLoc loc, List<PE> pileup, int size, int nDeletions, int nMQ0Reads, boolean hasPileupBeenDownsampled ) {
         if ( loc == null ) throw new StingException("Illegal null genomeloc in UnifiedReadBackedPileup");
         if ( pileup == null ) throw new StingException("Illegal null pileup in UnifiedReadBackedPileup");
 
@@ -104,6 +105,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
         this.size = size;
         this.nDeletions = nDeletions;
         this.nMQ0Reads = nMQ0Reads;
+        this.hasPileupBeenDownsampled = hasPileupBeenDownsampled;
     }
 
 
@@ -148,6 +150,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
         size += pileup.size();
         nDeletions += pileup.getNumberOfDeletions();
         nMQ0Reads += pileup.getNumberOfMappingQualityZeroReads();
+        hasPileupBeenDownsampled |= pileup.hasPileupBeenDownsampled();
     }
 
     /**
@@ -558,6 +561,11 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
     @Override
     public GenomeLoc getLocation() {
         return loc;
+    }
+
+    @Override
+    public boolean hasPileupBeenDownsampled() {
+        return hasPileupBeenDownsampled;
     }
 
     /**

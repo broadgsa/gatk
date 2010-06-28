@@ -370,6 +370,7 @@ public class LocusIteratorByState extends LocusIterator {
                 for(String sampleName: sampleNames) {
                     Iterator<SAMRecordState> iterator = readStates.iteratorForSample(sampleName);
                     ArrayList<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(readStates.size());
+                    boolean hasBeenSampled = loc.getStart() <= readStates.readStatesBySample.get(sampleName).getDownsamplingExtent();
 
                     size = 0;
                     nDeletions = 0;
@@ -413,7 +414,7 @@ public class LocusIteratorByState extends LocusIterator {
                             nMQ0Reads++;
                         }
                     }
-                    if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new ReadBackedExtendedEventPileupImpl(loc,indelPile,size,maxDeletionLength,nInsertions,nDeletions,nMQ0Reads));                    
+                    if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new ReadBackedExtendedEventPileupImpl(loc,indelPile,size,maxDeletionLength,nInsertions,nDeletions,nMQ0Reads,hasBeenSampled));
                 }
                 hasExtendedEvents = false; // we are done with extended events prior to current ref base
 //                System.out.println("Indel(s) at "+loc);
@@ -427,6 +428,7 @@ public class LocusIteratorByState extends LocusIterator {
                 for(String sampleName: sampleNames) {
                     Iterator<SAMRecordState> iterator = readStates.iteratorForSample(sampleName);
                     ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
+                    boolean hasBeenSampled = location.getStart() <= readStates.readStatesBySample.get(sampleName).getDownsamplingExtent();
 
                     size = 0;
                     nDeletions = 0;
@@ -456,7 +458,7 @@ public class LocusIteratorByState extends LocusIterator {
                             nMQ0Reads++;
                         }
                     }
-                    if( pile.size() != 0 ) fullPileup.put(sampleName,new ReadBackedPileupImpl(location,pile,size,nDeletions,nMQ0Reads));
+                    if( pile.size() != 0 ) fullPileup.put(sampleName,new ReadBackedPileupImpl(location,pile,size,nDeletions,nMQ0Reads,hasBeenSampled));
                 }
 
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
@@ -570,7 +572,9 @@ public class LocusIteratorByState extends LocusIterator {
             for(String sampleName: sampleNames)
                 readStatesBySample.put(sampleName,new PerSampleReadStateManager());
 
-            ReadSelector primaryReadSelector= samplePartitioner;
+            ReadSelector primaryReadSelector = samplePartitioner;
+            if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_BY_SAMPLE)
+                primaryReadSelector = new NRandomReadSelector(primaryReadSelector,targetCoverage);
 
             chainedReadSelector = maxReadsAtLocus!=Integer.MAX_VALUE ? new FirstNReadSelector(primaryReadSelector,maxReadsAtLocus) : primaryReadSelector;
         }
@@ -644,6 +648,7 @@ public class LocusIteratorByState extends LocusIterator {
 
                 PerSampleReadStateManager statesBySample = readStatesBySample.get(sampleName);
                 int numReads = statesBySample.size();
+                int downsamplingExtent = aggregator.getDownsamplingExtent();
 
                 if(numReads+newReads.size()<=targetCoverage || downsamplingMethod.type==DownsampleType.NONE) {
                     long readLimit = aggregator.getNumReadsSeen();
@@ -653,6 +658,7 @@ public class LocusIteratorByState extends LocusIterator {
                         mrlViolation = true;
                     }
                     addReadsToSample(statesBySample,newReads,readLimit,mrlViolation);
+                    statesBySample.specifyNewDownsamplingExtent(downsamplingExtent);
                 }
                 else {
                     int[] counts = statesBySample.getCountsPerAlignmentStart();
@@ -688,8 +694,10 @@ public class LocusIteratorByState extends LocusIterator {
 
                         readOffset += counts[i];
                     }
-                    statesBySample.purge(toPurge);
+                    downsamplingExtent = Math.max(downsamplingExtent,statesBySample.purge(toPurge));
+                    
                     addReadsToSample(statesBySample,newReads,targetCoverage-numReads,false);
+                    statesBySample.specifyNewDownsamplingExtent(downsamplingExtent);
                 }
             }
             chainedReadSelector.reset();
@@ -737,6 +745,7 @@ public class LocusIteratorByState extends LocusIterator {
         private class PerSampleReadStateManager implements Iterable<SAMRecordState> {
             private final Queue<SAMRecordState> readStates = new LinkedList<SAMRecordState>();
             private final Deque<Counter> readStateCounter = new LinkedList<Counter>();
+            private int downsamplingExtent = 0;
 
             public void addStatesAtNextAlignmentStart(Collection<SAMRecordState> states) {
                 readStates.addAll(states);
@@ -754,6 +763,14 @@ public class LocusIteratorByState extends LocusIterator {
 
             public int size() {
                 return readStates.size();
+            }
+
+            public void specifyNewDownsamplingExtent(int downsamplingExtent) {
+                this.downsamplingExtent = Math.max(this.downsamplingExtent,downsamplingExtent);
+            }
+
+            public int getDownsamplingExtent() {
+                return downsamplingExtent;
             }
 
             public int[] getCountsPerAlignmentStart() {
@@ -790,9 +807,12 @@ public class LocusIteratorByState extends LocusIterator {
              * Purge the given elements from the bitset.  If an element in the bitset is true, purge
              * the corresponding read state.
              * @param elements bits from the set to purge.
+             * @return the extent of the final downsampled read.
              */
-            public void purge(final BitSet elements) {
-                if(elements.isEmpty() || readStates.isEmpty()) return;
+            public int purge(final BitSet elements) {
+                int downsamplingExtent = 0;
+
+                if(elements.isEmpty() || readStates.isEmpty()) return downsamplingExtent;
 
                 Iterator<SAMRecordState> readStateIterator = readStates.iterator();
 
@@ -806,7 +826,8 @@ public class LocusIteratorByState extends LocusIterator {
                 int removedCount = 0;
 
                 while(readStateIterator.hasNext() && toPurge >= 0) {
-                    readStateIterator.next();
+                    SAMRecordState state = readStateIterator.next();
+                    downsamplingExtent = Math.max(downsamplingExtent,state.getRead().getAlignmentEnd());
 
                     if(readIndex == toPurge) {
                         readStateIterator.remove();
@@ -826,6 +847,8 @@ public class LocusIteratorByState extends LocusIterator {
                 }
 
                 totalReadStates -= removedCount;
+
+                return downsamplingExtent;
             }
         }
     }
@@ -885,6 +908,14 @@ interface ReadSelector {
     public long getNumReadsSelected();
 
     /**
+     * Gets the locus at which the last of the downsampled reads selected by this selector ends.  The value returned will be the
+     * last aligned position from this selection to which a downsampled read aligns -- in other words, if a read is thrown out at
+     * position 3 whose cigar string is 76M, the value of this parameter will be 78.
+     * @return If any read has been downsampled, this will return the last aligned base of the longest alignment.  Else, 0.
+     */
+    public int getDownsamplingExtent();
+
+    /**
      * Get the reads selected by this selector.
      * @return collection of reads selected by this selector.
      */
@@ -905,6 +936,7 @@ class FirstNReadSelector implements ReadSelector {
     private final Collection<SAMRecord> selectedReads = new LinkedList<SAMRecord>();
     private final long readLimit;
     private long readsSeen = 0;
+    private int downsamplingExtent = 0;
 
     public FirstNReadSelector(ReadSelector chainedSelector, long readLimit) {
         this.chainedSelector = chainedSelector;
@@ -918,8 +950,10 @@ class FirstNReadSelector implements ReadSelector {
                 chainedSelector.submitRead(read);
         }
         else
-            if(chainedSelector != null)
+            if(chainedSelector != null) {
                 chainedSelector.notifyReadRejected(read);
+                downsamplingExtent = Math.max(downsamplingExtent,read.getAlignmentEnd());
+            }
         readsSeen++;
     }
 
@@ -942,6 +976,10 @@ class FirstNReadSelector implements ReadSelector {
         return selectedReads.size();
     }
 
+    public int getDownsamplingExtent() {
+        return downsamplingExtent;
+    }
+
     public Collection<SAMRecord> getSelectedReads() {
         return selectedReads;
     }
@@ -949,6 +987,7 @@ class FirstNReadSelector implements ReadSelector {
     public void reset() {
         selectedReads.clear();
         readsSeen = 0;
+        downsamplingExtent = 0;
         if(chainedSelector != null)
             chainedSelector.reset();
     }
@@ -961,6 +1000,7 @@ class NRandomReadSelector implements ReadSelector {
     private final ReservoirDownsampler<SAMRecord> reservoir;
     private final ReadSelector chainedSelector;
     private long readsSeen = 0;
+    private int downsamplingExtent = 0;    
 
     public NRandomReadSelector(ReadSelector chainedSelector, long readLimit) {
         this.reservoir = new ReservoirDownsampler<SAMRecord>((int)readLimit);
@@ -969,8 +1009,10 @@ class NRandomReadSelector implements ReadSelector {
 
     public void submitRead(SAMRecord read) {
         SAMRecord displaced = reservoir.add(read);
-        if(displaced != null && chainedSelector != null)
+        if(displaced != null && chainedSelector != null) {
             chainedSelector.notifyReadRejected(read);
+            downsamplingExtent = Math.max(downsamplingExtent,read.getAlignmentEnd());
+        }
         readsSeen++;
     }
 
@@ -994,12 +1036,17 @@ class NRandomReadSelector implements ReadSelector {
         return reservoir.size();
     }
 
+    public int getDownsamplingExtent() {
+        return downsamplingExtent;
+    }    
+
     public Collection<SAMRecord> getSelectedReads() {
         return reservoir.getDownsampledContents();
     }
 
     public void reset() {
         reservoir.clear();
+        downsamplingExtent = 0;
         if(chainedSelector != null)
             chainedSelector.reset();
     }
@@ -1041,6 +1088,13 @@ class SamplePartitioner implements ReadSelector {
         return readsSeen;
     }
 
+    public int getDownsamplingExtent() {
+        int downsamplingExtent = 0;
+        for(SampleStorage storage: readsBySample.values())
+            downsamplingExtent = Math.max(downsamplingExtent,storage.downsamplingExtent);
+        return downsamplingExtent;
+    }
+    
     public Collection<SAMRecord> getSelectedReads() {
         throw new UnsupportedOperationException("Cannot directly get selected reads from a read partitioner.");
     }
@@ -1060,6 +1114,7 @@ class SamplePartitioner implements ReadSelector {
     private class SampleStorage implements ReadSelector {
         private Collection<SAMRecord> reads = new LinkedList<SAMRecord>();
         private long readsSeen = 0;
+        private int downsamplingExtent = 0;
 
         public void submitRead(SAMRecord read) {
             reads.add(read);
@@ -1068,6 +1123,7 @@ class SamplePartitioner implements ReadSelector {
 
         public void notifyReadRejected(SAMRecord read) {
             readsSeen++;
+            downsamplingExtent = Math.max(downsamplingExtent,read.getAlignmentEnd());
         }
 
         public void complete() {
@@ -1082,6 +1138,10 @@ class SamplePartitioner implements ReadSelector {
             return readsSeen;
         }
 
+        public int getDownsamplingExtent() {
+            return downsamplingExtent;
+        }
+
         public Collection<SAMRecord> getSelectedReads() {
             return reads;
         }
@@ -1089,6 +1149,7 @@ class SamplePartitioner implements ReadSelector {
         public void reset() {
             reads.clear();
             readsSeen = 0;
+            downsamplingExtent = 0;
         }
     }
 }
