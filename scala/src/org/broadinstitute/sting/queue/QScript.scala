@@ -88,7 +88,7 @@ object QScript {
      * Sets the @Input and @Output values for a single function
      */
     def setParams(function: CommandLineFunction): Unit =
-      for ((name, value) <- qArgs.argMap) function.addOrUpdateWithStringValue(name, value)
+      function.properties = qArgs.properties
 
     /**
      * Executes functions that have been added to the pipeline.

@@ -12,7 +12,7 @@ class QArguments(args: Array[String]) {
   var dryRun = false
   val scripts = new ListBuffer[String]
   var inputPaths = List.empty[File]
-  var argMap = Map.empty[String, String]
+  var properties = Map.empty[String, String]
 
   val userArgs = parseArgs(args)
 
@@ -29,7 +29,7 @@ class QArguments(args: Array[String]) {
     if (isFlagged(filtered, "-bsub"))
       bsubAllJobs = true
     for (arg <- getArgs(filtered, "-P"))
-      addArg(arg)
+      addProperties(arg)
     for (arg <- getArgs(filtered, "-I"))
       addFile(arg)
     for (arg <- getArgs(filtered, "-S"))
@@ -64,18 +64,18 @@ class QArguments(args: Array[String]) {
     found
   }
 
-  def addArg(arg: String) = {
+  def addProperties(arg: String) = {
     var file = new File(arg)
     if (arg.contains("=") && !file.exists) {
       val tokens = arg.split("=", 2)
-      argMap += tokens(0) -> tokens(1)
+      properties += tokens(0) -> tokens(1)
     } else if (arg.endsWith(".properties")) {
       if (!file.exists)
         throw new QException("File not found: " + file.getAbsolutePath)
       var props = new Properties
       props.load(new FileInputStream(file))
       for ((name, value) <- props)
-        argMap += name -> value
+        properties += name -> value
     } else {
       throw new QException("Invalid property: " + arg)
     }

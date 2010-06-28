@@ -32,6 +32,7 @@ object ScatterGatherableFunction {
 
     // Create a function that will remove any temporary items
     var cleanupFunction = new CleanupTempDirsFunction
+    cleanupFunction.properties = originalFunction.properties
     cleanupFunction.jobNamePrefix = originalFunction.jobNamePrefix
     cleanupFunction.commandDirectory = originalFunction.commandDirectory
 
@@ -42,6 +43,7 @@ object ScatterGatherableFunction {
     // Create the scatter function based on @Scatter
     val scatterFunction = getScatterFunction(scatterField)
     scatterFunction.setOriginalFunction(originalFunction)
+    scatterFunction.properties = originalFunction.properties
     scatterFunction.jobNamePrefix = originalFunction.jobNamePrefix
     scatterFunction.commandDirectory = originalFunction.temp("scatter-" + scatterField.getName)
     scatterFunction.originalInput = originalValue.asInstanceOf[scatterFunction.ScatterType]
@@ -55,6 +57,7 @@ object ScatterGatherableFunction {
       // Create the gather function based on @Gather
       val gatherFunction = getGatherFunction(outputField)
       gatherFunction.setOriginalFunction(originalFunction)
+      gatherFunction.properties = originalFunction.properties
       gatherFunction.jobNamePrefix = originalFunction.jobNamePrefix
       gatherFunction.commandDirectory = originalFunction.temp("gather-" + outputField.getName)
 
@@ -96,6 +99,7 @@ object ScatterGatherableFunction {
     // Create a function to create all of the temp directories.
     // All of its inputs are the inputs of the original function.
     val initializeFunction = new CreateTempDirsFunction
+    initializeFunction.properties = originalFunction.properties
     initializeFunction.jobNamePrefix = originalFunction.jobNamePrefix
     initializeFunction.commandDirectory = originalFunction.commandDirectory
 

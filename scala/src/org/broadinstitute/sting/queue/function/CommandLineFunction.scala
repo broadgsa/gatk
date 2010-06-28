@@ -6,8 +6,18 @@ import java.lang.annotation.Annotation
 import org.broadinstitute.sting.commandline.{Input, Output, ArgumentDescription}
 
 trait CommandLineFunction extends InputOutputFunction with DispatchFunction {
+  var properties = Map.empty[String, String]
+
   def inputFieldsWithValues = inputFields.filter(hasFieldValue(_))
   def outputFieldsWithValues = outputFields.filter(hasFieldValue(_))
+
+  /**
+   * Sets parameters from the arg map.
+   */
+  override def freeze = {
+    for ((name, value) <- properties) addOrUpdateWithStringValue(name, value)
+    super.freeze
+  }
 
   /**
    * Repeats parameters with a prefix/suffix if they are set otherwise returns "".

@@ -22,10 +22,10 @@ trait InputOutputFunction extends QFunction with Cloneable {
 
   /**
    * Sets a field value using the name of the field.
-   * Field must be annotated with @Input, @Output, or @Internal
+   * Field must be annotated with @Input or @Output
    * @return true if the value was found and set
    */
-  def addOrUpdateWithStringValue(name: String, value: String) = {
+  protected def addOrUpdateWithStringValue(name: String, value: String) = {
     fields.find(_.getName == name) match {
       case Some(field) =>
         val isInput = ReflectionUtils.hasAnnotation(field, classOf[Input])
