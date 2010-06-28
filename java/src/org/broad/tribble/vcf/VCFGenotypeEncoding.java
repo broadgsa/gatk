@@ -24,7 +24,10 @@ public class VCFGenotypeEncoding {
     private final TYPE mType;
 
     // public constructor, that parses out the base string
-    public VCFGenotypeEncoding(String baseString) {
+    public VCFGenotypeEncoding(String baseString){
+        this(baseString, false);
+    }
+    public VCFGenotypeEncoding(String baseString, boolean allowMultipleBaseReference) {
         if ((baseString.length() == 1)) {
             // are we an empty (no-call) genotype?
             if (baseString.equals(VCFGenotypeRecord.EMPTY_ALLELE)) {
@@ -39,19 +42,23 @@ public class VCFGenotypeEncoding {
                 mType = TYPE.SINGLE_BASE;
             }
         } else { // deletion or insertion
-            if (baseString.length() < 1 || (baseString.toUpperCase().charAt(0) != 'D' && baseString.toUpperCase().charAt(0) != 'I')) {
+            if (baseString.length() < 1 ||(!allowMultipleBaseReference && (baseString.toUpperCase().charAt(0) != 'D' && baseString.toUpperCase().charAt(0) != 'I'))) {
                 throw new IllegalArgumentException("Genotype encoding of " + baseString + " was passed in, but is not a valid deletion, insertion, base, or no call (.)");
             }
             if (baseString.toUpperCase().charAt(0) == 'D') {
                 mLength = Integer.valueOf(baseString.substring(1, baseString.length()));
                 mBases = "";
                 mType = TYPE.DELETION;
-            } else { // we're an I
+            } else if (baseString.toUpperCase().charAt(0) == 'I') { // we're an I
                 mBases = baseString.substring(1, baseString.length()).toUpperCase();
                 if (!validBases(mBases))
                     throw new IllegalArgumentException("The insertion base string contained invalid bases -> " + baseString);
                 mLength = mBases.length();
                 mType = TYPE.INSERTION;
+            } else{
+                mBases = baseString;
+                mType = TYPE.MIXED;
+                mLength = mBases.length();
             }
         }
     }
@@ -97,6 +104,7 @@ public class VCFGenotypeEncoding {
         switch (mType) {
             case SINGLE_BASE:
             case UNCALLED:
+            case MIXED:
                 builder.append(mBases);
                 break;
             case INSERTION:

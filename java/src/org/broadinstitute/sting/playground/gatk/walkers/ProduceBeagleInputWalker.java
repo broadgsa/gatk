@@ -54,9 +54,14 @@ import java.util.*;
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = true)
-    public PrintStream beagleWriter = null;
+    public PrintStream  beagleWriter = null;
+    @Argument(fullName = "genotypes_file", shortName = "genotypes", doc = "File to print reference genotypes for error analysis", required = false)
+    public PrintStream beagleGenotypesWriter  = null;
+    @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
+    public double insertedNoCallRate  = 0;
 
     final TreeSet<String> samples = new TreeSet<String>();
+    Random generator;
 
     public void initialize() {
 
@@ -71,11 +76,14 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             }
         }
 
+        generator = new Random();
         beagleWriter.print("marker alleleA alleleB");
         for ( String sample : samples )
             beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
 
         beagleWriter.println();
+        if (beagleGenotypesWriter != null)
+            beagleGenotypesWriter.println("dummy header");
     }
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
@@ -89,6 +97,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
             // output marker ID to Beagle input file
             beagleWriter.print(String.format("%s ",vc_eval.getLocation().toString()));
+
+            if (beagleGenotypesWriter != null)
+                beagleGenotypesWriter.print(String.format("%s ",vc_eval.getLocation().toString()));
 
             for (Allele allele: vc_eval.getAlleles()) {
                 // TODO -- check whether this is really needed by Beagle
@@ -120,20 +131,39 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                         Double dg = Double.valueOf(gl);
                         if (dg> maxLikelihood)
                             maxLikelihood = dg;
-                        
+
                         likeArray.add(dg);
-                     }
+                    }
 
-                    for (Double likeVal: likeArray)
-                        beagleWriter.print(String.format("%5.4f ",Math.pow(10, likeVal-maxLikelihood)));
+                    // see if we need to randomly mask out genotype in this position.
+                    Double d = generator.nextDouble();
+                    if (d > insertedNoCallRate ) {
+//                    System.out.format("%5.4f ", d);
+                        for (Double likeVal: likeArray)
+                            beagleWriter.print(String.format("%5.4f ",Math.pow(10, likeVal-maxLikelihood)));
+                    }
+                    else {
+                        // we are masking out this genotype
+                        beagleWriter.print("0.33 0.33 0.33 ");
+                    }
+
+                    if (beagleGenotypesWriter != null) {
+                        char a = genotype.getAllele(0).toString().charAt(0);
+                        char b = genotype.getAllele(0).toString().charAt(0);
+
+                        beagleGenotypesWriter.format("%c %c ", a, b);
+                    }
                 }
-                else
+                else  {
                     beagleWriter.print("0.33 0.33 0.33 "); // write 1/3 likelihoods for uncalled genotypes.
-
+                    if (beagleGenotypesWriter != null)
+                         beagleGenotypesWriter.print(". . ");
+                }
             }
 
             beagleWriter.println();
-
+            if (beagleGenotypesWriter != null)
+                 beagleGenotypesWriter.println();
         }
         return 1;
         
