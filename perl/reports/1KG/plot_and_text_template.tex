@@ -1,0 +1,24 @@
+\documentclass[10pt]{article}
+
+\usepackage[lmargin=0.3in, rmargin=0.3in, tmargin=0.9in, bmargin=0.9in, paperwidth=10.0in, paperheight=7.5in]{geometry}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+
+\begin{document}
+    \lhead{\bfseries{\Large{$title$ - $population$ samples}}}
+    \rhead{}
+    \chead{}
+
+    \begin{center}
+        \includegraphics[height=125mm, type=pdf, ext=.pdf, read=.pdf]{$plotprefix$}
+    \end{center}
+
+    $caption$
+
+    \lfoot{}
+    \cfoot{}
+    \rfoot{\small{1,000 Genomes Automated Data Processing Report ($timestamp$)}}
+\end{document}

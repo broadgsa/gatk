@@ -1,0 +1,65 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in, paperwidth=10.0in, paperheight=7.5in]{geometry}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\begin{document}
+    \lhead{\bfseries{\Large{1,000 Genomes Data Processing Report - $population$ samples}}}
+    \rhead{}
+    \chead{}
+
+    \begin{multicols}{2}
+        \begin{tabular}{|r|l|}
+            \multicolumn{2}{l}{\bfseries{Project Summary ($study_id$)}} \\
+            \hline
+            Used samples & $used_samples$  \\
+            Unused samples & $unused_samples$ \\
+            \hline
+        \end{tabular}
+
+        \begin{tabular}{|r|l|}
+            \multicolumn{2}{l}{\bfseries{Sequencing Summary}} \\
+            \hline
+            Sequencers & $sequencers$ \\
+            Used lanes & $used_lanes$ \\
+            Unused lanes & $unused_lanes$ \\
+            Used lanes/sample & $used_lanes_per_sample$ \\
+            Lane parities & $lane_parities$ \\
+            Read lengths & $read_lengths$ \\
+            Sequencing dates & $sequencing_dates$ \\
+            \hline
+        \end{tabular}
+
+        \begin{tabular}{|r|l|l|}
+            \multicolumn{3}{l}{\bfseries{Bases Summary (excluding unused lanes/samples)}} \\
+            \hline
+            & Per lane & Per sample \\
+            \hline
+            Reads & $reads_per_lane$ & $reads_per_sample$ \\
+            Used bases & $used_bases_per_lane$ & $used_bases_per_sample$ \\
+            Coverage & $coverage_per_lane$ & $coverage_per_sample$ \\
+            \% loci $>$ 1x covered & $loci_gt_1x_per_lane$ & $loci_gt_1x_per_sample$ \\
+            \% loci $>$ 2x covered & $loci_gt_2x_per_lane$ & $loci_gt_2x_per_sample$ \\
+            \% loci $>$ 3x covered & $loci_gt_3x_per_lane$ & $loci_gt_3x_per_sample$ \\
+            \% loci $>$ 4x covered & $loci_gt_4x_per_lane$ & $loci_gt_4x_per_sample$ \\
+            \hline
+        \end{tabular}
+
+        \begin{tabular}{|r|l|l|}
+            \multicolumn{3}{l}{\bfseries{Variant Summary}} \\
+            \hline
+            & Found & Est. FP rate \\
+            \hline
+            All SNPs & $all_snps_found$ & $all_snps_fprate$ \\
+            Known SNPs & $known_snps_found$ & $known_snps_fprate$ \\
+            Novel SNPs & $novel_snps_found$ & $novel_snps_fprate$ \\
+            \hline
+        \end{tabular}
+    \end{multicols}
+
+    %\lfoot{kiran@broadinstitute.org}
+    %\cfoot{}
+    %\rfoot{}
+\end{document}

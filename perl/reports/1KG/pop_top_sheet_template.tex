@@ -1,0 +1,47 @@
+\documentclass[10pt]{article}
+
+\usepackage[lmargin=0.3in, rmargin=0.3in, tmargin=0.9in, bmargin=0.9in, paperwidth=10.0in, paperheight=7.5in]{geometry}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+
+\begin{document}
+    \lhead{\bfseries{\Large{Sequencing and variant summary - $population$ samples}}}
+    \rhead{}
+    \chead{}
+
+    \begin{tabular}{|r|l|l|}
+        \multicolumn{3}{l}{\bfseries{Sequencing summary}} \\
+        \hline
+        & Lanes & Aligned Lanes \\
+        \hline
+        All & $allLanes$ & $allAlignedLanes$ \\
+        Passed QC & $passedQCLanes$ & $passedQCAlignedLanes$ \\
+        Failed Genotype QC & $failedGenotypeQCLanes$ & $failedGenotypeQCAlignedLanes$ \\
+        Failed one of the DCC processes & $failedDCCProcessLanes$ & $failedDCCProcessAlignedLanes$ \\
+        Not yet available from archive & $failedUnavailableLanes$ & $failedUnavailableAlignedLanes$ \\
+        Suppressed in archive & $failedSuppressedLanes$ & $failedSuppressedAlignedLanes$ \\
+        \hline
+    \end{tabular}
+
+    \begin{tabular}{|r|l|l|}
+        \multicolumn{3}{l}{\bfseries{Variant summary}} \\
+        \hline
+        & UnifiedGenotyper & QCALL \\
+        \hline
+        Called samples & $ugSamples$ & $qcallSamples$ \\
+        SNPs (all) & $ugAllSNPs$ & $qcallAllSNPs$ \\
+        Ti/Tv (all) & $ugAllTiTv$ & $qcallAllTiTv$ \\
+        SNPs (known) & $ugKnownSNPs$ & $qcallKnownSNPs$ \\
+        Ti/Tv (known) & $ugKnownTiTv$ & $qcallKnownTiTv$ \\
+        SNPs (novel) & $ugNovelSNPs$ & $qcallNovelSNPs$ \\
+        Ti/Tv (novel) & $ugNovelTiTv$ & $qcallNovelTiTv$ \\
+        \hline
+    \end{tabular}
+
+    \lfoot{}
+    \cfoot{}
+    \rfoot{\small{1,000 Genomes Automated Data Processing Report ($timestamp$)}}
+\end{document}
