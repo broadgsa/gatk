@@ -53,6 +53,9 @@ import java.util.*;
  */
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
+    public static final String ORIGINAL_CIGAR_TAG = "OC";
+    public static final String ORIGINAL_START_TAG = "OS";    
+
     @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
 
@@ -101,6 +104,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     protected boolean NO_PG_TAG = false;
+
+    @Argument(fullName="no_original_alignment_tags", shortName="noTags", required=false, doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam.")
+    protected boolean NO_ORIGINAL_ALIGNMENT_TAGS = false;
 
     @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.  Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.")
     protected boolean TARGET_NOT_SORTED = false;
@@ -635,7 +641,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         } else if ( statsOutput != null ) {
             try {
-                statsOutput.write(String.format("%s\tFAIL\t%.1f\t%d%n",
+                statsOutput.write(String.format("%s\tFAIL\t%.1f%n",
                         readsToClean.getLocation().toString(), improvement));
                 statsOutput.flush();
             } catch (Exception e) {}
@@ -1125,6 +1131,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( newStart == -1 )
                 newStart = read.getAlignmentStart();
 
+            // annotate the record with the original cigar (and optionally the alignment start)
+            if ( !NO_ORIGINAL_ALIGNMENT_TAGS ) {
+                read.setAttribute(ORIGINAL_CIGAR_TAG, read.getCigar().toString());
+                if ( newStart != read.getAlignmentStart() )
+                    read.setAttribute(ORIGINAL_START_TAG, read.getAlignmentStart());
+            }
+            
             // if it's a paired end read, we need to update the insert size
             if ( read.getReadPairedFlag() ) {
                 int insertSize = read.getInferredInsertSize();
@@ -1133,7 +1146,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     read.setInferredInsertSize(insertSize + read.getAlignmentStart() - newStart);
                     read.setAlignmentStart(newStart);
                 } else {
-                    // note that the correct order of actions is crucial here
+                    // note that the correct order of actions is crucial here (we can't set the new cigar too early)
                     int oldEnd = read.getAlignmentEnd();
                     read.setCigar(newCigar);
                     read.setAlignmentStart(newStart);
