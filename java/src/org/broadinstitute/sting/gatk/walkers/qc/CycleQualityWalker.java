@@ -98,7 +98,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
         // if end == 0 (single end lane), we allocate array of length 1, otherwise we need two
         // elements in the array in order to be able to collect statistics for each end in the pair independently
         if ( byLane == null ) laneMap.put(lane,byLane = new CycleStats[(end==0?1:2)]);
-        if ( byLib == null ) libMap.put(library, byLib =new CycleStats[(end==0?1:2)]);
+        if ( byLib == null ) libMap.put(library, byLib =new CycleStats[2]);
 
         if ( end != 0 ) end--; // we will now use 'end' as index into the array of stats
 
@@ -195,7 +195,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
         for( Map.Entry<String,CycleStats[]> e : m.entrySet() ) {
             if ( e.getValue()[0].getMaxReadLength() > maxLength ) maxLength = e.getValue()[0].getMaxReadLength();
 
-            if ( e.getValue().length == 1 ) {
+            if ( e.getValue().length == 1 || e.getValue().length == 2 && e.getValue()[1] == null ) {
                 totalReads_unpaired += e.getValue()[0].getReadCount(); // single end lane
             } else {
                 totalReads_1 += e.getValue()[0].getReadCount();
@@ -233,7 +233,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
                 int minL = ( end1 == null ? 0 : end1.getMinReadLength() );
                 int maxL = ( end1 == null ? 0 : end1.getMaxReadLength() );
 
-                if ( data.length == 2 ) {
+                if ( data.length == 2 && data[1] != null ) {
                     out.println(": paired");
                     if ( HTML ) out.println("<br>");
                     out.println("    Reads analyzed:");
@@ -292,7 +292,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
                         w.write(String.format("%.4f",aq));
                         recordProblem(aq,cycle, problems,col+".End1");
                     }
-                    if ( data.length > 1 ) {
+                    if ( data.length > 1 && data[1] != null ) {
                         w.write('\t');
                         CycleStats end2 = data[1];
                         if ( end2 == null || cycle >= end2.getMaxReadLength() ) w.write('.');
