@@ -32,8 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -49,7 +48,10 @@ import java.util.ArrayList;
  * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 and MQ0 reads.
  */
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
-public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.Event, RealignerTargetCreator.Event> {
+@Reference(window=@Window(start=-1,stop=50))
+@Allows(value={DataSource.READS, DataSource.REFERENCE})
+@By(DataSource.REFERENCE)
+public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Event, RealignerTargetCreator.Event> {
 
     // mismatch/entropy/SNP arguments
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating entropy or SNP clusters", required=false)
@@ -86,7 +88,7 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
         long furthestStopPos = -1;
 
         // look for insertions in the extended context (we'll get deletions from the normal context)
-        if ( context.hasExtendedEventPileup() ) {
+        if ( context != null && context.hasExtendedEventPileup() ) {
             ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup();
             if ( pileup.getNumberOfInsertions() > 0 ) {
                 hasIndel = hasInsertion = true;
@@ -115,7 +117,9 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
                             hasInsertion = true;
                         break;
                 }
-             }
+                if ( hasIndel )
+                    furthestStopPos = vc.getLocation().getStop();
+            }
         }
 
         // look at the normal context to get deletions and positions with high entropy
@@ -154,13 +158,15 @@ public class RealignerTargetCreator extends LocusWalker<RealignerTargetCreator.E
         if ( !hasIndel && !hasPointEvent )
             return null;
 
-        // return null if we didn't find any usable reads associated with the event
+        // return null if we didn't find any usable reads/rods associated with the event
         if ( furthestStopPos == -1 )
             return null;
 
         GenomeLoc eventLoc = context.getLocation();
         if ( hasInsertion )
             eventLoc =  GenomeLocParser.createGenomeLoc(eventLoc.getContigIndex(), eventLoc.getStart(), eventLoc.getStart()+1);
+        else if ( hasIndel && context.getBasePileup().size() == 0 )
+            eventLoc =  GenomeLocParser.createGenomeLoc(eventLoc.getContigIndex(), eventLoc.getStart(), furthestStopPos);        
 
         EVENT_TYPE eventType = (hasIndel ? (hasPointEvent ? EVENT_TYPE.BOTH : EVENT_TYPE.INDEL_EVENT) : EVENT_TYPE.POINT_EVENT);
 

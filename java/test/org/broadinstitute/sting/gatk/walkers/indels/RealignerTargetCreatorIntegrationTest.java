@@ -20,5 +20,11 @@ public class RealignerTargetCreatorIntegrationTest extends WalkerTest {
                  1,
                  Arrays.asList("bfccfa50f62d10ee2fe8cfa68fb70002"));
         executeTest("test dbsnp", spec2);
+
+        WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
+                "-T RealignerTargetCreator -R " + oneKGLocation + "reference/human_b36_both.fasta -B indels,VCF," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf -BTI indels -o %s",
+                 1,
+                 Arrays.asList("1a11cfc9cc713617c82bdec503ebe02a"));
+        executeTest("test rods only", spec3);
     }
 }
