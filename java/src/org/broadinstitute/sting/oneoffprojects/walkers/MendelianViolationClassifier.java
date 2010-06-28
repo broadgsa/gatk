@@ -307,34 +307,36 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     }
 
     public enum MendelianInfoKey {
-        ViolationType("MVT","String","\"The Mendelian violation type\""),
-        ParentalDeletion("deletedParent","String","\"The parent from whom the child (putatively) inherited a deletion at opposite homozygous sites\""),
-        TriAllelicQuality("TriAlQ","Integer","\"The variant quality of the third allele at putative tri-allelic sites\""),
-        TriAllelicBase("TriAlB","String","\"The third allele at putative tri-allelic sites\""),
-        MotherHomozygosityRegion("MHR","String","\"An identifier for the mother's homozygosity region where the violation is located\""),
-        FatherHomozygosityRegion("FHR","String","\"An identifier for the father's homozygosity region where the violation is located\""),
-        ChildHomozygosityRegion("CHR","Integer","\"An identifier for the child's homozygosity region where the violation is located\""),
-        ProportionOfParentAllele("PropParent","Double","\"The proportion of bases in the child that were the parent allele at deNovo SNP sites\""),
+        ViolationType("MVT","String",1,"\"The Mendelian violation type\""),
+        ParentalDeletion("deletedParent","String",1,"\"The parent from whom the child (putatively) inherited a deletion at opposite homozygous sites\""),
+        TriAllelicQuality("TriAlQ","Integer",1,"\"The variant quality of the third allele at putative tri-allelic sites\""),
+        TriAllelicBase("TriAlB","String",1,"\"The third allele at putative tri-allelic sites\""),
+        MotherHomozygosityRegion("MHR","String",1,"\"An identifier for the mother's homozygosity region where the violation is located\""),
+        FatherHomozygosityRegion("FHR","String",1,"\"An identifier for the father's homozygosity region where the violation is located\""),
+        ChildHomozygosityRegion("CHR","Integer",1,"\"An identifier for the child's homozygosity region where the violation is located\""),
+        ProportionOfParentAllele("PropParent","Float",1,"\"The proportion of bases in the child that were the parent allele at deNovo SNP sites\""),
         /* ***************************************** UNUSED ************************************************ */
-        NumCallsInRegion("REGION_NCALLS","Integer","\"The number of unfiltered SNP calls found in the homozygosity region\""),
-        ChildHomozygosityRegionSize("CHRS","Integer","\"The size of the region of homozygosity in the child in which the opposite homozygote is located\""),
-        OppositeHomozygotesInRegion("CHROH","Integer","\"The number of opposite-homozygotes located in the region of homozygosity\""),
-        ParentHomozygosityRegionSize("PHRS","Integer","\"The size of the parental homozygosity region where the deNovo SNP is located\""),
-        DeNovoSNPsInRegion("PHRDN","Integer","\"The number of deNovo SNP events located in the same region of parental homozygosity where the deNovo SNP is located\"");
+        NumCallsInRegion("REGION_NCALLS","Integer",1,"\"The number of unfiltered SNP calls found in the homozygosity region\""),
+        ChildHomozygosityRegionSize("CHRS","Integer",1,"\"The size of the region of homozygosity in the child in which the opposite homozygote is located\""),
+        OppositeHomozygotesInRegion("CHROH","Integer",1,"\"The number of opposite-homozygotes located in the region of homozygosity\""),
+        ParentHomozygosityRegionSize("PHRS","Integer",1,"\"The size of the parental homozygosity region where the deNovo SNP is located\""),
+        DeNovoSNPsInRegion("PHRDN","Integer",1,"\"The number of deNovo SNP events located in the same region of parental homozygosity where the deNovo SNP is located\"");
 
 
         String keyName;
         String valueType;
         String valueDescription;
+        int numFields;
 
-        MendelianInfoKey(String keyStr,String infoType,String description) {
+        MendelianInfoKey(String keyStr,String infoType, int fields, String description) {
             keyName = keyStr;
             valueType = infoType;
             valueDescription = description;
+            numFields = fields;
         }
 
         public String toString() {
-            return String.format("%s,%s,%s",keyName,valueType,valueDescription);
+            return String.format("%s,%s,%d,%s",keyName,valueType,numFields,valueDescription);
         }
 
         public String getKey() {
