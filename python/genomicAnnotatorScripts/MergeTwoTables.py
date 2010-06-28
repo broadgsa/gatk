@@ -43,7 +43,7 @@ if len(header1) != len(header2):
     sys.exit(0)
 
 if header1 != header2:
-    sys.stderr.write("WARNING: The two files' headers are of different lengths: \nHeader1: " + str(header1) + "\nHeader2: " + str(header2) + "\nUsing header1.\n")
+    sys.stderr.write("WARNING: The two files' headers are not the same: \nHeader1: " + str(header1) + "\nHeader2: " + str(header2) + "\nUsing header1.\n")
 print("\t".join(header1))
 
 
