@@ -485,6 +485,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         } else {
             printMappingsSorted(recalTableStream, 0, new Object[requestedCovariates.size()], dataManager.data.data);
         }
+
+        // print out an EOF marker
+        recalTableStream.println(TableRecalibrationWalker.EOF_MARKER);
     }
 
     private void printMappingsSorted( final PrintStream recalTableStream, final int curPos, final Object[] key, final Map data) {
