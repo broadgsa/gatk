@@ -24,6 +24,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import net.sf.samtools.SAMRecord;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
@@ -87,6 +88,11 @@ class WindowedData {
     private final ShardDataProvider provider;
 
     /**
+     * our log, which we want to capture anything from this class
+     */
+    private static Logger logger = Logger.getLogger(WindowedData.class);
+
+    /**
      * create a WindowedData given a shard provider
      *
      * @param provider the ShardDataProvider
@@ -102,10 +108,21 @@ class WindowedData {
      * @param rec      the current read
      */
     private void getStates(ShardDataProvider provider, SAMRecord rec) {
+
+        long stop = Integer.MAX_VALUE;
+        // figure out the appropriate alignment stop
+        if (provider.hasReference()) {
+            stop = provider.getReference().getSequenceDictionary().getSequence(rec.getReferenceIndex()).getSequenceLength();
+        }
+        
+        // calculate the range of positions we need to look at
+        GenomeLoc range = GenomeLocParser.createGenomeLoc(rec.getReferenceIndex(),
+                                                          rec.getAlignmentStart(),
+                                                          stop);
         states = new ArrayList<RMDDataState>();
         if (provider != null && provider.getReferenceOrderedData() != null)
             for (ReferenceOrderedDataSource dataSource : provider.getReferenceOrderedData())
-                states.add(new RMDDataState(dataSource, dataSource.seek(GenomeLocParser.createGenomeLoc(rec.getReferenceIndex(), rec.getAlignmentStart()))));
+                states.add(new RMDDataState(dataSource, dataSource.seek(range)));
     }
 
     /**

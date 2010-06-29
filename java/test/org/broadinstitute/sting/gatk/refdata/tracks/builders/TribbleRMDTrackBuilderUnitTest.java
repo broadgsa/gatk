@@ -128,13 +128,13 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
             tmpIndex.deleteOnExit();
 
             // sleep, to make sure the timestamps are different
-            Thread.sleep(1000);
+            Thread.sleep(2000);
 
             // copy the vcf (tribble) file to the tmp file location
             copyFile(tribbleFile,tmpFile);
 
             // sleep again, to make sure the timestamps are different (vcf vrs updated index file)
-            Thread.sleep(1000);
+            Thread.sleep(2000);
 
             return tmpFile;
 
@@ -161,7 +161,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
             copyFile(tribbleFile,tmpFile);
 
             // sleep again, to make sure the timestamps are different (vcf vrs updated index file)
-            Thread.sleep(1000);
+            Thread.sleep(2000);
 
             // create a fake index, before we copy so it's out of date
             File tmpIndex = new File(tmpFile.getAbsolutePath() + ".idx");
