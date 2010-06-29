@@ -1,5 +1,5 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.varianteval;
-
+/*
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -42,7 +42,7 @@ import java.util.ArrayList;
  * @author depristo
  * @since Apr 11, 2010
  */
-
+/*
 @Analysis(name = "BLOSUM Matrix", description = "Calculates the BLOSUM Matrix for coding variants")
 public class BLOSUMMatrix extends VariantEvaluator {
 
@@ -175,4 +175,4 @@ public class BLOSUMMatrix extends VariantEvaluator {
     //public void finalizeEvaluation() {
     //
     //}
-}
+    }*/
