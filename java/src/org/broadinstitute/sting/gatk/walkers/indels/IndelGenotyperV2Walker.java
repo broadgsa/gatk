@@ -55,6 +55,7 @@ import org.broadinstitute.sting.commandline.Argument;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -71,6 +72,10 @@ import java.util.*;
 public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
     @Argument(fullName="outputFile", shortName="O", doc="output file name (defaults to BED format)", required=true)
     java.io.File bed_file;
+
+    @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print callability metrics output", required = false)
+    public PrintStream metricsWriter = null;
+
     @Argument(fullName="1kg_format", shortName="1kg", doc="output in 1000 genomes format", required=false)
     boolean FORMAT_1KG = false;
 	@Argument(fullName="somatic", shortName="somatic",
@@ -118,6 +123,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	private String refName = null;
 	private java.io.Writer output = null;
 	private GenomeLoc location = null;
+    private long normalCallsMade = 0L, tumorCallsMade = 0L;
 
     boolean outOfContigUserWarned = false;
 
@@ -410,6 +416,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 }
 
                 if ( normalCall.isCall() ) {
+                    normalCallsMade++;
                     String message = normalCall.makeBedLine(output);
                     String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
 
@@ -581,6 +588,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             }
 
             if ( tumorCall.isCall() ) {
+                tumorCallsMade++;
                 String message = tumorCall.makeBedLine(output);
                 String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
 
@@ -660,6 +668,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
     public void onTraversalDone(Integer result) {
         if ( call_somatic ) emit_somatic(1000000000, true);
         else emit(1000000000,true); // emit everything we might have left
+
+        if ( metricsWriter != null ) {
+            metricsWriter.println(String.format("Normal calls made     %d", normalCallsMade));
+            metricsWriter.println(String.format("Tumor calls made      %d", tumorCallsMade));
+        }
+
         try {
             output.close();
         } catch (IOException e) {
