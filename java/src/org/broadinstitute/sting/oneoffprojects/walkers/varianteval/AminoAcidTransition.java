@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.varianteval;
+package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -150,7 +150,7 @@ public class AminoAcidTransition extends VariantEvaluator {
     }
 
     public boolean enabled() {
-        return true;
+        return false;
     }
 
     public String toString() {
