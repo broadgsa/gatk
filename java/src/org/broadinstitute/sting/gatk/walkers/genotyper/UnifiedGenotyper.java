@@ -57,6 +57,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     public PrintStream verboseWriter = null;
 
+    @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print any relevant callability metrics output", required = false)
+    public PrintStream metricsWriter = null;
+
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected String[] annotationsToUse = {};
 
@@ -87,6 +90,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         /** The number of bases called confidently (according to user threshold), either ref or other */
         long nBasesCalledConfidently = 0;
+
+        /** The number of bases for which calls were emitted */
+        long nCallsMade = 0;
 
         /** The total number of extended events encountered */
         long nExtendedEvents = 0;
@@ -178,6 +184,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         lhs.nBasesCallable += rhs.nBasesCallable;
         lhs.nBasesCalledConfidently += rhs.nBasesCalledConfidently;
         lhs.nBasesVisited += rhs.nBasesVisited;
+        lhs.nCallsMade += rhs.nCallsMade;
         return lhs;
     }
 
@@ -192,7 +199,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         // A call was attempted -- the base was potentially callable
         sum.nBasesCallable++;
 
-        // if the base was confidently called something, print it out
+        // the base was confidently callable
         sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
 
         // can't make a confident variant call here
@@ -200,6 +207,8 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
             return sum;
 
         try {
+            // we are actually making a call
+            sum.nCallsMade++;
             writer.addCall(value.vc, value.refAllele);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
@@ -215,5 +224,16 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         logger.info(String.format("%% callable bases of all loci                 %3.3f", sum.percentCallableOfAll()));
         logger.info(String.format("%% confidently called bases of all loci       %3.3f", sum.percentCalledOfAll()));
         logger.info(String.format("%% confidently called bases of callable loci  %3.3f", sum.percentCalledOfCallable()));
+        logger.info(String.format("Actual calls made                            %d", sum.nCallsMade));
+
+        if ( metricsWriter != null ) {
+            metricsWriter.println(String.format("Visited bases                                %d", sum.nBasesVisited));
+            metricsWriter.println(String.format("Callable bases                               %d", sum.nBasesCallable));
+            metricsWriter.println(String.format("Confidently called bases                     %d", sum.nBasesCalledConfidently));
+            metricsWriter.println(String.format("%% callable bases of all loci                 %3.3f", sum.percentCallableOfAll()));
+            metricsWriter.println(String.format("%% confidently called bases of all loci       %3.3f", sum.percentCalledOfAll()));
+            metricsWriter.println(String.format("%% confidently called bases of callable loci  %3.3f", sum.percentCalledOfCallable()));
+            metricsWriter.println(String.format("Actual calls made                            %d", sum.nCallsMade));
+        }
     }
 }
