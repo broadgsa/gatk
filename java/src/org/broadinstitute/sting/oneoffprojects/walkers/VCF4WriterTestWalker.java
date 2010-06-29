@@ -85,7 +85,8 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
         // Open output file specified by output VCF ROD
-        vcfWriter = new VCFWriter(new File(OUTPUT_FILE));
+        
+        vcfWriter = new VCFWriter(new File(OUTPUT_FILE), true);
 
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();

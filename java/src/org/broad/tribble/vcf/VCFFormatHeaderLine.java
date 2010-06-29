@@ -22,7 +22,8 @@ public class VCFFormatHeaderLine extends VCFHeaderLine {
         public Object convert(String value) {
             switch (this) {
                 case Integer:
-                    return java.lang.Integer.valueOf(value); // the java.lang is needed since we use Integer as a enum name
+                    // Take care of case when string might have say "43.0" but we request an Integer.
+                    return Math.round(java.lang.Float.valueOf(value)); // the java.lang is needed since we use Integer as a enum name
                 case Float:
                     return java.lang.Float.valueOf(value);
                 case String:

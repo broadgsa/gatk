@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -26,8 +27,16 @@ public class VCFWriter {
     // the print stream we're writting to
     BufferedWriter mWriter;
 
+    private boolean writingVCF40Format;
+
     // our genotype sample fields
     private static final List<VCFGenotypeRecord> mGenotypeRecords = new ArrayList<VCFGenotypeRecord>();
+
+    // Properties only used when using VCF4.0 encoding
+    Map<String, VCFFormatHeaderLine.FORMAT_TYPE> typeUsedForFormatString = new HashMap<String, VCFFormatHeaderLine.FORMAT_TYPE>();
+    Map<String, VCFInfoHeaderLine.INFO_TYPE> typeUsedForInfoFields = new HashMap<String, VCFInfoHeaderLine.INFO_TYPE>();
+    Map<String, Integer> numberUsedForInfoFields = new HashMap<String, Integer>();
+    Map<String, Integer> numberUsedForFormatFields = new HashMap<String, Integer>();
 
     // commonly used strings that are in the standard
     private final String FORMAT_FIELD_SEPARATOR = ":";
@@ -44,7 +53,7 @@ public class VCFWriter {
     private static final String EMPTY_ID_FIELD = ".";
     private static final String EMPTY_ALLELE_FIELD = ".";
     private static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
-    private static final String MISSING_GENOTYPE_QUALITY = ".";
+    private static final String MISSING_GENOTYPE_FIELD = ".";
 
     /**
      * create a VCF writer, given a file to write to
@@ -52,6 +61,11 @@ public class VCFWriter {
      * @param location the file location to write to
      */
     public VCFWriter(File location) {
+        this(location, false);
+    }
+
+    public VCFWriter(File location, boolean useVCF4Format) {
+        this.writingVCF40Format = useVCF4Format;
         FileOutputStream output;
         try {
             output = new FileOutputStream(location);
@@ -68,26 +82,47 @@ public class VCFWriter {
      * @param output   the file location to write to
      */
     public VCFWriter(OutputStream output) {
+        // use VCF3.3 by default
+        this(output, false);
+    }
+    public VCFWriter(OutputStream output, boolean useVCF4Format) {
+        this.writingVCF40Format = useVCF4Format;
         mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 
     public void writeHeader(VCFHeader header) {
-        // use 3.3 format by default
-        // TODO - update to true once 4.0 is on by default
-        writeHeader(header, false);
-    }
-    public void writeHeader(VCFHeader header, boolean useVCF4Format) {
         this.mHeader = header;
+
         try {
             // the file format field needs to be written first
             TreeSet<VCFHeaderLine> nonFormatMetaData = new TreeSet<VCFHeaderLine>();
             for ( VCFHeaderLine line : header.getMetaData() ) {
-                if (useVCF4Format) {
+                if (writingVCF40Format) {
                     if ( line.getKey().equals(VCFHeaderVersion.VCF4_0.getFormatString()) ) {
                         mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_0.getFormatString() + "=" + VCFHeaderVersion.VCF4_0.getVersionString() + "\n");
                     } else {
                         nonFormatMetaData.add(line);
                     }
+
+                    // Record, if line corresponds to a FORMAT field, which type will be used for writing value
+                    if (line.getClass() == VCFFormatHeaderLine.class) {
+
+                        VCFFormatHeaderLine a = (VCFFormatHeaderLine)line;
+                        String key = a.getmName();
+                        typeUsedForFormatString.put(key,a.getmType());
+                        int num = a.getmCount();
+                        numberUsedForFormatFields.put(key,num);
+
+                    } else if (line.getClass() == VCFInfoHeaderLine.class) {
+                        VCFInfoHeaderLine a = (VCFInfoHeaderLine)line;
+                        String key = a.getmName();
+                        typeUsedForInfoFields.put(key,a.getmType());
+                        int num = a.getmCount();
+                        numberUsedForInfoFields.put(key, num);
+                    }
+
+
+
                 }
                 else {
                     if ( line.getKey().equals(VCFHeaderVersion.VCF3_3.getFormatString()) ) {
@@ -184,7 +219,6 @@ public class VCFWriter {
 
         // CHROM \t POS \t ID \t REF \t ALT \t QUAL \t FILTER \t INFO
         GenomeLoc loc = vc.getLocation();
-        //String referenceBases = new String(vc.getReference().getBases());
 
         String contig = loc.getContig();
         long position = loc.getStart();
@@ -288,6 +322,7 @@ public class VCFWriter {
                 if ( key.equals(VCFGenotypeRecord.GENOTYPE_KEY) )
                     continue;
 
+
                 Object val = g.getAttribute(key);
                 // some exceptions
                 if ( key.equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) ) {
@@ -295,6 +330,7 @@ public class VCFWriter {
                         val = VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY;
                     else
                         val = Math.min(g.getPhredScaledQual(), VCFGenotypeRecord.MAX_QUAL_VALUE);
+
                 } else if ( key.equals(VCFGenotypeRecord.DEPTH_KEY) && val == null ) {
                     ReadBackedPileup pileup = (ReadBackedPileup)g.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
                     if ( pileup != null )
@@ -303,7 +339,29 @@ public class VCFWriter {
                     val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : PASSES_FILTERS;
                 }
 
-                String outputValue = formatVCFField(key, val);
+                String outputValue;
+                if (writingVCF40Format) {
+                    VCFFormatHeaderLine.FORMAT_TYPE formatType = typeUsedForFormatString.get(key);
+                    Object newVal;
+                    if (!val.getClass().equals(String.class))
+                        newVal = formatType.convert(String.valueOf(val));
+                    else
+                        newVal = val;
+
+                    if (numberUsedForFormatFields.get(key)>1 && val.equals(MISSING_GENOTYPE_FIELD)) {
+                        // If we have a missing field but multiple values are expected, we need to construct new string with all fields.
+                        // for example for Number =2, string has to be ".,."
+                        StringBuilder v = new StringBuilder(MISSING_GENOTYPE_FIELD);
+                        for ( int i = 1; i < numberUsedForFormatFields.get(key); i++ ) {
+                            v.append(",");
+                            v.append(MISSING_GENOTYPE_FIELD);
+                        }
+                        newVal = v.toString();
+                    }
+                    outputValue = formatVCFField(key, newVal);
+                } else {
+                   outputValue = formatVCFField(key, val);
+                }
                 if ( outputValue != null )
                     vcfG.setField(key, outputValue);
             }
@@ -320,11 +378,11 @@ public class VCFWriter {
             if ( key.equals("ID") )
                 continue;
 
+            //TODO - fixme
             String outputValue = formatVCFField(key, elt.getValue());
             if ( outputValue != null )
                 infoFields.put(key, outputValue);
         }
-
 
 
 
@@ -344,7 +402,7 @@ public class VCFWriter {
 
 
         if ( qual == -1 )
-            builder.append(MISSING_GENOTYPE_QUALITY);
+            builder.append(MISSING_GENOTYPE_FIELD);
         else
             builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, qual));
 
@@ -424,9 +482,10 @@ public class VCFWriter {
     /**
      * create the info string
      *
+     * @param infoFields a map of info fields
      * @return a string representing the infomation fields
      */
-    static protected String createInfoString(Map<String,String> infoFields) {
+    protected String createInfoString(Map<String,String> infoFields) {
         StringBuffer info = new StringBuffer();
         boolean isFirst = true;
         for (Map.Entry<String, String> entry : infoFields.entrySet()) {
@@ -436,8 +495,18 @@ public class VCFWriter {
                 info.append(INFO_FIELD_SEPARATOR);
             info.append(entry.getKey());
             if ( entry.getValue() != null && !entry.getValue().equals("") ) {
-                info.append("=");
-                info.append(entry.getValue());
+                int numVals = 1;
+                if (this.writingVCF40Format) {
+                    numVals = numberUsedForInfoFields.get(entry.getKey());
+                    // take care of unbounded encoding
+                    if (numVals == VCFInfoHeaderLine.UNBOUNDED)
+                        numVals = 1;
+
+                }
+                if (numVals > 0) {
+                    info.append("=");
+                    info.append(entry.getValue());
+                }
             }
         }
         return info.length() == 0 ? EMPTY_INFO_FIELD : info.toString();
@@ -447,8 +516,9 @@ public class VCFWriter {
         String result;
         if ( val == null )
             result = VCFGenotypeRecord.getMissingFieldValue(key);
-        else if ( val instanceof Double )
+        else if ( val instanceof Double ) {
             result = String.format("%.2f", (Double)val);
+        }
         else if ( val instanceof Boolean )
             result = (Boolean)val ? "" : null; // empty string for true, null for false
         else if ( val instanceof List ) {
