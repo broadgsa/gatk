@@ -25,6 +25,11 @@ import java.util.Iterator;
  */
 public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     /**
+     * Size of the read buffer.
+     */
+    private static final int BUFFER_SIZE = 128 * 1024;
+
+    /**
      * Stores the main fasta file.
      */
     private final File file;
@@ -101,7 +106,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         dictionaryName += ".dict";
         final File dictionary = new File(dictionaryName);
         if (!dictionary.exists())
-            throw new PicardException("Unable to load .dict file.  Dictionary is required for the indexed fasta reader.");    
+            throw new PicardException("Unable to load .dict file.  Dictionary is required for the indexed fasta reader.");
 
         IoUtil.assertFileIsReadable(dictionary);
 
@@ -208,27 +213,45 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
 
         final int basesPerLine = indexEntry.getBasesPerLine();
         final int bytesPerLine = indexEntry.getBytesPerLine();
+        final int terminatorLength = bytesPerLine - basesPerLine;
 
-        final long startOffset = ((start-1)/basesPerLine)*bytesPerLine + (start-1)%basesPerLine;
-        final long stopOffset = ((stop-1)/basesPerLine)*bytesPerLine + (stop-1)%basesPerLine;
-        final int size = (int)(stopOffset-startOffset)+1;
+        long startOffset = ((start-1)/basesPerLine)*bytesPerLine + (start-1)%basesPerLine;
 
-        ByteBuffer channelBuffer = ByteBuffer.allocate(size);
-        try {
-            channel.read(channelBuffer,indexEntry.getLocation()+startOffset);
-        }
-        catch(IOException ex) {
-            throw new PicardException("Unable to map FASTA file into memory.");
-        }
+        // Allocate a 128K buffer for reading in sequence data.
+        ByteBuffer channelBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-        channelBuffer.position(0);
-        channelBuffer.limit(Math.min(basesPerLine-(int)startOffset%bytesPerLine,size));
+        while(targetBuffer.position() < length) {
+            // If the bufferOffset is currently within the eol characters in the string, push the bufferOffset forward to the next printable character.
+            startOffset += Math.max((int)(startOffset%bytesPerLine - basesPerLine + 1),0);
 
-        while( channelBuffer.hasRemaining() ) {
-            targetBuffer.put(channelBuffer);
+            try {
+                 startOffset += channel.read(channelBuffer,indexEntry.getLocation()+startOffset);
+            }
+            catch(IOException ex) {
+                throw new PicardException("Unable to map FASTA file into memory.");
+            }
 
-            channelBuffer.limit(Math.min(channelBuffer.limit()+bytesPerLine,size));
-            channelBuffer.position(Math.min(channelBuffer.position()+bytesPerLine-basesPerLine,size));
+            // Reset the buffer for outbound transfers.
+            channelBuffer.flip();
+
+            // Calculate the size of the next run of bases based on the contents we've already retrieved.
+            final int positionInContig = (int)start-1+targetBuffer.position();
+            final int nextBaseSpan = Math.min(basesPerLine-positionInContig%basesPerLine,length-targetBuffer.position());
+            // Cap the bytes to transfer by limiting the nextBaseSpan to the size of the channel buffer.
+            int bytesToTransfer = Math.min(nextBaseSpan,channelBuffer.capacity());
+
+            channelBuffer.limit(channelBuffer.position()+bytesToTransfer);
+
+            while(channelBuffer.hasRemaining()) {
+                targetBuffer.put(channelBuffer);
+
+                bytesToTransfer = Math.min(basesPerLine,length-targetBuffer.position());
+                channelBuffer.limit(Math.min(channelBuffer.position()+bytesToTransfer+terminatorLength,channelBuffer.capacity()));
+                channelBuffer.position(Math.min(channelBuffer.position()+terminatorLength,channelBuffer.capacity()));
+            }
+
+            // Reset the buffer for inbound transfers.
+            channelBuffer.flip();
         }
 
         return new ReferenceSequence( contig, sequenceDictionary.getSequenceIndex(contig), target );
