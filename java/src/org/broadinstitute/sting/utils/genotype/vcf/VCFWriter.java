@@ -246,21 +246,68 @@ public class VCFWriter {
         alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
         List<VCFGenotypeEncoding> vcfAltAlleles = new ArrayList<VCFGenotypeEncoding>();
 
+        int refIndex=0, numTrailingBases = 0, numPaddingBases = 0;
+        String paddingBases = new String("");
+        String trailingBases = new String("");
+
+        ArrayList<Allele> originalAlleles = (ArrayList)vc.getAttribute("ORIGINAL_ALLELE_LIST");
+
         boolean isComplexEvent = false;
         if (referenceBases.length()>1) {
             // complex event: by VCF 4.0, reference from previous position is included.
             position--;
             isComplexEvent = true;
         }
+
+        // search for reference allele and find trailing and padding at the end.
+        if (originalAlleles != null) {
+            Allele originalReferenceAllele = null;
+            for (refIndex=0; refIndex < originalAlleles.size(); refIndex++) {
+                originalReferenceAllele = originalAlleles.get(refIndex);
+                if (originalReferenceAllele.isReference())
+                    break;
+            }
+
+            if (originalReferenceAllele == null)
+                throw new IllegalStateException("At least one Allele must be reference");
+
+            for ( Allele a : vc.getAlleles() ) {
+                if (a.isNonReference())
+                    continue;
+
+                String refString = new String(a.getBases());
+                String originalRef = new String(originalReferenceAllele.getBases());
+                numTrailingBases = originalRef.indexOf(refString);
+                numPaddingBases = originalRef.length()-refString.length()-numTrailingBases;
+                if (numTrailingBases > 0) {
+
+                    position -= numTrailingBases;
+                    trailingBases = originalRef.substring(0,numTrailingBases);
+                }
+                if (numPaddingBases > 0)
+                    paddingBases = originalRef.substring(refString.length(),originalRef.length()-1);
+
+            }
+        } else {
+            // no original Allele information:
+            if (isComplexEvent)
+                position--;
+        }
+        
         for ( Allele a : vc.getAlleles() ) {
 
             VCFGenotypeEncoding encoding;
 
 
             String alleleString = new String(a.getBases());
-            if (isComplexEvent) {// vc.getType() == VariantContext.Type.MIXED ) {
+            if ( isComplexEvent ) {
                 // Mixed variants (e.g. microsatellites) have the reference before the event included
-                String s = new String(refBases)+alleleString;
+                String s;
+                if (numTrailingBases > 0) {
+                    s = trailingBases+alleleString+paddingBases;
+                } else {
+                    s = new String(refBases)+alleleString; 
+                }
                 encoding = new VCFGenotypeEncoding(s, true);
                 if (a.isReference())
                     referenceString = s;
@@ -378,7 +425,10 @@ public class VCFWriter {
             if ( key.equals("ID") )
                 continue;
 
-            //TODO - fixme
+            // Original alleles are not for reporting but only for internal bookkeeping
+            if (key.equals("ORIGINAL_ALLELE_LIST"))
+                continue;
+            
             String outputValue = formatVCFField(key, elt.getValue());
             if ( outputValue != null )
                 infoFields.put(key, outputValue);
