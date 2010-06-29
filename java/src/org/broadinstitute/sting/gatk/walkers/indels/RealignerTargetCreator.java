@@ -171,7 +171,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         GenomeLoc eventLoc = context.getLocation();
         if ( hasInsertion )
             eventLoc =  GenomeLocParser.createGenomeLoc(eventLoc.getContigIndex(), eventLoc.getStart(), eventLoc.getStart()+1);
-        else if ( hasIndel && context.getBasePileup().size() == 0 )
+        else if ( hasIndel && (context.getBasePileup() == null || context.getBasePileup().size() == 0) )
             eventLoc =  GenomeLocParser.createGenomeLoc(eventLoc.getContigIndex(), eventLoc.getStart(), furthestStopPos);        
 
         EVENT_TYPE eventType = (hasIndel ? (hasPointEvent ? EVENT_TYPE.BOTH : EVENT_TYPE.INDEL_EVENT) : EVENT_TYPE.POINT_EVENT);
