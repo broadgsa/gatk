@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.vcf;
+package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
@@ -48,7 +48,7 @@ import java.util.*;
  *   priority list (if provided), emits a single record instance at every position represented in the rods.
  */
 @Requires(value={})
-public class VCFCombine extends RodWalker<Integer, Integer> {
+public class CombineVariants extends RodWalker<Integer, Integer> {
     // the types of combinations we currently allow
     public enum ComboType { UNION, MERGE }
     @Argument(fullName="combination_type", shortName="type", doc="combination type; MERGE are supported", required=true)

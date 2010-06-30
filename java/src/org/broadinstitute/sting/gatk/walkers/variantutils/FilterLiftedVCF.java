@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.vcf;
+package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -39,7 +39,7 @@ import java.util.List;
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
 @Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFRecord.class))
-public class FilterLiftedVCF extends RodWalker<Integer, Integer> {
+public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
 
     private VCFWriter writer;
 
