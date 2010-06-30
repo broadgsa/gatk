@@ -193,11 +193,11 @@ public class VariantContextUtils {
         String name = first.getName();
         GenomeLoc loc = first.getLocation();
 
-        Set<Allele> alleles = new HashSet<Allele>();
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        Set<Allele> alleles = new TreeSet<Allele>();
+        Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
         double negLog10PError = -1;
         Set<String> filters = new HashSet<String>();
-        Map<String, String> attributes = new HashMap<String, String>();
+        Map<String, String> attributes = new TreeMap<String, String>();
         int depth = 0;
 
         // filtering values
