@@ -308,7 +308,7 @@ public class ParsingEngine {
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();
             for( Field field: fields ) {
-                if( ArgumentTypeDescriptor.isArgumentDescriptionPresent(field) )
+                if( ArgumentTypeDescriptor.isArgumentAnnotationPresent(field) )
                     argumentSources.add( new ArgumentSource(sourceClass,field) );
                 if( field.isAnnotationPresent(ArgumentCollection.class) )
                     argumentSources.addAll( extractArgumentSources(field.getType()) );

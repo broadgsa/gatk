@@ -6,7 +6,7 @@ import collection.mutable.ListBuffer
 import org.broadinstitute.sting.queue.util.Logging
 
 object QCommandLine extends Application with Logging {
-  var usage = """usage: java -jar Queue.jar [ -P name=value ] [ -P file.properties ] [ -I input.file ] [ -I input_files.list ] [ -bsub ] [ -dry ] [ -debug ] -S pipeline.scala"""
+  var usage = """usage: java -jar Queue.jar [-P name=value] [-P file.properties] [-I input.file] [-I input_files.list] [-bsub] [-bsubWait] [-dry] [-debug] -S pipeline.scala"""
 
   override def main(args: Array[String]) = {
     val qArgs: QArguments = try {

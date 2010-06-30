@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Arrays;
 
@@ -154,32 +155,13 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createGenotypeFileArgumentDefinition(ArgumentSource source) {
-        ArgumentDescription description = this.getArgumentDescription(source);
+        Annotation annotation = this.getArgumentAnnotation(source);
 
-        boolean isFullNameProvided = description.fullName().trim().length() > 0;
-        boolean isShortNameProvided = description.shortName().trim().length() > 0;
-
-        String fullName = isFullNameProvided ? description.fullName().trim() : "variants_out";
-
-        // If the short name is provided, use that.  If the user hasn't provided any names at all, use
-        // the default.  If somewhere in the middle, leave the short name blank.
-        String shortName;
-        if( isShortNameProvided )
-            shortName = description.shortName().trim();
-        else if( !isFullNameProvided )
-            shortName = "varout";
-        else
-            shortName = null;
-
-        return new ArgumentDefinition( getIOType(source),
-                                       fullName,
-                                       shortName,
-                                       getDoc(source),
-                                       isRequired(source),
+        return new ArgumentDefinition( annotation,
+                                       "variants_out",
+                                       "varout",
                                        false,
                                        source.isMultiValued(),
-                                       getExclusiveOf(source),
-                                       getValidationRegex(source),
                                        null );
     }
 
@@ -189,7 +171,8 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createGenotypeFormatArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( getIOType(source),
+        Annotation annotation = this.getArgumentAnnotation(source);
+        return new ArgumentDefinition( ArgumentDefinition.getIOType(annotation),
                                        "variant_output_format",
                                        "vf",
                                        "Format to be used to represent variants; default is VCF",

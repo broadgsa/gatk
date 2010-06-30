@@ -28,6 +28,7 @@ package org.broadinstitute.sting.commandline;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -122,91 +123,15 @@ public abstract class ArgumentTypeDescriptor {
      * @return The default definition for this argument source.
      */
     protected ArgumentDefinition createDefaultArgumentDefinition( ArgumentSource source ) {
-        return new ArgumentDefinition( getIOType(source),
-                                       getFullName(source),
-                                       getShortName(source),
-                                       getDoc(source),
-                                       isRequired(source),
+        return new ArgumentDefinition( getArgumentAnnotation(source),
+                                       source.field.getName(),
                                        source.isFlag(),
                                        source.isMultiValued(),
-                                       getExclusiveOf(source),
-                                       getValidationRegex(source),
                                        getValidOptions(source) );
     }
 
     public abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
 
-    /**
-     * Specifies other arguments which cannot be used in conjunction with tihs argument.  Comma-separated list.
-     * @param source Original field specifying command-line arguments.
-     * @return A comma-separated list of exclusive arguments, or null if none are present.
-     */
-    protected ArgumentIOType getIOType( ArgumentSource source ) {
-        ArgumentDescription description = getArgumentDescription(source);
-        return description.getIOType();
-    }
-
-    /**
-     * Retrieves the full name of the argument, specifiable with the '--' prefix.  The full name can be
-     * either specified explicitly with the fullName annotation parameter or implied by the field name.
-     * @param source Original field specifying command-line arguments.
-     * @return full name of the argument.  Never null.
-     */
-    protected String getFullName( ArgumentSource source ) {
-        ArgumentDescription description = getArgumentDescription(source);
-        return description.fullName().trim().length() > 0 ? description.fullName().trim() : source.field.getName().toLowerCase();
-    }
-
-    /**
-     * Retrieves the short name of the argument, specifiable with the '-' prefix.  The short name can
-     * be specified or not; if left unspecified, no short name will be present.
-     * @param source Original field specifying command-line arguments.
-     * @return short name of the argument.  Null if no short name exists.
-     */
-    protected String getShortName( ArgumentSource source ) {
-        ArgumentDescription description = getArgumentDescription(source);
-        return description.shortName().trim().length() > 0 ? description.shortName().trim() : null;
-    }
-
-    /**
-     * Documentation for this argument.  Mandatory field.
-     * @param source Original field specifying command-line arguments.
-     * @return Documentation for this argument.
-     */
-    protected String getDoc( ArgumentSource source ) {
-        ArgumentDescription description = getArgumentDescription(source);
-        return description.doc();
-    }
-
-    /**
-     * Returns whether this field is required.  Note that flag fields are always forced to 'not required'.
-     * @param source Original field specifying command-line arguments.
-     * @return True if the field is mandatory and not a boolean flag.  False otherwise.
-     */
-    protected boolean isRequired( ArgumentSource source ) {
-        ArgumentDescription description = getArgumentDescription(source);
-        return description.required() && !source.isFlag();
-    }
-
-    /**
-     * Specifies other arguments which cannot be used in conjunction with tihs argument.  Comma-separated list.
-     * @param source Original field specifying command-line arguments.
-     * @return A comma-separated list of exclusive arguments, or null if none are present.
-     */
-    protected String getExclusiveOf( ArgumentSource source ) {
-        ArgumentDescription description = getArgumentDescription(source);
-        return description.exclusiveOf().trim().length() > 0 ? description.exclusiveOf().trim() : null;
-    }
-
-    /**
-     * A regular expression which can be used for validation.
-     * @param source Original field specifying command-line arguments.
-     * @return a JVM regex-compatible regular expression, or null to permit any possible value.
-     */
-    protected String getValidationRegex( ArgumentSource source ) {
-        ArgumentDescription description = getArgumentDescription(source);
-        return description.validation().trim().length() > 0 ? description.validation().trim() : null;
-    }
 
     /**
      * If the argument source only accepts a small set of options, populate the returned list with
@@ -259,15 +184,15 @@ public abstract class ArgumentTypeDescriptor {
      * @return Argument description annotation associated with the given field.
      */
     @SuppressWarnings("unchecked")
-    protected ArgumentDescription getArgumentDescription( ArgumentSource source ) {
+    protected Annotation getArgumentAnnotation( ArgumentSource source ) {
         for (Class annotation: ARGUMENT_ANNOTATIONS)
             if (source.field.isAnnotationPresent(annotation))
-                return new ArgumentDescription(source.field.getAnnotation(annotation));
+                return source.field.getAnnotation(annotation);
         throw new StingException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
     }
 
     @SuppressWarnings("unchecked")
-    public static boolean isArgumentDescriptionPresent(Field field) {
+    public static boolean isArgumentAnnotationPresent(Field field) {
         for (Class annotation: ARGUMENT_ANNOTATIONS)
             if (field.isAnnotationPresent(annotation))
                 return true;

@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import net.sf.samtools.SAMFileWriter;
 
+import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Arrays;
 import java.io.File;
@@ -94,32 +95,12 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createBAMArgumentDefinition(ArgumentSource source) {
-        ArgumentDescription description = this.getArgumentDescription(source);
-
-        boolean isFullNameProvided = description.fullName().trim().length() > 0;
-        boolean isShortNameProvided = description.shortName().trim().length() > 0;
-
-        String fullName = isFullNameProvided ? description.fullName().trim() : DEFAULT_ARGUMENT_FULLNAME;
-
-        // If the short name is provided, use that.  If the user hasn't provided any names at all, use
-        // the default.  If somewhere in the middle, leave the short name blank.
-        String shortName;
-        if( isShortNameProvided )
-            shortName = description.shortName().trim();
-        else if( !isFullNameProvided )
-            shortName = DEFAULT_ARGUMENT_SHORTNAME;
-        else
-            shortName = null;
-
-        return new ArgumentDefinition( getIOType(source),
-                                       fullName,
-                                       shortName,
-                                       getDoc(source),
-                                       isRequired(source),
+        Annotation annotation = this.getArgumentAnnotation(source);
+        return new ArgumentDefinition( annotation,
+                                       DEFAULT_ARGUMENT_FULLNAME,
+                                       DEFAULT_ARGUMENT_SHORTNAME,
                                        false,
                                        source.isMultiValued(),
-                                       getExclusiveOf(source),
-                                       getValidationRegex(source),
                                        null );
     }
 
@@ -129,7 +110,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createBAMCompressionArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( getIOType(source),
+        Annotation annotation = this.getArgumentAnnotation(source);
+        return new ArgumentDefinition( ArgumentDefinition.getIOType(annotation),
                                        COMPRESSION_FULLNAME,
                                        COMPRESSION_SHORTNAME,
                                        "Compression level to use for writing BAM files",
