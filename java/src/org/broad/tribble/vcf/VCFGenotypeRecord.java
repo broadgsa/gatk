@@ -4,9 +4,9 @@ import java.util.*;
 
 
 /**
- * 
- * @author aaron 
- * 
+ *
+ * @author aaron
+ *
  * Class VCFGenotypeRecord
  *
  * A descriptions should go here. Blame aaron if it's missing.
@@ -201,8 +201,8 @@ public class VCFGenotypeRecord {
 
     public boolean isFiltered() {
         return ( mFields.get(GENOTYPE_FILTER_KEY) != null &&
-                 !mFields.get(GENOTYPE_FILTER_KEY).equals(UNFILTERED) &&
-                 !mFields.get(GENOTYPE_FILTER_KEY).equals(PASSES_FILTERS));
+                !mFields.get(GENOTYPE_FILTER_KEY).equals(UNFILTERED) &&
+                !mFields.get(GENOTYPE_FILTER_KEY).equals(PASSES_FILTERS));
     }
 
     public int getPloidy() {
@@ -275,6 +275,10 @@ public class VCFGenotypeRecord {
      * @return a string
      */
     public String toStringEncoding(List<VCFGenotypeEncoding> altAlleles, String[] genotypeFormatStrings) {
+        return toStringEncoding(altAlleles, genotypeFormatStrings, false);
+    }
+
+    public String toStringEncoding(List<VCFGenotypeEncoding> altAlleles, String[] genotypeFormatStrings, boolean doVCF40) {
         StringBuilder builder = new StringBuilder();
         builder.append(toGenotypeString(altAlleles));
 
@@ -288,7 +292,7 @@ public class VCFGenotypeRecord {
 
             builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
             if ( value == null || value.equals("") )
-                builder.append(getMissingFieldValue(field));
+                builder.append(getMissingFieldValue(field, doVCF40));
             else
                 builder.append(value);
         }
@@ -304,6 +308,10 @@ public class VCFGenotypeRecord {
      * @return a string
      */
     public static String stringEncodingForEmptyGenotype(String[] genotypeFormatStrings) {
+        // backward compatibility to VCF 3.3
+        return stringEncodingForEmptyGenotype(genotypeFormatStrings, false);
+    }
+    public static String stringEncodingForEmptyGenotype(String[] genotypeFormatStrings, boolean doVCF40) {
         StringBuilder builder = new StringBuilder();
         builder.append(EMPTY_GENOTYPE);
 
@@ -311,26 +319,47 @@ public class VCFGenotypeRecord {
             if ( field.equals(GENOTYPE_KEY) )
                 continue;
 
-            builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
-            builder.append(getMissingFieldValue(field));
+            // in VCF4.0, if a genotype is empty only the ./. key can be included
+            if (!doVCF40) {
+                builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
+                builder.append(getMissingFieldValue(field));
+            }
         }
 
         return builder.toString();
     }
 
     public static String getMissingFieldValue(String field) {
-        String result = "";
-        if ( field.equals(GENOTYPE_QUALITY_KEY) )
-            result = String.valueOf(MISSING_GENOTYPE_QUALITY);
-        else if ( field.equals(DEPTH_KEY) || field.equals(OLD_DEPTH_KEY) )
-            result = String.valueOf(MISSING_DEPTH);
-        else if ( field.equals(GENOTYPE_FILTER_KEY) )
-            result = UNFILTERED;
-        else if ( field.equals(GENOTYPE_LIKELIHOODS_KEY) )
-            result = "0,0,0";
-        // TODO -- support haplotype quality
-        //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
-        //    result = String.valueOf(MISSING_HAPLOTYPE_QUALITY);
+        // backward compatibility to VCF 3.3
+        return getMissingFieldValue(field, false);
+    }
+    public static String getMissingFieldValue(String field, boolean doVCF40) {
+        String result;
+        if (doVCF40) {
+            result = "."; // default missing value
+            // TODO - take number of elements in field as input and output corresponding .'s
+            if ( field.equals(GENOTYPE_LIKELIHOODS_KEY) )
+                result = ".,.,.";
+            else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
+                result = ".,.";
+
+        }
+        else {
+            result = "";
+
+
+            if ( field.equals(GENOTYPE_QUALITY_KEY) )
+                result = String.valueOf(MISSING_GENOTYPE_QUALITY);
+            else if ( field.equals(DEPTH_KEY) || field.equals(OLD_DEPTH_KEY) )
+                result = String.valueOf(MISSING_DEPTH);
+            else if ( field.equals(GENOTYPE_FILTER_KEY) )
+                result = UNFILTERED;
+            else if ( field.equals(GENOTYPE_LIKELIHOODS_KEY) )
+                result = "0,0,0";
+            // TODO -- support haplotype quality
+            //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
+            //    result = String.valueOf(MISSING_HAPLOTYPE_QUALITY);
+        }
         return result;
     }
 

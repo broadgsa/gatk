@@ -143,10 +143,13 @@ public class VCFWriter {
             // write out the column line
             StringBuilder b = new StringBuilder();
             b.append(VCFHeader.HEADER_INDICATOR);
-            for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields()) b.append(field + FIELD_SEPARATOR);
+            for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields())
+                b.append(field + FIELD_SEPARATOR);
+
             if (header.hasGenotypingData()) {
                 b.append("FORMAT" + FIELD_SEPARATOR);
-                for (String field : header.getGenotypeSamples()) b.append(field + FIELD_SEPARATOR);
+                for (String field : header.getGenotypeSamples())
+                    b.append(field + FIELD_SEPARATOR);
             }
             mWriter.write(b.toString() + "\n");
             mWriter.flush();  // necessary so that writing to an output stream will work
@@ -224,15 +227,9 @@ public class VCFWriter {
         long position = loc.getStart();
         String ID = vc.hasAttribute("ID") ? vc.getAttributeAsString("ID") : EMPTY_ID_FIELD;
 
-        builder.append(contig);
-        builder.append(FIELD_SEPARATOR);
-        builder.append(position);
-        builder.append(FIELD_SEPARATOR);
-        builder.append(ID);
-        builder.append(FIELD_SEPARATOR);
 
         // deal with the reference
-        String referenceBases = new String(vc.getReference().getBases());
+        String referenceFromVC = new String(vc.getReference().getBases());
 
         double qual = vc.hasNegLog10PError() ? vc.getPhredScaledQual() : -1;
         // TODO- clean up these flags and associated code
@@ -241,7 +238,6 @@ public class VCFWriter {
         boolean filtersWereAppliedToGenotypes = false;
         String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? PASSES_FILTERS_VCF_4_0 : UNFILTERED);
 
-        String referenceString = new String(vc.getReference().getBases());
         Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();
         alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
         List<VCFGenotypeEncoding> vcfAltAlleles = new ArrayList<VCFGenotypeEncoding>();
@@ -252,12 +248,7 @@ public class VCFWriter {
 
         ArrayList<Allele> originalAlleles = (ArrayList)vc.getAttribute("ORIGINAL_ALLELE_LIST");
 
-        boolean isComplexEvent = false;
-        if (referenceBases.length()>1) {
-            // complex event: by VCF 4.0, reference from previous position is included.
-            position--;
-            isComplexEvent = true;
-        }
+
 
         // search for reference allele and find trailing and padding at the end.
         if (originalAlleles != null) {
@@ -277,7 +268,16 @@ public class VCFWriter {
 
                 String refString = new String(a.getBases());
                 String originalRef = new String(originalReferenceAllele.getBases());
-                numTrailingBases = originalRef.indexOf(refString);
+                if (refString.equals("")) {
+                    // special case with null reference:
+                    // for example, null reference, originalRef = "AC", alt = "AGC".
+                    // In this case, we'd have one trailing and one padding base, with alleles as {-,G}.
+                    // TEMP fix: assume in this case one trailing base, more general solution would be to
+                    // scan through all alleles and look for maximum common subsequence at beginning and at end for all alleles
+                    numTrailingBases = 1;
+                } else
+                    numTrailingBases = originalRef.indexOf(refString);
+
                 numPaddingBases = originalRef.length()-refString.length()-numTrailingBases;
                 if (numTrailingBases > 0) {
 
@@ -285,57 +285,32 @@ public class VCFWriter {
                     trailingBases = originalRef.substring(0,numTrailingBases);
                 }
                 if (numPaddingBases > 0)
-                    paddingBases = originalRef.substring(refString.length(),originalRef.length()-1);
+                    paddingBases = originalRef.substring(originalRef.length()-numPaddingBases,originalRef.length());
 
             }
+
         } else {
-            // no original Allele information:
-            if (isComplexEvent)
-                position--;
+            // no original Allele information: add one common base to all alleles (reference at this location)
+            trailingBases = new String(refBases);
+            numTrailingBases = 1;
+            position--;
         }
-        
+
         for ( Allele a : vc.getAlleles() ) {
 
             VCFGenotypeEncoding encoding;
 
 
             String alleleString = new String(a.getBases());
-            if ( isComplexEvent ) {
-                // Mixed variants (e.g. microsatellites) have the reference before the event included
-                String s;
-                if (numTrailingBases > 0) {
-                    s = trailingBases+alleleString+paddingBases;
-                } else {
-                    s = new String(refBases)+alleleString; 
-                }
-                encoding = new VCFGenotypeEncoding(s, true);
-                if (a.isReference())
-                    referenceString = s;
+            String s = trailingBases+alleleString+paddingBases;
 
+            encoding = new VCFGenotypeEncoding(s, true);
 
-            } else if ( vc.getType() == VariantContext.Type.INDEL ) {
-                if ( a.isNull() ) {
-                    if ( a.isReference() ) {
-                        // ref, where alt is insertion
-                        encoding = new VCFGenotypeEncoding(new String(refBases));
-                    } else {
-                        // non-ref deletion
-                        encoding = new VCFGenotypeEncoding(".");
-                    }
-                } else if ( a.isReference() ) {
-                    // ref, where alt is deletion
-                    encoding = new VCFGenotypeEncoding(new String(refBases));
-                } else {
-                    // non-ref insertion
-                    referenceString = new String(refBases)+alleleString;
-                    encoding = new VCFGenotypeEncoding(referenceString, true);
-                }
-            } else {
-                // no variation, ref or alt for snp
-                encoding = new VCFGenotypeEncoding(alleleString);
-            }
+            // overwrite reference string by possibly padded version
+            if (a.isReference())
+                referenceFromVC = s;
 
-            if ( a.isNonReference() ) {
+            else {
                 vcfAltAlleles.add(encoding);
             }
 
@@ -375,8 +350,11 @@ public class VCFWriter {
                 if ( key.equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) ) {
                     if ( MathUtils.compareDoubles(g.getNegLog10PError(), Genotype.NO_NEG_LOG_10PERROR) == 0 )
                         val = VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY;
-                    else
-                        val = Math.min(g.getPhredScaledQual(), VCFGenotypeRecord.MAX_QUAL_VALUE);
+                    else {
+                        // TODO - check whether we need to saturate quality to 99 as in VCF3.3 coder. For now allow unbounded values
+                        // val = Math.min(g.getPhredScaledQual(), VCFGenotypeRecord.MAX_QUAL_VALUE);
+                        val = g.getPhredScaledQual();
+                    }
 
                 } else if ( key.equals(VCFGenotypeRecord.DEPTH_KEY) && val == null ) {
                     ReadBackedPileup pileup = (ReadBackedPileup)g.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
@@ -385,30 +363,34 @@ public class VCFWriter {
                 } else if ( key.equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) ) {
                     val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : PASSES_FILTERS;
                 }
+                // TODO - do I need this?
+                /*else if (val == null) {
+                    // generic case when there's no value associated with entry:
+                    val = MISSING_GENOTYPE_FIELD;
+                } */
 
-                String outputValue;
-                if (writingVCF40Format) {
-                    VCFFormatHeaderLine.FORMAT_TYPE formatType = typeUsedForFormatString.get(key);
-                    Object newVal;
-                    if (!val.getClass().equals(String.class))
-                        newVal = formatType.convert(String.valueOf(val));
-                    else
-                        newVal = val;
 
-                    if (numberUsedForFormatFields.get(key)>1 && val.equals(MISSING_GENOTYPE_FIELD)) {
-                        // If we have a missing field but multiple values are expected, we need to construct new string with all fields.
-                        // for example for Number =2, string has to be ".,."
-                        StringBuilder v = new StringBuilder(MISSING_GENOTYPE_FIELD);
-                        for ( int i = 1; i < numberUsedForFormatFields.get(key); i++ ) {
-                            v.append(",");
-                            v.append(MISSING_GENOTYPE_FIELD);
-                        }
-                        newVal = v.toString();
+
+                VCFFormatHeaderLine.FORMAT_TYPE formatType = typeUsedForFormatString.get(key);
+                Object newVal;
+                if (!val.getClass().equals(String.class))
+                    newVal = formatType.convert(String.valueOf(val));
+                else
+                    newVal = val;
+
+                if (numberUsedForFormatFields.get(key)>1 && val.equals(MISSING_GENOTYPE_FIELD)) {
+                    // If we have a missing field but multiple values are expected, we need to construct new string with all fields.
+                    // for example for Number =2, string has to be ".,."
+                    StringBuilder v = new StringBuilder(MISSING_GENOTYPE_FIELD);
+                    for ( int i = 1; i < numberUsedForFormatFields.get(key); i++ ) {
+                        v.append(",");
+                        v.append(MISSING_GENOTYPE_FIELD);
                     }
-                    outputValue = formatVCFField(key, newVal);
-                } else {
-                   outputValue = formatVCFField(key, val);
+                    newVal = v.toString();
                 }
+                String outputValue = formatVCFField(key, newVal);
+
+
                 if ( outputValue != null )
                     vcfG.setField(key, outputValue);
             }
@@ -428,7 +410,7 @@ public class VCFWriter {
             // Original alleles are not for reporting but only for internal bookkeeping
             if (key.equals("ORIGINAL_ALLELE_LIST"))
                 continue;
-            
+
             String outputValue = formatVCFField(key, elt.getValue());
             if ( outputValue != null )
                 infoFields.put(key, outputValue);
@@ -436,7 +418,13 @@ public class VCFWriter {
 
 
 
-        builder.append(referenceString);
+        builder.append(contig);
+        builder.append(FIELD_SEPARATOR);
+        builder.append(position);
+        builder.append(FIELD_SEPARATOR);
+        builder.append(ID);
+        builder.append(FIELD_SEPARATOR);
+        builder.append(referenceFromVC);
         builder.append(FIELD_SEPARATOR);
 
         if ( vcfAltAlleles.size() > 0 ) {
@@ -478,7 +466,7 @@ public class VCFWriter {
      * @param builder the string builder
      * @param header  the header object
      */
-    private static void addGenotypeData(StringBuilder builder, VCFHeader header,
+    private void addGenotypeData(StringBuilder builder, VCFHeader header,
                                         String genotypeFormatString, List<VCFGenotypeEncoding>vcfAltAlleles) {
         Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(mGenotypeRecords);
 
@@ -500,10 +488,10 @@ public class VCFWriter {
             tempStr.append(FIELD_SEPARATOR);
             if ( gMap.containsKey(genotype) ) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
-                tempStr.append(rec.toStringEncoding(vcfAltAlleles, genotypeFormatStrings));
+                tempStr.append(rec.toStringEncoding(vcfAltAlleles, genotypeFormatStrings, true));
                 gMap.remove(genotype);
             } else {
-                tempStr.append(VCFGenotypeRecord.stringEncodingForEmptyGenotype(genotypeFormatStrings));
+                tempStr.append(VCFGenotypeRecord.stringEncodingForEmptyGenotype(genotypeFormatStrings, true));
             }
         }
         if ( gMap.size() != 0 ) {
