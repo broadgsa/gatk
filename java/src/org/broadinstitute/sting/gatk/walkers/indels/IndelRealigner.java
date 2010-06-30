@@ -264,18 +264,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( doNotTryToClean(read) ) {
                 readsNotToClean.add(read);
             } else {
-                readsToClean.add(read, ref.getBases());
+                boolean wellCoveredInterval = readsToClean.add(read, ref.getBases());
+                if ( !wellCoveredInterval )
+                    abortCleanForCurrentInterval();                
+
                 // add the rods to the list of known variants
                 populateKnownIndels(metaDataTracker, ref);
             }
 
             if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
-                // merge the two sets for emission
-                readsNotToClean.addAll(readsToClean.getReads());
-                emit(readsNotToClean);
-                readsToClean.clear();
-                readsNotToClean.clear();
-                currentInterval = intervals.hasNext() ? intervals.next() : null;
+                abortCleanForCurrentInterval();
             }
         }
         else {  // the read is past the current interval
@@ -283,6 +281,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         return 0;
+    }
+
+    private void abortCleanForCurrentInterval() {
+        // merge the two sets for emission
+        readsNotToClean.addAll(readsToClean.getReads());
+        emit(readsNotToClean);
+        readsToClean.clear();
+        readsNotToClean.clear();
+        currentInterval = intervals.hasNext() ? intervals.next() : null;
     }
 
     private boolean doNotTryToClean(SAMRecord read) {
@@ -1232,7 +1239,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         public ReadBin() { }
 
-        public void add(SAMRecord read, byte[] ref) {
+        // Return false if we can't process this read bin because the reads are not correctly overlapping.
+        // This can happen if e.g. there's a large known indel with no overlapping reads.
+        public boolean add(SAMRecord read, byte[] ref) {
             reads.add(read);
 
             // set up the reference
@@ -1243,7 +1252,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 long lastPosWithRefBase = loc.getStart() + reference.length -1;
                 int neededBases = (int)(read.getAlignmentEnd() - lastPosWithRefBase);
                 if ( neededBases > ref.length )
-                    throw new StingException("Read " + read.getReadName() + " does not overlap the previous read in this interval; please ensure that you are using the same input bam that was used in the RealignerTargetCreator step");
+                    return false;
                 if ( neededBases > 0 ) {
                     byte[] newReference = new byte[reference.length + neededBases];
                     System.arraycopy(reference, 0, newReference, 0, reference.length);
@@ -1252,6 +1261,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStop()+neededBases);
                 }
             }
+
+            return true;
         }
 
         public List<SAMRecord> getReads() { return reads; }
