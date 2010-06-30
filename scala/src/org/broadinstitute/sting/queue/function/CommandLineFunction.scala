@@ -3,7 +3,7 @@ package org.broadinstitute.sting.queue.function
 import org.broadinstitute.sting.queue.util._
 import java.lang.reflect.Field
 import java.lang.annotation.Annotation
-import org.broadinstitute.sting.commandline.{Input, Output, ArgumentDescription}
+import org.broadinstitute.sting.commandline.{Input, Output}
 
 trait CommandLineFunction extends InputOutputFunction with DispatchFunction {
   var properties = Map.empty[String, String]
@@ -49,8 +49,11 @@ trait CommandLineFunction extends InputOutputFunction with DispatchFunction {
     missing
   }
 
-  private def isRequired(field: Field, annotation: Class[_ <: Annotation]) =
-    new ArgumentDescription(field.getAnnotation(annotation)).required
+  private def isRequired(field: Field, annotationClass: Class[_ <: Annotation]) =
+    getAnnotationValue(field.getAnnotation(annotationClass), "required").asInstanceOf[Boolean]
+
+  private def getAnnotationValue(annotation: Annotation, method: String) =
+    annotation.getClass.getMethod(method).invoke(annotation)
 
   protected def hasFieldValue(field: Field) = hasValue(this.getFieldValue(field))
 
