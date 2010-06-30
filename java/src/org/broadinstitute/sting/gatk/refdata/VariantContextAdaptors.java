@@ -13,10 +13,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
-import org.broadinstitute.sting.utils.genotype.glf.GLFSingleCall;
-import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
@@ -218,13 +215,13 @@ public class VariantContextAdaptors {
         } else if ( !vcf.isIndel() ) {
             refAllele = Allele.create(ref.getBase(), true);
         } else if ( vcf.isDeletion() ) {
-            int start = (int)(ref.getLocus().getStart() - ref.getWindow().getStart() + 1);
+            int start = vcf.getPosition() - (int)ref.getWindow().getStart() + 1;
             int delLength = 0;
             for ( VCFGenotypeEncoding enc : vcf.getAlternateAlleles() ) {
                 if ( enc.getLength() > delLength )
                     delLength = enc.getLength();
             }
-            if ( delLength > ref.getWindow().getStop() - ref.getLocus().getStop() )
+            if ( delLength > ref.getWindow().getStop() - vcf.getPosition() )
                 throw new IllegalArgumentException("Length of deletion is larger than reference context provided at " + ref.getLocus());
 
             refAllele = deletionAllele(ref, start, delLength);

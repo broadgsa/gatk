@@ -34,6 +34,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -51,6 +53,7 @@ import java.util.*;
  * Unlike most mappers, this walker uses the full alignment context to determine whether an
  * appropriate alternate reference (i.e. indel) exists and updates SAMRecords accordingly.
  */
+@Reference(window=@Window(start=-1,stop=150))
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     public static final String ORIGINAL_CIGAR_TAG = "OC";
@@ -70,6 +73,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
     protected Integer compressionLevel = 5;
+
+    @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs for constructing the alternate references.")
+    protected boolean USE_KNOWN_INDELS_ONLY = false;
 
     @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
                 "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
@@ -102,10 +108,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="realignReadsWithBadMates", required=false, doc="Should we try to realign paired-end reads whose mates map to other chromosomes?")
     protected boolean REALIGN_BADLY_MATED_READS = false;
 
-    @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
+    @Argument(fullName="noPGTag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     protected boolean NO_PG_TAG = false;
 
-    @Argument(fullName="no_original_alignment_tags", shortName="noTags", required=false, doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam.")
+    @Argument(fullName="noOriginalAlignmentTags", shortName="noTags", required=false, doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam.")
     protected boolean NO_ORIGINAL_ALIGNMENT_TAGS = false;
 
     @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.  Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.")
@@ -260,7 +266,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             } else {
                 readsToClean.add(read, ref.getBases());
                 // add the rods to the list of known variants
-                populateKnownIndels(metaDataTracker, null);
+                populateKnownIndels(metaDataTracker, ref);
             }
 
             if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
@@ -403,107 +409,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
         final LinkedList<AlignedRead> altAlignmentsToTest = new LinkedList<AlignedRead>();  // should we try to make an alt consensus from the read?
         final Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();                 // list of alt consenses
-        long totalRawMismatchSum = 0;
 
-        // if there are any known indels for this region, get them
-        for ( VariantContext knownIndel : knownIndelsToTry.values() ) {
-            if ( knownIndel == null || !knownIndel.isIndel() )
-                continue;
-            byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
-            Consensus c = createAlternateConsensus((int)(knownIndel.getLocation().getStart() - leftmostIndex), reference, indelStr, knownIndel.isDeletion());
-            if ( c != null )
-                altConsenses.add(c);
-        }
+        // if there are any known indels for this region, get them and create alternate consenses
+        generateAlternateConsensesFromKnownIndels(altConsenses, leftmostIndex, reference);
 
-        // decide which reads potentially need to be cleaned
-        for ( final SAMRecord read : reads ) {
+        // decide which reads potentially need to be cleaned;
+        // if there are reads with a single indel in them, add that indel to the list of alternate consenses
+        long totalRawMismatchSum = determineReadsThatNeedCleaning(reads, refReads, altReads, altAlignmentsToTest, altConsenses, leftmostIndex, reference);
 
-            //            if ( debugOn ) {
-            //                System.out.println(read.getReadName()+" "+read.getCigarString()+" "+read.getAlignmentStart()+"-"+read.getAlignmentEnd());
-            //                System.out.println(reference.substring((int)(read.getAlignmentStart()-leftmostIndex),(int)(read.getAlignmentEnd()-leftmostIndex)));
-            //                System.out.println(read.getReadString());
-            //            }
+        // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference
+        if ( !USE_KNOWN_INDELS_ONLY )
+            generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference);
 
-            // we can not deal with screwy records
-            if ( read.getCigar().numCigarElements() == 0 ) {
-                refReads.add(read);
-                continue;
-            }
-
-            final AlignedRead aRead = new AlignedRead(read);
-
-            // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
-            int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
-            if ( numBlocks == 2 ) {
-                Cigar newCigar = AlignmentUtils.leftAlignIndel(unclipCigar(read.getCigar()), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
-                aRead.setCigar(newCigar, false);
-            }
-
-            final int startOnRef = read.getAlignmentStart()-(int)leftmostIndex;
-            final int rawMismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, startOnRef, Integer.MAX_VALUE);
-            //            if ( debugOn ) System.out.println("mismatchScore="+mismatchScore);
-
-            // if this doesn't match perfectly to the reference, let's try to clean it
-            if ( rawMismatchScore > 0 ) {
-                altReads.add(aRead);
-                //logger.debug("Adding " + aRead.getRead().getReadName() + " with raw mismatch score " + rawMismatchScore + " to non-ref reads");
-
-                if ( !read.getDuplicateReadFlag() )
-                    totalRawMismatchSum += rawMismatchScore;
-                aRead.setMismatchScoreToReference(rawMismatchScore);
-                aRead.setAlignerMismatchScore(AlignmentUtils.mismatchingQualities(aRead.getRead(), reference, startOnRef));
-
-                // if it has an indel, let's see if that's the best consensus
-                if ( numBlocks == 2 )  {
-                    Consensus c = createAlternateConsensus(startOnRef, aRead.getCigar(), reference, aRead.getReadBases());
-                    if ( c != null )
-                        altConsenses.add(c);
-
-                }
-                else {
-                    //                    if ( debugOn ) System.out.println("Going to test...");
-                    altAlignmentsToTest.add(aRead);
-                }
-            }
-            // otherwise, we can emit it as is
-            else {
-                // if ( debugOn ) System.out.println("Emitting as is...");
-                //logger.debug("Adding " + aRead.getRead().getReadName() + " with raw mismatch score " + rawMismatchScore + " to ref reads");
-                refReads.add(read);
-            }
-        }
-
-        // choose alternate consensuses
-        if ( altAlignmentsToTest.size() <= MAX_READS_FOR_CONSENSUSES ) {
-            for ( AlignedRead aRead : altAlignmentsToTest ) {
-                // do a pairwise alignment against the reference
-                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
-                Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getReadBases());
-                if ( c != null ) {
-                    //                    if ( debugOn ) System.out.println("NEW consensus generated by SW: "+c.str ) ;
-                    altConsenses.add(c);
-                } else {
-                    //   if ( debugOn ) System.out.println("FAILED to create Alt consensus from SW");
-                }
-            }
-        } else {
-            // choose alternate consenses randomly
-            int readsSeen = 0;
-            while ( readsSeen++ < MAX_READS_FOR_CONSENSUSES && altConsenses.size() <= MAX_CONSENSUSES) {
-                int index = generator.nextInt(altAlignmentsToTest.size());
-                AlignedRead aRead = altAlignmentsToTest.remove(index);
-                // do a pairwise alignment against the reference
-                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
-                Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getReadBases());
-                if ( c != null )
-                    altConsenses.add(c);
-            }
-        }
+        // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
 
         Consensus bestConsensus = null;
         Iterator<Consensus> iter = altConsenses.iterator();
-
-        // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
 
         while ( iter.hasNext() ) {
             Consensus consensus = iter.next();
@@ -646,6 +567,103 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 statsOutput.flush();
             } catch (Exception e) {}
         }
+    }
+
+    private void generateAlternateConsensesFromKnownIndels(final Set<Consensus> altConsensesToPopulate, final long leftmostIndex, final byte[] reference) {
+        for ( VariantContext knownIndel : knownIndelsToTry.values() ) {
+            if ( knownIndel == null || !knownIndel.isIndel() )
+                continue;
+            byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
+            int start = (int)(knownIndel.getLocation().getStart() - leftmostIndex) + 1;
+            Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel.isDeletion());
+            if ( c != null )
+                altConsensesToPopulate.add(c);
+        }
+    }
+
+    private long determineReadsThatNeedCleaning(final List<SAMRecord> reads,
+                                                final ArrayList<SAMRecord> refReadsToPopulate,
+                                                final ArrayList<AlignedRead> altReadsToPopulate,
+                                                final LinkedList<AlignedRead> altAlignmentsToTest,
+                                                final Set<Consensus> altConsenses,
+                                                final long leftmostIndex,
+                                                final byte[] reference) {
+
+        long totalRawMismatchSum = 0L;
+
+        for ( final SAMRecord read : reads ) {
+
+            // we can not deal with screwy records
+            if ( read.getCigar().numCigarElements() == 0 ) {
+                refReadsToPopulate.add(read);
+                continue;
+            }
+
+            final AlignedRead aRead = new AlignedRead(read);
+
+            // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
+            int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
+            if ( numBlocks == 2 ) {
+                Cigar newCigar = AlignmentUtils.leftAlignIndel(unclipCigar(read.getCigar()), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
+                aRead.setCigar(newCigar, false);
+            }
+
+            final int startOnRef = read.getAlignmentStart()-(int)leftmostIndex;
+            final int rawMismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, startOnRef, Integer.MAX_VALUE);
+
+            // if this doesn't match perfectly to the reference, let's try to clean it
+            if ( rawMismatchScore > 0 ) {
+                altReadsToPopulate.add(aRead);
+                //logger.debug("Adding " + read.getReadName() + " with raw mismatch score " + rawMismatchScore + " to non-ref reads");
+
+                if ( !read.getDuplicateReadFlag() )
+                    totalRawMismatchSum += rawMismatchScore;
+                aRead.setMismatchScoreToReference(rawMismatchScore);
+                aRead.setAlignerMismatchScore(AlignmentUtils.mismatchingQualities(aRead.getRead(), reference, startOnRef));
+
+                // if it has an indel, let's see if that's the best consensus
+                if ( !USE_KNOWN_INDELS_ONLY && numBlocks == 2 )  {
+                    Consensus c = createAlternateConsensus(startOnRef, aRead.getCigar(), reference, aRead.getReadBases());
+                    if ( c != null )
+                        altConsenses.add(c);
+                } else {
+                    altAlignmentsToTest.add(aRead);
+                }
+            }
+            // otherwise, we can emit it as is
+            else {
+                //logger.debug("Adding " + read.getReadName() + " with raw mismatch score " + rawMismatchScore + " to ref reads");
+                refReadsToPopulate.add(read);
+            }
+        }
+
+        return totalRawMismatchSum;
+    }
+
+    private void generateAlternateConsensesFromReads(final LinkedList<AlignedRead> altAlignmentsToTest, final Set<Consensus> altConsensesToPopulate, final byte[] reference) {
+
+        // if we are under the limit, use all reads to generate alternate consenses
+        if ( altAlignmentsToTest.size() <= MAX_READS_FOR_CONSENSUSES ) {
+            for ( AlignedRead aRead : altAlignmentsToTest )
+                createAndAddAlternateConsensus(aRead.getReadBases(), altConsensesToPopulate, reference);
+        }
+        // otherwise, choose reads for alternate consenses randomly
+        else {
+            int readsSeen = 0;
+            while ( readsSeen++ < MAX_READS_FOR_CONSENSUSES && altConsensesToPopulate.size() <= MAX_CONSENSUSES) {
+                int index = generator.nextInt(altAlignmentsToTest.size());
+                AlignedRead aRead = altAlignmentsToTest.remove(index);
+                createAndAddAlternateConsensus(aRead.getReadBases(), altConsensesToPopulate, reference);
+            }
+        }
+    }
+
+    private void createAndAddAlternateConsensus(final byte[] read, final Set<Consensus> altConsensesToPopulate, final byte[] reference) {
+        // do a pairwise alignment against the reference
+         SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, read, SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
+         Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, read);
+         if ( c != null )
+             altConsensesToPopulate.add(c);
     }
 
     // create a Consensus from cigar/read strings which originate somewhere on the reference
