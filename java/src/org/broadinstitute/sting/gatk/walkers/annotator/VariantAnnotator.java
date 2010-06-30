@@ -34,13 +34,13 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
@@ -52,7 +52,7 @@ import java.util.*;
 /**
  * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
  */
-//@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant",type=ReferenceOrderedDatum.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
@@ -114,9 +114,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( LIST )
             listAnnotationsAndExit();
 
-        // get the list of all sample names from the various VCF input rods
-        TreeSet<String> samples = new TreeSet<String>();
-        SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
+        // get the list of all sample names from the variant VCF input rod, if applicable
+        Set<String> rodName = new HashSet<String>();
+        rodName.add("variant");
+        TreeSet<String> samples = new TreeSet<String>(SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName));
 
         // add the non-VCF sample from the command-line, if applicable
         if ( sampleName != null  ) {

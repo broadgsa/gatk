@@ -48,7 +48,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
@@ -61,17 +60,14 @@ import org.broadinstitute.sting.utils.classloader.PackageUtils;
 
 public class VariantAnnotatorEngine {
 
+    public static final String dbPrefix = "comp";
+
     private ArrayList<InfoFieldAnnotation> requestedInfoAnnotations;
     private ArrayList<GenotypeAnnotation> requestedGenotypeAnnotations;
 
-    // should we annotate dbsnp?
-    private boolean annotateDbsnp = false;
-    // how about hapmap2?
-    private boolean annotateHapmap2 = false;
-    // how about hapmap3?
-    private boolean annotateHapmap3 = false;
+    private HashMap<String, String> dbAnnotations = new HashMap<String, String>();
 
-    // command-line option from GenomicAnnotator.
+        // command-line option from GenomicAnnotator.
     private Map<String, Set<String>> requestedColumnsMap;
 
     // command-line option from GenomicAnnotator.
@@ -164,15 +160,11 @@ public class VariantAnnotatorEngine {
         // check to see whether a dbsnp rod was included
         List<ReferenceOrderedDataSource> dataSources = engine.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                annotateDbsnp = true;
+            if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                dbAnnotations.put(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, VCFRecord.DBSNP_KEY);
             }
-            if ( rod.getName().equals("hapmap2") ) {
-                annotateHapmap2 = true;
-            }
-            if ( rod.getName().equals("hapmap3") ) {
-                annotateHapmap3 = true;
+            else if ( source.getName().startsWith(dbPrefix) ) {
+                dbAnnotations.put(source.getName(), source.getName().substring(dbPrefix.length()));
             }
         }
     }
@@ -185,12 +177,8 @@ public class VariantAnnotatorEngine {
             descriptions.addAll(annotation.getDescriptions());
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
-        if ( annotateDbsnp )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Flag, "dbSNP Membership"));
-        if ( annotateHapmap2 )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Flag, "Hapmap 2 Membership"));
-        if ( annotateHapmap3 )
-            descriptions.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Flag, "Hapmap 3 Membership"));
+        for ( Map.Entry<String, String> dbSet : dbAnnotations.entrySet() )
+            descriptions.add(new VCFInfoHeaderLine(dbSet.getValue(), 0, VCFInfoHeaderLine.INFO_TYPE.Flag, (dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ? "dbSNP" : dbSet.getValue()) + " Membership"));
 
         return descriptions;
     }
@@ -199,23 +187,18 @@ public class VariantAnnotatorEngine {
 
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
-        // annotate dbsnp occurrence
-        if ( annotateDbsnp ) {
-            DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-            infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? false : true);
-            // annotate dbsnp id if available and not already there
-            if ( dbsnp != null && (!vc.hasAttribute("ID") || vc.getAttribute("ID").equals(VCFRecord.EMPTY_ID_FIELD)) )
-                infoAnnotations.put("ID", dbsnp.getRsID());
-        }
-
-        if ( annotateHapmap2 ) {
-            List<Object> hapmap2 = tracker.getReferenceMetaData("hapmap2");
-            infoAnnotations.put(VCFRecord.HAPMAP2_KEY, hapmap2.size() == 0 ?  false : true);
-        }
-
-        if ( annotateHapmap3 ) {
-            List<Object> hapmap3 = tracker.getReferenceMetaData("hapmap3");
-            infoAnnotations.put(VCFRecord.HAPMAP3_KEY, hapmap3.size() == 0 ?  false : true);
+        // annotate db occurrences
+        for ( Map.Entry<String, String> dbSet : dbAnnotations.entrySet() ) {
+            if ( dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? false : true);
+                // annotate dbsnp id if available and not already there
+                if ( dbsnp != null && (!vc.hasAttribute("ID") || vc.getAttribute("ID").equals(VCFRecord.EMPTY_ID_FIELD)) )
+                    infoAnnotations.put("ID", dbsnp.getRsID());
+            } else {
+                List<Object> dbRod = tracker.getReferenceMetaData(dbSet.getKey());
+                infoAnnotations.put(dbSet.getValue(), dbRod.size() == 0 ?  false : true);
+            }
         }
 
         //Process the info field

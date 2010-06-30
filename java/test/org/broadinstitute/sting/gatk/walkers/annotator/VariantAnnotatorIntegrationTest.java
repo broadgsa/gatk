@@ -122,7 +122,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testDBTag() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -D " + GATKDataLocation + "dbsnp_129_b36.rod -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
-                Arrays.asList("c3e0361af8e98bda1bc3a27260cb2c4a"));
+                Arrays.asList("39a6b268e3edc1eee5f71d77460e448e"));
         executeTest("getting DB tag", spec);
     }
 }
