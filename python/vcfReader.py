@@ -74,7 +74,7 @@ class VCFRecord:
     def getFilter(self): return self.get("FILTER")
     def failsFilters(self): return not self.passesFilters()
     def passesFilters(self):
-        v = self.getFilter() == "." or self.getFilter() == "0"
+        v = self.getFilter() == "." or self.getFilter() == "0" or self.getFilter() == 'PASSES'
         #print self.getFilter(), ">>>", v, self
         return v
         
@@ -110,6 +110,8 @@ class VCFRecord:
             else:
                 return str(x) + '=' + str(y)
         v = ';'.join(map(lambda x: info2str(*x), sorted(self.info.iteritems(), key=lambda x: x[0])))
+        if v == "":
+            v = "."
         #print 'V = ', v
         return v
 
@@ -134,12 +136,13 @@ class VCFRecord:
 
 def parseInfo(s):
     d = dict()
-    for elt in s.split(";"):
-        if '=' in elt:
-            key, val = elt.split('=')
-        else:
-            key, val = elt, 1
-        d[key] = val
+    if s != "":
+        for elt in s.split(";"):
+            if '=' in elt:
+                key, val = elt.split('=')
+            else:
+                key, val = elt, 1
+            d[key] = val
     return d
 
 # def parseInfo(s):

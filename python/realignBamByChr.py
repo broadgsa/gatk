@@ -12,6 +12,12 @@ import string
 import picard_utils
 from madPipelineUtils import *
 
+def getContigs(optionContigs, hg18):
+    if optionContigs != None:
+        return optionContigs.split(",")
+    else:
+        return hg18
+
 def main():
     global OPTIONS
     usage = "usage: %prog [options] stages input.bam outputRoot"
@@ -28,6 +34,9 @@ def main():
     parser.add_option("-n", "--name", dest="name",
                         type="string", default="realignBamByChr",
                         help="Farm queue to send processing jobs to")
+    parser.add_option("-c", "--contigs", dest="contigs",
+                        type="string", default=None,
+                        help="Comma-separated list of contig:start-stop values to pass to the cleaner.  Overrides whole-genome if provided")
     parser.add_option("-q", "--farm", dest="farmQueue",
                         type="string", default=None,
                         help="Farm queue to send processing jobs to")
@@ -61,7 +70,7 @@ def main():
 
     out = open(outputBamList, 'w')
     realignInfo = []
-    for chr in hg18:
+    for chr in getContigs(OPTIONS.contigs, hg18):
         lastJobs = None
         
         def updateNewJobs(newjobs, lastJobs):
@@ -104,7 +113,7 @@ def createTargets( myPipelineArgs, chr, inputBam, outputRoot, args, lastJobs ):
 
 def realign( myPipelineArgs, chr, inputBam, outputRoot, intervals, lastJobs ):
     outputBAM = outputRoot + ".bam"
-    GATKArgs = '-T IndelRealigner -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -targetIntervals %s --output %s -sort ON_DISK -mrl 100000 -L %s' % (inputBam, intervals, outputBAM, chr)
+    GATKArgs = '-T IndelRealigner -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -targetIntervals %s --output %s -L %s' % (inputBam, intervals, outputBAM, chr)
     return simpleGATKCommand( myPipelineArgs, 'Realign' + chr, GATKArgs, lastJobs ), outputBAM
 
 def index( myPipelineArgs, chr, inputBam, outputRoot, realignedBam, lastJobs ):
@@ -112,7 +121,8 @@ def index( myPipelineArgs, chr, inputBam, outputRoot, realignedBam, lastJobs ):
 
 def mergeBams( myPipelineArgs, outputFilename, bamsToMerge, lastJobs ):
     print lastJobs
-    cmd = picard_utils.mergeBAMCmd( outputFilename, bamsToMerge, compression_level = 5 )
+    #cmd = picard_utils.mergeBAMCmd( outputFilename, bamsToMerge, compression_level = 5 )
+    cmd = picard_utils.mergeFixingMatesBAMCmd(outputFilename, bamsToMerge, compression_level = 5)
     return FarmJob(cmd, jobName = 'merge.' + myPipelineArgs.name, dependencies = lastJobs)
 
 if __name__ == "__main__":

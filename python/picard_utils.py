@@ -19,6 +19,7 @@ ref = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
 analysis = "CombineDuplicates"
 
 MERGE_BIN = '/seq/software/picard/current/bin/MergeSamFiles.jar'
+FIXMATES_BIN = '/seq/software/picard/current/bin/FixMateInformation.jar'
 SAMTOOLS_MERGE_BIN = '/seq/dirseq/samtools/current/samtools merge'
 CALL_GENOTYPES_BIN = '/seq/software/picard/current/bin/CallGenotypes.jar'
 
@@ -166,6 +167,12 @@ def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True, 
     
         return 'java ' + memLimit + ' -jar ' + mergeBin + ' ' + MSDStr + ' AS=true COMPRESSION_LEVEL=' + str(compression_level) + ' SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
         #return 'java -Xmx4096m -jar ' + mergeBin + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
+
+def mergeFixingMatesBAMCmd( output_filename, inputFiles, memLimit = '-Xmx4096m', compression_level = 1, tmpdir = '/broad/shptmp' ):
+    if type(inputFiles) <> list:
+        inputFiles = list(inputFiles)
+
+    return 'java %s -Djava.io.tmpdir=%s -jar %s COMPRESSION_LEVEL=%d SO=coordinate O=%s VALIDATION_STRINGENCY=SILENT I=%s' % ( memLimit, tmpdir, FIXMATES_BIN, compression_level, output_filename, 'I='.join(inputFiles) )
 
 def getPicardPath(lane, picardRoot = '/seq/picard/'):
     flowcell, laneNo = lane.split('.')
