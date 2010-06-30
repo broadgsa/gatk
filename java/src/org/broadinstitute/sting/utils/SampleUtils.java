@@ -28,7 +28,6 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -87,6 +86,19 @@ public class SampleUtils {
     public static Set<String> getUniqueSamplesFromRods(GenomeAnalysisEngine toolkit, Set<String> rodNames) {
         Set<String> samples = new TreeSet<String>();
 
+        for ( VCFHeader header : getRodsWithVCFHeader(toolkit, rodNames).values() )
+            samples.addAll(header.getGenotypeSamples());
+
+        return samples;
+    }
+
+    public static Set<String> getRodsNamesWithVCFHeader(GenomeAnalysisEngine toolkit, Set<String> rodNames) {
+        return getRodsWithVCFHeader(toolkit, rodNames).keySet();
+    }
+
+    public static Map<String, VCFHeader> getRodsWithVCFHeader(GenomeAnalysisEngine toolkit, Set<String> rodNames) {
+        Map<String, VCFHeader> data = new HashMap<String, VCFHeader>();
+
         // iterate to get all of the sample names
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
@@ -95,12 +107,22 @@ public class SampleUtils {
                 continue;
 
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VCFRecord.class) )
-                samples.addAll(rod.getHeader(VCFHeader.class).getGenotypeSamples());
+            if ( containsVCFHeader(rod) )
+                data.put(rod.getName(), rod.getHeader(VCFHeader.class));
         }
 
-        return samples;
+        return data;
     }
+
+    // todo -- remove when we can actually just get the header itself from tribble
+    private static boolean containsVCFHeader(RMDTrack rod) {
+        try {
+            return rod.getHeader(VCFHeader.class) != null;
+        } catch ( ClassCastException e ) {
+            return false;
+        }
+    }
+
 
     /**
      * Gets the sample names from all VCF rods input by the user and uniquifies them if there is overlap
@@ -118,14 +140,11 @@ public class SampleUtils {
         HashMap<String, Integer> sampleOverlapMap = new HashMap<String, Integer>();
 
         // iterate to get all of the sample names
-        List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
-        for ( ReferenceOrderedDataSource source : dataSources ) {
-            RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VCFRecord.class) ) {
-                Set<String> vcfSamples = rod.getHeader(VCFHeader.class).getGenotypeSamples();
-                for ( String sample : vcfSamples )
-                    addUniqueSample(samples, sampleOverlapMap, rodNamesToSampleNames, sample, rod.getName());
-            }
+
+        for ( Map.Entry<String, VCFHeader> pair : getRodsWithVCFHeader(toolkit, null).entrySet() ) {
+            Set<String> vcfSamples = pair.getValue().getGenotypeSamples();
+            for ( String sample : vcfSamples )
+                addUniqueSample(samples, sampleOverlapMap, rodNamesToSampleNames, sample, pair.getKey());
         }
     }
 

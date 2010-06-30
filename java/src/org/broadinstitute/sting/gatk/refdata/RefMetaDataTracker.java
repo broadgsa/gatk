@@ -200,6 +200,16 @@ public class RefMetaDataTracker {
     }
 
     /**
+     * Returns all of the variant contexts that start at the current location
+     * @param ref
+     * @param curLocation
+     * @return
+     */
+    public Collection<VariantContext> getAllVariantContexts(ReferenceContext ref, GenomeLoc curLocation) {
+        return getAllVariantContexts(ref, null, curLocation, true, false);
+    }
+
+    /**
      * Converts all possible ROD tracks to VariantContexts objects.  If allowedTypes != null, then only
      * VariantContexts in the allow set of types will be returned.  If requireStartsHere is true, then curLocation
      * must not be null, and only records whose start position is == to curLocation.getStart() will be returned.

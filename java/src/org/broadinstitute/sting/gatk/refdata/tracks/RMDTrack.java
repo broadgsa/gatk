@@ -120,4 +120,8 @@ public abstract class RMDTrack {
     public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
         return null;
     }
+
+    public Object getHeader() {
+        return null;
+    }
 }

@@ -32,6 +32,7 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.readers.BasicFeatureReader;
+import org.broad.tribble.vcf.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
@@ -95,9 +96,13 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     @Override
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
         // return a feature reader track
-        Pair<BasicFeatureReader, SAMSequenceDictionary> pair = createFeatureReader(targetClass, inputFile);
+        Pair<BasicFeatureReader, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
         if (pair == null) throw new StingException("Unable to make the feature reader for input file " + inputFile);
-        return new TribbleTrack(targetClass, this.createByType(targetClass).getFeatureType(), name, inputFile, pair.first, pair.second);
+        return new TribbleTrack(targetClass, createCodec(targetClass, name).getFeatureType(), name, inputFile, pair.first, pair.second);
+    }
+
+    public Pair<BasicFeatureReader, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
+        return createFeatureReader(targetClass, "anonymous", inputFile);
     }
 
     /**
@@ -106,12 +111,12 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the input file to create the track from (of the codec type)
      * @return the FeatureReader instance
      */
-    public Pair<BasicFeatureReader, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
+    public Pair<BasicFeatureReader, SAMSequenceDictionary> createFeatureReader(Class targetClass, String name, File inputFile) {
         Pair<BasicFeatureReader, SAMSequenceDictionary> pair = null;
         if (inputFile.getAbsolutePath().endsWith(".gz"))
-            pair = createBasicFeatureReaderNoAssumedIndex(targetClass, inputFile);
+            pair = createBasicFeatureReaderNoAssumedIndex(targetClass, name, inputFile);
         else
-            pair = getLinearFeatureReader(targetClass, inputFile);
+            pair = getLinearFeatureReader(targetClass, name, inputFile);
         return pair;
     }
 
@@ -124,14 +129,21 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the file to load
      * @return a feature reader implementation
      */
-    private Pair<BasicFeatureReader, SAMSequenceDictionary> createBasicFeatureReaderNoAssumedIndex(Class targetClass, File inputFile) {
+    private Pair<BasicFeatureReader, SAMSequenceDictionary> createBasicFeatureReaderNoAssumedIndex(Class targetClass, String name, File inputFile) {
         // we might not know the index type, try loading with the default reader constructor
         logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
         try {
-            return new Pair<BasicFeatureReader, SAMSequenceDictionary>(new BasicFeatureReader(inputFile.getAbsolutePath(),this.createByType(targetClass)),null);
+            return new Pair<BasicFeatureReader, SAMSequenceDictionary>(new BasicFeatureReader(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
         } catch (IOException e) {
             throw new StingException("Unable to create feature reader from file " + inputFile);
         }
+    }
+
+    private FeatureCodec createCodec(Class targetClass, String name) {
+        FeatureCodec codex = this.createByType(targetClass);
+        if ( codex instanceof NameAwareCodec )
+            ((NameAwareCodec)codex).setName(name);
+        return codex;
     }
 
     /**
@@ -140,11 +152,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the tribble file to parse
      * @return the input file as a FeatureReader
      */
-    private Pair<BasicFeatureReader, SAMSequenceDictionary> getLinearFeatureReader(Class targetClass, File inputFile) {
+    private Pair<BasicFeatureReader, SAMSequenceDictionary> getLinearFeatureReader(Class targetClass, String name, File inputFile) {
         Pair<BasicFeatureReader, SAMSequenceDictionary> reader;
         try {
-            Index index = loadIndex(inputFile, this.createByType(targetClass), true);
-            reader = new Pair<BasicFeatureReader, SAMSequenceDictionary>(new BasicFeatureReader(inputFile.getAbsolutePath(), index, this.createByType(targetClass)),index.getSequenceDictionary());
+            Index index = loadIndex(inputFile, createCodec(targetClass, name), true);
+            reader = new Pair<BasicFeatureReader, SAMSequenceDictionary>(new BasicFeatureReader(inputFile.getAbsolutePath(), index, createCodec(targetClass, name)),index.getSequenceDictionary());
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to create reader with file " + inputFile, e);
         } catch (IOException e) {

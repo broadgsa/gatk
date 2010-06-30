@@ -12,6 +12,11 @@ public class MutableGenotype extends Genotype {
         super(parent.getSampleName(), parent.getAlleles(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes(), parent.genotypesArePhased());
     }
 
+    public MutableGenotype(String sampleName, Genotype parent) {
+        super(sampleName, parent.getAlleles(), parent.getNegLog10PError(), parent.getFilters(), parent.getAttributes(), parent.genotypesArePhased());
+    }
+
+
     public MutableGenotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean genotypesArePhased) {
         super(sampleName, alleles, negLog10PError, filters, attributes, genotypesArePhased);
     }

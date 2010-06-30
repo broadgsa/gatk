@@ -27,21 +27,18 @@ package org.broadinstitute.sting.gatk.walkers.vcf;
 
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
-import java.io.File;
 import java.util.*;
 
 /**
@@ -51,191 +48,86 @@ import java.util.*;
  *   priority list (if provided), emits a single record instance at every position represented in the rods.
  */
 @Requires(value={})
-public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
+public class VCFCombine extends RodWalker<Integer, Integer> {
     // the types of combinations we currently allow
-    public enum COMBINATION_TYPE {
-        UNION, MERGE
-    }
+    public enum ComboType { UNION, MERGE }
+    @Argument(fullName="combination_type", shortName="type", doc="combination type; MERGE are supported", required=true)
+    protected ComboType COMBO_TYPE;
 
-    @Argument(fullName="vcf_output_file", shortName="O", doc="VCF file to write results", required=false)
-    protected File OUTPUT_FILE = null;
-
-    @Argument(fullName="combination_type", shortName="type", doc="combination type; currently UNION and MERGE are supported", required=true)
-    protected COMBINATION_TYPE COMBO_TYPE;
-
-    @Argument(fullName="rod_priority_list", shortName="priority", doc="For the UNION combination type: a comma-separated string describing the priority ordering for the rods as far as which record gets emitted; a complete priority list MUST be provided", required=false)
+    @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=true)
     protected String PRIORITY_STRING = null;
 
-    @Argument(fullName="annotateUnion", shortName="A", doc="For the UNION combination type: if provided, the output union VCF will contain venn information about where each call came from", required=false)
-    protected boolean annotateUnion = false;
-
     private VCFWriter vcfWriter = null;
-    private String[] priority = null;
+    private List<String> priority = null;
+    protected EnumSet<VariantContextUtils.MergeType> mergeOptions;
 
-    // a map of rod name to uniquified sample name
-    private HashMap<Pair<String, String>, String> rodNamesToSampleNames;
-
+    protected final static EnumSet<VariantContextUtils.MergeType> mergeTypeOptions = EnumSet.of(VariantContextUtils.MergeType.UNION_VARIANTS, VariantContextUtils.MergeType.UNIQUIFY_GENOTYPES);
+    protected final static EnumSet<VariantContextUtils.MergeType> unionTypeOptions = EnumSet.of(VariantContextUtils.MergeType.UNION_VARIANTS, VariantContextUtils.MergeType.PRIORITIZE_GENOTYPES);
 
     public void initialize() {
 
+        //Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        //hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+
+        vcfWriter = new VCFWriter(out);
+        priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
+
+        validateAnnotateUnionArguments(priority);
+        mergeOptions = COMBO_TYPE == ComboType.MERGE ? mergeTypeOptions : unionTypeOptions;
+        Set<String> samples = getSampleList(SampleUtils.getRodsWithVCFHeader(getToolkit(), null), mergeOptions);
+
         Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
-        metaData.add(new VCFHeaderLine("source", "VCF"));
-
-        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-
-        if ( OUTPUT_FILE != null )
-            vcfWriter = new VCFWriter(OUTPUT_FILE);
-        else
-            vcfWriter = new VCFWriter(out);
-
-        if ( PRIORITY_STRING != null )
-            priority = PRIORITY_STRING.split(",");
-
-        Set<String> samples;
-        switch (COMBO_TYPE ) {
-            case MERGE:
-                samples = new TreeSet<String>();
-                rodNamesToSampleNames = new HashMap<Pair<String, String>, String>();
-                // get the list of all sample names from the various input rods (they need to be uniquified in case there's overlap)
-                SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, rodNamesToSampleNames);
-                break;
-            case UNION:
-                if ( annotateUnion ) {
-                    validateAnnotateUnionArguments(priority);
-                }
-
-                samples = SampleUtils.getUniqueSamplesFromRods(getToolkit());
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported combination type: " + COMBO_TYPE);
-        }
-
-        vcfWriter.writeHeader(new VCFHeader(hInfo, samples));
+        metaData.add(new VCFHeaderLine("source", "VCFCombine"));
+        vcfWriter.writeHeader(new VCFHeader(metaData, samples));
     }
 
-    private void validateAnnotateUnionArguments(String[] priority) {
-        Set<RMDTrack> rods = VCFUtils.getRodVCFs(getToolkit());
-        if ( priority == null || rods.size() != priority.length ) {
-            throw new StingException("A complete priority list must be provided when annotateUnion is provided");
-        }
-        if ( priority.length != 2 ) {
-            throw new StingException("When annotateUnion is provided only 2 VCF files can be merged");
-        }
-
-        for ( String p : priority ) {
-            boolean good = false;
-            for ( RMDTrack data : rods ) {
-                if ( p.equals(data.getName()) )
-                    good = true;
+    private Set<String> getSampleList(Map<String, VCFHeader> headers, EnumSet<VariantContextUtils.MergeType> mergeOptions ) {
+        Set<String> samples = new HashSet<String>();
+        for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
+            VCFHeader header = val.getValue();
+            for ( String sample : header.getGenotypeSamples() ) {
+                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOptions.contains(VariantContextUtils.MergeType.UNIQUIFY_GENOTYPES)));
             }
-            if ( ! good ) throw new StingException("Priority item not provided as a ROD! " + p);
         }
+
+        return samples;
     }
 
-    public VCFRecord map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    private void validateAnnotateUnionArguments(List<String> priority) {
+        Set<String> rodNames = SampleUtils.getRodsNamesWithVCFHeader(getToolkit(), null);
+        if ( priority == null || rodNames.size() != priority.size() )
+            throw new StingException("A complete priority list must be provided when annotateUnion is provided");
+
+        if ( ! rodNames.containsAll(rodNames) )
+            throw new StingException("Not all priority elements provided as input RODs: " + PRIORITY_STRING);
+    }
+
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null ) // RodWalkers can make funky map calls
-            return null;
+            return 0;
 
         // get all of the vcf rods at this locus
-        Map<VCFRecord, String> vcfRods = new LinkedHashMap<VCFRecord,String>();
-        Iterator<GATKFeature> rods = tracker.getAllRods().iterator();
-        while (rods.hasNext()) {
-            GATKFeature feat = rods.next();
-            Object rod = feat.getUnderlyingObject();
-            if ( rod instanceof VCFRecord )
-                vcfRods.put((VCFRecord)rod,feat.getName());
-        }
+        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
+        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, mergeOptions, true);
+        if ( mergedVC != null ) // only operate at the start of events
+            if ( ! mergedVC.isMixed() ) // todo remove restriction when VCF4 writer is fixed
+                vcfWriter.add(mergedVC, ref.getBases());
+            else
+                logger.info(String.format("Ignoring complex event: " + mergedVC));
 
-        if ( vcfRods.size() == 0 )
-            return null;
-
-        VCFRecord record = null;
-        switch (COMBO_TYPE ) {
-            case MERGE:
-                record = VCFUtils.mergeRecords(vcfRods, rodNamesToSampleNames);
-                break;
-            case UNION:
-                record = vcfUnion(vcfRods);
-                break;
-            default:
-                break;
-        }
-
-        return record;
+        return vcs.isEmpty() ? 0 : 1;
     }
 
-    public VCFWriter reduceInit() {
-        return vcfWriter;
+    public Integer reduceInit() {
+        return 0;
     }
 
-    private VCFRecord vcfUnion(Map<VCFRecord, String> rods) {
-        if ( priority == null )
-            return rods.keySet().iterator().next();
-
-        if ( annotateUnion ) {
-            Map<String, VCFRecord> rodMap = new HashMap<String, VCFRecord>();
-            for ( VCFRecord vcf : rods.keySet() ) {
-                rodMap.put(rods.get(vcf),vcf);
-            }
-
-            String priority1 = priority[0];
-            String priority2 = priority[1];
-            VCFRecord vcf1 = rodMap.containsKey(priority1) ? rodMap.get(priority1) : null;
-            VCFRecord vcf2 = rodMap.containsKey(priority2) ? rodMap.get(priority2) : null;
-
-            // for simplicity, we are setting set and call for vcf1
-            String set = priority1;
-            VCFRecord call = vcf1;
-
-            if ( vcf1 == null ) {
-                if ( vcf2 == null )
-                    //return null;
-                    throw new StingException("BUG: VCF1 and VCF2 are both null!");
-                else {
-                    set = priority2;
-                    call = vcf2;
-                }
-            } else if ( vcf1.isFiltered() ) {
-                if ( vcf2 != null ) {
-                    if ( vcf2.isFiltered() ) {
-                        set = "filteredInBoth";
-                    } else {
-                        set = priority2 + "-filteredInOther";
-                        call = vcf2;
-                    }
-                }
-            } else { // good call
-                if ( vcf2 != null ) {
-                    if ( vcf2.isFiltered() )
-                        set = priority1 + "-filteredInOther";
-                    else
-                        set = "Intersection";
-                }
-            }
-
-            call.addInfoField("set", set);
-            return call;
-        } else {
-            for ( String rodname : priority ) {
-                for ( VCFRecord rod : rods.keySet() ) {
-                    if ( rods.get(rod).equals(rodname) )
-                        return rod;
-                }
-            }
-        }
-
-        return null;
+    public Integer reduce(Integer counter, Integer sum) {
+        return counter + sum;
     }
 
-    public VCFWriter reduce(VCFRecord record, VCFWriter writer) {
-        if ( record != null )
-            writer.addRecord(record);
-        return writer;
-    }
-
-    public void onTraversalDone(VCFWriter writer) {
-        if ( writer != null )
-            writer.close();
+    public void onTraversalDone(Integer sum) {
+        if ( vcfWriter != null )
+            vcfWriter.close();
     }
 }

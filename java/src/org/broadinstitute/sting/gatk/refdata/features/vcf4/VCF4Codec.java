@@ -23,7 +23,7 @@ import java.util.*;
  * a feature codec for the VCF 4 specification.  Our aim is to read in the records and convert to VariantContext as
  * quickly as possible, relying on VariantContext to do the validation of any contradictory (or malformed) record parameters.
  */
-public class VCF4Codec implements FeatureCodec {
+public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
     // a variant context flag for original allele strings
     public static final String ORIGINAL_ALLELE_LIST = "ORIGINAL_ALLELE_LIST";
@@ -62,7 +62,7 @@ public class VCF4Codec implements FeatureCodec {
     private final boolean validateFromHeader = false;
 
     // we store a name to give to each of the variant contexts we emit
-    private String name = "Unkown";
+    private String name = "Unknown";
 
     private int lineNo = 0;
 
@@ -224,12 +224,12 @@ public class VCF4Codec implements FeatureCodec {
                         String[] split = str.split(",");
                         for (String substring : split) {
                             VCFInfoHeaderLine.INFO_TYPE type = infoFields.get(key);
-                            objects.add(type.convert(substring));    
+                            objects.add(type != null ? type.convert(substring) : substring);    
                         }
                         value = objects;
                     } else {
                         VCFInfoHeaderLine.INFO_TYPE type = infoFields.get(key);
-                        value = type.convert(str);
+                        value = type != null ? type.convert(str) : str;
                     }
                     //System.out.printf("%s %s%n", key, value);
                 } else {
@@ -366,7 +366,7 @@ public class VCF4Codec implements FeatureCodec {
      * @return a variant context object
      */
     private VariantContext parseVCFLine(String[] parts, boolean parseGenotypes) {
-        try {
+//        try {
             // increment the line count
             lineNo++;
             
@@ -403,9 +403,10 @@ public class VCF4Codec implements FeatureCodec {
             }
 
             return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
-        } catch ( Exception e ) {
-            throw new RuntimeException("Line " + lineNo + " generated parser exception " + e.getMessage() + "\nLine: " + Utils.join("\t", parts), e);
-        }
+//        } catch ( Exception e ) {
+//            // todo -- we need a local exception so that we can remember the location of the throw but also see the line
+//            throw new RuntimeException("Line " + lineNo + " generated parser exception " + e.getMessage() + "\nLine: " + Utils.join("\t", parts), e);
+//        }
     }
 
     /**
@@ -545,7 +546,7 @@ public class VCF4Codec implements FeatureCodec {
         if (clazz != VCFHeader.class) throw new ClassCastException("expecting class " + clazz + " but VCF4Codec provides " + VCFHeader.class);
         return this.header;
     }
-
+    
     /**
      * get the name of this codec
      * @return our set name

@@ -27,6 +27,8 @@ import java.util.*;
 import org.apache.commons.jexl2.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broad.tribble.vcf.VCFRecord;
 
@@ -158,34 +160,59 @@ public class VariantContextUtils {
         return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
     }
 
+    public enum MergeType {
+        UNION_VARIANTS, INTERSECT_VARIANTS, UNIQUIFY_GENOTYPES, PRIORITIZE_GENOTYPES, UNSORTED_GENOTYPES
+    }
 
-    public static VariantContext simpleMerge(Set<VariantContext> VCs) {
-        if ( VCs == null || VCs.size() == 0 )
+    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs) {
+        return simpleMerge(unsortedVCs, null, EnumSet.of(MergeType.INTERSECT_VARIANTS, MergeType.UNSORTED_GENOTYPES), false);
+    }
+
+
+    /**
+     * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
+     * If uniqifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
+     * the sample name
+     *
+     * @param unsortedVCs
+     * @param priorityListOfVCs
+     * @param mergeOptions
+     * @return
+     */
+    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, EnumSet<MergeType> mergeOptions, boolean annotateOrigin ) {
+        if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
-        Iterator<VariantContext> iter = VCs.iterator();
+        if ( annotateOrigin && priorityListOfVCs == null )
+            throw new IllegalArgumentException("Cannot merge calls and annotate their origins with a complete priority list of VariantContexts");
+
+        List<VariantContext> VCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, mergeOptions);
 
         // establish the baseline info from the first VC
-        VariantContext first = iter.next();
+        VariantContext first = VCs.get(0);
         String name = first.getName();
         GenomeLoc loc = first.getLocation();
-        Set<Allele> alleles = new HashSet<Allele>(first.getAlleles());
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(first.getGenotypes());
-        double negLog10PError = first.isVariant() ? first.getNegLog10PError() : -1;
-        Set<String> filters = new HashSet<String>(first.getFilters());
+
+        Set<Allele> alleles = new HashSet<Allele>();
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        double negLog10PError = -1;
+        Set<String> filters = new HashSet<String>();
         Map<String, String> attributes = new HashMap<String, String>();
         int depth = 0;
-        if ( first.hasAttribute(VCFRecord.DEPTH_KEY) )
-            depth = Integer.valueOf(first.getAttribute(VCFRecord.DEPTH_KEY).toString());
+
+        // filtering values
+        int nFiltered = 0;
 
         // cycle through and add info from the other VCs, making sure the loc/reference matches
-        while ( iter.hasNext() ) {
-            VariantContext vc = iter.next();
-            if ( !loc.equals(vc.getLocation()) || !first.getReference().equals(vc.getReference()) )
-                return null;
+        for ( VariantContext vc : VCs ) {
+            if ( !loc.equals(vc.getLocation()) ) // || !first.getReference().equals(vc.getReference()) )
+                throw new StingException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
+
+            nFiltered += vc.isFiltered() ? 1 : 0;
 
             alleles.addAll(vc.getAlleles());
-            genotypes.putAll(vc.getGenotypes());
+
+            mergeGenotypes(genotypes, vc, mergeOptions.contains(MergeType.UNIQUIFY_GENOTYPES));
 
             negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
 
@@ -194,8 +221,74 @@ public class VariantContextUtils {
                 depth += Integer.valueOf(vc.getAttribute(VCFRecord.DEPTH_KEY).toString());
         }
 
+        // if at least one record was unfiltered and we want a union, clear all of the filters
+        if ( mergeOptions.contains(MergeType.UNION_VARIANTS) && nFiltered != VCs.size() )
+            filters.clear();
+
+        // we care about where the call came from
+        if ( annotateOrigin ) {
+            String setValue = "";
+            if ( nFiltered == 0 && VCs.size() == priorityListOfVCs.size() )                   // nothing was unfiltered
+                setValue = "Intersection";
+            else if ( nFiltered == VCs.size() )     // everything was filtered out
+                setValue = "FilteredInAll";
+            else {                                  // we are filtered in some subset
+                List<String> s = new ArrayList<String>();
+                for ( VariantContext vc : VCs )
+                    s.add( vc.isFiltered() ? "filterIn" + vc.getName() : vc.getName() );
+                setValue = Utils.join("-", s);
+            }
+            
+            attributes.put("set", setValue);
+        }
+
         if ( depth > 0 )
             attributes.put(VCFRecord.DEPTH_KEY, String.valueOf(depth));
         return new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
+    }
+
+    static class CompareByPriority implements Comparator<VariantContext> {
+        List<String> priorityListOfVCs;
+        public CompareByPriority(List<String> priorityListOfVCs) {
+            this.priorityListOfVCs = priorityListOfVCs;
+        }
+
+        private int getIndex(VariantContext vc) {
+            int i = priorityListOfVCs.indexOf(vc.getName());
+            if ( i == -1 ) throw new StingException("Priority list " + priorityListOfVCs + " doesn't contain variant context " + vc.getName());
+            return i;
+        }
+
+        public int compare(VariantContext vc1, VariantContext vc2) {
+            return new Integer(getIndex(vc1)).compareTo(getIndex(vc2));
+        }
+    }
+
+    public static List<VariantContext> sortVariantContextsByPriority(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, EnumSet<MergeType> mergeOptions ) {
+        if ( mergeOptions.contains(MergeType.PRIORITIZE_GENOTYPES) && priorityListOfVCs == null )
+            throw new IllegalArgumentException("Cannot merge calls by priority with a null priority list");
+
+        if ( priorityListOfVCs == null || mergeOptions.contains(MergeType.UNSORTED_GENOTYPES) )
+            return new ArrayList<VariantContext>(unsortedVCs);
+        else {
+            ArrayList<VariantContext> sorted = new ArrayList<VariantContext>(unsortedVCs);
+            Collections.sort(sorted, new CompareByPriority(priorityListOfVCs));
+            return sorted;
+        }
+    }
+
+    private static void mergeGenotypes(Map<String, Genotype> mergedGenotypes, VariantContext oneVC, boolean uniqifySamples) {
+        for ( Genotype g : oneVC.getGenotypes().values() ) {
+            String name = mergedSampleName(oneVC.getName(), g.getSampleName(), uniqifySamples);
+            if ( ! mergedGenotypes.containsKey(name) ) {
+                // only add if the name is new
+                Genotype newG = uniqifySamples ? g : new MutableGenotype(name, g);
+                mergedGenotypes.put(name, newG);
+            }
+        }
+    }
+
+    public static String mergedSampleName(String trackName, String sampleName, boolean uniqify ) {
+        return uniqify ? sampleName + "." + trackName : sampleName;
     }
 }
