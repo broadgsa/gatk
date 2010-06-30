@@ -214,6 +214,8 @@ public class VariantContextAdaptors {
 //            refAllele = Allele.create(vcf.getReference(), true);
         } else if ( !vcf.isIndel() ) {
             refAllele = Allele.create(ref.getBase(), true);
+            if ( (char)ref.getBase() != vcf.getReference().charAt(0) )
+                System.err.println("\n*** WARN: The VCF reference base (" + vcf.getReference().charAt(0) + ") doesn't match the actual reference base (" + (char)ref.getBase() + "); there is a good chance this will generate an exception!");
         } else if ( vcf.isDeletion() ) {
             int start = vcf.getPosition() - (int)ref.getWindow().getStart() + 1;
             int delLength = 0;
