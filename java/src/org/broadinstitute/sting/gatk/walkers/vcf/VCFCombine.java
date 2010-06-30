@@ -204,6 +204,8 @@ public class VCFCombine extends RodWalker<VCFRecord, VCFWriter> {
                         set = priority2 + "-filteredInOther";
                         call = vcf2;
                     }
+                } else {
+                    set = priority1 + "-filteredAndNoCall";
                 }
             } else { // good call
                 if ( vcf2 != null ) {
