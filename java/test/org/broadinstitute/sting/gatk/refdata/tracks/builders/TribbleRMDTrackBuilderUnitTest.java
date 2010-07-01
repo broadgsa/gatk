@@ -77,7 +77,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
 
 
     // test to make sure we delete the index and regenerate if it's out of date
-    @Test
+    //@Test
     public void testBuilderIndexOutOfDate() {
         Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
         File vcfFile = createOutofDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
@@ -95,7 +95,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     }
 
     // test to make sure we delete the index and regenerate if it's out of date
-    @Test
+    //@Test
     public void testBuilderIndexGoodDate() {
         Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
         File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));

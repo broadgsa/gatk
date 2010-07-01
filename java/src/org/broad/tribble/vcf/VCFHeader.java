@@ -13,7 +13,7 @@ import java.util.*;
  */
 public class VCFHeader {
 
-    // the manditory header fields
+    // the mandatory header fields
     public enum HEADER_FIELDS {
         CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO
     }
@@ -30,8 +30,8 @@ public class VCFHeader {
     // the header string indicator
     public static final String HEADER_INDICATOR = "#";
 
-    // our header versionVCF
-    private VCFHeaderVersion versionVCF;
+    // our header version
+    private VCFHeaderVersion version;
     
     /** do we have genotying data? */
     private boolean hasGenotypingData = false;
@@ -43,7 +43,7 @@ public class VCFHeader {
      */
     public VCFHeader(Set<VCFHeaderLine> metaData) {
         mMetaData = new TreeSet<VCFHeaderLine>(metaData);
-        checkVCFVersion();
+        loadVCFVersion();
     }
 
     /**
@@ -59,31 +59,22 @@ public class VCFHeader {
                 mGenotypeSampleNames.add(col);
         }
         if (genotypeSampleNames.size() > 0) hasGenotypingData = true;
-        checkVCFVersion();
+        loadVCFVersion();
     }
 
     /**
-     * check our metadata for a VCF versionVCF tag, and throw an exception if the versionVCF is out of date
-     * or the versionVCF is not present
+     * check our metadata for a VCF version tag, and throw an exception if the version is out of date
+     * or the version is not present
      */
-    // TODO: fix this function
-    public void checkVCFVersion() {
-        VCFHeaderVersion version;
+    public void loadVCFVersion() {
         List<VCFHeaderLine> toRemove = new ArrayList<VCFHeaderLine>();
         for ( VCFHeaderLine line : mMetaData )
             if ( VCFHeaderVersion.isFormatString(line.getKey())) {
                 version = VCFHeaderVersion.toHeaderVersion(line.getValue(),line.getKey());
-                if (version == null)
-                {
-                    toRemove.add(line);
-                }
-                    /**throw new RuntimeException("VCF version " + line.getValue() +
-                    " is not supported; only versionVCF " + VCFHeaderVersion.VCF3_2 + " and greater can be used");*/
-                else return;
+                toRemove.add(line);
             }
         // remove old header lines for now,
         mMetaData.removeAll(toRemove);
-        mMetaData.add(new VCFHeaderLine(VCFHeaderVersion.VCF3_3.getFormatString(), VCFHeaderVersion.VCF3_3.getVersionString()));
 
     }
 
@@ -106,7 +97,13 @@ public class VCFHeader {
      * @return a set of the meta data
      */
     public Set<VCFHeaderLine> getMetaData() {
-        return mMetaData;
+        Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>();
+        if (version == null)
+            lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF3_3.getFormatString(), VCFHeaderVersion.VCF3_3.getVersionString()));
+        else
+            lines.add(new VCFHeaderLine(version.getFormatString(), version.getVersionString()));
+        lines.addAll(mMetaData);
+        return lines;
     }
 
     /**
@@ -130,6 +127,20 @@ public class VCFHeader {
     /** @return the column count, */
     public int getColumnCount() {
         return HEADER_FIELDS.values().length + ((hasGenotypingData) ? mGenotypeSampleNames.size() + 1 : 0);
+    }
+
+    /**
+     * convert the header to a new VCF version
+     * @param version the version to convert to
+     */
+    public void setVersion(VCFHeaderVersion version) {
+        if (version.equals(this.version))
+            return; // we're all set, do nothing
+
+        // store the new version, and update each of the header lines
+        this.version = version;
+        for (VCFHeaderLine line : mMetaData)
+            line.setVersion(version);
     }
 }
 

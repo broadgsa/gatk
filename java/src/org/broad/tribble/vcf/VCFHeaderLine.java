@@ -97,4 +97,13 @@ public class VCFHeaderLine implements Comparable {
     public int compareTo(Object other) {
         return toString().compareTo(other.toString());
     }
+
+    /**
+     * set the version string, which resets the current stored string representation if the version changed
+     * @param version
+     */
+    public void setVersion(VCFHeaderVersion version) {
+        if (!version.equals(this.mVersion)) this.stringRep = null;
+        this.mVersion = version;
+    }
 }

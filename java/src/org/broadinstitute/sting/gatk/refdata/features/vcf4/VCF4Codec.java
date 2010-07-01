@@ -103,7 +103,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @param line the single # line (column names)
      * @return the count of header lines
      */
-    private int createHeader(List<String> headerStrings, String line) {
+    public int createHeader(List<String> headerStrings, String line) {
         headerStrings.add(line);
         header = VCFReaderUtils.createHeader(headerStrings, VCFHeaderVersion.VCF4_0);
 
