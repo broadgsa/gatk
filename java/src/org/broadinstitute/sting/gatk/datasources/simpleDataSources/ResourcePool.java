@@ -62,15 +62,15 @@ abstract class ResourcePool <T,I extends Iterator> {
 
             // Remove the iterator from the list of available iterators.
             availableResources.remove(selectedResource);
-
-
-            I iterator = createIteratorFromResource(segment, selectedResource);
-
-            // Make a note of this assignment for proper releasing later.
-            resourceAssignments.put(iterator, selectedResource);
-
-            return iterator;
         }
+
+
+        I iterator = createIteratorFromResource(segment, selectedResource);
+
+        // Make a note of this assignment for proper releasing later.
+        resourceAssignments.put(iterator, selectedResource);
+
+        return iterator;
     }
 
     /**
