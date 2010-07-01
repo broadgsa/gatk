@@ -290,10 +290,22 @@ public class VCFWriter {
             }
 
         } else {
-            // no original Allele information: add one common base to all alleles (reference at this location)
-            trailingBases = new String(refBases);
-            numTrailingBases = 1;
-            position--;
+            // no original Allele information: see first if all alleles have a base encoding (ie no deletions)
+            // if so, add one common base to all alleles (reference at this location)
+            boolean hasBasesInAllAlleles = true;
+            for ( Allele a : vc.getAlleles() ) {
+                 String alleleString = new String(a.getBases());
+                 if (alleleString.length()==0)  {
+                     hasBasesInAllAlleles = false;
+                     break;
+                 }
+            }
+
+            if (!hasBasesInAllAlleles) {
+                trailingBases = new String(refBases);
+                numTrailingBases = 1;
+                position--;
+            }
         }
 
         for ( Allele a : vc.getAlleles() ) {
@@ -370,24 +382,33 @@ public class VCFWriter {
                 } */
 
 
-
-                VCFFormatHeaderLine.FORMAT_TYPE formatType = typeUsedForFormatString.get(key);
                 Object newVal;
-                if (!val.getClass().equals(String.class))
-                    newVal = formatType.convert(String.valueOf(val));
-                else
-                    newVal = val;
+                if (typeUsedForFormatString.containsKey(key)) {
+                    VCFFormatHeaderLine.FORMAT_TYPE formatType = typeUsedForFormatString.get(key);
+                    if (!val.getClass().equals(String.class))
+                        newVal = formatType.convert(String.valueOf(val));
+                    else
+                        newVal = val;
 
-                if (numberUsedForFormatFields.get(key)>1 && val.equals(MISSING_GENOTYPE_FIELD)) {
-                    // If we have a missing field but multiple values are expected, we need to construct new string with all fields.
-                    // for example for Number =2, string has to be ".,."
-                    StringBuilder v = new StringBuilder(MISSING_GENOTYPE_FIELD);
-                    for ( int i = 1; i < numberUsedForFormatFields.get(key); i++ ) {
-                        v.append(",");
-                        v.append(MISSING_GENOTYPE_FIELD);
-                    }
-                    newVal = v.toString();
                 }
+                else {
+                    newVal = val;
+                }
+
+                if (numberUsedForFormatFields.containsKey(key)){
+                    int numInFormatField = numberUsedForFormatFields.get(key);
+                    if (numInFormatField>1 && val.equals(MISSING_GENOTYPE_FIELD)) {
+                        // If we have a missing field but multiple values are expected, we need to construct new string with all fields.
+                        // for example for Number =2, string has to be ".,."
+                        StringBuilder v = new StringBuilder(MISSING_GENOTYPE_FIELD);
+                        for ( int i = 1; i < numInFormatField; i++ ) {
+                            v.append(",");
+                            v.append(MISSING_GENOTYPE_FIELD);
+                        }
+                        newVal = v.toString();
+                    }
+                }
+                // assume that if key is absent, given string encoding suffices.
                 String outputValue = formatVCFField(key, newVal);
 
 
@@ -531,11 +552,17 @@ public class VCFWriter {
                 isFirst = false;
             else
                 info.append(INFO_FIELD_SEPARATOR);
+
             info.append(entry.getKey());
+
             if ( entry.getValue() != null && !entry.getValue().equals("") ) {
                 int numVals = 1;
                 if (this.writingVCF40Format) {
-                    numVals = numberUsedForInfoFields.get(entry.getKey());
+                    String key = entry.getKey();
+                    if (numberUsedForInfoFields.containsKey(key)) {
+                        numVals = numberUsedForInfoFields.get(key);
+                    }
+
                     // take care of unbounded encoding
                     if (numVals == VCFInfoHeaderLine.UNBOUNDED)
                         numVals = 1;
