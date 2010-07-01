@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -18,6 +17,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import static org.junit.Assert.assertTrue;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 /**
  * User: hanna
  * Date: May 21, 2009

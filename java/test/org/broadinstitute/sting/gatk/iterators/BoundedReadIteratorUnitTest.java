@@ -5,10 +5,10 @@ import static junit.framework.Assert.fail;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.junit.Assert;

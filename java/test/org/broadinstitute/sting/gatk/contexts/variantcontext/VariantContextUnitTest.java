@@ -7,7 +7,6 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.File;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * Basic unit test for RecalData

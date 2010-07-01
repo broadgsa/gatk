@@ -36,10 +36,10 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileInputStream;

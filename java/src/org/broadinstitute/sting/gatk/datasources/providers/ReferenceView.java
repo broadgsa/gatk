@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
@@ -14,6 +13,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 /**
  * User: hanna
  * Date: May 22, 2009

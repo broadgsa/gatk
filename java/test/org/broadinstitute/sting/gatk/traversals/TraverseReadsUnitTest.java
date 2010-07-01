@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -12,7 +13,6 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
@@ -106,12 +106,7 @@ public class TraverseReadsUnitTest extends BaseTest {
     @Test
     public void testUnmappedReadCount() {
         IndexedFastaSequenceFile ref = null;
-        try {
-            ref = new IndexedFastaSequenceFile(refFile);
-        }
-        catch (FileNotFoundException ex) {
-            throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
-        }
+        ref = new IndexedFastaSequenceFile(refFile);
         GenomeLocParser.setupRefContigOrdering(ref);
 
         SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));

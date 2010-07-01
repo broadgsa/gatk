@@ -23,14 +23,16 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.fasta;
+package net.sf.picard.reference;
 
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSourceProgressListener;
 import org.broadinstitute.sting.utils.StingException;
-import static org.broadinstitute.sting.utils.fasta.FastaSequenceIndexBuilder.Status.*;
+import static net.sf.picard.reference.FastaSequenceIndexBuilder.Status.*;
 
 import java.io.*;
 import java.util.Iterator;
+
+import net.sf.picard.reference.FastaSequenceIndex;
 
 /**
  * Builds FastaSequenceIndex from fasta file.
@@ -46,6 +48,7 @@ public class FastaSequenceIndexBuilder {
     // vars that store information about the contig that is currently being read
     String contig;
     long location, size, bytesPerLine, basesPerLine, basesThisLine;
+    int thisSequenceIndex = 0;
 
     // vars that keep loop state
     byte lastByte = 0, currentByte = 0, nextByte = 0;
@@ -241,7 +244,7 @@ public class FastaSequenceIndexBuilder {
      * Reset iterators and add contig to sequence index
      */
     private void finishReadingContig(FastaSequenceIndex sequenceIndex) {
-        sequenceIndex.addIndexEntry(contig, location, size, (int) basesPerLine, (int) bytesPerLine);
+        sequenceIndex.add(new FastaSequenceIndexEntry(contig, location, size, (int) basesPerLine, (int) bytesPerLine, thisSequenceIndex++));
         status = Status.NONE;
         contig = "";
         size = 0;
@@ -271,11 +274,9 @@ public class FastaSequenceIndexBuilder {
                     faiFile.getAbsolutePath()), e);
         }
 
-        Iterator<FastaSequenceIndexEntry> iter = sequenceIndex.iterator();
-
         try {
-            while (iter.hasNext()) {
-                out.write(iter.next().toIndexFileLine());
+            for(FastaSequenceIndexEntry entry: sequenceIndex) {
+                out.write(toIndexFileLine(entry));
                 out.newLine();
             }
             out.close();
@@ -284,4 +285,13 @@ public class FastaSequenceIndexBuilder {
             throw new StingException(String.format("An error occurred while writing file %s", e));
         }
     }
+
+    /**
+     * Print string in format of fai file line
+     * @return Contig as one line in a fai file
+     */
+    private static String toIndexFileLine(FastaSequenceIndexEntry entry) {
+        return String.format("%s\t%d\t%d\t%d\t%d", entry.getContig(), entry.getSize(), entry.getLocation(), entry.getBasesPerLine(), entry.getBytesPerLine());
+    }
+
 }

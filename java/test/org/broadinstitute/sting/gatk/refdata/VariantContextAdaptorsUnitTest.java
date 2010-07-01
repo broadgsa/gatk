@@ -4,13 +4,13 @@ import edu.mit.broad.picard.genotype.geli.GeliFileReader;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.CloseableIterator;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.gelitext.GeliTextCodec;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broad.tribble.util.AsciiLineReader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
@@ -43,11 +43,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
 
     @BeforeClass
     public static void beforeClass() {
-        try {
-            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "/reference/human_b36_both.fasta")); // TODO: make human reference use BaseTest
-        } catch (FileNotFoundException e) {
-            Assert.fail("Unable to load reference " + oneKGLocation + "/reference/human_b36_both.fasta");
-        }
+        seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "/reference/human_b36_both.fasta")); // TODO: make human reference use BaseTest
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 

@@ -5,12 +5,12 @@ package org.broadinstitute.sting.gatk.refdata;
 // the imports for unit testing.
 
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

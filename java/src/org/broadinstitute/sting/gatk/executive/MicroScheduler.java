@@ -38,11 +38,12 @@ import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 import java.io.File;
+
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
 /**

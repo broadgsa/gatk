@@ -13,12 +13,12 @@ import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Collection;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
 /** A micro-scheduling manager for single-threaded execution of a traversal. */

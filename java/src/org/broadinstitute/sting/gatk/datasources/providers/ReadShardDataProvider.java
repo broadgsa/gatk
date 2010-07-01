@@ -4,9 +4,10 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Collection;
+
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * Present data sharded by read to a traversal engine.

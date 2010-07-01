@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.hybridselection;
 
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalList;
 import net.sf.picard.util.OverlapDetector;
@@ -49,7 +50,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -300,7 +300,6 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     IndexedFastaSequenceFile seqFile = null;
 
     private double calculateGC(GenomeLoc target) {
-        try {
             if (seqFile == null) {
                 seqFile = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
             }
@@ -312,10 +311,6 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
                 if (base == 'C' || base == 'c' || base == 'G' || base == 'g') { gcCount++; }
             }
             return ( (double) gcCount ) / ((double) refSeq.getBases().length);
-
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
 
     }
 }

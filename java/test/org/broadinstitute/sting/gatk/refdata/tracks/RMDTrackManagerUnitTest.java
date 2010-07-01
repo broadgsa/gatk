@@ -24,11 +24,11 @@
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -100,11 +100,7 @@ public class RMDTrackManagerUnitTest extends BaseTest {
     // @Test used only to determine how fast queries are, don't uncomment! (unless you know what you're doing).
     public void testSpeedOfRealQuery() {
         IndexedFastaSequenceFile file = null;
-        try {
-            file = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
-        } catch (FileNotFoundException e) {
-            Assert.assertTrue(false);
-        }
+        file = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
         final int intervalSize = 10000000;
         GenomeLocParser.setupRefContigOrdering(file.getSequenceDictionary());
         RMDTrackManager manager = new RMDTrackManager();

@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

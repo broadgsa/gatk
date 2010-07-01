@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.io.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import javax.management.MBeanServer;
@@ -23,6 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.lang.management.ManagementFactory;
+
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * A microscheduler that schedules shards according to a tree-like structure.

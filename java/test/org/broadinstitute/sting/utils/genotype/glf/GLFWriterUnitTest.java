@@ -4,7 +4,6 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,6 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
 /*
@@ -66,11 +66,7 @@ public class GLFWriterUnitTest extends BaseTest {
     @BeforeClass
     public static void beforeTests() {
         IndexedFastaSequenceFile seq;
-        try {
-            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
-        } catch (FileNotFoundException e) {
-            throw new StingException("unable to load the sequence dictionary");
-        }
+        seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         GenomeLocParser.setupRefContigOrdering(seq);
 
     }

@@ -1,13 +1,14 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.Reads;
 
 import java.util.Collection;
+
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * Presents data sharded by locus to the traversal engine.

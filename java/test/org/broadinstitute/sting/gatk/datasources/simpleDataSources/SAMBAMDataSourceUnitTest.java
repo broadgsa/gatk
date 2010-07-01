@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import static junit.framework.Assert.fail;
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -11,7 +12,6 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

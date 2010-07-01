@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
@@ -36,6 +35,7 @@ import java.util.*;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMFileSpan;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * A sharding strategy for loci based on reading of the index.

@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.Assert;
@@ -13,6 +12,8 @@ import org.junit.BeforeClass;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
 /**
@@ -29,12 +30,8 @@ public class VCFWriterUnitTest extends BaseTest {
 
     @BeforeClass
     public static void beforeTests() {
-        try {
-            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
-            GenomeLocParser.setupRefContigOrdering(seq);
-        } catch (FileNotFoundException e) {
-            throw new StingException("unable to load the sequence dictionary");
-        }
+        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        GenomeLocParser.setupRefContigOrdering(seq);
     }
 
     /** test, using the writer and reader, that we can output and input a VCF file without problems */

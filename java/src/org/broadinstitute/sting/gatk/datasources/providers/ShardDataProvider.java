@@ -2,12 +2,13 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
+
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 /**
  * User: hanna
  * Date: May 8, 2009

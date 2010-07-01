@@ -10,7 +10,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -25,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+
 /**
  * test out pieces of the VCF 4 codec.
  */
@@ -36,11 +37,7 @@ public class VCF4UnitTest extends BaseTest {
     @BeforeClass
     public static void setupContig() {
         IndexedFastaSequenceFile seq;
-        try {
-            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
-        } catch (FileNotFoundException e) {
-            throw new StingException("unable to load the sequence dictionary");
-        }
+        seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 

@@ -8,12 +8,12 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * Basic unit test for GenomeLoc

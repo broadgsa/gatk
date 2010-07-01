@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
 import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -19,6 +18,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.Collections;
+
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 /**
  * User: hanna
  * Date: May 27, 2009

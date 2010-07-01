@@ -4,12 +4,12 @@ import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 
 import net.sf.samtools.*;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * A test harness to ensure that the perfect aligner works.

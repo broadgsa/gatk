@@ -25,17 +25,13 @@
 
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import net.sf.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceIndex;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceIndexBuilder;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
-import org.broadinstitute.sting.utils.file.FSLock;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.reference.FastaSequenceIndex;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;

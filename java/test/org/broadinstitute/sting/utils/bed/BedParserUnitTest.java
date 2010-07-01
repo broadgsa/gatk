@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.bed;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -14,6 +13,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+
 
 public class BedParserUnitTest extends BaseTest {
 
@@ -22,11 +23,7 @@ public class BedParserUnitTest extends BaseTest {
 
     @BeforeClass
     public static void beforeTests() {
-        try {
-            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
-        } catch (FileNotFoundException e) {
-            throw new StingException("unable to load the sequence dictionary");
-        }
+        seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 
