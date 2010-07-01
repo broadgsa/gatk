@@ -176,6 +176,9 @@ public class VCFWriter {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
+        if (!writingVCF40Format)
+            throw new IllegalStateException("VCFWriter can only support add() method with a variant context if writing VCF4.0. Use VCFWriter(output, true) when constructing object");
+
         String vcfString = toStringEncoding(vc, mHeader, refBases);
         try {
             mWriter.write(vcfString + "\n");
@@ -357,11 +360,16 @@ public class VCFWriter {
                     continue;
 
 
-                Object val = g.getAttribute(key);
+                Object val;
+                if (g.hasAttribute(key))
+                    val = g.getAttribute(key);
+                else
+                    val = new String(MISSING_GENOTYPE_FIELD);
+
                 // some exceptions
                 if ( key.equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) ) {
                     if ( MathUtils.compareDoubles(g.getNegLog10PError(), Genotype.NO_NEG_LOG_10PERROR) == 0 )
-                        val = VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY;
+                        val = MISSING_GENOTYPE_FIELD;
                     else {
                         // TODO - check whether we need to saturate quality to 99 as in VCF3.3 coder. For now allow unbounded values
                         // val = Math.min(g.getPhredScaledQual(), VCFGenotypeRecord.MAX_QUAL_VALUE);
@@ -373,13 +381,9 @@ public class VCFWriter {
                     if ( pileup != null )
                         val = pileup.size();
                 } else if ( key.equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) ) {
-                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : PASSES_FILTERS;
+                    // VCF 4.0 key for no filters is "."
+                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : UNFILTERED;
                 }
-                // TODO - do I need this?
-                /*else if (val == null) {
-                    // generic case when there's no value associated with entry:
-                    val = MISSING_GENOTYPE_FIELD;
-                } */
 
 
                 Object newVal;
@@ -486,6 +490,8 @@ public class VCFWriter {
      *
      * @param builder the string builder
      * @param header  the header object
+     * @param genotypeFormatString Genotype formatting string
+     * @param vcfAltAlleles alternate alleles at this site
      */
     private void addGenotypeData(StringBuilder builder, VCFHeader header,
                                         String genotypeFormatString, List<VCFGenotypeEncoding>vcfAltAlleles) {
@@ -509,7 +515,21 @@ public class VCFWriter {
             tempStr.append(FIELD_SEPARATOR);
             if ( gMap.containsKey(genotype) ) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
-                tempStr.append(rec.toStringEncoding(vcfAltAlleles, genotypeFormatStrings, true));
+                String genotypeString = rec.toStringEncoding(vcfAltAlleles, genotypeFormatStrings, true);
+
+                // Override default produced genotype string when there are trailing 
+                String[] genotypeStrings = genotypeString.split(":");
+                int lastUsedPosition = 0;
+                for (int k=genotypeStrings.length-1; k >=1; k--) {
+                    // see if string represents an empty field. If not, break.
+                    if (!isEmptyField(genotypeStrings[k])  ) {
+                        lastUsedPosition = k;
+                        break;
+                    }
+                }
+                // now reconstruct genotypeString from 0 to lastUsedPosition
+                genotypeString = Utils.join(":",genotypeStrings, 0,lastUsedPosition+1);
+                tempStr.append(genotypeString);
                 gMap.remove(genotype);
             } else {
                 tempStr.append(VCFGenotypeRecord.stringEncodingForEmptyGenotype(genotypeFormatStrings, true));
@@ -522,6 +542,21 @@ public class VCFWriter {
         }
 
         builder.append(tempStr);
+    }
+
+    boolean isEmptyField(String field) {
+        // check if given genotype field is empty, ie either ".", or ".,.", or ".,.,.", etc.
+        String[] fields = field.split(",");
+        boolean isEmpty = true;
+        for (int k=0; k < fields.length; k++) {
+            if (!fields[k].matches(".")) {
+                isEmpty = false;
+                break;
+            }
+
+        }
+        return isEmpty;
+        
     }
     /**
      * create a genotype mapping from a list and their sample names
@@ -564,7 +599,8 @@ public class VCFWriter {
                     }
 
                     // take care of unbounded encoding
-                    if (numVals == VCFInfoHeaderLine.UNBOUNDED)
+                    // TODO - workaround for "-1" in original INFO header structure
+                    if (numVals == VCFInfoHeaderLine.UNBOUNDED || numVals < 0)
                         numVals = 1;
 
                 }
