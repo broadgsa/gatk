@@ -35,6 +35,17 @@ public class VCFHeaderUnitTest extends BaseTest {
     }
 
     @Test
+    public void testVCF4ToVCF3Alternate() {
+        VCF4Codec codec = new VCF4Codec();
+        List<String> headerFields = new ArrayList<String>();
+        for (String str : VCF3_3headerStrings_with_negitiveOne)
+            headerFields.add(str);
+        Assert.assertEquals(17,codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
+        codec.getHeader(VCFHeader.class).setVersion(VCFHeaderVersion.VCF3_3);
+        checkMD5ofHeaderFile(codec, "e750fd0919704d10813dfe57ac1a0df3");
+    }
+
+    @Test
     public void testVCF4ToVCF4() {
         VCF4Codec codec = new VCF4Codec();
         List<String> headerFields = new ArrayList<String>();
@@ -42,6 +53,16 @@ public class VCFHeaderUnitTest extends BaseTest {
             headerFields.add(str);
         Assert.assertEquals(17, codec.createHeader(headerFields, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
         checkMD5ofHeaderFile(codec, "4648aa1169257e0a8a9d30131adb5f35");
+    }
+
+    @Test
+    public void testVCF4ToVCF4_alternate() {
+        VCF4Codec codec = new VCF4Codec();
+        List<String> headerFields = new ArrayList<String>();
+        for (String str : VCF3_3headerStrings_with_negitiveOne)
+            headerFields.add(str);
+        Assert.assertEquals(17, codec.createHeader(headerFields, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
+        checkMD5ofHeaderFile(codec, "ad8c4cf85e868b0261ab49ee2c613088");
     }
 
     private void checkMD5ofHeaderFile(VCF4Codec codec, String md5sum) {
@@ -80,5 +101,24 @@ public class VCFHeaderUnitTest extends BaseTest {
                 "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">",
                 "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">",
                 "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">",
+                };
+
+    public String[] VCF3_3headerStrings_with_negitiveOne = {
+                "##fileformat=VCFv4.0",
+                "##filedate=2010-06-21",
+                "##reference=NCBI36",
+                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">",
+                "##INFO=<ID=YY, Number=., Type=Integer, Description=\"Some weird value that has lots of parameters\">",
+                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">",
+                "##INFO=<ID=CA, Number=1, Type=String, Description=\"Pilot 1 callability mask\">",
+                "##INFO=<ID=HP, Number=1, Type=Integer, Description=\"Reference homopolymer tract length\">",
+                "##INFO=<ID=NS, Number=1, Type=Integer, Description=\"Number of samples with data\">",
+                "##INFO=<ID=DB, Number=0, Type=Flag, Description=\"dbSNP membership build 129 - type match and indel sequence length match within 25 bp\">",
+                "##INFO=<ID=NR, Number=1, Type=Integer, Description=\"Number of reads covering non-ref variant on reverse strand\">",
+                "##INFO=<ID=NF, Number=1, Type=Integer, Description=\"Number of reads covering non-ref variant on forward strand\">",
+                "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">",
+                "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">",
+                "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">",
+                "##FORMAT=<ID=TT, Number=., Type=Integer, Description=\"Lots of TTs\">",
                 };
 }

@@ -45,8 +45,9 @@ public class VCFInfoHeaderLine extends VCFHeaderLine {
 
     // info line numerical values are allowed to be unbounded (or unknown), which is
     // marked with a dot (.)
-    public static int UNBOUNDED = Integer.MIN_VALUE;
-    public static String UNBOUNDED_ENCODING = ".";
+    public static int UNBOUNDED = -1;
+    public static String UNBOUNDED_ENCODING_VCF4 = ".";
+    public static String UNBOUNDED_ENCODING_VCF3 = "-1";
 
     /**
      * create a VCF info header line
@@ -74,7 +75,9 @@ public class VCFInfoHeaderLine extends VCFHeaderLine {
         super("INFO", "", version);
         Map<String,String> mapping = VCFHeaderLineTranslator.parseLine(version,line, Arrays.asList("ID","Number","Type","Description"));
         mName = mapping.get("ID");
-        mCount = mapping.get("Number").equals(UNBOUNDED_ENCODING) ? UNBOUNDED : Integer.valueOf(mapping.get("Number"));
+        mCount = version == VCFHeaderVersion.VCF4_0 ?
+                mapping.get("Number").equals(UNBOUNDED_ENCODING_VCF4) ? UNBOUNDED : Integer.valueOf(mapping.get("Number")) :
+                mapping.get("Number").equals(UNBOUNDED_ENCODING_VCF3) ? UNBOUNDED : Integer.valueOf(mapping.get("Number"));
         mType = INFO_TYPE.valueOf(mapping.get("Type"));
         mDescription = mapping.get("Description");
     }
@@ -85,7 +88,7 @@ public class VCFInfoHeaderLine extends VCFHeaderLine {
         else if (mVersion == VCFHeaderVersion.VCF4_0) {
             Map<String,Object> map = new LinkedHashMap<String,Object>();
             map.put("ID",mName);
-            map.put("Number",mCount == UNBOUNDED ? UNBOUNDED_ENCODING : mCount);
+            map.put("Number",mCount == UNBOUNDED ? (mVersion == VCFHeaderVersion.VCF4_0 ? UNBOUNDED_ENCODING_VCF4 : UNBOUNDED_ENCODING_VCF3) : mCount);
             map.put("Type",mType);
             map.put("Description",mDescription);
             return "INFO=" + VCFHeaderLineTranslator.toValue(this.mVersion,map);

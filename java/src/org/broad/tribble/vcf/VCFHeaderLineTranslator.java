@@ -3,11 +3,7 @@ package org.broad.tribble.vcf;
 import java.util.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: aaron
- * Date: Jun 17, 2010
- * Time: 12:28:46 PM
- * To change this template use File | Settings | File Templates.
+ * A class for translating between vcf header versions
  */
 public class VCFHeaderLineTranslator {
     private static Map<VCFHeaderVersion,VCFLineParser> mapping;
