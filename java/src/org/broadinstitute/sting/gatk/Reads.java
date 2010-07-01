@@ -28,6 +28,7 @@ import java.util.Collection;
 public class Reads {
     private List<File> readsFiles = null;
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
+    private Integer readBufferSize = null;
     private DownsamplingMethod downsamplingMethod = null;
     private ValidationExclusion exclusionList = null;
     private Collection<SamRecordFilter> supplementalFilters = null;
@@ -75,6 +76,14 @@ public class Reads {
     }
 
     /**
+     * Gets a list of the total number of reads that the sharding system should buffer per BAM file.
+     * @return
+     */
+    public Integer getReadBufferSize() {
+        return readBufferSize;
+    }
+
+    /**
      * Gets the method and parameters used when downsampling reads.
      * @return Downsample fraction.
      */
@@ -119,6 +128,7 @@ public class Reads {
      * is package protected.
      * @param samFiles list of reads files.
      * @param strictness Stringency of reads file parsing.
+     * @param readBufferSize Number of reads to hold in memory per BAM.
      * @param exclusionList what safety checks we're willing to let slide
      * @param supplementalFilters additional filters to dynamically apply.
      * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
@@ -130,6 +140,7 @@ public class Reads {
      */
     Reads( List<File> samFiles,
            SAMFileReader.ValidationStringency strictness,
+           Integer readBufferSize,
            DownsamplingMethod downsamplingMethod,
            ValidationExclusion exclusionList,
            Collection<SamRecordFilter> supplementalFilters,
@@ -137,6 +148,7 @@ public class Reads {
            boolean includeReadsWithDeletionAtLoci,
            boolean generateExtendedEvents) {
         this.readsFiles = samFiles;
+        this.readBufferSize = readBufferSize;
         this.validationStringency = strictness;
         this.downsamplingMethod = downsamplingMethod;
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;

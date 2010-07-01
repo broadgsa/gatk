@@ -535,6 +535,7 @@ public class GenomeAnalysisEngine {
 
         return new Reads(argCollection.samFiles,
                 argCollection.strictnessLevel,
+                argCollection.readBufferSize,
                 method,
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,

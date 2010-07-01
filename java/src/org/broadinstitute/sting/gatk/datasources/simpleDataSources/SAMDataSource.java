@@ -361,6 +361,8 @@ public class SAMDataSource implements SimpleDataSource {
             if(shard.getFileSpans().get(id) == null)
                 continue;
             CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            if(reads.getReadBufferSize() != null)
+                iterator = new BufferingReadIterator(iterator,reads.getReadBufferSize());
             if(shard.getFilter() != null)
                 iterator = new FilteringIterator(iterator,shard.getFilter()); // not a counting iterator because we don't want to show the filtering of reads
             mergingIterator.addIterator(readers.getReader(id),iterator);

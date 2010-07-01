@@ -66,6 +66,10 @@ public class GATKArgumentCollection {
     @Argument(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<File> samFiles = new ArrayList<File>();
 
+    @Element(required = false)
+    @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
+    public Integer readBufferSize = null;
+
     @ElementList(required = false)
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually.", required = false)
     public List<String> readFilters = new ArrayList<String>();
@@ -278,6 +282,18 @@ public class GATKArgumentCollection {
             }
         }
         if (!other.samFiles.equals(this.samFiles)) {
+            return false;
+        }
+        if(other.readBufferSize == null || this.readBufferSize == null) {
+            // If either is null, return false if they're both null, otherwise keep going...
+            if(other.readBufferSize != null || this.readBufferSize != null)
+                return false;
+        }
+        else {
+            if(!other.readBufferSize.equals(this.readBufferSize))
+                return false;
+        }
+        if (!(other.readBufferSize == null && this.readBufferSize == null) && (other.readBufferSize == null || this.readBufferSize == null)) {
             return false;
         }
         if (!other.maximumEngineIterations.equals(this.maximumEngineIterations)) {
