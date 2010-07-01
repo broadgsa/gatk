@@ -64,7 +64,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="target_titv", shortName="titv", doc="The expected Ti/Tv ratio to display on optimization curve output figures. (~~2.1 for whole genome experiments)", required=false)
     private double TARGET_TITV = 2.1;
     @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by spreading out the Gaussians.", required=false)
-    private double BACKOFF_FACTOR = 1.4;
+    private double BACKOFF_FACTOR = 1.3;
     @Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
     private int DESIRED_NUM_VARIANTS = 0;
     @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
@@ -76,7 +76,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="novel_prior", shortName="novelPrior", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
     private int NOVEL_QUAL_PRIOR = 2;
     @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
-    private double QUALITY_SCALE_FACTOR = 200.0;
+    private double QUALITY_SCALE_FACTOR = 1600.0;
     @Argument(fullName="output_prefix", shortName="output", doc="The prefix added to output VCF file name and optimization curve pdf file name", required=false)
     private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
@@ -199,13 +199,13 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     variantDatum.qual = QUALITY_SCALE_FACTOR * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) ); // BUGBUG: don't have a normalizing constant, so need to scale up qual scores arbitrarily
                     mapList.add( variantDatum );
 
-                    vcf.addInfoField("OQ", ((Double)vc.getPhredScaledQual()).toString() );
+                    vcf.addInfoField("OQ", String.format("%.2f", ((Double)vc.getPhredScaledQual())));
                     vcf.setQual( variantDatum.qual );
                     vcf.setFilterString(VCFRecord.PASSES_FILTERS);
                     vcfWriter.addRecord( vcf );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
-                    vcfWriter.addRecord( vcf );
+                    vcfWriter.addRecord( vcf ); 
                 }
             }
 

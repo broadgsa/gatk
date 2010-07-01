@@ -38,11 +38,4 @@ public class VariantDatum {
     public double qual;
     public double weight;
     public int alleleCount;
-    public int knownStatus;
-
-    public final static int NOVEL = -1;
-    public final static int KNOWN_MQ0 = 0;
-    public final static int KNOWN_MQ1 = 1;
-    public final static int KNOWN_1KG = 2;
-    public final static int KNOWN_HAPMAP = 3;
 }
