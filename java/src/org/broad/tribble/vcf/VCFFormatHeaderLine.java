@@ -39,7 +39,7 @@ public class VCFFormatHeaderLine extends VCFHeaderLine {
     private String mDescription;
     private FORMAT_TYPE mType;
 
-    // info line numerical values are allowed to be unbounded (or unknown), which is
+    // format line numerical values are allowed to be unbounded (or unknown), which is
     // marked with a dot (.)
     public static int UNBOUNDED = -1;
     public static String UNBOUNDED_ENCODING_VCF4 = ".";
