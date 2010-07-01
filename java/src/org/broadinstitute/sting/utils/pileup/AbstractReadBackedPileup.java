@@ -39,7 +39,7 @@ import net.sf.samtools.SAMRecord;
  * @author mhanna
  * @version 0.1
  */
-public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE extends PileupElement> implements ReadBackedPileup {
+public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPileup<RBP,PE>,PE extends PileupElement> implements ReadBackedPileup {
     protected final GenomeLoc loc;
     protected final PileupElementTracker<PE> pileupElementTracker;
 
@@ -82,7 +82,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
      * pointer to pileup.  Don't go changing the data in pileup.
      *
      */
-    public AbstractReadBackedPileup(GenomeLoc loc, List<PE> pileup ) {
+    public AbstractReadBackedPileup(GenomeLoc loc, List<PE> pileup) {
         if ( loc == null ) throw new StingException("Illegal null genomeloc in ReadBackedPileup");
         if ( pileup == null ) throw new StingException("Illegal null pileup in ReadBackedPileup");
 
@@ -115,10 +115,10 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
         calculateCachedData();
     }
 
-    protected AbstractReadBackedPileup(GenomeLoc loc, Map<String,AbstractReadBackedPileup<RBP,PE>> pileupsBySample) {
+    protected AbstractReadBackedPileup(GenomeLoc loc, Map<String,? extends AbstractReadBackedPileup<RBP,PE>> pileupsBySample) {
         this.loc = loc;
         PerSamplePileupElementTracker<PE> tracker = new PerSamplePileupElementTracker<PE>();
-        for(Map.Entry<String,AbstractReadBackedPileup<RBP,PE>> pileupEntry: pileupsBySample.entrySet()) {
+        for(Map.Entry<String,? extends AbstractReadBackedPileup<RBP,PE>> pileupEntry: pileupsBySample.entrySet()) {
             tracker.addElements(pileupEntry.getKey(),pileupEntry.getValue().pileupElementTracker);
             addPileupToCumulativeStats(pileupEntry.getValue());
         }
@@ -192,7 +192,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
         return pileup;
     }
 
-    protected abstract RBP createNewPileup(GenomeLoc loc, PileupElementTracker<PE> pileupElementTracker);
+    protected abstract AbstractReadBackedPileup<RBP,PE> createNewPileup(GenomeLoc loc, PileupElementTracker<PE> pileupElementTracker);
     protected abstract PE createNewPileupElement(SAMRecord read, int offset);
 
     // --------------------------------------------------------
@@ -217,10 +217,10 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
 
                 for(String sampleName: tracker.getSamples()) {
                     PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
-                    AbstractReadBackedPileup<RBP,PE> pileup = (AbstractReadBackedPileup<RBP,PE>)createNewPileup(loc,perSampleElements).getPileupWithoutDeletions();
+                    AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getPileupWithoutDeletions();
                     filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
                 }
-                return createNewPileup(loc,filteredTracker);
+                return (RBP)createNewPileup(loc,filteredTracker);
 
             }
             else {
@@ -232,7 +232,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
                         filteredTracker.add(p);
                     }
                 }
-                return createNewPileup(loc, filteredTracker);
+                return (RBP)createNewPileup(loc, filteredTracker);
             }
         } else {
             return (RBP)this;
@@ -255,10 +255,10 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
 
             for(String sampleName: tracker.getSamples()) {
                 PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
-                AbstractReadBackedPileup<RBP,PE> pileup = (AbstractReadBackedPileup<RBP,PE>)createNewPileup(loc,perSampleElements).getOverlappingFragmentFilteredPileup();
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getOverlappingFragmentFilteredPileup();
                 filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
             }
-            return createNewPileup(loc,filteredTracker);
+            return (RBP)createNewPileup(loc,filteredTracker);
         }
         else {
             Map<String,PE> filteredPileup = new HashMap<String, PE>();
@@ -288,7 +288,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
             for(PE filteredElement: filteredPileup.values())
                 filteredTracker.add(filteredElement);
 
-            return createNewPileup(loc,filteredTracker);
+            return (RBP)createNewPileup(loc,filteredTracker);
         }
     }
 
@@ -309,10 +309,10 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
 
                 for(String sampleName: tracker.getSamples()) {
                     PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
-                    AbstractReadBackedPileup<RBP,PE> pileup = (AbstractReadBackedPileup<RBP,PE>)createNewPileup(loc,perSampleElements).getPileupWithoutMappingQualityZeroReads();
+                    AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getPileupWithoutMappingQualityZeroReads();
                     filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
                 }
-                return createNewPileup(loc,filteredTracker);
+                return (RBP)createNewPileup(loc,filteredTracker);
 
             }
             else {
@@ -324,10 +324,64 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
                         filteredTracker.add(p);
                     }
                 }
-                return createNewPileup(loc, filteredTracker);
+                return (RBP)createNewPileup(loc, filteredTracker);
             }
         } else {
             return (RBP)this;
+        }
+    }
+
+    public RBP getPositiveStrandPileup() {
+        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
+            PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
+
+            for(String sampleName: tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getPositiveStrandPileup();
+                filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
+            }
+            return (RBP)createNewPileup(loc,filteredTracker);
+        }
+        else {
+            UnifiedPileupElementTracker<PE> tracker = (UnifiedPileupElementTracker<PE>)pileupElementTracker;
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+
+            for ( PE p : tracker ) {
+                if ( !p.getRead().getReadNegativeStrandFlag() ) {
+                    filteredTracker.add(p);
+                }
+            }
+            return (RBP)createNewPileup(loc, filteredTracker);
+        }
+    }
+
+    /**
+     * Gets the pileup consisting of only reads on the negative strand.
+     * @return A read-backed pileup consisting only of reads on the negative strand.
+     */
+    public RBP getNegativeStrandPileup() {
+        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
+            PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
+
+            for(String sampleName: tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getNegativeStrandPileup();
+                filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
+            }
+            return (RBP)createNewPileup(loc,filteredTracker);
+        }
+        else {
+            UnifiedPileupElementTracker<PE> tracker = (UnifiedPileupElementTracker<PE>)pileupElementTracker;
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+
+            for ( PE p : tracker ) {
+                if ( p.getRead().getReadNegativeStrandFlag() ) {
+                    filteredTracker.add(p);
+                }
+            }
+            return (RBP)createNewPileup(loc, filteredTracker);
         }
     }
 
@@ -345,11 +399,11 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
 
             for(String sampleName: tracker.getSamples()) {
                 PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
-                AbstractReadBackedPileup<RBP,PE> pileup = (AbstractReadBackedPileup<RBP,PE>)createNewPileup(loc,perSampleElements).getBaseAndMappingFilteredPileup(minBaseQ,minMapQ);
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getBaseAndMappingFilteredPileup(minBaseQ,minMapQ);
                 filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
             }
 
-            return createNewPileup(loc,filteredTracker);
+            return (RBP)createNewPileup(loc,filteredTracker);
         }
         else {
             UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
@@ -360,7 +414,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
                 }
             }
 
-            return createNewPileup(loc, filteredTracker);
+            return (RBP)createNewPileup(loc, filteredTracker);
         }
     }
 
@@ -382,6 +436,31 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
     @Override
     public RBP getMappingFilteredPileup( int minMapQ ) {
         return getBaseAndMappingFilteredPileup(-1, minMapQ);
+    }
+
+    /**
+     * Gets a list of the read groups represented in this pileup.
+     * @return
+     */
+    @Override
+    public Collection<String> getReadGroups() {
+        Set<String> readGroups = new HashSet<String>();
+        for(PileupElement pileupElement: this)
+            readGroups.add(pileupElement.getRead().getReadGroup().getReadGroupId());
+        return readGroups;
+    }
+
+    /**
+     * Gets the pileup for a given read group.  Horrendously inefficient at this point.
+     * @param readGroupId Identifier for the read group.
+     * @return A read-backed pileup containing only the reads in the given read group.
+     */
+    @Override
+    public RBP getPileupForReadGroup(String readGroupId) {
+        UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+        for(PileupElement pileupElement: this)
+            filteredTracker.add((PE)pileupElement);
+        return (RBP)createNewPileup(loc,filteredTracker);
     }
 
     public Collection<String> getSamples() {
@@ -435,14 +514,14 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
                 }
 
                 if(!filteredPileup.isEmpty()) {
-                    AbstractReadBackedPileup<RBP,PE> pileup = (AbstractReadBackedPileup<RBP,PE>)createNewPileup(loc,perSampleElements);
+                    AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements);
                     filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
                 }
 
                 current++;
             }
 
-            return createNewPileup(loc,filteredTracker);
+            return (RBP)createNewPileup(loc,filteredTracker);
         }
         else {
             UnifiedPileupElementTracker<PE> tracker = (UnifiedPileupElementTracker<PE>)pileupElementTracker;
@@ -455,7 +534,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
                 filteredTracker.add(tracker.get(nextReadToKeep));
             }
 
-            return createNewPileup(getLocation(), filteredTracker);
+            return (RBP)createNewPileup(getLocation(), filteredTracker);
         }
     }
 
@@ -463,7 +542,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
     public RBP getPileupForSample(String sampleName) {
         if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
-            return createNewPileup(loc,tracker.getElements(sampleName));
+            return (RBP)createNewPileup(loc,tracker.getElements(sampleName));
         }
         else {
             UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
@@ -478,7 +557,7 @@ public abstract class AbstractReadBackedPileup<RBP extends ReadBackedPileup,PE e
                         filteredTracker.add(p);
                 }
             }
-            return filteredTracker.size()>0 ? createNewPileup(loc,filteredTracker) : null;
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
         }
     }
 

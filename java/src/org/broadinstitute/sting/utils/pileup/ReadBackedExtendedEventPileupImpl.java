@@ -31,7 +31,7 @@ import java.util.*;
 
 import net.sf.samtools.SAMRecord;
 
-public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<ReadBackedExtendedEventPileup, ExtendedEventPileupElement> implements ReadBackedExtendedEventPileup {
+public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<ReadBackedExtendedEventPileupImpl,ExtendedEventPileupElement> implements ReadBackedExtendedEventPileup {
     private int nInsertions;
     private int maxDeletionLength;      // cached value of the length of the longest deletion observed at the site
     /**
@@ -59,7 +59,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
         this.nInsertions = nInsertions;
     }
 
-    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<String,AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement>> pileupElementsBySample) {
+    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<String,? extends ReadBackedExtendedEventPileupImpl> pileupElementsBySample) {
         super(loc,pileupElementsBySample);
     }
 
@@ -86,7 +86,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
     }
 
     @Override
-    protected void addPileupToCumulativeStats(AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement> pileup) {
+    protected void addPileupToCumulativeStats(AbstractReadBackedPileup<ReadBackedExtendedEventPileupImpl,ExtendedEventPileupElement> pileup) {
         super.addPileupToCumulativeStats(pileup);
         ReadBackedExtendedEventPileup extendedEventPileup = ((ReadBackedExtendedEventPileup)pileup);
         this.nInsertions += extendedEventPileup.getNumberOfInsertions();
@@ -94,7 +94,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
     }
 
     @Override
-    protected ReadBackedExtendedEventPileup createNewPileup(GenomeLoc loc, PileupElementTracker<ExtendedEventPileupElement> tracker) {
+    protected ReadBackedExtendedEventPileupImpl createNewPileup(GenomeLoc loc, PileupElementTracker<ExtendedEventPileupElement> tracker) {
         return new ReadBackedExtendedEventPileupImpl(loc,tracker);
     }
 

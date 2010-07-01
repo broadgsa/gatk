@@ -359,8 +359,8 @@ public class LocusIteratorByState extends LocusIterator {
             // In this case, the subsequent call to next() will emit the normal pileup at the current base
             // and shift the position.
             if (readInfo.generateExtendedEvents() && hasExtendedEvents) {
-                Map<String,AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement>> fullExtendedEventPileup =
-                        new HashMap<String,AbstractReadBackedPileup<ReadBackedExtendedEventPileup,ExtendedEventPileupElement>>();
+                Map<String,ReadBackedExtendedEventPileupImpl> fullExtendedEventPileup =
+                        new HashMap<String,ReadBackedExtendedEventPileupImpl>();
 
                 SAMRecordState our1stState = readStates.getFirst();
                 // get current location on the reference and decrement it by 1: the indels we just stepped over
@@ -422,7 +422,7 @@ public class LocusIteratorByState extends LocusIterator {
                 nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup));
             }  else {
                 GenomeLoc location = getLocation();
-                Map<String,AbstractReadBackedPileup<ReadBackedPileup,PileupElement>> fullPileup = new HashMap<String,AbstractReadBackedPileup<ReadBackedPileup,PileupElement>>();
+                Map<String,ReadBackedPileupImpl> fullPileup = new HashMap<String,ReadBackedPileupImpl>();
 
                 // todo -- performance problem -- should be lazy, really
                 for(String sampleName: sampleNames) {

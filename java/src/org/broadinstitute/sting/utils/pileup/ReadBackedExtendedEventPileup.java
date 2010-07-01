@@ -67,6 +67,19 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * @return
      */
     public ReadBackedExtendedEventPileup getPileupWithoutMappingQualityZeroReads();
+
+
+    /**
+     * Gets the pileup consisting of only reads on the positive strand.
+     * @return A read-backed pileup consisting only of reads on the positive strand.
+     */
+    public ReadBackedExtendedEventPileup getPositiveStrandPileup();
+
+    /**
+     * Gets the pileup consisting of only reads on the negative strand.
+     * @return A read-backed pileup consisting only of reads on the negative strand.
+     */
+    public ReadBackedExtendedEventPileup getNegativeStrandPileup();
     
     /** Returns subset of this pileup that contains only bases with quality >= minBaseQ, coming from
      * reads with mapping qualities >= minMapQ. This method allocates and returns a new instance of ReadBackedPileup.

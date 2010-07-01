@@ -29,7 +29,7 @@ import net.sf.samtools.SAMRecord;
 import java.util.List;
 import java.util.Map;
 
-public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPileup,PileupElement> implements ReadBackedPileup {
+public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPileupImpl,PileupElement> implements ReadBackedPileup {
 
     public ReadBackedPileupImpl(GenomeLoc loc) {
         super(loc);
@@ -47,7 +47,7 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
         super(loc,pileupElements);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, Map<String,AbstractReadBackedPileup<ReadBackedPileup,PileupElement>> pileupElementsBySample) {
+    public ReadBackedPileupImpl(GenomeLoc loc, Map<String,ReadBackedPileupImpl> pileupElementsBySample) {
         super(loc,pileupElementsBySample);
     }
 
@@ -65,7 +65,7 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
     }
 
     @Override
-    protected ReadBackedPileup createNewPileup(GenomeLoc loc, PileupElementTracker<PileupElement> tracker) {
+    protected ReadBackedPileupImpl createNewPileup(GenomeLoc loc, PileupElementTracker<PileupElement> tracker) {
         return new ReadBackedPileupImpl(loc,tracker);
     }
 

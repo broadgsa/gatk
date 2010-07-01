@@ -52,7 +52,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         if ( !vc.isBiallelic() || !vc.isSNP() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
             return null;
 
-        AlignmentContext context = StratifiedAlignmentContext.joinContexts(stratifiedContexts.values(), StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        AlignmentContext context = StratifiedAlignmentContext.joinContexts(stratifiedContexts.values());
 
         int contextWingSize = Math.min(((int)ref.getWindow().size() - 1)/2, MIN_CONTEXT_WING_SIZE);
         int contextSize = contextWingSize * 2 + 1;

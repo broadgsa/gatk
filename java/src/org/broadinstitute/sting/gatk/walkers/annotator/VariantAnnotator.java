@@ -200,9 +200,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         Map<String, StratifiedAlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             if ( ! context.hasExtendedEventPileup() ) {
-                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(), ASSUME_SINGLE_SAMPLE, null);
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(), ASSUME_SINGLE_SAMPLE);
             } else {
-                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE, null);
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE);
             }
             if ( stratifiedContexts != null ) {
                 annotatedVCs = engine.annotateContext(tracker, ref, stratifiedContexts, vc);

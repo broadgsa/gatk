@@ -66,6 +66,18 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
      */
     public ReadBackedPileup getPileupWithoutMappingQualityZeroReads();
 
+    /**
+     * Gets the pileup consisting of only reads on the positive strand.
+     * @return A read-backed pileup consisting only of reads on the positive strand.
+     */
+    public ReadBackedPileup getPositiveStrandPileup();
+
+    /**
+     * Gets the pileup consisting of only reads on the negative strand.
+     * @return A read-backed pileup consisting only of reads on the negative strand.
+     */
+    public ReadBackedPileup getNegativeStrandPileup();
+
     /** Returns subset of this pileup that contains only bases with quality >= minBaseQ, coming from
      * reads with mapping qualities >= minMapQ. This method allocates and returns a new instance of ReadBackedPileup.
      * @param minBaseQ
@@ -101,6 +113,19 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
      * @return True if reads have been filtered out.  False otherwise.
      */
     public boolean hasPileupBeenDownsampled();
+
+    /**
+     * Gets a collection of all the read groups represented in this pileup.
+     * @return A collection of all the read group ids represented in this pileup.
+     */
+    public Collection<String> getReadGroups();
+
+    /**
+     * Gets all the reads associated with a given read group.
+     * @param readGroupId Identifier for the read group.
+     * @return A pileup containing only the reads in the given read group.
+     */
+    public ReadBackedPileup getPileupForReadGroup(String readGroupId);
 
     /**
      * Gets a collection of all the samples stored in this pileup.

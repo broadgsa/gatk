@@ -533,11 +533,11 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         return violation;
     }
 
-    private Double getAlleleProportion(Allele a, StratifiedAlignmentContext<PileupElement> context) {
+    private Double getAlleleProportion(Allele a, StratifiedAlignmentContext context) {
         int numParental = 0;
         int total = 0;
         if ( context != null ) {
-            for ( PileupElement e : context.getPileupElements(StratifiedAlignmentContext.StratifiedContextType.COMPLETE)) {
+            for ( PileupElement e : context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()) {
                 if ( e.getQual() >= 10 && e.getMappingQual() >= 10 ) {
                     total++;
                     if ( e.getBase() == a.getBases()[0]) {

@@ -179,7 +179,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, null);
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
             if ( stratifiedContexts == null )
                 return null;
 
@@ -206,7 +206,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE, null);
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
             if ( stratifiedContexts == null )
                 return null;
 

@@ -38,7 +38,7 @@ import java.util.*;
  * User: ebanks
  * Modified: chartl (split by read group)
  */
-public class StratifiedAlignmentContext<PE extends PileupElement> {
+public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
 
     // Definitions:
     //   COMPLETE = full alignment context
@@ -48,97 +48,34 @@ public class StratifiedAlignmentContext<PE extends PileupElement> {
     public enum StratifiedContextType { COMPLETE, FORWARD, REVERSE }
 
     private GenomeLoc loc;
-    private AlignmentContext[] contexts = new AlignmentContext[StratifiedContextType.values().length];
-    private boolean isExtended = false; // tells whether this alignment context is an extended event context
+    private RBP basePileup = null;
 
-    // todo -- why are you storing reads separately each time?  There's a ReadBackedPileup object that's supposed to handle this
-//    private ArrayList<SAMRecord>[] reads = new ArrayList[StratifiedContextType.values().length];
-//    private ArrayList<Integer>[] offsets = new ArrayList[StratifiedContextType.values().length];
-
-    private ArrayList<PE>[] pileupElems = new ArrayList[StratifiedContextType.values().length];
     //
     // accessors
     //
     public GenomeLoc getLocation() { return loc; }
-//    public ArrayList<SAMRecord> getReads(StratifiedContextType type) { return reads[type.ordinal()]; }
-//    public ArrayList<Integer> getOffsets(StratifiedContextType type) { return offsets[type.ordinal()]; }
-
-    public ArrayList<PE> getPileupElements(StratifiedContextType type) {
-        return pileupElems[type.ordinal()];
-    }
-
-//    public ArrayList<ExtendedEventPileupElement> getExtendedPileupElements(StratifiedContextType type) {
-//        if ( ! isExtended ) throw new StingException("Extended read backed pileups requested from StratifiedAlignmentContext that holds simple pileups");
-//
-//        return (ArrayList<ExtendedEventPileupElement>)(pileupElems[type.ordinal()]);
-//    }
 
     public StratifiedAlignmentContext(GenomeLoc loc) {
-        this(loc,false);
+        this(loc,null);
     }
 
-    public StratifiedAlignmentContext(GenomeLoc loc, boolean isExtended) {
+    public StratifiedAlignmentContext(GenomeLoc loc, RBP pileup) {
         this.loc = loc;
-        this.isExtended = isExtended;
-        for ( int i = 0; i < StratifiedContextType.values().length; i++) {
-            if ( isExtended ) pileupElems[i] = new ArrayList<PE>();
-            else pileupElems[i] = new ArrayList<PE>();
-        }
+        this.basePileup = pileup;
     }
 
     public AlignmentContext getContext(StratifiedContextType type) {
-        int index = type.ordinal();
-        if ( contexts[index] == null ) {
-            if ( isExtended ) {
-                contexts[index] = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc,(List<ExtendedEventPileupElement>)getPileupElements(type)));
-            } else {
-                contexts[index] = new AlignmentContext(loc, new ReadBackedPileupImpl(loc,(List<PileupElement>)getPileupElements(type)));
-            }
+        switch(type) {
+            case COMPLETE:
+                return new AlignmentContext(loc,basePileup);
+            case FORWARD:
+                return new AlignmentContext(loc,basePileup.getPositiveStrandPileup());
+            case REVERSE:
+                return new AlignmentContext(loc,basePileup.getNegativeStrandPileup());
+            default:
+                throw new StingException("Unable to get alignment context for type = " + type);
         }
-        return contexts[index];
     }
-
-    public void add(SAMRecord read, int offset) {
-        if ( isExtended ) throw new StingException("Can not add read/offset without event type specified to the context holding extended events");
-        if ( read.getReadNegativeStrandFlag() ) {
-            pileupElems[StratifiedContextType.REVERSE.ordinal()].add((PE)new PileupElement(read,offset));
-        } else {
-            pileupElems[StratifiedContextType.FORWARD.ordinal()].add((PE)new PileupElement(read,offset));
-        }
-        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add((PE)new PileupElement(read,offset));
-     }
-
-    public void add(PE p) {
-//        if ( isExtended ) throw new StingException("Can not add simple pileup element to the context holding extended events");
-        SAMRecord read = p.getRead();
-        if ( read.getReadNegativeStrandFlag() ) {
-            pileupElems[StratifiedContextType.REVERSE.ordinal()].add(p);
-        } else {
-            pileupElems[StratifiedContextType.FORWARD.ordinal()].add(p);
-        }
-        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add(p);
-     }
-
-    public void add(SAMRecord read, int offset, int length, byte [] bases) {
-        if ( ! isExtended ) throw new StingException("Can not add read/offset with event type specified to the context holding simple events");
-        if ( read.getReadNegativeStrandFlag() ) {
-            pileupElems[StratifiedContextType.REVERSE.ordinal()].add((PE)new ExtendedEventPileupElement(read,offset,length,bases));
-        } else {
-            pileupElems[StratifiedContextType.FORWARD.ordinal()].add((PE)new ExtendedEventPileupElement(read,offset,length,bases));
-        }
-        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add((PE)new ExtendedEventPileupElement(read,offset,length,bases));
-     }
-
-//    public void add(ExtendedEventPileupElement p) {
-//        if ( ! isExtended ) throw new StingException("Can not add extended pileup element to the context holding simple events");
-//        SAMRecord read = p.getRead();
-//        if ( read.getReadNegativeStrandFlag() ) {
-//            pileupElems[StratifiedContextType.REVERSE.ordinal()].add(p);
-//        } else {
-//            pileupElems[StratifiedContextType.FORWARD.ordinal()].add(p);
-//        }
-//        pileupElems[StratifiedContextType.COMPLETE.ordinal()].add(p);
-//     }
 
     /**
      * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.
@@ -148,8 +85,8 @@ public class StratifiedAlignmentContext<PE extends PileupElement> {
      * @return a Map of sample name to StratifiedAlignmentContext
      *
      **/
-    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedPileup pileup) {
-        return splitContextBySample(pileup, null, null);
+    public static <RBP extends ReadBackedPileup,PE extends PileupElement> Map<String, StratifiedAlignmentContext> splitContextBySample(RBP pileup) {
+        return splitContextBySample(pileup, null);
     }
 
     /**
@@ -157,89 +94,28 @@ public class StratifiedAlignmentContext<PE extends PileupElement> {
      *
      * @param pileup                the original pileup
      * @param assumedSingleSample   if not null, any read without a readgroup will be given this sample name
-     * @param collapseToThisSample  if not null, all reads will be assigned this read group regardless of their actual read group
      *
      * @return a Map of sample name to StratifiedAlignmentContext
      *
      **/
-    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedPileup pileup, String assumedSingleSample, String collapseToThisSample) {
+    public static <RBP extends ReadBackedPileup> Map<String, StratifiedAlignmentContext> splitContextBySample(RBP pileup, String assumedSingleSample) {
 
-        HashMap<String, StratifiedAlignmentContext> contexts = new HashMap<String, StratifiedAlignmentContext>();
         GenomeLoc loc = pileup.getLocation();
-
-        for (PileupElement p : pileup )
-            addToContext(contexts, p, loc, assumedSingleSample, collapseToThisSample);
-
-        return contexts;
-    }
-
-    /**
-     * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.
-     *
-     * @param pileup                the original pileup
-     *
-     * @return a Map of sample name to StratifiedAlignmentContext
-     *
-     **/
-    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedExtendedEventPileup pileup) {
-        return splitContextBySample(pileup, null, null);
-    }
-
-    /**
-     * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample.
-     *
-     * @param pileup                the original pileup
-     * @param assumedSingleSample   if not null, any read without a readgroup will be given this sample name
-     * @param collapseToThisSample  if not null, all reads will be assigned this read group regardless of their actual read group
-     *
-     * @return a Map of sample name to StratifiedAlignmentContext
-     *
-     **/
-    public static Map<String, StratifiedAlignmentContext> splitContextBySample(ReadBackedExtendedEventPileup pileup, String assumedSingleSample, String collapseToThisSample) {
-
         HashMap<String, StratifiedAlignmentContext> contexts = new HashMap<String, StratifiedAlignmentContext>();
-        GenomeLoc loc = pileup.getLocation();
 
-        for (PileupElement p : pileup )
-            addToContext(contexts, p, loc, assumedSingleSample, collapseToThisSample,true);
+        for(String sampleName: pileup.getSamples()) {
+            RBP pileupBySample = (RBP)pileup.getPileupForSample(sampleName);
 
-        return contexts;
-    }
-
-    private static void addToContext(HashMap<String, StratifiedAlignmentContext> contexts, PileupElement p, GenomeLoc loc, String assumedSingleSample, String collapseToThisSample) {
-        addToContext(contexts, p, loc, assumedSingleSample, collapseToThisSample, false);
-    }
-
-    private static void addToContext(HashMap<String, StratifiedAlignmentContext> contexts, PileupElement p, GenomeLoc loc, String assumedSingleSample, String collapseToThisSample, boolean isExtended) {
-
-        // get the read
-        SAMRecord read = p.getRead();
-
-        // find the sample
-        String sample;
-        if ( collapseToThisSample != null ) {
-            sample = collapseToThisSample;
-        } else {
-            SAMReadGroupRecord readGroup = read.getReadGroup();
-            if ( readGroup == null ) {
-                if ( assumedSingleSample == null )
-                    throw new StingException("Missing read group for read " + read.getReadName());
-                sample = assumedSingleSample;
-            } else {
-                sample = readGroup.getSample();
+            if(sampleName != null)
+                contexts.put(sampleName,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
+            else {
+                if(assumedSingleSample == null && pileupBySample.size() > 0)
+                    throw new StingException("Missing read group for read " + pileupBySample.iterator().next().getRead());
+                contexts.put(assumedSingleSample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             }
         }
 
-        // create a new context object if this is the first time we're seeing a read for this sample
-        StratifiedAlignmentContext myContext = contexts.get(sample);
-        if ( myContext == null ) {
-            myContext = new StratifiedAlignmentContext(loc,isExtended);
-            contexts.put(sample, myContext);
-        }
-
-        // add the read to this sample's context
-        // note that bad bases are added to the context (for DoC calculations later)
-        myContext.add(p);
+        return contexts;
     }
 
      /**
@@ -250,57 +126,43 @@ public class StratifiedAlignmentContext<PE extends PileupElement> {
      * TODO - support for collapsing or assuming read groups if they are missing
      *
      **/
-    public static Map<String,StratifiedAlignmentContext> splitContextByReadGroup(ReadBackedPileup pileup) {
-        HashMap<String,StratifiedAlignmentContext> contexts = new HashMap<String,StratifiedAlignmentContext>();
-
-        for ( PileupElement p : pileup ) {
-            SAMRecord read = p.getRead();
-
-            SAMReadGroupRecord readGroup = read.getReadGroup();
-            if ( readGroup == null ) {
-                throw new StingException("Missing read group for read " + read.getReadName());
-            }
-
-            String group = readGroup.getReadGroupId();
-
-            StratifiedAlignmentContext myContext = contexts.get(group);
-
-            if ( myContext == null ) {
-                myContext = new StratifiedAlignmentContext(pileup.getLocation());
-                contexts.put(group,myContext);
-            }
-
-            myContext.add(p);
-        }
-
-        return contexts;
+    public static <RBP extends ReadBackedPileup> Map<String,StratifiedAlignmentContext<RBP>> splitContextByReadGroup(RBP pileup) {
+         HashMap<String,StratifiedAlignmentContext<RBP>> contexts = new HashMap<String,StratifiedAlignmentContext<RBP>>();
+         for(String readGroupId: pileup.getReadGroups())
+             contexts.put(readGroupId,new StratifiedAlignmentContext<RBP>(pileup.getLocation(),(RBP)pileup.getPileupForReadGroup(readGroupId)));
+         return contexts;
     }
 
-    public static <PE> AlignmentContext joinContexts(Collection<StratifiedAlignmentContext> contexts, StratifiedContextType type) {
-        ArrayList<PE> pe = new ArrayList<PE>();
-
-        if ( contexts.size() == 0  )
-            throw new StingException("BUG: joinContexts requires at least one context to join");
-
-
-        Iterator<StratifiedAlignmentContext> it = contexts.iterator();
-        StratifiedAlignmentContext context = it.next();
-        boolean isExtended = context.isExtended;
-        GenomeLoc loc = context.getLocation();
-        pe.addAll(context.getPileupElements(type));
-
-        while ( it.hasNext()) {
-            context = it.next();
-            if ( ! loc.equals( context.getLocation() ) )
-                    throw new StingException("Illegal attempt to join contexts from different genomic locations");
-            if ( context.isExtended != isExtended )
+    public static AlignmentContext joinContexts(Collection<StratifiedAlignmentContext> contexts) {
+         
+        // validation
+        GenomeLoc loc = contexts.iterator().next().getLocation();
+        boolean isExtended = contexts.iterator().next().basePileup instanceof ReadBackedExtendedEventPileup;
+        for(StratifiedAlignmentContext context: contexts) {
+            if(!loc.equals(context.getLocation()))
+                throw new StingException("Illegal attempt to join contexts from different genomic locations");
+            if(isExtended != (context.basePileup instanceof ReadBackedExtendedEventPileup))
                 throw new StingException("Illegal attempt to join simple and extended contexts");
-            pe.addAll(context.getPileupElements(type));
         }
 
-        // dirty trick below. generics do not allow to cast pe (ArrayList<PileupElement>) directly to ArrayList<ExtendedEventPileupElement>,
-        // so we first cast to "? extends" wildcard, then to what we actually need.
-        if ( isExtended ) return new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc,(List<ExtendedEventPileupElement>)pe) );
-        else return new AlignmentContext(loc, new ReadBackedPileupImpl(loc,(List<PileupElement>)pe));
+        AlignmentContext jointContext;
+        if(isExtended) {
+            List<ExtendedEventPileupElement> pe = new ArrayList<ExtendedEventPileupElement>();
+            for(StratifiedAlignmentContext context: contexts) {
+                for(PileupElement pileupElement: context.basePileup)
+                    pe.add((ExtendedEventPileupElement)pileupElement);
+            }
+            jointContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc,pe));
+        }
+        else {
+            List<PileupElement> pe = new ArrayList<PileupElement>();
+            for(StratifiedAlignmentContext context: contexts) {
+                for(PileupElement pileupElement: context.basePileup)
+                    pe.add(pileupElement);
+            }
+            jointContext = new AlignmentContext(loc, new ReadBackedPileupImpl(loc,pe));
+        }
+
+        return jointContext;
     }
 }
