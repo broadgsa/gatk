@@ -62,6 +62,19 @@ public class AnnotatorInputTableFeature implements Feature {
 
     /**
      * Constructor.
+     * @param chr The chromosome name.
+     * @param start
+     * @param end
+     */
+    public AnnotatorInputTableFeature(String chr, int start, int end) {
+        this.chr = chr;
+        this.start = start;
+        this.end = end;
+    }
+
+
+    /**
+     * Constructor.
      * @param columnNames  The column names as parsed out of the file header.
      */
     public AnnotatorInputTableFeature(ArrayList<String> columnNames) {

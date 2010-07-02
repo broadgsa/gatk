@@ -75,11 +75,17 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         return null;  // TODO: do we want the header to be a concrete type?
     }
 
-    // todo -- probably worth implementing for performance reasons
+    @Override
     public Feature decodeLoc(String line) {
-        return decode(line);
+        int tabIndex = line.indexOf(DELIMITER);
+        if(tabIndex <= 0) {
+            throw new CodecLineParsingException("Couldn't parse GenomeLoc out the following line because line.indexOf(DELIMITER) returned " + tabIndex + ".\nLine: " + line);
+        }
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc(line.substring(0, tabIndex));
+        return new AnnotatorInputTableFeature(loc.getContig(), (int) loc.getStart(), (int) loc.getStop());
     }
-    
+
+
     /**
      * Parses the line into an AnnotatorInputTableFeature object.
      *
