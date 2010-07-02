@@ -279,7 +279,7 @@ public class VCFWriter {
                     // scan through all alleles and look for maximum common subsequence at beginning and at end for all alleles
                     numTrailingBases = 1;
                 } else
-                    numTrailingBases = originalRef.indexOf(refString);
+                    numTrailingBases = originalRef.lastIndexOf(refString);
 
                 numPaddingBases = originalRef.length()-refString.length()-numTrailingBases;
                 if (numTrailingBases > 0) {

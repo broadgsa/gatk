@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.util.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
@@ -74,6 +75,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
     final TreeSet<String> samples = new TreeSet<String>();
     VCF4Codec vcf4codec = new VCF4Codec();
 
+
     /**
      * Initialize the number of loci processed to zero.
      *
@@ -84,30 +86,43 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
     public void initialize() {
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
-        // Open output file specified by output VCF ROD
-        
-        vcfWriter = new VCFWriter(new File(OUTPUT_FILE), true);
 
+        // Open output file specified by output VCF ROD
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+
+
+        vcfWriter = new VCFWriter(new File(OUTPUT_FILE), true);
+        VCFHeader header = null;
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
-            Object p = rod.getRecordType();
-            if(rod.getType().equals(vcf4codec.getClass()) && rod.getName().equalsIgnoreCase(INPUT_ROD_NAME)) {
-                try {
-                    AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(rod.getFile().getAbsolutePath()));
-                    int lineNumber = vcf4codec.readHeader(lineReader);
-                    out.printf("Read %d header lines%n", lineNumber);
+            if(rod.getName().equalsIgnoreCase(INPUT_ROD_NAME)) {
+                if (rod.getType().equals(vcf4codec.getClass())) {
 
-                    VCFHeader header = vcf4codec.getHeader(VCFHeader.class);
-                    vcfWriter.writeHeader(header);
+                    try {
+                        AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(rod.getFile().getAbsolutePath()));
+                        int lineNumber = vcf4codec.readHeader(lineReader);
+                        out.printf("Read %d header lines%n", lineNumber);
+
+                        header = vcf4codec.getHeader(VCFHeader.class);
+                    }
+                    catch (FileNotFoundException e ) {
+                        throw new StingException(e.getMessage());
+                    }
+                } else {
+                    final VCFReader reader = new VCFReader(rod.getFile());
+                    final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
+                    samples.addAll(vcfSamples);
+                    reader.close();
+                    header = new VCFHeader(hInfo, samples);
                 }
-                catch (FileNotFoundException e ) {
-                    throw new StingException(e.getMessage());
-                }
+
             }
-
         }
 
+        header.setVersion(VCFHeaderVersion.VCF4_0);
 
+        vcfWriter.writeHeader(header);
 
     }
 
