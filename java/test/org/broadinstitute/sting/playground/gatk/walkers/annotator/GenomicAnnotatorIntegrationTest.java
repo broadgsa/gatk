@@ -26,7 +26,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
         */
 
 
-        String[] md5WithDashSArg = {"35dffbdb99dbf480f4bc5169219bcfc1"};
+        String[] md5WithDashSArg = {"a1bd36fc69a3cdd3a08d951730b1d7be"};
         WalkerTestSpec specWithSArg = new WalkerTestSpec(
                 "-T GenomicAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta " +
                 "-B variant,vcf,/humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf " +
@@ -37,7 +37,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                 "-s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet",
                  1,
                  Arrays.asList(md5WithDashSArg));
-        //executeTest("test with dbSNP and -s arg", specWithSArg);
+        executeTest("test with dbSNP and -s arg", specWithSArg);
 
     }
 }
