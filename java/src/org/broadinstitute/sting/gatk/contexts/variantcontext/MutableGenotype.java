@@ -39,7 +39,7 @@ public class MutableGenotype extends Genotype {
      * @param alleles list of alleles
      */
     public void setAlleles(List<Allele> alleles) {
-        this.alleles.clear();
+        this.alleles = new ArrayList<Allele>(alleles);
 
         // todo -- add validation checking here
 
@@ -51,14 +51,8 @@ public class MutableGenotype extends Genotype {
         if ( nNoCalls > 0 && nNoCalls != alleles.size() )
             throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
 
-        for ( Allele allele : alleles ) {
-            addAllele(allele);
-        }
-    }
-
-    public void addAllele(Allele allele) {
-        if ( allele == null ) throw new IllegalArgumentException("BUG: Cannot add a null allele to a genotype");
-        this.alleles.add(allele);
+        for ( Allele allele : alleles )
+            if ( allele == null ) throw new IllegalArgumentException("BUG: Cannot add a null allele to a genotype");
     }
 
     // ---------------------------------------------------------------------------------------------------------

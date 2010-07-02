@@ -196,23 +196,33 @@ public class VariantContextUtils {
         Set<Allele> alleles = new TreeSet<Allele>();
         Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
         double negLog10PError = -1;
-        Set<String> filters = new HashSet<String>();
-        Map<String, String> attributes = new TreeMap<String, String>();
+        Set<String> filters = new TreeSet<String>();
+        Map<String, Object> attributes = new TreeMap<String, Object>(first.getAttributes());
         int depth = 0;
 
         // filtering values
         int nFiltered = 0;
 
+        Allele refAllele = determineReferenceAllele(VCs);
+        boolean remapped = false;
+
         // cycle through and add info from the other VCs, making sure the loc/reference matches
+
         for ( VariantContext vc : VCs ) {
-            if ( !loc.equals(vc.getLocation()) ) // || !first.getReference().equals(vc.getReference()) )
+            if ( loc.getStart() != vc.getLocation().getStart() ) // || !first.getReference().equals(vc.getReference()) )
                 throw new StingException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
+
+            if ( vc.getLocation().size() > loc.size() )
+                loc = vc.getLocation(); // get the longest location
 
             nFiltered += vc.isFiltered() ? 1 : 0;
 
-            alleles.addAll(vc.getAlleles());
+            AlleleMapper alleleMapping = resolveIncompatibleAlleles(refAllele, vc, alleles);
+            remapped = remapped || alleleMapping.needsRemapping();
 
-            mergeGenotypes(genotypes, vc, mergeOptions.contains(MergeType.UNIQUIFY_GENOTYPES));
+            alleles.addAll(alleleMapping.values());
+
+            mergeGenotypes(genotypes, vc, alleleMapping, mergeOptions.contains(MergeType.UNIQUIFY_GENOTYPES));
 
             negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
 
@@ -244,8 +254,91 @@ public class VariantContextUtils {
 
         if ( depth > 0 )
             attributes.put(VCFRecord.DEPTH_KEY, String.valueOf(depth));
-        return new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
+
+        VariantContext merged = new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
+        //if ( remapped ) System.out.printf("Remapped => %s%n", merged);
+        return merged;
     }
+
+    private static class AlleleMapper {
+        private VariantContext vc = null;
+        private Map<Allele, Allele> map = null;
+        public AlleleMapper(VariantContext vc)          { this.vc = vc; }
+        public AlleleMapper(Map<Allele, Allele> map)    { this.map = map; }
+        public boolean needsRemapping()                 { return this.map != null; }
+        public Collection<Allele> values()              { return map != null ? map.values() : vc.getAlleles(); }
+
+        public Allele remap(Allele a)                   { return map != null && map.containsKey(a) ? map.get(a) : a; }
+
+        public List<Allele> remap(List<Allele> as) {
+            List<Allele> newAs = new ArrayList<Allele>();
+            for ( Allele a : as ) {
+                //System.out.printf("  Remapping %s => %s%n", a, remap(a));
+                newAs.add(remap(a));
+            }
+            return newAs;
+        }
+    }
+
+    static private Allele determineReferenceAllele(List<VariantContext> VCs) {
+        Allele ref = null;
+
+        for ( VariantContext vc : VCs ) {
+            Allele myRef = vc.getReference();
+            if ( ref == null || ref.length() < myRef.length() )
+                ref = myRef;
+            else if ( ref.length() == myRef.length() && ! ref.equals(myRef) )
+                throw new StingException("BUG: equal length references with difference bases: "+ ref + " " + myRef);
+        }
+
+        return ref;
+    }
+
+    static private AlleleMapper resolveIncompatibleAlleles(Allele refAllele, VariantContext vc, Set<Allele> allAlleles) {
+        if ( refAllele.equals(vc.getReference()) )
+            return new AlleleMapper(vc);
+        else {
+            // we really need to do some work.  The refAllele is the longest reference allele seen at this
+            // start site.  So imagine it is:
+            //
+            // refAllele: ACGTGA
+            // myRef:     ACGT
+            // myAlt:     -
+            //
+            // We need to remap all of the alleles in vc to include the extra GA so that
+            // myRef => refAllele and myAlt => GA
+            //
+
+            Allele myRef = vc.getReference();
+            if ( refAllele.length() <= myRef.length() ) throw new StingException("BUG: myRef="+myRef+" is longer than refAllele="+refAllele);
+            byte[] extraBases = Arrays.copyOfRange(refAllele.getBases(), myRef.length(), refAllele.length());
+
+//            System.out.printf("Remapping allele at %s%n", vc);
+//            System.out.printf("ref   %s%n", refAllele);
+//            System.out.printf("myref %s%n", myRef );
+//            System.out.printf("extrabases %s%n", new String(extraBases));
+
+            Map<Allele, Allele> map = new HashMap<Allele, Allele>();
+            for ( Allele a : vc.getAlleles() ) {
+                if ( a.isReference() )
+                    map.put(a, refAllele);
+                else {
+                    Allele extended = Allele.extend(a, extraBases);
+                    for ( Allele b : allAlleles )
+                        if ( extended.equals(b) )
+                            extended = b;
+//                    System.out.printf("  Extending %s => %s%n", a, extended);
+                    map.put(a, extended);
+                }
+            }
+
+            // debugging
+//            System.out.printf("mapping %s%n", map);
+
+            return new AlleleMapper(map);
+        }
+    }
+
 
     static class CompareByPriority implements Comparator<VariantContext> {
         List<String> priorityListOfVCs;
@@ -277,12 +370,19 @@ public class VariantContextUtils {
         }
     }
 
-    private static void mergeGenotypes(Map<String, Genotype> mergedGenotypes, VariantContext oneVC, boolean uniqifySamples) {
+    private static void mergeGenotypes(Map<String, Genotype> mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
         for ( Genotype g : oneVC.getGenotypes().values() ) {
             String name = mergedSampleName(oneVC.getName(), g.getSampleName(), uniqifySamples);
             if ( ! mergedGenotypes.containsKey(name) ) {
                 // only add if the name is new
-                Genotype newG = uniqifySamples ? g : new MutableGenotype(name, g);
+                Genotype newG = g;
+
+                if ( uniqifySamples || alleleMapping.needsRemapping() ) {
+                    MutableGenotype mutG = new MutableGenotype(name, g);
+                    if ( alleleMapping.needsRemapping() ) mutG.setAlleles(alleleMapping.remap(g.getAlleles()));
+                    newG = mutG;
+                }
+
                 mergedGenotypes.put(name, newG);
             }
         }

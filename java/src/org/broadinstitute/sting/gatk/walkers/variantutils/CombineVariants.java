@@ -69,7 +69,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         //Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         //hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
 
-        vcfWriter = new VCFWriter(out);
+        vcfWriter = new VCFWriter(out, true);
         priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
 
         validateAnnotateUnionArguments(priority);
@@ -82,7 +82,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     }
 
     private Set<String> getSampleList(Map<String, VCFHeader> headers, EnumSet<VariantContextUtils.MergeType> mergeOptions ) {
-        Set<String> samples = new HashSet<String>();
+        Set<String> samples = new TreeSet<String>();
         for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
             VCFHeader header = val.getValue();
             for ( String sample : header.getGenotypeSamples() ) {
@@ -110,10 +110,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
         VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, mergeOptions, true);
         if ( mergedVC != null ) // only operate at the start of events
-            if ( ! mergedVC.isMixed() ) // todo remove restriction when VCF4 writer is fixed
-                vcfWriter.add(mergedVC, ref.getBases());
-            else
-                logger.info(String.format("Ignoring complex event: " + mergedVC));
+            //if ( ! mergedVC.isMixed() ) // todo remove restriction when VCF4 writer is fixed
+            vcfWriter.add(mergedVC, ref.getBases());
+//            else
+//                logger.info(String.format("Ignoring complex event: " + mergedVC));
 
         return vcs.isEmpty() ? 0 : 1;
     }

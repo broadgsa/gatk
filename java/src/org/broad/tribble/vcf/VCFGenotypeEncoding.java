@@ -128,7 +128,7 @@ public class VCFGenotypeEncoding {
      */
     private static boolean validBases(String bases) {
         for (char c : bases.toUpperCase().toCharArray()) {
-            if (c != 'A' && c != 'C' && c != 'G' && c != 'T')
+            if (c != 'A' && c != 'C' && c != 'G' && c != 'T' && c != 'N')
                 return false;
         }
         return true;

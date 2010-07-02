@@ -222,4 +222,15 @@ public class AlleleUnitTest extends BaseTest {
         logger.warn("testBadConstructorArgs5");
         Allele.create("A A");
     }
+
+    @Test
+    public void testExtend() {
+        logger.warn("testExtend");
+        Assert.assertEquals("AT", Allele.extend(Allele.create("A"), "T".getBytes()).toString());
+        Assert.assertEquals("ATA", Allele.extend(Allele.create("A"), "TA".getBytes()).toString());
+        Assert.assertEquals("A", Allele.extend(Allele.create("-"), "A".getBytes()).toString());
+        Assert.assertEquals("A", Allele.extend(Allele.NO_CALL, "A".getBytes()).toString());
+        Assert.assertEquals("ATCGA", Allele.extend(Allele.create("AT"), "CGA".getBytes()).toString());
+        Assert.assertEquals("ATCGA", Allele.extend(Allele.create("ATC"), "GA".getBytes()).toString());
+    }
 }
