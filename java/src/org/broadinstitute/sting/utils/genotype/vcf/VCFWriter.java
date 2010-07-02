@@ -28,6 +28,7 @@ public class VCFWriter {
     BufferedWriter mWriter;
 
     private boolean writingVCF40Format;
+    private String PASSES_FILTERS_STRING = null;
 
     // our genotype sample fields
     private static final List<VCFGenotypeRecord> mGenotypeRecords = new ArrayList<VCFGenotypeRecord>();
@@ -47,8 +48,8 @@ public class VCFWriter {
 
     // default values
     private static final String UNFILTERED = ".";
-    private static final String PASSES_FILTERS = "0";
-    private static final String PASSES_FILTERS_VCF_4_0 = "PASS";
+    private static final String PASSES_FILTERS_VCF3 = "0";
+    private static final String PASSES_FILTERS_VCF4 = "PASS";
     private static final String EMPTY_INFO_FIELD = ".";
     private static final String EMPTY_ID_FIELD = ".";
     private static final String EMPTY_ALLELE_FIELD = ".";
@@ -66,12 +67,15 @@ public class VCFWriter {
 
     public VCFWriter(File location, boolean useVCF4Format) {
         this.writingVCF40Format = useVCF4Format;
+        this.PASSES_FILTERS_STRING = useVCF4Format ? PASSES_FILTERS_VCF4 : PASSES_FILTERS_VCF3;
+
         FileOutputStream output;
         try {
             output = new FileOutputStream(location);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Unable to create VCF file at location: " + location);
         }
+
         mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 
@@ -87,6 +91,7 @@ public class VCFWriter {
     }
     public VCFWriter(OutputStream output, boolean useVCF4Format) {
         this.writingVCF40Format = useVCF4Format;
+        this.PASSES_FILTERS_STRING = useVCF4Format ? PASSES_FILTERS_VCF4 : PASSES_FILTERS_VCF3;
         mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 
@@ -238,8 +243,8 @@ public class VCFWriter {
         // TODO- clean up these flags and associated code
         boolean filtersWereAppliedToContext = true;
         List<String> allowedGenotypeAttributeKeys = null;
-        boolean filtersWereAppliedToGenotypes = false;
-        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? PASSES_FILTERS_VCF_4_0 : UNFILTERED);
+        boolean filtersWereAppliedToGenotypes = true;
+        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? PASSES_FILTERS_STRING : UNFILTERED);
 
         Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();
         alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
@@ -250,8 +255,6 @@ public class VCFWriter {
         String trailingBases = new String("");
 
         ArrayList<Allele> originalAlleles = (ArrayList)vc.getAttribute("ORIGINAL_ALLELE_LIST");
-
-
 
         // search for reference allele and find trailing and padding at the end.
         if (originalAlleles != null) {
@@ -339,7 +342,7 @@ public class VCFWriter {
                 if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
                     vcfGenotypeAttributeKeys.add(key);
             }
-            if ( filtersWereAppliedToGenotypes )
+            if ( filtersWereAppliedToGenotypes ) // todo -- should be calculated
                 vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_FILTER_KEY);
         }
         String genotypeFormatString = Utils.join(GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
@@ -382,7 +385,7 @@ public class VCFWriter {
                         val = pileup.size();
                 } else if ( key.equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) ) {
                     // VCF 4.0 key for no filters is "."
-                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : UNFILTERED;
+                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : PASSES_FILTERS_STRING;
                 }
 
 

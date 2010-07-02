@@ -728,9 +728,9 @@ public class GenomeAnalysisEngine {
                                              ValidationExclusion exclusions) {
         // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
         // sharding system; it's required with the new sharding system only for locus walkers.
-        if(readsDataSource != null && !readsDataSource.hasIndex() && walker instanceof LocusWalker) {
+        if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM) || intervals != null)
-                throw new StingException("The GATK cannot currently process unindexed BAM files");
+                throw new StingException("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM, or with unindexed BAM files with the -L option");
 
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {

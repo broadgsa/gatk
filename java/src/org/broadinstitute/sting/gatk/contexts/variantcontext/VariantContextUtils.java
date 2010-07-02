@@ -165,7 +165,7 @@ public class VariantContextUtils {
     }
 
     public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs) {
-        return simpleMerge(unsortedVCs, null, EnumSet.of(MergeType.INTERSECT_VARIANTS, MergeType.UNSORTED_GENOTYPES), false);
+        return simpleMerge(unsortedVCs, null, EnumSet.of(MergeType.INTERSECT_VARIANTS, MergeType.UNSORTED_GENOTYPES), false, false);
     }
 
 
@@ -179,7 +179,7 @@ public class VariantContextUtils {
      * @param mergeOptions
      * @return
      */
-    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, EnumSet<MergeType> mergeOptions, boolean annotateOrigin ) {
+    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, EnumSet<MergeType> mergeOptions, boolean annotateOrigin, boolean printMessages ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
@@ -256,7 +256,7 @@ public class VariantContextUtils {
             attributes.put(VCFRecord.DEPTH_KEY, String.valueOf(depth));
 
         VariantContext merged = new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
-        //if ( remapped ) System.out.printf("Remapped => %s%n", merged);
+        if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
 

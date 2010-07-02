@@ -1,5 +1,7 @@
 package org.broad.tribble.vcf;
 
+import org.broadinstitute.sting.utils.StingException;
+
 import java.util.*;
 
 /**
@@ -48,6 +50,9 @@ class VCF4Parser implements VCFLineParser {
         for (Map.Entry<String,?> entry : keyValues.entrySet()) {
             if (start) start = false;
             else builder.append(",");
+
+            if ( entry.getValue() == null ) throw new StingException("Header problem: unbound value at " + entry + " from " + keyValues);
+
             builder.append(entry.getKey());
             builder.append("=");
             builder.append(entry.getValue().toString().contains(",") ||

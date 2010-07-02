@@ -434,11 +434,8 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
             double GTQual = VariantContext.NO_NEG_LOG_10PERROR;
             Set<String> genotypeFilters = null;
-            String sampleName = sampleNameIterator.next();
-
-
-            // todo -- the parsing of attributes could be made lazy for performance
             Map<String, String> gtAttributes = null;
+            String sampleName = sampleNameIterator.next();
 
             // check to see if the value list is longer than the key list, which is a problem
             if (nGTKeys < GTValueSplitSize)
@@ -457,8 +454,8 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
                             genotypeAlleleLocation = i;
                     else if (genotypeKeyArray[i].equals("GQ"))
                         GTQual = parseQual(GTValueArray[i]);
-                    else if (genotypeKeyArray[i].equals("FL")) // deal with genotype filters here
-                        genotypeFilters.addAll(parseFilters(GTValueArray[i]));
+                    else if (genotypeKeyArray[i].equals("FT")) // deal with genotype filters here
+                        genotypeFilters = parseFilters(GTValueArray[i]);
                     else
                         gtAttributes.put(genotypeKeyArray[i], GTValueArray[i]);
 

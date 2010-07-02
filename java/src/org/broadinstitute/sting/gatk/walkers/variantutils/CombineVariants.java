@@ -25,8 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -57,6 +56,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=true)
     protected String PRIORITY_STRING = null;
 
+    @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
+    protected boolean printComplexMerges = false;
+
     private VCFWriter vcfWriter = null;
     private List<String> priority = null;
     protected EnumSet<VariantContextUtils.MergeType> mergeOptions;
@@ -72,16 +74,21 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         vcfWriter = new VCFWriter(out, true);
         priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
 
+
+        // todo -- need to merge headers in an intelligent way
+
         validateAnnotateUnionArguments(priority);
         mergeOptions = COMBO_TYPE == ComboType.MERGE ? mergeTypeOptions : unionTypeOptions;
-        Set<String> samples = getSampleList(SampleUtils.getRodsWithVCFHeader(getToolkit(), null), mergeOptions);
+        Map<String, VCFHeader> vcfRods = SampleUtils.getRodsWithVCFHeader(getToolkit(), null);
+        Set<String> samples = getSampleList(vcfRods, mergeOptions);
 
-        Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
-        metaData.add(new VCFHeaderLine("source", "VCFCombine"));
-        vcfWriter.writeHeader(new VCFHeader(metaData, samples));
+        Set<VCFHeaderLine> headerLines = smartMergeHeaders(vcfRods.values());
+        headerLines.add(new VCFHeaderLine("source", "CombineVariants"));
+        vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
-    private Set<String> getSampleList(Map<String, VCFHeader> headers, EnumSet<VariantContextUtils.MergeType> mergeOptions ) {
+    // todo -- Eric, where's a better place to put this?
+    public static Set<String> getSampleList(Map<String, VCFHeader> headers, EnumSet<VariantContextUtils.MergeType> mergeOptions ) {
         Set<String> samples = new TreeSet<String>();
         for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
             VCFHeader header = val.getValue();
@@ -92,6 +99,48 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         return samples;
     }
+
+    // todo -- Eric, where's a better place to put this?
+    public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers) throws IllegalStateException {
+        HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
+        HashSet<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
+
+        for ( VCFHeader source : headers ) {
+            //System.out.printf("Merging in header %s%n", source);
+            for ( VCFHeaderLine line : source.getMetaData()) {
+                String key = line.getKey();
+                if ( line instanceof VCFNamedHeaderLine ) key = key + "." + ((VCFNamedHeaderLine) line).getmName();
+
+                if ( map.containsKey(key) ) {
+                    VCFHeaderLine other = map.get(key);
+                    if ( line.equals(other) )
+                        continue;
+//                        System.out.printf("equals duplicate key %s%n", line);
+                    else if ( ! line.getClass().equals(other.getClass()) )
+                        throw new IllegalStateException("Incompatible header types: " + line + " " + other );
+                    else if ( line instanceof VCFFilterHeaderLine ) {
+                        String lineName = ((VCFFilterHeaderLine) line).getmName();
+                        String otherName = ((VCFFilterHeaderLine) other).getmName();
+                        if ( ! lineName.equals(otherName) )
+                            throw new IllegalStateException("Incompatible header types: " + line + " " + other );
+                    } else {
+                        //String lineName = ((VCFInfoHeaderLine) line).getmName();
+                        //String otherName = ((VCFFilterHeaderLine) other).getmName();
+
+                        // todo -- aaron, please complete these comparisons when INFO and Format header lines are made into one
+                        //if ( (lineType != null && ! lineType.equals(otherType)) || (lineCount != null && !lineCounts.equals(otherCount)))
+                        //    throw new IllegalStateException("Incompatible header types: " + line + " " + other );
+                    }
+                } else {
+                    map.put(key, line);
+                    //System.out.printf("Adding header line %s%n", line);
+                }
+            }
+        }
+
+        return new HashSet<VCFHeaderLine>(map.values());
+    }
+
 
     private void validateAnnotateUnionArguments(List<String> priority) {
         Set<String> rodNames = SampleUtils.getRodsNamesWithVCFHeader(getToolkit(), null);
@@ -108,7 +157,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
-        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, mergeOptions, true);
+        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, mergeOptions, true, printComplexMerges);
         if ( mergedVC != null ) // only operate at the start of events
             //if ( ! mergedVC.isMixed() ) // todo remove restriction when VCF4 writer is fixed
             vcfWriter.add(mergedVC, ref.getBases());

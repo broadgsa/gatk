@@ -14,7 +14,7 @@ import java.util.Map;
  *         <p/>
  *         A class representing a key=value entry for genotype FORMAT fields in the VCF header
  */
-public class VCFFormatHeaderLine extends VCFHeaderLine {
+public class VCFFormatHeaderLine extends VCFHeaderLine implements VCFNamedHeaderLine {
 
     // the format field types
     public enum FORMAT_TYPE {

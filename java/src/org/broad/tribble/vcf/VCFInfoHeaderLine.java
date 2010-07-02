@@ -1,7 +1,5 @@
 package org.broad.tribble.vcf;
 
-import org.broad.tribble.util.ParsingUtils;
-
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,7 +12,7 @@ import java.util.Map;
  *         <p/>
  *         A class representing a key=value entry for INFO fields in the VCF header
  */
-public class VCFInfoHeaderLine extends VCFHeaderLine {
+public class VCFInfoHeaderLine extends VCFHeaderLine implements VCFNamedHeaderLine {
 
     // the info field types
     public enum INFO_TYPE {
@@ -106,6 +104,7 @@ public class VCFInfoHeaderLine extends VCFHeaderLine {
                mType == other.mType;
     }
 
+    @Override
     public String getmName() {
         return mName;
     }

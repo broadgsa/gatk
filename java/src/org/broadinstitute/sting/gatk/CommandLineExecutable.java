@@ -175,6 +175,9 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
                 unpackedReads.add( inputFile );
             }
+            else if(inputFile.getName().equals("-")) {
+                unpackedReads.add( new File("/dev/stdin") );
+            }
             else {
                 Utils.scareUser(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
                                               "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
