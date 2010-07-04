@@ -401,8 +401,12 @@ public class AlignmentUtils {
         CigarElement ce = cigar.getCigarElement(indexOfIndel-1);
         elements.add(new CigarElement(ce.getLength()-1, ce.getOperator()));
         elements.add(cigar.getCigarElement(indexOfIndel));        
-        ce = cigar.getCigarElement(indexOfIndel+1);
-        elements.add(new CigarElement(ce.getLength()+1, ce.getOperator()));
+        if ( indexOfIndel+1 < cigar.numCigarElements() ) {
+            ce = cigar.getCigarElement(indexOfIndel+1);
+            elements.add(new CigarElement(ce.getLength()+1, ce.getOperator()));
+        } else {
+            elements.add(new CigarElement(1, CigarOperator.M));
+        }
 
         // get the last few elements
         for ( int i = indexOfIndel + 2; i < cigar.numCigarElements(); i++)
