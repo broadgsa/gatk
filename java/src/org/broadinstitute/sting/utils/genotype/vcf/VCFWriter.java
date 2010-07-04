@@ -243,76 +243,79 @@ public class VCFWriter {
         // TODO- clean up these flags and associated code
         boolean filtersWereAppliedToContext = true;
         List<String> allowedGenotypeAttributeKeys = null;
-        boolean filtersWereAppliedToGenotypes = true;
+
         String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? PASSES_FILTERS_STRING : UNFILTERED);
 
         Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();
         alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
         List<VCFGenotypeEncoding> vcfAltAlleles = new ArrayList<VCFGenotypeEncoding>();
 
-        int refIndex=0, numTrailingBases = 0, numPaddingBases = 0;
-        String paddingBases = new String("");
-        String trailingBases = new String("");
+        int numTrailingBases = 0, numPaddingBases = 0;
+        String paddingBases = "";
+        String trailingBases = "";
 
         ArrayList<Allele> originalAlleles = (ArrayList)vc.getAttribute("ORIGINAL_ALLELE_LIST");
 
+
         // search for reference allele and find trailing and padding at the end.
+         // See first if all alleles have a base encoding (ie no deletions)
+        // if so, add one common base to all alleles (reference at this location)
+        boolean hasBasesInAllAlleles = true;
+        String refString = null;
+        for ( Allele a : vc.getAlleles() ) {
+            if (a.isNull() || a.isNoCall())
+                hasBasesInAllAlleles = false;
+
+            if (a.isReference())
+                refString = new String(a.getBases());
+        }
+
         if (originalAlleles != null) {
+            // if original allele info was filled when reading from a VCF4 file,
+            // determine whether there was a padding base(s) at the beginning and end.
+            byte previousBase  = 0;
+            int cnt=0;
+            boolean firstBaseCommonInAllAlleles = true;
             Allele originalReferenceAllele = null;
-            for (refIndex=0; refIndex < originalAlleles.size(); refIndex++) {
-                originalReferenceAllele = originalAlleles.get(refIndex);
-                if (originalReferenceAllele.isReference())
-                    break;
+            for (Allele originalAllele : originalAlleles){
+                // if first base of allele is common to all of them, there may have been a common base deleted from all
+                byte firstBase = originalAllele.getBases()[0];
+                if (cnt > 0) {
+                    if (firstBase != previousBase)
+                        firstBaseCommonInAllAlleles = false;
+                }
+                previousBase = firstBase;
+                cnt++;
+                
+                if (originalAllele.isReference())
+                    originalReferenceAllele = originalAllele;
             }
 
+
+            numTrailingBases = (firstBaseCommonInAllAlleles)? 1:0;
+            position -= numTrailingBases;
+            
             if (originalReferenceAllele == null)
                 throw new IllegalStateException("At least one Allele must be reference");
 
-            for ( Allele a : vc.getAlleles() ) {
-                if (a.isNonReference())
-                    continue;
+            String originalRef = new String(originalReferenceAllele.getBases());
+            numPaddingBases = originalRef.length()-refString.length()-numTrailingBases;
 
-                String refString = new String(a.getBases());
-                String originalRef = new String(originalReferenceAllele.getBases());
-                if (refString.equals("")) {
-                    // special case with null reference:
-                    // for example, null reference, originalRef = "AC", alt = "AGC".
-                    // In this case, we'd have one trailing and one padding base, with alleles as {-,G}.
-                    // TEMP fix: assume in this case one trailing base, more general solution would be to
-                    // scan through all alleles and look for maximum common subsequence at beginning and at end for all alleles
-                    numTrailingBases = 1;
-                } else
-                    numTrailingBases = originalRef.lastIndexOf(refString);
-
-                numPaddingBases = originalRef.length()-refString.length()-numTrailingBases;
-                if (numTrailingBases > 0) {
-
-                    position -= numTrailingBases;
-                    trailingBases = originalRef.substring(0,numTrailingBases);
-                }
-                if (numPaddingBases > 0)
-                    paddingBases = originalRef.substring(originalRef.length()-numPaddingBases,originalRef.length());
-
+            if (numTrailingBases > 0) {
+                trailingBases = originalRef.substring(0,numTrailingBases);
             }
-
-        } else {
-            // no original Allele information: see first if all alleles have a base encoding (ie no deletions)
-            // if so, add one common base to all alleles (reference at this location)
-            boolean hasBasesInAllAlleles = true;
-            for ( Allele a : vc.getAlleles() ) {
-                 String alleleString = new String(a.getBases());
-                 if (alleleString.length()==0)  {
-                     hasBasesInAllAlleles = false;
-                     break;
-                 }
-            }
-
+            if (numPaddingBases > 0)
+                paddingBases = originalRef.substring(originalRef.length()-numPaddingBases,originalRef.length());
+        }
+        else {
+            // Case where there is no original allele info, e.g. when reading from VCF3.3 or when vc was produced by the GATK.
             if (!hasBasesInAllAlleles) {
                 trailingBases = new String(refBases);
                 numTrailingBases = 1;
                 position--;
             }
         }
+
 
         for ( Allele a : vc.getAlleles() ) {
 
@@ -342,8 +345,7 @@ public class VCFWriter {
                 if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
                     vcfGenotypeAttributeKeys.add(key);
             }
-            if ( filtersWereAppliedToGenotypes ) // todo -- should be calculated
-                vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_FILTER_KEY);
+
         }
         String genotypeFormatString = Utils.join(GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
 
@@ -497,7 +499,7 @@ public class VCFWriter {
      * @param vcfAltAlleles alternate alleles at this site
      */
     private void addGenotypeData(StringBuilder builder, VCFHeader header,
-                                        String genotypeFormatString, List<VCFGenotypeEncoding>vcfAltAlleles) {
+                                 String genotypeFormatString, List<VCFGenotypeEncoding>vcfAltAlleles) {
         Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(mGenotypeRecords);
 
         StringBuffer tempStr = new StringBuffer();
@@ -559,7 +561,7 @@ public class VCFWriter {
 
         }
         return isEmpty;
-        
+
     }
     /**
      * create a genotype mapping from a list and their sample names
