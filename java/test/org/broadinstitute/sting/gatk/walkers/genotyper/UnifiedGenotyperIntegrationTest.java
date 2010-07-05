@@ -108,7 +108,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -stand_emit_conf 10 ", 1,
-                Arrays.asList("226ca8079db4e46a61367db49bac8b2b"));
+                Arrays.asList("a38ccaef73e57bed1e5f797b91e7ef38"));
         executeTest("testConfidence2", spec2);
     }
 

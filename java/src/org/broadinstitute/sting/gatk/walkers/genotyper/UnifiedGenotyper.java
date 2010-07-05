@@ -29,6 +29,7 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
@@ -140,17 +141,18 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        if ( UG_engine.annotateDbsnp )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFHeaderLineType.Integer, "dbSNP Membership"));
-        if ( UG_engine.annotateHapmap2 )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFHeaderLineType.Integer, "HapMap2 Membership"));
-        if ( UG_engine.annotateHapmap3 )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFHeaderLineType.Integer, "HapMap3 Membership"));
+        for ( Map.Entry<String, String> dbSet : UG_engine.dbAnnotations.entrySet() )
+            headerInfo.add(new VCFInfoHeaderLine(dbSet.getValue(), 0, VCFHeaderLineType.Flag, (dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ? "dbSNP" : dbSet.getValue()) + " Membership"));
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
 
         // FORMAT and INFO fields
         headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings(VCFHeaderVersion.VCF3_3));
+
+        // FILTER fields
+        if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING ||
+             UAC.TRIGGER_CONFIDENCE_FOR_EMITTING < UAC.TRIGGER_CONFIDENCE_FOR_CALLING )
+            headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
 
         // all of the arguments from the argument collection
         Set<Object> args = new HashSet<Object>();

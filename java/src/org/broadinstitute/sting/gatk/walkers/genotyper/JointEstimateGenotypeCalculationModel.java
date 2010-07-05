@@ -44,7 +44,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
 
     protected JointEstimateGenotypeCalculationModel() {
-        filter.add("LowQual");
+        filter.add(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME);
     }
 
     public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, byte[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {

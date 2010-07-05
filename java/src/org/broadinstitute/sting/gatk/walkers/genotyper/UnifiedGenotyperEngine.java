@@ -33,7 +33,6 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -46,6 +45,7 @@ import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
 import org.broadinstitute.sting.utils.pileup.*;
+import org.broad.tribble.vcf.VCFRecord;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -54,13 +54,9 @@ import java.util.*;
 public class UnifiedGenotyperEngine {
 
     public static final String TRIGGER_TRACK_NAME = "trigger";
+    public static final String LOW_QUAL_FILTER_NAME = "LowQual";
 
-    // should we annotate dbsnp?
-    protected boolean annotateDbsnp = false;
-    // should we annotate hapmap2?
-    protected boolean annotateHapmap2 = false;
-    // should we annotate hapmap3?
-    protected boolean annotateHapmap3 = false;
+    protected HashMap<String, String> dbAnnotations = new HashMap<String, String>();
 
     // the unified argument collection
     protected UnifiedArgumentCollection UAC = null;
@@ -112,18 +108,14 @@ public class UnifiedGenotyperEngine {
         else
             this.samples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader());
 
-        // check to see whether a dbsnp rod was included
+        // check to see whether comp rods were included
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                this.annotateDbsnp = true;
+            if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                dbAnnotations.put(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, VCFRecord.DBSNP_KEY);
             }
-            if ( rod.getName().equals("hapmap2") ) {
-                this.annotateHapmap2 = true;
-            }
-            if ( rod.getName().equals("hapmap3") ) {
-                this.annotateHapmap3 = true;
+            else if ( source.getName().startsWith(VariantAnnotatorEngine.dbPrefix) ) {
+                dbAnnotations.put(source.getName(), source.getName().substring(VariantAnnotatorEngine.dbPrefix.length()));
             }
         }
     }

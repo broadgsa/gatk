@@ -155,7 +155,7 @@ public class VariantAnnotatorEngine {
 
     private void initialize(GenomeAnalysisEngine engine) {
 
-        // check to see whether a dbsnp rod was included
+        // check to see whether comp rods were included
         List<ReferenceOrderedDataSource> dataSources = engine.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
