@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFHeaderVersion;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.features.vcf4.VCF4Codec;
 import org.junit.Assert;
@@ -81,7 +79,17 @@ public class VCFHeaderUnitTest extends BaseTest {
         Assert.assertTrue(md5sum.equals(md5SumFile(myTempFile)));
     }
 
+    @Test
+    public void checkInfoCanHaveFlagValues() {
+        VCFHeaderLineType type = VCFHeaderLineType.Flag;
+        type.convert("true", VCFCompoundHeaderLine.SupportedHeaderLineType.INFO);
+    }
 
+    @Test(expected=IllegalStateException.class)
+    public void checkFormatCannotHaveFlagValues() {
+        VCFHeaderLineType type = VCFHeaderLineType.Flag;
+        type.convert("true", VCFCompoundHeaderLine.SupportedHeaderLineType.FORMAT);
+    }
 
 
     public String[] VCF3_3headerStrings = {

@@ -39,7 +39,6 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
@@ -134,7 +133,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final TreeSet<String> samples = new TreeSet<String>();
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
+        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
 

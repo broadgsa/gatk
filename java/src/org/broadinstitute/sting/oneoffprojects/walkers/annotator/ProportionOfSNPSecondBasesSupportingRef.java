@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -106,7 +107,7 @@ public class ProportionOfSNPSecondBasesSupportingRef implements InfoFieldAnnotat
 
     public List<VCFInfoHeaderLine> getDescriptions() {
         return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME,
-                        1,VCFInfoHeaderLine.INFO_TYPE.Float,"Simple proportion of second best base calls for SNP base that support the Ref base"));
+                        1, VCFHeaderLineType.Float,"Simple proportion of second best base calls for SNP base that support the Ref base"));
     }
 
 

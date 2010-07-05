@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
@@ -116,5 +117,5 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     }
 
     public String getInfoName() { return "SnpConcordance"; }    
-    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "SNP concordance test"); }
+    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFHeaderLineType.String, "SNP concordance test"); }
 }

@@ -141,13 +141,13 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         // annotation (INFO) fields from UnifiedGenotyper
         if ( UG_engine.annotateDbsnp )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "dbSNP Membership"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.DBSNP_KEY, 1, VCFHeaderLineType.Integer, "dbSNP Membership"));
         if ( UG_engine.annotateHapmap2 )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "HapMap2 Membership"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP2_KEY, 1, VCFHeaderLineType.Integer, "HapMap2 Membership"));
         if ( UG_engine.annotateHapmap3 )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "HapMap3 Membership"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.HAPMAP3_KEY, 1, VCFHeaderLineType.Integer, "HapMap3 Membership"));
         if ( !UAC.NO_SLOD )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Strand Bias"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
 
         // FORMAT and INFO fields
         headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings(VCFHeaderVersion.VCF3_3));

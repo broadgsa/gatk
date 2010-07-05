@@ -7,7 +7,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -34,8 +33,8 @@ public class VCFWriter {
     private static final List<VCFGenotypeRecord> mGenotypeRecords = new ArrayList<VCFGenotypeRecord>();
 
     // Properties only used when using VCF4.0 encoding
-    Map<String, VCFFormatHeaderLine.FORMAT_TYPE> typeUsedForFormatString = new HashMap<String, VCFFormatHeaderLine.FORMAT_TYPE>();
-    Map<String, VCFInfoHeaderLine.INFO_TYPE> typeUsedForInfoFields = new HashMap<String, VCFInfoHeaderLine.INFO_TYPE>();
+    Map<String, VCFHeaderLineType> typeUsedForFormatString = new HashMap<String, VCFHeaderLineType>();
+    Map<String, VCFHeaderLineType> typeUsedForInfoFields = new HashMap<String, VCFHeaderLineType>();
     Map<String, Integer> numberUsedForInfoFields = new HashMap<String, Integer>();
     Map<String, Integer> numberUsedForFormatFields = new HashMap<String, Integer>();
 
@@ -113,16 +112,16 @@ public class VCFWriter {
                     if (line.getClass() == VCFFormatHeaderLine.class) {
 
                         VCFFormatHeaderLine a = (VCFFormatHeaderLine)line;
-                        String key = a.getmName();
-                        typeUsedForFormatString.put(key,a.getmType());
-                        int num = a.getmCount();
+                        String key = a.getName();
+                        typeUsedForFormatString.put(key,a.getType());
+                        int num = a.getCount();
                         numberUsedForFormatFields.put(key,num);
 
                     } else if (line.getClass() == VCFInfoHeaderLine.class) {
                         VCFInfoHeaderLine a = (VCFInfoHeaderLine)line;
-                        String key = a.getmName();
-                        typeUsedForInfoFields.put(key,a.getmType());
-                        int num = a.getmCount();
+                        String key = a.getName();
+                        typeUsedForInfoFields.put(key,a.getType());
+                        int num = a.getCount();
                         numberUsedForInfoFields.put(key, num);
                     }
 
@@ -393,9 +392,9 @@ public class VCFWriter {
 
                 Object newVal;
                 if (typeUsedForFormatString.containsKey(key)) {
-                    VCFFormatHeaderLine.FORMAT_TYPE formatType = typeUsedForFormatString.get(key);
+                    VCFHeaderLineType formatType = typeUsedForFormatString.get(key);
                     if (!val.getClass().equals(String.class))
-                        newVal = formatType.convert(String.valueOf(val));
+                        newVal = formatType.convert(String.valueOf(val), VCFCompoundHeaderLine.SupportedHeaderLineType.FORMAT);
                     else
                         newVal = val;
 

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -37,5 +38,5 @@ public class Alignability implements InfoFieldAnnotation {
 
     public List<String> getKeyNames() { return Arrays.asList("Alignability"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Alignability according to a mask file (3 is best, 0 is worst)")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Alignability according to a mask file (3 is best, 0 is worst)")); }
 }

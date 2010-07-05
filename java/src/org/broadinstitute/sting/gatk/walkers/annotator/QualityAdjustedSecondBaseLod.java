@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -21,7 +22,7 @@ public class QualityAdjustedSecondBaseLod implements InfoFieldAnnotation, Experi
 
     public List<String> getKeyNames() { return Arrays.asList(KEY_NAME); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME, 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Adjusted residual quality based on second-base skew")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME, 1, VCFHeaderLineType.Float, "Adjusted residual quality based on second-base skew")); }
     
     public Map<String, Object> annotate( RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> contexts, VariantContext vc) {
         String chi = skewCalc.getAnnotation(ref, contexts, vc);

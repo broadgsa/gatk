@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broad.tribble.FeatureReader;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -13,7 +10,6 @@ import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -83,7 +79,7 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
         hInfo.add(new VCFHeaderLine("source", "IndelAnnotator"));
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         HashSet<VCFInfoHeaderLine> anno = new HashSet<VCFInfoHeaderLine>();
-        anno.add(new VCFInfoHeaderLine("type",1,VCFInfoHeaderLine.INFO_TYPE.String,"Genomic interpretation (according to RefSeq)"));
+        anno.add(new VCFInfoHeaderLine("type",1, VCFHeaderLineType.String,"Genomic interpretation (according to RefSeq)"));
         hInfo.addAll(anno);
 
         vcfWriter = new VCFWriter(out);

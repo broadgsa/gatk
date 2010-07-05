@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
@@ -41,5 +42,5 @@ public class NWayVenn implements ConcordanceType {
     }
 
     public String getInfoName() { return "NwayVenn"; }    
-    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "N-way Venn split"); }
+    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFHeaderLineType.String, "N-way Venn split"); }
 }

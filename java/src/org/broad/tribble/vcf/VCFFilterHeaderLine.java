@@ -1,7 +1,5 @@
 package org.broad.tribble.vcf;
 
-import org.broad.tribble.util.ParsingUtils;
-
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,8 +11,8 @@ import java.util.Map;
  */
 public class VCFFilterHeaderLine extends VCFHeaderLine {
 
-    private String mName;
-    private String mDescription;
+    private String name;
+    private String description;
 
 
     /**
@@ -25,8 +23,8 @@ public class VCFFilterHeaderLine extends VCFHeaderLine {
      */
     public VCFFilterHeaderLine(String name, String description) {
         super("FILTER", "");
-        mName = name;
-        mDescription = description;
+        this.name = name;
+        this.description = description;
     }
 
     /**
@@ -38,17 +36,17 @@ public class VCFFilterHeaderLine extends VCFHeaderLine {
     protected VCFFilterHeaderLine(String line, VCFHeaderVersion version) {
         super("FILTER", "", version);
         Map<String,String> mapping = VCFHeaderLineTranslator.parseLine(version,line, Arrays.asList("ID","Description"));
-        mName = mapping.get("ID");
-        mDescription = mapping.get("Description");
+        name = mapping.get("ID");
+        description = mapping.get("Description");
     }
 
     protected String makeStringRep() {
         if (mVersion == VCFHeaderVersion.VCF3_3 || mVersion == VCFHeaderVersion.VCF3_2)
-            return String.format("FILTER=%s,\"%s\"", mName, mDescription);
+            return String.format("FILTER=%s,\"%s\"", name, description);
         else if (mVersion == VCFHeaderVersion.VCF4_0) {
             Map<String,Object> map = new LinkedHashMap<String,Object>();
-            map.put("ID",mName);
-            map.put("Description",mDescription);
+            map.put("ID", name);
+            map.put("Description", description);
             return "FILTER=" + VCFHeaderLineTranslator.toValue(this.mVersion,map);
         }
         else throw new RuntimeException("Unsupported VCFVersion " + mVersion);
@@ -58,15 +56,15 @@ public class VCFFilterHeaderLine extends VCFHeaderLine {
         if ( !(o instanceof VCFFilterHeaderLine) )
             return false;
         VCFFilterHeaderLine other = (VCFFilterHeaderLine)o;
-        return mName.equals(other.mName) &&
-               mDescription.equals(other.mDescription);
+        return name.equals(other.name) &&
+               description.equals(other.description);
     }
 
-    public String getmName() {
-        return mName;
+    public String getName() {
+        return name;
     }
 
-    public String getmDescription() {
-        return mDescription;
+    public String getDescription() {
+        return description;
     }
 }

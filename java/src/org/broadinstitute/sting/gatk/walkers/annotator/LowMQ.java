@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -41,5 +42,5 @@ public class LowMQ implements InfoFieldAnnotation {
 
     public List<String> getKeyNames() { return Arrays.asList("LowMQ"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 3, VCFInfoHeaderLine.INFO_TYPE.Integer, "3-tuple: <fraction of reads with MQ=0>,<fraction of reads with MQ<=10>,<total nubmer of reads>")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 3, VCFHeaderLineType.Integer, "3-tuple: <fraction of reads with MQ=0>,<fraction of reads with MQ<=10>,<total nubmer of reads>")); }
 }

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -63,5 +64,5 @@ public class HardyWeinberg implements InfoFieldAnnotation, WorkInProgressAnnotat
 
     public List<String> getKeyNames() { return Arrays.asList("HW"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HW", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled p-value for Hardy-Weinberg violation")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HW", 1, VCFHeaderLineType.Float, "Phred-scaled p-value for Hardy-Weinberg violation")); }
 }

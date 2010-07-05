@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import Jama.Matrix;
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -47,7 +45,6 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -107,7 +104,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "The original variant quality score"));
+        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
         vcfWriter = new VCFWriter( new File(OUTPUT_FILENAME) );
         final TreeSet<String> samples = new TreeSet<String>();

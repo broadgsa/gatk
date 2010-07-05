@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
-import org.broad.tribble.vcf.VCFGenotypeRecord;
-import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -103,5 +101,5 @@ public class IndelSubsets implements ConcordanceType {
     }
 
     public String getInfoName() { return "IndelSubsets"; }
-    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFInfoHeaderLine.INFO_TYPE.String, "Indel-related subsets"); }
+    public VCFInfoHeaderLine getInfoDescription() { return new VCFInfoHeaderLine(getInfoName(), 1, VCFHeaderLineType.String, "Indel-related subsets"); }
 }

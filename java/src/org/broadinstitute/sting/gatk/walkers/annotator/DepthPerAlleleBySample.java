@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFFormatHeaderLine;
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -93,5 +94,5 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, ExperimentalA
 
     public List<String> getKeyNames() { return Arrays.asList("AD"); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), -1, VCFFormatHeaderLine.FORMAT_TYPE.Integer, "Depth in genotypes for each ALT allele, in the same order as listed")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), -1, VCFHeaderLineType.Integer, "Depth in genotypes for each ALT allele, in the same order as listed")); }
 }

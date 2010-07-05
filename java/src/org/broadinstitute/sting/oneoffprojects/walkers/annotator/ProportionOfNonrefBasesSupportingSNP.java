@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
@@ -53,7 +54,7 @@ public class ProportionOfNonrefBasesSupportingSNP implements InfoFieldAnnotation
     public List<String> getKeyNames() { return Arrays.asList(KEY_NAME); }
 
     public List<VCFInfoHeaderLine> getDescriptions() {
-        return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME,1,VCFInfoHeaderLine.INFO_TYPE.Float,"Simple proportion of non-reference bases that are the SNP base"));
+        return Arrays.asList(new VCFInfoHeaderLine(KEY_NAME,1, VCFHeaderLineType.Float,"Simple proportion of non-reference bases that are the SNP base"));
     }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {

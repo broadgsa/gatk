@@ -28,6 +28,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -209,8 +210,8 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
      *   bindingName.columnName1=column1Value, bindingName.columnName2=column2Value
      *   (eg. dbSNP.avHet=0.7, dbSNP.ref_allele=A)
      *
-     * @param annotatorInputTableFeature AnnotatorInputTableFeature corresponding to one record in one -B input file.
-     * @param name The binding name of the given AnnotatorInputTableFeature.
+     * @param record AnnotatorInputTableFeature corresponding to one record in one -B input file.
+     * @param bindingName The binding name of the given AnnotatorInputTableFeature.
      * @return The map of columnName -> columnValue pairs.
      */
     public static Map<String, String> convertRecordToAnnotations( String bindingName, Map<String, String> record) {
@@ -255,7 +256,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
 
 
     public List<VCFInfoHeaderLine> getDescriptions() {
-        return Arrays.asList(new VCFInfoHeaderLine("GenericAnnotation", 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "For each variant in the 'variants' ROD, finds all entries in the other -B files that overlap the variant's position. "));
+        return Arrays.asList(new VCFInfoHeaderLine("GenericAnnotation", 1, VCFHeaderLineType.Integer, "For each variant in the 'variants' ROD, finds all entries in the other -B files that overlap the variant's position. "));
     }
 
     public List<String> getKeyNames() {

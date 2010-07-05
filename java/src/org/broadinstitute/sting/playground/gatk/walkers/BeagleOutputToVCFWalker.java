@@ -33,15 +33,12 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
@@ -82,7 +79,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "r2 Value reported by Beable on each site"));
+        hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beable on each site"));
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
 
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();

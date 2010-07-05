@@ -54,8 +54,8 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
     private String[] genotypeKeyArray = new String[100];
 
     // a mapping of the VCF fields to their type, filter fields, and format fields, for quick lookup to validate against
-    TreeMap<String, VCFInfoHeaderLine.INFO_TYPE> infoFields = new TreeMap<String, VCFInfoHeaderLine.INFO_TYPE>();
-    TreeMap<String, VCFFormatHeaderLine.FORMAT_TYPE> formatFields = new TreeMap<String, VCFFormatHeaderLine.FORMAT_TYPE>();
+    TreeMap<String, VCFHeaderLineType> infoFields = new TreeMap<String, VCFHeaderLineType>();
+    TreeMap<String, VCFHeaderLineType> formatFields = new TreeMap<String, VCFHeaderLineType>();
     ArrayList<String> filterFields = new ArrayList<String>();
 
     // do we want to validate the info, format, and filter fields
@@ -113,11 +113,11 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         // setup our look-up lists for validation
         for (VCFHeaderLine hl : headerLines) {
             if (hl.getClass() == VCFFilterHeaderLine.class)
-                this.filterFields.add(((VCFFilterHeaderLine)hl).getmName());
+                this.filterFields.add(((VCFFilterHeaderLine)hl).getName());
             if (hl.getClass() == VCFFormatHeaderLine.class)
-                                        this.formatFields.put(((VCFFormatHeaderLine)hl).getmName(),((VCFFormatHeaderLine)hl).getmType());
+                                        this.formatFields.put(((VCFFormatHeaderLine)hl).getName(),((VCFFormatHeaderLine)hl).getType());
             if (hl.getClass() == VCFInfoHeaderLine.class)
-                                        this.infoFields.put(((VCFInfoHeaderLine)hl).getmName(),((VCFInfoHeaderLine)hl).getmType());
+                                        this.infoFields.put(((VCFInfoHeaderLine)hl).getName(),((VCFInfoHeaderLine)hl).getType());
         }
         // sort the lists so we can binary search them later on
         Collections.sort(filterFields);
@@ -223,13 +223,13 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
                         List<Object> objects = new ArrayList<Object>();
                         String[] split = str.split(",");
                         for (String substring : split) {
-                            VCFInfoHeaderLine.INFO_TYPE type = infoFields.get(key);
-                            objects.add(type != null ? type.convert(substring) : substring);    
+                            VCFHeaderLineType type = infoFields.get(key);
+                            objects.add(type != null ? type.convert(substring,VCFCompoundHeaderLine.SupportedHeaderLineType.INFO) : substring);
                         }
                         value = objects;
                     } else {
-                        VCFInfoHeaderLine.INFO_TYPE type = infoFields.get(key);
-                        value = type != null ? type.convert(str) : str;
+                        VCFHeaderLineType type = infoFields.get(key);
+                        value = type != null ? type.convert(str,VCFCompoundHeaderLine.SupportedHeaderLineType.INFO) : str;
                     }
                     //System.out.printf("%s %s%n", key, value);
                 } else {

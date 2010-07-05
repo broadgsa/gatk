@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -27,7 +28,7 @@ public class ThousandGenomesAnnotator implements InfoFieldAnnotation {
 
     public List<VCFInfoHeaderLine> getDescriptions() {
         return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0),
-                1,VCFInfoHeaderLine.INFO_TYPE.String,"Is this site seen in Pilot1 or Pilot2 of 1KG?"));
+                1, VCFHeaderLineType.String,"Is this site seen in Pilot1 or Pilot2 of 1KG?"));
     }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {

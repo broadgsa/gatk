@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.junit.Assert;
@@ -56,25 +55,25 @@ public class VCF4UnitTest extends BaseTest {
                 VCFInfoHeaderLine ihLIne = (VCFInfoHeaderLine)line;
 
                 // test a normal info line
-                if (ihLIne.getmName().equals("NS")) {
-                    Assert.assertEquals(VCFInfoHeaderLine.INFO_TYPE.Integer,ihLIne.getmType());
-                    Assert.assertEquals(1,ihLIne.getmCount());
-                    Assert.assertTrue("Number of Samples With Data".equals(ihLIne.getmDescription()));
+                if (ihLIne.getName().equals("NS")) {
+                    Assert.assertEquals(VCFHeaderLineType.Integer,ihLIne.getType());
+                    Assert.assertEquals(1,ihLIne.getCount());
+                    Assert.assertTrue("Number of Samples With Data".equals(ihLIne.getDescription()));
                     seenRecords++;
                 }
                 // test a info line that uses the period to represent an unbounded value
-                if (ihLIne.getmName().equals("AF")) {
-                    Assert.assertEquals(VCFInfoHeaderLine.INFO_TYPE.Float,ihLIne.getmType());
-                    Assert.assertEquals(VCFInfoHeaderLine.UNBOUNDED,ihLIne.getmCount());
-                    Assert.assertTrue("Allele Frequency".equals(ihLIne.getmDescription()));
+                if (ihLIne.getName().equals("AF")) {
+                    Assert.assertEquals(VCFHeaderLineType.Float,ihLIne.getType());
+                    Assert.assertEquals(VCFInfoHeaderLine.UNBOUNDED,ihLIne.getCount());
+                    Assert.assertTrue("Allele Frequency".equals(ihLIne.getDescription()));
                     seenRecords++;
                 }
             }
             // check the vcf filter header lines
             if (line instanceof VCFFilterHeaderLine) {
                 VCFFilterHeaderLine fhLIne = (VCFFilterHeaderLine)line;
-                if (fhLIne.getmName().equals("q10")) {
-                    Assert.assertTrue("Quality below 10".equals(fhLIne.getmDescription()));
+                if (fhLIne.getName().equals("q10")) {
+                    Assert.assertTrue("Quality below 10".equals(fhLIne.getDescription()));
                     seenRecords++;
                 }
             }
@@ -82,10 +81,10 @@ public class VCF4UnitTest extends BaseTest {
             // check the vcf info header lines
             if (line instanceof VCFFormatHeaderLine) {
                 VCFFormatHeaderLine ifLIne = (VCFFormatHeaderLine)line;
-                if (ifLIne.getmName().equals("GT")) {
-                    Assert.assertEquals(VCFFormatHeaderLine.FORMAT_TYPE.String,ifLIne.getmType());
-                    Assert.assertEquals(1,ifLIne.getmCount());
-                    Assert.assertTrue("Genotype".equals(ifLIne.getmDescription()));
+                if (ifLIne.getName().equals("GT")) {
+                    Assert.assertEquals(VCFHeaderLineType.String,ifLIne.getType());
+                    Assert.assertEquals(1,ifLIne.getCount());
+                    Assert.assertTrue("Genotype".equals(ifLIne.getDescription()));
                     seenRecords++;
                 }
             }
@@ -101,10 +100,10 @@ public class VCF4UnitTest extends BaseTest {
         File tempFile = null;
         try {
             tempFile = File.createTempFile("VCF4Test","vcf");
+            tempFile.deleteOnExit();
         } catch (IOException e) {
             Assert.fail("Couldn't create a temporary file ");
         }
-
         // write it to disk
         VCFWriter writer = new VCFWriter(tempFile);
         writer.writeHeader(testSetup.getHeader());

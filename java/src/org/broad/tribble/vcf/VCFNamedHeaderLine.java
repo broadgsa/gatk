@@ -24,13 +24,7 @@
 
 package org.broad.tribble.vcf;
 
-/**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: Jul 2, 2010
- * Time: 2:40:45 PM
- * To change this template use File | Settings | File Templates.
- */
+/** an interface for named header lines **/
 public interface VCFNamedHeaderLine {
-    String getmName();
+    String getName();
 }

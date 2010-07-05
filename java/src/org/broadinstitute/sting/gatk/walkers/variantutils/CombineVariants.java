@@ -109,7 +109,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             //System.out.printf("Merging in header %s%n", source);
             for ( VCFHeaderLine line : source.getMetaData()) {
                 String key = line.getKey();
-                if ( line instanceof VCFNamedHeaderLine ) key = key + "." + ((VCFNamedHeaderLine) line).getmName();
+                if ( line instanceof VCFNamedHeaderLine ) key = key + "." + ((VCFNamedHeaderLine) line).getName();
 
                 if ( map.containsKey(key) ) {
                     VCFHeaderLine other = map.get(key);
@@ -119,13 +119,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
                     else if ( ! line.getClass().equals(other.getClass()) )
                         throw new IllegalStateException("Incompatible header types: " + line + " " + other );
                     else if ( line instanceof VCFFilterHeaderLine ) {
-                        String lineName = ((VCFFilterHeaderLine) line).getmName();
-                        String otherName = ((VCFFilterHeaderLine) other).getmName();
+                        String lineName = ((VCFFilterHeaderLine) line).getName();
+                        String otherName = ((VCFFilterHeaderLine) other).getName();
                         if ( ! lineName.equals(otherName) )
                             throw new IllegalStateException("Incompatible header types: " + line + " " + other );
                     } else {
-                        //String lineName = ((VCFInfoHeaderLine) line).getmName();
-                        //String otherName = ((VCFFilterHeaderLine) other).getmName();
+                        //String lineName = ((VCFInfoHeaderLine) line).getName();
+                        //String otherName = ((VCFFilterHeaderLine) other).getName();
 
                         // todo -- aaron, please complete these comparisons when INFO and Format header lines are made into one
                         //if ( (lineType != null && ! lineType.equals(otherType)) || (lineCount != null && !lineCounts.equals(otherCount)))

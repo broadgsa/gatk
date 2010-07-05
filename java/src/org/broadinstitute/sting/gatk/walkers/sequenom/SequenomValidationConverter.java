@@ -38,7 +38,6 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.util.*;
@@ -124,13 +123,13 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.add(new VCFHeaderLine("source", "SequenomValidationConverter"));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-        hInfo.add(new VCFInfoHeaderLine("NoCallPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of no-calls"));
-        hInfo.add(new VCFInfoHeaderLine("HomRefPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of homozygous reference genotypes"));
-        hInfo.add(new VCFInfoHeaderLine("HetPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent of heterozygous genotypes"));
-        hInfo.add(new VCFInfoHeaderLine("HomVarPct", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Percent homozygous variant genotypes"));
-        hInfo.add(new VCFInfoHeaderLine("HW", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Phred-scaled Hardy-Weinberg violation p-value"));
-        hInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
-        hInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFInfoHeaderLine.INFO_TYPE.Integer, "Total number of alleles in called genotypes"));
+        hInfo.add(new VCFInfoHeaderLine("NoCallPct", 1, VCFHeaderLineType.Float, "Percent of no-calls"));
+        hInfo.add(new VCFInfoHeaderLine("HomRefPct", 1, VCFHeaderLineType.Float, "Percent of homozygous reference genotypes"));
+        hInfo.add(new VCFInfoHeaderLine("HetPct", 1, VCFHeaderLineType.Float, "Percent of heterozygous genotypes"));
+        hInfo.add(new VCFInfoHeaderLine("HomVarPct", 1, VCFHeaderLineType.Float, "Percent homozygous variant genotypes"));
+        hInfo.add(new VCFInfoHeaderLine("HW", 1, VCFHeaderLineType.Float, "Phred-scaled Hardy-Weinberg violation p-value"));
+        hInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, 1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
+        hInfo.add(new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes"));
         hInfo.add(new VCFFilterHeaderLine("HardyWeinbergViolation", "The validation is in Hardy-Weinberg violation"));
         hInfo.add(new VCFFilterHeaderLine("HighNoCallRate", "The validation no-call rate is too high"));
         hInfo.add(new VCFFilterHeaderLine("TooManyHomVars", "The validation homozygous variant rate is too high"));

@@ -38,9 +38,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -178,7 +176,7 @@ public class VariantAnnotatorEngine {
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
         for ( Map.Entry<String, String> dbSet : dbAnnotations.entrySet() )
-            descriptions.add(new VCFInfoHeaderLine(dbSet.getValue(), 0, VCFInfoHeaderLine.INFO_TYPE.Flag, (dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ? "dbSNP" : dbSet.getValue()) + " Membership"));
+            descriptions.add(new VCFInfoHeaderLine(dbSet.getValue(), 0, VCFHeaderLineType.Flag, (dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ? "dbSNP" : dbSet.getValue()) + " Membership"));
 
         return descriptions;
     }

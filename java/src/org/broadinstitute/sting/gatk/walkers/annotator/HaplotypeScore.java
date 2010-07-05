@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -280,5 +281,5 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     }
 
     public List<String> getKeyNames() { return Arrays.asList("HaplotypeScore"); }
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HaplotypeScore", 1, VCFInfoHeaderLine.INFO_TYPE.Float, "Consistency of the site with two (and only two) segregating haplotypes")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HaplotypeScore", 1, VCFHeaderLineType.Float, "Consistency of the site with two (and only two) segregating haplotypes")); }
 }

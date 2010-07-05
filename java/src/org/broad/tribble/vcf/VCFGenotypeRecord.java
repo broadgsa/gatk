@@ -9,7 +9,7 @@ import java.util.*;
  *
  * Class VCFGenotypeRecord
  *
- * A descriptions should go here. Blame aaron if it's missing.
+ * the basics of a genotype call in VCF
  */
 public class VCFGenotypeRecord {
 
@@ -365,10 +365,10 @@ public class VCFGenotypeRecord {
 
     public static Set<VCFFormatHeaderLine> getSupportedHeaderStrings(VCFHeaderVersion version) {
         Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
-        result.add(new VCFFormatHeaderLine(GENOTYPE_KEY, 1, VCFFormatHeaderLine.FORMAT_TYPE.String, "Genotype"));
-        result.add(new VCFFormatHeaderLine(GENOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.FORMAT_TYPE.Float, "Genotype Quality"));
-        result.add(new VCFFormatHeaderLine(DEPTH_KEY, 1, VCFFormatHeaderLine.FORMAT_TYPE.Integer, "Read Depth (only filtered reads used for calling)"));
-        result.add(new VCFFormatHeaderLine(GENOTYPE_LIKELIHOODS_KEY, 3, VCFFormatHeaderLine.FORMAT_TYPE.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+        result.add(new VCFFormatHeaderLine(GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        result.add(new VCFFormatHeaderLine(GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
+        result.add(new VCFFormatHeaderLine(DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
+        result.add(new VCFFormatHeaderLine(GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
         //result.add(new VCFFormatHeaderLine(HAPLOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Haplotype Quality"));
         return result;
     }
