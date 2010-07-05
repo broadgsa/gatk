@@ -9,7 +9,7 @@ import java.util.Map;
  * @author ebanks
  * A class representing a key=value entry for FILTER fields in the VCF header
  */
-public class VCFFilterHeaderLine extends VCFHeaderLine {
+public class VCFFilterHeaderLine extends VCFHeaderLine implements VCFNamedHeaderLine  {
 
     private String name;
     private String description;

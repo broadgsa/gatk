@@ -213,7 +213,7 @@ final class InferredGeneticContext {
 //        return selected;
 //    }
 
-    public String getAttributeAsString(String key)      { return (String)getAttribute(key); }
+    public String getAttributeAsString(String key)      { return (String.valueOf(getAttribute(key))); }
     public int getAttributeAsInt(String key)            { return (Integer)getAttribute(key); }
     public double getAttributeAsDouble(String key)      { return (Double)getAttribute(key); }
 

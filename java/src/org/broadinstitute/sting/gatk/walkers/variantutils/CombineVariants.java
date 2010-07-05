@@ -124,12 +124,12 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
                         if ( ! lineName.equals(otherName) )
                             throw new IllegalStateException("Incompatible header types: " + line + " " + other );
                     } else {
-                        //String lineName = ((VCFInfoHeaderLine) line).getName();
-                        //String otherName = ((VCFFilterHeaderLine) other).getName();
+                        String lineName = ((VCFCompoundHeaderLine) line).getName();
+                        String otherName = ((VCFCompoundHeaderLine) other).getName();
 
-                        // todo -- aaron, please complete these comparisons when INFO and Format header lines are made into one
-                        //if ( (lineType != null && ! lineType.equals(otherType)) || (lineCount != null && !lineCounts.equals(otherCount)))
-                        //    throw new IllegalStateException("Incompatible header types: " + line + " " + other );
+                        // if the names are the same, but the values are different, we need to quit
+                        if (lineName.equals(otherName) && !line.equals(other))
+                            throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
                     }
                 } else {
                     map.put(key, line);

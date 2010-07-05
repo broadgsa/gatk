@@ -21,45 +21,38 @@ import java.util.List;
  */
 public class VCFHeaderUnitTest extends BaseTest {
 
-    @Test
-    public void testVCF4ToVCF3() {
+    private VCF4Codec createHeader(String[] headerStr) {
         VCF4Codec codec = new VCF4Codec();
         List<String> headerFields = new ArrayList<String>();
-        for (String str : VCF3_3headerStrings)
+        for (String str : headerStr)
             headerFields.add(str);
-        Assert.assertEquals(17,codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
+        Assert.assertEquals(headerStr.length+1 /* for the # line */,codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
+        return codec;
+    }
+
+    @Test
+    public void testVCF4ToVCF3() {
+        VCF4Codec codec = createHeader(VCF4headerStrings);
         codec.getHeader(VCFHeader.class).setVersion(VCFHeaderVersion.VCF3_3);
         checkMD5ofHeaderFile(codec, "5873e029bd50d6836b86438bccd15456");
     }
 
     @Test
     public void testVCF4ToVCF3Alternate() {
-        VCF4Codec codec = new VCF4Codec();
-        List<String> headerFields = new ArrayList<String>();
-        for (String str : VCF3_3headerStrings_with_negitiveOne)
-            headerFields.add(str);
-        Assert.assertEquals(17,codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
+        VCF4Codec codec = createHeader(VCF4headerStrings_with_negitiveOne);
         codec.getHeader(VCFHeader.class).setVersion(VCFHeaderVersion.VCF3_3);
         checkMD5ofHeaderFile(codec, "e750fd0919704d10813dfe57ac1a0df3");
     }
 
     @Test
     public void testVCF4ToVCF4() {
-        VCF4Codec codec = new VCF4Codec();
-        List<String> headerFields = new ArrayList<String>();
-        for (String str : VCF3_3headerStrings)
-            headerFields.add(str);
-        Assert.assertEquals(17, codec.createHeader(headerFields, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
+        VCF4Codec codec = createHeader(VCF4headerStrings);
         checkMD5ofHeaderFile(codec, "4648aa1169257e0a8a9d30131adb5f35");
     }
 
     @Test
     public void testVCF4ToVCF4_alternate() {
-        VCF4Codec codec = new VCF4Codec();
-        List<String> headerFields = new ArrayList<String>();
-        for (String str : VCF3_3headerStrings_with_negitiveOne)
-            headerFields.add(str);
-        Assert.assertEquals(17, codec.createHeader(headerFields, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
+        VCF4Codec codec = createHeader(VCF4headerStrings_with_negitiveOne);
         checkMD5ofHeaderFile(codec, "ad8c4cf85e868b0261ab49ee2c613088");
     }
 
@@ -92,7 +85,7 @@ public class VCFHeaderUnitTest extends BaseTest {
     }
 
 
-    public String[] VCF3_3headerStrings = {
+    public static String[] VCF4headerStrings = {
                 "##fileformat=VCFv4.0",
                 "##filedate=2010-06-21",
                 "##reference=NCBI36",
@@ -111,7 +104,7 @@ public class VCFHeaderUnitTest extends BaseTest {
                 "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">",
                 };
 
-    public String[] VCF3_3headerStrings_with_negitiveOne = {
+    public static String[] VCF4headerStrings_with_negitiveOne = {
                 "##fileformat=VCFv4.0",
                 "##filedate=2010-06-21",
                 "##reference=NCBI36",

@@ -9,7 +9,7 @@ public enum VCFHeaderLineType {
     public Object convert(String value, VCFCompoundHeaderLine.SupportedHeaderLineType hlt) {
         switch (this) {
             case Integer:
-                return java.lang.Integer.valueOf(value); // the java.lang is needed since we use Integer as a enum name
+                return Math.round(java.lang.Float.valueOf(value)); // this seems like we're allowing off spec values, but use it for now
             case Float:
                 return java.lang.Float.valueOf(value);
             case String:

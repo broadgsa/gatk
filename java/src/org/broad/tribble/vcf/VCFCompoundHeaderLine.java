@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * a base class for compound header lines, which include info lines and format lines (so far)
  */
-public abstract class VCFCompoundHeaderLine extends VCFHeaderLine {
+public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCFNamedHeaderLine {
     public enum SupportedHeaderLineType {
         INFO(true), FORMAT(false);
 
