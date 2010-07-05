@@ -198,6 +198,7 @@ public class VariantContextUtils {
         double negLog10PError = -1;
         Set<String> filters = new TreeSet<String>();
         Map<String, Object> attributes = new TreeMap<String, Object>(first.getAttributes());
+        String rsID = null;
         int depth = 0;
 
         // filtering values
@@ -228,7 +229,9 @@ public class VariantContextUtils {
 
             filters.addAll(vc.getFilters());
             if ( vc.hasAttribute(VCFRecord.DEPTH_KEY) )
-                depth += Integer.valueOf(vc.getAttribute(VCFRecord.DEPTH_KEY).toString());
+                depth += Integer.valueOf(vc.getAttributeAsString(VCFRecord.DEPTH_KEY));
+            if ( rsID == null && vc.hasAttribute("ID") )
+                rsID = vc.getAttributeAsString("ID");
         }
 
         // if at least one record was unfiltered and we want a union, clear all of the filters
@@ -254,6 +257,8 @@ public class VariantContextUtils {
 
         if ( depth > 0 )
             attributes.put(VCFRecord.DEPTH_KEY, String.valueOf(depth));
+        if ( rsID != null )
+            attributes.put("ID", rsID);
 
         VariantContext merged = new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
