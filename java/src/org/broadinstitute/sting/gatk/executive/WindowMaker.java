@@ -122,8 +122,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
 
         public boolean hasNext() {
             // locus == null when doing monolithic sharding.
-            // TODO: Move the monolithic sharding iterator so that we don't have to special case here.
-            return sourceIterator.hasNext() && (locus == null || sourceIterator.peek().getLocation().overlapsP(locus));
+            return sourceIterator.hasNext() && sourceIterator.peek().getLocation().overlapsP(locus);
         }
 
         public AlignmentContext next() {
@@ -137,9 +136,6 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
 
         public void seedNextLocus() {
             // locus == null when doing monolithic sharding.
-            // TODO: Move the monolithic sharding iterator so that we don't have to special case here.
-            if(locus == null) return;
-
             while(sourceIterator.hasNext() && sourceIterator.peek().getLocation().isBefore(locus))
                 sourceIterator.next();                
         }
