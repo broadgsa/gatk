@@ -60,6 +60,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     @Argument(fullName="output_file", shortName="output", doc="VCF file to which output should be written", required=true)
     private String OUTPUT_FILE = null;
 
+    @Argument(fullName="nocall_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
+    private double noCallThreshold = 0.0;
 
     public static final String INPUT_ROD_NAME = "inputvcf";
 
@@ -79,7 +81,10 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beable on each site"));
+        hInfo.add(new VCFFormatHeaderLine("OG",1,VCFHeaderLineType.String, "Original Genotype input to Beagle"));
+        hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beagle on each site"));
+        hInfo.add(new VCFInfoHeaderLine("GenotypesChanged", 1, VCFHeaderLineType.Flag, "r2 Value reported by Beagle on each site"));
+
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
 
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
@@ -146,10 +151,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
 
         // for each genotype, create a new object with Beagle information on it
-        for ( Map.Entry<String, Genotype> genotype : vc_input.getGenotypes().entrySet() ) {
+        boolean genotypesChangedByBeagle = false;
+        for ( Map.Entry<String, Genotype> originalGenotypes : vc_input.getGenotypes().entrySet() ) {
 
 
-            Genotype g = genotype.getValue();
+            Genotype g = originalGenotypes.getValue();
             Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
             boolean genotypeIsPhased = true;
@@ -158,7 +164,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             ArrayList<String> beagleProbabilities = beagleProbsFeature.getProbLikelihoods().get(sample);
             ArrayList<String> beagleGenotypePairs = beaglePhasedFeature.getGenotypes().get(sample);
 
-
+            Allele originalAlleleA = g.getAllele(0);
+            Allele originalAlleleB = g.getAllele(1);
+            
             // We have phased genotype in hp. Need to set the isRef field in the allele.
             List<Allele> alleles = new ArrayList<Allele>();
 
@@ -195,16 +203,55 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             else // HomVar call
                 probWrongGenotype = hetProbability + homRefProbability;
 
-
+            if (1-probWrongGenotype < noCallThreshold) {
+                // quality is bad: don't call genotype
+                alleles.clear();
+                refAllele = Allele.NO_CALL;
+                altAllele = Allele.NO_CALL;
+                alleles.add(refAllele);
+                alleles.add(altAllele);
+                genotypeIsPhased = false;
+            }
+            
             if (probWrongGenotype < MIN_PROB_ERROR)
                 genotypeQuality = MAX_GENOTYPE_QUALITY;
             else
                 genotypeQuality = -log10(probWrongGenotype);
 
-            Genotype imputedGenotype = new Genotype(genotype.getKey(), alleles, genotypeQuality, filters, g.getAttributes(), genotypeIsPhased);
+            HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getAttributes());
+
+            // get original encoding and add to keynotype attributes
+            String a1, a2, og;
+            if (originalAlleleA.isNoCall())
+                a1 = ".";
+            else if (originalAlleleA.isReference())
+                a1 = "0";
+            else
+                a1 = "1";
+
+            if (originalAlleleB.isNoCall())
+                a2 = ".";
+            else if (originalAlleleB.isReference())
+                a2 = "0";
+            else
+                a2 = "1";
+
+            og = a1+"/"+a2;
 
 
-            genotypes.put(genotype.getKey(), imputedGenotype);
+            // See if Beagle switched genotypes
+            if (!((refAllele.equals(originalAlleleA) && altAllele.equals(originalAlleleB) ||
+                (refAllele.equals(originalAlleleB) && altAllele.equals(originalAlleleA))))){
+                genotypesChangedByBeagle = true;
+                originalAttributes.put("OG",og);
+             }
+            else {
+                originalAttributes.put("OG",".");
+            }
+            Genotype imputedGenotype = new Genotype(originalGenotypes.getKey(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
+
+
+            genotypes.put(originalGenotypes.getKey(), imputedGenotype);
 
         }
 
@@ -231,6 +278,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             }
         }
 
+
+        vcf.addInfoField("GenotypesChanged", (genotypesChangedByBeagle)? "1":"0" );
         vcf.addInfoField("R2", beagleR2Feature.getR2value().toString() );
         vcfWriter.addRecord(vcf);
 
