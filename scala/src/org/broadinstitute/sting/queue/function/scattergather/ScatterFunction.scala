@@ -1,10 +1,14 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.commandline.{Input, Output}
 import java.io.File
+import org.broadinstitute.sting.commandline.{Input, Output}
 
-trait ScatterFunction extends CommandLineFunction {
+/**
+ * Base class for Scatter command line functions.
+ * NOTE: Using an abstract class instead of a trait due to scala parameterized type erasure on traits.
+ */
+abstract class ScatterFunction extends CommandLineFunction {
   type ScatterType
 
   @Input(doc="Original input to scatter")

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.queue.function.gatk
 import java.io.File
 import org.broadinstitute.sting.queue.function.IntervalFunction
 import org.broadinstitute.sting.queue.function.scattergather.{Scatter, ScatterGatherableFunction, IntervalScatterFunction}
-import org.broadinstitute.sting.commandline.Input
+import org.broadinstitute.sting.commandline.{ClassType, Input}
 
 trait GatkFunction extends ScatterGatherableFunction with IntervalFunction {
   @Input(doc="Temporary directory to write any files", required=false)
@@ -16,6 +16,7 @@ trait GatkFunction extends ScatterGatherableFunction with IntervalFunction {
   var referenceFile: File = _
 
   @Input(doc="Bam files", required=false)
+  @ClassType(classOf[File])
   var bamFiles: List[File] = Nil
 
   @Input(doc="Intervals", required=false)

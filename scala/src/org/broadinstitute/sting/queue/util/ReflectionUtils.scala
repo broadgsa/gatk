@@ -4,6 +4,7 @@ import org.broadinstitute.sting.queue.QException
 import java.lang.annotation.Annotation
 import scala.concurrent.JavaConversions._
 import java.lang.reflect.{ParameterizedType, Field}
+import org.broadinstitute.sting.commandline.ClassType
 
 object ReflectionUtils {
   def hasAnnotation(field: Field, annotation: Class[_ <: Annotation]) = field.getAnnotation(annotation) != null
@@ -73,12 +74,14 @@ object ReflectionUtils {
     }
   }
 
-  private def getGenericTypes(field: Field) = {
+  private def getGenericTypes(field: Field): Option[Array[Class[_]]] = {
     // TODO: Refactor: based on java code in org.broadinstitute.sting.commandline.ArgumentTypeDescriptor
     // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
     if (field.getGenericType.isInstanceOf[ParameterizedType]) {
       val parameterizedType = field.getGenericType.asInstanceOf[ParameterizedType]
       Some(parameterizedType.getActualTypeArguments.map(_.asInstanceOf[Class[_]]))
+    } else if (hasAnnotation(field, classOf[ClassType])) {
+      Some(Array(getAnnotation(field, classOf[ClassType]).value))
     }
     else None
   }

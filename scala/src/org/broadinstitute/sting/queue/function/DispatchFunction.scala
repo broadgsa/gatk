@@ -2,14 +2,15 @@ package org.broadinstitute.sting.queue.function
 
 import java.io.File
 import java.lang.management.ManagementFactory
-import org.broadinstitute.sting.commandline.{Output, Input}
 import org.broadinstitute.sting.queue.function.scattergather.{Gather, SimpleTextGatherFunction}
 import org.broadinstitute.sting.queue.util.IOUtils
+import org.broadinstitute.sting.commandline.{ClassType, Output, Input}
 
 trait DispatchFunction extends InputOutputFunction {
   def commandLine: String
 
   @Input(doc="Upper memory limit", required=false)
+  @ClassType(classOf[Int])
   var memoryLimit: Option[Int] = None
 
   /**
