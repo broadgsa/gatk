@@ -295,6 +295,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private boolean doNotTryToClean(SAMRecord read) {
         return read.getReadUnmappedFlag() ||
                 read.getNotPrimaryAlignmentFlag() ||
+                read.getReadFailsVendorQualityCheckFlag() ||
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
                 (!REALIGN_BADLY_MATED_READS && read.getReadPairedFlag() && !read.getMateUnmappedFlag() && read.getMateReferenceIndex() != read.getReferenceIndex());
