@@ -80,6 +80,13 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * @return A read-backed pileup consisting only of reads on the negative strand.
      */
     public ReadBackedExtendedEventPileup getNegativeStrandPileup();
+
+    /**
+     * Gets a pileup consisting of all those elements passed by a given filter.
+     * @param filter Filter to use when testing for elements.
+     * @return a pileup without the given filtered elements.
+     */
+    public ReadBackedExtendedEventPileup getFilteredPileup(PileupElementFilter filter);    
     
     /** Returns subset of this pileup that contains only bases with quality >= minBaseQ, coming from
      * reads with mapping qualities >= minMapQ. This method allocates and returns a new instance of ReadBackedPileup.

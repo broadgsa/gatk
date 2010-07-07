@@ -155,6 +155,7 @@ public class UnifiedGenotyperEngine {
             return null;
 
         VariantCallContext call;
+        BadlyMatedReadPileupFilter badlyMatedReadPileupFilter = new BadlyMatedReadPileupFilter(refContext);
 
         if ( rawContext.hasExtendedEventPileup() ) {
 
@@ -164,7 +165,7 @@ public class UnifiedGenotyperEngine {
             ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
 
             // filter the context based on bad mates and mismatch rate
-            pileup = filterPileup(pileup, refContext);
+            pileup = pileup.getFilteredPileup(badlyMatedReadPileupFilter);
 
             // don't call when there is no coverage
             if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
@@ -185,7 +186,7 @@ public class UnifiedGenotyperEngine {
             ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
 
             // filter the context based on bad mates and mismatch rate
-            pileup = filterPileup(pileup, refContext);
+            pileup = pileup.getFilteredPileup(badlyMatedReadPileupFilter);
 
             // don't call when there is no coverage
             if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
@@ -219,31 +220,24 @@ public class UnifiedGenotyperEngine {
         return call;
     }
 
-    // filter based on maximum mismatches and bad mates
-    private ReadBackedPileup filterPileup(ReadBackedPileup pileup, ReferenceContext refContext) {
-
-        ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
-        for ( PileupElement p : pileup ) {
-            if  ( (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
-                  AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
-                filteredPileup.add(p);
-        }
-        return new ReadBackedPileupImpl(pileup.getLocation(), filteredPileup);
-    }
-
-    // filter based on maximum mismatches and bad mates
-    private ReadBackedExtendedEventPileup filterPileup(ReadBackedExtendedEventPileup pileup, ReferenceContext refContext) {
-
-        ArrayList<ExtendedEventPileupElement> filteredPileup = new ArrayList<ExtendedEventPileupElement>();
-        for ( ExtendedEventPileupElement p : pileup.toExtendedIterable() ) {
-            if  ( (UAC.USE_BADLY_MATED_READS || !p.getRead().getReadPairedFlag() || p.getRead().getMateUnmappedFlag() || p.getRead().getMateReferenceIndex() == p.getRead().getReferenceIndex()) &&
-                  AlignmentUtils.mismatchesInRefWindow(p, refContext, true) <= UAC.MAX_MISMATCHES )
-                filteredPileup.add(p);
-        }
-        return new ReadBackedExtendedEventPileupImpl(pileup.getLocation(), filteredPileup);
-    }
-
     private static boolean isValidDeletionFraction(double d) {
         return ( d >= 0.0 && d <= 1.0 );
+    }
+
+    /**
+     * Filters low quality reads out of the pileup.
+     */
+    private class BadlyMatedReadPileupFilter implements PileupElementFilter {
+        private ReferenceContext refContext;
+
+        public BadlyMatedReadPileupFilter(ReferenceContext refContext) { this.refContext = refContext; }
+
+        public boolean allow(PileupElement pileupElement) {
+            return  ((UAC.USE_BADLY_MATED_READS ||
+                      !pileupElement.getRead().getReadPairedFlag() ||
+                      pileupElement.getRead().getMateUnmappedFlag() ||
+                      pileupElement.getRead().getMateReferenceIndex() == pileupElement.getRead().getReferenceIndex()) &&
+                     AlignmentUtils.mismatchesInRefWindow(pileupElement, refContext, true) <= UAC.MAX_MISMATCHES );
+        }
     }
 }

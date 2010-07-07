@@ -106,10 +106,14 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
         for(String sampleName: pileup.getSamples()) {
             RBP pileupBySample = (RBP)pileup.getPileupForSample(sampleName);
 
+            // Don't add empty pileups to the split context.
+            if(pileupBySample.size() == 0)
+                continue;
+
             if(sampleName != null)
                 contexts.put(sampleName,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             else {
-                if(assumedSingleSample == null && pileupBySample.size() > 0)
+                if(assumedSingleSample == null)
                     throw new StingException("Missing read group for read " + pileupBySample.iterator().next().getRead());
                 contexts.put(assumedSingleSample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             }

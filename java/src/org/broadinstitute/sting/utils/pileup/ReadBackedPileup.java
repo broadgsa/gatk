@@ -78,6 +78,13 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
      */
     public ReadBackedPileup getNegativeStrandPileup();
 
+    /**
+     * Gets a pileup consisting of all those elements passed by a given filter.
+     * @param filter Filter to use when testing for elements.
+     * @return a pileup without the given filtered elements.
+     */
+    public ReadBackedPileup getFilteredPileup(PileupElementFilter filter);
+
     /** Returns subset of this pileup that contains only bases with quality >= minBaseQ, coming from
      * reads with mapping qualities >= minMapQ. This method allocates and returns a new instance of ReadBackedPileup.
      * @param minBaseQ

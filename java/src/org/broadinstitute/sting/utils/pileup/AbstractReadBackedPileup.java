@@ -385,6 +385,36 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         }
     }
 
+    /**
+     * Gets a pileup consisting of all those elements passed by a given filter.
+     * @param filter Filter to use when testing for elements.
+     * @return a pileup without the given filtered elements.
+     */
+    public RBP getFilteredPileup(PileupElementFilter filter) {
+        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
+            PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
+
+            for(String sampleName: tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getFilteredPileup(filter);
+                filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
+            }
+
+            return (RBP)createNewPileup(loc,filteredTracker);
+        }
+        else {
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+
+            for ( PE p : pileupElementTracker ) {
+                if( filter.allow(p) )
+                    filteredTracker.add(p);
+            }
+
+            return (RBP)createNewPileup(loc, filteredTracker);
+        }
+    }
+
     /** Returns subset of this pileup that contains only bases with quality >= minBaseQ, coming from
      * reads with mapping qualities >= minMapQ. This method allocates and returns a new instance of ReadBackedPileup.
      * @param minBaseQ
