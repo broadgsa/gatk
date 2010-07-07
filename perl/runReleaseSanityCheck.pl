@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 
-# Usage:runReleaseSanityCheck  [-sting <path to GATK jar]  [-dry]
+# Usage:runReleaseSanityCheck  [-sting <path to GATK jar>]  [-dry]
 
 use Getopt::Long;
 
 $dry;
 $sting = "/humgen/gsa-scr1/ebanks/Sting_dev/dist/GenomeAnalysisTK.jar";
 GetOptions( "dry!" => \$dry,
-            "sting=s" => \$junit);
+            "sting=s" => \$sting);
 
 $command_prefix = "java -Xmx4096m -jar $sting -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"; 
 
