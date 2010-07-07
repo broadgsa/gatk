@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2010, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broad.tribble.vcf;
 
 import java.util.Arrays;
@@ -49,6 +73,15 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
      */
     protected VCFCompoundHeaderLine(String name, int count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType) {
         super(lineType.toString(), "");
+        this.name = name;
+        this.count = count;
+        this.type = type;
+        this.description = description;
+        this.lineType = lineType;
+    }
+
+    protected VCFCompoundHeaderLine(String name, int count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType, VCFHeaderVersion version) {
+        super(lineType.toString(), "", version);
         this.name = name;
         this.count = count;
         this.type = type;
@@ -109,6 +142,12 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
                count == other.count &&
                description.equals(other.description) &&
                type == other.type;
+    }
+
+    public boolean equalsExcludingDescription(VCFCompoundHeaderLine other) {
+        return count == other.count &&
+               type == other.type &&
+               name.equals(other.name);
     }
 
     /**

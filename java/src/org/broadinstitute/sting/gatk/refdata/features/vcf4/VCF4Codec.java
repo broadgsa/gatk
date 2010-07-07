@@ -183,10 +183,10 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @param cache
      * @return
      */
-    private static List<Allele> parseGenotypeAlleles(String GT, List<Allele> alleles, Map<String, List<Allele>> cache) {
+    private List<Allele> parseGenotypeAlleles(String GT, List<Allele> alleles, Map<String, List<Allele>> cache) {
         // this should cache results [since they are immutable] and return a single object for each genotype
         if ( GT.length() != 3 && GT.length() != 1 )
-            throw new StingException("Unreasonable number of alleles: " + "GT=" + GT + " length=" + GT.length()); // 0/1 => barf on 10/0
+            throw new VCFParserException("Unreasonable number of alleles: " + "GT=" + GT + " length=" + GT.length()); // 0/1 => barf on 10/0
 
         List<Allele> GTAlleles = cache.get(GT);
 
@@ -258,7 +258,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             int count = 0;
             for (String attr : attributes)
                 if (Collections.binarySearch(fields,attr) < 0)
-                    throw new StingException("Unable to find field describing attribute " + attr);
+                    throw new VCFParserException("Unable to find field describing attribute " + attr);
         }
     }
 
@@ -282,7 +282,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         List<Allele> alleles = new ArrayList<Allele>(2); // we are almost always biallelic
         // ref
         if (!checkAllele(ref, true))
-            throw new StingException("Unable to parse out correct reference allele, we saw = " + ref);
+            throw new VCFParserException("Unable to parse out correct reference allele, we saw = " + ref);
         Allele refAllele = Allele.create(ref, true);
         alleles.add(refAllele);
 
@@ -301,13 +301,13 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @param isRef are we the reference allele?
      * @return true if the allele is fine, false otherwise
      */
-    private static boolean checkAllele(String allele,boolean isRef) {
+    private boolean checkAllele(String allele,boolean isRef) {
         if (allele.contains("<")) {
             Utils.warnUser("We are currently unable to parse out CNV encodings in VCF, we saw the following allele = " + allele);
             return false;
         }
         else if ( ! Allele.acceptableAlleleBases(allele,isRef) ) {
-            throw new StingException("Unparsable vcf record with allele " + allele);
+            throw new VCFParserException("Unparsable vcf record with allele " + allele);
         }
         return true;
     }
@@ -320,7 +320,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      */
     private void parseSingleAllele(List<Allele> alleles, String alt, boolean isRef) {
         if (!checkAllele(alt,isRef))
-            throw new StingException("Unable to parse out correct alt allele, we saw = " + alt);
+            throw new VCFParserException("Unable to parse out correct alt allele, we saw = " + alt);
 
         Allele allele = Allele.create(alt, false);
         if ( ! allele.isNoCall() )
@@ -403,10 +403,16 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             }
 
             return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
-//        } catch ( Exception e ) {
-//            // todo -- we need a local exception so that we can remember the location of the throw but also see the line
-//            throw new RuntimeException("Line " + lineNo + " generated parser exception " + e.getMessage() + "\nLine: " + Utils.join("\t", parts), e);
-//        }
+    }
+
+    class VCFParserException extends StingException {
+        public VCFParserException(String msg) {
+            super("Line " + lineNo + " generated parser exception " + msg);
+        }
+
+        public VCFParserException(String msg, Throwable throwable) {
+            super("Line " + lineNo + " generated parser exception " + msg, throwable);
+        }
     }
 
     /**
@@ -439,7 +445,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
             // check to see if the value list is longer than the key list, which is a problem
             if (nGTKeys < GTValueSplitSize)
-                throw new StingException("Too few keys for compared to the value string " + sampleName + ", keys = " + parts[8] + " values = " + parts[genotypeOffset]);
+                throw new VCFParserException("Too few keys for compared to the value string " + sampleName + ", keys = " + parts[8] + " values = " + parts[genotypeOffset]);
 
             int genotypeAlleleLocation = -1;
             if (nGTKeys > 1) {
@@ -449,7 +455,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
                         gtAttributes.put(genotypeKeyArray[i],".");
                     else if (genotypeKeyArray[i].equals("GT"))
                         if (i != 0)
-                            throw new StingException("Saw GT at position " + i + ", it must be at the first position for genotypes. At location = " + locAndAlleles.first);
+                            throw new VCFParserException("Saw GT at position " + i + ", it must be at the first position for genotypes. At location = " + locAndAlleles.first);
                         else
                             genotypeAlleleLocation = i;
                     else if (genotypeKeyArray[i].equals("GQ"))
@@ -464,7 +470,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
                 validateFields(gtAttributes.keySet(), new ArrayList(formatFields.keySet()));
             }
             // check to make sure we found a gentoype field
-            if (genotypeAlleleLocation < 0) throw new StingException("Unable to find required field GT for record " + locAndAlleles.first);
+            if (genotypeAlleleLocation < 0) throw new VCFParserException("Unable to find required field GT for record " + locAndAlleles.first);
 
             // assuming allele list length in the single digits, could be bad.  Check for > 1 for haploid genotypes
             boolean phased = GTValueArray[genotypeAlleleLocation].length() > 1 && GTValueArray[genotypeAlleleLocation].charAt(1) == '|';

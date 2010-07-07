@@ -136,7 +136,7 @@ public class VCFReaderUtils {
     public static VCFGenotypeRecord getVCFGenotype(String sampleName, String[] keyStrings, String genotypeString, String altAlleles[], char referenceBase) {
         // parameters to create the VCF genotype record
         HashMap<String, String> tagToValue = new HashMap<String, String>();
-        VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNKNOWN;
+        VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNPHASED;
         List<VCFGenotypeEncoding> bases = new ArrayList<VCFGenotypeEncoding>();
 
         for (String key : keyStrings) {

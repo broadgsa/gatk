@@ -1,5 +1,7 @@
 package org.broad.tribble.vcf;
 
+import org.broadinstitute.sting.utils.Utils;
+
 import java.util.*;
 
 
@@ -35,7 +37,10 @@ public class VCFGenotypeRecord {
 
     // what kind of phasing this genotype has
     public enum PHASE {
-        UNPHASED, PHASED, PHASED_SWITCH_PROB, UNKNOWN
+        UNPHASED("/"), PHASED("|"), PHASED_SWITCH_PROB("\\"); // , UNKNOWN
+
+        String genotypeSeparator;
+        PHASE(String sep) { this.genotypeSeparator = sep; }
     }
 
     // our record
@@ -98,14 +103,12 @@ public class VCFGenotypeRecord {
      */
     static PHASE determinePhase(String phase) {
         // find the phasing information
-        if (phase.equals("/"))
-            return PHASE.UNPHASED;
-        else if (phase.equals("|"))
-            return PHASE.PHASED;
-        else if (phase.equals("\\"))
-            return PHASE.PHASED_SWITCH_PROB;
-        else
-            throw new IllegalArgumentException("Unknown genotype phasing parameter");
+        for ( PHASE p : PHASE.values() ) {
+            if (phase.equals(p.genotypeSeparator))
+            return p;
+        }
+
+        throw new IllegalArgumentException("Unknown genotype phasing parameter: " + phase);
     }
 
 
@@ -206,7 +209,7 @@ public class VCFGenotypeRecord {
     }
 
     public int getPloidy() {
-        return 2;
+        return mGenotypeAlleles.size();
     }
 
     public VCFRecord getRecord() {
@@ -214,32 +217,15 @@ public class VCFGenotypeRecord {
     }
 
     private String toGenotypeString(List<VCFGenotypeEncoding> altAlleles) {
-        String str = "";
-        boolean first = true;
+        List<String> alleleStrings = new ArrayList<String>(altAlleles.size());
         for (VCFGenotypeEncoding allele : mGenotypeAlleles) {
             if (allele.getType() == VCFGenotypeEncoding.TYPE.UNCALLED)
-                str += VCFGenotypeRecord.EMPTY_ALLELE;
+                alleleStrings.add(VCFGenotypeRecord.EMPTY_ALLELE);
             else
-                str += String.valueOf((altAlleles.contains(allele)) ? altAlleles.indexOf(allele) + 1 : 0);
-            if (first) {
-                switch (mPhaseType) {
-                    case UNPHASED:
-                        str += "/";
-                        break;
-                    case PHASED:
-                        str += "|";
-                        break;
-                    case PHASED_SWITCH_PROB:
-                        str += "\\";
-                        break;
-                    case UNKNOWN:
-                        throw new UnsupportedOperationException("Unknown phase type");
-                }
-                first = false;
-            }
+                alleleStrings.add(String.valueOf((altAlleles.contains(allele)) ? altAlleles.indexOf(allele) + 1 : 0));
         }
-        return str;
 
+        return Utils.join(mPhaseType.genotypeSeparator, alleleStrings);
     }
 
     @Override

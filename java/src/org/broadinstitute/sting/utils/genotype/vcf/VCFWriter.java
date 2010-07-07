@@ -364,11 +364,7 @@ public class VCFWriter {
                     continue;
 
 
-                Object val;
-                if (g.hasAttribute(key))
-                    val = g.getAttribute(key);
-                else
-                    val = new String(MISSING_GENOTYPE_FIELD);
+                Object val = g.hasAttribute(key) ? g.getAttribute(key) : MISSING_GENOTYPE_FIELD;
 
                 // some exceptions
                 if ( key.equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) ) {

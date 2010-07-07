@@ -84,6 +84,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         Set<VCFHeaderLine> headerLines = smartMergeHeaders(vcfRods.values());
         headerLines.add(new VCFHeaderLine("source", "CombineVariants"));
+        headerLines.add(new VCFInfoHeaderLine("set", 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants", VCFHeaderVersion.VCF4_0));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
@@ -123,13 +124,18 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
                         String otherName = ((VCFFilterHeaderLine) other).getName();
                         if ( ! lineName.equals(otherName) )
                             throw new IllegalStateException("Incompatible header types: " + line + " " + other );
-                    } else {
-                        String lineName = ((VCFCompoundHeaderLine) line).getName();
-                        String otherName = ((VCFCompoundHeaderLine) other).getName();
+                    } else if ( line instanceof VCFCompoundHeaderLine ) {
+                        VCFCompoundHeaderLine compLine = (VCFCompoundHeaderLine)line;
+                        VCFCompoundHeaderLine compOther = (VCFCompoundHeaderLine)other;
 
                         // if the names are the same, but the values are different, we need to quit
-                        if (lineName.equals(otherName) && !line.equals(other))
+                        if (! (compLine).equalsExcludingDescription(compOther) )
                             throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
+                        if ( ! compLine.getDescription().equals(compOther) )
+                            logger.warn(String.format("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine));
+                    } else {
+                        // we are not equal, but we're not anything special either
+                        logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
                     }
                 } else {
                     map.put(key, line);

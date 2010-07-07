@@ -10,6 +10,10 @@ package org.broad.tribble.vcf;
  */
 public class VCFInfoHeaderLine extends VCFCompoundHeaderLine {
 
+    public VCFInfoHeaderLine(String name, int count, VCFHeaderLineType type, String description, VCFHeaderVersion version) {
+        super(name, count, type, description, SupportedHeaderLineType.INFO, version);
+    }
+
     public VCFInfoHeaderLine(String name, int count, VCFHeaderLineType type, String description) {
         super(name, count, type, description, SupportedHeaderLineType.INFO);
     }
