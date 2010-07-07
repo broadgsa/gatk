@@ -550,17 +550,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     } catch (Exception e) {}
                 }
 
-                // We need to update the mapping quality score of the cleaned reads;
-                // however we don't have enough info to use the proper MAQ scoring system.
-                // For now, we'll use a heuristic:
-                // the mapping quality score is improved by the LOD difference in mismatching
-                // bases between the reference and alternate consensus (divided by 10)
-
                 // finish cleaning the appropriate reads
                 for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                     final AlignedRead aRead = altReads.get(indexPair.first);
                     if ( aRead.finalizeUpdate() ) {
-                        aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + (int)(improvement/10.0), 255));
+                        // We need to update the mapping quality score of the cleaned reads;
+                        // however we don't have enough info to use the proper MAQ scoring system.
+                        // For now, we will just arbitrarily add 10 to the mapping quality. [EB, 6/7/2010].
+                        // TODO -- we need a better solution here
+                        aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
                         aRead.getRead().setAttribute("NM", AlignmentUtils.numMismatches(aRead.getRead(), reference, aRead.getRead().getAlignmentStart()-(int)leftmostIndex));
                     }
                 }
