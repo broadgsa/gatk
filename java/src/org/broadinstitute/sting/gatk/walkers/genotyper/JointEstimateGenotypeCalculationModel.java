@@ -352,7 +352,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                         break;
                     sum += log10PofDgivenAFi[indexOfMax][i];
                 }
-                phredScaledConfidence = -10.0 * sum;
+                phredScaledConfidence = (MathUtils.compareDoubles(sum, 0.0) == 0 ? 0 : -10.0 * sum);
             }
         }
 
