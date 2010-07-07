@@ -533,7 +533,7 @@ public class SAMDataSource implements SimpleDataSource {
          */
         public SAMReaders(Reads sourceInfo) {
             for(File readsFile: sourceInfo.getReadsFiles()) {
-                SAMFileReader reader = new SAMFileReader(readsFile,true);
+                SAMFileReader reader = new SAMFileReader(readsFile);
                 reader.enableFileSource(true);
                 reader.enableIndexCaching(true);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
