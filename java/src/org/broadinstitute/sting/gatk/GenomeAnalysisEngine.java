@@ -729,8 +729,10 @@ public class GenomeAnalysisEngine {
         // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
         // sharding system; it's required with the new sharding system only for locus walkers.
         if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
-            if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM) || intervals != null)
-                throw new StingException("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM, or with unindexed BAM files with the -L option");
+            if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
+                throw new StingException("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM");
+            if(intervals != null && WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE)
+                throw new StingException("Cannot shard input by interval when walker is not driven by reference.");
 
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {
@@ -743,7 +745,16 @@ public class GenomeAnalysisEngine {
             else
                 throw new StingException("The GATK cannot currently process unindexed BAM files");
 
-            return new MonolithicShardStrategy(shardType,drivingDataSource.getSequenceDictionary());
+            List<GenomeLoc> region;
+            if(intervals != null)
+                region = intervals.toList();
+            else {
+                region = new ArrayList<GenomeLoc>();
+                for(SAMSequenceRecord sequenceRecord: drivingDataSource.getSequenceDictionary().getSequences())
+                    region.add(GenomeLocParser.createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
+            }
+
+            return new MonolithicShardStrategy(shardType,region);
         }
 
         ShardStrategy shardStrategy = null;

@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.List;
 
 import net.sf.samtools.SAMSequenceDictionary;
 
@@ -24,8 +25,8 @@ public class MonolithicShardStrategy implements ShardStrategy {
      * Create a new shard strategy for shards of the given type.
      * @param shardType The shard type.
      */
-    public MonolithicShardStrategy(final Shard.ShardType shardType, final SAMSequenceDictionary sequenceDictionary) {
-        shard = new MonolithicShard(shardType,sequenceDictionary);
+    public MonolithicShardStrategy(final Shard.ShardType shardType, final List<GenomeLoc> region) {
+        shard = new MonolithicShard(shardType,region);
     }
 
     /**

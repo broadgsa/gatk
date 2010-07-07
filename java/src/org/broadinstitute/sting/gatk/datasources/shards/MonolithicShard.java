@@ -25,19 +25,18 @@ public class MonolithicShard implements Shard {
     /**
      * Locations.  For the monolithic shard, should be a list of all available contigs in the reference.
      */
-    private final List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
+    private final List<GenomeLoc> locs;
 
     /**
      * Creates a new monolithic shard of the given type.
      * @param shardType Type of the shard.  Must be either read or locus; cannot be intervalic.
-     * @param sequenceDictionary the sequence dictionary from which to derive contig info. 
+     * @param locs Intervals that this monolithic shard should process. 
      */
-    public MonolithicShard(ShardType shardType, SAMSequenceDictionary sequenceDictionary) {
+    public MonolithicShard(ShardType shardType, List<GenomeLoc> locs) {
         if(shardType != ShardType.LOCUS && shardType != ShardType.READ)
             throw new StingException("Invalid shard type for monolithic shard: " + shardType);
         this.shardType = shardType;
-        for(SAMSequenceRecord sequenceRecord: sequenceDictionary.getSequences())
-            locs.add(GenomeLocParser.createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
+        this.locs = locs;
     }
 
     /**
