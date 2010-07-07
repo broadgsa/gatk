@@ -31,11 +31,11 @@ $command = "$command_prefix -T TableRecalibration -I /humgen/gsa-hpprojects/GATK
 run($command, $dry);
 
 print "Executing IndelRealignerWholeExome...";
-$command = "$command_prefix -T IndelRealigner -LOD 5 -maxConsensuses 100 -greedy 100 -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -L chr1:900,000-1,000,000 -compress 1 -sort NO_SORT -targetIntervals /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.realigner.intervals -O $tmp_bam";
+$command = "$command_prefix -T IndelRealigner -LOD 5 -maxConsensuses 100 -greedy 100 -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -L chr1:900,000-1,000,000 -compress 1 -targetIntervals /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.realigner.intervals -O $tmp_bam";
 run($command, $dry);
 
 print "Executing IndelRealignerWholeGenome...";
-$command = "$command_prefix -T IndelRealigner -LOD 5 -maxConsensuses 100 -greedy 100 -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.bam -L chr1:975,000-1,000,000 -compress 1 -sort NO_SORT -targetIntervals /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.realigner.intervals -O $tmp_bam";
+$command = "$command_prefix -T IndelRealigner -LOD 5 -maxConsensuses 100 -greedy 100 -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.bam -L chr1:975,000-1,000,000 -compress 1 -targetIntervals /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.realigner.intervals -O $tmp_bam";
 run($command, $dry);
 
 print "Executing UnifiedGenotyperWholeExome...";
