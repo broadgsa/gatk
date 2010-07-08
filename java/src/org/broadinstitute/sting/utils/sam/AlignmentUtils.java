@@ -426,18 +426,18 @@ public class AlignmentUtils {
             int length = ce.getLength();
             
             switch( ce.getOperator() ) {
-            case M:
-                readIndex += length;
-                refIndex += length;
-                break;
-            case S:
-                readIndex += length;
-                break;
-            case N:
-                refIndex += length;
-                break;
-            default:
-                break;
+                case M:
+                    readIndex += length;
+                    refIndex += length;
+                    break;
+                case S:
+                    readIndex += length;
+                    break;
+                case N:
+                    refIndex += length;
+                    break;
+                default:
+                    break;
             }
         }
 
