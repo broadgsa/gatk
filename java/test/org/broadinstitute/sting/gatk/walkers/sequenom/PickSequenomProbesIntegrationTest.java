@@ -11,7 +11,7 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
         String testVCF = validationDataLocation + "complexExample.vcf";
         String testArgs = "-R "+oneKGLocation+"reference/human_b36_both.fasta -T PickSequenomProbes -L 1:10,000,000-11,000,000 -B input,VCF,"+testVCF+" -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
-                Arrays.asList("6b5409cc78960f1be855536ed89ea9dd"));
+                Arrays.asList("368f6f61e7a99b33f74aab2cf055554e"));
         executeTest("Test probes", spec);
     }
 
@@ -21,9 +21,9 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
         String testArgs = "-snp_mask " + GATKDataLocation + "/dbsnp_130_b36.rod -R "
                 + oneKGLocation + "reference/human_b36_both.fasta -omitWindow -nameConvention "
                 + "-project_id 1kgp3_s4_lf -T PickSequenomProbes -L " + validationDataLocation +
-                "/pickSeqIntegrationTest.interval_list -B input,VCF,"+testVCF+" -o %s";
+                "pickSeqIntegrationTest.interval_list -B input,VCF4,"+testVCF+" -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
-                Arrays.asList("49bd6f53b93802576ed3dac8af4bcf8a"));
+                Arrays.asList("cb1f57e8bcaec4b599be075b6d5288a1"));
         executeTest("Test probes", spec);
     }
 }

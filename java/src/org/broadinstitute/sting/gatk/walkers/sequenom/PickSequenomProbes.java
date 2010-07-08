@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -69,6 +68,8 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 
     private LocationAwareSeekableRODIterator snpMaskIterator=null;
 
+    private GenomeLoc positionOfLastVariant = null;
+
     public void initialize() {
 		if ( SNP_MASK != null ) {
             logger.info("Loading SNP mask...  ");
@@ -104,26 +105,35 @@ public class PickSequenomProbes extends RodWalker<String, String> {
         if ( !vc.isBiallelic() )
             return "";
 
+        // we don't want to see the same multi-base deletion multiple times
+        if ( positionOfLastVariant != null &&
+                positionOfLastVariant.size() > 1 &&
+                positionOfLastVariant.equals(vc.getLocation()) )
+            return "";
+        positionOfLastVariant = vc.getLocation();
+
 		String contig = context.getLocation().getContig();
 		long   offset = context.getLocation().getStart();
         long true_offset = offset - 200;
 
         // we have variant; let's load all the snps falling into the current window and prepare the mask array:
         if ( snpMaskIterator != null ) {
+            // clear the mask
+            for ( int i = 0 ; i < 401; i++ )
+                maskFlags[i] = 0;
+
             RODRecordList snpList =  snpMaskIterator.seekForward(GenomeLocParser.createGenomeLoc(contig,offset-200,offset+200));
             if ( snpList != null && snpList.size() != 0 ) {
                 Iterator<GATKFeature>  snpsInWindow = snpList.iterator();
                 int i = 0;
                 while ( snpsInWindow.hasNext() ) {
                     GenomeLoc snp = snpsInWindow.next().getLocation();
+                    // we don't really want to mask out multi-base indels
+                    if ( snp.size() > 1 )
+                        continue;
                     int offsetInWindow = (int)(snp.getStart() - true_offset);
-                    for ( ; i < offsetInWindow; i++ ) maskFlags[i] = 0;
-                    maskFlags[i++] = 1;
+                    maskFlags[offsetInWindow] = 1;
                 }
-                for ( ; i < 401; i++ ) maskFlags[i] = 0;
-            } else {
-                // we got no snps, don't forget to clear the mask
-                for ( int i = 0 ; i < 401; i++ ) maskFlags[i] = 0;
             }
         }
 
@@ -141,9 +151,9 @@ public class PickSequenomProbes extends RodWalker<String, String> {
         if ( vc.isSNP() )
             assay_sequence = leading_bases + "[" + ref.getBaseAsChar() + "/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
         else if ( vc.isInsertion() )
-            assay_sequence = leading_bases + ref.getBaseAsChar() + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
+            assay_sequence = leading_bases + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
         else if ( vc.isDeletion() )
-            assay_sequence = leading_bases + ref.getBaseAsChar() + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length());
+            assay_sequence = leading_bases + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length()-1);
         else
             return "";
 
