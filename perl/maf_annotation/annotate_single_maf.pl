@@ -1,4 +1,5 @@
-#!/util/bin/perl -w
+#!/usr/bin/env perl
+use warnings;
 use strict;
 
 if (scalar(@ARGV) != 1) {
