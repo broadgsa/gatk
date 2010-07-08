@@ -138,6 +138,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
                         logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
                     }
                 } else {
+                    line.setVersion(VCFHeaderVersion.VCF4_0);
                     map.put(key, line);
                     //System.out.printf("Adding header line %s%n", line);
                 }
