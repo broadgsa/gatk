@@ -418,9 +418,7 @@ public class AlignmentUtils {
         CigarElement indel = cigar.getCigarElement(indexOfIndel);
         int indelLength = indel.getLength();
 
-        // the indel-based reference string
-        byte[] alt = new byte[refSeq.length + (indelLength * (indel.getOperator() == CigarOperator.D ? -1 : 1))];
-
+        int totalRefBases = 0;
         for ( int i = 0; i < indexOfIndel; i++ ) {
             CigarElement ce = cigar.getCigarElement(i);
             int length = ce.getLength();
@@ -429,17 +427,26 @@ public class AlignmentUtils {
                 case M:
                     readIndex += length;
                     refIndex += length;
+                    totalRefBases += length;
                     break;
                 case S:
                     readIndex += length;
                     break;
                 case N:
                     refIndex += length;
+                    totalRefBases += length;
                     break;
                 default:
                     break;
             }
         }
+
+        // sometimes, when there are very large known indels, we won't have enough reference sequence to cover them
+        if ( totalRefBases + indelLength > refSeq.length )
+            indelLength -= (totalRefBases + indelLength - refSeq.length);
+
+        // the indel-based reference string
+        byte[] alt = new byte[refSeq.length + (indelLength * (indel.getOperator() == CigarOperator.D ? -1 : 1))];
 
         // add the bases before the indel
         System.arraycopy(refSeq, 0, alt, 0, refIndex);
