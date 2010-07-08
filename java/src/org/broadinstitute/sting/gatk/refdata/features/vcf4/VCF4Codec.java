@@ -448,7 +448,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
                 throw new VCFParserException("Too few keys for compared to the value string " + sampleName + ", keys = " + parts[8] + " values = " + parts[genotypeOffset]);
 
             int genotypeAlleleLocation = -1;
-            if (nGTKeys > 1) {
+            if (nGTKeys >= 1) {
                 gtAttributes = new HashMap<String, String>(nGTKeys - 1);
                 for (int i = 0; i < nGTKeys; i++) {
                     if (i >= GTValueSplitSize)
