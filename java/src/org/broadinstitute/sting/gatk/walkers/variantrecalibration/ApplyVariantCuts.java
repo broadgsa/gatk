@@ -65,6 +65,9 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     private String TRANCHE_FILENAME = "optimizer.dat.tranches";
     @Argument(fullName="outputVCFFile", shortName="outputVCF", doc="The output filtered VCF file", required=true)
     private String OUTPUT_FILENAME = "optimizer.vcf";
+    @Argument(fullName="fdr_filter_level", shortName="fdr_filter_level", doc="The FDR level at which to start filtering.", required=true)
+    private double FDR_FILTER_LEVEL = 0.0;
+
 
     /////////////////////////////
     // Private Member Variables
@@ -87,8 +90,10 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
             for( final String line : new XReadLines(new File( TRANCHE_FILENAME )) ) {
                 if( !firstLine ) {
                     final String[] vals = line.split(",");
-                    qCuts.add(Double.parseDouble(vals[2]));
-                    filterName.add(vals[4]);
+                    if(Double.parseDouble(vals[0]) >= FDR_FILTER_LEVEL) {
+                        qCuts.add(Double.parseDouble(vals[2]));
+                        filterName.add(vals[4]);
+                    }
                 }
                 firstLine = false;
             }
@@ -119,11 +124,10 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
             }
         }
 
-        // BUGBUG : why doesn't this work?  VCFFilterHeaderLine is protected?
-        //for( int iii = 1; iii < filterName.size(); iii++ ) {
-        //    hInfo.add(new VCFFilterHeaderLine(filterName.get(iii)), String.format("FDR tranche level at qual " + qCuts.get(iii)));
-        //}
-        //hInfo.add(new VCFFilterHeaderLine(filterName.get(0)+"+"), String.format("FDR tranche level at qual > " + qCuts.get(filterName.size()-1)));
+        for( int iii = 1; iii < filterName.size(); iii++ ) {
+            hInfo.add(new VCFFilterHeaderLine(filterName.get(iii), String.format("FDR tranche level at qual " + qCuts.get(iii))));
+        }
+        hInfo.add(new VCFFilterHeaderLine(filterName.get(0)+"+", String.format("FDR tranche level at qual > " + qCuts.get(filterName.size()-1))));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);

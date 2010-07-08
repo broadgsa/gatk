@@ -155,15 +155,13 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         // Set up default values for the FDR tranches if necessary
         if( FDR_TRANCHES == null ) {
-            FDR_TRANCHES = new Double[3];
-            FDR_TRANCHES[0] = 12.5;
-            FDR_TRANCHES[1] = 20.0;
-            FDR_TRANCHES[2] = 30.0;
-            //FDR_TRANCHES[0] = 1.0;
-            //FDR_TRANCHES[1] = 5.0;
-            //FDR_TRANCHES[2] = 10.0;
-            //FDR_TRANCHES[3] = 20.0;
-            //FDR_TRANCHES[4] = 30.0;
+            FDR_TRANCHES = new Double[6];
+            FDR_TRANCHES[0] = 0.1;
+            FDR_TRANCHES[1] = 1.0;
+            FDR_TRANCHES[2] = 5.0;
+            FDR_TRANCHES[3] = 12.5;
+            FDR_TRANCHES[4] = 25.0;
+            FDR_TRANCHES[5] = 35.0;
         }
     }
 
