@@ -387,7 +387,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
             // find out our current location, and clip the alleles down to their minimum length
             Pair<GenomeLoc, List<Allele>> locAndAlleles;
-            if ( hasIndel(alleles) ) {
+            if ( !isSingleNucleotideEvent(alleles) ) {
                 attributes.put(ORIGINAL_ALLELE_LIST,alleles);
                 locAndAlleles = clipAlleles(contig, pos, ref, alleles);
             } else {
@@ -405,13 +405,12 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
     }
 
-    private boolean hasIndel(List<Allele> alleles) {
-        int lengthOfFirstEntry = alleles.get(0).length();
-        for ( int i = 1; i < alleles.size(); i++ ) {
-            if ( alleles.get(i).length() != lengthOfFirstEntry )
-                return true;
+    private boolean isSingleNucleotideEvent(List<Allele> alleles) {
+        for ( Allele a : alleles ) {
+            if ( a.length() > 1 )
+                return false;
         }
-        return false;
+        return true;
     }
 
     class VCFParserException extends StingException {

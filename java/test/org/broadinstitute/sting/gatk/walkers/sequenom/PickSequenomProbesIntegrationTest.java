@@ -11,7 +11,7 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
         String testVCF = validationDataLocation + "complexExample.vcf";
         String testArgs = "-R "+oneKGLocation+"reference/human_b36_both.fasta -T PickSequenomProbes -L 1:10,000,000-11,000,000 -B input,VCF,"+testVCF+" -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
-                Arrays.asList("368f6f61e7a99b33f74aab2cf055554e"));
+                Arrays.asList("0f356354a4a78ff62b2848431ec11262"));
         executeTest("Test probes", spec);
     }
 
