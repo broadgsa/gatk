@@ -5,6 +5,7 @@
     <conf name="default" description="the core dependencies for the GATK"/>
     <conf name="scala" extends="default" description="the dependencies for scala"/>
     <conf name="queue" extends="scala" description="the dependencies for Queue"/>
+    <conf name="findbugs" extends="default" description="the dependencies for Findbugs"/>
   </configurations>
   <dependencies defaultconf="default">
     <dependency org="net.sf" name="sam" rev="latest.integration" conf="default"/>
@@ -48,6 +49,11 @@
     <!-- Queue additional dependencies -->
     <dependency org="commons-lang" name="commons-lang" rev="2.5" conf="queue->default"/>
     <dependency org="edu.mit.broad" name="broad-core-all" rev="2.8" conf="queue->default"/>
+
+    <!-- findbug dependencies -->
+    <dependency org="net.sourceforge.findbugs" name="findbugs" rev="1.3.2" conf="findbugs->default"/>
+    <dependency org="net.sourceforge.findbugs" name="findbugs-ant" rev="1.3.2" conf="findbugs->default"/>
+    
 
   </dependencies>
 </ivy-module>

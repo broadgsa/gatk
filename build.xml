@@ -1,6 +1,5 @@
 <project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>Compile and distribute the Sting toolkit</description>
-
     <property name="build.sysclasspath" value="first" />
 
     <property name="build.dir" value="build" />
@@ -8,6 +7,9 @@
     <property name="java.source.dir" value="java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
     <property name="resource.file" value="StingText.properties" />
+
+    <!-- where to find 'findbugs', which you must set if you plan to use 'ant findbugs' -->
+    <property name="findbugs.home" value="./findbugs"/>
 
     <!-- do we want to halt on failure of a junit test? default to yes (Bamboo uses 'no') -->
     <property name="halt" value="yes" />
@@ -266,10 +268,10 @@
       <property name="scala.classes" value="build/scala" />
       
       <path id="scala.classpath">
-	<fileset dir="lib">
+	    <fileset dir="lib">
           <include name="scala-compiler-*.jar"/>
           <include name="scala-library-*.jar"/>
-	</fileset>
+	    </fileset>
         <fileset dir="${dist.dir}">
           <patternset id="scalaStuff">
             <include name="*.jar"/>
@@ -352,7 +354,7 @@
             <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
                 <formatter type="brief" usefile="false" />
                 <formatter type="xml"/> 
-                
+
                 <classpath>
                     <pathelement location="${java.classes}"/>
                     <path refid="runtime.dependencies"/>
@@ -448,6 +450,34 @@
 	<property name="additional.jars" value="${required.picard.jars}" />
       </ant>
     </target>
+
+    <!-- ******************************************************************************** -->
+    <!-- Find bug tasks                                                                   -->
+    <!-- ******************************************************************************** -->
+    <path id="findbugs.classpath">
+            <fileset dir="lib" erroronmissingdir="true" includes="*.jar"/>
+    </path>
+    <target         name="findbugs" depends="dist">
+        <antcall    target  ="resolve">
+            <param  name    ="ivy.conf" value="findbugs"/>
+        </antcall>
+        <!-- setup the taskdef, telling ant where to find the defined task for ant -->
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpathref="findbugs.classpath"/>
+        <!-- what should findbug look at: we want to aim it at the GATK.jar -->
+        <findbugs       home="${findbugs.home}"
+                        output="xml"
+                        outputFile="${build.dir}/findbugs.xml"
+                        classpathref="findbugs.classpath"
+                        debug="false">
+         <auxClasspath>
+                <fileset dir="dist" includes="**/*.jar" excludes="**/GenomeAnalysisTK.jar"/>            
+         </auxClasspath>
+         <sourcePath    path="../java/src" />
+         <class         location="dist/GenomeAnalysisTK.jar" />
+       </findbugs>
+     </target>
+
+
 
     <target name="clean" description="clean up">
         <delete dir="out"/>
