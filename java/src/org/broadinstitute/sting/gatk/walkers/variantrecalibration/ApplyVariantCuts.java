@@ -65,7 +65,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     private String TRANCHE_FILENAME = "optimizer.dat.tranches";
     @Argument(fullName="outputVCFFile", shortName="outputVCF", doc="The output filtered VCF file", required=true)
     private String OUTPUT_FILENAME = "optimizer.vcf";
-    @Argument(fullName="fdr_filter_level", shortName="fdr_filter_level", doc="The FDR level at which to start filtering.", required=true)
+    @Argument(fullName="fdr_filter_level", shortName="fdr_filter_level", doc="The FDR level at which to start filtering.", required=false)
     private double FDR_FILTER_LEVEL = 0.0;
 
 
