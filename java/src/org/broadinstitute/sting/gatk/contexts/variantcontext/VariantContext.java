@@ -4,7 +4,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broad.tribble.vcf.VCFRecord;
 import org.broad.tribble.Feature;
 
 import java.util.*;
@@ -606,7 +605,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return a list of indel lengths ( null if not of type indel or mixed )
      */
     public List<Integer> getIndelLengths() {
-        if ( getType() != Type.INDEL || getType() != Type.MIXED ) {
+        if ( getType() != Type.INDEL && getType() != Type.MIXED ) {
             return null;
         }
 
