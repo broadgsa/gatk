@@ -160,12 +160,16 @@ public class VariantContextUtils {
         return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
     }
 
-    public enum MergeType {
-        UNION_VARIANTS, INTERSECT_VARIANTS, UNIQUIFY_GENOTYPES, PRIORITIZE_GENOTYPES, UNSORTED_GENOTYPES
+    public enum GenotypeMergeType {
+        UNIQUIFY, PRIORITIZE, UNSORTED
+    }
+
+    public enum VariantMergeType {
+        UNION, INTERSECT
     }
 
     public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs) {
-        return simpleMerge(unsortedVCs, null, EnumSet.of(MergeType.INTERSECT_VARIANTS, MergeType.UNSORTED_GENOTYPES), false, false);
+        return simpleMerge(unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false);
     }
 
 
@@ -176,17 +180,20 @@ public class VariantContextUtils {
      *
      * @param unsortedVCs
      * @param priorityListOfVCs
-     * @param mergeOptions
+     * @param variantMergeOptions
+     * @param genotypeMergeOptions
      * @return
      */
-    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, EnumSet<MergeType> mergeOptions, boolean annotateOrigin, boolean printMessages ) {
+    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
+                                             VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
+                                             boolean annotateOrigin, boolean printMessages ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
         if ( annotateOrigin && priorityListOfVCs == null )
             throw new IllegalArgumentException("Cannot merge calls and annotate their origins with a complete priority list of VariantContexts");
 
-        List<VariantContext> VCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, mergeOptions);
+        List<VariantContext> VCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
 
         // establish the baseline info from the first VC
         VariantContext first = VCs.get(0);
@@ -223,7 +230,7 @@ public class VariantContextUtils {
 
             alleles.addAll(alleleMapping.values());
 
-            mergeGenotypes(genotypes, vc, alleleMapping, mergeOptions.contains(MergeType.UNIQUIFY_GENOTYPES));
+            mergeGenotypes(genotypes, vc, alleleMapping, genotypeMergeOptions == GenotypeMergeType.UNIQUIFY);
 
             negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
 
@@ -235,7 +242,7 @@ public class VariantContextUtils {
         }
 
         // if at least one record was unfiltered and we want a union, clear all of the filters
-        if ( mergeOptions.contains(MergeType.UNION_VARIANTS) && nFiltered != VCs.size() )
+        if ( variantMergeOptions == VariantMergeType.UNION && nFiltered != VCs.size() )
             filters.clear();
 
         // we care about where the call came from
@@ -362,11 +369,11 @@ public class VariantContextUtils {
         }
     }
 
-    public static List<VariantContext> sortVariantContextsByPriority(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, EnumSet<MergeType> mergeOptions ) {
-        if ( mergeOptions.contains(MergeType.PRIORITIZE_GENOTYPES) && priorityListOfVCs == null )
+    public static List<VariantContext> sortVariantContextsByPriority(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, GenotypeMergeType mergeOption ) {
+        if ( mergeOption == GenotypeMergeType.PRIORITIZE && priorityListOfVCs == null )
             throw new IllegalArgumentException("Cannot merge calls by priority with a null priority list");
 
-        if ( priorityListOfVCs == null || mergeOptions.contains(MergeType.UNSORTED_GENOTYPES) )
+        if ( priorityListOfVCs == null || mergeOption == GenotypeMergeType.UNSORTED )
             return new ArrayList<VariantContext>(unsortedVCs);
         else {
             ArrayList<VariantContext> sorted = new ArrayList<VariantContext>(unsortedVCs);

@@ -344,7 +344,6 @@ public class VCFWriter {
                 if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
                     vcfGenotypeAttributeKeys.add(key);
             }
-
         }
         String genotypeFormatString = Utils.join(GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
 
@@ -426,7 +425,7 @@ public class VCFWriter {
         mGenotypeRecords.clear();
         mGenotypeRecords.addAll(genotypeObjects);
         // info fields
-        Map<String, String> infoFields = new HashMap<String, String>();
+        Map<String, String> infoFields = new TreeMap<String, String>();
         for ( Map.Entry<String, Object> elt : vc.getAttributes().entrySet() ) {
             String key = elt.getKey();
             if ( key.equals("ID") )

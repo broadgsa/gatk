@@ -49,28 +49,22 @@ import java.util.*;
 @Requires(value={})
 public class CombineVariants extends RodWalker<Integer, Integer> {
     // the types of combinations we currently allow
-    public enum ComboType { UNION, MERGE }
-    @Argument(fullName="combination_type", shortName="type", doc="combination type; MERGE are supported", required=true)
-    protected ComboType COMBO_TYPE;
+    @Argument(shortName="genotypeMergeOptions", doc="How should we merge genotype records for samples shared across the ROD files?", required=false)
+    public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
+
+    @Argument(shortName="variantMergeOptions", doc="How should we merge variant records across RODs?  Union leaves the record if any record is unfiltered, Intersection requires all records to be unfiltered", required=false)
+    public VariantContextUtils.VariantMergeType variantMergeOption = VariantContextUtils.VariantMergeType.UNION;
 
     @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=true)
-    protected String PRIORITY_STRING = null;
+    public String PRIORITY_STRING = null;
 
     @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
-    protected boolean printComplexMerges = false;
+    public boolean printComplexMerges = false;
 
     private VCFWriter vcfWriter = null;
     private List<String> priority = null;
-    protected EnumSet<VariantContextUtils.MergeType> mergeOptions;
-
-    protected final static EnumSet<VariantContextUtils.MergeType> mergeTypeOptions = EnumSet.of(VariantContextUtils.MergeType.UNION_VARIANTS, VariantContextUtils.MergeType.UNIQUIFY_GENOTYPES);
-    protected final static EnumSet<VariantContextUtils.MergeType> unionTypeOptions = EnumSet.of(VariantContextUtils.MergeType.UNION_VARIANTS, VariantContextUtils.MergeType.PRIORITIZE_GENOTYPES);
 
     public void initialize() {
-
-        //Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        //hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-
         vcfWriter = new VCFWriter(out, true);
         priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
 
@@ -78,9 +72,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         // todo -- need to merge headers in an intelligent way
 
         validateAnnotateUnionArguments(priority);
-        mergeOptions = COMBO_TYPE == ComboType.MERGE ? mergeTypeOptions : unionTypeOptions;
         Map<String, VCFHeader> vcfRods = SampleUtils.getRodsWithVCFHeader(getToolkit(), null);
-        Set<String> samples = getSampleList(vcfRods, mergeOptions);
+        Set<String> samples = getSampleList(vcfRods, genotypeMergeOption);
 
         Set<VCFHeaderLine> headerLines = smartMergeHeaders(vcfRods.values());
         headerLines.add(new VCFHeaderLine("source", "CombineVariants"));
@@ -89,12 +82,12 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     }
 
     // todo -- Eric, where's a better place to put this?
-    public static Set<String> getSampleList(Map<String, VCFHeader> headers, EnumSet<VariantContextUtils.MergeType> mergeOptions ) {
+    public static Set<String> getSampleList(Map<String, VCFHeader> headers, VariantContextUtils.GenotypeMergeType mergeOption ) {
         Set<String> samples = new TreeSet<String>();
         for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
             VCFHeader header = val.getValue();
             for ( String sample : header.getGenotypeSamples() ) {
-                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOptions.contains(VariantContextUtils.MergeType.UNIQUIFY_GENOTYPES)));
+                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == VariantContextUtils.GenotypeMergeType.UNIQUIFY));
             }
         }
 
@@ -164,12 +157,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
-        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, mergeOptions, true, printComplexMerges);
+        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, variantMergeOption, genotypeMergeOption, true, printComplexMerges);
         if ( mergedVC != null ) // only operate at the start of events
-            //if ( ! mergedVC.isMixed() ) // todo remove restriction when VCF4 writer is fixed
             vcfWriter.add(mergedVC, ref.getBases());
-//            else
-//                logger.info(String.format("Ignoring complex event: " + mergedVC));
 
         return vcs.isEmpty() ? 0 : 1;
     }
