@@ -99,6 +99,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
         HashSet<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
 
+	// todo -- needs to remove all version headers from sources and add its own VCF version line
         for ( VCFHeader source : headers ) {
             //System.out.printf("Merging in header %s%n", source);
             for ( VCFHeaderLine line : source.getMetaData()) {
@@ -145,7 +146,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     private void validateAnnotateUnionArguments(List<String> priority) {
         Set<String> rodNames = SampleUtils.getRodsNamesWithVCFHeader(getToolkit(), null);
         if ( priority == null || rodNames.size() != priority.size() )
-            throw new StingException("A complete priority list must be provided when annotateUnion is provided");
+            throw new StingException("The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
 
         if ( ! rodNames.containsAll(rodNames) )
             throw new StingException("Not all priority elements provided as input RODs: " + PRIORITY_STRING);

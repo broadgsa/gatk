@@ -203,7 +203,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         public boolean isSelected() { return selectExp == null; }
 
         public String getDisplayName() {
-            return Utils.join(".", Arrays.asList(evalTrackName, compTrackName, selectExp == null ? "all" : selectExp.name, filtered, novelty));
+            return Utils.join(CONTEXT_SEPARATOR, Arrays.asList(evalTrackName, compTrackName, selectExp == null ? "all" : selectExp.name, filtered, novelty));
         }
 
         public int compareTo(EvaluationContext other) {
@@ -238,12 +238,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     private static String NO_COMP_NAME = "N/A";
 
-    private final static String CONTEXT_HEADER = "eval.comp.select.filter.novelty";
-    private final static int N_CONTEXT_NAME_PARTS = CONTEXT_HEADER.split("\\.").length;
+    private final static String CONTEXT_SEPARATOR = "XXX";
+    //private final static String CONTEXT_SEPARATOR = "\\.";
+    private final static String CONTEXT_HEADER = Utils.join(CONTEXT_SEPARATOR, Arrays.asList("eval", "comp", "select", "filter", "novelty"));
+    private final static int N_CONTEXT_NAME_PARTS = CONTEXT_HEADER.split(CONTEXT_SEPARATOR).length;
     private static int[] nameSizes = new int[N_CONTEXT_NAME_PARTS];
     static {
         int i = 0;
-        for ( String elt : CONTEXT_HEADER.split("\\.") )
+        for ( String elt : CONTEXT_HEADER.split(CONTEXT_SEPARATOR) )
             nameSizes[i++] = elt.length();
     }
 
@@ -642,7 +644,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     private void determineContextNamePartSizes() {
         for ( EvaluationContext group : contexts ) {
-            String[] parts = group.getDisplayName().split("\\.");
+            String[] parts = group.getDisplayName().split(CONTEXT_SEPARATOR);
             if ( parts.length != N_CONTEXT_NAME_PARTS ) {
                 throw new StingException("Unexpected number of eval name parts " + group.getDisplayName() + " length = " + parts.length + ", expected " + N_CONTEXT_NAME_PARTS);
             } else {
