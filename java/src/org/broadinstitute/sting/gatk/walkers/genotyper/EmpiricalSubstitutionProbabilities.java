@@ -101,7 +101,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
 
         double logP = log10pTrueGivenMiscall.get(pl)[i][j];
         if ( logP == 0.0 )
-            throw new RuntimeException(String.format("Bad miscall base request miscalled=%c true=%b", miscalledBase, trueBase));
+            throw new RuntimeException(String.format("Bad miscall base request miscalled=%c true=%c", miscalledBase, trueBase));
         else
             return logP;
     }

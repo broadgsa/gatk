@@ -37,11 +37,7 @@ public class GenotypeCalculationModelFactory {
     //private GenotypeCalculationModelFactory() {} // cannot be instantiated
 
     public static GenotypeCalculationModel.Model getGenotypeCalculationModel(final String name) {
-        GenotypeCalculationModel.Model m = valueOf(name);
-        if ( m == null )
-            throw new RuntimeException("Unexpected GenotypeCalculationModel " + name);
-        else
-            return m;
+        return valueOf(name);
     }
 
     /**

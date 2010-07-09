@@ -6,11 +6,7 @@ public class FourBaseProbabilitiesFactory {
     //private FourBaseProbabilitiesFactory() {} // cannot be instantiated
 
     public static BaseMismatchModel getBaseMismatchModel(final String name) {
-        BaseMismatchModel m = valueOf(name);
-        if ( m == null )
-            throw new RuntimeException("Unexpected BaseMismatchModel " + name);
-        else
-            return m;
+        return valueOf(name);
     }
 
     public static BaseMismatchModel getBaseMismatchModel(final FourBaseProbabilities m) {

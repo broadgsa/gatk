@@ -92,8 +92,8 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
     protected void initializeAlleles(byte[] ref, Map<String, StratifiedAlignmentContext> contexts) {
 
 
-        for ( String sample : contexts.keySet() ) {
-            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
+            AlignmentContext context = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
 
             totalCoverage += context.size();
 

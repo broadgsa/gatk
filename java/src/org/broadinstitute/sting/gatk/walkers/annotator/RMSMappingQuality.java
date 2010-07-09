@@ -23,8 +23,8 @@ public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotatio
             return null;
 
         ArrayList<Integer> qualities = new ArrayList<Integer>();
-        for ( String sample : stratifiedContexts.keySet() ) {
-            ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+        for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() ) {
+            ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
             for (PileupElement p : pileup )
                 qualities.add(p.getRead().getMappingQuality());
         }

@@ -57,7 +57,7 @@ public class DiploidGenotypePriors {
     private double[] priors = null;
 
     // todo -- fix me when this issue is resolved
-    public static boolean RequirePriorSumToOne = false;
+    public static final boolean requirePriorSumToOne = false;
 
     /**
      * Create a new DiploidGenotypePriors object with flat priors for each diploid genotype
@@ -124,7 +124,7 @@ public class DiploidGenotypePriors {
 
    public boolean validate(boolean throwException) {
         try {
-            if ( RequirePriorSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(priors), 1.0) != 0 ) {
+            if ( requirePriorSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(priors), 1.0) != 0 ) {
                 throw new IllegalStateException(String.format("Priors don't sum to 1: sum=%f %s", MathUtils.sumLog10(priors), Arrays.toString(priors)));
             }
 

@@ -24,8 +24,8 @@ public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotati
             return null;
 
         int mq0 = 0;
-        for ( String sample : stratifiedContexts.keySet() ) {
-            ReadBackedPileup pileup = stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+        for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() ) {
+            ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
             for (PileupElement p : pileup ) {
                 if ( p.getMappingQual() == 0 )
                     mq0++;

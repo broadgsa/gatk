@@ -82,7 +82,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     /**
      * Inner class for collecting output statistics from the UG
      */
-    public class UGStatistics {
+    public static class UGStatistics {
         /** The total number of passes examined -- i.e., the number of map calls */
         long nBasesVisited = 0;
 

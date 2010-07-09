@@ -13,8 +13,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     // for use in optimizing the P(D|AF) calculations:
     // how much off from the max likelihoods do we need to be before we can quit calculating?
-    protected static final Double LOG10_OPTIMIZATION_EPSILON = 8.0;
-    protected static final Double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
+    protected static final double LOG10_OPTIMIZATION_EPSILON = 8.0;
+    protected static final double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
     private int minAlleleFrequencyToTest;
 
     // because the null allele frequencies are constant for a given N,
@@ -107,11 +107,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected void initializeBestAlternateAllele(byte ref, Map<String, StratifiedAlignmentContext> contexts) {
         int[] qualCounts = new int[4];
 
-        for ( String sample : contexts.keySet() ) {
-            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
-
+        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
             // calculate the sum of quality scores for each base
-            ReadBackedPileup pileup = context.getBasePileup();
+            ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
             for ( PileupElement p : pileup ) {
                 // ignore deletions
                 if ( p.isDeletion() )
@@ -409,7 +407,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             strandScore *= 10.0;
             //logger.debug(String.format("SLOD=%f", strandScore));
 
-            attributes.put("SB", new Double(strandScore));
+            attributes.put("SB", Double.valueOf(strandScore));
         }
 
         VariantContext vc = new VariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);

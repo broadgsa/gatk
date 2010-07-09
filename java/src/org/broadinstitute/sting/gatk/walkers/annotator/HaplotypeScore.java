@@ -237,7 +237,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         public String toString() { return new String(this.bases); }
     }
 
-    private class BaseQual extends Pair<Byte, Byte> {
+    private static class BaseQual extends Pair<Byte, Byte> {
         public BaseQual(byte base, byte qual) {
             super(base, qual);
         }

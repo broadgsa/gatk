@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -91,7 +91,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         long furthestStopPos = -1;
 
         // look for insertions in the extended context (we'll get deletions from the normal context)
-        if ( context != null && context.hasExtendedEventPileup() ) {
+        if ( context.hasExtendedEventPileup() ) {
             ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup();
             if ( pileup.getNumberOfInsertions() > 0 ) {
                 hasIndel = hasInsertion = true;
@@ -119,6 +119,8 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
                         if ( vc.isInsertion() )
                             hasInsertion = true;
                         break;
+                    default:
+                        break;
                 }
                 if ( hasIndel )
                     furthestStopPos = vc.getLocation().getStop();
@@ -132,12 +134,11 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             int mismatchQualities = 0, totalQualities = 0;
             byte refBase = ref.getBase();
             for (PileupElement p : pileup ) {
-                SAMRecord read = p.getRead();
-                if ( !REALIGN_BADLY_MATED_READS && read.getReadPairedFlag() && !read.getMateUnmappedFlag() && read.getMateReferenceIndex() != read.getReferenceIndex() )
+                if ( !REALIGN_BADLY_MATED_READS && BadMateFilter.hasBadMate(p.getRead()) )
                     continue;
 
                 // check the ends of the reads to see how far they extend
-                furthestStopPos = Math.max(furthestStopPos, read.getAlignmentEnd());
+                furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
 
                 // is it a deletion? (sanity check in case extended event missed it)
                 if ( p.isDeletion() ) {

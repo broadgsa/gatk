@@ -69,15 +69,14 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         // use flat priors for GLs
         DiploidGenotypePriors priors = new DiploidGenotypePriors();
 
-        for ( String sample : contexts.keySet() ) {
-            StratifiedAlignmentContext context = contexts.get(sample);
-            ReadBackedPileup pileup = context.getContext(contextType).getBasePileup();
+        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
+            ReadBackedPileup pileup = sample.getValue().getContext(contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
             GenotypeLikelihoods GL = new GenotypeLikelihoods(UAC.baseModel, priors, UAC.defaultPlatform);
 
             GL.add(pileup, true, UAC.CAP_BASE_QUALITY);
-            GLs.put(sample, GL);
+            GLs.put(sample.getKey(), GL);
 
             double[] posteriors = GL.getPosteriors();
 
@@ -87,7 +86,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                 if ( alt != ref ) {
                     DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(ref, alt);
                     DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
-                    AFMatrixMap.get(alt).setLikelihoods(posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()], sample);
+                    AFMatrixMap.get(alt).setLikelihoods(posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()], sample.getKey());
                 }
             }
         }
@@ -171,7 +170,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
     }
 
 
-    protected class AlleleFrequencyMatrix {
+    protected static class AlleleFrequencyMatrix {
 
         private double[][] matrix;    // allele frequency matrix
         private int[] indexes;        // matrix to maintain which genotype is active

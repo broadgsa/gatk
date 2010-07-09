@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -155,7 +156,7 @@ public class UnifiedGenotyperEngine {
             return null;
 
         VariantCallContext call;
-        BadlyMatedReadPileupFilter badlyMatedReadPileupFilter = new BadlyMatedReadPileupFilter(refContext);
+        BadReadPileupFilter badReadPileupFilter = new BadReadPileupFilter(refContext);
 
         if ( rawContext.hasExtendedEventPileup() ) {
 
@@ -165,7 +166,7 @@ public class UnifiedGenotyperEngine {
             ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
 
             // filter the context based on bad mates and mismatch rate
-            pileup = pileup.getFilteredPileup(badlyMatedReadPileupFilter);
+            pileup = pileup.getFilteredPileup(badReadPileupFilter);
 
             // don't call when there is no coverage
             if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
@@ -186,7 +187,7 @@ public class UnifiedGenotyperEngine {
             ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
 
             // filter the context based on bad mates and mismatch rate
-            pileup = pileup.getFilteredPileup(badlyMatedReadPileupFilter);
+            pileup = pileup.getFilteredPileup(badReadPileupFilter);
 
             // don't call when there is no coverage
             if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
@@ -227,16 +228,13 @@ public class UnifiedGenotyperEngine {
     /**
      * Filters low quality reads out of the pileup.
      */
-    private class BadlyMatedReadPileupFilter implements PileupElementFilter {
+    private class BadReadPileupFilter implements PileupElementFilter {
         private ReferenceContext refContext;
 
-        public BadlyMatedReadPileupFilter(ReferenceContext refContext) { this.refContext = refContext; }
+        public BadReadPileupFilter(ReferenceContext refContext) { this.refContext = refContext; }
 
         public boolean allow(PileupElement pileupElement) {
-            return  ((UAC.USE_BADLY_MATED_READS ||
-                      !pileupElement.getRead().getReadPairedFlag() ||
-                      pileupElement.getRead().getMateUnmappedFlag() ||
-                      pileupElement.getRead().getMateReferenceIndex() == pileupElement.getRead().getReferenceIndex()) &&
+            return  ((UAC.USE_BADLY_MATED_READS || !BadMateFilter.hasBadMate(pileupElement.getRead())) &&
                      AlignmentUtils.mismatchesInRefWindow(pileupElement, refContext, true) <= UAC.MAX_MISMATCHES );
         }
     }

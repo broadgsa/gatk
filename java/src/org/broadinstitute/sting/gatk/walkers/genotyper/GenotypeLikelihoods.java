@@ -499,7 +499,7 @@ public class GenotypeLikelihoods implements Cloneable {
     //
     // Constant static data
     //
-    protected final static double[] zeros = new double[DiploidGenotype.values().length];
+    final static double[] zeros = new double[DiploidGenotype.values().length];
 
     static {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {

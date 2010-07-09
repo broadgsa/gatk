@@ -22,8 +22,8 @@ public class DepthOfCoverage implements InfoFieldAnnotation, StandardAnnotation 
             return null;
 
         int depth = 0;
-        for ( String sample : stratifiedContexts.keySet() )
-            depth += stratifiedContexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
+        for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() )
+            depth += sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%d", depth));
         return map;

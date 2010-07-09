@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -298,7 +299,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 read.getReadFailsVendorQualityCheckFlag() ||
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
-                (!REALIGN_BADLY_MATED_READS && read.getReadPairedFlag() && !read.getMateUnmappedFlag() && read.getMateReferenceIndex() != read.getReferenceIndex());
+                (!REALIGN_BADLY_MATED_READS && BadMateFilter.hasBadMate(read));
     }
 
     private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
@@ -510,7 +511,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         statsOutput.write(Double.toString(improvement));
                         statsOutput.write("\n");
                         statsOutput.flush();
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                        throw new StingException(e.getMessage());
+                    }
                 }
             } else {
                 //logger.debug("CLEAN: " + bestConsensus.cigar + " " + bestConsensus.str.toString() + " " + bestConsensus.cigar.numCigarElements() );
@@ -535,7 +538,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     try {
                         indelOutput.write(str.toString());
                         indelOutput.flush();
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                        throw new StingException(e.getMessage());
+                    }
                 }
                 if ( statsOutput != null ) {
                     try {
@@ -547,7 +552,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         statsOutput.write(Double.toString(improvement));
                         statsOutput.write("\n");
                         statsOutput.flush();
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                        throw new StingException(e.getMessage());
+                    }
                 }
 
                 // finish cleaning the appropriate reads
@@ -571,7 +578,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 statsOutput.write(String.format("%s\tFAIL\t%.1f%n",
                         readsToClean.getLocation().toString(), improvement));
                 statsOutput.flush();
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                throw new StingException(e.getMessage());
+            }
         }
     }
 
@@ -999,7 +1008,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             try {
                 snpsOutput.write(sb.toString());
                 snpsOutput.flush();
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                throw new StingException(e.getMessage());                
+            }
         }
         return reduces;
     }
@@ -1200,7 +1211,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private class Consensus {
+    private static class Consensus {
         public final byte[] str;
         public final ArrayList<Pair<Integer, Integer>> readIndexes;
         public final int positionOnReference;
@@ -1230,7 +1241,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private class ReadBin {
+    private static class ReadBin {
 
         private final ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         private byte[] reference = null;
