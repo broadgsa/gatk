@@ -55,7 +55,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(shortName="variantMergeOptions", doc="How should we merge variant records across RODs?  Union leaves the record if any record is unfiltered, Intersection requires all records to be unfiltered", required=false)
     public VariantContextUtils.VariantMergeType variantMergeOption = VariantContextUtils.VariantMergeType.UNION;
 
-    @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=true)
+    @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=false)
     public String PRIORITY_STRING = null;
 
     @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
@@ -66,12 +66,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     public void initialize() {
         vcfWriter = new VCFWriter(out, true);
-        priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
-
+        validateAnnotateUnionArguments();
 
         // todo -- need to merge headers in an intelligent way
 
-        validateAnnotateUnionArguments(priority);
         Map<String, VCFHeader> vcfRods = SampleUtils.getRodsWithVCFHeader(getToolkit(), null);
         Set<String> samples = getSampleList(vcfRods, genotypeMergeOption);
 
@@ -143,9 +141,18 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     }
 
 
-    private void validateAnnotateUnionArguments(List<String> priority) {
+    private void validateAnnotateUnionArguments() {
         Set<String> rodNames = SampleUtils.getRodsNamesWithVCFHeader(getToolkit(), null);
-        if ( priority == null || rodNames.size() != priority.size() )
+
+        if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
+            throw new StingException("Priority string must be provided if you want to prioritize genotypes");
+
+        if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE )
+            priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
+        else
+            priority = new ArrayList<String>(rodNames);
+
+        if ( rodNames.size() != priority.size() )
             throw new StingException("The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
 
         if ( ! rodNames.containsAll(rodNames) )

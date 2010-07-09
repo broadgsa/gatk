@@ -161,7 +161,7 @@ public class VariantContextUtils {
     }
 
     public enum GenotypeMergeType {
-        UNIQUIFY, PRIORITIZE, UNSORTED
+        UNIQUIFY, PRIORITIZE, UNSORTED, REQUIRE_UNIQUE
     }
 
     public enum VariantMergeType {
@@ -191,7 +191,10 @@ public class VariantContextUtils {
             return null;
 
         if ( annotateOrigin && priorityListOfVCs == null )
-            throw new IllegalArgumentException("Cannot merge calls and annotate their origins with a complete priority list of VariantContexts");
+            throw new IllegalArgumentException("Cannot merge calls and annotate their origins without a complete priority list of VariantContexts");
+
+        if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
+            verifyUniqueSampleNames(unsortedVCs);
 
         List<VariantContext> VCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
 
@@ -204,7 +207,7 @@ public class VariantContextUtils {
         Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
         double negLog10PError = -1;
         Set<String> filters = new TreeSet<String>();
-        Map<String, Object> attributes = new TreeMap<String, Object>(first.getAttributes());
+        Map<String, Object> attributes = new TreeMap<String, Object>();
         String rsID = null;
         int depth = 0;
 
@@ -239,6 +242,13 @@ public class VariantContextUtils {
                 depth += Integer.valueOf(vc.getAttributeAsString(VCFRecord.DEPTH_KEY));
             if ( rsID == null && vc.hasAttribute("ID") )
                 rsID = vc.getAttributeAsString("ID");
+
+            for ( Map.Entry<String, Object> p : vc.getAttributes().entrySet() ) {
+                if ( ! attributes.containsKey(p.getKey()) || attributes.get(p.getKey()).equals(".") )  { // no value
+                    //if ( vc != first ) System.out.printf("Adding key %s => %s%n", p.getKey(), p.getValue());
+                    attributes.put(p.getKey(), p.getValue());
+                }
+            }
         }
 
         // if at least one record was unfiltered and we want a union, clear all of the filters
@@ -291,6 +301,20 @@ public class VariantContextUtils {
             return newAs;
         }
     }
+
+    static private void verifyUniqueSampleNames(Collection<VariantContext> unsortedVCs) {
+        Set<String> names = new HashSet<String>();
+        for ( VariantContext vc : unsortedVCs ) {
+            for ( String name : vc.getSampleNames() ) {
+                //System.out.printf("Checking %s %b%n", name, names.contains(name));
+                if ( names.contains(name) )
+                    throw new StingException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered " + name);
+            }
+
+            names.addAll(vc.getSampleNames());
+        }
+    }
+
 
     static private Allele determineReferenceAllele(List<VariantContext> VCs) {
         Allele ref = null;
