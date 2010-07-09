@@ -344,6 +344,9 @@ public class VCFWriter {
                 if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
                     vcfGenotypeAttributeKeys.add(key);
             }
+        } else if ( header.hasGenotypingData() ) {
+            // this needs to be done in case all samples are no-calls
+            vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_KEY);
         }
         String genotypeFormatString = Utils.join(GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
 
