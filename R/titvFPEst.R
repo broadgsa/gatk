@@ -41,3 +41,7 @@ cumhist <- function(d) {
     h <- hist(d)
     #plot(h$mids, cumsum(h$count), type="b", col="orange", lwd=2)
 }
+
+revcumsum <- function(x) {
+   return(rev(cumsum(rev(x))))
+}

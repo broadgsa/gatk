@@ -1,4 +1,4 @@
-#!/broad/tools/apps/R-2.6.0/bin/Rscript
+#!/bin/env Rscript
 
 args <- commandArgs(TRUE)
 
