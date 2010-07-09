@@ -269,7 +269,15 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      */
     private static Double parseQual(String qualString) {
         // todo -- remove double once we deal with annoying VCFs from 1KG
-        return qualString.equals("-1") || qualString.equals("-1.0") ? VariantContext.NO_NEG_LOG_10PERROR : Double.valueOf(qualString) / 10;
+	if ( qualString.equals(".") )
+	    return VariantContext.NO_NEG_LOG_10PERROR;
+	else {
+	    double q = Double.valueOf(qualString);
+	    if ( q == -1 ) 
+		return VariantContext.NO_NEG_LOG_10PERROR;
+	    else
+		return Double.valueOf(qualString) / 10;
+	}
     }
 
     /**
