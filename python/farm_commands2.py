@@ -133,7 +133,7 @@ def buildExecutionString(job, farm_queue = None, debug = True):
             #farm_stdout = None
             farm_stdout = "%J.lsf.output"
             
-        cmd_str = "bsub -q " + farm_queue 
+        cmd_str = "bsub -r -q " + farm_queue 
         if farm_stdout != None:
             cmd_str += " -o " + farm_stdout
         

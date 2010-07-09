@@ -154,7 +154,7 @@ def aggregateGeliCalls( sortedGeliCalls ):
     #return [[loc, list(sharedCallsGroup)] for (loc, sharedCallsGroup) in itertools.groupby(sortedGeliCalls, call2loc)]
     return [[loc, list(sharedCallsGroup)] for (loc, sharedCallsGroup) in itertools.groupby(sortedGeliCalls, call2loc)]
 
-def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True, useSamtools = False, memLimit = '-Xmx4096m', compression_level = 1 ):
+def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True, useSamtools = False, memLimit = '-Xmx2g', compression_level = 1 ):
     if useSamtools:
         return SAMTOOLS_MERGE_BIN + ' ' + output_filename + ' ' + ' '.join(inputFiles)
     else:
@@ -166,13 +166,12 @@ def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True, 
         if MSD: MSDStr = 'MSD=true'
     
         return 'java ' + memLimit + ' -jar ' + mergeBin + ' ' + MSDStr + ' AS=true COMPRESSION_LEVEL=' + str(compression_level) + ' SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
-        #return 'java -Xmx4096m -jar ' + mergeBin + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
 
-def mergeFixingMatesBAMCmd( output_filename, inputFiles, memLimit = '-Xmx4096m', compression_level = 1, tmpdir = '/broad/shptmp' ):
+def mergeFixingMatesBAMCmd( output_filename, inputFiles, memLimit = '-Xmx2g', compression_level = 1, tmpdir = '/broad/shptmp' ):
     if type(inputFiles) <> list:
         inputFiles = list(inputFiles)
 
-    return 'java %s -Djava.io.tmpdir=%s -jar %s COMPRESSION_LEVEL=%d SO=coordinate O=%s VALIDATION_STRINGENCY=SILENT I=%s' % ( memLimit, tmpdir, FIXMATES_BIN, compression_level, output_filename, 'I='.join(inputFiles) )
+    return 'java %s -Djava.io.tmpdir=%s -jar %s COMPRESSION_LEVEL=%d SO=coordinate O=%s VALIDATION_STRINGENCY=SILENT I=%s' % ( memLimit, tmpdir, FIXMATES_BIN, compression_level, output_filename, ' I='.join(inputFiles) )
 
 def getPicardPath(lane, picardRoot = '/seq/picard/'):
     flowcell, laneNo = lane.split('.')

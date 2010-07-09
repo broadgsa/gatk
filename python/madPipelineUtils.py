@@ -45,7 +45,7 @@ def appendExtension(path, newExt, addExtension = True):
 #    return os.path.join(OPTIONS.dir, s)
 
 class PipelineArgs:
-    def __init__( self, GATK_JAR = GATK_JAR, ref = 'hg18', name = None, memory = '4g', excludeChrs = [] ):
+    def __init__( self, GATK_JAR = GATK_JAR, ref = 'hg18', name = None, memory = '3g', excludeChrs = [] ):
         self.GATK = 'java -Xmx%s -Djava.io.tmpdir=/broad/shptmp/depristo/tmp/ -jar ' + GATK_JAR + ' -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -l INFO '
         self.ref = ref
         self.name = name

@@ -74,7 +74,7 @@ class VCFRecord:
     def getFilter(self): return self.get("FILTER")
     def failsFilters(self): return not self.passesFilters()
     def passesFilters(self):
-        v = self.getFilter() == "." or self.getFilter() == "0" or self.getFilter() == 'PASSES'
+        v = self.getFilter() == "." or self.getFilter() == "0" or self.getFilter() == 'PASS'
         #print self.getFilter(), ">>>", v, self
         return v
         
@@ -180,6 +180,7 @@ def readVCFHeader(lines):
             return header, columnNames, itertools.chain([line], lines)
             
     # we reach this point for empty files    
+    #print 'header is', header
     return header, columnNames, []
 
 def quickCountRecords(lines):

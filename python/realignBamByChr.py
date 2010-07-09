@@ -113,7 +113,7 @@ def createTargets( myPipelineArgs, chr, inputBam, outputRoot, args, lastJobs ):
 
 def realign( myPipelineArgs, chr, inputBam, outputRoot, intervals, lastJobs ):
     outputBAM = outputRoot + ".bam"
-    GATKArgs = '-T IndelRealigner -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -targetIntervals %s --output %s -L %s' % (inputBam, intervals, outputBAM, chr)
+    GATKArgs = '-T IndelRealigner -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -targetIntervals %s --output %s -stats %s -L %s' % (inputBam, intervals, outputBAM, outputBAM + ".stats", chr)
     return simpleGATKCommand( myPipelineArgs, 'Realign' + chr, GATKArgs, lastJobs ), outputBAM
 
 def index( myPipelineArgs, chr, inputBam, outputRoot, realignedBam, lastJobs ):

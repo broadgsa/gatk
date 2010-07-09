@@ -11,7 +11,7 @@ import string
 
 def average(l):
     sum = reduce(operator.add, l, 0)
-    return sum / len(l)
+    return sum / (1.0 * len(l))
 
 def printHeaderSep():
     print
@@ -104,12 +104,17 @@ def findVariantEvalResults(key, file, type=str):
 def getDBSNPRate(file):
     if file != None:
         key = "[evaluation_name=eval].[comparison_name=dbsnp].[jexl_expression=none].[filter_name=called].[novelty_name=all].[analysis=Comp Overlap].[data_point=% evals at comp]"
-        return findVariantEvalResults(key, file, float)[0]
+        r = findVariantEvalResults(key, file, float)
+        if len(r) > 0:
+            return r[0]
+        else:
+            return -1
     else:
         return -1
 
 def useProject(project):
-    return OPTIONS.project == None or project == OPTIONS.project
+    #print 'match', project, OPTIONS.project, re.match(OPTIONS.project, project)
+    return OPTIONS.project == None or re.match(OPTIONS.project, project) != None
 
 def countMappedBases(samples, alignmentIndex):
     if ( OPTIONS.coverageFile != None ): 
@@ -148,16 +153,21 @@ def readMappedBasesFromBAS(samples, alignmentIndex):
 
 def countSNPs(samples, snpsVCF, useIndels = False):
     total = 0
+    novel = 0
     
     header, columnNames, remainingLines = vcfReader.readVCFHeader(open(snpsVCF))
     sampleIDs = columnNames[9:]
 
+    print 'Counting SNPs...'
     for header, vcf, counter in vcfReader.lines2VCF(remainingLines, extendedOutput = True, decodeAll = False):
         if ( counter > OPTIONS.maxRecords and OPTIONS.maxRecords != -1 ):
             break
-        if vcf.passesFilters():
+            
+        if vcf.passesFilters() and vcf.getChrom not in ['MT', 'Y']:
             if ( vcf.isVariant() ): 
                 total += 1
+
+                if ( vcf.isNovel() ): novel += 1
                 
                 if ( OPTIONS.verbose and total % 10000 == 0 ):
                     print '  progress', vcf.getChrom(), vcf.getPos()
@@ -176,7 +186,7 @@ def countSNPs(samples, snpsVCF, useIndels = False):
                                 samples[sampleID].nSNPs += 1
 
     printStatus(samples)
-    return total
+    return total, novel
 
 def countIndels(samples, indelsVCF):
     total = 0
@@ -184,7 +194,7 @@ def countIndels(samples, indelsVCF):
     if ( indelsVCF != None ):
         return countSNPs(samples, indelsVCF, True)
     
-    return total
+    return total, 0
 
 def readSamples(vcf):
     print 'Reading samples for', OPTIONS.population
@@ -229,11 +239,11 @@ if __name__ == "__main__":
     ignore, totalMappedBases = countMappedBases(samples, OPTIONS.alignmentIndex)    
     totalBases = countBases(samples, OPTIONS.sequenceIndex)
     meanMappedDepth = totalMappedBases / OPTIONS.totalGenome / nSamples
-    totalSNPs = countSNPs(samples, OPTIONS.snps)
-    totalIndels = countIndels(samples, OPTIONS.indels)
+    totalSNPs, novelSNPs = countSNPs(samples, OPTIONS.snps)
+    totalIndels, novelIndels = countIndels(samples, OPTIONS.indels)
     
     snpNoveltyRate = 100 - getDBSNPRate(OPTIONS.snpsVE)
-    indelNoveltyRate = 100 - getDBSNPRate(OPTIONS.indelsVE)
+    indelNoveltyRate = novelIndels / (1.0*totalIndels) # 100 - getDBSNPRate(OPTIONS.indelsVE)
 
     out = sys.stdout
     if ( OPTIONS.output != None ): out = open(OPTIONS.output, 'w')
@@ -247,8 +257,8 @@ if __name__ == "__main__":
     
     print >> out, 'bases called (fraction ref genome) %f (%.2f%%)' % (OPTIONS.calledGenome, 100.0 * OPTIONS.calledGenome / OPTIONS.totalGenome)
     print >> out, 'number of SNP sites (%% novel) %d (%.2f%%)' % (totalSNPs, snpNoveltyRate)
-    print >> out, 'average # SNP sites per individual', average(map(Sample.getNSNPs, samples.itervalues()))
+    print >> out, 'average # SNP sites per individual %.0f' % average(map(Sample.getNSNPs, samples.itervalues()))
     print >> out, 'number of indel sites (%% novel) %d (%.2f%%)' % (totalIndels, indelNoveltyRate)
-    print >> out, 'average # indel sites per individual', average(map(Sample.getNIndels, samples.itervalues()))
+    print >> out, 'average # indel sites per individual %.0f' % average(map(Sample.getNIndels, samples.itervalues()))
     out.close()
     
