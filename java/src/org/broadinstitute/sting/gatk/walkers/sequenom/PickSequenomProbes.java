@@ -29,6 +29,7 @@ import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
@@ -63,6 +64,8 @@ public class PickSequenomProbes extends RodWalker<String, String> {
     boolean omitWindow = false;
     @Argument(required = false, fullName="usePlinkRODNamingConvention", shortName="nameConvention",doc="Use the naming convention defined in PLINKROD")
     boolean useNamingConvention = false;
+    @Argument(required = false, fullName="noMaskWindow",shortName="nmw",doc="Do not mask bases within X bases of an event when designing probes")
+    int noMaskWindow = 0;
 
     private byte [] maskFlags = new byte[401];
 
@@ -139,7 +142,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 
 		byte[] context_bases = ref.getBases();
 		for (int i = 0; i < 401; i++) {
-			if ( maskFlags[i] == 1 ) {
+		    if ( maskFlags[i] == 1 && ( i <  200 - noMaskWindow || i > 200 + getNoMaskWindowRightEnd(vc,noMaskWindow) ) ) {
                 context_bases[i] = 'N';
             }
             true_offset += 1;
@@ -187,6 +190,27 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 		out.print(data);
 		return "";
 	}
+
+    private int getNoMaskWindowRightEnd(VariantContext vc, int window) {
+        if ( window == 0 ) {
+            return 0;
+        }
+
+	if ( vc.isInsertion() ) {
+	    return window-1;
+	}
+
+        int max = 0;
+        for (Allele a : vc.getAlleles() ) {
+            if ( vc.isInsertion() ) {
+                logger.debug("Getting length of allele "+a.toString()+" it is "+a.getBases().length+" (ref allele is "+vc.getReference().toString()+")");
+            }
+            if ( a.getBases().length > max ) {
+                max = a.getBases().length;
+            }
+        }
+        return max+window-1;
+    }
 
     public void onTraversalDone(String sum) {}
 }
