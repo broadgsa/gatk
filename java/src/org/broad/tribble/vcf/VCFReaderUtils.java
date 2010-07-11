@@ -149,7 +149,7 @@ public class VCFReaderUtils {
                 nextDivider = (genotypeString.indexOf(":") > genotypeString.length()) ? genotypeString.length() : genotypeString.indexOf(":");
                 parse = genotypeString.substring(0, nextDivider);
             }
-            if (key.equals(VCFGenotypeRecord.GENOTYPE_KEY)) {
+            if (key.equals(VCFConstants.GENOTYPE_KEY)) {
                 Matcher m = gtPattern.matcher(parse);
                 if (!m.matches())
                     throw new RuntimeException("VCFReaderUtils: Unable to match GT genotype flag to it's expected pattern, the field was: " + parse);
@@ -164,7 +164,7 @@ public class VCFReaderUtils {
             if (nextDivider + 1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;
             genotypeString = genotypeString.substring(nextDivider + 1, genotypeString.length());
         }
-        if ( bases.size() > 0 && bases.get(0).equals(VCFGenotypeRecord.EMPTY_ALLELE) )
+        if ( bases.size() > 0 && bases.get(0).equals(VCFConstants.EMPTY_ALLELE) )
             tagToValue.clear();
         // catch some common errors, either there are too many field keys or there are two many field values
         else if ( keyStrings.length != tagToValue.size() + ((bases.size() > 0) ? 1 : 0))
@@ -190,8 +190,8 @@ public class VCFReaderUtils {
      * @param bases         the list of bases for this genotype call
      */
     private static void addAllele(String alleleNumber, String[] altAlleles, char referenceBase, List<VCFGenotypeEncoding> bases) {
-        if (alleleNumber.equals(VCFGenotypeRecord.EMPTY_ALLELE)) {
-            bases.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
+        if (alleleNumber.equals(VCFConstants.EMPTY_ALLELE)) {
+            bases.add(new VCFGenotypeEncoding(VCFConstants.EMPTY_ALLELE));
         } else {
             int alleleValue = Integer.valueOf(alleleNumber);
             // check to make sure the allele value is within bounds

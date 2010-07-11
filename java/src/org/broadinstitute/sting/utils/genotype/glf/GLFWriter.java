@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
-import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -191,8 +191,8 @@ public class GLFWriter implements GLFGenotypeWriter {
             rms = (Double)((MutableGenotype)genotype).getAttribute(RMS_MAPPING_QUAL);
 
         // if we can't get the depth from the read pile-up (preferred), check the tags, the VC might have it
-        if (genotype.hasAttribute(VCFGenotypeRecord.DEPTH_KEY) && 0 == readCount)
-            readCount = (Integer)((MutableGenotype)genotype).getAttribute(VCFGenotypeRecord.DEPTH_KEY);
+        if (genotype.hasAttribute(VCFConstants.DEPTH_KEY) && 0 == readCount)
+            readCount = (Integer)((MutableGenotype)genotype).getAttribute(VCFConstants.DEPTH_KEY);
 
         addCall(GenomeLocParser.getContigInfo(vc.getLocation().getContig()), (int)vc.getLocation().getStart(), (float) rms, ref, readCount, obj);
     }

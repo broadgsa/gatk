@@ -15,7 +15,7 @@ import java.io.*;
 import java.util.*;
 
 /**
- * this class writers VCF files
+ * this class writes VCF files
  */
 public class VCFWriter {
 
@@ -38,23 +38,6 @@ public class VCFWriter {
     Map<String, Integer> numberUsedForInfoFields = new HashMap<String, Integer>();
     Map<String, Integer> numberUsedForFormatFields = new HashMap<String, Integer>();
 
-    // commonly used strings that are in the standard
-    private final String FORMAT_FIELD_SEPARATOR = ":";
-    private static final String GENOTYPE_FIELD_SEPARATOR = ":";
-    private static final String FIELD_SEPARATOR = "\t";
-    private static final String FILTER_CODE_SEPARATOR = ";";
-    private static final String INFO_FIELD_SEPARATOR = ";";
-
-    // default values
-    private static final String UNFILTERED = ".";
-    private static final String PASSES_FILTERS_VCF3 = "0";
-    private static final String PASSES_FILTERS_VCF4 = "PASS";
-    private static final String EMPTY_INFO_FIELD = ".";
-    private static final String EMPTY_ID_FIELD = ".";
-    private static final String EMPTY_ALLELE_FIELD = ".";
-    private static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
-    private static final String MISSING_GENOTYPE_FIELD = ".";
-
     /**
      * create a VCF writer, given a file to write to
      *
@@ -66,7 +49,7 @@ public class VCFWriter {
 
     public VCFWriter(File location, boolean useVCF4Format) {
         this.writingVCF40Format = useVCF4Format;
-        this.PASSES_FILTERS_STRING = useVCF4Format ? PASSES_FILTERS_VCF4 : PASSES_FILTERS_VCF3;
+        this.PASSES_FILTERS_STRING = useVCF4Format ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.PASSES_FILTERS_v3;
 
         FileOutputStream output;
         try {
@@ -90,7 +73,7 @@ public class VCFWriter {
     }
     public VCFWriter(OutputStream output, boolean useVCF4Format) {
         this.writingVCF40Format = useVCF4Format;
-        this.PASSES_FILTERS_STRING = useVCF4Format ? PASSES_FILTERS_VCF4 : PASSES_FILTERS_VCF3;
+        this.PASSES_FILTERS_STRING = useVCF4Format ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.PASSES_FILTERS_v3;
         mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 
@@ -148,12 +131,12 @@ public class VCFWriter {
             StringBuilder b = new StringBuilder();
             b.append(VCFHeader.HEADER_INDICATOR);
             for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields())
-                b.append(field + FIELD_SEPARATOR);
+                b.append(field + VCFConstants.FIELD_SEPARATOR);
 
             if (header.hasGenotypingData()) {
-                b.append("FORMAT" + FIELD_SEPARATOR);
+                b.append("FORMAT" + VCFConstants.FIELD_SEPARATOR);
                 for (String field : header.getGenotypeSamples())
-                    b.append(field + FIELD_SEPARATOR);
+                    b.append(field + VCFConstants.FIELD_SEPARATOR);
             }
             mWriter.write(b.toString() + "\n");
             mWriter.flush();  // necessary so that writing to an output stream will work
@@ -232,7 +215,7 @@ public class VCFWriter {
 
         String contig = loc.getContig();
         long position = loc.getStart();
-        String ID = vc.hasAttribute("ID") ? vc.getAttributeAsString("ID") : EMPTY_ID_FIELD;
+        String ID = vc.hasAttribute("ID") ? vc.getAttributeAsString("ID") : VCFConstants.EMPTY_ID_FIELD;
 
 
         // deal with the reference
@@ -243,10 +226,10 @@ public class VCFWriter {
         boolean filtersWereAppliedToContext = true;
         List<String> allowedGenotypeAttributeKeys = null;
 
-        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? PASSES_FILTERS_STRING : UNFILTERED);
+        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? PASSES_FILTERS_STRING : VCFConstants.UNFILTERED);
 
         Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();
-        alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
+        alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFConstants.EMPTY_ALLELE)); // convenience for lookup
         List<VCFGenotypeEncoding> vcfAltAlleles = new ArrayList<VCFGenotypeEncoding>();
 
         int numTrailingBases = 0, numPaddingBases = 0;
@@ -339,16 +322,16 @@ public class VCFWriter {
 
         List<String> vcfGenotypeAttributeKeys = new ArrayList<String>();
         if ( vc.hasGenotypes() ) {
-            vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_KEY);
+            vcfGenotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
             for ( String key : calcVCFGenotypeKeys(vc) ) {
                 if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
                     vcfGenotypeAttributeKeys.add(key);
             }
         } else if ( header.hasGenotypingData() ) {
             // this needs to be done in case all samples are no-calls
-            vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_KEY);
+            vcfGenotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
         }
-        String genotypeFormatString = Utils.join(GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
+        String genotypeFormatString = Utils.join(VCFConstants.GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
 
         List<VCFGenotypeRecord> genotypeObjects = new ArrayList<VCFGenotypeRecord>(vc.getGenotypes().size());
         for ( Genotype g : vc.getGenotypesSortedByName() ) {
@@ -362,27 +345,25 @@ public class VCFWriter {
             VCFGenotypeRecord vcfG = new VCFGenotypeRecord(g.getSampleName(), encodings, phasing);
 
             for ( String key : vcfGenotypeAttributeKeys ) {
-                if ( key.equals(VCFGenotypeRecord.GENOTYPE_KEY) )
+                if ( key.equals(VCFConstants.GENOTYPE_KEY) )
                     continue;
 
 
-                Object val = g.hasAttribute(key) ? g.getAttribute(key) : MISSING_GENOTYPE_FIELD;
+                Object val = g.hasAttribute(key) ? g.getAttribute(key) : VCFConstants.MISSING_VALUE_v4;
 
                 // some exceptions
-                if ( key.equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) ) {
+                if ( key.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
                     if ( MathUtils.compareDoubles(g.getNegLog10PError(), Genotype.NO_NEG_LOG_10PERROR) == 0 )
-                        val = MISSING_GENOTYPE_FIELD;
+                        val = VCFConstants.MISSING_VALUE_v4;
                     else {
-                        // TODO - check whether we need to saturate quality to 99 as in VCF3.3 coder. For now allow unbounded values
-                        // val = Math.min(g.getPhredScaledQual(), VCFGenotypeRecord.MAX_QUAL_VALUE);
-                        val = g.getPhredScaledQual();
+                        val = Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL);
                     }
 
-                } else if ( key.equals(VCFGenotypeRecord.DEPTH_KEY) && val == null ) {
+                } else if ( key.equals(VCFConstants.DEPTH_KEY) && val == null ) {
                     ReadBackedPileup pileup = (ReadBackedPileup)g.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
                     if ( pileup != null )
                         val = pileup.size();
-                } else if ( key.equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) ) {
+                } else if ( key.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                     // VCF 4.0 key for no filters is "."
                     val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : PASSES_FILTERS_STRING;
                 }
@@ -403,13 +384,13 @@ public class VCFWriter {
 
                 if (numberUsedForFormatFields.containsKey(key)){
                     int numInFormatField = numberUsedForFormatFields.get(key);
-                    if (numInFormatField>1 && val.equals(MISSING_GENOTYPE_FIELD)) {
+                    if (numInFormatField>1 && val.equals(VCFConstants.MISSING_VALUE_v4)) {
                         // If we have a missing field but multiple values are expected, we need to construct new string with all fields.
                         // for example for Number =2, string has to be ".,."
-                        StringBuilder v = new StringBuilder(MISSING_GENOTYPE_FIELD);
+                        StringBuilder v = new StringBuilder(VCFConstants.MISSING_VALUE_v4);
                         for ( int i = 1; i < numInFormatField; i++ ) {
                             v.append(",");
-                            v.append(MISSING_GENOTYPE_FIELD);
+                            v.append(VCFConstants.MISSING_VALUE_v4);
                         }
                         newVal = v.toString();
                     }
@@ -446,13 +427,13 @@ public class VCFWriter {
 
 
         builder.append(contig);
-        builder.append(FIELD_SEPARATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(position);
-        builder.append(FIELD_SEPARATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(ID);
-        builder.append(FIELD_SEPARATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(referenceFromVC);
-        builder.append(FIELD_SEPARATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
 
         if ( vcfAltAlleles.size() > 0 ) {
             builder.append(vcfAltAlleles.get(0));
@@ -461,21 +442,21 @@ public class VCFWriter {
                 builder.append(vcfAltAlleles.get(i));
             }
         } else {
-            builder.append(EMPTY_ALLELE_FIELD);
+            builder.append(VCFConstants.EMPTY_ALLELE);
         }
-        builder.append(FIELD_SEPARATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
 
 
         if ( qual == -1 )
-            builder.append(MISSING_GENOTYPE_FIELD);
+            builder.append(VCFConstants.MISSING_VALUE_v4);
         else
-            builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, qual));
+            builder.append(String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, qual));
 
-        builder.append(FIELD_SEPARATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
 
 
         builder.append(filters);
-        builder.append(FIELD_SEPARATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(createInfoString(infoFields));
 
         if ( genotypeFormatString != null && genotypeFormatString.length() > 0 ) {
@@ -509,12 +490,12 @@ public class VCFWriter {
             }
             throw new IllegalStateException("We have more genotype samples than the header specified; please check that samples aren't duplicated");
         }
-        tempStr.append(FIELD_SEPARATOR + genotypeFormatString);
+        tempStr.append(VCFConstants.FIELD_SEPARATOR + genotypeFormatString);
 
         String[] genotypeFormatStrings = genotypeFormatString.split(":");
 
         for ( String genotype : header.getGenotypeSamples() ) {
-            tempStr.append(FIELD_SEPARATOR);
+            tempStr.append(VCFConstants.FIELD_SEPARATOR);
             if ( gMap.containsKey(genotype) ) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
                 String genotypeString = rec.toStringEncoding(vcfAltAlleles, genotypeFormatStrings, true);
@@ -588,7 +569,7 @@ public class VCFWriter {
             if ( isFirst )
                 isFirst = false;
             else
-                info.append(INFO_FIELD_SEPARATOR);
+                info.append(VCFConstants.INFO_FIELD_SEPARATOR);
 
             info.append(entry.getKey());
 
@@ -612,7 +593,7 @@ public class VCFWriter {
                 }
             }
         }
-        return info.length() == 0 ? EMPTY_INFO_FIELD : info.toString();
+        return info.length() == 0 ? VCFConstants.EMPTY_INFO_FIELD : info.toString();
     }
 
     private static String formatVCFField(String key, Object val) {
@@ -651,7 +632,7 @@ public class VCFWriter {
         }
 
         if ( sawGoodQual )
-            keys.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
+            keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);
         return Utils.sorted(new ArrayList<String>(keys));
     }
 

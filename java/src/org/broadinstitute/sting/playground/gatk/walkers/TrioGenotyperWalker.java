@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
@@ -159,9 +159,9 @@ public class TrioGenotyperWalker extends RefWalker<VariantContext, Integer>{
      * @return
      */
     private double genotypeL( List<Allele> alleles, Genotype genotypeCall ) {
-        String postTriplet = (String)genotypeCall.getAttribute(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY);
+        String postTriplet = (String)genotypeCall.getAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
         if ( postTriplet == null )
-            throw new StingException("BUG: TrioGenotyperWalker expected genotype likelihood triplets " + VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY);
+            throw new StingException("BUG: TrioGenotyperWalker expected genotype likelihood triplets " + VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
 
         // calculate the offset -- AA => 0, AB => 1, BB => 2
         int i = 0;

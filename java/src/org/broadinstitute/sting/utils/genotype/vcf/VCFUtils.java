@@ -91,7 +91,7 @@ public class VCFUtils {
     public static VCFRecord mergeRecords(Map<VCFRecord,String> rods, Map<Pair<String, String>, String> rodNamesToSampleNames) {
 
         VCFParameters params = new VCFParameters();
-        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
+        params.addFormatItem(VCFConstants.GENOTYPE_KEY);
 
         // keep track of the data so we can merge them intelligently
         double maxConfidence = 0.0;

@@ -46,7 +46,7 @@ import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
 import org.broadinstitute.sting.utils.pileup.*;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFConstants;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -113,7 +113,7 @@ public class UnifiedGenotyperEngine {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                dbAnnotations.put(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, VCFRecord.DBSNP_KEY);
+                dbAnnotations.put(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, VCFConstants.DBSNP_KEY);
             }
             else if ( source.getName().startsWith(VariantAnnotatorEngine.dbPrefix) ) {
                 dbAnnotations.put(source.getName(), source.getName().substring(VariantAnnotatorEngine.dbPrefix.length()));

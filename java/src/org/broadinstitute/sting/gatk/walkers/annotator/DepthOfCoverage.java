@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -29,7 +29,7 @@ public class DepthOfCoverage implements InfoFieldAnnotation, StandardAnnotation 
         return map;
     }
 
-    public List<String> getKeyNames() { return Arrays.asList(VCFRecord.DEPTH_KEY); }
+    public List<String> getKeyNames() { return Arrays.asList(VCFConstants.DEPTH_KEY); }
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Total Depth")); }
 }

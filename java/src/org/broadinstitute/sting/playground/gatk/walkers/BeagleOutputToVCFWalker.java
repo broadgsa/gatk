@@ -270,10 +270,10 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         VCFRecord vcf = VariantContextAdaptors.toVCF(filteredVC, ref.getBase());
 
         if ( filteredVC.getChromosomeCount() > 0 ) {
-            vcf.addInfoField(VCFRecord.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
+            vcf.addInfoField(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
             if ( altAlleleCountString.length() > 0 )  {
-                vcf.addInfoField(VCFRecord.ALLELE_COUNT_KEY, altAlleleCountString.toString());
-                vcf.addInfoField(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
+                vcf.addInfoField(VCFConstants.ALLELE_COUNT_KEY, altAlleleCountString.toString());
+                vcf.addInfoField(VCFConstants.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
                         Double.valueOf(altAlleleCountString.toString())/(filteredVC.getChromosomeCount())));
             }
         }

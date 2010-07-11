@@ -101,10 +101,10 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
             throw new StingException("Can not find input file: " + TRANCHE_FILENAME);
         }
 
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_KEY); // copied from VariantsToVCF
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.DEPTH_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_KEY); // copied from VariantsToVCF
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_QUALITY_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.DEPTH_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -154,7 +154,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                     for( int tranche = qCuts.size() - 1; tranche >= 0; tranche-- ) {
                         if( qual >= qCuts.get(tranche) ) {
                             if(tranche == qCuts.size() - 1) {
-                                vcf.setFilterString(VCFRecord.PASSES_FILTERS);
+                                vcf.setFilterString(VCFConstants.PASSES_FILTERS_v3);
                                 setFilter = true;
                             } else {
                                 vcf.setFilterString(filterName.get(tranche));

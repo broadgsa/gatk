@@ -9,36 +9,6 @@ import java.util.*;
 /** the basic VCF record type */
 public class VCFRecord implements Feature {
 
-    // standard info field keys
-    public static final String ANCESTRAL_ALLELE_KEY = "AA";
-    public static final String ALLELE_COUNT_KEY = "AC";
-    public static final String ALLELE_FREQUENCY_KEY = "AF";
-    public static final String ALLELE_NUMBER_KEY = "AN";
-    public static final String RMS_BASE_QUALITY_KEY = "BQ";
-    public static final String DBSNP_KEY = "DB";
-    public static final String DEPTH_KEY = "DP";
-    public static final String HAPMAP2_KEY = "H2";
-    public static final String HAPMAP3_KEY = "H3";
-    public static final String RMS_MAPPING_QUALITY_KEY = "MQ";
-    public static final String SAMPLE_NUMBER_KEY = "NS";
-    public static final String STRAND_BIAS_KEY = "SB";
-
-    // commonly used strings that are in the standard
-    public static final String FORMAT_FIELD_SEPERATOR = ":";
-    public static final String GENOTYPE_FIELD_SEPERATOR = ":";
-    public static final String FIELD_SEPERATOR = "\t";
-    public static final String FILTER_CODE_SEPERATOR = ";";
-    public static final String INFO_FIELD_SEPERATOR = ";";
-
-    // default values
-    public static final String UNFILTERED = ".";
-    public static final String PASSES_FILTERS = "0";
-    public static final String EMPTY_INFO_FIELD = ".";
-    public static final String EMPTY_ID_FIELD = ".";
-    public static final String EMPTY_ALLELE_FIELD = ".";
-    public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
-    public static final int MISSING_GENOTYPE_QUALITY = -1;
-
     // the reference base
     private String mReferenceBases;
     // our location
@@ -176,7 +146,7 @@ public class VCFRecord implements Feature {
                 case INFO:
                     String vals[] = columnValues.get(val).split(";");
                     for (String alt : vals) {
-                        if ( alt.equals(EMPTY_INFO_FIELD) )
+                        if ( alt.equals(VCFConstants.EMPTY_INFO_FIELD) )
                             continue;
                         String keyVal[] = alt.split("=");
                         if ( keyVal.length == 1 )
@@ -206,7 +176,7 @@ public class VCFRecord implements Feature {
      * @return the ID value for this record
      */
     public String getID() {
-        return mID == null ? EMPTY_ID_FIELD : mID;
+        return mID == null ? VCFConstants.EMPTY_ID_FIELD : mID;
     }
 
     /**
@@ -259,14 +229,14 @@ public class VCFRecord implements Feature {
     }
 
     public double getNonRefAlleleFrequency() {
-        if ( mInfoFields.containsKey(ALLELE_FREQUENCY_KEY) ) {
-            return Double.valueOf(mInfoFields.get(ALLELE_FREQUENCY_KEY));
+        if ( mInfoFields.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) ) {
+            return Double.valueOf(mInfoFields.get(VCFConstants.ALLELE_FREQUENCY_KEY));
         } else {
             // this is the poor man's AF
-            if ( mInfoFields.containsKey(ALLELE_COUNT_KEY) && mInfoFields.containsKey(ALLELE_NUMBER_KEY)) {
-                String splt[] = mInfoFields.get(ALLELE_COUNT_KEY).split(",");
+            if ( mInfoFields.containsKey(VCFConstants.ALLELE_COUNT_KEY) && mInfoFields.containsKey(VCFConstants.ALLELE_NUMBER_KEY)) {
+                String splt[] = mInfoFields.get(VCFConstants.ALLELE_COUNT_KEY).split(",");
                 if ( splt.length > 0 ) {
-                    return (Double.valueOf(splt[0]) / Double.valueOf(mInfoFields.get(ALLELE_NUMBER_KEY)));
+                    return (Double.valueOf(splt[0]) / Double.valueOf(mInfoFields.get(VCFConstants.ALLELE_NUMBER_KEY)));
                 }
             }
         }
@@ -304,14 +274,14 @@ public class VCFRecord implements Feature {
     }
 
     public boolean isInDBSNP() {
-        return ( ( mID != null && ! mID.equals(".") ) || ( mInfoFields.get(DBSNP_KEY) != null && mInfoFields.get(DBSNP_KEY).equals("1") ) );
+        return ( ( mID != null && ! mID.equals(".") ) || ( mInfoFields.get(VCFConstants.DBSNP_KEY) != null && mInfoFields.get(VCFConstants.DBSNP_KEY).equals("1") ) );
     }
 
     public boolean isInHapmap() {
-        if ( mInfoFields.get(HAPMAP2_KEY) != null && mInfoFields.get(HAPMAP2_KEY).equals("1") ) {
+        if ( mInfoFields.get(VCFConstants.HAPMAP2_KEY) != null && mInfoFields.get(VCFConstants.HAPMAP2_KEY).equals("1") ) {
             return true;
         } else {
-            return ( mInfoFields.get(HAPMAP3_KEY) != null && mInfoFields.get(HAPMAP3_KEY).equals("1") );
+            return ( mInfoFields.get(VCFConstants.HAPMAP3_KEY) != null && mInfoFields.get(VCFConstants.HAPMAP3_KEY).equals("1") );
         }
     }
 
@@ -339,7 +309,7 @@ public class VCFRecord implements Feature {
     }
 
     public boolean isMissingQual() {
-        return (int)mQual == MISSING_GENOTYPE_QUALITY;
+        return VCFConstants.MISSING_GENOTYPE_QUALITY_v3.equals(String.valueOf((int)mQual));
     }
 
     /**
@@ -355,13 +325,13 @@ public class VCFRecord implements Feature {
      * @return an array of strings representing the filtering criteria, or UNFILTERED if none are applied
      */
     public String[] getFilteringCodes() {
-        if (mFilterString == null) return new String[]{UNFILTERED};
-        return mFilterString.split(FILTER_CODE_SEPERATOR);
+        if (mFilterString == null) return new String[]{VCFConstants.UNFILTERED};
+        return mFilterString.split(VCFConstants.FILTER_CODE_SEPARATOR);
     }
 
     public boolean isFiltered() {
         String[] codes = getFilteringCodes();
-        return !codes[0].equals(UNFILTERED) && !codes[0].equals(PASSES_FILTERS);
+        return !codes[0].equals(VCFConstants.UNFILTERED) && !codes[0].equals(VCFConstants.PASSES_FILTERS_v3);
     }
 
 //    public boolean hasFilteringCodes() {
@@ -432,8 +402,8 @@ public class VCFRecord implements Feature {
     }
 
     public void setQual(double qual) {
-        if ( qual < 0 && (int)qual != MISSING_GENOTYPE_QUALITY )
-            throw new IllegalArgumentException("Qual values cannot be negative unless they are " + MISSING_GENOTYPE_QUALITY + " ('unknown')");
+        if ( qual < 0 && !VCFConstants.MISSING_GENOTYPE_QUALITY_v3.equals(String.valueOf((int)qual)) )
+            throw new IllegalArgumentException("Qual values cannot be negative unless they are " + VCFConstants.MISSING_GENOTYPE_QUALITY_v3 + " ('unknown')");
         mQual = qual;
     }
 
@@ -507,13 +477,13 @@ public class VCFRecord implements Feature {
 
         // CHROM \t POS \t ID \t REF \t ALT \t QUAL \t FILTER \t INFO
         builder.append(mContig);
-        builder.append(FIELD_SEPERATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(mPosition);
-        builder.append(FIELD_SEPERATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(getID());
-        builder.append(FIELD_SEPERATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(getReference());
-        builder.append(FIELD_SEPERATOR);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         List<VCFGenotypeEncoding> alts = getAlternateAlleles();
         if ( alts.size() > 0 ) {
             builder.append(alts.get(0));
@@ -522,16 +492,16 @@ public class VCFRecord implements Feature {
                 builder.append(alts.get(i));
             }
         } else {
-            builder.append(EMPTY_ALLELE_FIELD);
+            builder.append(VCFConstants.EMPTY_ALTERNATE_ALLELE_FIELD);
         }
-        builder.append(FIELD_SEPERATOR);
-        if ( (int)mQual == MISSING_GENOTYPE_QUALITY )
-            builder.append(MISSING_GENOTYPE_QUALITY);
+        builder.append(VCFConstants.FIELD_SEPARATOR);
+        if ( isMissingQual() )
+            builder.append(VCFConstants.MISSING_GENOTYPE_QUALITY_v3);
         else
-            builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING, mQual));
-        builder.append(FIELD_SEPERATOR);
-        builder.append(ParsingUtils.join(FILTER_CODE_SEPERATOR, getFilteringCodes()));
-        builder.append(FIELD_SEPERATOR);
+            builder.append(String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, mQual));
+        builder.append(VCFConstants.FIELD_SEPARATOR);
+        builder.append(ParsingUtils.join(VCFConstants.FILTER_CODE_SEPARATOR, getFilteringCodes()));
+        builder.append(VCFConstants.FIELD_SEPARATOR);
         builder.append(createInfoString());
 
         if ( mGenotypeFormatString != null && mGenotypeFormatString.length() > 0 ) {
@@ -558,14 +528,14 @@ public class VCFRecord implements Feature {
             if ( isFirst )
                 isFirst = false;
             else
-                info.append(INFO_FIELD_SEPERATOR);
+                info.append(VCFConstants.INFO_FIELD_SEPARATOR);
             info.append(entry.getKey());
             if ( entry.getValue() != null && !entry.getValue().equals("") ) {
                 info.append("=");
                 info.append(entry.getValue());
             }
         }
-        return info.length() == 0 ? EMPTY_INFO_FIELD : info.toString();
+        return info.length() == 0 ? VCFConstants.EMPTY_INFO_FIELD : info.toString();
     }
 
     /**
@@ -587,12 +557,12 @@ public class VCFRecord implements Feature {
             }
             throw new IllegalStateException("We have more genotype samples than the header specified; please check that samples aren't duplicated");
         }
-        tempStr.append(FIELD_SEPERATOR + mGenotypeFormatString);
+        tempStr.append(VCFConstants.FIELD_SEPARATOR + mGenotypeFormatString);
 
         String[] genotypeFormatStrings = mGenotypeFormatString.split(":");
 
         for ( String genotype : header.getGenotypeSamples() ) {
-            tempStr.append(FIELD_SEPERATOR);
+            tempStr.append(VCFConstants.FIELD_SEPARATOR);
             if ( gMap.containsKey(genotype) ) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
                 tempStr.append(rec.toStringEncoding(mAlts, genotypeFormatStrings));

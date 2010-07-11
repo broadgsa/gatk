@@ -159,7 +159,7 @@ public class VariantAnnotatorEngine {
         List<ReferenceOrderedDataSource> dataSources = engine.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                dbAnnotations.put(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, VCFRecord.DBSNP_KEY);
+                dbAnnotations.put(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, VCFConstants.DBSNP_KEY);
             }
             else if ( source.getName().startsWith(dbPrefix) ) {
                 dbAnnotations.put(source.getName(), source.getName().substring(dbPrefix.length()));
@@ -189,9 +189,9 @@ public class VariantAnnotatorEngine {
         for ( Map.Entry<String, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-                infoAnnotations.put(VCFRecord.DBSNP_KEY, dbsnp == null ? false : true);
+                infoAnnotations.put(VCFConstants.DBSNP_KEY, dbsnp == null ? false : true);
                 // annotate dbsnp id if available and not already there
-                if ( dbsnp != null && (!vc.hasAttribute("ID") || vc.getAttribute("ID").equals(VCFRecord.EMPTY_ID_FIELD)) )
+                if ( dbsnp != null && (!vc.hasAttribute("ID") || vc.getAttribute("ID").equals(VCFConstants.EMPTY_ID_FIELD)) )
                     infoAnnotations.put("ID", dbsnp.getRsID());
             } else {
                 List<Object> dbRod = tracker.getReferenceMetaData(dbSet.getKey());

@@ -178,13 +178,13 @@ public class VariantContextAdaptors {
                 Map<String, String> fields = new HashMap<String, String>();
                 for ( Map.Entry<String, String> e : vcfG.getFields().entrySet() ) {
                     // todo -- fixme if we put GQ and GF into key itself
-                    if ( ! e.getKey().equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) && ! e.getKey().equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) )
+                    if ( ! e.getKey().equals(VCFConstants.GENOTYPE_QUALITY_KEY) && ! e.getKey().equals(VCFConstants.GENOTYPE_FILTER_KEY) )
                         fields.put(e.getKey(), e.getValue());
                 }
 
                 Set<String> genotypeFilters = new HashSet<String>();
                 if ( vcfG.isFiltered() ) // setup the FL genotype filter fields
-                    genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFGenotypeRecord.GENOTYPE_FILTER_KEY).split(";")));
+                    genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFConstants.GENOTYPE_FILTER_KEY).split(";")));
 
                 double qual = vcfG.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
                 Genotype g = new Genotype(vcfG.getSampleName(), genotypeAlleles, qual, genotypeFilters, fields, vcfG.getPhaseType() == VCFGenotypeRecord.PHASE.PHASED);
@@ -260,13 +260,13 @@ public class VariantContextAdaptors {
 
         String contig = vc.getLocation().getContig();
         long position = vc.getLocation().getStart();
-        String ID = vc.hasAttribute("ID") ? vc.getAttributeAsString("ID") : VCFRecord.EMPTY_ID_FIELD;
+        String ID = vc.hasAttribute("ID") ? vc.getAttributeAsString("ID") : VCFConstants.EMPTY_ID_FIELD;
         double qual = vc.hasNegLog10PError() ? vc.getPhredScaledQual() : -1;
         
-        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? VCFRecord.PASSES_FILTERS : VCFRecord.UNFILTERED);
+        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? VCFConstants.PASSES_FILTERS_v3 : VCFConstants.UNFILTERED);
 
         Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();
-        alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE)); // convenience for lookup
+        alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFConstants.EMPTY_ALLELE)); // convenience for lookup
         List<VCFGenotypeEncoding> vcfAltAlleles = new ArrayList<VCFGenotypeEncoding>();
         for ( Allele a : vc.getAlleles() ) {
 
@@ -313,15 +313,15 @@ public class VariantContextAdaptors {
 
         List<String> vcfGenotypeAttributeKeys = new ArrayList<String>();
         if ( vc.hasGenotypes() ) {
-            vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_KEY);
+            vcfGenotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
             for ( String key : calcVCFGenotypeKeys(vc) ) {
                 if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
                     vcfGenotypeAttributeKeys.add(key);
             }
             if ( filtersWereAppliedToGenotypes )
-                vcfGenotypeAttributeKeys.add(VCFGenotypeRecord.GENOTYPE_FILTER_KEY);
+                vcfGenotypeAttributeKeys.add(VCFConstants.GENOTYPE_FILTER_KEY);
         }
-        String genotypeFormatString = Utils.join(VCFRecord.GENOTYPE_FIELD_SEPERATOR, vcfGenotypeAttributeKeys);
+        String genotypeFormatString = Utils.join(VCFConstants.GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
 
         List<VCFGenotypeRecord> genotypeObjects = new ArrayList<VCFGenotypeRecord>(vc.getGenotypes().size());
         for ( Genotype g : vc.getGenotypesSortedByName() ) {
@@ -335,22 +335,22 @@ public class VariantContextAdaptors {
             VCFGenotypeRecord vcfG = new VCFGenotypeRecord(g.getSampleName(), encodings, phasing);
 
             for ( String key : vcfGenotypeAttributeKeys ) {
-                if ( key.equals(VCFGenotypeRecord.GENOTYPE_KEY) )
+                if ( key.equals(VCFConstants.GENOTYPE_KEY) )
                     continue;
                 
                 Object val = g.getAttribute(key);
                 // some exceptions
-                if ( key.equals(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY) ) {
+                if ( key.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
                     if ( MathUtils.compareDoubles(g.getNegLog10PError(), Genotype.NO_NEG_LOG_10PERROR) == 0 )
-                        val = VCFGenotypeRecord.MISSING_GENOTYPE_QUALITY;
+                        val = VCFConstants.MISSING_GENOTYPE_QUALITY_v3;
                     else
                         val = Math.min(g.getPhredScaledQual(), VCFGenotypeRecord.MAX_QUAL_VALUE);
-                } else if ( key.equals(VCFGenotypeRecord.DEPTH_KEY) && val == null ) {
+                } else if ( key.equals(VCFConstants.DEPTH_KEY) && val == null ) {
                     ReadBackedPileup pileup = (ReadBackedPileup)g.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
                     if ( pileup != null )
                         val = pileup.size();
-                } else if ( key.equals(VCFGenotypeRecord.GENOTYPE_FILTER_KEY) ) {
-                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : VCFRecord.PASSES_FILTERS;
+                } else if ( key.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
+                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : VCFConstants.PASSES_FILTERS_v3;
                 }
 
                 String outputValue = formatVCFField(key, val);
@@ -410,7 +410,7 @@ public class VariantContextAdaptors {
         }
 
         if ( sawGoodQual )
-            keys.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
+            keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);
         return Utils.sorted(new ArrayList<String>(keys));
     }
 

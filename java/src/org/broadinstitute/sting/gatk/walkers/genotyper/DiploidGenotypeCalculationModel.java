@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -153,7 +153,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             CalledGenotype cg = new CalledGenotype(sample, myAlleles, AFbasedGenotype.second);
             cg.setLikelihoods(GLs.get(sample).getLikelihoods());
             cg.setReadBackedPileup(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup());
-            cg.putAttribute(VCFGenotypeRecord.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+            cg.putAttribute(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
 
             cg.setPosteriors(GLs.get(sample).getPosteriors());
             double[] likelihoods = GLs.get(sample).getLikelihoods();
@@ -161,7 +161,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                     likelihoods[refGenotype.ordinal()],
                     likelihoods[hetGenotype.ordinal()],
                     likelihoods[homGenotype.ordinal()]);
-            cg.putAttribute(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY, GL);
+            cg.putAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, GL);
 
             calls.put(sample, cg);
         }

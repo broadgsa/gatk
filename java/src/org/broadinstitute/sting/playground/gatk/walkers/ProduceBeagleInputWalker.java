@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broad.tribble.vcf.VCFRecord;
-import org.broad.tribble.vcf.VCFGenotypeRecord;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -119,8 +119,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             for ( String sample : samples ) {
                 // use sample as key into genotypes structure
                 Genotype genotype = genotypes.get(sample);
-                if (genotype.isCalled() && genotype.hasAttribute(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY)) {
-                    String[] glArray = genotype.getAttributeAsString(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY).split(",");
+                if (genotype.isCalled() && genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
+                    String[] glArray = genotype.getAttributeAsString(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).split(",");
 
                     Double maxLikelihood = -100.0;
                     ArrayList<Double> likeArray = new ArrayList<Double>();

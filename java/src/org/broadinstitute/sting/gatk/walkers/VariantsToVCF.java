@@ -26,10 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broad.tribble.vcf.VCFGenotypeRecord;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -58,7 +55,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     // Don't allow mixed types for now
     private EnumSet<VariantContext.Type> ALLOWED_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP, VariantContext.Type.NO_VARIATION, VariantContext.Type.INDEL);
 
-    private String[] ALLOWED_FORMAT_FIELDS = {VCFGenotypeRecord.GENOTYPE_KEY, VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, VCFGenotypeRecord.DEPTH_KEY, VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY };
+    private String[] ALLOWED_FORMAT_FIELDS = {VCFConstants.GENOTYPE_KEY, VCFConstants.GENOTYPE_QUALITY_KEY, VCFConstants.DEPTH_KEY, VCFConstants.GENOTYPE_LIKELIHOODS_KEY };
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )

@@ -15,24 +15,6 @@ import java.util.*;
  */
 public class VCFGenotypeRecord {
 
-    // key names
-    public static final String GENOTYPE_KEY = "GT";
-    public static final String GENOTYPE_QUALITY_KEY = "GQ";
-    public static final String DEPTH_KEY = "DP";
-    public static final String HAPLOTYPE_QUALITY_KEY = "HQ";
-    public static final String GENOTYPE_FILTER_KEY = "FT";
-    public static final String GENOTYPE_LIKELIHOODS_KEY = "GL";
-    public static final String OLD_DEPTH_KEY = "RD";
-
-    // the values for empty fields
-    public static final String EMPTY_GENOTYPE = "./.";
-    public static final String EMPTY_ALLELE = ".";
-    public static final int MISSING_GENOTYPE_QUALITY = -1;
-    public static final int MISSING_DEPTH = -1;
-    public static final int MISSING_HAPLOTYPE_QUALITY = -1;
-    public static final String PASSES_FILTERS = "0";
-    public static final String UNFILTERED = ".";
-
     public static final double MAX_QUAL_VALUE = 99.0;
 
     // what kind of phasing this genotype has
@@ -89,7 +71,7 @@ public class VCFGenotypeRecord {
      */
     public void setField(String key, String value) {
         // make sure the GT field isn't being set
-        if ( key.equals(GENOTYPE_KEY) )
+        if ( key.equals(VCFConstants.GENOTYPE_KEY) )
             throw new IllegalArgumentException("Setting the GT field is not allowed as that's done internally");
         mFields.put(key, value);
     }
@@ -132,20 +114,19 @@ public class VCFGenotypeRecord {
      * @return the phred-scaled quality score
      */
     public double getQual() {
-        return ( mFields.containsKey(GENOTYPE_QUALITY_KEY) ? Double.valueOf(mFields.get(GENOTYPE_QUALITY_KEY)) : MISSING_GENOTYPE_QUALITY);
+        return ( mFields.containsKey(VCFConstants.GENOTYPE_QUALITY_KEY) ? Double.valueOf(mFields.get(VCFConstants.GENOTYPE_QUALITY_KEY)) : Double.valueOf(VCFConstants.MISSING_GENOTYPE_QUALITY_v3));
     }
 
     public boolean isMissingQual() {
-        return (int)getQual() == MISSING_GENOTYPE_QUALITY;
+        return VCFConstants.MISSING_GENOTYPE_QUALITY_v3.equals(String.valueOf((int)getQual()));
     }
 
     public double getNegLog10PError() {
-        double qual = getQual();
-        return (qual == MISSING_GENOTYPE_QUALITY ? MISSING_GENOTYPE_QUALITY : qual / 10.0);
+        return (isMissingQual() ? Double.valueOf(VCFConstants.MISSING_GENOTYPE_QUALITY_v3) : getQual() / 10.0);
     }
 
     public int getReadCount() {
-        return ( mFields.containsKey(DEPTH_KEY) ? Integer.valueOf(mFields.get(DEPTH_KEY)) : MISSING_DEPTH);
+        return ( mFields.containsKey(VCFConstants.DEPTH_KEY) ? Integer.valueOf(mFields.get(VCFConstants.DEPTH_KEY)) : Integer.valueOf(VCFConstants.MISSING_DEPTH_v3));
     }
 
     public String getLocation() {
@@ -203,9 +184,9 @@ public class VCFGenotypeRecord {
     }
 
     public boolean isFiltered() {
-        return ( mFields.get(GENOTYPE_FILTER_KEY) != null &&
-                !mFields.get(GENOTYPE_FILTER_KEY).equals(UNFILTERED) &&
-                !mFields.get(GENOTYPE_FILTER_KEY).equals(PASSES_FILTERS));
+        return ( mFields.get(VCFConstants.GENOTYPE_FILTER_KEY) != null &&
+                !mFields.get(VCFConstants.GENOTYPE_FILTER_KEY).equals(VCFConstants.UNFILTERED) &&
+                !mFields.get(VCFConstants.GENOTYPE_FILTER_KEY).equals(VCFConstants.PASSES_FILTERS_v3));
     }
 
     public int getPloidy() {
@@ -220,7 +201,7 @@ public class VCFGenotypeRecord {
         List<String> alleleStrings = new ArrayList<String>(altAlleles.size());
         for (VCFGenotypeEncoding allele : mGenotypeAlleles) {
             if (allele.getType() == VCFGenotypeEncoding.TYPE.UNCALLED)
-                alleleStrings.add(VCFGenotypeRecord.EMPTY_ALLELE);
+                alleleStrings.add(VCFConstants.EMPTY_ALLELE);
             else
                 alleleStrings.add(String.valueOf((altAlleles.contains(allele)) ? altAlleles.indexOf(allele) + 1 : 0));
         }
@@ -269,14 +250,14 @@ public class VCFGenotypeRecord {
         builder.append(toGenotypeString(altAlleles));
 
         for ( String field : genotypeFormatStrings ) {
-            if ( field.equals(GENOTYPE_KEY) )
+            if ( field.equals(VCFConstants.GENOTYPE_KEY) )
                 continue;
 
             String value = mFields.get(field);
-            if ( value == null && field.equals(OLD_DEPTH_KEY) )
-                value = mFields.get(DEPTH_KEY);
+            if ( value == null && field.equals(VCFConstants.OLD_DEPTH_KEY) )
+                value = mFields.get(VCFConstants.DEPTH_KEY);
 
-            builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
+            builder.append(VCFConstants.GENOTYPE_FIELD_SEPARATOR);
             if ( value == null || value.equals("") )
                 builder.append(getMissingFieldValue(field, doVCF40));
             else
@@ -299,15 +280,15 @@ public class VCFGenotypeRecord {
     }
     public static String stringEncodingForEmptyGenotype(String[] genotypeFormatStrings, boolean doVCF40) {
         StringBuilder builder = new StringBuilder();
-        builder.append(EMPTY_GENOTYPE);
+        builder.append(VCFConstants.EMPTY_GENOTYPE);
 
         for ( String field : genotypeFormatStrings ) {
-            if ( field.equals(GENOTYPE_KEY) )
+            if ( field.equals(VCFConstants.GENOTYPE_KEY) )
                 continue;
 
             // in VCF4.0, if a genotype is empty only the ./. key can be included
             if (!doVCF40) {
-                builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
+                builder.append(VCFConstants.GENOTYPE_FIELD_SEPARATOR);
                 builder.append(getMissingFieldValue(field));
             }
         }
@@ -324,9 +305,9 @@ public class VCFGenotypeRecord {
         if (doVCF40) {
             result = "."; // default missing value
             // TODO - take number of elements in field as input and output corresponding .'s
-            if ( field.equals(GENOTYPE_LIKELIHOODS_KEY) )
+            if ( field.equals(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) )
                 result = ".,.,.";
-            else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
+            else if ( field.equals(VCFConstants.HAPLOTYPE_QUALITY_KEY) )
                 result = ".,.";
 
         }
@@ -334,13 +315,13 @@ public class VCFGenotypeRecord {
             result = "";
 
 
-            if ( field.equals(GENOTYPE_QUALITY_KEY) )
-                result = String.valueOf(MISSING_GENOTYPE_QUALITY);
-            else if ( field.equals(DEPTH_KEY) || field.equals(OLD_DEPTH_KEY) )
-                result = String.valueOf(MISSING_DEPTH);
-            else if ( field.equals(GENOTYPE_FILTER_KEY) )
-                result = UNFILTERED;
-            else if ( field.equals(GENOTYPE_LIKELIHOODS_KEY) )
+            if ( field.equals(VCFConstants.GENOTYPE_QUALITY_KEY) )
+                result = String.valueOf(VCFConstants.MISSING_GENOTYPE_QUALITY_v3);
+            else if ( field.equals(VCFConstants.DEPTH_KEY) || field.equals(VCFConstants.OLD_DEPTH_KEY) )
+                result = String.valueOf(VCFConstants.MISSING_DEPTH_v3);
+            else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) )
+                result = VCFConstants.UNFILTERED;
+            else if ( field.equals(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) )
                 result = "0,0,0";
             // TODO -- support haplotype quality
             //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
@@ -351,10 +332,10 @@ public class VCFGenotypeRecord {
 
     public static Set<VCFFormatHeaderLine> getSupportedHeaderStrings(VCFHeaderVersion version) {
         Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
-        result.add(new VCFFormatHeaderLine(GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
-        result.add(new VCFFormatHeaderLine(GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
-        result.add(new VCFFormatHeaderLine(DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
-        result.add(new VCFFormatHeaderLine(GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
         //result.add(new VCFFormatHeaderLine(HAPLOTYPE_QUALITY_KEY, 1, VCFFormatHeaderLine.INFO_TYPE.Integer, "Haplotype Quality"));
         return result;
     }

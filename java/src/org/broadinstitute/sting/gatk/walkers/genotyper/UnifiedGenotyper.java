@@ -144,7 +144,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         for ( Map.Entry<String, String> dbSet : UG_engine.dbAnnotations.entrySet() )
             headerInfo.add(new VCFInfoHeaderLine(dbSet.getValue(), 0, VCFHeaderLineType.Flag, (dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ? "dbSNP" : dbSet.getValue()) + " Membership"));
         if ( !UAC.NO_SLOD )
-            headerInfo.add(new VCFInfoHeaderLine(VCFRecord.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
 
         // FORMAT and INFO fields
         headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings(VCFHeaderVersion.VCF3_3));

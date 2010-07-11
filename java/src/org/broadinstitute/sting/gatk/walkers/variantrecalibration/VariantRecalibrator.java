@@ -123,10 +123,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                 throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
 
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_KEY); // copied from VariantsToVCF
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.DEPTH_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFGenotypeRecord.GENOTYPE_LIKELIHOODS_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_KEY); // copied from VariantsToVCF
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_QUALITY_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.DEPTH_KEY);
+        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -198,7 +198,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                     vcf.addInfoField("OQ", String.format("%.2f", ((Double)vc.getPhredScaledQual())));
                     vcf.setQual( variantDatum.qual );
-                    vcf.setFilterString(VCFRecord.PASSES_FILTERS);
+                    vcf.setFilterString(VCFConstants.PASSES_FILTERS_v3);
                     vcfWriter.addRecord( vcf );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file

@@ -30,8 +30,8 @@ public class VCFGenotypeEncoding {
     public VCFGenotypeEncoding(String baseString, boolean allowMultipleBaseReference) {
         if ((baseString.length() == 1)) {
             // are we an empty (no-call) genotype?
-            if (baseString.equals(VCFGenotypeRecord.EMPTY_ALLELE)) {
-                mBases = VCFGenotypeRecord.EMPTY_ALLELE;
+            if (baseString.equals(VCFConstants.EMPTY_ALLELE)) {
+                mBases = VCFConstants.EMPTY_ALLELE;
                 mLength = 0;
                 mType = TYPE.UNCALLED;
             } else if (!validBases(baseString)) {
@@ -82,7 +82,7 @@ public class VCFGenotypeEncoding {
             VCFGenotypeEncoding d = (VCFGenotypeEncoding) obj;
             return (mType == d.mType) && (mBases.equals(d.mBases)) && (mLength == d.mLength);
         }
-        if ( mType == TYPE.UNCALLED && obj.toString().equals(VCFGenotypeRecord.EMPTY_ALLELE) )
+        if ( mType == TYPE.UNCALLED && obj.toString().equals(VCFConstants.EMPTY_ALLELE) )
             return true;
         return false;
     }

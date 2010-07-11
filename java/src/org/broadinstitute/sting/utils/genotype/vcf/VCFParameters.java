@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.vcf.VCFGenotypeEncoding;
 import org.broad.tribble.vcf.VCFGenotypeRecord;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -76,7 +76,7 @@ class VCFParameters {
     public void addAlternateBase(VCFGenotypeEncoding base) {
         if ( !alternateBases.contains(base) &&
              !base.toString().equals(String.valueOf(getReferenceBases()).toUpperCase()) &&
-             !base.toString().equals(VCFGenotypeRecord.EMPTY_ALLELE) ) {
+             !base.toString().equals(VCFConstants.EMPTY_ALLELE) ) {
             alternateBases.add(base);
             alleleCounts.add(0);
         }
@@ -92,7 +92,7 @@ class VCFParameters {
     }
 
     public String getFormatString() {
-        return Utils.join(VCFRecord.FORMAT_FIELD_SEPERATOR, formatList);
+        return Utils.join(VCFConstants.FORMAT_FIELD_SEPARATOR, formatList);
     }
 
     public List<VCFGenotypeRecord> getGenotypeRecords() {

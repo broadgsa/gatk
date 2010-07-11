@@ -28,9 +28,8 @@ import org.apache.commons.jexl2.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFConstants;
 
 public class VariantContextUtils {
     public static JexlEngine engine = new JexlEngine();
@@ -240,8 +239,8 @@ public class VariantContextUtils {
             negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
 
             filters.addAll(vc.getFilters());
-            if ( vc.hasAttribute(VCFRecord.DEPTH_KEY) )
-                depth += Integer.valueOf(vc.getAttributeAsString(VCFRecord.DEPTH_KEY));
+            if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
+                depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
             if ( rsID == null && vc.hasAttribute("ID") )
                 rsID = vc.getAttributeAsString("ID");
 
@@ -259,7 +258,7 @@ public class VariantContextUtils {
 
         // we care about where the call came from
         if ( annotateOrigin ) {
-            String setValue = "";
+            String setValue;
             if ( nFiltered == 0 && VCs.size() == priorityListOfVCs.size() )                   // nothing was unfiltered
                 setValue = "Intersection";
             else if ( nFiltered == VCs.size() )     // everything was filtered out
@@ -275,7 +274,7 @@ public class VariantContextUtils {
         }
 
         if ( depth > 0 )
-            attributes.put(VCFRecord.DEPTH_KEY, String.valueOf(depth));
+            attributes.put(VCFConstants.DEPTH_KEY, String.valueOf(depth));
         if ( rsID != null )
             attributes.put("ID", rsID);
 

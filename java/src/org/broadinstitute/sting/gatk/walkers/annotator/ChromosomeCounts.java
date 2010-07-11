@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
@@ -39,10 +39,10 @@ import java.util.*;
 
 public class ChromosomeCounts implements InfoFieldAnnotation, StandardAnnotation {
 
-    private String[] keyNames = { VCFRecord.ALLELE_NUMBER_KEY, VCFRecord.ALLELE_COUNT_KEY, VCFRecord.ALLELE_FREQUENCY_KEY };
-    private VCFInfoHeaderLine[] descriptions = { new VCFInfoHeaderLine(VCFRecord.ALLELE_FREQUENCY_KEY, -1, VCFHeaderLineType.Float, "Allele Frequency"),
-            new VCFInfoHeaderLine(VCFRecord.ALLELE_COUNT_KEY, -1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"),
-            new VCFInfoHeaderLine(VCFRecord.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes") };
+    private String[] keyNames = { VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY };
+    private VCFInfoHeaderLine[] descriptions = { new VCFInfoHeaderLine(VCFConstants.ALLELE_FREQUENCY_KEY, -1, VCFHeaderLineType.Float, "Allele Frequency"),
+            new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, -1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"),
+            new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes") };
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
@@ -50,7 +50,7 @@ public class ChromosomeCounts implements InfoFieldAnnotation, StandardAnnotation
             return null;
         
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(VCFRecord.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
+        map.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
 
         if ( vc.getAlternateAlleles().size() > 0 ) {
             ArrayList<Double> alleleFreqs = new ArrayList<Double>();
@@ -60,8 +60,8 @@ public class ChromosomeCounts implements InfoFieldAnnotation, StandardAnnotation
                 alleleFreqs.add((double)vc.getChromosomeCount(allele) / (double)vc.getChromosomeCount());
             }
 
-            map.put(VCFRecord.ALLELE_COUNT_KEY, alleleCounts);
-            map.put(VCFRecord.ALLELE_FREQUENCY_KEY, alleleFreqs);
+            map.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts);
+            map.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs);
         }
         
         return map;
