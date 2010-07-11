@@ -4,6 +4,7 @@ import java.io.File
 import org.broadinstitute.sting.queue.function.IntervalFunction
 import org.broadinstitute.sting.queue.function.scattergather.{Scatter, ScatterGatherableFunction, IntervalScatterFunction}
 import org.broadinstitute.sting.commandline.{ClassType, Input}
+import org.apache.log4j.Level
 
 trait GatkFunction extends ScatterGatherableFunction with IntervalFunction {
   @Input(doc="Temporary directory to write any files", required=false)
@@ -26,8 +27,12 @@ trait GatkFunction extends ScatterGatherableFunction with IntervalFunction {
   @Input(doc="DBSNP", required=false)
   var dbsnp: File = _
 
+  @Input(doc="Logging level", required=false)
+  var gatkLoggingLevel: String = _
+
   protected def gatkCommandLine(walker: String) =
-    "java%s%s -jar %s -T %s -R %s%s%s%s "
+    "java%s%s -jar %s -T %s -R %s%s%s%s%s "
     .format(optional(" -Xmx", memoryLimit, "g"), optional(" -Djava.io.tmpdir=", javaTmpDir),
-      gatkJar, walker, referenceFile, repeat(" -I ", bamFiles), optional(" -D ", dbsnp), optional(" -L ", intervals))
+      gatkJar, walker, referenceFile, repeat(" -I ", bamFiles), optional(" -l ", gatkLoggingLevel),
+      optional(" -D ", dbsnp), optional(" -L ", intervals))
 }
