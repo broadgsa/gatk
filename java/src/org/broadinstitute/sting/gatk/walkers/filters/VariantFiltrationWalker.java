@@ -183,7 +183,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                 Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
                 for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps ) {
-                    if ( VariantContextUtils.match(g, exp) )
+                    if ( VariantContextUtils.match(vc, g, exp) )
                         filters.add(exp.name);
                 }
 
