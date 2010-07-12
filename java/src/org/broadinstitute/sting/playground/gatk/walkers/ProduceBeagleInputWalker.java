@@ -86,6 +86,12 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             if ( vc_eval == null || vc_eval.isFiltered() )
                 return 0;
 
+             if (vc_eval.getType() != VariantContext.Type.SNP)
+                     return 0;
+
+             if (vc_eval.getAlleles().size()!= 2)
+                     return 0;
+             
             // output marker ID to Beagle input file
             beagleWriter.print(String.format("%s ", vc_eval.getLocation().toString()));
 
