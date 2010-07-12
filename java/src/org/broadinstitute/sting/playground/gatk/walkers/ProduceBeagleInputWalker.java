@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broad.tribble.vcf.VCFRecord;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -33,25 +32,24 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF file
- * @help.summary Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF file
+ * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input variant file
  */
-@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFRecord.class))
+@Requires(value={},referenceMetaData=@RMD(name=ProduceBeagleInputWalker.ROD_NAME, type=ReferenceOrderedDatum.class))
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
+
+    public static final String ROD_NAME = "variant";
 
     @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = true)
     public PrintStream  beagleWriter = null;
@@ -60,24 +58,13 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
     public double insertedNoCallRate  = 0;
 
-    final TreeSet<String> samples = new TreeSet<String>();
-    Random generator;
+    private TreeSet<String> samples = null;
+    private Random generator;
 
-    public void initialize() {
-
-        final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
-        for ( final ReferenceOrderedDataSource source : dataSources ) {
-            final RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VCFRecord.class) ) {
-                final VCFReader reader = new VCFReader(rod.getFile());
-                final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
-                samples.addAll(vcfSamples);
-                reader.close();
-            }
-        }
-
+    private void initialize(Set<String> sampleNames) {
         generator = new Random();
         beagleWriter.print("marker alleleA alleleB");
+        samples = new TreeSet<String>(sampleNames);
         for ( String sample : samples )
             beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
 
@@ -85,21 +72,26 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         if (beagleGenotypesWriter != null)
             beagleGenotypesWriter.println("dummy header");
     }
+
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
          if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
             VariantContext vc_eval;
 
-            vc_eval = tracker.getVariantContext(ref,"vcf", null, loc, false);
+            vc_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, false);
             if ( vc_eval == null || vc_eval.isFiltered() )
                 return 0;
 
+            if ( samples == null ) {
+                initialize(vc_eval.getSampleNames());
+            }
+
             // output marker ID to Beagle input file
-            beagleWriter.print(String.format("%s ",vc_eval.getLocation().toString()));
+            beagleWriter.print(String.format("%s ", vc_eval.getLocation().toString()));
 
             if (beagleGenotypesWriter != null)
-                beagleGenotypesWriter.print(String.format("%s ",vc_eval.getLocation().toString()));
+                beagleGenotypesWriter.print(String.format("%s ", vc_eval.getLocation().toString()));
 
             for (Allele allele: vc_eval.getAlleles()) {
                 // TODO -- check whether this is really needed by Beagle
