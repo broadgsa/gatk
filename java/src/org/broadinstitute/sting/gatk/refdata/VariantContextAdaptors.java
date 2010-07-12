@@ -177,13 +177,13 @@ public class VariantContextAdaptors {
 
                 Map<String, String> fields = new HashMap<String, String>();
                 for ( Map.Entry<String, String> e : vcfG.getFields().entrySet() ) {
-                    // todo -- fixme if we put GQ and GF into key itself
+                    // todo -- fixme if we put GQ and FT into key itself
                     if ( ! e.getKey().equals(VCFConstants.GENOTYPE_QUALITY_KEY) && ! e.getKey().equals(VCFConstants.GENOTYPE_FILTER_KEY) )
                         fields.put(e.getKey(), e.getValue());
                 }
 
                 Set<String> genotypeFilters = new HashSet<String>();
-                if ( vcfG.isFiltered() ) // setup the FL genotype filter fields
+                if ( vcfG.isFiltered() ) // setup the genotype filter fields
                     genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFConstants.GENOTYPE_FILTER_KEY).split(";")));
 
                 double qual = vcfG.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();

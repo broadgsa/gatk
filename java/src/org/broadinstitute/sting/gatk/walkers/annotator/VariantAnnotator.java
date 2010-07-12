@@ -142,7 +142,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new VCFWriter(out);
+        vcfWriter = new VCFWriter(out, true);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 
