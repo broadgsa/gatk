@@ -172,7 +172,7 @@ public class VCFUtils {
                                 // number, then this value should be 1. However, if the INFO field describes a pair
                                 // of numbers, then this value should be 2 and so on. If the number of possible
                                 // values varies, is unknown, or is unbounded, then this value should be '.'.
-                                logger.warn("Promoting header field Number to . due to number differences in header lines: " + line + " " + other);
+                                if ( logger != null ) logger.warn("Promoting header field Number to . due to number differences in header lines: " + line + " " + other);
                                 compOther.setNumberToUnbounded();
                             } else {
                                 throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
