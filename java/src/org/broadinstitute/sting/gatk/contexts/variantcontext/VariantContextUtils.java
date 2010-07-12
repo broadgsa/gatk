@@ -433,4 +433,7 @@ public class VariantContextUtils {
         return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
     }
 
+    public static VariantContext modifyLocation(VariantContext vc, GenomeLoc loc) {
+        return new VariantContext(vc.getName(), loc, vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
+    }
 }

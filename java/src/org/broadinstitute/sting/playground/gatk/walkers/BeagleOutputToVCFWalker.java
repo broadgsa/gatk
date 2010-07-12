@@ -82,7 +82,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
 
         // Open output file specified by output VCF ROD
-        vcfWriter = new VCFWriter(new File(OUTPUT_FILE));
+        vcfWriter = new VCFWriter(new File(OUTPUT_FILE), true);
 
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(INPUT_ROD_NAME));
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);

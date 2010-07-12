@@ -4,6 +4,7 @@ import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.gatk.refdata.features.vcf4.VCF4Codec;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderUnitTest;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -74,7 +75,7 @@ public class CombineVariantsUnitTest {
         ArrayList<VCFHeader> headers = new ArrayList<VCFHeader>();
         headers.add(one);
         headers.add(two);
-        Set<VCFHeaderLine> lines = CombineVariants.smartMergeHeaders(headers);
+        Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
         Assert.assertEquals(VCFHeaderUnitTest.VCF4headerStrings.length,lines.size());
     }
 
@@ -85,7 +86,7 @@ public class CombineVariantsUnitTest {
         ArrayList<VCFHeader> headers = new ArrayList<VCFHeader>();
         headers.add(one);
         headers.add(two);
-        Set<VCFHeaderLine> lines = CombineVariants.smartMergeHeaders(headers);
+        Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
         Assert.assertEquals(VCFHeaderUnitTest.VCF4headerStrings.length,lines.size());
     }
 
@@ -96,7 +97,7 @@ public class CombineVariantsUnitTest {
         ArrayList<VCFHeader> headers = new ArrayList<VCFHeader>();
         headers.add(one);
         headers.add(two);
-        Set<VCFHeaderLine> lines = CombineVariants.smartMergeHeaders(headers);
+        Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
         Assert.assertEquals(VCFHeaderUnitTest.VCF4headerStrings.length,lines.size());
     }
 }

@@ -168,10 +168,10 @@ public class VCFUtils {
                         if (! (compLine).equalsExcludingDescription(compOther) )
                             throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
                         if ( ! compLine.getDescription().equals(compOther) )
-                            logger.warn(String.format("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine));
+                            if ( logger != null ) logger.warn(String.format("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine));
                     } else {
                         // we are not equal, but we're not anything special either
-                        logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
+                        if ( logger != null ) logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
                     }
                 } else {
                     line.setVersion(VCFHeaderVersion.VCF4_0);

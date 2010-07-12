@@ -25,41 +25,46 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broad.tribble.vcf.VCFRecord;
-import org.broad.tribble.vcf.VCFCodec;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFHeader;
 
-import java.util.List;
+import java.util.*;
 
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
-@Requires(value={},referenceMetaData=@RMD(name="vcf",type= VCFRecord.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant",type= ReferenceOrderedDatum.class))
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
 
     private VCFWriter writer;
 
     private long failedLocs = 0, totalLocs = 0;
 
-    public void initialize() {}
+    public void initialize() {
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
+        Map<String, VCFHeader> vcfHeaders = SampleUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
-    private void filterAndWrite(char ref, VCFRecord record) {
+        writer = new VCFWriter(out, true);
+        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
+        writer.writeHeader(vcfHeader);
+    }
+
+    private void filterAndWrite(byte ref, VariantContext vc) {
 
         totalLocs++;
 
-        char recordRef = record.getReference().charAt(0);
+        byte recordRef = vc.getReference().getBases()[0];
 
         if ( recordRef != ref ) {
             failedLocs++;
         } else {
-            if ( writer == null ) {
-                writer = new VCFWriter(out);
-                writer.writeHeader(record.getHeader());
-            }
-            writer.addRecord(record);
+            writer.add(vc, new byte[]{ref});
         }
     }
 
@@ -67,10 +72,9 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        List<Object> rods = tracker.getReferenceMetaData("vcf");
-
-        for ( Object rod : rods )
-            filterAndWrite((char)ref.getBase(), (VCFRecord)rod);
+        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        for ( VariantContext vc : VCs )
+            filterAndWrite(ref.getBase(), vc);
 
         return 0;
     }
@@ -80,8 +84,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) { return 0; }
 
     public void onTraversalDone(Integer result) {
-        if ( writer != null )
-            writer.close();
+        writer.close();
         System.out.println("Filtered " + failedLocs + " records out of " + totalLocs + " total records.");
     }
 }
