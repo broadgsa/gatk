@@ -82,24 +82,25 @@ public class VCFWriter {
 
         try {
             // the file format field needs to be written first
-            TreeSet<VCFHeaderLine> nonFormatMetaData = new TreeSet<VCFHeaderLine>();
+            if (writingVCF40Format) {
+                mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_0.getFormatString() + "=" + VCFHeaderVersion.VCF4_0.getVersionString() + "\n");
+            } else {
+                mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF3_3.getFormatString() + "=" + VCFHeaderVersion.VCF3_3.getVersionString() + "\n");
+            }
+
             for ( VCFHeaderLine line : header.getMetaData() ) {
-                if (writingVCF40Format) {
-                    if ( line.getKey().equals(VCFHeaderVersion.VCF4_0.getFormatString()) ) {
-                        mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_0.getFormatString() + "=" + VCFHeaderVersion.VCF4_0.getVersionString() + "\n");
-                    } else {
-                        nonFormatMetaData.add(line);
-                    }
+                    if ( line.getKey().equals(VCFHeaderVersion.VCF4_0.getFormatString()) ||
+                            line.getKey().equals(VCFHeaderVersion.VCF3_3.getFormatString()) ||
+                            line.getKey().equals(VCFHeaderVersion.VCF3_2.getFormatString()) )
+                        continue;
 
                     // Record, if line corresponds to a FORMAT field, which type will be used for writing value
                     if (line.getClass() == VCFFormatHeaderLine.class) {
-
                         VCFFormatHeaderLine a = (VCFFormatHeaderLine)line;
                         String key = a.getName();
                         typeUsedForFormatString.put(key,a.getType());
                         int num = a.getCount();
                         numberUsedForFormatFields.put(key,num);
-
                     } else if (line.getClass() == VCFInfoHeaderLine.class) {
                         VCFInfoHeaderLine a = (VCFInfoHeaderLine)line;
                         String key = a.getName();
@@ -108,24 +109,8 @@ public class VCFWriter {
                         numberUsedForInfoFields.put(key, num);
                     }
 
-
-
-                }
-                else {
-                    if ( line.getKey().equals(VCFHeaderVersion.VCF3_3.getFormatString()) ) {
-                        mWriter.write(VCFHeader.METADATA_INDICATOR + line.toString() + "\n");
-                    }
-                    else if ( line.getKey().equals(VCFHeaderVersion.VCF3_2.getFormatString()) ) {
-                        mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF3_2.getFormatString() + "=" + VCFHeaderVersion.VCF3_2.getVersionString() + "\n");
-                    } else {
-                        nonFormatMetaData.add(line);
-                    }
-                }
-            }
-
-            // write the rest of the header meta-data out
-            for ( VCFHeaderLine line : nonFormatMetaData )
                 mWriter.write(VCFHeader.METADATA_INDICATOR + line + "\n");
+            }
 
             // write out the column line
             StringBuilder b = new StringBuilder();
@@ -398,7 +383,6 @@ public class VCFWriter {
                 // assume that if key is absent, given string encoding suffices.
                 String outputValue = formatVCFField(key, newVal);
 
-
                 if ( outputValue != null )
                     vcfG.setField(key, outputValue);
             }
@@ -531,8 +515,9 @@ public class VCFWriter {
         // check if given genotype field is empty, ie either ".", or ".,.", or ".,.,.", etc.
         String[] fields = field.split(",");
         boolean isEmpty = true;
+
         for (int k=0; k < fields.length; k++) {
-            if (!fields[k].matches(".")) {
+            if (!fields[k].equals(VCFConstants.MISSING_VALUE_v4)) {
                 isEmpty = false;
                 break;
             }
