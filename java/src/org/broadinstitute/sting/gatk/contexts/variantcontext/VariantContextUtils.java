@@ -428,4 +428,9 @@ public class VariantContextUtils {
     public static String mergedSampleName(String trackName, String sampleName, boolean uniqify ) {
         return uniqify ? sampleName + "." + trackName : sampleName;
     }
+
+    public static VariantContext modifyAttributes(VariantContext vc, Map<String, Object> attributes) {
+        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
+    }
+
 }
