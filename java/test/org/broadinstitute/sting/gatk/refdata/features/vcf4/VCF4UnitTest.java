@@ -110,7 +110,7 @@ public class VCF4UnitTest extends BaseTest {
         writer.close();
 
         // md5 sum the file
-        Assert.assertTrue("expecting md5sum of 637f3c92806d993a9c7b7116da398d6, but got " + md5SumFile(tempFile),"637f3c92806d993a9c7b7116da398d6".equals(md5SumFile(tempFile)));
+        Assert.assertTrue("expecting md5sum of e376c7cb1831d3cbdca670f360b7f022, but got " + md5SumFile(tempFile),"e376c7cb1831d3cbdca670f360b7f022".equals(md5SumFile(tempFile)));
     }
 
     @Test
