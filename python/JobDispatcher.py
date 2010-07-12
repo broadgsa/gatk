@@ -10,7 +10,7 @@ import RefseqLibrary
 MAX_UNNAMED_DEPENDENCIES = 0
 class FarmJob:
     def __init__( self, cmd_str_from_user, jobName, projectName, delayTime = None, jobsDependingOnThis = None,
-                  outputFile = None, dependencies = [], dependencyNameString = None, dieOnFail = False, usingFiles = []):
+                  outputFile = None, dependencies = [], dependencyNameString = None, dieOnFail = False, usingFiles = [], memory = None):
         self.cmd_str_from_user = cmd_str_from_user
         self.jobName = jobName
         self.projectName = projectName
@@ -36,6 +36,7 @@ class FarmJob:
         self.executionString = None # currently unscheduled
         self.executed = False
         self.jobStatus = None
+        self.memory = memory.strip("g")
 
     def __hash__(self):
         return self.cmd_str_from_user.__hash__()
@@ -110,6 +111,8 @@ def buildSubmitString(farmJob,queue):
         submitStr += " -b "+delayToGlobalTime(farmJob.delayTime)
     if ( farmJob.dependencies != [] ):
         submitStr += " -w "+buildDependencyString(farmJob.dependencies)
+    if ( farmJob.memory != None ):
+        submitStr += " -R \"rusage[mem="+farmJob.memory+"]\""
     submitStr += " "+farmJob.cmd_str_from_user
     return submitStr
 
@@ -387,7 +390,7 @@ class GATKDispatcher(JobDispatcher):
             intFile.write(interval.bedFormat()+"\n")
         intFile.close()
         cmd += " -L "+job_dir+"job"+str(num)+"_intervals.interval_list"
-        job = FarmJob(cmd,self.project+"_job"+str(num),self.project,None,None,job_dir+"bsub_out.txt",list(),None,False,[job_dir+"job"+str(num)+"_intervals.interval_list"])
+        job = FarmJob(cmd,self.project+"_job"+str(num),self.project,None,None,job_dir+"bsub_out.txt",list(),None,False,[job_dir+"job"+str(num)+"_intervals.interval_list"],self.memory)
         return job
 
     def appendOutput(self,command,num,job_dir):
