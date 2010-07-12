@@ -1,50 +1,15 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.utils.StingException;
 import org.junit.Test;
 
 import java.util.Arrays;
 
 public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
-    public static String secondBaseTestString() {
-        return "-T VariantAnnotator -R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -vcf %s -A SecondBaseSkew";
-    }
-
-    public static String validationDataPath() {
-         return validationDataLocation + "";
-    }
-
-    public static String secondBaseTestFile( int testNo ) {
-        switch ( testNo ) {
-            case 1: return "NA12891";
-            case 2: return "NA20762";
-            default: throw new StingException("Impossible test has been run: secondbasetest number "+ testNo);
-        }
-    }
-
-    public static String secondBaseTestInterval ( int testNo ) {
-        switch ( testNo ) {
-            case 1: return "-L chr1:14,000,000-18,000,000";
-            case 2: return "-L chr22:20660081-20660083 -L chr22:29198100-29198104 -L chr22:29821330-29821334";
-            default: throw new StingException("Impossible test has been run: secondbasetest number "+testNo);
-        }
-    }                                                                                                                                 
-
-    public static String secondBaseTestmd5( int testNo ) {
-        switch ( testNo ) {
-            case 1: return "bf64bac186fd682018dd7f0419d90190";
-            case 2: return "67f40627b12be31efe02c9d853fbcf37";
-            default: throw new StingException("Impossible test has been run: secondbasetest number "+testNo);
-        }
-    }
-    
     public static String baseTestString() {
         return "-T VariantAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta -o %s";
     }
-
-
 
     @Test
     public void testHasAnnotsNotAsking1() {
