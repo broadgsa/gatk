@@ -29,6 +29,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -83,20 +84,20 @@ public class SampleUtils {
      *
      * @return the set of unique samples
      */
-    public static Set<String> getUniqueSamplesFromRods(GenomeAnalysisEngine toolkit, Set<String> rodNames) {
+    public static Set<String> getUniqueSamplesFromRods(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
         Set<String> samples = new TreeSet<String>();
 
-        for ( VCFHeader header : getRodsWithVCFHeader(toolkit, rodNames).values() )
+        for ( VCFHeader header : getVCFHeadersFromRods(toolkit, rodNames).values() )
             samples.addAll(header.getGenotypeSamples());
 
         return samples;
     }
 
-    public static Set<String> getRodsNamesWithVCFHeader(GenomeAnalysisEngine toolkit, Set<String> rodNames) {
-        return getRodsWithVCFHeader(toolkit, rodNames).keySet();
+    public static Set<String> getRodNamesWithVCFHeader(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
+        return getVCFHeadersFromRods(toolkit, rodNames).keySet();
     }
 
-    public static Map<String, VCFHeader> getRodsWithVCFHeader(GenomeAnalysisEngine toolkit, Set<String> rodNames) {
+    public static Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
         Map<String, VCFHeader> data = new HashMap<String, VCFHeader>();
 
         // iterate to get all of the sample names
@@ -123,6 +124,25 @@ public class SampleUtils {
         }
     }
 
+    public static Set<String> getSampleListWithVCFHeader(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
+        return getSampleList(SampleUtils.getVCFHeadersFromRods(toolkit, rodNames));
+    }
+
+    public static Set<String> getSampleList(Map<String, VCFHeader> headers) {
+        return getSampleList(headers, VariantContextUtils.GenotypeMergeType.PRIORITIZE);
+    }
+
+    public static Set<String> getSampleList(Map<String, VCFHeader> headers, VariantContextUtils.GenotypeMergeType mergeOption) {
+        Set<String> samples = new TreeSet<String>();
+        for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
+            VCFHeader header = val.getValue();
+            for ( String sample : header.getGenotypeSamples() ) {
+                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == VariantContextUtils.GenotypeMergeType.UNIQUIFY));
+            }
+        }
+
+        return samples;
+    }
 
     /**
      * Gets the sample names from all VCF rods input by the user and uniquifies them if there is overlap
@@ -141,7 +161,7 @@ public class SampleUtils {
 
         // iterate to get all of the sample names
 
-        for ( Map.Entry<String, VCFHeader> pair : getRodsWithVCFHeader(toolkit, null).entrySet() ) {
+        for ( Map.Entry<String, VCFHeader> pair : getVCFHeadersFromRods(toolkit, null).entrySet() ) {
             Set<String> vcfSamples = pair.getValue().getGenotypeSamples();
             for ( String sample : vcfSamples )
                 addUniqueSample(samples, sampleOverlapMap, rodNamesToSampleNames, sample, pair.getKey());

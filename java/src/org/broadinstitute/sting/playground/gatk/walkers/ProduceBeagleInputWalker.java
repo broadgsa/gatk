@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.SampleUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -58,13 +59,15 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
     public double insertedNoCallRate  = 0;
 
-    private TreeSet<String> samples = null;
+    private Set<String> samples = null;
     private Random generator;
 
-    private void initialize(Set<String> sampleNames) {
+    public void initialize() {
         generator = new Random();
+
+        samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(ROD_NAME));
+
         beagleWriter.print("marker alleleA alleleB");
-        samples = new TreeSet<String>(sampleNames);
         for ( String sample : samples )
             beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
 
@@ -82,10 +85,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             vc_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, false);
             if ( vc_eval == null || vc_eval.isFiltered() )
                 return 0;
-
-            if ( samples == null ) {
-                initialize(vc_eval.getSampleNames());
-            }
 
             // output marker ID to Beagle input file
             beagleWriter.print(String.format("%s ", vc_eval.getLocation().toString()));

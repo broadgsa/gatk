@@ -68,81 +68,17 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         vcfWriter = new VCFWriter(out, true);
         validateAnnotateUnionArguments();
 
-        // todo -- need to merge headers in an intelligent way
+        Map<String, VCFHeader> vcfRods = SampleUtils.getVCFHeadersFromRods(getToolkit(), null);
+        Set<String> samples = SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
-        Map<String, VCFHeader> vcfRods = SampleUtils.getRodsWithVCFHeader(getToolkit(), null);
-        Set<String> samples = getSampleList(vcfRods, genotypeMergeOption);
-
-        Set<VCFHeaderLine> headerLines = smartMergeHeaders(vcfRods.values());
+        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         headerLines.add(new VCFHeaderLine("source", "CombineVariants"));
         headerLines.add(new VCFInfoHeaderLine("set", 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants", VCFHeaderVersion.VCF4_0));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
-    // todo -- Eric, where's a better place to put this?
-    public static Set<String> getSampleList(Map<String, VCFHeader> headers, VariantContextUtils.GenotypeMergeType mergeOption ) {
-        Set<String> samples = new TreeSet<String>();
-        for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
-            VCFHeader header = val.getValue();
-            for ( String sample : header.getGenotypeSamples() ) {
-                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == VariantContextUtils.GenotypeMergeType.UNIQUIFY));
-            }
-        }
-
-        return samples;
-    }
-
-    // todo -- Eric, where's a better place to put this?
-    public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers) throws IllegalStateException {
-        HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
-        HashSet<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
-
-	// todo -- needs to remove all version headers from sources and add its own VCF version line
-        for ( VCFHeader source : headers ) {
-            //System.out.printf("Merging in header %s%n", source);
-            for ( VCFHeaderLine line : source.getMetaData()) {
-                String key = line.getKey();
-                if ( line instanceof VCFNamedHeaderLine ) key = key + "." + ((VCFNamedHeaderLine) line).getName();
-
-                if ( map.containsKey(key) ) {
-                    VCFHeaderLine other = map.get(key);
-                    if ( line.equals(other) )
-                        continue;
-//                        System.out.printf("equals duplicate key %s%n", line);
-                    else if ( ! line.getClass().equals(other.getClass()) )
-                        throw new IllegalStateException("Incompatible header types: " + line + " " + other );
-                    else if ( line instanceof VCFFilterHeaderLine ) {
-                        String lineName = ((VCFFilterHeaderLine) line).getName();
-                        String otherName = ((VCFFilterHeaderLine) other).getName();
-                        if ( ! lineName.equals(otherName) )
-                            throw new IllegalStateException("Incompatible header types: " + line + " " + other );
-                    } else if ( line instanceof VCFCompoundHeaderLine ) {
-                        VCFCompoundHeaderLine compLine = (VCFCompoundHeaderLine)line;
-                        VCFCompoundHeaderLine compOther = (VCFCompoundHeaderLine)other;
-
-                        // if the names are the same, but the values are different, we need to quit
-                        if (! (compLine).equalsExcludingDescription(compOther) )
-                            throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
-                        if ( ! compLine.getDescription().equals(compOther) )
-                            logger.warn(String.format("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine));
-                    } else {
-                        // we are not equal, but we're not anything special either
-                        logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
-                    }
-                } else {
-                    line.setVersion(VCFHeaderVersion.VCF4_0);
-                    map.put(key, line);
-                    //System.out.printf("Adding header line %s%n", line);
-                }
-            }
-        }
-
-        return new HashSet<VCFHeaderLine>(map.values());
-    }
-
-
     private void validateAnnotateUnionArguments() {
-        Set<String> rodNames = SampleUtils.getRodsNamesWithVCFHeader(getToolkit(), null);
+        Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
 
         if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
             throw new StingException("Priority string must be provided if you want to prioritize genotypes");

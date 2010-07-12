@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -134,6 +135,53 @@ public class VCFUtils {
                 infoFields,
                 params.getFormatString(),
                 params.getGenotypeRecords());
+    }
+
+    public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers, Logger logger) throws IllegalStateException {
+        HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
+        HashSet<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
+
+        // todo -- needs to remove all version headers from sources and add its own VCF version line
+        for ( VCFHeader source : headers ) {
+            //System.out.printf("Merging in header %s%n", source);
+            for ( VCFHeaderLine line : source.getMetaData()) {
+                String key = line.getKey();
+                if ( line instanceof VCFNamedHeaderLine )
+                    key = key + "." + ((VCFNamedHeaderLine) line).getName();
+
+                if ( map.containsKey(key) ) {
+                    VCFHeaderLine other = map.get(key);
+                    if ( line.equals(other) )
+                        continue;
+                    else if ( ! line.getClass().equals(other.getClass()) )
+                        throw new IllegalStateException("Incompatible header types: " + line + " " + other );
+                    else if ( line instanceof VCFFilterHeaderLine ) {
+                        String lineName = ((VCFFilterHeaderLine) line).getName();
+                        String otherName = ((VCFFilterHeaderLine) other).getName();
+                        if ( ! lineName.equals(otherName) )
+                            throw new IllegalStateException("Incompatible header types: " + line + " " + other );
+                    } else if ( line instanceof VCFCompoundHeaderLine ) {
+                        VCFCompoundHeaderLine compLine = (VCFCompoundHeaderLine)line;
+                        VCFCompoundHeaderLine compOther = (VCFCompoundHeaderLine)other;
+
+                        // if the names are the same, but the values are different, we need to quit
+                        if (! (compLine).equalsExcludingDescription(compOther) )
+                            throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
+                        if ( ! compLine.getDescription().equals(compOther) )
+                            logger.warn(String.format("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine));
+                    } else {
+                        // we are not equal, but we're not anything special either
+                        logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
+                    }
+                } else {
+                    line.setVersion(VCFHeaderVersion.VCF4_0);
+                    map.put(key, line);
+                    //System.out.printf("Adding header line %s%n", line);
+                }
+            }
+        }
+
+        return new HashSet<VCFHeaderLine>(map.values());
     }
 
     /**

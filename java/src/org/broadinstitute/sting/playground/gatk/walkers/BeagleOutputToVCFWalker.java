@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broad.tribble.vcf.*;
@@ -65,13 +66,10 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
     // protected HashMap<String,BeagleSampleRecord> beagleSampleRecords;
 
-    TreeSet<String> samples = null;
-
-
     private final double MIN_PROB_ERROR = 0.000001;
     private final double MAX_GENOTYPE_QUALITY = 6.0;
 
-    private void initialize(Set<String> sampleNames) {
+    public void initialize() {
 
         // setup the header fields
 
@@ -86,188 +84,181 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         // Open output file specified by output VCF ROD
         vcfWriter = new VCFWriter(new File(OUTPUT_FILE));
 
-        samples = new TreeSet<String>(sampleNames);
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(INPUT_ROD_NAME));
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
-
     }
 
+    public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
-     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
+        if ( tracker == null )
+            return 0;
 
-         if ( tracker == null )
-             return 0;
+        GenomeLoc loc = context.getLocation();
+        VariantContext vc_input = tracker.getVariantContext(ref,"inputvcf", null, loc, false);
+        if ( vc_input == null  )
+            return 0;
 
-         GenomeLoc loc = context.getLocation();
-         VariantContext vc_input = tracker.getVariantContext(ref,"inputvcf", null, loc, false);
-         if ( vc_input == null  )
-             return 0;
+        List<Object> r2rods = tracker.getReferenceMetaData("beagleR2");
 
-         if ( samples == null ) {
-             initialize(vc_input.getSampleNames());
-         }
+        // ignore places where we don't have a variant
+        if ( r2rods.size() == 0 )
+            return 0;
 
-         List<Object> r2rods = tracker.getReferenceMetaData("beagleR2");
+        BeagleFeature beagleR2Feature = (BeagleFeature)r2rods.get(0);
 
-         // ignore places where we don't have a variant
-         if ( r2rods.size() == 0 )
-             return 0;
+        List<Object> gProbsrods = tracker.getReferenceMetaData("beagleProbs");
 
-         BeagleFeature beagleR2Feature = (BeagleFeature)r2rods.get(0);
+        // ignore places where we don't have a variant
+        if ( gProbsrods.size() == 0 )
+            return 0;
 
-         List<Object> gProbsrods = tracker.getReferenceMetaData("beagleProbs");
+        BeagleFeature beagleProbsFeature = (BeagleFeature)gProbsrods.get(0);
 
-         // ignore places where we don't have a variant
-         if ( gProbsrods.size() == 0 )
-             return 0;
+        List<Object> gPhasedrods = tracker.getReferenceMetaData("beaglePhased");
 
-         BeagleFeature beagleProbsFeature = (BeagleFeature)gProbsrods.get(0);
+        // ignore places where we don't have a variant
+        if ( gPhasedrods.size() == 0 )
+            return 0;
 
-         List<Object> gPhasedrods = tracker.getReferenceMetaData("beaglePhased");
+        BeagleFeature beaglePhasedFeature = (BeagleFeature)gPhasedrods.get(0);
 
-         // ignore places where we don't have a variant
-         if ( gPhasedrods.size() == 0 )
-             return 0;
+        // get reference base for current position
+        byte refByte = ref.getBase();
 
-         BeagleFeature beaglePhasedFeature = (BeagleFeature)gPhasedrods.get(0);
-
-         // get reference base for current position
-         byte refByte = ref.getBase();
-
-         // make new Genotypes based on Beagle results
-         Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc_input.getGenotypes().size());
+        // make new Genotypes based on Beagle results
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc_input.getGenotypes().size());
 
 
-         // for each genotype, create a new object with Beagle information on it
-         boolean genotypesChangedByBeagle = false;
-         for ( Map.Entry<String, Genotype> originalGenotypes : vc_input.getGenotypes().entrySet() ) {
+        // for each genotype, create a new object with Beagle information on it
+        boolean genotypesChangedByBeagle = false;
+        for ( Map.Entry<String, Genotype> originalGenotypes : vc_input.getGenotypes().entrySet() ) {
 
-             Genotype g = originalGenotypes.getValue();
-             Set<String> filters = new LinkedHashSet<String>(g.getFilters());
+            Genotype g = originalGenotypes.getValue();
+            Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
-             boolean genotypeIsPhased = true;
-             String sample = g.getSampleName();
+            boolean genotypeIsPhased = true;
+            String sample = g.getSampleName();
 
-             ArrayList<String> beagleProbabilities = beagleProbsFeature.getProbLikelihoods().get(sample);
-             ArrayList<String> beagleGenotypePairs = beaglePhasedFeature.getGenotypes().get(sample);
+            ArrayList<String> beagleProbabilities = beagleProbsFeature.getProbLikelihoods().get(sample);
+            ArrayList<String> beagleGenotypePairs = beaglePhasedFeature.getGenotypes().get(sample);
 
-             Allele originalAlleleA = g.getAllele(0);
-             Allele originalAlleleB = g.getAllele(1);
+            Allele originalAlleleA = g.getAllele(0);
+            Allele originalAlleleB = g.getAllele(1);
 
-             // We have phased genotype in hp. Need to set the isRef field in the allele.
-             List<Allele> alleles = new ArrayList<Allele>();
+            // We have phased genotype in hp. Need to set the isRef field in the allele.
+            List<Allele> alleles = new ArrayList<Allele>();
 
-             String alleleA = beagleGenotypePairs.get(0);
-             String alleleB = beagleGenotypePairs.get(1);
+            String alleleA = beagleGenotypePairs.get(0);
+            String alleleB = beagleGenotypePairs.get(1);
 
-             byte[] r = alleleA.getBytes();
-             byte rA = r[0];
+            byte[] r = alleleA.getBytes();
+            byte rA = r[0];
 
-             Boolean isRefA = (refByte  == rA);
+            Boolean isRefA = (refByte  == rA);
 
-             Allele refAllele = Allele.create(r, isRefA );
-             alleles.add(refAllele);
+            Allele refAllele = Allele.create(r, isRefA );
+            alleles.add(refAllele);
 
-             r = alleleB.getBytes();
-             byte rB = r[0];
+            r = alleleB.getBytes();
+            byte rB = r[0];
 
-             Boolean isRefB = (refByte  == rB);
-             Allele altAllele = Allele.create(r,isRefB);
-             alleles.add(altAllele);
+            Boolean isRefB = (refByte  == rB);
+            Allele altAllele = Allele.create(r,isRefB);
+            alleles.add(altAllele);
 
-             // Compute new GQ field = -10*log10Pr(Genotype call is wrong)
-             // Beagle gives probability that genotype is AA, AB and BB.
-             // Which, by definition, are prob of hom ref, het and hom var.
-             Double probWrongGenotype, genotypeQuality;
-             Double homRefProbability = Double.valueOf(beagleProbabilities.get(0));
-             Double hetProbability = Double.valueOf(beagleProbabilities.get(1));
-             Double homVarProbability = Double.valueOf(beagleProbabilities.get(2));
+            // Compute new GQ field = -10*log10Pr(Genotype call is wrong)
+            // Beagle gives probability that genotype is AA, AB and BB.
+            // Which, by definition, are prob of hom ref, het and hom var.
+            Double probWrongGenotype, genotypeQuality;
+            Double homRefProbability = Double.valueOf(beagleProbabilities.get(0));
+            Double hetProbability = Double.valueOf(beagleProbabilities.get(1));
+            Double homVarProbability = Double.valueOf(beagleProbabilities.get(2));
 
-             if (isRefA && isRefB) // HomRef call
-                 probWrongGenotype = hetProbability + homVarProbability;
-             else if ((isRefB && !isRefA) || (isRefA && !isRefB))
-                 probWrongGenotype = homRefProbability + homVarProbability;
-             else // HomVar call
-                 probWrongGenotype = hetProbability + homRefProbability;
+            if (isRefA && isRefB) // HomRef call
+                probWrongGenotype = hetProbability + homVarProbability;
+            else if ((isRefB && !isRefA) || (isRefA && !isRefB))
+                probWrongGenotype = homRefProbability + homVarProbability;
+            else // HomVar call
+                probWrongGenotype = hetProbability + homRefProbability;
 
-             if (1-probWrongGenotype < noCallThreshold) {
-                 // quality is bad: don't call genotype
-                 alleles.clear();
-                 refAllele = Allele.NO_CALL;
-                 altAllele = Allele.NO_CALL;
-                 alleles.add(refAllele);
-                 alleles.add(altAllele);
-                 genotypeIsPhased = false;
-             }
-
-             if (probWrongGenotype < MIN_PROB_ERROR)
-                 genotypeQuality = MAX_GENOTYPE_QUALITY;
-             else
-                 genotypeQuality = -log10(probWrongGenotype);
-
-             HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getAttributes());
-
-             // get original encoding and add to keynotype attributes
-             String a1, a2, og;
-             if (originalAlleleA.isNoCall())
-                 a1 = ".";
-             else if (originalAlleleA.isReference())
-                 a1 = "0";
-             else
-                 a1 = "1";
-
-             if (originalAlleleB.isNoCall())
-                 a2 = ".";
-             else if (originalAlleleB.isReference())
-                 a2 = "0";
-             else
-                 a2 = "1";
-
-             og = a1+"/"+a2;
-
-             // See if Beagle switched genotypes
-             if (!((refAllele.equals(originalAlleleA) && altAllele.equals(originalAlleleB) ||
-                 (refAllele.equals(originalAlleleB) && altAllele.equals(originalAlleleA))))){
-                 genotypesChangedByBeagle = true;
-                 originalAttributes.put("OG",og);
-              }
-             else {
-                 originalAttributes.put("OG",".");
-             }
-             Genotype imputedGenotype = new Genotype(originalGenotypes.getKey(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
-
-
-             genotypes.put(originalGenotypes.getKey(), imputedGenotype);
-
-        }
-
-        VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getLocation(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.getFilters(), vc_input.getAttributes());
-
-        Set<Allele> altAlleles = filteredVC.getAlternateAlleles();
-        StringBuffer altAlleleCountString = new StringBuffer();
-        for ( Allele allele : altAlleles ) {
-            if ( altAlleleCountString.length() > 0 )
-                altAlleleCountString.append(",");
-            altAlleleCountString.append(filteredVC.getChromosomeCount(allele));
-        }
-
-        HashMap<String, Object> attributes = new HashMap<String, Object>(filteredVC.getAttributes());
-        if ( filteredVC.getChromosomeCount() > 0 ) {
-            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
-            if ( altAlleleCountString.length() > 0 )  {
-                attributes.put(VCFConstants.ALLELE_COUNT_KEY, altAlleleCountString.toString());
-                attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
-                        Double.valueOf(altAlleleCountString.toString())/(filteredVC.getChromosomeCount())));
+            if (1-probWrongGenotype < noCallThreshold) {
+                // quality is bad: don't call genotype
+                alleles.clear();
+                refAllele = Allele.NO_CALL;
+                altAllele = Allele.NO_CALL;
+                alleles.add(refAllele);
+                alleles.add(altAllele);
+                genotypeIsPhased = false;
             }
-        }
 
-        attributes.put("GenotypesChanged", (genotypesChangedByBeagle)? "1":"0" );
-        attributes.put("R2", beagleR2Feature.getR2value().toString() );
+            if (probWrongGenotype < MIN_PROB_ERROR)
+                genotypeQuality = MAX_GENOTYPE_QUALITY;
+            else
+                genotypeQuality = -log10(probWrongGenotype);
 
-        vcfWriter.add(VariantContextUtils.modifyAttributes(filteredVC, attributes), new byte[]{ref.getBase()});
+            HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getAttributes());
 
-        return 1;
+            // get original encoding and add to keynotype attributes
+            String a1, a2, og;
+            if (originalAlleleA.isNoCall())
+                a1 = ".";
+            else if (originalAlleleA.isReference())
+                a1 = "0";
+            else
+                a1 = "1";
 
+            if (originalAlleleB.isNoCall())
+                a2 = ".";
+            else if (originalAlleleB.isReference())
+                a2 = "0";
+            else
+                a2 = "1";
+
+            og = a1+"/"+a2;
+
+            // See if Beagle switched genotypes
+            if (!((refAllele.equals(originalAlleleA) && altAllele.equals(originalAlleleB) ||
+                (refAllele.equals(originalAlleleB) && altAllele.equals(originalAlleleA))))){
+                genotypesChangedByBeagle = true;
+                originalAttributes.put("OG",og);
+             }
+            else {
+                originalAttributes.put("OG",".");
+            }
+            Genotype imputedGenotype = new Genotype(originalGenotypes.getKey(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
+
+
+            genotypes.put(originalGenotypes.getKey(), imputedGenotype);
+
+       }
+
+       VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getLocation(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.getFilters(), vc_input.getAttributes());
+
+       Set<Allele> altAlleles = filteredVC.getAlternateAlleles();
+       StringBuffer altAlleleCountString = new StringBuffer();
+       for ( Allele allele : altAlleles ) {
+           if ( altAlleleCountString.length() > 0 )
+               altAlleleCountString.append(",");
+           altAlleleCountString.append(filteredVC.getChromosomeCount(allele));
+       }
+
+       HashMap<String, Object> attributes = new HashMap<String, Object>(filteredVC.getAttributes());
+       if ( filteredVC.getChromosomeCount() > 0 ) {
+           attributes.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
+           if ( altAlleleCountString.length() > 0 )  {
+               attributes.put(VCFConstants.ALLELE_COUNT_KEY, altAlleleCountString.toString());
+               attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
+                       Double.valueOf(altAlleleCountString.toString())/(filteredVC.getChromosomeCount())));
+           }
+       }
+
+       attributes.put("GenotypesChanged", (genotypesChangedByBeagle)? "1":"0" );
+       attributes.put("R2", beagleR2Feature.getR2value().toString() );
+
+       vcfWriter.add(VariantContextUtils.modifyAttributes(filteredVC, attributes), new byte[]{ref.getBase()});
+
+       return 1;
     }
 
     public Integer reduceInit() {
