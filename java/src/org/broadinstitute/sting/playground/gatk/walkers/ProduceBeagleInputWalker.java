@@ -113,25 +113,21 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 if (genotype.isCalled() && genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
                     String[] glArray = genotype.getAttributeAsString(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).split(",");
 
-                    Double maxLikelihood = -100.0;
-                    ArrayList<Double> likeArray = new ArrayList<Double>();
+                    double[] likeArray = new double[glArray.length];
 
+                    // convert to double array so we can normalize
+                    int k=0;
                     for (String gl : glArray) {
-                        // need to normalize likelihoods to avoid precision loss. In worst case, if all 3 log-likelihoods are too
-                        // small, we could end up with linear likelihoods of form 0.00 0.00 0.00 which will mess up imputation.
-                        Double dg = Double.valueOf(gl);
-                        if (dg> maxLikelihood)
-                            maxLikelihood = dg;
-
-                        likeArray.add(dg);
+                        likeArray[k++] = Double.valueOf(gl);
                     }
 
+                    double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(likeArray);
                     // see if we need to randomly mask out genotype in this position.
                     Double d = generator.nextDouble();
                     if (d > insertedNoCallRate ) {
 //                    System.out.format("%5.4f ", d);
-                        for (Double likeVal: likeArray)
-                            beagleWriter.print(String.format("%5.4f ",Math.pow(10, likeVal-maxLikelihood)));
+                        for (Double likeVal: normalizedLikelihoods)
+                            beagleWriter.print(String.format("%5.4f ",likeVal));
                     }
                     else {
                         // we are masking out this genotype
