@@ -165,8 +165,19 @@ public class VCFUtils {
                         VCFCompoundHeaderLine compOther = (VCFCompoundHeaderLine)other;
 
                         // if the names are the same, but the values are different, we need to quit
-                        if (! (compLine).equalsExcludingDescription(compOther) )
-                            throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
+                        if (! (compLine).equalsExcludingDescription(compOther) ) {
+                            if ( compLine.getType().equals(compOther.getType()) ) {
+                                // The Number entry is an Integer that describes the number of values that can be
+                                // included with the INFO field. For example, if the INFO field contains a single
+                                // number, then this value should be 1. However, if the INFO field describes a pair
+                                // of numbers, then this value should be 2 and so on. If the number of possible
+                                // values varies, is unknown, or is unbounded, then this value should be '.'.
+                                logger.warn("Promoting header field Number to . due to number differences in header lines: " + line + " " + other);
+                                compOther.setNumberToUnbounded();
+                            } else {
+                                throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
+                            }
+                        }
                         if ( ! compLine.getDescription().equals(compOther) )
                             if ( logger != null ) logger.warn(String.format("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine));
                     } else {

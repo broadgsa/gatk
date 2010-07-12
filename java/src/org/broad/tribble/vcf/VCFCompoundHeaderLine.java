@@ -54,6 +54,9 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
     public String getDescription() { return description; }
     public VCFHeaderLineType getType() { return type; }
 
+    //
+    public void setNumberToUnbounded() { this.count = UNBOUNDED; }
+
     // our type of line, i.e. format, info, etc
     private final SupportedHeaderLineType lineType;
 
