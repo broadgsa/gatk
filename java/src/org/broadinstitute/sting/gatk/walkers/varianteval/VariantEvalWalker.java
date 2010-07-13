@@ -179,6 +179,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     Set<String> rsIDsToExclude = null;
 
+    @Argument(shortName="aatk", fullName="aminoAcidTransitionKey", doc="required for the amino acid transition table; this is the key in the info field for the VCF for the transition", required = false)
+    protected String aminoAcidTransitionKey = null;
+
+    @Argument(shortName="aats", fullName="aminoAcidTransitionSplit", doc="required for the amino acid transition table, this is the key on which to split the info field value to get the reference and alternate amino acids", required=false)
+    protected String aminoAcidTransitionSplit = null;
+
+    @Argument(shortName="aatUseCodons", fullName="aminoAcidsRepresentedByCodons", doc="for the amino acid table, specifiy that the transitions are represented as codon changes, and not directly amino acid names", required = false)
+    protected boolean aatUseCodons = false;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // private walker data
@@ -428,9 +437,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             } catch (NoSuchMethodException e) {
                 throw new StingException(String.format("Cannot find expected constructor for class '%s': must have constructor accepting a single VariantEval2Walker object", c.getSimpleName()));
             } catch (IllegalAccessException e) {
-                throw new StingException(String.format("Cannot instantiate class '%s':", c.getSimpleName()));
+                throw new StingException(String.format("Cannot instantiate class '%s' (Illegal Access):", c.getSimpleName()));
             } catch (InvocationTargetException e) {
-                throw new StingException(String.format("Cannot instantiate class '%s':", c.getSimpleName()));
+                throw new StingException(String.format("Cannot instantiate class '%s' (Invocation): %s", c.getSimpleName(), e.getMessage()));
             }
         }
 

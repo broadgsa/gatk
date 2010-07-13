@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
@@ -71,11 +72,11 @@ public class AminoAcidTransition extends VariantEvaluator {
         }
 
         public double getRatio() {
-            return ( (double) ti )/tv;
+            return ( (double) ti )/(1.0+tv);
         }
 
         public String toString() {
-            return String.format("%d:%d:%d:%f",getTotal(),ti,tv,getRatio());
+            return String.format("%d:%d:%d:%.2f",getTotal(),ti,tv,getRatio());
         }
     }
 
@@ -132,13 +133,22 @@ public class AminoAcidTransition extends VariantEvaluator {
         super(parent);
         getParsingInformation(parent);
         lookup = new AminoAcidTable();
+        acidTable = new AminoAcidTiTvTable();
     }
 
     private void getParsingInformation(VariantEvalWalker parent) {
-        // todo -- allow me to be flexible
-        infoKey = "something";
-        infoValueSplit = "somethingElse";
-        useCodons = false;
+        if ( enabled() ) {
+            infoKey = parent.aminoAcidTransitionKey;
+            infoValueSplit = parent.aminoAcidTransitionSplit;
+            useCodons = parent.aatUseCodons;
+            if ( infoKey == null ) {
+                throw new StingException("No info-field key provided for amino acid tabulation. Please provide the appropriate key with -aatk.");
+            }
+
+            if ( infoValueSplit == null ) {
+                throw new StingException("No split string provided for amino acid tabulation. Please provide the split string with -aats");
+            }
+        }
     }
 
     public String getName() {
@@ -161,8 +171,14 @@ public class AminoAcidTransition extends VariantEvaluator {
         String interesting = null;
         if ( eval != null && eval.hasAttribute(infoKey) ) {
             String[] parsedNames = ( (String) eval.getAttribute(infoKey)).split(infoValueSplit);
-            String first = parsedNames [0];
-            String second = parsedNames [1];
+            String first = "none";
+            String second = "none";
+            try {
+                first = parsedNames [0];
+                second = parsedNames [1];
+            } catch (ArrayIndexOutOfBoundsException e) {
+                veWalker.getLogger().warn("Error prasing variant context with value "+eval.getAttribute(infoKey));
+            }
             AminoAcid reference;
             AminoAcid alternate;
             if ( useCodons ) {
@@ -172,6 +188,8 @@ public class AminoAcidTransition extends VariantEvaluator {
                 reference = lookup.getAminoAcidByCode(first);
                 alternate = lookup.getAminoAcidByCode(second);
             }
+
+            //veWalker.getLogger().info(String.format("%s\t%s\t%s\t%s",first,second,reference,alternate));
 
             if ( reference == null ) {
                 interesting = "Unknown Reference Codon";
