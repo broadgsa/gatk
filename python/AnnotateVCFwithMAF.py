@@ -35,8 +35,8 @@ vcf_file = open(vcf_filename)
 vcf_out_file = open(os.path.splitext(os.path.basename(vcf_filename))[0]+".maf_annotated.vcf", "w")
 vcf_format_line = vcf_file.readline()
 vcf_out_file.write(vcf_format_line)
-if vcf_format_line != "##fileformat=VCFv3.3\n":
-    print ("VCF not v 3.3")
+if vcf_format_line != "##fileformat=VCFv3.3\n" and vcf_format_line != "##fileformat=VCFv4.0":
+    print ("VCF not v 3.3 or v4.0")
     sys.exit()
 
 header = vcf_file.readline()
@@ -57,6 +57,28 @@ for header_field in headers:
     vcf_out_file.write("##INFO="+header_field+",1,String,"+header_field+"\n")
 vcf_out_file.write(header_fields)
 
+def addFormat(infoString):
+    # takes MAF info string and reformats values for usefulness and parseablity
+    newItems = list()
+    for item in infoString.split(";"):
+        keyval = item.split("=")
+        key = keyval[0]
+        val = keyval[1]
+        if key == "codonchange" :
+            # has the form c.(232-234)CAC>AAC
+            # want to strip to just the change
+            codon_change = val.split(")")[1]
+            numbers = val.split(".")[1].split(")")[0]+")"
+            newItems.append("codonchange="+codon_change+";codonoffset="+numbers)
+        if key == "proteinchange" :
+            # has the form p.H78N
+            # want to move to H>N
+            first = val.split(".")[1][0]
+            last = val[len(val)-1]
+            num = val.split(".")[1][1:len(val.split(".")[1])-1]
+            newItems.append("proteinchange="+first+">"+last+";proteinoffset="+num)
+    return ";".join(newItems)
+
 for vcf_line, locus_and_info in zip(vcf_file.readlines(), loci_and_info):
     vcf_line_fields = vcf_line.split("\t")
     vcf_locus = vcf_line_fields[0]+":"+vcf_line_fields[1]
@@ -66,6 +88,6 @@ for vcf_line, locus_and_info in zip(vcf_file.readlines(), loci_and_info):
         print "ERROR: VCF and MAF loci did not match"
         sys.exit()
     
-    vcf_line_fields[7] = vcf_line_fields[7]+";"+maf_info
+    vcf_line_fields[7] = vcf_line_fields[7]+";"+addFormat(maf_info)
     new_vcf_line = "\t".join(vcf_line_fields)
     vcf_out_file.write(new_vcf_line)
