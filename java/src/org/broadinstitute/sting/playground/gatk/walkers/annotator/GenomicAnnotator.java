@@ -43,7 +43,6 @@ import java.util.Map.Entry;
 
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -74,7 +73,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 //@Allows(value={DataSource.READS, DataSource.REFERENCE})
 //@Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
-public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedList<VCFRecord>> implements TreeReducible<LinkedList<VCFRecord>> {
+public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, LinkedList<VariantContext>> implements TreeReducible<LinkedList<VariantContext>> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
 
@@ -239,7 +238,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedLis
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new VCFWriter(VCF_OUT);
+        vcfWriter = new VCFWriter(VCF_OUT, true);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }
@@ -249,7 +248,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedLis
      *
      * @return 0
      */
-    public LinkedList<VCFRecord> reduceInit() { return new LinkedList<VCFRecord>(); }
+    public LinkedList<VariantContext> reduceInit() { return new LinkedList<VariantContext>(); }
 
 
     /**
@@ -267,8 +266,8 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedLis
      * @param context  the context for the given locus
      * @return 1 if the locus was successfully processed, 0 if otherwise
      */
-    public LinkedList<VCFRecord> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        LinkedList<VCFRecord> result = new LinkedList<VCFRecord>();
+    public LinkedList<VariantContext> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        LinkedList<VariantContext> result = new LinkedList<VariantContext>();
 
         if ( tracker == null )
             return result;
@@ -299,12 +298,12 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedLis
         if(multiThreadedMode) {
             //keep results in memory, only writing them in onTraversalDone(..) after they have been merged via treeReduce(..)
             for(VariantContext annotatedVC : annotatedVCs ) {
-                result.add(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
+                result.add(annotatedVC);
             }
         } else {
             //write results to disk immediately
             for(VariantContext annotatedVC : annotatedVCs ) {
-                vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
+                vcfWriter.add(annotatedVC, new byte[]{ref.getBase()});
             }
         }
 
@@ -320,7 +319,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedLis
      * @param sum   accumulator for the reduce.
      * @return the new number of loci processed.
      */
-    public LinkedList<VCFRecord> reduce(LinkedList<VCFRecord> value, LinkedList<VCFRecord> sum) {
+    public LinkedList<VariantContext> reduce(LinkedList<VariantContext> value, LinkedList<VariantContext> sum) {
         sum.addAll(value);
         return sum;
     }
@@ -330,7 +329,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedLis
     /**
      * Merge lists.
      */
-    public LinkedList<VCFRecord> treeReduce(LinkedList<VCFRecord> lhs, LinkedList<VCFRecord> rhs) {
+    public LinkedList<VariantContext> treeReduce(LinkedList<VariantContext> lhs, LinkedList<VariantContext> rhs) {
         lhs.addAll(rhs);
         return lhs;
     }
@@ -341,13 +340,13 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VCFRecord>, LinkedLis
     /**
      * Tell the user the number of loci processed and close out the new variants file.
      *
-     * @param result  the number of loci seen.
+     * @param totalOutputRecords  all VCs seen.
      */
-    public void onTraversalDone(LinkedList<VCFRecord> totalOutputVCFRecords) {
+    public void onTraversalDone(LinkedList<VariantContext> totalOutputRecords) {
         if(multiThreadedMode) {
             //finally write results to disk
-            for(VCFRecord vcfRecord : totalOutputVCFRecords ) {
-                vcfWriter.addRecord(vcfRecord);
+            for(VariantContext vc : totalOutputRecords ) {
+                vcfWriter.add(vc, vc.getReference().getBases());
             }
         }
 
