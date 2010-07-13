@@ -90,7 +90,7 @@ public class CombineVariantsUnitTest {
         Assert.assertEquals(VCFHeaderUnitTest.VCF4headerStrings.length,lines.size());
     }
 
-    @Test(expected=IllegalStateException.class)
+    @Test
     public void testHeadersFormatDifferentValues() {
         VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings).getHeader(VCFHeader.class);
         VCFHeader two = createHeader(VCF4headerStringsBrokenFormat).getHeader(VCFHeader.class);
