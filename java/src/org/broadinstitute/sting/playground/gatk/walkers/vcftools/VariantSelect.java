@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2010.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -28,25 +28,30 @@ package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
-import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFFilterHeaderLine;
+import org.broad.tribble.vcf.VCFHeader;
 
 import java.util.*;
 
 /**
  * Selects variant calls for output from a user-supplied VCF file using a number of user-selectable, parameterizable criteria.  [TODO -- update to new walker style]
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type= VCFRecord.class))
-public class VCFSelectWalker extends RodWalker<Integer, Integer> {
+@Requires(value={},referenceMetaData=@RMD(name="variant", type= ReferenceOrderedDatum.class))
+public class VariantSelect extends RodWalker<Integer, Integer> {
     @Argument(fullName="match", shortName="match", doc="Expression used with INFO fields to select VCF records for inclusion in the output VCF(see wiki docs for more info)", required=false)
     protected String[] MATCH_STRINGS = new String[]{null};
 
@@ -66,21 +71,6 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
 
     private List<MatchExp> matchExpressions = new ArrayList<MatchExp>();
 
-    private void initializeVcfWriter(VCFRecord record) {
-        // setup the header fields
-        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFHeaderLine("source", "VariantSelect"));
-        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-
-        for ( MatchExp exp : matchExpressions ) {
-            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.expStr));
-        }
-
-        writer = new VCFWriter(out);
-        writer.writeHeader(new VCFHeader(hInfo, record.getHeader().getGenotypeSamples()));
-    }
-
     public void initialize() {
         for ( int i = 0; i < MATCH_STRINGS.length; i++ ) {
             if ( MATCH_STRINGS[i] != null )  {
@@ -92,6 +82,22 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
                 }
             }
         }
+
+        // setup the header fields
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.add(new VCFHeaderLine("source", "VariantSelect"));
+        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
+
+        for ( MatchExp exp : matchExpressions ) {
+            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.expStr));
+        }
+
+        writer = new VCFWriter(out, true);
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
+
+        final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
+        writer.writeHeader(vcfHeader);
     }
 
     public Integer reduceInit() { return 0; }
@@ -108,15 +114,15 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        VCFRecord variant = tracker.lookup("variant",VCFRecord.class);
+        VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), false);
         // ignore places where we don't have a variant
-        if ( variant == null )
+        if ( vc == null )
             return 0;
 
         boolean someoneMatched = false;
         for ( MatchExp exp : matchExpressions ) {
-            Map<String, Object> infoMap = new HashMap<String, Object>(variant.getInfoValues());
-            infoMap.put("QUAL", String.valueOf(variant.getQual()));
+            Map<String, Object> infoMap = new HashMap<String, Object>(vc.getAttributes());
+            infoMap.put("QUAL", String.valueOf(vc.getPhredScaledQual()));
 
             JexlContext jContext = new MapContext(infoMap);
 
@@ -133,29 +139,16 @@ public class VCFSelectWalker extends RodWalker<Integer, Integer> {
         }
 
         if ( someoneMatched )
-            writeVCF(variant);
+            writer.add(vc, new byte[]{ref.getBase()});
 
         return 1;
-    }
-
-    private void writeVCF(VCFRecord variant) {
-        if ( writer == null )
-            initializeVcfWriter(variant);
-
-        writer.addRecord(variant);
     }
 
     public Integer reduce(Integer value, Integer sum) {
         return sum + value;
     }
 
-    /**
-     * Tell the user the number of loci processed and close out the new variants file.
-     *
-     * @param result  the number of loci seen.
-     */
     public void onTraversalDone(Integer result) {
-        if ( writer != null )
-            writer.close();
+        writer.close();
     }
 }
