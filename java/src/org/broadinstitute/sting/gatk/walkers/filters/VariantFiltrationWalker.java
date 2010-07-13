@@ -46,7 +46,7 @@ import java.util.*;
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type= ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
@@ -84,7 +84,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     private ArrayList<FiltrationContext> windowInitializer = new ArrayList<FiltrationContext>();
 
 
-    private void initializeVcfWriter(VCFRecord rec) {
+    private void initializeVcfWriter(VariantContext vc) {
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
@@ -110,8 +110,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             }
         }
 
-        writer = new VCFWriter(out);
-        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(Arrays.asList(rec.getSampleNames()))));
+        writer = new VCFWriter(out, true);
+        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 
     public void initialize() {
@@ -210,13 +210,13 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
         VariantContext filteredVC = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
 
-        writeVCF(VariantContextAdaptors.toVCF(filteredVC, context.getReferenceContext().getBase(), null, true, genotypeFilterExps.size() > 0));
+        writeVCF(filteredVC, context.getReferenceContext().getBase());
     }
 
-    private void writeVCF(VCFRecord rec) {
+    private void writeVCF(VariantContext vc, byte ref) {
         if ( writer == null )
-            initializeVcfWriter(rec);
-        writer.addRecord(rec);
+            initializeVcfWriter(vc);
+        writer.add(vc, new byte[]{ref});
     }
 
     public Integer reduce(Integer value, Integer sum) {
