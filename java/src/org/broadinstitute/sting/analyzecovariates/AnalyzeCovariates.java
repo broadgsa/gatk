@@ -77,6 +77,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
     private final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
+    protected static final String EOF_MARKER = "EOF";
 
     protected int execute() {
 
@@ -122,7 +123,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
         try {
             for ( String line : new XReadLines(new File( RECAL_FILE )) ) {
                 lineNumber++;
-                if( COMMENT_PATTERN.matcher(line).matches() || OLD_RECALIBRATOR_HEADER.matcher(line).matches())  {
+                if( COMMENT_PATTERN.matcher(line).matches() || OLD_RECALIBRATOR_HEADER.matcher(line).matches() || line.equals(EOF_MARKER) )  {
                     ; // Skip over the comment lines, (which start with '#')
                 }
                 else if( COVARIATE_PATTERN.matcher(line).matches() ) { // The line string is either specifying a covariate or is giving csv data
