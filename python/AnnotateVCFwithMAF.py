@@ -77,6 +77,9 @@ def addFormat(infoString):
             last = val[len(val)-1]
             num = val.split(".")[1][1:len(val.split(".")[1])-1]
             newItems.append("proteinchange="+first+">"+last+";proteinoffset="+num)
+        if key == "type" :
+            newItems.append(item)
+
     return ";".join(newItems)
 
 for vcf_line, locus_and_info in zip(vcf_file.readlines(), loci_and_info):
