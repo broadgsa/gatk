@@ -45,19 +45,6 @@ public class VCFUtils {
      */
     private VCFUtils() { }
 
-    public static Set<RMDTrack> getRodVCFs(GenomeAnalysisEngine toolkit) {
-        Set<RMDTrack> vcfs = new HashSet<RMDTrack>();
-
-        for ( ReferenceOrderedDataSource source : toolkit.getRodDataSources() ) {
-            RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VCFRecord.class) ) {
-                vcfs.add(rod);
-            }
-        }
-
-        return vcfs;
-    }
-
     /**
      * Gets the header fields from all VCF rods input by the user
      *

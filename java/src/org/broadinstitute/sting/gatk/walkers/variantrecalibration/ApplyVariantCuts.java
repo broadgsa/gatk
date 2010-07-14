@@ -29,15 +29,12 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -106,17 +103,8 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
         vcfWriter = new VCFWriter( new File(OUTPUT_FILENAME) );
         final TreeSet<String> samples = new TreeSet<String>();
-        final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
-        for( final ReferenceOrderedDataSource source : dataSources ) {
-            final RMDTrack rod = source.getReferenceOrderedData();
-            if( rod.getRecordType().equals(VCFRecord.class) ) {
-                final VCFReader reader = new VCFReader(rod.getFile());
-                final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
-                samples.addAll(vcfSamples);
-                reader.close();
-            }
-        }
-
+        samples.addAll(SampleUtils.getSampleListWithVCFHeader(getToolkit(), null));
+        
         for( int iii = 1; iii < filterName.size(); iii++ ) {
             hInfo.add(new VCFFilterHeaderLine(filterName.get(iii), String.format("FDR tranche level at qual " + qCuts.get(iii))));
         }
