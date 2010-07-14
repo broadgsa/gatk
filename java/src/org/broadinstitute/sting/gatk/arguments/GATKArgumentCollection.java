@@ -177,10 +177,6 @@ public class GATKArgumentCollection {
     public List<String> readGroupBlackList = null;
 
     @Element(required = false)
-    @Argument(fullName = "enable_threaded_debugging",shortName="etd", doc="Enable debugging of threaded apps by applying exception catching in the threaded version of the GATK.", required = false)
-    public boolean enableThreadedDebugging = false;
-
-    @Element(required = false)
     @Argument(fullName = "enable_overlap_filters",shortName="eof", doc="Enable automatic removal of bases that overlap adaptor sequence or that overlap their mate pair", required = false)
     public boolean enableOverlapFilters = false;
 
@@ -351,9 +347,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (other.intervalMerging != this.intervalMerging) {
-            return false;
-        }
-        if (enableThreadedDebugging != other.enableThreadedDebugging) {
             return false;
         }
         if (enableOverlapFilters != other.enableOverlapFilters) {
