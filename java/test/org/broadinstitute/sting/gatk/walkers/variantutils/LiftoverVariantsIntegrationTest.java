@@ -40,7 +40,7 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
          WalkerTestSpec spec = new WalkerTestSpec(
                  "-T LiftoverVariants -o %s -R " + oneKGLocation + "reference/human_b36_both.fasta -B variant,vcf," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict " + oneKGLocation + "reference/human_g1k_v37.dict",
                  1,
-                 Arrays.asList("aa347e1d379ed090cbd54eef829611f9"));
+                 Arrays.asList("252cf3cebf8844fb4327cdb86bfffd23"));
          executeTest("test b36 to hg19", spec);
     }
 }
