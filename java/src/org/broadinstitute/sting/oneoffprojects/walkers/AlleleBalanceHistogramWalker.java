@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broad.tribble.vcf.VCFCodec;
-import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
@@ -22,7 +22,7 @@ import java.util.*;
  * Time: 3:25:11 PM
  * To change this template use File | Settings | File Templates.
  */
-@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type=VCFRecord.class)})
+@Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type=ReferenceOrderedDatum.class)})
 public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>, Map<String,Set<Double>>> {
 
 
@@ -47,13 +47,12 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
     }
 
     public Map<String,Double> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        VCFRecord record = tracker.lookup("variants", VCFRecord.class);
-
-        if ( record == null ) {
+        VariantContext vc = tracker.getVariantContext(ref, "variants", EnumSet.of(VariantContext.Type.SNP), context.getLocation(), false);
+        if ( vc == null || !vc.isBiallelic() ) {
             return null;
         }
 
-        return getAlleleBalanceBySample(record,ref,context);
+        return getAlleleBalanceBySample(vc,ref,context);
     }
 
     public void onTraversalDone(Map<String,Set<Double>> finalSets) {
@@ -67,13 +66,13 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
         }
     }
 
-    private HashMap<String,Double> getAlleleBalanceBySample(VCFRecord vcf, ReferenceContext ref, AlignmentContext context) {
+    private HashMap<String,Double> getAlleleBalanceBySample(VariantContext vc, ReferenceContext ref, AlignmentContext context) {
         Map<String, StratifiedAlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(),null);
         HashMap<String,Double> balances = new HashMap<String,Double>();
         System.out.println("----- "+ref.getLocus()+" -----");
         int returnedBalances = 0;
-        for ( String sample : vcf.getSampleNames() ) {
-            Double balance = getAlleleBalance(ref,sampleContext.get(sample),vcf.getAlternativeBaseForSNP());
+        for ( String sample : vc.getSampleNames() ) {
+            Double balance = getAlleleBalance(ref,sampleContext.get(sample),(char)vc.getAlternateAllele(0).getBases()[0]);
             balances.put(sample, balance);
             if ( balance != null ) {
                 returnedBalances++;
