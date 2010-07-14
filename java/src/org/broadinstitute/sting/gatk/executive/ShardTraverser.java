@@ -57,35 +57,36 @@ public class ShardTraverser implements Callable {
     }
 
     public Object call() {
-        long startTime = System.currentTimeMillis(); 
-
-        Object accumulator = walker.reduceInit();
-        LocusWalker lWalker = (LocusWalker)walker;
-        WindowMaker windowMaker = new WindowMaker(microScheduler.getReadIterator(shard),shard.getGenomeLocs(),walker.getMandatoryReadFilters(), lWalker.getDiscards());
-        ShardDataProvider dataProvider = null;
         try {
+            long startTime = System.currentTimeMillis();
+
+            Object accumulator = walker.reduceInit();
+            LocusWalker lWalker = (LocusWalker)walker;
+            WindowMaker windowMaker = new WindowMaker(microScheduler.getReadIterator(shard),shard.getGenomeLocs(),walker.getMandatoryReadFilters(),lWalker.getDiscards());
+            ShardDataProvider dataProvider = null;
+
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                 dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
                 accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
                 dataProvider.close();
             }
-        }
-        finally {
+
             if (dataProvider != null) dataProvider.close();
             windowMaker.close();
             outputMergeTask = outputTracker.closeStorage();
 
+            long endTime = System.currentTimeMillis();
+
+            microScheduler.reportShardTraverseTime(endTime-startTime);
+
+            return accumulator;
+        }
+        finally {
             synchronized(this) {
                 complete = true;
                 notifyAll();
             }
         }
-
-        long endTime = System.currentTimeMillis();
-
-        microScheduler.reportShardTraverseTime(endTime-startTime);
-
-        return accumulator;
     }
 
     /**
