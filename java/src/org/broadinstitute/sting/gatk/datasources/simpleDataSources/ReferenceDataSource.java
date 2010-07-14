@@ -30,11 +30,9 @@ import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.FastaSequenceIndex;
+import org.broadinstitute.sting.utils.file.FSLockWithShared;
 
 import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 
 /**
  * Loads reference data from fasta file
@@ -52,38 +50,34 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
      */
     public ReferenceDataSource(File fastaFile) {
         File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
-        File dictFile = new File(fastaFile.getAbsolutePath().replace(".fasta", ".dict"));
+        File dictFile;
+        if (fastaFile.getAbsolutePath().endsWith("fa")) {
+            dictFile = new File(fastaFile.getAbsolutePath().replace(".fa", ".dict"));
+        }
+        else
+         dictFile = new File(fastaFile.getAbsolutePath().replace(".fasta", ".dict"));
 
         /*
          if index file does not exist, create it manually
           */
         if (!indexFile.exists()) {
             logger.info(String.format("Index file %s does not exist. Trying to create it now.", indexFile.getAbsolutePath()));
-            FileChannel indexChannel;
-            FileLock indexLock;
+            FSLockWithShared indexLock = new FSLockWithShared(indexFile);
             try {
                 // get exclusive lock
-                indexChannel = new RandomAccessFile(indexFile, "rw").getChannel();
-                if ((indexLock = indexChannel.tryLock(0, Long.MAX_VALUE, false)) == null)
+                if (!indexLock.exclusiveLock())
                     throw new StingException("Index file could not be written because a lock could not be obtained." +
                             "If you are running multiple instances of GATK, another process is probably creating this " +
                             "file now. Please wait until it is finished and try again.");
                 FastaSequenceIndexBuilder faiBuilder = new FastaSequenceIndexBuilder(fastaFile, this);
                 FastaSequenceIndex sequenceIndex = faiBuilder.createIndex();
                 FastaSequenceIndexBuilder.saveAsFaiFile(sequenceIndex, indexFile);
-                // unlock
-                try {
-                    if (indexLock != null)
-                        indexLock.release();
-                    if (indexChannel != null)
-                        indexChannel.close();
-                }
-                catch (Exception e) {
-                    throw new StingException("An error occurred while unlocking file:" + indexFile.getAbsolutePath(), e);
-                }
             }
             catch (Exception e) {
                 throw new StingException("Index file does not exist and could not be created. See error below.", e);
+            }
+            finally {
+                indexLock.unlock();
             }
         }
 
@@ -94,35 +88,40 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
         * This has been filed in trac as (PIC-370) Want programmatic interface to CreateSequenceDictionary
         */
         if (!dictFile.exists()) {
-            logger.info(String.format("Index file %s does not exist. Trying to create it now.", indexFile.getAbsolutePath()));
-            FileChannel dictChannel;
-            FileLock dictLock;
-            try {
-                // get exclusive lock
-                dictChannel = new RandomAccessFile(indexFile, "rw").getChannel();
-                if ((dictLock = dictChannel.tryLock(0, Long.MAX_VALUE, false)) == null)
+            logger.info(String.format("Dict file %s does not exist. Trying to create it now.", dictFile.getAbsolutePath()));
 
+            /*
+             * Please note another hack here: we have to create a temporary file b/c CreateSequenceDictionary cannot
+             * create a dictionary file if that file is locked.
+             */
+
+            // get read lock on dict file so nobody else can read it
+            FSLockWithShared dictLock = new FSLockWithShared(dictFile);
+
+            try {
+                // get shared lock on dict file so nobody else can start creating it
+                if (!dictLock.exclusiveLock())
                     throw new StingException("Dictionary file could not be written because a lock could not be obtained." +
                             "If you are running multiple instances of GATK, another process is probably creating this " +
                             "file now. Please wait until it is finished and try again.");
 
+                // dict will be written to random temporary file in same directory (see note above)
+                File tempFile = File.createTempFile("dict", null, dictFile.getParentFile());
+                tempFile.deleteOnExit();
+
                 // create dictionary by calling main routine. Temporary fix - see comment above.
                 String args[] = {String.format("r=%s", fastaFile.getAbsolutePath()),
-                        String.format("o=%s", dictFile.getAbsolutePath())};
+                        String.format("o=%s", tempFile.getAbsolutePath())};
                 new CreateSequenceDictionary().instanceMain(args);
-                // unlock
-                try {
-                    if (dictLock != null)
-                        dictLock.release();
-                    if (dictChannel != null)
-                        dictChannel.close();
-                }
-                catch (Exception e) {
-                    throw new StingException("An error occurred while unlocking file:" + indexFile.getAbsolutePath(), e);
-                }
+
+                if (!tempFile.renameTo(dictFile))
+                    throw new StingException("Error transferring temp file to dict file");
             }
             catch (Exception e) {
                 throw new StingException("Dictionary file does not exist and could not be created. See error below.", e);
+            }
+            finally {
+                dictLock.unlock();
             }
         }
 
@@ -133,46 +132,25 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
          * but is incomplete). To avoid this, obtain shared locks on both files before creating IndexedFastaSequenceFile.
          */
 
-        FileChannel dictChannel;
-        FileChannel indexChannel;
-        FileLock dictLock;
-        FileLock indexLock;
+        FSLockWithShared dictLock = new FSLockWithShared(dictFile);
+        FSLockWithShared indexLock = new FSLockWithShared(indexFile);
         try {
-            // set up dictionary and index locks
-            // channel is read only and lock is shared (third argument is true) 
-            dictChannel = new RandomAccessFile(dictFile, "r").getChannel();
-            if ((dictLock = dictChannel.tryLock(0, Long.MAX_VALUE, true)) == null) {
+            if (!dictLock.sharedLock()) {
                 throw new StingException("Could not open dictionary file because a lock could not be obtained.");
             }
-            indexChannel = new RandomAccessFile(indexFile, "r").getChannel();
-            if ((indexLock = indexChannel.tryLock(0, Long.MAX_VALUE, true)) == null) {
+            if (!indexLock.sharedLock()) {
                 throw new StingException("Could not open dictionary file because a lock could not be obtained.");
             }
 
             index = new IndexedFastaSequenceFile(fastaFile);
 
-            // unlock/close
-            try {
-                if (dictLock != null)
-                    dictLock.release();
-                if (dictChannel != null)
-                    dictChannel.close();
-            }
-            catch (Exception e) {
-                throw new StingException("An error occurred while unlocking file:" + dictFile.getAbsolutePath(), e);
-            }
-            try {
-                if (indexLock != null)
-                    indexLock.release();
-                if (indexChannel != null)
-                    indexChannel.close();
-            }
-            catch (Exception e) {
-                throw new StingException("An error occurred while unlocking file:" + indexFile.getAbsolutePath(), e);
-            }
         }
         catch (Exception e) {
-            throw new StingException(String.format("Error reading fasta file %s. See stack trace below.", fastaFile.getAbsolutePath()), e);
+            throw new StingException(String.format("Error reading fasta file %s.", fastaFile.getAbsolutePath()), e);
+        }
+        finally {
+            dictLock.unlock();
+            indexLock.unlock();
         }
     }
 
