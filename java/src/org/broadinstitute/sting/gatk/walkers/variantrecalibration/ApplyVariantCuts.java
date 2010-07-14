@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -73,7 +72,6 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     // Private Member Variables
     /////////////////////////////
     private VCFWriter vcfWriter;
-    private final ArrayList<String> ALLOWED_FORMAT_FIELDS = new ArrayList<String>();
     final ExpandingArrayList<Double> qCuts = new ExpandingArrayList<Double>();
     final ExpandingArrayList<String> filterName = new ExpandingArrayList<String>();
 
@@ -100,11 +98,6 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         } catch( FileNotFoundException e ) {
             throw new StingException("Can not find input file: " + TRANCHE_FILENAME);
         }
-
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_KEY); // copied from VariantsToVCF
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_QUALITY_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.DEPTH_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -145,29 +138,31 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
             return 1;
         }
 
-        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
+        for( VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
             if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
-                final VCFRecord vcf = VariantContextAdaptors.toVCF(vc, ref.getBase(), ALLOWED_FORMAT_FIELDS, false, false);
+                String filterString = null;
                 if( !vc.isFiltered() ) {
                     final double qual = vc.getPhredScaledQual();
-                    boolean setFilter = false;
                     for( int tranche = qCuts.size() - 1; tranche >= 0; tranche-- ) {
                         if( qual >= qCuts.get(tranche) ) {
                             if(tranche == qCuts.size() - 1) {
-                                vcf.setFilterString(VCFConstants.PASSES_FILTERS_v3);
-                                setFilter = true;
+                                filterString = VCFConstants.PASSES_FILTERS_v4;
                             } else {
-                                vcf.setFilterString(filterName.get(tranche));
-                                setFilter = true;
+                                filterString = filterName.get(tranche);
                             }
                             break;
                         }
                     }
-                    if( !setFilter ) {
-                        vcf.setFilterString(filterName.get(0)+"+");
+                    if( filterString == null )
+                        filterString = filterName.get(0)+"+";
+
+                    if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                        Set<String> filters = new HashSet<String>();
+                        filters.add(filterString);
+                        vc = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), filters, vc.getAttributes());
                     }
                 }
-                vcfWriter.addRecord( vcf );
+                vcfWriter.add( vc, new byte[]{ref.getBase()} );
             }
 
         }
@@ -189,7 +184,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         return 1;
     }
 
-    public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
+    public void onTraversalDone( Integer reduceSum ) {
         vcfWriter.close();
     }
 }

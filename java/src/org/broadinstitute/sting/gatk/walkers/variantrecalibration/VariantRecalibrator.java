@@ -32,7 +32,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -97,7 +96,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private VariantGaussianMixtureModel theModel = null;
     private VCFWriter vcfWriter;
     private Set<String> ignoreInputFilterSet = null;
-    private final ArrayList<String> ALLOWED_FORMAT_FIELDS = new ArrayList<String>();
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -122,11 +120,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             default:
                 throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
-
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_KEY); // copied from VariantsToVCF
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_QUALITY_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.DEPTH_KEY);
-        ALLOWED_FORMAT_FIELDS.add(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -180,7 +173,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
             if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
-                final VCFRecord vcf = VariantContextAdaptors.toVCF(vc, ref.getBase(), ALLOWED_FORMAT_FIELDS, false, false);
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
@@ -196,13 +188,16 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     variantDatum.qual = QUALITY_SCALE_FACTOR * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) ); // BUGBUG: don't have a normalizing constant, so need to scale up qual scores arbitrarily
                     mapList.add( variantDatum );
 
-                    vcf.addInfoField("OQ", String.format("%.2f", ((Double)vc.getPhredScaledQual())));
-                    vcf.setQual( variantDatum.qual );
-                    vcf.setFilterString(VCFConstants.PASSES_FILTERS_v3);
-                    vcfWriter.addRecord( vcf );
+                    Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+                    attrs.put("OQ", String.format("%.2f", ((Double)vc.getPhredScaledQual())));
+                    Set<String> filters = new HashSet<String>();
+                    filters.add(VCFConstants.PASSES_FILTERS_v4);
+                    VariantContext newVC = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.getGenotypes(), variantDatum.qual / 10.0, filters, attrs);
+
+                    vcfWriter.add( newVC, new byte[]{ref.getBase()} );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
-                    vcfWriter.addRecord( vcf ); 
+                    vcfWriter.add( vc, new byte[]{ref.getBase()} ); 
                 }
             }
 

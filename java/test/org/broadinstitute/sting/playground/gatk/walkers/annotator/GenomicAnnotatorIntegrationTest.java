@@ -26,7 +26,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
         */
 
 
-        String[] md5WithDashSArg = {"53c5d83d0d024482e0e69f9087df0a13"};
+        String[] md5WithDashSArg = {"454609ac18f149b0175ad99b0ea2d09e"};
         WalkerTestSpec specWithSArg = new WalkerTestSpec(
                 "-T GenomicAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta " +
                 "-B variant,vcf,/humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf " +

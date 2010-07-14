@@ -65,7 +65,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     private List<String> priority = null;
 
     public void initialize() {
-        vcfWriter = new VCFWriter(out, true);
+        vcfWriter = new VCFWriter(out);
         validateAnnotateUnionArguments();
 
         Map<String, VCFHeader> vcfRods = SampleUtils.getVCFHeadersFromRods(getToolkit(), null);

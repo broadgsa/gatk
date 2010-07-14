@@ -24,10 +24,10 @@ public class VCFWriter {
     private VCFHeader mHeader = null;
 
     // the print stream we're writting to
-    BufferedWriter mWriter;
+    private BufferedWriter mWriter;
 
-    private boolean writingVCF40Format;
-    private String PASSES_FILTERS_STRING = null;
+    // were filters applied?
+    private boolean filtersWereAppliedToContext = false;
 
     // our genotype sample fields
     private static final List<VCFGenotypeRecord> mGenotypeRecords = new ArrayList<VCFGenotypeRecord>();
@@ -44,13 +44,6 @@ public class VCFWriter {
      * @param location the file location to write to
      */
     public VCFWriter(File location) {
-        this(location, false);
-    }
-
-    public VCFWriter(File location, boolean useVCF4Format) {
-        this.writingVCF40Format = useVCF4Format;
-        this.PASSES_FILTERS_STRING = useVCF4Format ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.PASSES_FILTERS_v3;
-
         FileOutputStream output;
         try {
             output = new FileOutputStream(location);
@@ -68,12 +61,6 @@ public class VCFWriter {
      * @param output   the file location to write to
      */
     public VCFWriter(OutputStream output) {
-        // use VCF3.3 by default
-        this(output, false);
-    }
-    public VCFWriter(OutputStream output, boolean useVCF4Format) {
-        this.writingVCF40Format = useVCF4Format;
-        this.PASSES_FILTERS_STRING = useVCF4Format ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.PASSES_FILTERS_v3;
         mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 
@@ -82,11 +69,7 @@ public class VCFWriter {
 
         try {
             // the file format field needs to be written first
-            if (writingVCF40Format) {
-                mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_0.getFormatString() + "=" + VCFHeaderVersion.VCF4_0.getVersionString() + "\n");
-            } else {
-                mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF3_3.getFormatString() + "=" + VCFHeaderVersion.VCF3_3.getVersionString() + "\n");
-            }
+            mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_0.getFormatString() + "=" + VCFHeaderVersion.VCF4_0.getVersionString() + "\n");
 
             for ( VCFHeaderLine line : header.getMetaData() ) {
                     if ( line.getKey().equals(VCFHeaderVersion.VCF4_0.getFormatString()) ||
@@ -107,9 +90,11 @@ public class VCFWriter {
                         typeUsedForInfoFields.put(key,a.getType());
                         int num = a.getCount();
                         numberUsedForInfoFields.put(key, num);
+                    } else if (line.getClass() == VCFFilterHeaderLine.class) {
+                        filtersWereAppliedToContext = true;
                     }
 
-                mWriter.write(VCFHeader.METADATA_INDICATOR + line + "\n");
+                mWriter.write(VCFHeader.METADATA_INDICATOR + line.toString() + "\n");
             }
 
             // write out the column line
@@ -147,9 +132,6 @@ public class VCFWriter {
     public void add(VariantContext vc, byte[] refBases) {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
-
-        if (!writingVCF40Format)
-            throw new IllegalStateException("VCFWriter can only support add() method with a variant context if writing VCF4.0. Use VCFWriter(output, true) when constructing object");
 
         String vcfString = toStringEncoding(vc, mHeader, refBases);
         try {
@@ -208,10 +190,8 @@ public class VCFWriter {
 
         double qual = vc.hasNegLog10PError() ? vc.getPhredScaledQual() : -1;
         // TODO- clean up these flags and associated code
-        boolean filtersWereAppliedToContext = true;
-        List<String> allowedGenotypeAttributeKeys = null;
 
-        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? PASSES_FILTERS_STRING : VCFConstants.UNFILTERED);
+        String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
 
         Map<Allele, VCFGenotypeEncoding> alleleMap = new HashMap<Allele, VCFGenotypeEncoding>();
         alleleMap.put(Allele.NO_CALL, new VCFGenotypeEncoding(VCFConstants.EMPTY_ALLELE)); // convenience for lookup
@@ -309,8 +289,7 @@ public class VCFWriter {
         if ( vc.hasGenotypes() ) {
             vcfGenotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
             for ( String key : calcVCFGenotypeKeys(vc) ) {
-                if ( allowedGenotypeAttributeKeys == null || allowedGenotypeAttributeKeys.contains(key) )
-                    vcfGenotypeAttributeKeys.add(key);
+                vcfGenotypeAttributeKeys.add(key);
             }
         } else if ( header.hasGenotypingData() ) {
             // this needs to be done in case all samples are no-calls
@@ -341,7 +320,7 @@ public class VCFWriter {
                     if ( MathUtils.compareDoubles(g.getNegLog10PError(), Genotype.NO_NEG_LOG_10PERROR) == 0 )
                         val = VCFConstants.MISSING_VALUE_v4;
                     else {
-                        val = Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL);
+                        val = String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
                     }
 
                 } else if ( key.equals(VCFConstants.DEPTH_KEY) && val == null ) {
@@ -350,7 +329,7 @@ public class VCFWriter {
                         val = pileup.size();
                 } else if ( key.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                     // VCF 4.0 key for no filters is "."
-                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : PASSES_FILTERS_STRING;
+                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : VCFConstants.PASSES_FILTERS_v4;
                 }
 
 
@@ -560,18 +539,16 @@ public class VCFWriter {
 
             if ( entry.getValue() != null && !entry.getValue().equals("") ) {
                 int numVals = 1;
-                if (this.writingVCF40Format) {
-                    String key = entry.getKey();
-                    if (numberUsedForInfoFields.containsKey(key)) {
-                        numVals = numberUsedForInfoFields.get(key);
-                    }
-
-                    // take care of unbounded encoding
-                    // TODO - workaround for "-1" in original INFO header structure
-                    if (numVals == VCFInfoHeaderLine.UNBOUNDED || numVals < 0)
-                        numVals = 1;
-
+                String key = entry.getKey();
+                if (numberUsedForInfoFields.containsKey(key)) {
+                    numVals = numberUsedForInfoFields.get(key);
                 }
+
+                // take care of unbounded encoding
+                // TODO - workaround for "-1" in original INFO header structure
+                if (numVals == VCFInfoHeaderLine.UNBOUNDED || numVals < 0)
+                    numVals = 1;
+
                 if (numVals > 0) {
                     info.append("=");
                     info.append(entry.getValue());

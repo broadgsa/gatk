@@ -88,16 +88,17 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
 
         // Open output file specified by output VCF ROD
-        vcfWriter = new VCFWriter(new File(OUTPUT_FILE), true);
+        vcfWriter = new VCFWriter(new File(OUTPUT_FILE));
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
 
-            if (rod.getRecordType().equals(VCFRecord.class) && rod.getName().equalsIgnoreCase(COMP_ROD_NAME)) {
+            if (rod.getName().equals(COMP_ROD_NAME)) {
                 hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Hapmap at this site"));
                 hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Hapmap at this site"));
                 hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Hapmap at this site"));
+                break;
             }
 
         }

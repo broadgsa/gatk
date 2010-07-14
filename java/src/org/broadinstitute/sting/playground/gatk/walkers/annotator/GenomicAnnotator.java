@@ -238,7 +238,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new VCFWriter(VCF_OUT, true);
+        vcfWriter = new VCFWriter(VCF_OUT);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }

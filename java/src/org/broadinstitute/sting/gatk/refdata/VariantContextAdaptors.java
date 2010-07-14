@@ -251,10 +251,10 @@ public class VariantContextAdaptors {
     }
 
     public static VCFRecord toVCF(VariantContext vc, byte vcfRefBase) {
-        return toVCF(vc, vcfRefBase, null, true, false);
-    }
+        List<String> allowedGenotypeAttributeKeys = null;
+        boolean filtersWereAppliedToContext = true;
+        boolean filtersWereAppliedToGenotypes = false;
 
-    public static VCFRecord toVCF(VariantContext vc, byte vcfRefBase, List<String> allowedGenotypeAttributeKeys, boolean filtersWereAppliedToContext, boolean filtersWereAppliedToGenotypes) {
         // deal with the reference
         String referenceBases = new String(vc.getReference().getBases());
 

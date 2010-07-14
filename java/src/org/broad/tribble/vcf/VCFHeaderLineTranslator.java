@@ -1,7 +1,5 @@
 package org.broad.tribble.vcf;
 
-import org.broadinstitute.sting.utils.StingException;
-
 import java.util.*;
 
 /**
@@ -19,15 +17,10 @@ public class VCFHeaderLineTranslator {
     public static Map<String,String> parseLine(VCFHeaderVersion version, String valueLine, List<String> expectedTagOrder) {
         return mapping.get(version).parseLine(valueLine,expectedTagOrder);
     }
-
-    public static String toValue(VCFHeaderVersion version, Map<String,Object> keyValues) {
-        return mapping.get(version).toValue(keyValues);
-    }
 }
 
 
 interface VCFLineParser {
-    public String toValue(Map<String,? extends Object> keyValues);
     public Map<String,String> parseLine(String valueLine, List<String> expectedTagOrder);
 }
 
@@ -37,31 +30,6 @@ interface VCFLineParser {
  */
 class VCF4Parser implements VCFLineParser {
     Set<String> bracketed = new HashSet<String>();
-
-    /**
-     * create a string of a mapping pair for the target VCF version
-     * @param keyValues a mapping of the key->value pairs to output
-     * @return a string, correctly formatted
-     */
-    public String toValue(Map<String, ? extends Object> keyValues) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("<");
-        boolean start = true;
-        for (Map.Entry<String,?> entry : keyValues.entrySet()) {
-            if (start) start = false;
-            else builder.append(",");
-
-            if ( entry.getValue() == null ) throw new StingException("Header problem: unbound value at " + entry + " from " + keyValues);
-
-            builder.append(entry.getKey());
-            builder.append("=");
-            builder.append(entry.getValue().toString().contains(",") ||
-                           entry.getValue().toString().contains(" ") ||
-                           entry.getKey().equals("Description") ? "\""+ entry.getValue() + "\"" : entry.getValue());
-        }
-        builder.append(">");
-        return builder.toString();
-    }
 
     /**
      * parse a VCF4 line
@@ -110,26 +78,12 @@ class VCF4Parser implements VCFLineParser {
 
 class VCF3Parser implements VCFLineParser {
 
-    public String toValue(Map<String, ? extends Object> keyValues) {
-        StringBuilder builder = new StringBuilder();
-        boolean start = true;
-        for (Map.Entry<String,?> entry : keyValues.entrySet()) {
-            if (start) start = false;
-            else builder.append(",");
-            builder.append(entry.getValue().toString().contains(",") || entry.getValue().toString().contains(" ")? "\""+  entry.getValue() + "\"" : entry.getValue());
-        }
-        return builder.toString();
-    }
-
     public Map<String, String> parseLine(String valueLine, List<String> expectedTagOrder) {
         // our return map
         Map<String, String> ret = new LinkedHashMap<String, String>();
 
         // a builder to store up characters as we go
         StringBuilder builder = new StringBuilder();
-
-        // store the key when we're parsing out the values
-        String key = "";
 
         // where are we in the stream of characters?
         int index = 0;

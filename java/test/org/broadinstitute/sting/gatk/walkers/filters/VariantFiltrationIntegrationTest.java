@@ -16,7 +16,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testNoAction() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("d1aec615dba4d91991f4c67cadf3d56a"));
+                Arrays.asList("e0543c72ed36f4c0c43d791ad44aa96a"));
         executeTest("test no action", spec);
     }
 

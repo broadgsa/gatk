@@ -27,13 +27,11 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
@@ -139,10 +137,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
-        hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new VCFWriter(out, true);
+        vcfWriter = new VCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 
@@ -185,13 +182,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        List<Object> rods = tracker.getReferenceMetaData("variant");
-        // ignore places where we don't have a variant
-        if ( rods.size() == 0 )
-            return 0;
-
-        Object variant = rods.get(0);
-        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant, ref);
+        VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), true);
         if ( vc == null )
             return 0;
 
@@ -210,17 +201,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         }
 
         if ( ! indelsOnly ) {
-            if ( variant instanceof VCFRecord ) {
-                for(VariantContext annotatedVC : annotatedVCs ) {
-                    vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
-                }
-            }
+            for ( VariantContext annotatedVC : annotatedVCs )
+                vcfWriter.add(annotatedVC, new byte[]{ref.getBase()});
         } else {
             // check to see if the buffered context is different (in location) this context
             if ( indelBufferContext != null && ! indelBufferContext.iterator().next().getLocation().equals(annotatedVCs.iterator().next().getLocation()) ) {
-                for(VariantContext annotatedVC : indelBufferContext ) {
-                    vcfWriter.addRecord(VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()));
-                }
+                for ( VariantContext annotatedVC : indelBufferContext )
+                    vcfWriter.add(annotatedVC, new byte[]{ref.getBase()});
                 indelBufferContext = annotatedVCs;
             } else {
                 indelBufferContext = annotatedVCs;

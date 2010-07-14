@@ -62,9 +62,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
 
     // line numerical values are allowed to be unbounded (or unknown), which is
     // marked with a dot (.)
-    public static int UNBOUNDED = -1;                       // the value we store internally for unbounded types
-    public static String UNBOUNDED_ENCODING_VCF4 = ".";     // the encoding for vcf 4
-    public static String UNBOUNDED_ENCODING_VCF3 = "-1";    // the encoding for vcf 3
+    public static int UNBOUNDED = -1;    // the value we store internally for unbounded types
 
     /**
      * create a VCF format header line
@@ -104,8 +102,8 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
         Map<String,String> mapping = VCFHeaderLineTranslator.parseLine(version,line, Arrays.asList("ID","Number","Type","Description"));
         name = mapping.get("ID");
         count = version == VCFHeaderVersion.VCF4_0 ?
-                        mapping.get("Number").equals(UNBOUNDED_ENCODING_VCF4) ? UNBOUNDED : Integer.valueOf(mapping.get("Number")) :
-                        mapping.get("Number").equals(UNBOUNDED_ENCODING_VCF3) ? UNBOUNDED : Integer.valueOf(mapping.get("Number"));
+                        mapping.get("Number").equals(VCFConstants.UNBOUNDED_ENCODING_v4) ? UNBOUNDED : Integer.valueOf(mapping.get("Number")) :
+                        mapping.get("Number").equals(VCFConstants.UNBOUNDED_ENCODING_v3) ? UNBOUNDED : Integer.valueOf(mapping.get("Number"));
         type = VCFHeaderLineType.valueOf(mapping.get("Type"));
         if (type == VCFHeaderLineType.Flag && !allowFlagValues())
             throw new IllegalArgumentException("Flag is an unsupported type for this kind of field");
@@ -117,19 +115,13 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
      * make a string representation of this header line
      * @return a string representation
      */
-    protected String makeStringRep() {
-        if (mVersion == VCFHeaderVersion.VCF3_3 || mVersion == VCFHeaderVersion.VCF3_2)
-            return String.format(lineType.toString()+"=%s,%d,%s,\"%s\"", name, count, type.toString(), description);
-        else if (mVersion == VCFHeaderVersion.VCF4_0) {
-            Map<String,Object> map = new LinkedHashMap<String,Object>();
-            map.put("ID", name);
-            // TODO: this next line should change when we have more than two used encoding schemes
-            map.put("Number", count == UNBOUNDED ? (mVersion == VCFHeaderVersion.VCF4_0 ? UNBOUNDED_ENCODING_VCF4 : UNBOUNDED_ENCODING_VCF3) : count);
-            map.put("Type", type);
-            map.put("Description", description);
-            return lineType.toString() + "=" + VCFHeaderLineTranslator.toValue(this.mVersion,map);
-        }
-        else throw new RuntimeException("Unsupported VCFVersion " + mVersion);
+    protected String toStringEncoding() {
+        Map<String,Object> map = new LinkedHashMap<String,Object>();
+        map.put("ID", name);
+        map.put("Number", count == UNBOUNDED ? VCFConstants.UNBOUNDED_ENCODING_v4 : count);
+        map.put("Type", type);
+        map.put("Description", description);
+        return lineType.toString() + "=" + VCFHeaderLine.toStringEncoding(map);
     }
 
     /**

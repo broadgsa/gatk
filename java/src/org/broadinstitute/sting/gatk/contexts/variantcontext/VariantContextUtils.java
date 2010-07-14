@@ -429,11 +429,44 @@ public class VariantContextUtils {
         return uniqify ? sampleName + "." + trackName : sampleName;
     }
 
-    public static VariantContext modifyAttributes(VariantContext vc, Map<String, Object> attributes) {
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
+    public static VariantContext modifyGenotypes(VariantContext vc, Map<String, Genotype> genotypes) {
+        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
     }
 
     public static VariantContext modifyLocation(VariantContext vc, GenomeLoc loc) {
         return new VariantContext(vc.getName(), loc, vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
+    }
+
+    public static VariantContext modifyFilters(VariantContext vc, Set<String> filters) {
+        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
+    }
+
+    public static VariantContext modifyAttributes(VariantContext vc, Map<String, Object> attributes) {
+        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
+    }
+
+    public static Genotype modifyName(Genotype g, String name) {
+        return new Genotype(name, g.getAlleles(), g.getNegLog10PError(), g.getFilters(), g.getAttributes(), g.genotypesArePhased());
+    }
+
+    public static Genotype modifyAttributes(Genotype g, Map<String, Object> attributes) {
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(), attributes, g.genotypesArePhased());
+    }
+
+    public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {
+        if ( allowedAttributes == null )
+            return vc;
+
+        Map<String, Genotype> newGenotypes = new HashMap<String, Genotype>(vc.getNSamples());
+        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+            Map<String, Object> attrs = new HashMap<String, Object>();
+            for ( Map.Entry<String, Object> attr : genotype.getValue().getAttributes().entrySet() ) {
+                if ( allowedAttributes.contains(attr.getKey()) )
+                    attrs.put(attr.getKey(), attr.getValue());
+            }
+            newGenotypes.put(genotype.getKey(), VariantContextUtils.modifyAttributes(genotype.getValue(), attrs));
+        }
+
+        return VariantContextUtils.modifyGenotypes(vc, newGenotypes);
     }
 }

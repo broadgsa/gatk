@@ -59,7 +59,7 @@ public class VariantSubset extends RodWalker<Integer, Integer> {
         metaData.add(new VCFHeaderLine("source", "VariantsToVCF"));
         metaData.add(new VCFHeaderLine("reference", this.getToolkit().getArguments().referenceFile.getAbsolutePath()));
 
-        writer = new VCFWriter(out, true);
+        writer = new VCFWriter(out);
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
 
         final VCFHeader vcfHeader = new VCFHeader(metaData, samples);

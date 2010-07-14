@@ -40,14 +40,14 @@ public class VCFFilterHeaderLine extends VCFHeaderLine implements VCFNamedHeader
         description = mapping.get("Description");
     }
 
-    protected String makeStringRep() {
+    protected String toStringEncoding() {
         if (mVersion == VCFHeaderVersion.VCF3_3 || mVersion == VCFHeaderVersion.VCF3_2)
             return String.format("FILTER=%s,\"%s\"", name, description);
         else if (mVersion == VCFHeaderVersion.VCF4_0) {
             Map<String,Object> map = new LinkedHashMap<String,Object>();
             map.put("ID", name);
             map.put("Description", description);
-            return "FILTER=" + VCFHeaderLineTranslator.toValue(this.mVersion,map);
+            return "FILTER=" + VCFHeaderLine.toStringEncoding(map);
         }
         else throw new RuntimeException("Unsupported VCFVersion " + mVersion);
     }

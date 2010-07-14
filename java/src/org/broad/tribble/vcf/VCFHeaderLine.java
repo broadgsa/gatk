@@ -1,5 +1,33 @@
+/*
+ * Copyright (c) 2010.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broad.tribble.vcf;
 
+import org.broadinstitute.sting.utils.StingException;
+
+import java.util.Map;
 
 
 /**
@@ -80,11 +108,11 @@ public class VCFHeaderLine implements Comparable {
 
     public String toString() {
         if ( stringRep == null )
-            stringRep = makeStringRep();
+            stringRep = toStringEncoding();
         return stringRep;
     }
 
-    protected String makeStringRep() {
+    protected String toStringEncoding() {
         return mKey + "=" + mValue;
     }
 
@@ -105,5 +133,30 @@ public class VCFHeaderLine implements Comparable {
     public void setVersion(VCFHeaderVersion version) {
         if (!version.equals(this.mVersion)) this.stringRep = null;
         this.mVersion = version;
+    }
+
+    /**
+     * create a string of a mapping pair for the target VCF version
+     * @param keyValues a mapping of the key->value pairs to output
+     * @return a string, correctly formatted
+     */
+    public static String toStringEncoding(Map<String, ? extends Object> keyValues) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("<");
+        boolean start = true;
+        for (Map.Entry<String,?> entry : keyValues.entrySet()) {
+            if (start) start = false;
+            else builder.append(",");
+
+            if ( entry.getValue() == null ) throw new StingException("Header problem: unbound value at " + entry + " from " + keyValues);
+
+            builder.append(entry.getKey());
+            builder.append("=");
+            builder.append(entry.getValue().toString().contains(",") ||
+                           entry.getValue().toString().contains(" ") ||
+                           entry.getKey().equals("Description") ? "\""+ entry.getValue() + "\"" : entry.getValue());
+        }
+        builder.append(">");
+        return builder.toString();
     }
 }

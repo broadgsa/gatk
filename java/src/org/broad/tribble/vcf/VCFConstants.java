@@ -71,6 +71,8 @@ public final class VCFConstants {
     public static final String MISSING_GENOTYPE_QUALITY_v3 = "-1";
     public static final String MISSING_HAPLOTYPE_QUALITY_v3 = "-1";
     public static final String MISSING_DEPTH_v3 = "-1";
+    public static final String UNBOUNDED_ENCODING_v4 = ".";
+    public static final String UNBOUNDED_ENCODING_v3 = "-1";
     public static final String EMPTY_ALLELE = ".";
     public static final String EMPTY_GENOTYPE = "./.";
     public static final double MAX_GENOTYPE_QUAL = 99.0;

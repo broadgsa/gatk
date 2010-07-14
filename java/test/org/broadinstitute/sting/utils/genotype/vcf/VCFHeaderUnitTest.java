@@ -31,20 +31,6 @@ public class VCFHeaderUnitTest extends BaseTest {
     }
 
     @Test
-    public void testVCF4ToVCF3() {
-        VCF4Codec codec = createHeader(VCF4headerStrings);
-        codec.getHeader(VCFHeader.class).setVersion(VCFHeaderVersion.VCF3_3);
-        checkMD5ofHeaderFile(codec, "5873e029bd50d6836b86438bccd15456");
-    }
-
-    @Test
-    public void testVCF4ToVCF3Alternate() {
-        VCF4Codec codec = createHeader(VCF4headerStrings_with_negitiveOne);
-        codec.getHeader(VCFHeader.class).setVersion(VCFHeaderVersion.VCF3_3);
-        checkMD5ofHeaderFile(codec, "e750fd0919704d10813dfe57ac1a0df3");
-    }
-
-    @Test
     public void testVCF4ToVCF4() {
         VCF4Codec codec = createHeader(VCF4headerStrings);
         checkMD5ofHeaderFile(codec, "4648aa1169257e0a8a9d30131adb5f35");

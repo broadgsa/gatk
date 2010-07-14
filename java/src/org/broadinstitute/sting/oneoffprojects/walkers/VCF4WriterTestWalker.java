@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.util.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
@@ -9,11 +8,14 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.features.vcf4.VCF4Codec;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,19 +46,6 @@ import java.util.*;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-
-import java.util.Iterator;
 
 /**
  * Prints out all of the RODs in the input data set. Data is rendered using the toString() method
@@ -92,7 +81,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
 
 
-        vcfWriter = new VCFWriter(new File(OUTPUT_FILE), true);
+        vcfWriter = new VCFWriter(new File(OUTPUT_FILE));
         VCFHeader header = null;
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
@@ -120,7 +109,8 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
             }
         }
 
-        header.setVersion(VCFHeaderVersion.VCF4_0);
+        if ( header != null )
+            header.setVersion(VCFHeaderVersion.VCF4_0);
 
         vcfWriter.writeHeader(header);
 

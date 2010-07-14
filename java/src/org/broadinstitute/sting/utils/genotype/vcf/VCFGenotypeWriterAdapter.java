@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -31,7 +31,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     private VALIDATION_STRINGENCY validationStringency = VALIDATION_STRINGENCY.STRICT;
 
     // allowed genotype format strings
-    private List<String> allowedGenotypeFormatStrings = null;
+    private Set<String> allowedGenotypeFormatStrings = null;
 
     public VCFGenotypeWriterAdapter(File writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output file must not be null");
@@ -62,7 +62,7 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
                 hInfo.add(field);
                 if ( field instanceof VCFFormatHeaderLine) {
                     if ( allowedGenotypeFormatStrings == null )
-                        allowedGenotypeFormatStrings = new ArrayList<String>();
+                        allowedGenotypeFormatStrings = new HashSet<String>();
                     allowedGenotypeFormatStrings.add(((VCFFormatHeaderLine)field).getName());
                 }
             }
@@ -89,9 +89,8 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
 
-        VCFRecord call = VariantContextAdaptors.toVCF(vc, (byte)refAllele.charAt(0), allowedGenotypeFormatStrings, false, false);
-
-        mWriter.addRecord(call, validationStringency);
+        vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
+        mWriter.add(vc, new byte[]{(byte)refAllele.charAt(0)});
     }
 
     public void addRecord(VCFRecord vcfRecord) {

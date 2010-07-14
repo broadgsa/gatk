@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
@@ -47,7 +48,7 @@ import java.util.*;
  */
 @Reference(window=@Window(start=0,stop=40))
 @Requires(value={},referenceMetaData=@RMD(name="sequenom",type= ReferenceOrderedDatum.class))
-public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
+public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, Byte>,Integer> {
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid [default:20]", required=false)
     protected double maxHardy = 20.0;
     @Argument(fullName="maxNoCall", doc="Maximum no-call rate (as a fraction) to consider an assay valid [default:0.05]", required=false)
@@ -63,7 +64,7 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
     private TreeSet<String> sampleNames = null;
 
     // vcf records
-    private ArrayList<VCFRecord> records = new ArrayList<VCFRecord>();
+    private ArrayList<Pair<VariantContext, Byte>> records = new ArrayList<Pair<VariantContext, Byte>>();
 
     // statistics
     private int numRecords = 0;
@@ -85,7 +86,7 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         return numberOfVariantsProcessed;
     }
 
-    public VCFRecord map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public Pair<VariantContext, Byte> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return null;
 
@@ -105,7 +106,7 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         return addVariantInformationToCall(ref, vc, rod);
     }
 
-    public Integer reduce(VCFRecord call, Integer numVariants) {
+    public Integer reduce(Pair<VariantContext, Byte> call, Integer numVariants) {
         if ( call != null ) {
             numVariants++;
             records.add(call);
@@ -156,16 +157,13 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         VCFHeader header = new VCFHeader(hInfo, sampleNames);
         vcfWriter.writeHeader(header);
 
-        for ( VCFRecord record : records )
-            vcfWriter.addRecord(record);
+        for ( Pair<VariantContext, Byte> record : records )
+            vcfWriter.add(record.first, new byte[]{record.second});
         vcfWriter.close();
     }
 
 
-    private VCFRecord addVariantInformationToCall(ReferenceContext ref, VariantContext vContext, Object rod) {
-
-        VCFRecord record = VariantContextAdaptors.toVCF(vContext, ref.getBase());
-        record.setGenotypeFormatString("GT");
+    private Pair<VariantContext, Byte> addVariantInformationToCall(ReferenceContext ref, VariantContext vContext, Object rod) {
 
         // check possible filters
         double hwPvalue = hardyWeinbergCalculation(vContext);
@@ -176,23 +174,25 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
         double homVarProp = (double)vContext.getHomVarCount() / (double)vContext.getNSamples();
 
         boolean isViolation = false;
+        Set<String> filters = new HashSet<String>();
         if ( noCallProp > maxNoCall ) {
-            record.setFilterString("HighNoCallRate");
+            filters.add("HighNoCallRate");
             numNoCallViolations++;
             isViolation = true;
         } else if ( hwScore > maxHardy ) {
-            record.setFilterString("HardyWeinbergViolation");
+            filters.add("HardyWeinbergViolation");
             numHWViolations++;
             isViolation = true;
         } else if ( homVarProp > maxHomNonref) {
-            record.setFilterString("TooManyHomVars");
+            filters.add("TooManyHomVars");
             numHomVarViolations++;
             isViolation = true;
         }
+        vContext = VariantContextUtils.modifyFilters(vContext, filters);
         numRecords++;
 
         // add the info fields
-        HashMap<String, String> infoMap = new HashMap<String,String>(5);
+        HashMap<String, Object> infoMap = new HashMap<String, Object>();
         infoMap.put("NoCallPct", String.format("%.1f", 100.0*noCallProp));
         infoMap.put("HomRefPct", String.format("%.1f", 100.0*homRefProp));
         infoMap.put("HomVarPct", String.format("%.1f", 100.0*homVarProp));
@@ -204,13 +204,14 @@ public class SequenomValidationConverter extends RodWalker<VCFRecord,Integer> {
             numTrueVariants++;
         infoMap.put(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
-        record.addInfoFields(infoMap);
 
         // set the id if it's a plink rod
         if ( rod instanceof PlinkRod )
-            record.setID(((PlinkRod)rod).getVariantName());
+            infoMap.put("ID", ((PlinkRod)rod).getVariantName());
 
-        return record;
+        vContext = VariantContextUtils.modifyAttributes(vContext, infoMap);
+
+        return new Pair<VariantContext, Byte>(vContext, ref.getBase());
     }
 
     private double hardyWeinbergCalculation(VariantContext vc) {

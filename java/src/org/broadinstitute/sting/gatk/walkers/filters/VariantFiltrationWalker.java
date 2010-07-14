@@ -110,7 +110,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             }
         }
 
-        writer = new VCFWriter(out, true);
+        writer = new VCFWriter(out);
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 
