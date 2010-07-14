@@ -28,6 +28,7 @@ import org.apache.commons.jexl2.MapContext;
 //import org.apache.commons.jexl2.JexlHelper;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broad.tribble.vcf.VCFConstants;
 
 import java.util.*;
 
@@ -167,7 +168,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
                 infoMap.put("CHROM", vc.getLocation().getContig());
                 infoMap.put("POS", String.valueOf(vc.getLocation().getStart()));
                 infoMap.put("TYPE", vc.getType().toString());
-                infoMap.put("QUAL", String.valueOf(10 * vc.getNegLog10PError()));
+                infoMap.put("QUAL", String.valueOf(vc.getPhredScaledQual()));
 
                 // add alleles
                 infoMap.put("ALLELES", Utils.join(";", vc.getAlleles()));
@@ -193,10 +194,11 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
 
             // add specific genotype if one is provided
             if ( g != null ) {
-                infoMap.put("GT", g.getGenotypeString());
+                infoMap.put(VCFConstants.GENOTYPE_KEY, g.getGenotypeString());
                 infoMap.put("isHomRef", g.isHomRef() ? "1" : "0");
                 infoMap.put("isHet", g.isHet() ? "1" : "0");
                 infoMap.put("isHomVar", g.isHomVar() ? "1" : "0");
+                infoMap.put(VCFConstants.GENOTYPE_QUALITY_KEY, String.valueOf(g.getPhredScaledQual()));
                 for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() )
                     infoMap.put(e.getKey(), String.valueOf(e.getValue()));
             }
