@@ -61,7 +61,7 @@ public class VCFUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VCFRecord.class) ) {
+            if ( rod.getHeader() instanceof VCFHeader ) {
                 fields.addAll(rod.getHeader(VCFHeader.class).getMetaData());                
             }
         }
@@ -126,7 +126,6 @@ public class VCFUtils {
 
     public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers, Logger logger) throws IllegalStateException {
         HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
-        HashSet<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
 
         // todo -- needs to remove all version headers from sources and add its own VCF version line
         for ( VCFHeader source : headers ) {
