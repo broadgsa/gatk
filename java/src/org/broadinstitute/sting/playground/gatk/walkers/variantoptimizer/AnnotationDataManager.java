@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
-import org.broad.tribble.vcf.VCFRecord;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
@@ -54,7 +52,7 @@ public class AnnotationDataManager {
         INDICATE_MEAN_NUM_VARS = _INDICATE_MEAN_NUM_VARS;
     }
 
-    public void addAnnotations( final VariantContext vc, final byte ref, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
+    public void addAnnotations( final VariantContext vc, final String sampleName, final boolean isInTruthSet, final boolean isTrueVariant ) {
 
         if( sampleName != null ) { // Only process variants that are found in the sample with this sampleName
             if( vc.getGenotype(sampleName).isNoCall() ) { // This variant isn't found in this sample so break out
@@ -62,24 +60,22 @@ public class AnnotationDataManager {
             }
         } // else, process all samples
 
-        VCFRecord variant = VariantContextAdaptors.toVCF(vc, ref);
-
         // Loop over each annotation in the vcf record
-        final Map<String,String> infoField = variant.getInfoValues();
-        infoField.put("QUAL", ((Double)variant.getQual()).toString() ); // add QUAL field to annotations
-        for( final String annotationKey : infoField.keySet() ) {
+        final Map<String,Object> infoField = vc.getAttributes();
+        infoField.put("QUAL", ((Double)vc.getPhredScaledQual()).toString() ); // add QUAL field to annotations
+        for( Map.Entry<String, Object> annotation : infoField.entrySet() ) {
 
             float value;
             try {
-                value = Float.parseFloat( infoField.get( annotationKey ) );
+                value = Float.parseFloat( annotation.getValue().toString() );
             } catch( NumberFormatException e ) {
                 continue; // Skip over annotations that aren't floats, like "DB"
             }
 
-            TreeSet<AnnotationDatum> treeSet = data.get( annotationKey );
+            TreeSet<AnnotationDatum> treeSet = data.get( annotation.getKey() );
             if( treeSet == null ) { // This annotation hasn't been seen before
                 treeSet = new TreeSet<AnnotationDatum>( new AnnotationDatum() ); // AnnotationDatum is a Comparator that orders variants by the value of the Annotation
-                data.put( annotationKey, treeSet );
+                data.put( annotation.getKey(), treeSet );
             }
             AnnotationDatum datum = new AnnotationDatum( value );
             if( treeSet.contains(datum) ) { // contains() uses AnnotationDatum's equals function, so it only checks if the value field is already present
@@ -88,7 +84,7 @@ public class AnnotationDataManager {
                 treeSet.add(datum);
             }
 
-            final boolean isNovelVariant = variant.getID().equals(".");
+            final boolean isNovelVariant = infoField.containsKey("ID");
 
             // Decide if the variant is a transition or transversion
             if ( vc.isSNP() ) {

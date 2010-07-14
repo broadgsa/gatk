@@ -179,7 +179,7 @@ public class TrioGenotyperWalker extends RefWalker<VariantContext, Integer>{
             if ( a == 0 )
                 writer.writeHeader(VariantContextAdaptors.createVCFHeader(null, vc));
 
-            writer.addRecord(VariantContextAdaptors.toVCF(vc, (byte)'.'));
+            writer.add(vc, new byte[]{(byte)'.'});
             a++;
         }
 

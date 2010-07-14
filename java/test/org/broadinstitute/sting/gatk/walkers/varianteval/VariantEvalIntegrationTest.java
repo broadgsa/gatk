@@ -118,7 +118,7 @@ public class
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
                     2,
-                    Arrays.asList("dc53aaf7db9f05e3b0a38bf5efe3fbbe", "cd8616aca14eb77bd90732fbfce038d5"));
+                    Arrays.asList("dc53aaf7db9f05e3b0a38bf5efe3fbbe", "d94328f4a5f7c40e95edf2ef13f38ae0"));
             executeTest("testVEWriteVCF", spec);
         }
     }

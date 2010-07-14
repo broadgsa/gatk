@@ -547,7 +547,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 wroteHeader = true;
             }
 
-            writer.addRecord(VariantContextAdaptors.toVCF(mvc, ref));
+            writer.add(mvc, new byte[]{ref});
             //interestingReasons.clear();
         }
     }

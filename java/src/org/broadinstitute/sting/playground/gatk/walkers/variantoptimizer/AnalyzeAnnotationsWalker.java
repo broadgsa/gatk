@@ -118,7 +118,7 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
             for ( VariantContext vc : VCs ) {
                 if( !vc.getName().toUpperCase().startsWith("TRUTH") ) {
                     if( vc.isVariant() ) {
-                        dataManager.addAnnotations( vc, ref.getBase(), SAMPLE_NAME, isInTruthSet, isTrueVariant );
+                        dataManager.addAnnotations( vc, SAMPLE_NAME, isInTruthSet, isTrueVariant );
                     }
                 }
             }

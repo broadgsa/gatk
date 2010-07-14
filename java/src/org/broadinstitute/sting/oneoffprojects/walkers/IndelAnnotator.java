@@ -5,6 +5,8 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
@@ -95,22 +97,19 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
         if ( tracker == null )
             return 0;
 
-        List<Object> rods = tracker.getReferenceMetaData("variant");
+        VariantContext vc = tracker.getVariantContext(ref, "variant", null, con.getLocation(), true);
         // ignore places where we don't have a variant
-        if ( rods.size() == 0 )
+        if ( vc == null )
             return 0;
 
-        Object variant = rods.get(0);
+        RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(ref.getLocus()));
+        String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+        annotationString = annotationString.split("\\s+")[0];
 
-        if ( variant instanceof VCFRecord) {
-            RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(ref.getLocus()));
-            String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
-            annotationString = annotationString.split("\\s+")[0];
-            ((VCFRecord) variant).addInfoField("type",annotationString);
-            vcfWriter.addRecord((VCFRecord) variant);
-        } else {
-            throw new StingException("This one-off walker only deals with VCF files.");
-        }
+        Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+        attrs.put("type",annotationString);
+        vc = VariantContextUtils.modifyAttributes(vc, attrs);
+        vcfWriter.add(vc, new byte[]{ref.getBase()});
 
         return 1;
     }

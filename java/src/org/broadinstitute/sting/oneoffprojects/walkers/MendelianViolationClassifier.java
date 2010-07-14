@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
@@ -602,7 +601,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     public VCFWriter reduce(MendelianViolation variant, VCFWriter writer) {
         if ( variant != null ) {
             trioStructure.updateHomozygosityRegions(variant,bedOutput);
-            writer.addRecord(VariantContextAdaptors.toVCF(variant.toVariantContext(),variant.getRefBase()));
+            writer.add(variant.toVariantContext(), new byte[]{variant.getRefBase()});
         }
 
         return writer;
