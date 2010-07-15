@@ -103,6 +103,7 @@ object QScript {
         qGraph.add(function)
       qGraph.fillIn
       qGraph.run
+      qGraph.renderToDot(new File("queue.dot"))
     }
   }
 }

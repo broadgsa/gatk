@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.queue.engine
 
+import org.jgrapht.traverse.TopologicalOrderIterator
 import org.jgrapht.graph.SimpleDirectedGraph
 import scala.collection.JavaConversions
 import scala.collection.JavaConversions._
@@ -9,6 +10,9 @@ import org.broadinstitute.sting.queue.util.{CollectionUtils, Logging}
 import org.broadinstitute.sting.queue.QException
 import org.jgrapht.alg.CycleDetector
 import org.jgrapht.EdgeFactory
+import org.jgrapht.ext.DOTExporter
+import org.broadinstitute.sting.queue.function.DispatchFunction
+import org.broadinstitute.sting.queue.function.gatk.GatkFunction
 
 class QGraph extends Logging {
   var dryRun = true
@@ -146,4 +150,22 @@ class QGraph extends Logging {
 
   private def isOrphan(node: QNode) =
     (jobGraph.incomingEdgesOf(node).size + jobGraph.outgoingEdgesOf(node).size) == 0
+
+  def renderToDot(file: java.io.File) = {
+    val out = new java.io.FileWriter(file)
+
+    // todo -- we need a nice way to visualize the key pieces of information about commands.  Perhaps a
+    // todo -- visualizeString() command, or something that shows inputs / outputs
+    val ve = new org.jgrapht.ext.EdgeNameProvider[QFunction] {
+        def getEdgeName( function: QFunction ) = function match {
+            case f: DispatchFunction => f.jobName + " => " + f.commandLine
+            case _ => ""
+        }
+    }
+
+    //val iterator = new TopologicalOrderIterator(qGraph.jobGraph)
+    (new DOTExporter(new org.jgrapht.ext.IntegerNameProvider[QNode](), null, ve)).export(out, jobGraph)
+
+    out.close
+  }
 }
