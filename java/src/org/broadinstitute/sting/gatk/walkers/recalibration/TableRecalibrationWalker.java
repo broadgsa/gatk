@@ -80,6 +80,8 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 @Requires({ DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES }) // This walker requires -I input.bam, it also requires -R reference.fasta
 public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
+    public static final String PROGRAM_RECORD_NAME = "GATK TableRecalibration";
+
     /////////////////////////////
     // Shared Arguments
     /////////////////////////////
@@ -89,7 +91,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     // Command Line Arguments
     /////////////////////////////
     @Argument(fullName="output_bam", shortName="outputBam", doc="The output BAM file", required=true)
-    private StingSAMFileWriter OUTPUT_BAM;
+    private StingSAMFileWriter OUTPUT_BAM = null;
     @Argument(fullName="preserve_qscores_less_than", shortName="pQ",
         doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
     private int PRESERVE_QSCORES_LESS_THAN = 5;
@@ -256,7 +258,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // Take the header of the input SAM file and tweak it by adding in a new programRecord with the version number and list of covariates that were used
         final SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
         if( !NO_PG_TAG ) {
-            final SAMProgramRecord programRecord = new SAMProgramRecord( "GATK TableRecalibration" );
+            final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
             programRecord.setProgramVersion( headerInfo.getString("org.broadinstitute.sting.gatk.version") );
             String commandLineString = "Covariates=[";
@@ -280,7 +282,15 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             commandLineString += "maxQ=" + MAX_QUALITY_SCORE + ", ";
             commandLineString += "smoothing=" + SMOOTHING;
             programRecord.setCommandLine( commandLineString );
-            header.addProgramRecord( programRecord );
+
+            List<SAMProgramRecord> oldRecords = header.getProgramRecords();
+            List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
+            for ( SAMProgramRecord record : oldRecords ) {
+                if ( !record.getId().startsWith(PROGRAM_RECORD_NAME) )
+                    newRecords.add(record);
+            }
+            newRecords.add(programRecord);
+            header.setProgramRecords(newRecords);
 
             // Write out the new header
             OUTPUT_BAM.writeHeader( header );

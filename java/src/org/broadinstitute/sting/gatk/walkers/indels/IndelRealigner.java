@@ -58,7 +58,8 @@ import java.util.*;
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     public static final String ORIGINAL_CIGAR_TAG = "OC";
-    public static final String ORIGINAL_START_TAG = "OS";    
+    public static final String ORIGINAL_START_TAG = "OS";
+    public static final String PROGRAM_RECORD_NAME = "GATK IndelRealigner";
 
     @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
@@ -214,10 +215,18 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             header.setSortOrder(SAMFileHeader.SortOrder.queryname);
 
         if ( !NO_PG_TAG ) {
-            final SAMProgramRecord programRecord = new SAMProgramRecord("GATK IndelRealigner");
+            final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
             programRecord.setProgramVersion(headerInfo.getString("org.broadinstitute.sting.gatk.version"));
-            header.addProgramRecord( programRecord );
+
+            List<SAMProgramRecord> oldRecords = header.getProgramRecords();
+            List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
+            for ( SAMProgramRecord record : oldRecords ) {
+                if ( !record.getId().startsWith(PROGRAM_RECORD_NAME) )
+                    newRecords.add(record);
+            }
+            newRecords.add(programRecord);
+            header.setProgramRecords(newRecords);
         }
 
         SAMFileWriter writer = factory.makeBAMWriter(header, false, file, compressionLevel);
