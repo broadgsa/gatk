@@ -13,5 +13,5 @@ class BamGatherFunction extends GatherFunction {
   var picardMergeCompressionLevel: Option[Int] = None
 
   def commandLine = "java -jar %s%s%s%s".format(picardMergeSamFilesJar,
-    optional(" COMPRESSION_LEVEL=", picardMergeCompressionLevel), " OUTPUT=" + originalOutput, repeat(" INPUT=", gatherParts))
+    optional(" COMPRESSION_LEVEL=", picardMergeCompressionLevel), " AS=true VALIDATION_STRINGENCY=SILENT SO=coordinate OUTPUT=" + originalOutput, repeat(" INPUT=", gatherParts))
 }
