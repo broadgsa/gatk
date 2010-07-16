@@ -393,6 +393,15 @@ public class LocusIteratorByState extends LocusIterator {
                                                                            state.getEventBases()) );
 
                         }   else {
+                            // HACK: The readahead mechanism for LocusIteratorByState will effectively read past the current position
+                            //       and add in extra reads that start after this indel.  Skip these reads.
+                            //       My belief at this moment after empirically looking at read->ref alignment is that, in a cigar string
+                            //       like 1I76M, the first insertion is between alignment start-1 and alignment start, so we shouldn't be
+                            //       filtering these out.
+                            // TODO: UPDATE!  Eric tells me that we *might* want reads adjacent to the pileup in the pileup.  Strike this block.
+                            //if(state.getRead().getAlignmentStart() > loc.getStart())
+                            //    continue;
+
                             if ( state.getCurrentCigarOperator() != CigarOperator.N ) {
                                 // this read has no indel associated with the previous position on the ref;
                                 // we count this read in only if it has actual bases, not N span...

@@ -36,24 +36,40 @@ public class PileupElement {
     public int getOffset() { return offset; }
 
     public byte getBase() {
-        return isDeletion() ? DELETION_BASE : read.getReadBases()[offset];
+        return getBase(offset);
     }
 
     public int getBaseIndex() {
-        return isDeletion() ? DELETION_BASE : BaseUtils.simpleBaseToBaseIndex((char)read.getReadBases()[offset]);
+        return getBaseIndex(offset);
     }
 
     public byte getSecondBase() {
-        return isDeletion() ? DELETION_BASE : BaseUtils.getSecondBase(read, offset);
+        return getSecondBase(offset);
     }
 
     public byte getQual() {
-        return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
+        return getQual(offset);
     }
 
     public int getMappingQual() { return read.getMappingQuality(); }
 
     public String toString() {
         return String.format("%s @ %d = %c Q%d", getRead().getReadName(), getOffset(), (char)getBase(), getQual());
+    }
+
+    protected byte getBase(final int offset) {
+        return isDeletion() ? DELETION_BASE : read.getReadBases()[offset];
+    }
+
+    protected int getBaseIndex(final int offset) {
+        return isDeletion() ? DELETION_BASE : BaseUtils.simpleBaseToBaseIndex((char)read.getReadBases()[offset]);
+    }
+
+    protected byte getSecondBase(final int offset) {
+        return isDeletion() ? DELETION_BASE : BaseUtils.getSecondBase(read, offset);
+    }
+
+    protected byte getQual(final int offset) {
+        return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
     }
 }

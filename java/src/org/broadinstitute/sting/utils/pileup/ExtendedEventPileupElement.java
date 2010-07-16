@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.pileup;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Arrays;
@@ -91,6 +92,29 @@ public class ExtendedEventPileupElement extends PileupElement {
 
     public GenomeLoc getLocation() {
         return GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),read.getAlignmentStart()+offset, read.getAlignmentStart()+offset+eventLength);
+    }
+
+    // The offset can be negative with insertions at the start of the read, but a valid base does exist at this position with
+    // a valid base quality.  The following code attempts to compensate for that.'
+
+    @Override
+    public byte getBase() {
+        return getBase(offset >= 0 ? offset : offset+eventLength);
+    }
+
+    @Override
+    public int getBaseIndex() {
+        return getBaseIndex(offset >= 0 ? offset : offset+eventLength);
+    }
+
+    @Override
+    public byte getSecondBase() {
+        return getSecondBase(offset >= 0 ? offset : offset+eventLength);
+    }
+
+    @Override
+    public byte getQual() {
+        return getQual(offset >= 0 ? offset : offset+eventLength);
     }
 
     /** Returns length of the event (number of inserted or deleted bases */

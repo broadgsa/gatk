@@ -439,7 +439,10 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
 
             for ( PE p : pileupElementTracker ) {
-                if ( p.getRead().getMappingQuality() >= minMapQ && (p.isDeletion() || p.getQual() >= minBaseQ) ) {
+                if ( p.getRead().getMappingQuality() >= minMapQ &&
+                        (p.isDeletion() ||
+                                ((p instanceof ExtendedEventPileupElement) && ((ExtendedEventPileupElement)p).getType() == ExtendedEventPileupElement.Type.NOEVENT) ||
+                                p.getQual() >= minBaseQ) ) {
                     filteredTracker.add(p);
                 }
             }
