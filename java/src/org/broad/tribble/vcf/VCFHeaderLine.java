@@ -42,6 +42,7 @@ public class VCFHeaderLine implements Comparable {
     private String stringRep = null;
     private String mKey = null;
     private String mValue = null;
+
     protected VCFHeaderVersion mVersion = null;
 
     /**
@@ -133,6 +134,10 @@ public class VCFHeaderLine implements Comparable {
     public void setVersion(VCFHeaderVersion version) {
         if (!version.equals(this.mVersion)) this.stringRep = null;
         this.mVersion = version;
+    }
+
+    public VCFHeaderVersion getVersion() {
+        return mVersion;
     }
 
     /**

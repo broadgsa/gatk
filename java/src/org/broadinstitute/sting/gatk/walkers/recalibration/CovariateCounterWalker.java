@@ -70,7 +70,7 @@ import java.util.Map;
 @WalkerName( "CountCovariates" )
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
-public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
+public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> implements TreeReducible<PrintStream> {
 
     /////////////////////////////
     // Constants
@@ -87,6 +87,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
+    @Argument(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the outputted covariates table recalibration file")
+    public PrintStream RECAL_FILE;
+
     @Argument(fullName="list", shortName="ls", doc="List the available covariates and exit", required=false)
     private boolean LIST_ONLY = false;
     @Argument(fullName="covariate", shortName="cov", doc="Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required=false)
@@ -230,6 +233,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             logger.info( "\t" + cov.getClass().getSimpleName() );
             cov.initialize( RAC ); // Initialize any covariate member variables using the shared argument collection
         }
+
+//        try {
+//            stream = new PrintStream( RAC.RECAL_FILE );
+//        } catch ( FileNotFoundException e ) {
+//            throw new RuntimeException( "Couldn't open output file: ", e );
+//        }
     }
 
 
@@ -263,15 +272,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( !isSNP && ( ++numUnprocessed >= PROCESS_EVERY_NTH_LOCUS ) ) {
             numUnprocessed = 0; // Reset the counter because we are processing this very locus
 
-            GATKSAMRecord gatkRead;
-            int offset;
-            byte refBase;
-            byte[] bases;
-
             // For each read at this locus
             for( PileupElement p : context.getBasePileup() ) {
-                gatkRead = (GATKSAMRecord) p.getRead();
-                offset = p.getOffset();
+                GATKSAMRecord gatkRead = (GATKSAMRecord) p.getRead();
+                int offset = p.getOffset();
 
                 if( gatkRead.containsTemporaryAttribute( SKIP_RECORD_ATTRIBUTE  ) ) {
                     continue;
@@ -297,8 +301,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 // Skip this position if base quality is zero
                 if( gatkRead.getBaseQualities()[offset] > 0 ) {
 
-                    bases = gatkRead.getReadBases();
-                    refBase = ref.getBase();
+                    byte[] bases = gatkRead.getReadBases();
+                    byte refBase = ref.getBase();
 
                     // Skip if this base is an 'N' or etc.
                     if( BaseUtils.isRegularBase( bases[offset] ) ) {
@@ -390,8 +394,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param refBase The reference base at this locus
      */
     private void updateDataFromRead(final GATKSAMRecord gatkRead, final int offset, final byte refBase) {
-
-
         final Object[][] covars = (Comparable[][]) gatkRead.getTemporaryAttribute(COVARS_ATTRIBUTE);
         final Object[] key = covars[offset];
 
@@ -426,11 +428,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @return returns A PrintStream created from the -recalFile filename argument specified to the walker
      */
     public PrintStream reduceInit() {
-        try {
-            return new PrintStream( RAC.RECAL_FILE );
-        } catch ( FileNotFoundException e ) {
-            throw new RuntimeException( "Couldn't open output file: ", e );
-        }
+        return RECAL_FILE;
     }
 
     /**
@@ -440,7 +438,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @return returns The PrintStream used to output the CSV data
      */
     public PrintStream reduce( Integer value, PrintStream recalTableStream ) {
-        return recalTableStream; // Nothing to do here
+        return recalTableStream; // Nothing to do here, just return our open stream
+    }
+
+    public PrintStream treeReduce( PrintStream recalTableStream1, PrintStream recalTableStream2 ) {
+        return recalTableStream1; // Nothing to do here, just return our open stream
     }
 
     /**

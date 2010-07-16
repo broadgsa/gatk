@@ -8,8 +8,7 @@ import java.util.ArrayList;
 
 public class RecalibrationWalkersPerformanceTest extends WalkerTest {
 
-    @Test
-    public void testCountCovariatesWholeGenome() {
+    private void testCountCovariatesWholeGenomeRunner(String moreArgs) {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
                         " -T CountCovariates" +
@@ -17,14 +16,13 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -L chr1:1-50,000,000" +
                         " -standard" +
                         " -OQ" +
-                        " -recalFile /dev/null",
+                        " -recalFile /dev/null" + moreArgs,
                 0,
                 new ArrayList<String>(0));
         executeTest("testCountCovariatesWholeGenome", spec);
     }
 
-    @Test
-    public void testCountCovariatesWholeExome() {
+    private  void testCountCovariatesWholeExomeRunner(String moreArgs) {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
                         " -T CountCovariates" +
@@ -32,11 +30,21 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -L " + evaluationDataLocation + "whole_exome_agilent_designed_120.targets.chr1.interval_list" +
                         " -standard" +
                         " -OQ" +
-                        " -recalFile /dev/null",
+                        " -recalFile /dev/null" + moreArgs,
                 0,
                 new ArrayList<String>(0));
         executeTest("testCountCovariatesWholeExome", spec);
     }
+
+    @Test
+    public void testCountCovariatesWholeGenome() { testCountCovariatesWholeGenomeRunner(""); }
+    @Test
+    public void testCountCovariatesWholeGenomeParallel() { testCountCovariatesWholeGenomeRunner(" -nt 4"); }
+
+    @Test
+    public void testCountCovariatesWholeExome() { testCountCovariatesWholeExomeRunner(""); }
+    @Test
+    public void testCountCovariatesWholeExomeParallel() { testCountCovariatesWholeExomeRunner(" -nt 4"); }
 
     @Test
     public void testTableRecalibratorWholeGenome() {

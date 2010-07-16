@@ -80,6 +80,8 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             while ((line = reader.readLine()) != null) {
                 lineNo++;
                 if (line.startsWith("##")) {
+                    if ( line.startsWith("##fileformat") && ! line.startsWith("##fileformat=VCFv4" ) )
+                        throw new CodecLineParsingException("VCF4 codec can only parse VCF4 formated files.  Your version line is " + line + ".  If you want VCF3 parsing, use VCF as the rod type.");
                     headerStrings.add(line);
                 }
                 else if (line.startsWith("#")) {

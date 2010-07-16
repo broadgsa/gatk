@@ -22,28 +22,30 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "596a9ec9cbc1da70481e45a5a588a41d" );
         e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "507dbd3ba6f54e066d04c4d24f59c3ab" );
 
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            String bam = entry.getKey();
-            String md5 = entry.getValue();
+        for ( String parallelism : Arrays.asList("") ) { // todo -- enable parallel tests.  They work but there's a system bug Arrays.asList("", " -nt 4")) {
+            for ( Map.Entry<String, String> entry : e.entrySet() ) {
+                String bam = entry.getKey();
+                String md5 = entry.getValue();
 
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
-                            " -T CountCovariates" +
-                            " -I " + bam +
-                            ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
-                                ? " -L 1:10,800,000-10,810,000" : " -L 1:10,000,000-10,200,000" ) +
-                            " -cov ReadGroupCovariate" +
-                            " -cov QualityScoreCovariate" +
-                            " -cov CycleCovariate" +
-                            " -cov DinucCovariate" +
-                            " -cov TileCovariate" +
-                            " --solid_recal_mode SET_Q_ZERO" +
-                            " -recalFile %s",
-                    1, // just one output file
-                    Arrays.asList(md5));
-            List<File> result = executeTest("testCountCovariates1", spec).getFirst();
-            paramsFiles.put(bam, result.get(0).getAbsolutePath());
+                WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                                " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                                " -T CountCovariates" +
+                                " -I " + bam +
+                                ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
+                                        ? " -L 1:10,800,000-10,810,000" : " -L 1:10,000,000-10,200,000" ) +
+                                " -cov ReadGroupCovariate" +
+                                " -cov QualityScoreCovariate" +
+                                " -cov CycleCovariate" +
+                                " -cov DinucCovariate" +
+                                " -cov TileCovariate" +
+                                " --solid_recal_mode SET_Q_ZERO" +
+                                " -recalFile %s" + parallelism,
+                        1, // just one output file
+                        Arrays.asList(md5));
+                List<File> result = executeTest("testCountCovariates1" + parallelism, spec).getFirst();
+                paramsFiles.put(bam, result.get(0).getAbsolutePath());
+            }
         }
     }
     

@@ -52,7 +52,7 @@ public class NestedHashMap{
         return null;
     }
 
-    public void put( final Object value, final Object... keys ) {
+    public synchronized void put( final Object value, final Object... keys ) {
 
         Map map = this.data;
         final int keysLength = keys.length;

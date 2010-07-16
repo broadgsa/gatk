@@ -71,22 +71,22 @@ public class RecalDatumOptimized {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public final void increment( final long incObservations, final long incMismatches ) {
+    public synchronized final void increment( final long incObservations, final long incMismatches ) {
         numObservations += incObservations;
         numMismatches += incMismatches;
     }
 
-    public final void increment( final RecalDatumOptimized other ) {
+    public synchronized final void increment( final RecalDatumOptimized other ) {
         increment( other.numObservations, other.numMismatches );
     }
 
-    public final void increment( final List<RecalDatumOptimized> data ) {
+    public synchronized final void increment( final List<RecalDatumOptimized> data ) {
         for ( RecalDatumOptimized other : data ) {
             this.increment( other );
         }
     }
 
-    public final void increment( final char curBase, final char refBase ) {
+    public synchronized final void increment( final char curBase, final char refBase ) {
         increment( 1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(refBase) ? 0 : 1 ); // increment takes num observations, then num mismatches
     }
 

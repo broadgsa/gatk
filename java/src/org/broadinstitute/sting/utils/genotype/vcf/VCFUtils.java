@@ -133,12 +133,13 @@ public class VCFUtils {
             //System.out.printf("Merging in header %s%n", source);
             for ( VCFHeaderLine line : source.getMetaData()) {
                 String key = line.getKey();
+
                 if ( line instanceof VCFNamedHeaderLine )
                     key = key + "." + ((VCFNamedHeaderLine) line).getName();
 
                 if ( map.containsKey(key) ) {
                     VCFHeaderLine other = map.get(key);
-                    if ( line.equals(other) )
+                    if ( line.equals(other) || line.getVersion() != VCFHeaderVersion.VCF4_0 ) // todo -- remove me when everything is 4
                         continue;
                     else if ( ! line.getClass().equals(other.getClass()) )
                         throw new IllegalStateException("Incompatible header types: " + line + " " + other );
@@ -172,7 +173,7 @@ public class VCFUtils {
                         if ( logger != null ) logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
                     }
                 } else {
-                    line.setVersion(VCFHeaderVersion.VCF4_0);
+                    line.setVersion(VCFHeaderVersion.VCF4_0); // todo -- remove this when we finally have vcf3/4 unified headers
                     map.put(key, line);
                     //System.out.printf("Adding header line %s%n", line);
                 }

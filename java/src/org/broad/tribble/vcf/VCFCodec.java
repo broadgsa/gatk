@@ -72,6 +72,8 @@ public class VCFCodec implements FeatureCodec {
         try {
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("##")) {
+                    if ( line.startsWith("##fileformat") && ! line.startsWith("##fileformat=VCFv3" ) )
+                        throw new CodecLineParsingException("VCF codec can only parse VCF3 formated files.  Your version line is " + line + ".  If you want to parse VCF4, use VCF4 use VCF as the rod type");
                     headerStrings.add(line);
                 }
                 else if (line.startsWith("#")) {
