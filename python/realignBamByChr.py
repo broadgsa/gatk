@@ -68,7 +68,7 @@ def main():
     def includeStage(name):
         return name in stages
 
-    out = open(outputBamList, 'w')
+    #out = open(outputBamList, 'w')
     realignInfo = []
     for chr in getContigs(OPTIONS.contigs, hg18):
         lastJobs = None
@@ -92,16 +92,19 @@ def main():
         realignInfo.append([realignJobs, realignedBam])
         # need to merge and then index
         indexJobs, ignore = execStage('index', index, realignedBam, realignJobs)
-        print >> out, os.path.abspath(realignedBam)
+        #print >> out, os.path.abspath(realignedBam)
      
-    out.close() 
+    #out.close() 
 
     if 'merge' in stages:
         realignerJobs = []
         if realignInfo[0][0] != []:
             realignerJobs = map(lambda x: x[0][0], realignInfo)
-        mergerJob = mergeBams(myPipelineArgs, outputRoot + ".bam", map(lambda x: x[1], realignInfo), realignerJobs)
+        mergedBam = outputRoot + ".bam"
+        mergerJob = mergeBams(myPipelineArgs, mergedBam, map(lambda x: x[1], realignInfo), realignerJobs)
+        indexJob, ignore = index(myPipelineArgs, 'ignore', 'ignore', 'ignore', mergedBam, mergerJob)
         allJobs.append(mergerJob)
+        allJobs.append(indexJob)
 
     print 'EXECUTING JOBS'
     executeJobs(allJobs, farm_queue = OPTIONS.farmQueue, just_print_commands = OPTIONS.dry) 
@@ -113,7 +116,7 @@ def createTargets( myPipelineArgs, chr, inputBam, outputRoot, args, lastJobs ):
 
 def realign( myPipelineArgs, chr, inputBam, outputRoot, intervals, lastJobs ):
     outputBAM = outputRoot + ".bam"
-    GATKArgs = '-T IndelRealigner -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -targetIntervals %s --output %s -stats %s -L %s' % (inputBam, intervals, outputBAM, outputBAM + ".stats", chr)
+    GATKArgs = '-T IndelRealigner -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s -targetIntervals %s --output %s -stats %s -snps %s -L %s' % (inputBam, intervals, outputBAM, outputBAM + ".stats", outputBAM + ".snps", chr)
     return simpleGATKCommand( myPipelineArgs, 'Realign' + chr, GATKArgs, lastJobs ), outputBAM
 
 def index( myPipelineArgs, chr, inputBam, outputRoot, realignedBam, lastJobs ):
@@ -123,7 +126,9 @@ def mergeBams( myPipelineArgs, outputFilename, bamsToMerge, lastJobs ):
     print lastJobs
     #cmd = picard_utils.mergeBAMCmd( outputFilename, bamsToMerge, compression_level = 5 )
     cmd = picard_utils.mergeFixingMatesBAMCmd(outputFilename, bamsToMerge, compression_level = 5)
-    return FarmJob(cmd, jobName = 'merge.' + myPipelineArgs.name, dependencies = lastJobs)
+    jobs1 = FarmJob(cmd, jobName = 'merge.' + myPipelineArgs.name, dependencies = lastJobs)
+    #jobs2 = indexBAMFile( myPipelineArgs.name, outputFilename, jobs1 )
+    return jobs1
 
 if __name__ == "__main__":
     main()

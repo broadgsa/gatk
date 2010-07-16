@@ -11,7 +11,7 @@ import string
 
 def average(l):
     sum = reduce(operator.add, l, 0)
-    return sum / (1.0 * len(l))
+    return sum / (1.0 * (max(len(l), 1)))
 
 def printHeaderSep():
     print
@@ -87,8 +87,9 @@ def countBases(samples, seqIndex):
     return total
 
 def printStatus(samples):
-    for sample in samples.itervalues():
-        print sample
+    if OPTIONS.verbose:
+        for sample in samples.itervalues():
+            print sample
 
 def findVariantEvalResults(key, file, type=str):
     def capture1(line):
@@ -159,11 +160,14 @@ def countSNPs(samples, snpsVCF, useIndels = False):
     sampleIDs = columnNames[9:]
 
     print 'Counting SNPs...'
+    #lines = 0
     for header, vcf, counter in vcfReader.lines2VCF(remainingLines, extendedOutput = True, decodeAll = False):
+        #lines += 1
+        #print 'lines', lines
         if ( counter > OPTIONS.maxRecords and OPTIONS.maxRecords != -1 ):
             break
             
-        if vcf.passesFilters() and vcf.getChrom not in ['MT', 'Y']:
+        if vcf.passesFilters() and vcf.getChrom() not in ['MT', 'Y']:
             if ( vcf.isVariant() ): 
                 total += 1
 
@@ -184,6 +188,8 @@ def countSNPs(samples, snpsVCF, useIndels = False):
                                 samples[sampleID].nIndels += 1
                             else:
                                 samples[sampleID].nSNPs += 1
+        else:
+            print 'rejecting line', vcf
 
     printStatus(samples)
     return total, novel
@@ -238,12 +244,12 @@ if __name__ == "__main__":
 
     ignore, totalMappedBases = countMappedBases(samples, OPTIONS.alignmentIndex)    
     totalBases = countBases(samples, OPTIONS.sequenceIndex)
-    meanMappedDepth = totalMappedBases / OPTIONS.totalGenome / nSamples
+    meanMappedDepth = totalMappedBases / OPTIONS.totalGenome / (max(nSamples, 1))
     totalSNPs, novelSNPs = countSNPs(samples, OPTIONS.snps)
     totalIndels, novelIndels = countIndels(samples, OPTIONS.indels)
     
     snpNoveltyRate = 100 - getDBSNPRate(OPTIONS.snpsVE)
-    indelNoveltyRate = novelIndels / (1.0*totalIndels) # 100 - getDBSNPRate(OPTIONS.indelsVE)
+    indelNoveltyRate = novelIndels / (1.0*max(totalIndels,1)) # 100 - getDBSNPRate(OPTIONS.indelsVE)
 
     out = sys.stdout
     if ( OPTIONS.output != None ): out = open(OPTIONS.output, 'w')

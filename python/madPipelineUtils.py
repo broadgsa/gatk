@@ -73,6 +73,7 @@ class PipelineArgs:
         return cmd
         
     def chrsToSplitBy(self, chrs):
+        #print 'XXX', self.excludeChrs
         return filter(lambda x: x not in self.excludeChrs, chrs)
         
 # 
@@ -101,6 +102,7 @@ def splitGATKCommandByChr( myPipelineArgs, cmd, outputsToParallelize, mergeComma
         chrCmd = FarmJob(chr_cmd_str, jobName = cmd.jobName + '.byChr' + chr, dependencies = cmd.dependencies)
         return chrCmd, chrOutputMap
 
+    #print '######################################### chrsToSplitBy', myPipelineArgs.chrsToSplitBy(hg18)
     splits = map( makeChrCmd, myPipelineArgs.chrsToSplitBy(hg18) )
     splitCommands = map(lambda x: x[0], splits)
 
