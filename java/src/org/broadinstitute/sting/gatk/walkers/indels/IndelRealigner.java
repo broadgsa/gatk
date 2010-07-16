@@ -58,7 +58,7 @@ import java.util.*;
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     public static final String ORIGINAL_CIGAR_TAG = "OC";
-    public static final String ORIGINAL_START_TAG = "OS";
+    public static final String ORIGINAL_POSITION_TAG = "OP";
     public static final String PROGRAM_RECORD_NAME = "GATK IndelRealigner";
 
     @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
@@ -1179,7 +1179,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( !NO_ORIGINAL_ALIGNMENT_TAGS ) {
                 read.setAttribute(ORIGINAL_CIGAR_TAG, read.getCigar().toString());
                 if ( newStart != read.getAlignmentStart() )
-                    read.setAttribute(ORIGINAL_START_TAG, read.getAlignmentStart());
+                    read.setAttribute(ORIGINAL_POSITION_TAG, read.getAlignmentStart());
             }
             
             // if it's a paired end read, we need to update the insert size
