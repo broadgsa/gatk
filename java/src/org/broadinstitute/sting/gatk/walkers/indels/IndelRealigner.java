@@ -930,7 +930,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // set to 1 to prevent dividing by zero
         for ( int i=0; i < reference.length; i++ )
-            originalMismatchBases[i] = totalOriginalBases[i] = cleanedMismatchBases[i] = totalCleanedBases[i] = 1;
+            originalMismatchBases[i] = totalOriginalBases[i] = cleanedMismatchBases[i] = totalCleanedBases[i] = 0;
 
         for (int i=0; i < reads.size(); i++) {
             final AlignedRead read = reads.get(i);
@@ -991,7 +991,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( originalMismatchBases[i] > totalOriginalBases[i] * MISMATCH_THRESHOLD )  {
                 didMismatch = true;
                 originalMismatchColumns++;
-                if ( ((double)cleanedMismatchBases[i] / (double)totalCleanedBases[i]) > ((double)originalMismatchBases[i] / (double)totalOriginalBases[i]) * (1.0 - MISMATCH_COLUMN_CLEANED_FRACTION) ) {
+                if ( totalCleanedBases[i] > 0 && ((double)cleanedMismatchBases[i] / (double)totalCleanedBases[i]) > ((double)originalMismatchBases[i] / (double)totalOriginalBases[i]) * (1.0 - MISMATCH_COLUMN_CLEANED_FRACTION) ) {
                     stillMismatches = true;
                     cleanedMismatchColumns++;
                 }
