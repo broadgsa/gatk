@@ -50,6 +50,10 @@ public class DbSNPHelper {
         return feature.getVariantType().contains("single") && feature.getLocationType().contains("exact");
     }
 
+    public static boolean isMNP(DbSNPFeature feature) {
+        return feature.getVariantType().contains("mnp") && feature.getLocationType().contains("range");
+    }
+
     public static String toMediumString(DbSNPFeature feature) {
         String s = String.format("%s:%d:%s:%s", feature.getChr(), feature.getStart(), feature.getRsID(), Utils.join("",feature.getObserved()));
         if (isSNP(feature)) s += ":SNP";
