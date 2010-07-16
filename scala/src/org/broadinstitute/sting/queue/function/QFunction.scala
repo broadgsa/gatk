@@ -22,4 +22,6 @@ trait QFunction {
    * Set of outputs for this function.
    */
   def outputs: Set[Any]
+
+  def dotString = ""
 }

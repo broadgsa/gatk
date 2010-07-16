@@ -57,6 +57,8 @@ trait DispatchFunction extends InputOutputFunction {
     super.freeze
   }
 
+  override def dotString = jobName + " => " + commandLine
+
   /**
    * Override the canon function to change any relative path to an absolute path.
    */
