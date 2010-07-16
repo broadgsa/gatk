@@ -30,12 +30,14 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Argument;
 
+import java.util.Set;
+
 public class SampleFilter implements SamRecordFilter {
-    @Argument(fullName = "sample_to_keep", shortName = "goodSM", doc="The name of the sample to keep, filtering out all others", required=true)
-    private String SAMPLE_TO_KEEP = null;
+    @Argument(fullName = "sample_to_keep", shortName = "goodSM", doc="The name of the sample(s) to keep, filtering out all others", required=true)
+    private Set SAMPLES_TO_KEEP = null;
 
     public boolean filterOut( final SAMRecord read ) {
         final SAMReadGroupRecord readGroup = read.getReadGroup();
-        return !( readGroup != null && readGroup.getSample().equals( SAMPLE_TO_KEEP ) );
+        return !( readGroup != null && SAMPLES_TO_KEEP.contains(readGroup.getSample()) );
     }
 }

@@ -127,10 +127,12 @@ public class AminoAcidTransition extends VariantEvaluator {
     private String infoKey;
     private String infoValueSplit;
     private boolean useCodons;
+    private boolean enabled;
     private AminoAcidTable lookup;
 
     public AminoAcidTransition(VariantEvalWalker parent) {
         super(parent);
+        enabled = parent.aminoAcidTransitionKey != null;
         getParsingInformation(parent);
         lookup = new AminoAcidTable();
         acidTable = new AminoAcidTiTvTable();
@@ -160,7 +162,7 @@ public class AminoAcidTransition extends VariantEvaluator {
     }
 
     public boolean enabled() {
-        return false;
+        return enabled;
     }
 
     public String toString() {
