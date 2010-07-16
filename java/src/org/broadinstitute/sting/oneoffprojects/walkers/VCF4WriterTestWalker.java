@@ -62,7 +62,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
 
     protected static String line = null;
     final TreeSet<String> samples = new TreeSet<String>();
-    VCF4Codec vcf4codec = new VCF4Codec();
+    VCFCodec vcf4codec = new VCFCodec();
 
 
     /**
@@ -86,31 +86,24 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();
             if(rod.getName().equalsIgnoreCase(INPUT_ROD_NAME)) {
-                if (rod.getType().equals(vcf4codec.getClass())) {
 
-                    try {
-                        AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(rod.getFile().getAbsolutePath()));
-                        int lineNumber = vcf4codec.readHeader(lineReader);
-                        out.printf("Read %d header lines%n", lineNumber);
+                try {
+                    AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(rod.getFile().getAbsolutePath()));
+                    int lineNumber = vcf4codec.readHeader(lineReader);
+                    out.printf("Read %d header lines%n", lineNumber);
 
-                        header = vcf4codec.getHeader(VCFHeader.class);
-                    }
-                    catch (FileNotFoundException e ) {
-                        throw new StingException(e.getMessage());
-                    }
-                } else {
-                    final VCFReader reader = new VCFReader(rod.getFile());
-                    final Set<String> vcfSamples = reader.getHeader().getGenotypeSamples();
-                    samples.addAll(vcfSamples);
-                    reader.close();
-                    header = new VCFHeader(hInfo, samples);
+                    header = vcf4codec.getHeader(VCFHeader.class);
                 }
+                catch (FileNotFoundException e ) {
+                    throw new StingException(e.getMessage());
+                }
+
+                final Set<String> vcfSamples = header.getGenotypeSamples();
+                samples.addAll(vcfSamples);
+            
 
             }
         }
-
-        if ( header != null )
-            header.setVersion(VCFHeaderVersion.VCF4_0);
 
         vcfWriter.writeHeader(header);
 

@@ -29,9 +29,9 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
 
     @Test
     public void testRealignerKnownsOnly() {
-        String[] md5s = {"7084d4e543bc756730ab306768028530", "1091436c40d5ba557d85662999cc0c1d"};
+        String[] md5s = {"83bc0c9a7d8872b552c6cbd994672c3b", "92bf331b672a03d63c26e4d9d3615f5b"};
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T IndelRealigner -noPG -LOD 1.0 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10076000 -compress 1 -targetIntervals " + validationDataLocation + "NA12878.indels.intervals -B knownIndels,VCF," + validationDataLocation + "NA12878.indels.vcf -O %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe -knownsOnly",
+                "-T IndelRealigner -noPG -LOD 1.0 -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10076000 -compress 1 -targetIntervals " + validationDataLocation + "NA12878.indels.intervals -B knownIndels,VCF," + validationDataLocation + "NA12878.indels.vcf4 -O %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe -knownsOnly",
                  2,
                  Arrays.asList(md5s));
         executeTest("test realigner known indels only", spec);

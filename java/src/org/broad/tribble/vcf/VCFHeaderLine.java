@@ -43,19 +43,6 @@ public class VCFHeaderLine implements Comparable {
     private String mKey = null;
     private String mValue = null;
 
-    protected VCFHeaderVersion mVersion = null;
-
-    /**
-     * create a VCF header line
-     *
-     * @param key     the key for this header line
-     * @param value   the value for this header line
-     */
-    public VCFHeaderLine(String key, String value, VCFHeaderVersion version) {
-        mKey = key;
-        mValue = value;
-        mVersion = version;
-    }
 
     /**
      * create a VCF header line
@@ -66,7 +53,6 @@ public class VCFHeaderLine implements Comparable {
     public VCFHeaderLine(String key, String value) {
         mKey = key;
         mValue = value;
-        mVersion = VCFHeaderVersion.VCF3_3;
     }
 
     /**
@@ -127,18 +113,6 @@ public class VCFHeaderLine implements Comparable {
         return toString().compareTo(other.toString());
     }
 
-    /**
-     * set the version string, which resets the current stored string representation if the version changed
-     * @param version
-     */
-    public void setVersion(VCFHeaderVersion version) {
-        if (!version.equals(this.mVersion)) this.stringRep = null;
-        this.mVersion = version;
-    }
-
-    public VCFHeaderVersion getVersion() {
-        return mVersion;
-    }
 
     /**
      * create a string of a mapping pair for the target VCF version

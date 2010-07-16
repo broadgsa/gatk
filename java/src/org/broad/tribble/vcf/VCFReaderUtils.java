@@ -17,7 +17,7 @@ public class VCFReaderUtils {
      * package protected so that the VCFReaderUtils can access this function
      *
      * @param headerStrings a list of header strings
-     *
+     * @param version Header version to parse
      * @return a VCF Header created from the list of stinrgs
      */
     public static VCFHeader createHeader(List<String> headerStrings, VCFHeaderVersion version) {
@@ -53,7 +53,7 @@ public class VCFReaderUtils {
                 else {
                     int equals = str.indexOf("=");
                     if ( equals != -1 )
-                        metaData.add(new VCFHeaderLine(str.substring(2, equals), str.substring(equals+1),version));
+                        metaData.add(new VCFHeaderLine(str.substring(2, equals), str.substring(equals+1)));
                 }
             }
         }

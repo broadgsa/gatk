@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -61,7 +62,7 @@ public class VCFUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VCFRecord.class) ) {
+            if ( rod.getRecordType().equals(VariantContext.class) ) {
                 fields.addAll(rod.getHeader(VCFHeader.class).getMetaData());                
             }
         }
@@ -139,7 +140,7 @@ public class VCFUtils {
 
                 if ( map.containsKey(key) ) {
                     VCFHeaderLine other = map.get(key);
-                    if ( line.equals(other) || line.getVersion() != VCFHeaderVersion.VCF4_0 ) // todo -- remove me when everything is 4
+                    if ( line.equals(other) )
                         continue;
                     else if ( ! line.getClass().equals(other.getClass()) )
                         throw new IllegalStateException("Incompatible header types: " + line + " " + other );
@@ -173,7 +174,6 @@ public class VCFUtils {
                         if ( logger != null ) logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
                     }
                 } else {
-                    line.setVersion(VCFHeaderVersion.VCF4_0); // todo -- remove this when we finally have vcf3/4 unified headers
                     map.put(key, line);
                     //System.out.printf("Adding header line %s%n", line);
                 }

@@ -82,7 +82,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
     }
 
     protected VCFCompoundHeaderLine(String name, int count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType, VCFHeaderVersion version) {
-        super(lineType.toString(), "", version);
+        super(lineType.toString(), "");
         this.name = name;
         this.count = count;
         this.type = type;
@@ -98,7 +98,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
      *
      */
     protected VCFCompoundHeaderLine(String line, VCFHeaderVersion version, SupportedHeaderLineType lineType) {
-        super(lineType.toString(), "", version);
+        super(lineType.toString(), "");
         Map<String,String> mapping = VCFHeaderLineTranslator.parseLine(version,line, Arrays.asList("ID","Number","Type","Description"));
         name = mapping.get("ID");
         count = version == VCFHeaderVersion.VCF4_0 ?

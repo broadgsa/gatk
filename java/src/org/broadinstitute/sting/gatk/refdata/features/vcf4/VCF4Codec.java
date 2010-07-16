@@ -25,12 +25,11 @@ import java.util.*;
  */
 public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
-    // a variant context flag for original allele strings
-    public static final String ORIGINAL_ALLELE_LIST = "ORIGINAL_ALLELE_LIST";
 
     // we have to store the list of strings that make up the header until they're needed
     private VCFHeader header = null;
 
+    private VCFHeaderVersion version = VCFHeaderVersion.VCF4_0;
     // used to convert the index of the alternate allele in genotypes to a integer index
     private static int ZERO_CHAR = (byte)'0';
 
@@ -66,6 +65,9 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
     private int lineNo = 0;
 
+    // some classes need to transform the line before
+    private LineTransform transformer = null;
+
     /**
      * this method is a big hack, since I haven't gotten to updating the VCF header for the 4.0 updates
      * @param reader the line reader to take header lines from
@@ -77,14 +79,22 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
         String line = "";
         try {
+            boolean foundHeaderVersion = false;
             while ((line = reader.readLine()) != null) {
                 lineNo++;
                 if (line.startsWith("##")) {
-                    if ( line.startsWith("##fileformat") && ! line.startsWith("##fileformat=VCFv4" ) )
-                        throw new CodecLineParsingException("VCF4 codec can only parse VCF4 formated files.  Your version line is " + line + ".  If you want VCF3 parsing, use VCF as the rod type.");
+                    String[] lineFields = line.substring(2).split("=");
+                    if (lineFields.length == 2 &&
+                            VCFHeaderVersion.isVersionString(lineFields[1]) && VCFHeaderVersion.isFormatString(lineFields[0])) {
+                        foundHeaderVersion = true;
+                        this.version = VCFHeaderVersion.toHeaderVersion(lineFields[1]);
+                    }
                     headerStrings.add(line);
                 }
                 else if (line.startsWith("#")) {
+                    if (!foundHeaderVersion) {
+                        throw new CodecLineParsingException("We never saw a header line specifying VCF version");
+                    }
                     return createHeader(headerStrings, line);
                 }
                 else {
@@ -107,7 +117,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      */
     public int createHeader(List<String> headerStrings, String line) {
         headerStrings.add(line);
-        header = VCFReaderUtils.createHeader(headerStrings, VCFHeaderVersion.VCF4_0);
+        header = VCFReaderUtils.createHeader(headerStrings, this.version);
 
         // load the parsing fields
         Set<VCFHeaderLine> headerLines = header.getMetaData();
@@ -226,12 +236,14 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
                         String[] split = str.split(",");
                         for (String substring : split) {
                             VCFHeaderLineType type = infoFields.get(key);
-                            objects.add(type != null ? type.convert(substring,VCFCompoundHeaderLine.SupportedHeaderLineType.INFO) : substring);
+//                            objects.add(type != null ? type.convert(substring,VCFCompoundHeaderLine.SupportedHeaderLineType.INFO) : substring);
+                            objects.add(substring);
                         }
                         value = objects;
                     } else {
                         VCFHeaderLineType type = infoFields.get(key);
-                        value = type != null ? type.convert(str,VCFCompoundHeaderLine.SupportedHeaderLineType.INFO) : str;
+                        //value = type != null ? type.convert(str,VCFCompoundHeaderLine.SupportedHeaderLineType.INFO) : str;
+                        value = str;
                     }
                     //System.out.printf("%s %s%n", key, value);
                 } else {
@@ -269,17 +281,16 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @param qualString the quality string
      * @return return a double
      */
-    private static Double parseQual(String qualString) {
-        // todo -- remove double once we deal with annoying VCFs from 1KG
-	if ( qualString.equals(".") )
-	    return VariantContext.NO_NEG_LOG_10PERROR;
-	else {
-	    double q = Double.valueOf(qualString);
-	    if ( q == -1 ) 
-		return VariantContext.NO_NEG_LOG_10PERROR;
-	    else
-		return Double.valueOf(qualString) / 10;
-	}
+    private Double parseQual(String qualString) {
+        if (qualString.equals(VCFConstants.MISSING_VALUE_v4))
+            return VariantContext.NO_NEG_LOG_10PERROR;
+        else {
+            double q = Double.valueOf(qualString);
+            if ( q == -1 )
+               return VariantContext.NO_NEG_LOG_10PERROR;
+            else
+                return Double.valueOf(qualString) / 10;
+        }
     }
 
     /**
@@ -346,7 +357,14 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         Set<String> fFields;
 
         // a PASS is simple (no filters)
-        if ( filterString.equals("PASS") ) {
+        String passString = VCFConstants.PASSES_FILTERS_v3;
+        if (this.version == VCFHeaderVersion.VCF4_0)
+            passString = VCFConstants.PASSES_FILTERS_v4;
+
+        if ( filterString.equals(passString) ) {
+            return null;
+        }
+        if ( filterString.equals(VCFConstants.UNFILTERED)) {
             return null;
         }
         // else do we have the filter string cached?
@@ -373,6 +391,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * parse out the VCF line
      *
      * @param parts the parts split up
+     * @param parseGenotypes whether to parse genotypes or not
      * @return a variant context object
      */
     private VariantContext parseVCFLine(String[] parts, boolean parseGenotypes) {
@@ -398,7 +417,8 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             // find out our current location, and clip the alleles down to their minimum length
             Pair<GenomeLoc, List<Allele>> locAndAlleles;
             if ( !isSingleNucleotideEvent(alleles) ) {
-                attributes.put(ORIGINAL_ALLELE_LIST,alleles);
+                if (this.version != VCFHeaderVersion.VCF4_0)
+                    throw new VCFParserException("Saw Indel/non SNP event on a VCF 3.3 or earlier file. Please convert file to VCF4.0 with VCFTools before using the GATK on it");
                 locAndAlleles = clipAlleles(contig, pos, ref, alleles);
             } else {
                 locAndAlleles = new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
@@ -469,8 +489,14 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             if (nGTKeys >= 1) {
                 gtAttributes = new HashMap<String, String>(nGTKeys - 1);
                 for (int i = 0; i < nGTKeys; i++) {
-                    if (i >= GTValueSplitSize)
-                        gtAttributes.put(genotypeKeyArray[i],".");
+                    if (i >= GTValueSplitSize) {
+                        if (genotypeKeyArray[i].equals("GQ"))
+                            GTQual = parseQual(VCFConstants.MISSING_VALUE_v4);
+                        else if (genotypeKeyArray[i].equals("FT")) // deal with genotype filters here
+                            genotypeFilters = parseFilters(VCFConstants.MISSING_VALUE_v4);
+                        else
+                            gtAttributes.put(genotypeKeyArray[i],VCFConstants.MISSING_VALUE_v4);
+                    }
                     else if (genotypeKeyArray[i].equals("GT"))
                         if (i != 0)
                             throw new VCFParserException("Saw GT at position " + i + ", it must be at the first position for genotypes. At location = " + locAndAlleles.first);
@@ -480,9 +506,11 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
                         GTQual = parseQual(GTValueArray[i]);
                     else if (genotypeKeyArray[i].equals("FT")) // deal with genotype filters here
                         genotypeFilters = parseFilters(GTValueArray[i]);
-                    else
+                    else {
+                        if (this.version != VCFHeaderVersion.VCF4_0 && GTValueArray[i].equals(VCFConstants.MISSING_GENOTYPE_QUALITY_v3))
+                            GTValueArray[i] = VCFConstants.MISSING_VALUE_v4;
                         gtAttributes.put(genotypeKeyArray[i], GTValueArray[i]);
-
+                    }
                 }
                 // validate the format fields
                 validateFields(gtAttributes.keySet(), new ArrayList(formatFields.keySet()));
@@ -517,7 +545,22 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
     static Pair<GenomeLoc,List<Allele>> clipAlleles(String contig, long position, String ref, List<Allele> unclippedAlleles) {
         List<Allele> newAlleleList = new ArrayList<Allele>();
 
-        // find the preceeding string common to all alleles and the reference
+/*        //+
+        boolean clipping = true;
+        int forwardClipping = 0;
+        while(clipping) {
+            for (Allele a : unclippedAlleles) {
+                if (a.length()-forwardClipping == 0)
+                    clipping = false;
+                else if (a.getBases()[forwardClipping] != ref.getBytes()[forwardClipping])
+                    clipping = false;
+                if (clipping) forwardClipping++;
+            }
+
+
+        }
+         //-
+ */       // find the preceeding string common to all alleles and the reference
         boolean clipping = true;
         for (Allele a : unclippedAlleles)
                 if (a.length() < 1 || (a.getBases()[0] != ref.getBytes()[0])) {
@@ -576,6 +619,19 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         return name;
     }
 
+    public static interface LineTransform {
+        public String lineTransform(String line);
+    }
+
+    public LineTransform getTransformer() {
+        return transformer;
+    }
+
+    public void setTransformer(LineTransform transformer) {
+        this.transformer = transformer;
+    }
+
+    
     /**
      * set the name of this codec
      * @param name
@@ -583,4 +639,6 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
     public void setName(String name) {
         this.name = name;
     }
+
+
 }

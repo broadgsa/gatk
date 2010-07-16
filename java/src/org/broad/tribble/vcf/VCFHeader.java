@@ -30,9 +30,6 @@ public class VCFHeader {
     // the header string indicator
     public static final String HEADER_INDICATOR = "#";
 
-    // our header version
-    private VCFHeaderVersion version;
-    
     /** do we have genotying data? */
     private boolean hasGenotypingData = false;
 
@@ -70,7 +67,6 @@ public class VCFHeader {
         List<VCFHeaderLine> toRemove = new ArrayList<VCFHeaderLine>();
         for ( VCFHeaderLine line : mMetaData )
             if ( VCFHeaderVersion.isFormatString(line.getKey())) {
-                version = VCFHeaderVersion.toHeaderVersion(line.getValue(),line.getKey());
                 toRemove.add(line);
             }
         // remove old header lines for now,
@@ -98,10 +94,7 @@ public class VCFHeader {
      */
     public Set<VCFHeaderLine> getMetaData() {
         Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>();
-        if (version == null)
-            lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF3_3.getFormatString(), VCFHeaderVersion.VCF3_3.getVersionString()));
-        else
-            lines.add(new VCFHeaderLine(version.getFormatString(), version.getVersionString()));
+        lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_0.getFormatString(), VCFHeaderVersion.VCF4_0.getVersionString()));
         lines.addAll(mMetaData);
         return lines;
     }
@@ -129,19 +122,6 @@ public class VCFHeader {
         return HEADER_FIELDS.values().length + ((hasGenotypingData) ? mGenotypeSampleNames.size() + 1 : 0);
     }
 
-    /**
-     * convert the header to a new VCF version
-     * @param version the version to convert to
-     */
-    public void setVersion(VCFHeaderVersion version) {
-        if (version.equals(this.version))
-            return; // we're all set, do nothing
-
-        // store the new version, and update each of the header lines
-        this.version = version;
-        for (VCFHeaderLine line : mMetaData)
-            line.setVersion(version);
-    }
 }
 
 

@@ -1,8 +1,13 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.util.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.Assert;
@@ -10,7 +15,9 @@ import org.junit.Test;
 import org.junit.BeforeClass;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -34,30 +41,47 @@ public class VCFWriterUnitTest extends BaseTest {
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 
-    @Test
-    public void emptyTest() {
-    }
-
     /** test, using the writer and reader, that we can output and input a VCF file without problems */
-    //@Test
+    @Test
     public void testBasicWriteAndRead() {
         VCFHeader header = createFakeHeader(metaData,additionalColumns);
         VCFWriter writer = new VCFWriter(fakeVCFFile);
         writer.writeHeader(header);
-        writer.addRecord(createVCFRecord(header));
-        writer.addRecord(createVCFRecord(header));
+        writer.add(createVC(header),"A".getBytes());
+        writer.add(createVC(header),"A".getBytes());
         writer.close();
-        VCFReader reader = new VCFReader(fakeVCFFile);
-        int counter = 0;
-        // validate what we're reading in
-        validateHeader(reader.getHeader());
-        for (VCFRecord rec : reader) {
-            counter++;
+        VCFCodec reader = new VCFCodec();
+        AsciiLineReader lineReader;
+
+        try {
+             lineReader = new AsciiLineReader(new FileInputStream(fakeVCFFile));
+             int lineNumber = reader.readHeader(lineReader);
         }
-        Assert.assertEquals(2,counter);
-        reader.close();
-        new File(fakeVCFFile + TribbleRMDTrackBuilder.linearIndexExtension).delete();
-        //fakeVCFFile.delete();
+        catch (FileNotFoundException e ) {
+            throw new StingException(e.getMessage());
+        }
+
+        int counter = 0;
+
+        // validate what we're reading in
+        validateHeader(reader.getHeader(VCFHeader.class));
+        try {
+            while(true) {
+                String line = lineReader.readLine();
+                if (line == null)
+                    break;
+
+                VariantContext vc = (VariantContext)reader.decode(line);
+                counter++;
+            }
+            Assert.assertEquals(2,counter);
+            new File(fakeVCFFile + TribbleRMDTrackBuilder.linearIndexExtension).delete();
+            fakeVCFFile.delete();
+        }
+        catch (IOException e ) {
+            throw new StingException(e.getMessage());
+        }
+
     }
 
     /**
@@ -67,8 +91,8 @@ public class VCFWriterUnitTest extends BaseTest {
      * @return a fake VCF header
      */
     public static VCFHeader createFakeHeader(Set<VCFHeaderLine> metaData, Set<String> additionalColumns) {
-        metaData.add(new VCFHeaderLine(VCFHeaderVersion.VCF3_3.getFormatString(), VCFHeaderVersion.VCF3_3.getVersionString(),VCFHeaderVersion.VCF3_3));
-        metaData.add(new VCFHeaderLine("two", "2",VCFHeaderVersion.VCF3_3));
+        metaData.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_0.getFormatString(), VCFHeaderVersion.VCF4_0.getVersionString()));
+        metaData.add(new VCFHeaderLine("two", "2"));
         additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
@@ -80,23 +104,29 @@ public class VCFWriterUnitTest extends BaseTest {
      * @param header the VCF header
      * @return a VCFRecord
      */
-    private VCFRecord createVCFRecord(VCFHeader header) {
-        List<VCFGenotypeEncoding> altBases = new ArrayList<VCFGenotypeEncoding>();
-        altBases.add(new VCFGenotypeEncoding("C"));
-        altBases.add(new VCFGenotypeEncoding("D1"));
-        Map<String,String> infoFields = new HashMap<String,String>();
-        infoFields.put("DP","50");
+    private VariantContext createVC(VCFHeader header) {
 
-        List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc("chr1",1);
+        List<Allele> alleles = new ArrayList<Allele>();
+        Set<String> filters = null;
+        Map<String, String> attributes = new HashMap<String,String>();
+        Map<String, Genotype> genotypes = new HashMap<String,Genotype>();
+
+        alleles.add(Allele.create("A",true));
+        alleles.add(Allele.create("CC",false));
+        alleles.add(Allele.create("-",false));
+
+        attributes.put("DP","50");
         for (String name : header.getGenotypeSamples()) {
-            List<VCFGenotypeEncoding> myAlleles = new ArrayList<VCFGenotypeEncoding>();
-            myAlleles.add(new VCFGenotypeEncoding("C"));
-            myAlleles.add(new VCFGenotypeEncoding("D1"));
-            VCFGenotypeRecord rec = new VCFGenotypeRecord(name, myAlleles, VCFGenotypeRecord.PHASE.PHASED);
-            rec.setField("bb", "0");
-            gt.add(rec);
+            Map<String, String> gtattributes = new HashMap<String,String>();
+            gtattributes.put("BB","1");
+            Genotype gt = new Genotype(name,alleles.subList(1,2),0,null,gtattributes,true);
+
+            genotypes.put(name,gt);
+            
         }
-        return new VCFRecord("A","chr1",1,"RANDOM",altBases,0,".",infoFields, "GT:AA",gt);
+        return new VariantContext("RANDOM",loc, alleles, genotypes, 0, filters, attributes);
+
 
     }
 

@@ -70,11 +70,11 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingVCFInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("b423141ca600d581dc73e9b3dff4f782");
+        md5.add("919eb499bfcc980a14825a0265e575e3");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
-                        " -B variant,VCF," + validationDataLocation + "complexExample.vcf" +
+                        " -B variant,VCF," + validationDataLocation + "complexExample.vcf4" +
                         " -T VariantsToVCF" +
                         " -o %s",
                 1, // just one output file

@@ -41,7 +41,7 @@ public class VariantSelectIntegrationTest extends WalkerTest {
     public void testVCFSelect1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample3.vcf -match 'AF == 0.50' -L 1:10001290-10048590 ", 1,
-                Arrays.asList("8b358e0cfa35de022a37360a6f28a839"));
+                Arrays.asList("8fd97a99174483920f84aaf54eeb9dd9"));
         executeTest("testVCFSelect1", spec);
     }
 
@@ -49,7 +49,7 @@ public class VariantSelectIntegrationTest extends WalkerTest {
     public void testVCFSelect2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample3.vcf -match 'HomopolymerRun == 6' -L 1:10001290-10048590 ", 1,
-                Arrays.asList("8e991b9d6d610c8f89c8557756fc8e34"));
+                Arrays.asList("ecb61d798ff5e0b003d2986500bf4462"));
         executeTest("testVCFSelect2", spec);
     }
 
@@ -57,7 +57,7 @@ public class VariantSelectIntegrationTest extends WalkerTest {
     public void testVCFSelectOr() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample3.vcf -match 'HomopolymerRun == 6' -match 'AF == 0.50' -L 1:10001290-10048590 ", 1,
-                Arrays.asList("7bd064c8d8bf5389fcd0b78a7c32b599"));
+                Arrays.asList("7c23412a0abe28057a78cd532b752019"));
         executeTest("testVCFSelectOr", spec);
     }
 
@@ -65,7 +65,7 @@ public class VariantSelectIntegrationTest extends WalkerTest {
     public void testVCFSelectAnd() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B variant,VCF," + validationDataLocation + "vcfexample3.vcf -match 'HomopolymerRun == 6 && AF == 0.50' -L 1:10001290-10048590 ", 1,
-                Arrays.asList("5af565836fa926feaa130715b93188bc"));
+                Arrays.asList("71cc18348a9d5de7270613bedb79880a"));
         executeTest("testVCFSelectAnd", spec);
     }
 }

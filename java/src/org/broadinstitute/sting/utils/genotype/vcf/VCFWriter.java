@@ -201,9 +201,6 @@ public class VCFWriter {
         String paddingBases = "";
         String trailingBases = "";
 
-        ArrayList<Allele> originalAlleles = (ArrayList)vc.getAttribute("ORIGINAL_ALLELE_LIST");
-
-
         // search for reference allele and find trailing and padding at the end.
          // See first if all alleles have a base encoding (ie no deletions)
         // if so, add one common base to all alleles (reference at this location)
@@ -217,50 +214,12 @@ public class VCFWriter {
                 refString = new String(a.getBases());
         }
 
-        if (originalAlleles != null) {
-            // if original allele info was filled when reading from a VCF4 file,
-            // determine whether there was a padding base(s) at the beginning and end.
-            byte previousBase  = 0;
-            int cnt=0;
-            boolean firstBaseCommonInAllAlleles = true;
-            Allele originalReferenceAllele = null;
-            for (Allele originalAllele : originalAlleles){
-                // if first base of allele is common to all of them, there may have been a common base deleted from all
-                byte firstBase = originalAllele.getBases()[0];
-                if (cnt > 0) {
-                    if (firstBase != previousBase)
-                        firstBaseCommonInAllAlleles = false;
-                }
-                previousBase = firstBase;
-                cnt++;
-                
-                if (originalAllele.isReference())
-                    originalReferenceAllele = originalAllele;
-            }
 
-
-            numTrailingBases = (firstBaseCommonInAllAlleles)? 1:0;
-            position -= numTrailingBases;
-            
-            if (originalReferenceAllele == null)
-                throw new IllegalStateException("At least one Allele must be reference");
-
-            String originalRef = new String(originalReferenceAllele.getBases());
-            numPaddingBases = originalRef.length()-refString.length()-numTrailingBases;
-
-            if (numTrailingBases > 0) {
-                trailingBases = originalRef.substring(0,numTrailingBases);
-            }
-            if (numPaddingBases > 0)
-                paddingBases = originalRef.substring(originalRef.length()-numPaddingBases,originalRef.length());
-        }
-        else {
-            // Case where there is no original allele info, e.g. when reading from VCF3.3 or when vc was produced by the GATK.
-            if (!hasBasesInAllAlleles) {
-                trailingBases = new String(refBases);
-                numTrailingBases = 1;
-                position--;
-            }
+        // Case where there is no original allele info, e.g. when reading from VCF3.3 or when vc was produced by the GATK.
+        if (!hasBasesInAllAlleles) {
+            trailingBases = new String(refBases);
+            numTrailingBases = 1;
+            position--;
         }
 
 
@@ -295,6 +254,7 @@ public class VCFWriter {
             // this needs to be done in case all samples are no-calls
             vcfGenotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
         }
+
         String genotypeFormatString = Utils.join(VCFConstants.GENOTYPE_FIELD_SEPARATOR, vcfGenotypeAttributeKeys);
 
         List<VCFGenotypeRecord> genotypeObjects = new ArrayList<VCFGenotypeRecord>(vc.getGenotypes().size());
@@ -376,10 +336,6 @@ public class VCFWriter {
         for ( Map.Entry<String, Object> elt : vc.getAttributes().entrySet() ) {
             String key = elt.getKey();
             if ( key.equals("ID") )
-                continue;
-
-            // Original alleles are not for reporting but only for internal bookkeeping
-            if (key.equals("ORIGINAL_ALLELE_LIST"))
                 continue;
 
             String outputValue = formatVCFField(key, elt.getValue());
@@ -587,14 +543,21 @@ public class VCFWriter {
         Set<String> keys = new HashSet<String>();
 
         boolean sawGoodQual = false;
+        boolean sawGenotypeFilter = false;
         for ( Genotype g : vc.getGenotypes().values() ) {
             keys.addAll(g.getAttributes().keySet());
             if ( g.hasNegLog10PError() )
                 sawGoodQual = true;
+            if (g.isFiltered() && g.isCalled())
+                sawGenotypeFilter = true;
         }
 
         if ( sawGoodQual )
             keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);
+
+        if (sawGenotypeFilter)
+            keys.add(VCFConstants.GENOTYPE_FILTER_KEY);
+        
         return Utils.sorted(new ArrayList<String>(keys));
     }
 
