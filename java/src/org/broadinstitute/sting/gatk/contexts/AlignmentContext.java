@@ -109,7 +109,11 @@ public class AlignmentContext {
      * extended event (indel) pileup.
      * @return
      */
-    public ReadBackedPileup getBasePileup() { return basePileup; }
+    public ReadBackedPileup getBasePileup() {
+        if(!hasBasePileup())
+            throw new StingException("No base pileup is available.  Please check for a base pileup with hasBasePileup() before attempting to retrieve a pileup.");
+        return basePileup;
+    }
 
     /** Returns extended event (indel) pileup over the current genomic location. May return null if this context keeps
      * only base pileup.

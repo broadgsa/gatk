@@ -128,8 +128,8 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         }
 
         // look at the normal context to get deletions and positions with high entropy
-        ReadBackedPileup pileup = context.getBasePileup();
-        if ( pileup != null ) {
+        if ( context.hasBasePileup() ) {
+            ReadBackedPileup pileup = context.getBasePileup();
 
             int mismatchQualities = 0, totalQualities = 0;
             byte refBase = ref.getBase();
