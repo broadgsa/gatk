@@ -12,6 +12,7 @@
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.TiTvVariantEvaluator" />
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.ValidationRate" />
       <class name="org.broadinstitute.sting.gatk.walkers.varianteval.VariantQualityScore" />
+      <class name="org.broadinstitute.sting.gatk.walkers.varianteval.CountFunctionalClasses" />
     </dependencies>
   </executable>
 </package>
