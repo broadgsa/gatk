@@ -38,8 +38,9 @@ import java.util.Map;
  *         A class representing a key=value entry in the VCF header
  */
 public class VCFHeaderLine implements Comparable {
+    protected static boolean ALLOW_UNBOUND_DESCRIPTIONS = true;
+    protected static String UNBOUND_DESCRIPTION = "Not provided in original VCF header";
 
-    private String stringRep = null;
     private String mKey = null;
     private String mValue = null;
 
@@ -51,6 +52,8 @@ public class VCFHeaderLine implements Comparable {
      * @param value   the value for this header line
      */
     public VCFHeaderLine(String key, String value) {
+        if ( key == null )
+            throw new IllegalArgumentException("VCFHeaderLine: key cannot be null: key = " + key);
         mKey = key;
         mValue = value;
     }
@@ -65,16 +68,6 @@ public class VCFHeaderLine implements Comparable {
     }
 
     /**
-     * Set the key
-     *
-     * @param key     the key for this header line
-     */
-    public void setKey(String key) {
-        mKey = key;
-        stringRep = null;
-    }
-
-    /**
      * Get the value
      *
      * @return the value
@@ -83,22 +76,15 @@ public class VCFHeaderLine implements Comparable {
         return mValue;
     }
 
-    /**
-     * Set the value
-     *
-     * @param value     the value for this header line
-     */
-    public void setValue(String value) {
-        mValue = value;
-        stringRep = null;
-    }
-
     public String toString() {
-        if ( stringRep == null )
-            stringRep = toStringEncoding();
-        return stringRep;
+        return toStringEncoding();
     }
 
+    /**
+     * Should be overloaded in sub classes to do subclass specific
+     *
+     * @return
+     */
     protected String toStringEncoding() {
         return mKey + "=" + mValue;
     }

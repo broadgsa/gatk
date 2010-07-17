@@ -25,6 +25,9 @@ public class VCFFilterHeaderLine extends VCFHeaderLine implements VCFNamedHeader
         super("FILTER", "");
         this.name = name;
         this.description = description;
+
+        if ( name == null || description == null )
+            throw new IllegalArgumentException(String.format("Invalid VCFCompoundHeaderLine: key=%s name=%s desc=%s", super.getKey(), name, description ));
     }
 
     /**
@@ -38,6 +41,8 @@ public class VCFFilterHeaderLine extends VCFHeaderLine implements VCFNamedHeader
         Map<String,String> mapping = VCFHeaderLineTranslator.parseLine(version,line, Arrays.asList("ID","Description"));
         name = mapping.get("ID");
         description = mapping.get("Description");
+        if ( description == null && ALLOW_UNBOUND_DESCRIPTIONS ) // handle the case where there's no description provided 
+            description = UNBOUND_DESCRIPTION;
     }
 
     protected String toStringEncoding() {

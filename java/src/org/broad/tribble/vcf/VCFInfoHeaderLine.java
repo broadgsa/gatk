@@ -9,11 +9,6 @@ package org.broad.tribble.vcf;
  *         A class representing a key=value entry for INFO fields in the VCF header
  */
 public class VCFInfoHeaderLine extends VCFCompoundHeaderLine {
-
-    public VCFInfoHeaderLine(String name, int count, VCFHeaderLineType type, String description, VCFHeaderVersion version) {
-        super(name, count, type, description, SupportedHeaderLineType.INFO, version);
-    }
-
     public VCFInfoHeaderLine(String name, int count, VCFHeaderLineType type, String description) {
         super(name, count, type, description, SupportedHeaderLineType.INFO);
     }

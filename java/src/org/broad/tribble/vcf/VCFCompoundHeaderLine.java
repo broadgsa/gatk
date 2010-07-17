@@ -39,7 +39,6 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
         SupportedHeaderLineType(boolean flagValues) {
             allowFlagValues = flagValues;
         }
-
     }
 
     // the field types
@@ -79,15 +78,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
         this.type = type;
         this.description = description;
         this.lineType = lineType;
-    }
-
-    protected VCFCompoundHeaderLine(String name, int count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType, VCFHeaderVersion version) {
-        super(lineType.toString(), "");
-        this.name = name;
-        this.count = count;
-        this.type = type;
-        this.description = description;
-        this.lineType = lineType;
+        validate();
     }
 
     /**
@@ -107,8 +98,20 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
         type = VCFHeaderLineType.valueOf(mapping.get("Type"));
         if (type == VCFHeaderLineType.Flag && !allowFlagValues())
             throw new IllegalArgumentException("Flag is an unsupported type for this kind of field");
+
         description = mapping.get("Description");
+        if ( description == null && ALLOW_UNBOUND_DESCRIPTIONS ) // handle the case where there's no description provided
+            description = UNBOUND_DESCRIPTION;
+        
         this.lineType = lineType;
+
+        validate();
+    }
+
+    private void validate() {
+        if ( name == null || type == null || description == null || lineType == null )
+            throw new IllegalArgumentException(String.format("Invalid VCFCompoundHeaderLine: key=%s name=%s type=%s desc=%s lineType=%s", 
+                    super.getKey(), name, type, description, lineType ));
     }
 
     /**
