@@ -73,7 +73,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         headerLines.add(new VCFHeaderLine("source", "CombineVariants"));
-        headerLines.add(new VCFInfoHeaderLine("set", 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants", VCFHeaderVersion.VCF4_0));
+        headerLines.add(new VCFInfoHeaderLine("set", 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
