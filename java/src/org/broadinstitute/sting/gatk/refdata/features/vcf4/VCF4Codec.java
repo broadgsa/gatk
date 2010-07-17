@@ -127,9 +127,9 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             if (hl.getClass() == VCFFilterHeaderLine.class)
                 this.filterFields.add(((VCFFilterHeaderLine)hl).getName());
             if (hl.getClass() == VCFFormatHeaderLine.class)
-                                        this.formatFields.put(((VCFFormatHeaderLine)hl).getName(),((VCFFormatHeaderLine)hl).getType());
+                this.formatFields.put(((VCFFormatHeaderLine)hl).getName(),((VCFFormatHeaderLine)hl).getType());
             if (hl.getClass() == VCFInfoHeaderLine.class)
-                                        this.infoFields.put(((VCFInfoHeaderLine)hl).getName(),((VCFInfoHeaderLine)hl).getType());
+                this.infoFields.put(((VCFInfoHeaderLine)hl).getName(),((VCFInfoHeaderLine)hl).getType());
         }
         // sort the lists so we can binary search them later on
         Collections.sort(filterFields);
