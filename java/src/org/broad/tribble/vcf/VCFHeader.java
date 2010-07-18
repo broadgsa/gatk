@@ -20,6 +20,8 @@ public class VCFHeader {
 
     // the associated meta data
     private final Set<VCFHeaderLine> mMetaData;
+    private final Map<String, VCFInfoHeaderLine> mInfoMetaData = new HashMap<String, VCFInfoHeaderLine>();
+    private final Map<String, VCFFormatHeaderLine> mFormatMetaData = new HashMap<String, VCFFormatHeaderLine>();
 
     // the list of auxillary tags
     private final Set<String> mGenotypeSampleNames = new LinkedHashSet<String>();
@@ -41,6 +43,7 @@ public class VCFHeader {
     public VCFHeader(Set<VCFHeaderLine> metaData) {
         mMetaData = new TreeSet<VCFHeaderLine>(metaData);
         loadVCFVersion();
+        loadMetaDataMaps();
     }
 
     /**
@@ -57,6 +60,7 @@ public class VCFHeader {
         }
         if (genotypeSampleNames.size() > 0) hasGenotypingData = true;
         loadVCFVersion();
+        loadMetaDataMaps();
     }
 
     /**
@@ -72,6 +76,18 @@ public class VCFHeader {
         // remove old header lines for now,
         mMetaData.removeAll(toRemove);
 
+    }
+
+    /**
+     * load the format/info meta data maps (these are used for quick lookup by key name)
+     */
+    private void loadMetaDataMaps() {
+        for ( VCFHeaderLine line : mMetaData ) {
+            if ( line instanceof VCFInfoHeaderLine )
+                mInfoMetaData.put(line.getKey(), (VCFInfoHeaderLine)line);
+            else if ( line instanceof VCFFormatHeaderLine )
+                mFormatMetaData.put(line.getKey(), (VCFFormatHeaderLine)line);
+        }
     }
 
     /**
@@ -117,11 +133,26 @@ public class VCFHeader {
         return hasGenotypingData;
     }
 
-    /** @return the column count, */
+    /** @return the column count */
     public int getColumnCount() {
         return HEADER_FIELDS.values().length + ((hasGenotypingData) ? mGenotypeSampleNames.size() + 1 : 0);
     }
 
+    /**
+     * @param key    the header key name
+     * @return the meta data line, or null if there is none
+     */
+    public VCFInfoHeaderLine getInfoHeaderLine(String key) {
+        return mInfoMetaData.get(key);
+    }
+
+    /**
+     * @param key    the header key name
+     * @return the meta data line, or null if there is none
+     */
+    public VCFFormatHeaderLine getFormatHeaderLine(String key) {
+        return mFormatMetaData.get(key);
+    }
 }
 
 

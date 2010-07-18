@@ -58,6 +58,9 @@ public final class VCFConstants {
     public static final String FIELD_SEPARATOR = "\t";
     public static final String FILTER_CODE_SEPARATOR = ";";
     public static final String INFO_FIELD_SEPARATOR = ";";
+    public static final String UNPHASED = "/";
+    public static final String PHASED = "|";
+    public static final String PHASED_SWITCH_PROB_v3 = "\\";
 
     // missing/default values
     public static final String UNFILTERED = ".";

@@ -27,12 +27,4 @@ public interface VCFGenotypeWriter extends GenotypeWriter {
      * @param vcfRecord Record to add.
      */
     public void addRecord(VCFRecord vcfRecord);
-
-    /**
-     * set the validation stringency
-     * @param value   validation stringency value
-     */
-    public void setValidationStringency(VALIDATION_STRINGENCY value);
-    
-    public enum VALIDATION_STRINGENCY { STRICT, SILENT };
 }

@@ -52,14 +52,6 @@ public class VCFGenotypeWriterStorage extends GenotypeWriterStorage<VCFGenotypeW
     }
 
     /**
-     * set the validation stringency
-     * @param value   validation stringency value
-     */
-    public void setValidationStringency(VALIDATION_STRINGENCY value) {
-        ((VCFGenotypeWriter)writer).setValidationStringency(value);
-    }
-
-    /**
      * Merges the stream backing up this temporary storage into the target.
      * @param target Target stream for the temporary storage.  May not be null.
      */

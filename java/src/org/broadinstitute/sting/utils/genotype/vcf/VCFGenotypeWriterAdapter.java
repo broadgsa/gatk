@@ -27,9 +27,6 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     // our log, which we want to capture anything from this class
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
 
-    // validation stringency
-    private VALIDATION_STRINGENCY validationStringency = VALIDATION_STRINGENCY.STRICT;
-
     // allowed genotype format strings
     private Set<String> allowedGenotypeFormatStrings = null;
 
@@ -41,6 +38,10 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
     public VCFGenotypeWriterAdapter(OutputStream writeTo) {
         if (writeTo == null) throw new RuntimeException("VCF output stream must not be null");
         mWriter = new VCFWriter(writeTo);
+    }
+
+    public void addRecord(VCFRecord vcfRecord) {
+        mWriter.addRecord(vcfRecord);
     }
 
     /**
@@ -91,17 +92,5 @@ public class VCFGenotypeWriterAdapter implements VCFGenotypeWriter {
 
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
         mWriter.add(vc, new byte[]{(byte)refAllele.charAt(0)});
-    }
-
-    public void addRecord(VCFRecord vcfRecord) {
-        mWriter.addRecord(vcfRecord, validationStringency);
-    }
-
-    /**
-     * set the validation stringency
-     * @param value   validation stringency value
-     */
-    public void setValidationStringency(VALIDATION_STRINGENCY value) {
-        validationStringency = value;
     }
 }
