@@ -520,7 +520,7 @@ public class VariantContextAdaptors {
             Map<String, Genotype> genotypes = new HashMap<String, Genotype>(samples.length);
             for ( int i = 0; i < samples.length; i++ ) {
                 // ignore bad genotypes
-                if ( genotypeStrings[i].contains("N") )
+                if ( genotypeStrings[i].contains("N") || genotypeStrings[i].contains("I") || genotypeStrings[i].contains("D") )
                     continue;
 
                 String a1 = genotypeStrings[i].substring(0,1);
