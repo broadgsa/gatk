@@ -112,9 +112,8 @@ public class VCFWriterUnitTest extends BaseTest {
         Map<String, String> attributes = new HashMap<String,String>();
         Map<String, Genotype> genotypes = new HashMap<String,Genotype>();
 
-        alleles.add(Allele.create("A",true));
+        alleles.add(Allele.create("-",true));
         alleles.add(Allele.create("CC",false));
-        alleles.add(Allele.create("-",false));
 
         attributes.put("DP","50");
         for (String name : header.getGenotypeSamples()) {
