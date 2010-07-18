@@ -40,8 +40,8 @@ import java.util.*;
 
 /** Iterator that traverses a SAM File, accumulating information on a per-locus basis */
 public class LocusIteratorByState extends LocusIterator {
-    private static long discarded_bases = 0L;
-    private static long observed_bases = 0L;
+//    private static long discarded_bases = 0L;
+//    private static long observed_bases = 0L;
 
     //
     // todo -- eric, add your UG filters here
@@ -69,7 +69,7 @@ public class LocusIteratorByState extends LocusIterator {
     private final Collection<String> sampleNames = new ArrayList<String>();
     private final ReadStateManager readStates;
 
-    private class SAMRecordState {
+    static private class SAMRecordState {
         SAMRecord read;
         int readOffset = -1;     // how far are we offset from the start of the read bases?
         int genomeOffset = -1;   // how far are we offset from the alignment start on the genome?
@@ -226,7 +226,11 @@ public class LocusIteratorByState extends LocusIterator {
                             insertedBases = null;
 //                            System.out.println("Deleted "+eventLength +" bases after "+readOffset);
                         }
-                    } // continue onto the 'N' case !
+                    }
+                    // should be the same as N case
+                    genomeOffset++;
+                    done = true;
+                    break;
                 case N : // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
                     genomeOffset++;
                     done = true;
@@ -448,11 +452,11 @@ public class LocusIteratorByState extends LocusIterator {
                         SAMRecordState state = iterator.next();
                         if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
                             if ( filterRead(state.getRead(), location.getStart(), filters ) ) {
-                                discarded_bases++;
+                                //discarded_bases++;
                                 //printStatus("Adaptor bases", discarded_adaptor_bases);
                                 continue;
                             } else {
-                                observed_bases++;
+                                //observed_bases++;
                                 pile.add(new PileupElement(state.getRead(), state.getReadOffset()));
                                 size++;
                             }
@@ -504,10 +508,10 @@ public class LocusIteratorByState extends LocusIterator {
         return false;
     }
 
-    private void printStatus(final String title, long n) {
-        if ( n % 10000 == 0 )
-            System.out.printf("%s %d / %d = %.2f%n", title, n, observed_bases, 100.0 * n / (observed_bases + 1));
-    }
+//    private void printStatus(final String title, long n) {
+//        if ( n % 10000 == 0 )
+//            System.out.printf("%s %d / %d = %.2f%n", title, n, observed_bases, 100.0 * n / (observed_bases + 1));
+//    }
 
     private void updateReadStates() {
         for(String sampleName: sampleNames) {
@@ -865,7 +869,7 @@ public class LocusIteratorByState extends LocusIterator {
     /**
      * Note: assuming that, whenever we downsample, we downsample to an integer capacity.
      */
-    private class Counter {
+    static private class Counter {
         private int count;
 
         public Counter(int count) {

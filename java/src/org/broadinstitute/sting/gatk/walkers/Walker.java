@@ -43,7 +43,7 @@ import net.sf.picard.filter.SamRecordFilter;
  * To change this template use File | Settings | File Templates.
  */
 public abstract class Walker<MapType, ReduceType> {
-    protected static Logger logger = Logger.getLogger(Walker.class);
+    final protected static Logger logger = Logger.getLogger(Walker.class);
 
     /**
      * A stream for writing normal (non-error) output.  System.out by default.

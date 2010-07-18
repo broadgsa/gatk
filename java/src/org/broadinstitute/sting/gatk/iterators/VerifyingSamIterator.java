@@ -19,7 +19,6 @@ public class VerifyingSamIterator implements StingSAMIterator {
     StingSAMIterator it;
     SAMRecord last = null;
     boolean checkOrderP = true;
-    long nOutOfOrderReads = 0; 
 
     public VerifyingSamIterator(StingSAMIterator it) {
         this.it = it;

@@ -91,7 +91,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         if ( rodNames.size() != priority.size() )
             throw new StingException("The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
 
-        if ( ! rodNames.containsAll(rodNames) )
+        if ( ! rodNames.containsAll(priority) )
             throw new StingException("Not all priority elements provided as input RODs: " + PRIORITY_STRING);
     }
 

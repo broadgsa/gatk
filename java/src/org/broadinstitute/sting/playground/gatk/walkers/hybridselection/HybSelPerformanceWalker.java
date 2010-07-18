@@ -230,7 +230,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
                 basesConsidered += length;
             }
         }
-        double meanTargetCoverage = totalCoverage / basesConsidered;
+        double meanTargetCoverage = (1.0*totalCoverage) / basesConsidered;
 
 
         for(Pair<GenomeLoc, TargetInfo> pair : results) {

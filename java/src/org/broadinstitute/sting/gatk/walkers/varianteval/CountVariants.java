@@ -111,6 +111,8 @@ public class CountVariants extends VariantEvaluator {
             case MIXED:
                 nComplex++;
                 break;
+            default:
+                throw new StingException("Unexpected VariantContext type " + vc1.getType());
         }
 
         for (Genotype g : vc1.getGenotypes().values()) {

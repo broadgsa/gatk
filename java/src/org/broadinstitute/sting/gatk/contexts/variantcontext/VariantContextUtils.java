@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
+import java.io.Serializable;
 import java.util.*;
 import org.apache.commons.jexl2.*;
 import org.broadinstitute.sting.utils.StingException;
@@ -32,7 +33,7 @@ import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broad.tribble.vcf.VCFConstants;
 
 public class VariantContextUtils {
-    public static JexlEngine engine = new JexlEngine();
+    final public static JexlEngine engine = new JexlEngine();
 
     /** 
      * A simple but common wrapper for matching VariantContext objects using JEXL expressions
@@ -64,10 +65,10 @@ public class VariantContextUtils {
      */
     public static List<JexlVCMatchExp> initializeMatchExps(String[] names, String[] exps) {
         if ( names == null || exps == null )
-            throw new StingException("BUG: neither names nor exps can be null: names " + names + " exps=" + exps );
+            throw new StingException("BUG: neither names nor exps can be null: names " + Arrays.toString(names) + " exps=" + Arrays.toString(exps) );
 
         if ( names.length != exps.length )
-            throw new StingException("Inconsistent number of provided filter names and expressions: names=" + names + " exps=" + exps);
+            throw new StingException("Inconsistent number of provided filter names and expressions: names=" + Arrays.toString(names) + " exps=" + Arrays.toString(exps));
 
         Map<String, String> map = new HashMap<String, String>();
         for ( int i = 0; i < names.length; i++ ) { map.put(names[i], exps[i]); }
@@ -377,7 +378,7 @@ public class VariantContextUtils {
     }
 
 
-    static class CompareByPriority implements Comparator<VariantContext> {
+    static class CompareByPriority implements Comparator<VariantContext>, Serializable {
         List<String> priorityListOfVCs;
         public CompareByPriority(List<String> priorityListOfVCs) {
             this.priorityListOfVCs = priorityListOfVCs;
@@ -390,7 +391,7 @@ public class VariantContextUtils {
         }
 
         public int compare(VariantContext vc1, VariantContext vc2) {
-            return new Integer(getIndex(vc1)).compareTo(getIndex(vc2));
+            return Integer.valueOf(getIndex(vc1)).compareTo(getIndex(vc2));
         }
     }
 

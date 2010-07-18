@@ -63,8 +63,7 @@ import java.util.regex.Pattern;
  * To change this template use File | Settings | File Templates.
  */
 public class PlatformUnitFilterHelper {
-
-    public static Pattern EMPTYLINE_PATTERN = Pattern.compile("^\\s*$");
+    final public static Pattern EMPTYLINE_PATTERN = Pattern.compile("^\\s*$");
 
     public PlatformUnitFilterHelper(String arg) {
          File f = new File(arg);

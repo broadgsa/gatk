@@ -59,7 +59,7 @@ public class GenotypeConcordance extends VariantEvaluator {
     private static final int MAX_MISSED_VALIDATION_DATA = 100;
 
 
-    class FrequencyStats implements TableType {
+    static class FrequencyStats implements TableType {
         class Stats {
             public Stats(int found, int missed) { nFound = found; nMissed = missed; }
             public long nFound = 0;
@@ -103,8 +103,8 @@ public class GenotypeConcordance extends VariantEvaluator {
         }
     }
 
-    class QualityScoreHistograms implements TableType {
-        final int NUM_BINS = 20;
+    static class QualityScoreHistograms implements TableType {
+        final static int NUM_BINS = 20;
         final HashMap<Integer,Integer> truePositiveQualityScoreMap = new HashMap<Integer,Integer>(); // A HashMap holds all the quality scores until we are able to bin them appropriately
         final HashMap<Integer,Integer> falsePositiveQualityScoreMap = new HashMap<Integer,Integer>();
         final int truePositiveHist[] = new int[NUM_BINS]; // the final histograms that get reported out

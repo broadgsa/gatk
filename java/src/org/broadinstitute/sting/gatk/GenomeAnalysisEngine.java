@@ -123,6 +123,9 @@ public class GenomeAnalysisEngine {
      */
     public GenomeAnalysisEngine() {
         // make sure our instance variable points to this analysis engine
+//        if ( instance != null )
+//            throw new StingException("Instantiating GenomeAnalysisEngine but global instance variable isn't null, indicating that an instance has already been created: " + instance);
+
         instance = this;
         walkerManager = new WalkerManager();
         filterManager = new FilterManager();
@@ -736,7 +739,7 @@ public class GenomeAnalysisEngine {
 
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {
-                if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
+                if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     Utils.scareUser("Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file.");                
                 shardType = Shard.ShardType.LOCUS;
             }

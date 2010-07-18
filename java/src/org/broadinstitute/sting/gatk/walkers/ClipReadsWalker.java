@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
+import java.nio.channels.IllegalSelectorException;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -336,6 +337,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
                     case MATCHES_CLIP_SEQ:
                         data.incSeqClippedBases((String) op.extraInfo, op.getLength());
                         break;
+                    default:
+                        throw new IllegalStateException("Unexpected Clipping operator type " + op);
                 }
             }
         }
@@ -353,7 +356,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private class SeqToClip {
+    private static class SeqToClip {
         String name;
         String seq, revSeq;
         Pattern fwdPat, revPat;
@@ -475,6 +478,8 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
 
                     break;
                     //throw new RuntimeException("Softclipping of bases not yet implemented.");
+                default:
+                    throw new IllegalStateException("Unexpected Clipping operator type " + algorithm);
             }
         }
     }
@@ -492,7 +497,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     /**
      * A simple collection of the clipping operations to apply to a read along with its read
      */
-    public class ReadClipper {
+    static public class ReadClipper {
         SAMRecord read;
         List<ClippingOp> ops = null;
 
@@ -551,7 +556,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
         }
     }
 
-    public class ClippingData {
+    public static class ClippingData {
         public long nTotalReads = 0;
         public long nTotalBases = 0;
         public long nClippedReads = 0;

@@ -35,6 +35,7 @@ import java.util.*;
 /**
  *
  * @author aaron
+ * @author depristo
  *
  * Class VariantJEXLContext
  *
@@ -42,12 +43,13 @@ import java.util.*;
  * having to generate a JEXML context lookup map everytime we want to evaluate an expression.
  *
  * This is package protected, only classes in variantcontext should have access to it.
+ *
+ * // todo -- clean up to remove or better support genotype filtering 
  */
 
 class VariantJEXLContext implements JexlContext {
     // our stored variant context
     private VariantContext vc;
-    private Genotype g;
 
     private interface AttributeGetter {
         public Object get(VariantContext vc);
@@ -71,15 +73,13 @@ class VariantJEXLContext implements JexlContext {
     }
 
     public VariantJEXLContext(VariantContext vc) {
-        this(vc, null);
-    }
-
-
-    public VariantJEXLContext(VariantContext vc, Genotype g) {
         this.vc = vc;
-        this.g = g;
-        //throw new UnsupportedOperationException("Cannot instantiate VariantJEXLContext");
     }
+
+//    public VariantJEXLContext(VariantContext vc, Genotype g) {
+//        this.vc = vc;
+//        //throw new UnsupportedOperationException("Cannot instantiate VariantJEXLContext");
+//    }
 
     public Object get(String name) {
         Object result = null;
@@ -155,12 +155,11 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
      * should get added.
      *
      */
-    private static final boolean USE_VCONTEXT = true;
     private void createContext() {
-        if ( USE_VCONTEXT && g == null ) {
-            jContext = new VariantJEXLContext(vc, g);
+        if ( g == null ) {
+            // todo -- remove dependancy on g to the entire system
+            jContext = new VariantJEXLContext(vc);
         } else {
-
             Map<String, Object> infoMap = new HashMap<String, Object>();
 
             if ( vc != null ) {
@@ -206,9 +205,6 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
             // create the internal context that we can evaluate expressions against
 
             jContext = new MapContext(infoMap);
-
-//            jContext = JexlHelper.createContext();
-//            jContext.setVars(infoMap);
         }
     }
 

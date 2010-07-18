@@ -20,7 +20,7 @@ public class ReadFormattingIterator implements StingSAMIterator {
     /**
      * Logger.
      */
-    protected static Logger logger = Logger.getLogger(ReadFormattingIterator.class);    
+    final protected static Logger logger = Logger.getLogger(ReadFormattingIterator.class);    
 
     /**
      * Iterator to which to pass

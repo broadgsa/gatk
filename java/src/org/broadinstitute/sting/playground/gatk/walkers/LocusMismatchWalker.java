@@ -133,14 +133,15 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
         }
 
         if ( nMismatches < maxNumMismatches && nMismatches >= minMismatches && usableDepth >= minDepth ) {
-            String baseCountString = "";
+            StringBuffer baseCountString = new StringBuffer();
             for ( byte b : BaseUtils.BASES ) {
-                baseCountString += baseCounts[BaseUtils.simpleBaseToBaseIndex(b)] + " ";
+                baseCountString.append(baseCounts[BaseUtils.simpleBaseToBaseIndex(b)]);
+                baseCountString.append(" ");
             }
             return String.format("%s %c %10s %5.2f %d %d %d %s",
                     pileup.getLocation(), ref.getBaseAsChar(),
                     getGenotypeClass(g), 10 * g.getNegLog10PError(),
-                    usableDepth, nMismatches, qSumMismatches, baseCountString);
+                    usableDepth, nMismatches, qSumMismatches, baseCountString.toString());
         }
 
         return null;

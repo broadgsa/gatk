@@ -138,8 +138,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         }
 
         if ( ! goodOutputFormat ) {
-            System.out.println("Improper output format. Can be one of table,rtable,csv. Was "+outputFormat);
-            System.exit(0);
+            throw new IllegalArgumentException("Improper output format. Can be one of table,rtable,csv. Was "+outputFormat);
         }
 
         if ( outputFormat.equals("csv") ) {
@@ -604,10 +603,11 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         hBuilder.append(String.format("from_%d_to_inf%n",leftEnds[leftEnds.length-1]));
         output.print(hBuilder.toString());
         Map<String,int[]> histograms = stats.getHistograms();
-        for ( String s : histograms.keySet() ) {
+
+        for ( Map.Entry<String, int[]> p : histograms.entrySet() ) {
             StringBuilder sBuilder = new StringBuilder();
-            sBuilder.append(String.format("sample_%s",s));
-            for ( int count : histograms.get(s) ) {
+            sBuilder.append(String.format("sample_%s",p.getKey()));
+            for ( int count : p.getValue() ) {
                 sBuilder.append(String.format("%s%d",separator,count));
             }
             sBuilder.append(String.format("%n"));
@@ -698,8 +698,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         Map<String,Long> totals = stats.getTotals();
         int[] leftEnds = stats.getEndpoints();
 
-        for ( String s : histograms.keySet() ) {
-            int[] histogram = histograms.get(s);
+        for ( Map.Entry<String, int[]> p : histograms.entrySet() ) {
+            String s = p.getKey();
+            int[] histogram = p.getValue();
             int median = getQuantile(histogram,0.5);
             int q1 = getQuantile(histogram,0.25);
             int q3 = getQuantile(histogram,0.75);
@@ -821,6 +822,8 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         for (CoverageAggregator.AggregationType t : aggregationTypes ) {
             List<String> order = orderCheck.get(t);
             List<String> namesInAg = ag.getIdentifiersByType().get(t);
+
+            // todo -- chris check me
             Set<String> namesInDOCS = ag.getCoverageByAggregationType(t).getAllSamples();
             int index = 0;
             for ( String s : namesInAg ) {

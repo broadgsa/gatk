@@ -168,7 +168,7 @@ public class RecalDataManager {
     }
 
     private void checkForSingletons( final Map data ) {
-
+        // todo -- this looks like it's better just as a data.valueSet() call?
         for( Object comp : data.keySet() ) {
             final Object val = data.get(comp);
             if( val instanceof RecalDatum ) { // We are at the end of the nested hash maps

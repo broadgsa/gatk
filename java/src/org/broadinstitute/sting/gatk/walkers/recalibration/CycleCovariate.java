@@ -45,16 +45,12 @@ import org.broadinstitute.sting.utils.Utils;
  */
 
 public class CycleCovariate implements StandardCovariate {
-
-    private static boolean warnedUserBadPlatform = false;
-    private static String defaultPlatform = null;
-
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {
         if( RAC.DEFAULT_PLATFORM != null ) {
             if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SLX" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) ||
                 RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ABI_SOLID" ) ) {
-                defaultPlatform = RAC.DEFAULT_PLATFORM;
+                // nothing to do
             } else {
                 throw new StingException( "The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
             }

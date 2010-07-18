@@ -17,7 +17,7 @@ import org.broadinstitute.sting.utils.StingException;
  */
 @Analysis(name = "Indel length histograms", description = "Shows the distrbution of insertion/deletion event lengths (negative for deletion, positive for insertion)")
 public class IndelLengthHistogram extends VariantEvaluator {
-    private final int SIZE_LIMIT = 50;
+    private static final int SIZE_LIMIT = 50;
     @DataPoint(name="indelLengthHistogram",description="Histogram of indel lengths")
     IndelHistogram indelHistogram = new IndelHistogram(SIZE_LIMIT);
 
@@ -25,7 +25,7 @@ public class IndelLengthHistogram extends VariantEvaluator {
      * Indel length histogram table object
      */
 
-    class IndelHistogram implements TableType {
+    static class IndelHistogram implements TableType {
         private Integer[] colKeys;
         private int limit;
         private String[] rowKeys = {"EventLength"};

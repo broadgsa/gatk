@@ -42,7 +42,7 @@ import java.text.NumberFormat;
 @Requires({DataSource.READS})
 public class FlagStatWalker extends ReadWalker<Integer, Integer> {
     // what comes out of the flagstat
-    class FlagStat {
+    static class FlagStat {
         int readCount = 0;
         int QC_failure = 0;
         int duplicates = 0;
@@ -144,7 +144,7 @@ public class FlagStatWalker extends ReadWalker<Integer, Integer> {
                 myStat.singletons++;
             }
         }
-        if (read.getReferenceIndex() >= 0 && read.getMateReferenceIndex() >= 0 && read.getReferenceIndex() != read.getMateReferenceIndex()) {
+        if (read.getReferenceIndex() >= 0 && read.getMateReferenceIndex() >= 0 && ! read.getReferenceIndex().equals(read.getMateReferenceIndex())) {
             myStat.with_mate_mapped_to_a_different_chr++;
 
             if (read.getMappingQuality() >= 5) {

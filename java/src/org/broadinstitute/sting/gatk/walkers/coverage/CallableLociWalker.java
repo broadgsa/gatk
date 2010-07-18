@@ -91,7 +91,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         }
     }
 
-    public class Integrator {
+    public static class Integrator {
         long counts[] = new long[CalledState.values().length];
         CallableBaseState state = null;
     }

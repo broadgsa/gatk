@@ -66,19 +66,19 @@ public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, Gen
         // if there is no interval to the left, then this is the first one
         if ( sum == null ) {
             sum = value.first;
-            fasta.append(value.second.toString());
+            fasta.append(value.second);
         }
         // if the intervals don't overlap, print out the leftmost one and start a new one
         // (end of contig or new interval)
         else if ( value.first.getStart() != sum.getStop() + 1 ) {
             fasta.flush();
             sum = value.first;
-            fasta.append(value.second.toString());
+            fasta.append(value.second);
         }
         // otherwise, merge them
         else {
             sum = GenomeLocParser.setStop(sum, value.first.getStop());
-            fasta.append(value.second.toString());
+            fasta.append(value.second);
         }
 		return sum;
 	}
