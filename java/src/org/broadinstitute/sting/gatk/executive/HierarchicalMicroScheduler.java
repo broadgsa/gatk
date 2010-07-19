@@ -31,6 +31,11 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
  */
 public class HierarchicalMicroScheduler extends MicroScheduler implements HierarchicalMicroSchedulerMBean, ReduceTree.TreeReduceNotifier {
     /**
+     * Counts the number of instances of the class that are currently alive.
+     */
+    private static int instanceNumber = 0;
+
+    /**
      * How many outstanding output merges are allowed before the scheduler stops
      * allowing new processes and starts merging flat-out.
      */
@@ -85,9 +90,17 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
 
+        // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
+        // To get around this limitation and since we have no job identifier at this point, register a simple counter that
+        // will count the number of instances of this object that have been created in this JVM.
+        int thisInstance;
+        synchronized(HierarchicalMicroScheduler.class) {
+            thisInstance = instanceNumber++;
+        }
+
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-            ObjectName name = new ObjectName("org.broadinstitute.sting.gatk.executive:type=HierarchicalMicroScheduler");
+            ObjectName name = new ObjectName("org.broadinstitute.sting.gatk.executive:type=HierarchicalMicroScheduler,instanceNumber="+thisInstance);
             mbs.registerMBean(this, name);
         }
         catch (JMException ex) {
