@@ -22,7 +22,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         e.put( validationDataLocation + "NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "596a9ec9cbc1da70481e45a5a588a41d" );
         e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "507dbd3ba6f54e066d04c4d24f59c3ab" );
 
-        for ( String parallelism : Arrays.asList("") ) { // todo -- enable parallel tests.  They work but there's a system bug Arrays.asList("", " -nt 4")) {
+        for ( String parallelism : Arrays.asList("", " -nt 4")) {
             for ( Map.Entry<String, String> entry : e.entrySet() ) {
                 String bam = entry.getKey();
                 String md5 = entry.getValue();

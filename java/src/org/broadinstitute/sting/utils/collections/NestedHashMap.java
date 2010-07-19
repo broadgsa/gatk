@@ -53,12 +53,23 @@ public class NestedHashMap{
     }
 
     public synchronized void put( final Object value, final Object... keys ) {
+        this.put(value, false, keys );
+    }
 
+    public synchronized Object put( final Object value, boolean keepOldBindingIfPresent, final Object... keys ) {
         Map map = this.data;
         final int keysLength = keys.length;
         for( int iii = 0; iii < keysLength; iii++ ) {
             if( iii == keysLength - 1 ) {
-                map.put(keys[iii], value);
+                if ( keepOldBindingIfPresent && map.containsKey(keys[iii]) ) {
+                    // this code test is for parallel protection when you call put() multiple times in different threads
+                    // to initialize the map.  It returns the already bound key[iii] -> value
+                    return map.get(keys[iii]);
+                } else {
+                    // we are a new binding, put it in the map
+                    map.put(keys[iii], value);
+                    return value;
+                }
             } else {
                 Map tmp = (Map) map.get(keys[iii]);
                 if( tmp == null ) {
@@ -68,5 +79,7 @@ public class NestedHashMap{
                 map = tmp;
             }
         }
+
+        return value; // todo -- should never reach this point
     }
 }
