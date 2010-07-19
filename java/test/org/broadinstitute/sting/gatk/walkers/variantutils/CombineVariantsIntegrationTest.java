@@ -39,33 +39,32 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         return "-T CombineVariants -L 1:1-50,000,000 -o %s -R " + oneKGLocation + "reference/human_b36_both.fasta" + args;
     }
 
-    // todo -- merge with one file should be identical to input
-
-
-
-    public void test1InOut(String file, String type, String md5) {
+    public void test1InOut(String file, String md5) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1 -B v1," + type + "," + validationDataLocation + file),
+                 baseTestString(" -priority v1 -B v1,VCF," + validationDataLocation + file),
                  1,
                  Arrays.asList(md5));
          executeTest("testInOut1--" + file, spec);
     }
 
-    public void combine2(String file1, String type1, String file2, String type2, String md5) {
+    public void combine2(String file1, String file2, String md5) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1,v2 -B v1," + type1 + "," + validationDataLocation + file1 + " -B v2," + type2 + "," + validationDataLocation + file2),
+                 baseTestString(" -priority v1,v2 -B v1,VCF," + validationDataLocation + file1 + " -B v2,VCF," + validationDataLocation + file2),
                  1,
                  Arrays.asList(md5));
          executeTest("combine2 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
     }
 
 
-    @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "VCF", ""); }
-    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "VCF4", ""); }
-    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "VCF4", ""); }
+    @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", ""); }
+    @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", ""); } // official project VCF files in tabix format
 
-    @Test public void combineSNPsAndIndels() { combine2("pilot2.snps.vcf4.genotypes.vcf", "VCF", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "VCF4", ""); }
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "VCF4", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "VCF4", ""); }
+    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", ""); }
+    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", ""); }
 
-    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "VCF", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "VCF", ""); }
+    @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "2ec9e7acff0c36c2b51b2b720944bcde"); } // official project VCF files in tabix format
+    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", ""); }
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", ""); }
+
+    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", ""); }
 }
