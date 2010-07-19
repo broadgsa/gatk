@@ -28,8 +28,8 @@ package org.broadinstitute.sting.gatk.refdata.features.sampileup;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
+import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
-import org.broad.tribble.util.LineReader;
 
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -61,19 +61,14 @@ public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
      * @param reader the line reader
      * @return 0 in this case, we assume no header lines.
      */
-    public int readHeader(LineReader reader) {
+    public Object readHeader(LineReader reader) {
         // we don't require a header line, but it may exist.  We'll deal with that above.
-        return 0;
+        return null;
     }
 
     @Override
     public Class<SAMPileupFeature> getFeatureType() {
         return SAMPileupFeature.class;
-    }
-
-    @Override
-    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
-        return null;  // we don't have a header
     }
 
     public Feature decodeLoc(String line) {

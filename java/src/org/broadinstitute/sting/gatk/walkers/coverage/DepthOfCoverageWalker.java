@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import net.sf.samtools.SAMReadGroupRecord;
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -424,7 +424,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
 
     private LocationAwareSeekableRODIterator initializeRefSeq() {
         TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
-        FeatureReader refseq = builder.createFeatureReader(RefSeqCodec.class,refSeqGeneList).first;
+        FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,refSeqGeneList).first;
         try {
             return new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
         } catch (IOException e) {

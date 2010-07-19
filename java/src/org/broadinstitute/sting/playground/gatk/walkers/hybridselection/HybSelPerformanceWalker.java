@@ -32,7 +32,7 @@ import net.sf.picard.util.IntervalList;
 import net.sf.picard.util.OverlapDetector;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -110,7 +110,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     public void initialize() {
         if ( REFSEQ_FILE != null ) {
             TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
-            FeatureReader refseq = builder.createFeatureReader(RefSeqCodec.class, new File(REFSEQ_FILE)).first;
+            FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class, new File(REFSEQ_FILE)).first;
 
             try {
                 refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(), "refseq"));

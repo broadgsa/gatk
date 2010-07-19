@@ -5,9 +5,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
 import org.broad.tribble.index.Index;
-import org.broad.tribble.readers.BasicFeatureReader;
+import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.utils.StingException;
@@ -22,7 +22,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
     private Iterator<VCFRecord> iterator;
 
     // our feature reader; so we can close it
-    private FeatureReader<VCFRecord> vcfReader = null;
+    private FeatureSource<VCFRecord> vcfReader = null;
 
     /**
      * Create a VCF reader, given a VCF file
@@ -62,14 +62,14 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         Index index = createIndex(vcfFile, createIndexOnDisk);
         if (transform != null) codec.setTransformer(transform);
         try {
-            vcfReader = new BasicFeatureReader(vcfFile.getAbsolutePath(),index,codec);
+            vcfReader = new BasicFeatureSource(vcfFile.getAbsolutePath(),index,codec);
             iterator= vcfReader.iterator();
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to read VCF File from " + vcfFile, e);
         } catch (IOException e) {
             throw new StingException("Unable to read VCF File from " + vcfFile, e);
         }
-        mHeader = codec.getHeader(VCFHeader.class);
+        mHeader = (VCFHeader)vcfReader.getHeader();
     }
 
     /**

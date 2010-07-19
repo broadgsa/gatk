@@ -7,7 +7,7 @@ import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.gelitext.GeliTextCodec;
 import org.broad.tribble.gelitext.GeliTextFeature;
-import org.broad.tribble.util.AsciiLineReader;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;

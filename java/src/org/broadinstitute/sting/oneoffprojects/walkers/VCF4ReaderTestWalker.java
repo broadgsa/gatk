@@ -24,9 +24,9 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broad.tribble.util.ParsingUtils;
-import org.broad.tribble.util.AsciiLineReader;
 import org.broad.tribble.FeatureCodec;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -101,9 +101,11 @@ public class VCF4ReaderTestWalker extends RodWalker<VCFRecord,Long> {
 
         try {
             AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(vcfFile));
-            int lineNumber = codec.readHeader(lineReader);
-            out.printf("Read %d header lines%n", lineNumber);
+            VCFHeader header = (VCFHeader)codec.readHeader(lineReader);
+            out.printf("Read %d header lines%n", header.getMetaData().size()+1);
 
+            // a counter of the number of lines we've read
+            int lineNumber = header.getMetaData().size()+1;
             while (true) {
                 String line = lineReader.readLine();
 

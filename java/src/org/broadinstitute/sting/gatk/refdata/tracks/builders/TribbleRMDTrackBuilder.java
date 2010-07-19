@@ -29,9 +29,10 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broad.tribble.*;
 import org.broad.tribble.index.Index;
+import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.index.linear.LinearIndexCreator;
-import org.broad.tribble.readers.BasicFeatureReader;
+import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.vcf.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -96,12 +97,12 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     @Override
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
         // return a feature reader track
-        Pair<BasicFeatureReader, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
+        Pair<BasicFeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
         if (pair == null) throw new StingException("Unable to make the feature reader for input file " + inputFile);
         return new TribbleTrack(targetClass, createCodec(targetClass, name).getFeatureType(), name, inputFile, pair.first, pair.second);
     }
 
-    public Pair<BasicFeatureReader, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
+    public Pair<BasicFeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
         return createFeatureReader(targetClass, "anonymous", inputFile);
     }
 
@@ -111,10 +112,10 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the input file to create the track from (of the codec type)
      * @return the FeatureReader instance
      */
-    public Pair<BasicFeatureReader, SAMSequenceDictionary> createFeatureReader(Class targetClass, String name, File inputFile) {
-        Pair<BasicFeatureReader, SAMSequenceDictionary> pair = null;
+    public Pair<BasicFeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, String name, File inputFile) {
+        Pair<BasicFeatureSource, SAMSequenceDictionary> pair = null;
         if (inputFile.getAbsolutePath().endsWith(".gz"))
-            pair = createBasicFeatureReaderNoAssumedIndex(targetClass, name, inputFile);
+            pair = createBasicFeatureSourceNoAssumedIndex(targetClass, name, inputFile);
         else
             pair = getLinearFeatureReader(targetClass, name, inputFile);
         return pair;
@@ -129,11 +130,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the file to load
      * @return a feature reader implementation
      */
-    private Pair<BasicFeatureReader, SAMSequenceDictionary> createBasicFeatureReaderNoAssumedIndex(Class targetClass, String name, File inputFile) {
+    private Pair<BasicFeatureSource, SAMSequenceDictionary> createBasicFeatureSourceNoAssumedIndex(Class targetClass, String name, File inputFile) {
         // we might not know the index type, try loading with the default reader constructor
         logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
         try {
-            return new Pair<BasicFeatureReader, SAMSequenceDictionary>(new BasicFeatureReader(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
+            return new Pair<BasicFeatureSource, SAMSequenceDictionary>(new BasicFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
         } catch (IOException e) {
             throw new StingException("Unable to create feature reader from file " + inputFile);
         }
@@ -152,11 +153,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the tribble file to parse
      * @return the input file as a FeatureReader
      */
-    private Pair<BasicFeatureReader, SAMSequenceDictionary> getLinearFeatureReader(Class targetClass, String name, File inputFile) {
-        Pair<BasicFeatureReader, SAMSequenceDictionary> reader;
+    private Pair<BasicFeatureSource, SAMSequenceDictionary> getLinearFeatureReader(Class targetClass, String name, File inputFile) {
+        Pair<BasicFeatureSource, SAMSequenceDictionary> reader;
         try {
             Index index = loadIndex(inputFile, createCodec(targetClass, name), true);
-            reader = new Pair<BasicFeatureReader, SAMSequenceDictionary>(new BasicFeatureReader(inputFile.getAbsolutePath(), index, createCodec(targetClass, name)),index.getSequenceDictionary());
+            reader = new Pair<BasicFeatureSource, SAMSequenceDictionary>(new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(targetClass, name)),index.getSequenceDictionary());
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to create reader with file " + inputFile, e);
         } catch (IOException e) {
@@ -190,7 +191,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             // if the file exists, and we can read it, load the index from disk (i.e. wasn't deleted in the last step).
             if (indexFile.exists() && indexFile.canRead() && obtainedLock) {
                 logger.info("Loading Tribble index from disk for file " + inputFile);
-                Index index = LinearIndex.createIndex(indexFile);
+                Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
                 if (index.isCurrentVersion())
                     return index;
 
@@ -220,7 +221,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
 
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
-        LinearIndex index = create.createIndex(null); // we don't want to write initially, so we pass in null
+        LinearIndex index = (LinearIndex)create.createIndex(); // we don't want to write initially, so we pass in null
 
         // if the index doesn't exist, and we can write to the directory, and we got a lock: write to the disk
         if (indexFile.getParentFile().canWrite() &&

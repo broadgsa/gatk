@@ -21,28 +21,29 @@ import java.util.List;
  */
 public class VCFHeaderUnitTest extends BaseTest {
 
-    private VCF4Codec createHeader(String[] headerStr) {
+    private VCFHeader createHeader(String[] headerStr) {
         VCF4Codec codec = new VCF4Codec();
         List<String> headerFields = new ArrayList<String>();
         for (String str : headerStr)
             headerFields.add(str);
-        Assert.assertEquals(headerStr.length+1 /* for the # line */,codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
-        return codec;
+        VCFHeader header = (VCFHeader)codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO");
+        Assert.assertEquals(headerStr.length /* for the # line */,header.getMetaData().size());
+        return header;
     }
 
     @Test
     public void testVCF4ToVCF4() {
-        VCF4Codec codec = createHeader(VCF4headerStrings);
-        checkMD5ofHeaderFile(codec, "4648aa1169257e0a8a9d30131adb5f35");
+        VCFHeader header = createHeader(VCF4headerStrings);
+        checkMD5ofHeaderFile(header, "4648aa1169257e0a8a9d30131adb5f35");
     }
 
     @Test
     public void testVCF4ToVCF4_alternate() {
-        VCF4Codec codec = createHeader(VCF4headerStrings_with_negitiveOne);
-        checkMD5ofHeaderFile(codec, "ad8c4cf85e868b0261ab49ee2c613088");
+        VCFHeader header = createHeader(VCF4headerStrings_with_negitiveOne);
+        checkMD5ofHeaderFile(header, "ad8c4cf85e868b0261ab49ee2c613088");
     }
 
-    private void checkMD5ofHeaderFile(VCF4Codec codec, String md5sum) {
+    private void checkMD5ofHeaderFile(VCFHeader header, String md5sum) {
         File myTempFile = null;
         PrintWriter pw = null;
         try {
@@ -52,7 +53,7 @@ public class VCFHeaderUnitTest extends BaseTest {
         } catch (IOException e) {
             Assert.fail("Unable to make a temp file!");
         }
-        for (VCFHeaderLine line : codec.getHeader(VCFHeader.class).getMetaData())
+        for (VCFHeaderLine line : header.getMetaData())
             pw.println(line);
         pw.close();
         Assert.assertTrue(md5sum.equals(md5SumFile(myTempFile)));

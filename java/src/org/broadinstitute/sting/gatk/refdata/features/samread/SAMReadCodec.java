@@ -27,8 +27,8 @@ package org.broadinstitute.sting.gatk.refdata.features.samread;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
+import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
-import org.broad.tribble.util.LineReader;
 import net.sf.samtools.util.StringUtil;
 import net.sf.samtools.TextCigarCodec;
 import net.sf.samtools.Cigar;
@@ -52,19 +52,14 @@ public class SAMReadCodec implements FeatureCodec<SAMReadFeature> {
      * @return 0 in this case, we assume no header lines.  The reads file may have a
      *         header line beginning with '@', but we can ignore that in the decode function.
      */
-    public int readHeader(LineReader reader) {
+    public Object readHeader(LineReader reader) {
         // we don't require a header line, but it may exist.  We'll deal with that above.
-        return 0;
+        return null;
     }
 
     @Override
     public Class<SAMReadFeature> getFeatureType() {
         return SAMReadFeature.class;
-    }
-
-    @Override
-    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
-        return null;  // we haven't stored the header
     }
 
     public Feature decodeLoc(String line) {

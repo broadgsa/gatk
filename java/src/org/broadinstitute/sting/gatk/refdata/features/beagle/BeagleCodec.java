@@ -1,8 +1,4 @@
 package org.broadinstitute.sting.gatk.refdata.features.beagle;
-
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTableFeature;
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -29,22 +25,20 @@ import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTa
  */
 
 
+import org.broad.tribble.Feature;
+import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.LineReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.util.AsciiLineReader;
-import org.broad.tribble.util.LineReader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 
 public class BeagleCodec implements FeatureCodec<BeagleFeature> {
     private String[] header;
@@ -71,7 +65,7 @@ public class BeagleCodec implements FeatureCodec<BeagleFeature> {
         }
     }
 
-    public int readHeader(LineReader reader)
+    public Object readHeader(LineReader reader)
     {
         int[] lineCounter = new int[1];
         try {
@@ -118,7 +112,7 @@ public class BeagleCodec implements FeatureCodec<BeagleFeature> {
         } catch(IOException e) {
             throw new IllegalArgumentException("Unable to read from file.", e);
         }
-        return lineCounter[0];
+        return header;
     }
 
     private static String[] readHeader(final LineReader source, int[] lineCounter) throws IOException {
@@ -167,11 +161,6 @@ public class BeagleCodec implements FeatureCodec<BeagleFeature> {
     @Override
     public Class<BeagleFeature> getFeatureType() {
         return BeagleFeature.class;
-    }
-
-    @Override
-    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
-        return null;  // we haven't stored the header
     }
 
     public BeagleFeature decode(String line) {

@@ -29,7 +29,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
@@ -151,7 +151,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 		if ( RefseqFileName != null ) {
 			TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
-            FeatureReader refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
+            FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
             try {
                 refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));

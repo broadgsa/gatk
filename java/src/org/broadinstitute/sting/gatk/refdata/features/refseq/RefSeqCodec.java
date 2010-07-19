@@ -2,11 +2,7 @@ package org.broadinstitute.sting.gatk.refdata.features.refseq;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.util.LineReader;
-import org.broadinstitute.sting.gatk.refdata.BasicReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.Transcript;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -64,17 +60,12 @@ public class RefSeqCodec implements FeatureCodec {
     }
 
     @Override
-    public int readHeader(LineReader reader) {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    public Object readHeader(LineReader reader) {
+        return null;
     }
 
     @Override
     public Class getFeatureType() {
         return RefSeqCodec.class;
-    }
-
-    @Override
-    public Object getHeader(Class clazz) throws ClassCastException {
-        return null;  // we don't have a header
     }
 }

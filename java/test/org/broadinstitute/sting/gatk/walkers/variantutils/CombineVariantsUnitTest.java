@@ -59,19 +59,20 @@ public class CombineVariantsUnitTest {
                 "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">",
                 };
 
-    private VCF4Codec createHeader(String[] headerStr) {
+    private VCFHeader createHeader(String[] headerStr) {
         VCF4Codec codec = new VCF4Codec();
         List<String> headerFields = new ArrayList<String>();
         for (String str : headerStr)
             headerFields.add(str);
-        Assert.assertEquals(headerStr.length+1 /* for the # line */,codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"));
-        return codec;
+        VCFHeader head = (VCFHeader)codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO");
+        Assert.assertEquals(headerStr.length /* for the # line */,head.getMetaData().size());
+        return head;
     }
 
     @Test
     public void testHeadersWhereOneIsAStrictSubsetOfTheOther() {
-        VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings).getHeader(VCFHeader.class);
-        VCFHeader two = createHeader(VCF4headerStringsSmallSubset).getHeader(VCFHeader.class);
+        VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings);
+        VCFHeader two = createHeader(VCF4headerStringsSmallSubset);
         ArrayList<VCFHeader> headers = new ArrayList<VCFHeader>();
         headers.add(one);
         headers.add(two);
@@ -81,8 +82,8 @@ public class CombineVariantsUnitTest {
 
     @Test(expected=IllegalStateException.class)
     public void testHeadersInfoDifferentValues() {
-        VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings).getHeader(VCFHeader.class);
-        VCFHeader two = createHeader(VCF4headerStringsBrokenInfo).getHeader(VCFHeader.class);
+        VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings);
+        VCFHeader two = createHeader(VCF4headerStringsBrokenInfo);
         ArrayList<VCFHeader> headers = new ArrayList<VCFHeader>();
         headers.add(one);
         headers.add(two);
@@ -92,8 +93,8 @@ public class CombineVariantsUnitTest {
 
     @Test
     public void testHeadersFormatDifferentValues() {
-        VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings).getHeader(VCFHeader.class);
-        VCFHeader two = createHeader(VCF4headerStringsBrokenFormat).getHeader(VCFHeader.class);
+        VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings);
+        VCFHeader two = createHeader(VCF4headerStringsBrokenFormat);
         ArrayList<VCFHeader> headers = new ArrayList<VCFHeader>();
         headers.add(one);
         headers.add(two);

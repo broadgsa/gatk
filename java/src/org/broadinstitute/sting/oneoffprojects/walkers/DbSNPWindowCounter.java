@@ -2,10 +2,10 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.FeatureIterator;
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broad.tribble.util.CloseableTribbleIterator;
+import org.broad.tribble.iterators.CloseableTribbleIterator;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -35,7 +35,7 @@ import java.io.IOException;
 public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
     // what we read in new tracks with
-    private FeatureReader reader;
+    private FeatureSource reader;
 
     @Argument(fullName = "dbSNPFile", shortName = "db", doc="The dbsnp file to search upstream and downstream for nearby snps", required = true)
     private File myDbSNPFile;

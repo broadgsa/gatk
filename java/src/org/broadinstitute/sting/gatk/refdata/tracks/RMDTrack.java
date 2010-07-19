@@ -110,17 +110,6 @@ public abstract class RMDTrack {
         return null;  // default, others can override this
     }
 
-    /**
-     * ask for the header, supplying the expected type.  Overridden in track types
-     * @param clazz the class of the expected type
-     * @param <HeaderType> the expected type
-     * @return a object of type HeaderType
-     * @throws ClassCastException if the class provided doesn't match our header type
-     */
-    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
-        return null;
-    }
-
     public Object getHeader() {
         return null;
     }

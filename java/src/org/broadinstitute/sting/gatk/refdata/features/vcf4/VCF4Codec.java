@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.refdata.features.vcf4;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.util.LineReader;
+import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
@@ -74,7 +74,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @return the number of header lines
      */
     @Override
-    public int readHeader(LineReader reader) {
+    public Object readHeader(LineReader reader) {
         List<String> headerStrings = new ArrayList<String>();
 
         String line = "";
@@ -115,7 +115,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @param line the single # line (column names)
      * @return the count of header lines
      */
-    public int createHeader(List<String> headerStrings, String line) {
+    public Object createHeader(List<String> headerStrings, String line) {
         headerStrings.add(line);
         header = VCFReaderUtils.createHeader(headerStrings, this.version);
 
@@ -134,7 +134,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         // sort the lists so we can binary search them later on
         Collections.sort(filterFields);
 
-        return headerStrings.size();
+        return header;
     }
 
     /**
@@ -156,6 +156,9 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
     }
 
     private Feature reallyDecode(String line, boolean parseGenotypes) {
+        // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
+        if (line.startsWith("#")) return null;
+
         if (parts == null)
             parts = new String[header.getColumnCount()];
 
@@ -597,18 +600,6 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
     @Override
     public Class getFeatureType() {
         return VariantContext.class;
-    }
-
-    /**
-     * get the header
-     * @param clazz the class were expecting
-     * @return our VCFHeader
-     * @throws ClassCastException
-     */
-    @Override
-    public VCFHeader getHeader(Class clazz) throws ClassCastException {
-        if (clazz != VCFHeader.class) throw new ClassCastException("expecting class " + clazz + " but VCF4Codec provides " + VCFHeader.class);
-        return this.header;
     }
     
     /**

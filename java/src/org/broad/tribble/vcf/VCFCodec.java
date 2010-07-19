@@ -1,9 +1,5 @@
 package org.broad.tribble.vcf;
 
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.util.LineReader;
 import org.broadinstitute.sting.gatk.refdata.features.vcf4.VCF4Codec;
 
 import java.io.IOException;

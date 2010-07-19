@@ -108,20 +108,11 @@ public class SampleUtils {
                 continue;
 
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( containsVCFHeader(rod) )
-                data.put(rod.getName(), rod.getHeader(VCFHeader.class));
+            if ( rod.getHeader() != null && rod.getHeader() instanceof VCFHeader )
+                data.put(rod.getName(), (VCFHeader)rod.getHeader());
         }
 
         return data;
-    }
-
-    // todo -- remove when we can actually just get the header itself from tribble
-    private static boolean containsVCFHeader(RMDTrack rod) {
-        try {
-            return rod.getHeader(VCFHeader.class) != null;
-        } catch ( ClassCastException e ) {
-            return false;
-        }
     }
 
     public static Set<String> getSampleListWithVCFHeader(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {

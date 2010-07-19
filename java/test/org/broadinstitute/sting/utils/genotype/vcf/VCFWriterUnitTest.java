@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broad.tribble.util.AsciiLineReader;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
@@ -52,10 +52,10 @@ public class VCFWriterUnitTest extends BaseTest {
         writer.close();
         VCFCodec reader = new VCFCodec();
         AsciiLineReader lineReader;
-
+        VCFHeader headerFromFile = null;
         try {
              lineReader = new AsciiLineReader(new FileInputStream(fakeVCFFile));
-             int lineNumber = reader.readHeader(lineReader);
+             headerFromFile = (VCFHeader)reader.readHeader(lineReader);
         }
         catch (FileNotFoundException e ) {
             throw new StingException(e.getMessage());
@@ -64,7 +64,8 @@ public class VCFWriterUnitTest extends BaseTest {
         int counter = 0;
 
         // validate what we're reading in
-        validateHeader(reader.getHeader(VCFHeader.class));
+        validateHeader(headerFromFile);
+        
         try {
             while(true) {
                 String line = lineReader.readLine();

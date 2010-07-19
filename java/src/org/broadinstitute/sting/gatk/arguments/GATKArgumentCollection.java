@@ -167,11 +167,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "interval_merging", shortName = "im", doc = "What interval merging rule should we use.", required = false)
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
-    /** Should we enable rodWalkers?  This is currently unsafe */
-//    @Element(required = false)
-//    @Argument(fullName = "enableRodWalkers", shortName = "erw", doc = "Enable experimental rodWalker support.  TEMPORARY HACK TO ALLOW EXPERIMENTATION WITH ROD WALKERS.  [default is false]}.", required = false)
-//    public boolean enableRodWalkers = false;
-
     @ElementList(required = false)
     @Argument(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;

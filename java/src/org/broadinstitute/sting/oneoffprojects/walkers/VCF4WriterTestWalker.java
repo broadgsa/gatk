@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broad.tribble.util.AsciiLineReader;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -89,10 +89,8 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
 
                 try {
                     AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(rod.getFile().getAbsolutePath()));
-                    int lineNumber = vcf4codec.readHeader(lineReader);
-                    out.printf("Read %d header lines%n", lineNumber);
-
-                    header = vcf4codec.getHeader(VCFHeader.class);
+                    header = (VCFHeader)vcf4codec.readHeader(lineReader);
+                    out.printf("Read %d header lines%n", header.getMetaData().size());
                 }
                 catch (FileNotFoundException e ) {
                     throw new StingException(e.getMessage());

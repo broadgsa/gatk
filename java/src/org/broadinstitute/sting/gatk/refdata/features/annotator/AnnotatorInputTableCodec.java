@@ -34,8 +34,8 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.util.AsciiLineReader;
-import org.broad.tribble.util.LineReader;
+import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
@@ -55,7 +55,7 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
      *
      * @return The # of header lines for this file.
      */
-    public int readHeader(LineReader reader)
+    public Object readHeader(LineReader reader)
     {
         int[] lineCounter = new int[1];
         try {
@@ -63,16 +63,11 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         } catch(IOException e) {
             throw new IllegalArgumentException("Unable to read from file.", e);
         }
-        return lineCounter[0];
+        return header;
     }
 
     public Class<AnnotatorInputTableFeature> getFeatureType() {
         return AnnotatorInputTableFeature.class;
-    }
-
-    @Override
-    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
-        return null;  // TODO: do we want the header to be a concrete type?
     }
 
     @Override

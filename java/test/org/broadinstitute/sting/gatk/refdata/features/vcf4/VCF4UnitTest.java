@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata.features.vcf4;
 
-import org.broad.tribble.util.AsciiLineReader;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
@@ -503,8 +503,7 @@ public class VCF4UnitTest extends BaseTest {
                 Assert.fail("Unable to parse out VCF file " + vcfFile);
             }
             codec = new VCF4Codec();
-            codec.readHeader(reader);
-            header = codec.getHeader(VCFHeader.class);
+            header = (VCFHeader)codec.readHeader(reader);            
             return this;
         }
     }

@@ -62,8 +62,8 @@ public class VCFUtils {
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VariantContext.class) ) {
-                fields.addAll(rod.getHeader(VCFHeader.class).getMetaData());                
+            if ( rod.getRecordType().equals(VariantContext.class)) {
+                fields.addAll(((VCFHeader)rod.getHeader()).getMetaData());
             }
         }
 

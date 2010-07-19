@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -63,7 +63,7 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
     public void initialize() {
         if ( RefseqFileName != null ) {
             TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
-            FeatureReader refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
+            FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
             try {
                 refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));

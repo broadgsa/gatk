@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
@@ -177,7 +177,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
 /**
  * a data pool for the new query based RODs
  */
-class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, LocationAwareSeekableRODIterator> {
+class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, LocationAwareSeekableRODIterator> {
 
     // the reference-ordered data itself.
     private final RMDTrack rod;
@@ -193,19 +193,19 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
     }
 
     @Override
-    protected FeatureReader createNewResource() {
+    protected FeatureSource createNewResource() {
         return builder.createFeatureReader(rod.getType(),rod.getFile()).first;
     }
 
     @Override
-    protected FeatureReader selectBestExistingResource(DataStreamSegment segment, List<FeatureReader> availableResources) {
-            for (FeatureReader reader : availableResources)
+    protected FeatureSource selectBestExistingResource(DataStreamSegment segment, List<FeatureSource> availableResources) {
+            for (FeatureSource reader : availableResources)
                 if (reader != null) return reader;
         return null;
     }
 
     @Override
-    protected LocationAwareSeekableRODIterator createIteratorFromResource(DataStreamSegment position, FeatureReader resource) {
+    protected LocationAwareSeekableRODIterator createIteratorFromResource(DataStreamSegment position, FeatureSource resource) {
         try {
             if (position instanceof MappedStreamSegment) {
                 GenomeLoc pos = ((MappedStreamSegment) position).locus;
@@ -219,7 +219,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureReader, Location
     }
 
     @Override
-    protected void closeResource(FeatureReader resource) {
+    protected void closeResource(FeatureSource resource) {
         try {
             resource.close();
         } catch (IOException e) {

@@ -25,7 +25,8 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
-import org.broad.tribble.FeatureReader;
+import org.broad.tribble.FeatureSource;
+import org.broad.tribble.source.BasicFeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -45,7 +46,7 @@ import java.io.IOException;
  */
 public class TribbleTrack extends RMDTrack implements QueryableTrack {
     // our feature reader - allows queries
-    private FeatureReader reader;
+    private BasicFeatureSource reader;
 
     // our sequence dictionary, which can be null
     private final SAMSequenceDictionary dictionary;
@@ -60,7 +61,7 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
      * @param reader the feature reader to use as the underlying data source
      * @param dict the sam sequence dictionary
      */
-    public TribbleTrack(Class type, Class recordType, String name, File file, FeatureReader reader, SAMSequenceDictionary dict) {
+    public TribbleTrack(Class type, Class recordType, String name, File file, BasicFeatureSource reader, SAMSequenceDictionary dict) {
         super(type, recordType, name, file);
         this.reader = reader;
         this.dictionary = dict;
@@ -119,7 +120,7 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
         reader = null;
     }
 
-    public FeatureReader getReader() {
+    public FeatureSource getReader() {
         return reader;
     }
 
@@ -131,14 +132,7 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
         return dictionary;
     }
 
-    /**
-     * ask for the header, supplying the expected type.  Overridden in track types
-     * @param clazz the class of the expected type
-     * @param <HeaderType> the expected type
-     * @return a object of type HeaderType
-     * @throws ClassCastException if the class provided doesn't match our header type
-     */
-    public <HeaderType> HeaderType getHeader(Class<HeaderType> clazz) throws ClassCastException {
-        return (HeaderType) (reader).getHeader(clazz);
+    public Object getHeader() {
+        return reader.getHeader();
     }
 }
