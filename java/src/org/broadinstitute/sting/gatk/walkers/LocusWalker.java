@@ -47,7 +47,7 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
         SamRecordFilter filter2 = new NotPrimaryAlignmentReadFilter();
         SamRecordFilter filter3 = new DuplicateReadFilter();
         SamRecordFilter filter4 = new FailsVendorQualityCheckReadFilter();
-        //SamRecordFilter filter4 = new FailsVendorQualityReadFilter();
+
         List<SamRecordFilter> x = super.getMandatoryReadFilters();
         x.addAll(Arrays.asList(filter4, filter3, filter2, filter1));
 //        }
