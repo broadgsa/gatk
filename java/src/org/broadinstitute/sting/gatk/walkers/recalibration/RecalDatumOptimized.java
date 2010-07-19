@@ -86,7 +86,7 @@ public class RecalDatumOptimized {
         }
     }
 
-    public synchronized final void increment( final char curBase, final char refBase ) {
+    public synchronized final void incrementBaseCounts( final byte curBase, final byte refBase ) {
         increment( 1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(refBase) ? 0 : 1 ); // increment takes num observations, then num mismatches
     }
 

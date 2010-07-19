@@ -49,10 +49,10 @@ public class BaseUtils {
     public static final byte DELETION_INDEX = 4;
     public static final byte NO_CALL_INDEX = 5; // (this is 'N')
 
-    public static int gIndex = BaseUtils.simpleBaseToBaseIndex('G');
-    public static int cIndex = BaseUtils.simpleBaseToBaseIndex('C');
-    public static int aIndex = BaseUtils.simpleBaseToBaseIndex('A');
-    public static int tIndex = BaseUtils.simpleBaseToBaseIndex('T');
+    public static int gIndex = BaseUtils.simpleBaseToBaseIndex((byte)'G');
+    public static int cIndex = BaseUtils.simpleBaseToBaseIndex((byte)'C');
+    public static int aIndex = BaseUtils.simpleBaseToBaseIndex((byte)'A');
+    public static int tIndex = BaseUtils.simpleBaseToBaseIndex((byte)'T');
 
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
@@ -163,6 +163,32 @@ public class BaseUtils {
      * @param base  [AaCcGgTt]
      * @return 0, 1, 2, 3, or -1 if the base can't be understood
      */
+    static public int simpleBaseToBaseIndex(byte base) {
+        switch (base) {
+            case '*':               // the wildcard character counts as an A
+            case 'A':
+            case 'a': return 0;
+
+            case 'C':
+            case 'c': return 1;
+
+            case 'G':
+            case 'g': return 2;
+
+            case 'T':
+            case 't': return 3;
+
+            default: return -1;
+        }
+    }
+
+
+    /**
+     * Converts a simple base to a base index
+     *
+     * @param base  [AaCcGgTt]
+     * @return 0, 1, 2, 3, or -1 if the base can't be understood
+     */
     @Deprecated
     static public int simpleBaseToBaseIndex(char base) {
         switch (base) {
@@ -192,10 +218,6 @@ public class BaseUtils {
 
             default: return simpleBaseToBaseIndex(base);
         }
-    }
-
-    static public int simpleBaseToBaseIndex(byte base) {
-        return simpleBaseToBaseIndex((char)base);
     }
 
     @Deprecated
@@ -303,48 +325,6 @@ public class BaseUtils {
         return base2;
     }
 
-    /**
-     * Perform a transition (A <-> G or C <-> T) on the base, or the specified base if it can't be done (i.e. an ambiguous base).
-     *
-     * @param base the base [AaCcGgTt]
-     * @return the transition of the base, or the input base if it's not one of the understood ones
-     */
-    // todo -- are these right?  Put into recalibator if really color space specific
-    static public char transition(char base) {
-        switch (base) {
-            case 'A':
-            case 'a': return 'G';
-            case 'C':
-            case 'c': return 'T';
-            case 'G':
-            case 'g': return 'A';
-            case 'T':
-            case 't': return 'C';
-            default: return base;
-        }
-    }
-
-    /**
-     * Perform a transversion (A <-> C or G <-> T) on the base, or the specified base if it can't be done (i.e. an ambiguous base).
-     *
-     * @param base the base [AaCcGgTt]
-     * @return the transversion of the base, or the input base if it's not one of the understood ones
-     */
-    // todo -- are these right?  Put into recalibator if really color space specific
-    static public char transversion(char base) {
-        switch (base) {
-            case 'A':
-            case 'a': return 'C';
-            case 'C':
-            case 'c': return 'A';
-            case 'G':
-            case 'g': return 'T';
-            case 'T':
-            case 't': return 'G';
-            default: return base;
-        }
-    }
-
    /**
      * Return the complement (A <-> T or C <-> G) of a base, or the specified base if it can't be complemented (i.e. an ambiguous base).
      *
@@ -380,7 +360,7 @@ public class BaseUtils {
         byte[] rcbases = new byte[bases.length];
 
         for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = (byte)simpleComplement((char) bases[bases.length - 1 - i]);
+            rcbases[i] = simpleComplement(bases[bases.length - 1 - i]);
         }
 
         return rcbases;
@@ -396,7 +376,7 @@ public class BaseUtils {
         byte[] rcbases = new byte[bases.length];
 
         for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = (byte)simpleComplement((char) bases[i]);
+            rcbases[i] = simpleComplement(bases[i]);
         }
 
         return rcbases;
@@ -442,6 +422,7 @@ public class BaseUtils {
      * @param bases  the String of bases
      * @return the reverse complement of the String
      */
+    @Deprecated
     static public String simpleReverseComplement(String bases) {
         return new String(simpleReverseComplement(bases.getBytes()));
     }
@@ -453,6 +434,7 @@ public class BaseUtils {
      * @param bases  the String of bases
      * @return the complement of the String
      */
+    @Deprecated
     static public String simpleComplement(String bases) {
         return new String(simpleComplement(bases.getBytes()));
     }
@@ -468,7 +450,7 @@ public class BaseUtils {
         int[] baseCounts = new int[4];
 
         for ( byte base : sequence ) {
-            int baseIndex = simpleBaseToBaseIndex((char) base);
+            int baseIndex = simpleBaseToBaseIndex(base);
 
             if (baseIndex >= 0) {
                 baseCounts[baseIndex]++;
@@ -522,6 +504,7 @@ public class BaseUtils {
      *
      * @return a random base (A, C, G, T)
      */
+    @Deprecated
     static public byte getRandomBase() {
         return getRandomBase('.');
     }
@@ -532,6 +515,7 @@ public class BaseUtils {
      * @param excludeBase the base to exclude
      * @return a random base, excluding the one specified (A, C, G, T)
      */
+    @Deprecated
     static public byte getRandomBase(char excludeBase) {
         return BaseUtils.baseIndexToSimpleBase(getRandomBaseIndex(BaseUtils.simpleBaseToBaseIndex(excludeBase)));
     }

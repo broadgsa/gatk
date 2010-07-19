@@ -137,9 +137,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> im
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
         DBSNP_VALIDATION_CHECK_FREQUENCY *= PROCESS_EVERY_NTH_LOCUS;
-        if( !RAC.checkSolidRecalMode() ) {
-            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS");
-        }
 
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> covariateClasses = PackageUtils.getClassesImplementingInterface( Covariate.class );
@@ -287,7 +284,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> im
                     RecalDataManager.parseSAMRecord( gatkRead, RAC );
 
                     // Skip over reads with no calls in the color space if the user requested it
-                    if( RAC.IGNORE_NOCALL_COLORSPACE && RecalDataManager.checkNoCallColorSpace( gatkRead ) ) {
+                    if( !(RAC.SOLID_NOCALL_STRATEGY == RecalDataManager.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION) && RecalDataManager.checkNoCallColorSpace( gatkRead ) ) {
                         gatkRead.setTemporaryAttribute( SKIP_RECORD_ATTRIBUTE, true);
                         continue;
                     }
@@ -308,7 +305,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> im
                     if( BaseUtils.isRegularBase( bases[offset] ) ) {
 
                         // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                        if( !gatkRead.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( gatkRead, offset ) ) {
+                        if( !gatkRead.getReadGroup().getPlatform().toUpperCase().contains("SOLID") || RAC.SOLID_RECAL_MODE == RecalDataManager.SOLID_RECAL_MODE.DO_NOTHING ||
+                            !RecalDataManager.isInconsistentColorSpace( gatkRead, offset ) ) {
 
                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
                             updateDataFromRead( gatkRead, offset, refBase );
@@ -347,16 +345,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> im
      *
      * @param counts The counts to be updated
      * @param context The AlignmentContext which holds the reads covered by this locus
-     * @param ref The reference base
+     * @param refBase The reference base
      */
-    private static void updateMismatchCounts(final Pair<Long, Long> counts, final AlignmentContext context, final byte ref) {
+    private static void updateMismatchCounts(final Pair<Long, Long> counts, final AlignmentContext context, final byte refBase) {
         for( PileupElement p : context.getBasePileup() ) {
-            final byte readChar = p.getBase();
-            final int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
-            final int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
+            final byte readBase = p.getBase();
+            final int readBaseIndex = BaseUtils.simpleBaseToBaseIndex(readBase);
+            final int refBaseIndex  = BaseUtils.simpleBaseToBaseIndex(refBase);
 
-            if( readCharBaseIndex != -1 && refCharBaseIndex != -1 ) {
-                if( readCharBaseIndex != refCharBaseIndex ) {
+            if( readBaseIndex != -1 && refBaseIndex != -1 ) {
+                if( readBaseIndex != refBaseIndex ) {
                     counts.first++;
                 }
                 counts.second++;
@@ -410,7 +408,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> im
         final long curMismatches = datum.getNumMismatches();
 
         // Add one to the number of observations and potentially one to the number of mismatches
-        datum.increment( (char)base, (char)refBase ); // Dangerous: If you don't cast to char then the bytes default to the (long, long) version of the increment method which is really bad
+        datum.incrementBaseCounts( base, refBase );
         countedBases++;
         novel_counts.second++;
         novel_counts.first += datum.getNumMismatches() - curMismatches; // For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable

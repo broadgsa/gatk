@@ -87,7 +87,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     /////////////////////////////
     @ArgumentCollection private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
-    @Argument(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the outputted covariates table recalibration file")
+    @Argument(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file")
     public String RECAL_FILE = "output.recal_data.csv";
 
     /////////////////////////////
@@ -145,9 +145,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
-        if( !RAC.checkSolidRecalMode() ) {
-            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS");
-        }
 
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
@@ -347,15 +344,20 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         final byte[] recalQuals = originalQuals.clone();
 
         final String platform = read.getReadGroup().getPlatform();
-        if( platform.toUpperCase().contains("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
-            if( RAC.IGNORE_NOCALL_COLORSPACE ) {
+        if( platform.toUpperCase().contains("SOLID") && !(RAC.SOLID_RECAL_MODE == RecalDataManager.SOLID_RECAL_MODE.DO_NOTHING) ) {
+            if( !(RAC.SOLID_NOCALL_STRATEGY == RecalDataManager.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION) ) {
                 final boolean badColor = RecalDataManager.checkNoCallColorSpace( read );
                 if( badColor ) {
                     numReadsWithMalformedColorSpace++;
-                    return read; // can't recalibrate a SOLiD read with no calls in the color space, and the user wants to skip over them
+                    if( RAC.SOLID_NOCALL_STRATEGY == RecalDataManager.SOLID_NOCALL_STRATEGY.LEAVE_READ_UNRECALIBRATED ) {
+                        return read; // can't recalibrate a SOLiD read with no calls in the color space, and the user wants to skip over them
+                    } else if ( RAC.SOLID_NOCALL_STRATEGY == RecalDataManager.SOLID_NOCALL_STRATEGY.PURGE_READ ) {
+                        read.setReadFailsVendorQualityCheckFlag(true);
+                        return read;
+                    }
                 }
             }
-            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases == null ? null : refBases.getBasesAsChars() );
+            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases == null ? null : refBases.getBases() );
         }
 
         //compute all covariate values for this read
@@ -512,10 +514,18 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     public void onTraversalDone(SAMFileWriter output) {
         if( numReadsWithMalformedColorSpace != 0 ) {
-            Utils.warnUser("Discovered " + numReadsWithMalformedColorSpace + " SOLiD reads with no calls in the color space. Unfortunately these reads cannot be recalibrated with this recalibration algorithm " +
+            if( RAC.SOLID_NOCALL_STRATEGY == RecalDataManager.SOLID_NOCALL_STRATEGY.LEAVE_READ_UNRECALIBRATED ) {
+                Utils.warnUser("Discovered " + numReadsWithMalformedColorSpace + " SOLiD reads with no calls in the color space. Unfortunately these reads cannot be recalibrated with this recalibration algorithm " +
                     "because we use reference mismatch rate as the only indication of a base's true quality. These reads have had reference bases inserted as a way of correcting " +
                     "for color space misalignments and there is now no way of knowing how often it mismatches the reference and therefore no way to recalibrate the quality score. " +
-                    "These reads remain in the output bam file but haven't been corrected for reference bias. Use at your own risk.");
+                    "These reads remain in the output bam file but haven't been corrected for reference bias. !!! USE AT YOUR OWN RISK !!!");
+            } else if ( RAC.SOLID_NOCALL_STRATEGY == RecalDataManager.SOLID_NOCALL_STRATEGY.PURGE_READ ) {
+                Utils.warnUser("Discovered " + numReadsWithMalformedColorSpace + " SOLiD reads with no calls in the color space. Unfortunately these reads cannot be recalibrated with this recalibration algorithm " +
+                    "because we use reference mismatch rate as the only indication of a base's true quality. These reads have had reference bases inserted as a way of correcting " +
+                    "for color space misalignments and there is now no way of knowing how often it mismatches the reference and therefore no way to recalibrate the quality score. " +
+                    "These reads were completely removed from the output bam file.");
+
+            }
         }
     }
 }

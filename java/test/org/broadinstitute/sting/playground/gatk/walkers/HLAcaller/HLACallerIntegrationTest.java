@@ -47,7 +47,7 @@ public class HLACallerIntegrationTest extends WalkerTest {
     public void testCalculateBaseLikelihoods() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T CalculateBaseLikelihoods -I " + validationDataLocation + "NA12878.HISEQ.HLA.bam -R " + oneKGLocation + "reference/human_b36_both.fasta -L " + intervals + " -filter " + validationDataLocation + "HLA_HISEQ.filter -maxAllowedMismatches 6 -minRequiredMatches 0 -o %s", 1,
-                Arrays.asList("3272e3db32a3370b728457cd9a071339"));
+                Arrays.asList("98e64882f93bf7550457bee4182caab6"));
         executeTest("test CalculateBaseLikelihoods", spec);
     }
 

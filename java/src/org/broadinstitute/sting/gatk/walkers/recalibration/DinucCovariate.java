@@ -136,7 +136,8 @@ public class DinucCovariate implements StandardCovariate {
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
-        final Dinuc returnDinuc = dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
+        byte[] bytes = str.getBytes();
+        final Dinuc returnDinuc = dinucHashMap.get( Dinuc.hashBytes( bytes[0], bytes[1] ) );
         if( returnDinuc.compareTo(NO_DINUC) == 0 ) {
             return null;
         }
@@ -149,7 +150,7 @@ public class DinucCovariate implements StandardCovariate {
      *
      * @param array
      */
-    private static final void reverse(final Comparable[] array) {
+    private static void reverse(final Comparable[] array) {
         final int arrayLength = array.length;
         for(int l = 0, r = arrayLength - 1; l < r; l++, r--) {
             final Comparable temp = array[l];

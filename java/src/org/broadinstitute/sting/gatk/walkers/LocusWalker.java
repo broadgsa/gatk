@@ -1,13 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
-import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
-import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
-import org.broadinstitute.sting.gatk.filters.InAdaptorFilter;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorFilter;
 import net.sf.picard.filter.SamRecordFilter;
@@ -49,8 +46,10 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
         SamRecordFilter filter1 = new UnmappedReadFilter();
         SamRecordFilter filter2 = new NotPrimaryAlignmentReadFilter();
         SamRecordFilter filter3 = new DuplicateReadFilter();
+        SamRecordFilter filter4 = new FailsVendorQualityCheckReadFilter();
+        //SamRecordFilter filter4 = new FailsVendorQualityReadFilter();
         List<SamRecordFilter> x = super.getMandatoryReadFilters();
-        x.addAll(Arrays.asList(filter3, filter2, filter1));
+        x.addAll(Arrays.asList(filter4, filter3, filter2, filter1));
 //        }
         return x;
     }

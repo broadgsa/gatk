@@ -236,9 +236,49 @@ public class AlignmentUtils {
     	return n;
     }
 
+    @Deprecated
     public static char[] alignmentToCharArray( final Cigar cigar, final char[] read, final char[] ref ) {
 
         final char[] alignment = new char[read.length];
+        int refPos = 0;
+        int alignPos = 0;
+
+        for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(iii);
+            final int elementLength = ce.getLength();
+
+            switch( ce.getOperator() ) {
+            case I:
+            case S:
+                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
+                    alignment[alignPos++] = '+';
+                }
+                break;
+            case D:
+            case N:
+                refPos++;
+                break;
+            case M:
+                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
+                    alignment[alignPos] = ref[refPos];
+                    alignPos++;
+                    refPos++;
+                }
+                break;
+            case H:
+            case P:
+                break;
+            default:
+                throw new StingException( "Unsupported cigar operator: " + ce.getOperator() );
+            }
+        }
+        return alignment;
+    }
+
+    public static byte[] alignmentToByteArray( final Cigar cigar, final byte[] read, final byte[] ref ) {
+
+        final byte[] alignment = new byte[read.length];
         int refPos = 0;
         int alignPos = 0;
 

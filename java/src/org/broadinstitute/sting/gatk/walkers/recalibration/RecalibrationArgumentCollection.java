@@ -49,21 +49,14 @@ public class RecalibrationArgumentCollection {
     public String FORCE_READ_GROUP = null;
     @Argument(fullName="force_platform", shortName="fP", required=false, doc="If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
-    @Argument(fullName="solid_recal_mode", shortName="sMode", required = false, doc="How should we recalibrate solid bases in which the reference was inserted? Options = DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS")
-    public String SOLID_RECAL_MODE = "SET_Q_ZERO";
     @Argument(fullName = "window_size_nqs", shortName="nqs", doc="The window size used by MinimumNQSCovariate for its calculation", required=false)
     public int WINDOW_SIZE = 5;
     @Argument(fullName = "homopolymer_nback", shortName="nback", doc="The number of previous bases to look at in HomopolymerCovariate", required=false)
     public int HOMOPOLYMER_NBACK = 7;
     @Argument(fullName = "exception_if_no_tile", shortName="throwTileException", doc="If provided, TileCovariate will throw an exception when no tile can be found. The default behavior is to use tile = -1", required=false)
     public boolean EXCEPTION_IF_NO_TILE = false;
-    @Argument(fullName = "ignore_nocall_colorspace", shortName="ignore_nocall_colorspace", doc="If provided, the recalibrator will skip over reads with no calls in the color space instead of halting with an exception", required=false)
-    public boolean IGNORE_NOCALL_COLORSPACE = false;
-
-    
-    public final boolean checkSolidRecalMode() {
-        return ( SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ||
-                 SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO_BASE_N") || SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") );
-    }
-
+    @Argument(fullName="solid_recal_mode", shortName="sMode", required = false, doc="How should we recalibrate solid bases in which the reference was inserted? Options = DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS")
+    public RecalDataManager.SOLID_RECAL_MODE SOLID_RECAL_MODE = RecalDataManager.SOLID_RECAL_MODE.SET_Q_ZERO;
+    @Argument(fullName = "solid_nocall_strategy", shortName="solid_nocall_strategy", doc="Defines the behavior of the recalibrator when it encounters no calls in the color space. Options = THROW_EXCEPTION, LEAVE_READ_UNRECALIBRATED, or PURGE_READ", required=false)
+    public RecalDataManager.SOLID_NOCALL_STRATEGY SOLID_NOCALL_STRATEGY = RecalDataManager.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION;
 }
