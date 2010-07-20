@@ -59,4 +59,20 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
                 Arrays.asList("edbd505d8d55b4ba71f99d7006871db0"));
         executeTest("test filter with separate names #2", spec);
     }
+
+    @Test
+    public void testGenotypeFilter1() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -G_filter 'GQ == 0.60' -G_filterName foo -B variant,VCF," + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
+                Arrays.asList("391cd1c96546d1760265f7924428af8f"));
+        executeTest("test genotype filter #1", spec);
+    }
+
+    @Test
+    public void testGenotypeFilter2() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -G_filter 'AF == 0.04 && isHomVar == 1' -G_filterName foo -B variant,VCF," + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
+                Arrays.asList("0eb48f8cb2ad6a0e46c88a5116be2b04"));
+        executeTest("test genotype filter #2", spec);
+    }
 }

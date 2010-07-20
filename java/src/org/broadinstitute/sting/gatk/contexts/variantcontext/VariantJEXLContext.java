@@ -197,9 +197,11 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
                 infoMap.put("isHomRef", g.isHomRef() ? "1" : "0");
                 infoMap.put("isHet", g.isHet() ? "1" : "0");
                 infoMap.put("isHomVar", g.isHomVar() ? "1" : "0");
-                infoMap.put(VCFConstants.GENOTYPE_QUALITY_KEY, String.valueOf(g.getPhredScaledQual()));
-                for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() )
-                    infoMap.put(e.getKey(), String.valueOf(e.getValue()));
+                infoMap.put(VCFConstants.GENOTYPE_QUALITY_KEY, new Double(g.getPhredScaledQual()));
+                for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() ) {
+                    if ( e.getValue() != null && !e.getValue().equals(VCFConstants.MISSING_VALUE_v4) )
+                    infoMap.put(e.getKey(), e.getValue());
+                }
             }
 
             // create the internal context that we can evaluate expressions against
