@@ -417,6 +417,9 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             Set<String> filters = parseFilters(filter);
             Map<String, Object> attributes = parseInfo(info, id);
 
+            // set the reference base for indels in the attributes
+            attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte((byte)ref.charAt(0)));
+
             // find out our current location, and clip the alleles down to their minimum length
             Pair<GenomeLoc, List<Allele>> locAndAlleles;
             if ( !isSingleNucleotideEvent(alleles) ) {

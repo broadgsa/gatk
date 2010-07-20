@@ -60,7 +60,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
         Assert.assertTrue(classes.size() > 0);
     }
 
-    @Test
+    //@Test
     public void testBuilderIndexUnwriteable() {
         File vcfFile = new File(validationDataLocation + "/ROD_validation/relic.vcf");
         try {

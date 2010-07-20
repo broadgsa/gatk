@@ -217,7 +217,7 @@ public class UnifiedGenotyperEngine {
             }
         }
 
-        if ( call != null ) call.setRefAllele(ref);
+        if ( call != null ) call.setRefBase(ref);
         return call;
     }
 

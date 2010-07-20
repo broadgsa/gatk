@@ -53,7 +53,9 @@ public class VCFHeader {
      * @param genotypeSampleNames the genotype format field, and the sample names
      */
     public VCFHeader(Set<VCFHeaderLine> metaData, Set<String> genotypeSampleNames) {
-        mMetaData = new TreeSet<VCFHeaderLine>(metaData);
+        mMetaData = new TreeSet<VCFHeaderLine>();
+        if ( metaData != null )
+            mMetaData.addAll(metaData);
         for (String col : genotypeSampleNames) {
             if (!col.equals("FORMAT"))
                 mGenotypeSampleNames.add(col);

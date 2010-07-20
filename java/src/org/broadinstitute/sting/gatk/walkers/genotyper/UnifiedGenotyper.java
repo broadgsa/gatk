@@ -123,7 +123,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
 
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), UG_engine.samples, getHeaderInfo());
+        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), new VCFHeader(getHeaderInfo(), UG_engine.samples)) ;
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
@@ -211,7 +211,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         try {
             // we are actually making a call
             sum.nCallsMade++;
-            writer.addCall(value.vc, value.refAllele);
+            writer.addCall(value.vc, value.refBase);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

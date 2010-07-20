@@ -10,19 +10,19 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.StingException;
 
-/** The VCFReader class, which given a valid vcf file, parses out the header and VCF records */
-public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
+/** The VCFReader class, which given a valid vcf file, parses out the header and VariantContexts */
+public class VCFReader implements Iterator<VariantContext>, Iterable<VariantContext> {
 
     // our VCF header
     private VCFHeader mHeader;
 
     // our iterator
-    private Iterator<VCFRecord> iterator;
+    private Iterator<VariantContext> iterator;
 
-    // our feature reader; so we can close it
-    private FeatureSource<VCFRecord> vcfReader = null;
+    private FeatureSource<VariantContext> vcfReader = null;
 
     /**
      * Create a VCF reader, given a VCF file
@@ -37,6 +37,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * Create a VCF reader, given a VCF file
      *
      * @param vcfFile the vcf file to write
+     * @param createIndexOnDisk do we need to create an index on disk?
      */
     public VCFReader(File vcfFile, boolean createIndexOnDisk) {
         initialize(vcfFile, null, createIndexOnDisk);
@@ -46,6 +47,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * Create a VCF reader, given a VCF file
      *
      * @param vcfFile the vcf file to write
+     * @param transform the line transformer to use, if any
      */
     public VCFReader(File vcfFile, VCFCodec.LineTransform transform) {
         initialize(vcfFile, transform, true);
@@ -79,7 +81,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @return an instance of an index
      */
     private Index createIndex(File vcfFile, boolean createIndexOnDisk) {
-        Index index = null;
+        Index index;
         try {
             index = TribbleRMDTrackBuilder.loadIndex(vcfFile, new VCFCodec(), createIndexOnDisk);
         } catch (IOException e) {
@@ -96,11 +98,11 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
     }
 
     /**
-     * return the next available VCF record.  Make sure to check availability with a call to hasNext!
+     * return the next available VariantContext.  Make sure to check availability with a call to hasNext!
      *
-     * @return a VCFRecord, representing the next record in the file
+     * @return a VariantContext, representing the next record in the file
      */
-    public VCFRecord next() {
+    public VariantContext next() {
         return iterator.next();
     }
 
@@ -116,7 +118,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         return this.mHeader;
     }
 
-    public Iterator<VCFRecord> iterator() {
+    public Iterator<VariantContext> iterator() {
         return this;
     }
 

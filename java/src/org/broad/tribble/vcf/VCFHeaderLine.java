@@ -83,7 +83,7 @@ public class VCFHeaderLine implements Comparable {
     /**
      * Should be overloaded in sub classes to do subclass specific
      *
-     * @return
+     * @return the string encoding
      */
     protected String toStringEncoding() {
         return mKey + "=" + mValue;
@@ -99,6 +99,13 @@ public class VCFHeaderLine implements Comparable {
         return toString().compareTo(other.toString());
     }
 
+    /**
+     * @param line    the line
+     * @return true if the line is a VCF meta data line, or false if it is not
+     */
+    public static boolean isHeaderLine(String line) {
+        return line != null && line.length() > 0 && VCFHeader.HEADER_INDICATOR.equals(line.substring(0,1));
+    }
 
     /**
      * create a string of a mapping pair for the target VCF version

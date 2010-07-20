@@ -1,14 +1,12 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.Set;
 
 /**
  * Stub providing a passthrough for VCF files.
@@ -46,18 +44,17 @@ public class VCFGenotypeWriterStub extends GenotypeWriterStub<VCFGenotypeWriter>
     /**
      * initialize this VCF header
      *
-     * @param sampleNames  the sample names
-     * @param headerInfo  the optional header fields
+     * @param header  the header
      */
-    public void writeHeader(Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
-        outputTracker.getStorage(this).writeHeader(sampleNames,headerInfo);
+    public void writeHeader(VCFHeader header) {
+        outputTracker.getStorage(this).writeHeader(header);
     }
 
     /**
-     * Add a given VCF record to the given output.
-     * @param vcfRecord Record to add.
+     * Add a given VCF file to the writer.
+     * @param file  file from which to add records
      */
-    public void addRecord(VCFRecord vcfRecord) {
-        outputTracker.getStorage(this).addRecord(vcfRecord);
+    public void append(File file) {
+        outputTracker.getStorage(this).append(file);
     }
 }

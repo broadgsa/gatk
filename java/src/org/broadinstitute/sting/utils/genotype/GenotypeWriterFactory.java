@@ -1,9 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import net.sf.samtools.SAMFileHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFGenotypeRecord;
-import org.broad.tribble.vcf.VCFHeaderVersion;
+import org.broad.tribble.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.geli.*;
 import org.broadinstitute.sting.utils.genotype.glf.*;
@@ -11,8 +9,6 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.Set;
-import java.util.HashSet;
 
 
 /**
@@ -64,13 +60,10 @@ public class GenotypeWriterFactory {
 
     public static void writeHeader(GenotypeWriter writer,
                                    SAMFileHeader header,
-                                   Set<String> sampleNames,
-                                   Set<VCFHeaderLine> headerInfo) {
+                                   VCFHeader vcfHeader) {
         // VCF
         if ( writer instanceof VCFGenotypeWriter ) {
-            if ( headerInfo == null )
-                headerInfo = new HashSet<VCFHeaderLine>(VCFGenotypeRecord.getSupportedHeaderStrings(VCFHeaderVersion.VCF3_3));
-            ((VCFGenotypeWriter)writer).writeHeader(sampleNames, headerInfo);
+            ((VCFGenotypeWriter)writer).writeHeader(vcfHeader);
         }
         // GELI 
         else if ( writer instanceof GeliGenotypeWriter ) {

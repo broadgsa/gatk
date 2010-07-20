@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFHeader;
 
 import java.util.*;
 
@@ -108,7 +109,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         UG_engine.samples = samples;        
 
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), samples, headerLines);
+        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), new VCFHeader(headerLines, samples));
     }
 
     public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -175,7 +176,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
             return sum;
 
         try {
-            writer.addCall(value, new String(value.getReference().getBases()));
+            writer.addCall(value, value.getReference().getBases()[0]);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

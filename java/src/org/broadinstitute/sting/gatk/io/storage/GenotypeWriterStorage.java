@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broad.tribble.vcf.VCFHeader;
 
 /**
  * Provides temporary storage for GenotypeWriters.
@@ -71,11 +72,11 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
         this.stream = null;
         writer = GenotypeWriterFactory.create(stub.getFormat(), file);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
-        GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), samples, null);
+        GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), new VCFHeader(null, samples));
     }
 
-    public void addCall(VariantContext vc, String refAllele) {
-        writer.addCall(vc,refAllele);
+    public void addCall(VariantContext vc, byte ref) {
+        writer.addCall(vc, ref);
     }
 
     public void close() {

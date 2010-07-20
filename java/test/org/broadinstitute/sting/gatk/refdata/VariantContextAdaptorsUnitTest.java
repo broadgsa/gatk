@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import edu.mit.broad.picard.genotype.geli.GeliFileReader;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.gelitext.GeliTextCodec;
@@ -15,8 +14,6 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
-import org.broadinstitute.sting.utils.genotype.glf.GLFSingleCall;
-import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -81,7 +78,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
             geliText = (GeliTextFeature)codec.decode(line);
             records.add(geliText); // we know they're all single calls in the reference file
             VariantContext vc = VariantContextAdaptors.toVariantContext("Geli",geliText, null);
-            if (vc != null) gw.addCall(vc,null);
+            if (vc != null) gw.addCall(vc,(byte)' ');
             line = readLine(reader);
         }
         gw.close(); // close the file
@@ -144,7 +141,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
             rodGELI gel = new rodGELI("myROD",iterator.next());
             records.add(gel);
             VariantContext vc = VariantContextAdaptors.toVariantContext("myROD",gel, null);
-            if (vc != null) gw.addCall(vc,null);
+            if (vc != null) gw.addCall(vc,(byte)' ');
         }
         iterator.close();
         gw.close(); // close the file

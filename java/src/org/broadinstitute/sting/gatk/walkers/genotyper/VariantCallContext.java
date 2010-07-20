@@ -12,7 +12,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
  */
 public class VariantCallContext {
     public VariantContext vc = null;
-    public String refAllele = null;
+    public byte refBase;
 
     // Was the site called confidently, either reference or variant?
     public boolean confidentlyCalled = false;
@@ -22,9 +22,9 @@ public class VariantCallContext {
         this.confidentlyCalled = confidentlyCalledP;
     }
 
-    VariantCallContext(VariantContext vc, String refAllele, boolean confidentlyCalledP) {
+    VariantCallContext(VariantContext vc, byte ref, boolean confidentlyCalledP) {
         this.vc = vc;
-        this.refAllele = refAllele;
+        this.refBase = ref;
         this.confidentlyCalled = confidentlyCalledP;
     }
 
@@ -33,7 +33,7 @@ public class VariantCallContext {
         this.confidentlyCalled = confidentlyCalledP;
     }
 
-    public void setRefAllele(byte refAllele) {
-        this.refAllele = new String(new byte[]{refAllele});
+    public void setRefBase(byte ref) {
+        this.refBase = ref;
     }
 }

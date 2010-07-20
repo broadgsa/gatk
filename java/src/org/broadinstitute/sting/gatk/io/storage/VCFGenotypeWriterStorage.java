@@ -1,13 +1,10 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 
 import java.io.File;
-import java.util.Set;
 
 /**
  * Provides temporary and permanent storage for genotypes in VCF format.
@@ -36,19 +33,18 @@ public class VCFGenotypeWriterStorage extends GenotypeWriterStorage<VCFGenotypeW
     /**
      * initialize this VCF header
      *
-     * @param sampleNames  the sample names
-     * @param headerInfo  the optional header fields
+     * @param header  the header
      */
-    public void writeHeader(Set<String> sampleNames, Set<VCFHeaderLine> headerInfo) {
-        ((VCFGenotypeWriter)writer).writeHeader(sampleNames,headerInfo);    
+    public void writeHeader(VCFHeader header) {
+        ((VCFGenotypeWriter)writer).writeHeader(header);
     }
 
     /**
-     * Add a given VCF record to the given output.
-     * @param vcfRecord Record to add.
+     * Add a given VCF file to the writer.
+     * @param file  file from which to add records
      */
-    public void addRecord(VCFRecord vcfRecord) {
-        ((VCFGenotypeWriter)writer).addRecord(vcfRecord);    
+    public void append(File file) {
+        ((VCFGenotypeWriter)writer).append(file);
     }
 
     /**
@@ -56,11 +52,7 @@ public class VCFGenotypeWriterStorage extends GenotypeWriterStorage<VCFGenotypeW
      * @param target Target stream for the temporary storage.  May not be null.
      */
     public void mergeInto(VCFGenotypeWriter target) {
-        // make sure we pass false to the reader, so that it doesn't create an index on disk
-        VCFReader reader = new VCFReader(file,false);
-        while ( reader.hasNext() )
-            target.addRecord(reader.next());
-        reader.close();
-        file.delete();        
+        target.append(file);
+        file.delete();
     }    
 }

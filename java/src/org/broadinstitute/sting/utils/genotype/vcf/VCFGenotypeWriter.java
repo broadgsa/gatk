@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFRecord;
+import org.broad.tribble.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 
-import java.util.Set;
+import java.io.File;
 
 /**
  * An extension of the GenotypeWriter interface with support
@@ -17,14 +16,14 @@ public interface VCFGenotypeWriter extends GenotypeWriter {
     /**
      * initialize this VCF header
      *
-     * @param sampleNames  the sample names
-     * @param headerInfo  the optional header fields
+     * @param header  the header
      */
-    public void writeHeader(Set<String> sampleNames, Set<VCFHeaderLine> headerInfo);
+    public void writeHeader(VCFHeader header);
 
     /**
-     * Add a given VCF record to the given output.
-     * @param vcfRecord Record to add.
+     * Add a given VCF file to the writer.
+     * @param file  file from which to add records
      */
-    public void addRecord(VCFRecord vcfRecord);
+    public void append(File file);
+
 }

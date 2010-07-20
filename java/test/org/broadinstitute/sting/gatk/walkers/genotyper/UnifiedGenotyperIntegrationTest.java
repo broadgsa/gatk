@@ -61,7 +61,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    //@Test
+    @Test
     public void testParallelization() {
         String md5 = "fc5798b2ef700e60fa032951bab9607d";
 
@@ -73,7 +73,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,075,000 -nt 2", 1,
                 Arrays.asList(md5));
-        executeTest("test parallelization (multithread)", spec2);
+        executeTest("test parallelization (2 threads)", spec2);
+
+        WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + oneKGLocation + "reference/human_b36_both.fasta -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,075,000 -nt 4", 1,
+                Arrays.asList(md5));
+        executeTest("test parallelization (4 threads)", spec3);
     }
 
     // --------------------------------------------------------------------------------------------------------------

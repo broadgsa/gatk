@@ -39,10 +39,9 @@ public interface GenotypeWriter {
     /**
      * Add a genotype, given a variant context
      * @param vc  the variant context representing the call to add
-     * @param refAllele witers are allowed to ignore it; however it is required for VCF writers, as the
-     * VCF format explicitly requires (previous) ref base for an indel. Currently, refAllele is expected to hold a single character 
+     * @param refBase This is required for VCF writers, as the VCF format explicitly requires (previous) ref base for an indel. 
      */
-    public void addCall(VariantContext vc, String refAllele);
+    public void addCall(VariantContext vc, byte refBase);
 
     /** finish writing, closing any open files. */
     public void close();

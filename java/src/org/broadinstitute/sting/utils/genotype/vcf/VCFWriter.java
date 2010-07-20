@@ -21,13 +21,13 @@ import java.util.*;
 public class VCFWriter {
 
     // the VCF header we're storing
-    private VCFHeader mHeader = null;
+    protected VCFHeader mHeader = null;
 
     // the print stream we're writting to
-    private BufferedWriter mWriter;
+    protected BufferedWriter mWriter;
 
     // were filters applied?
-    private boolean filtersWereAppliedToContext = false;
+    protected boolean filtersWereAppliedToContext = false;
 
     /**
      * create a VCF writer, given a file to write to
@@ -164,7 +164,7 @@ public class VCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // ALT
-            if ( vc.getAlternateAlleles().size() > 0 ) {
+            if ( vc.isVariant() ) {
                 Allele altAllele = vc.getAlternateAllele(0);
                 alleleMap.put(altAllele, "1");
                 String alt = makeAlleleString(altAllele, vc.isIndel(), refBases[0]);
@@ -198,7 +198,7 @@ public class VCFWriter {
             Map<String, String> infoFields = new TreeMap<String, String>();
             for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
                 String key = field.getKey();
-                if ( key.equals("ID") )
+                if ( key.equals("ID") || key.equals(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY) )
                     continue;
 
                 String outputValue = formatVCFField(field.getValue());

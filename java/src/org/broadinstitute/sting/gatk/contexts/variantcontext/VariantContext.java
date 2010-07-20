@@ -163,6 +163,7 @@ import java.util.*;
 public class VariantContext implements Feature { // to enable tribble intergration
     protected InferredGeneticContext commonInfo = null;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
+    public final static String REFERENCE_BASE_FOR_INDEL_KEY = "REFERENCE_BASE_FOR_INDEL";
 
     /** The location of this VariantContext */
     private GenomeLoc loc;
@@ -912,6 +913,16 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     // utility routines
     //
     // ---------------------------------------------------------------------------------------------------------
+
+    // the indel base that gets stripped off for indels
+    public boolean hasReferenceBaseForIndel() {
+        return hasAttribute(REFERENCE_BASE_FOR_INDEL_KEY);
+    }
+
+    // the indel base that gets stripped off for indels
+    public byte getReferenceBaseForIndel() {
+        return hasReferenceBaseForIndel() ? (Byte)getAttribute(REFERENCE_BASE_FOR_INDEL_KEY) : (byte)'N';
+    }
 
     private void determineType() {
         if ( type == null ) {

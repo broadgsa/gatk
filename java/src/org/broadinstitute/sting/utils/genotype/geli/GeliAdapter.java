@@ -107,9 +107,9 @@ public class GeliAdapter implements GeliGenotypeWriter {
      * Add a genotype, given a variant context
      *
      * @param vc  the variant context representing the call to add
-     * @param refAllele not used by this writer
+     * @param refBase not used by this writer
      */
-    public void addCall(VariantContext vc, String refAllele) {
+    public void addCall(VariantContext vc, byte refBase) {
         if ( writer == null )
             throw new IllegalStateException("The Geli Header must be written before calls can be added");
 
