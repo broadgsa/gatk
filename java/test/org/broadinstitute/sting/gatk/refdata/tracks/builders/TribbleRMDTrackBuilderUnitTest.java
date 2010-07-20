@@ -62,7 +62,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
         Assert.assertTrue(classes.size() > 0);
     }
 
-    //@Test
+    @Test
     // in this test, the index exists, but is out of date.
     public void testBuilderIndexUnwriteable() {
         File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/relic.vcf");
