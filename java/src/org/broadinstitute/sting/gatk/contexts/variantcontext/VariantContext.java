@@ -164,6 +164,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     protected InferredGeneticContext commonInfo = null;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
     public final static String REFERENCE_BASE_FOR_INDEL_KEY = "REFERENCE_BASE_FOR_INDEL";
+    public final static String ID_KEY = "ID";
 
     /** The location of this VariantContext */
     private GenomeLoc loc;
@@ -188,22 +189,32 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     // set to the alt allele when biallelic, otherwise == null
     private Allele ALT = null;
 
+    // were filters applied?
+    private boolean filtersWereAppliedToContext;
+
     // ---------------------------------------------------------------------------------------------------------
     //
     // constructors
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    // todo move all of attribute object attributes into Map<> and make special filter value for printing out values when
-    // emitting VC -> VCF or whatever
-    
+
     /**
      * the complete constructor.  Makes a complete VariantContext from its arguments
+     *
+     * @param name            name
+     * @param loc             location
+     * @param alleles         alleles
+     * @param genotypes       genotypes map
+     * @param negLog10PError  qual
+     * @param filters         filters: use null for unfiltered and empty set for passes filters
+     * @param attributes      attributes
      */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Map<String, Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
         if ( loc == null ) { throw new StingException("GenomeLoc cannot be null"); }
         this.loc = loc;
         this.commonInfo = new InferredGeneticContext(name, negLog10PError, filters, attributes);
+        filtersWereAppliedToContext = filters != null;
 
         if ( alleles == null ) { throw new StingException("Alleles cannot be null"); }
         // we need to make this a LinkedHashSet in case the user prefers a given ordering of alleles
@@ -228,13 +239,13 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * Create a new VariantContext
      *
-     * @param name
-     * @param loc
-     * @param alleles
-     * @param genotypes
-     * @param negLog10PError
-     * @param filters
-     * @param attributes
+     * @param name            name
+     * @param loc             location
+     * @param alleles         alleles
+     * @param genotypes       genotypes set
+     * @param negLog10PError  qual
+     * @param filters         filters: use null for unfiltered and empty set for passes filters
+     * @param attributes      attributes
      */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
         this(name, loc, alleles, genotypes != null ? genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes);
@@ -242,9 +253,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     /**
      * Create a new variant context without genotypes and no Perror, no filters, and no attributes
-     * @param name
-     * @param loc
-     * @param alleles
+     * @param name            name
+     * @param loc             location
+     * @param alleles         alleles
      */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles) {
         this(name, loc, alleles, NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
@@ -252,9 +263,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
     /**
      * Create a new variant context without genotypes and no Perror, no filters, and no attributes
-     * @param name
-     * @param loc
-     * @param alleles
+     * @param name            name
+     * @param loc             location
+     * @param alleles         alleles
+     * @param genotypes       genotypes
      */
     public VariantContext(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
         this(name, loc, alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
@@ -281,8 +293,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * genotype and alleles in genotype.  This is the right way to test if a single genotype is actually
      * variant or not.
      *
-     * @param genotype
-     * @return
+     * @param genotype genotype
+     * @return vc subcontext
      */
     public VariantContext subContextFromGenotypes(Genotype genotype) {
         return subContextFromGenotypes(Arrays.asList(genotype));
@@ -294,17 +306,17 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * genotypes and alleles in these genotypes.  This is the right way to test if a single genotype is actually
      * variant or not.
      *
-     * @param genotypes
-     * @return
+     * @param genotypes genotypes
+     * @return vc subcontext
      */
     public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes) {
         return new VariantContext(getName(), getLocation(), allelesOfGenotypes(genotypes), genotypes, getNegLog10PError(), getFilters(), getAttributes());
     }
 
     /**
-     * helper routnine for subcontext
-     * @param genotypes
-     * @return
+     * helper routine for subcontext
+     * @param genotypes genotypes
+     * @return allele set
      */
     private Set<Allele> allelesOfGenotypes(Collection<Genotype> genotypes) {
         Set<Allele> alleles = new HashSet<Allele>();
@@ -478,6 +490,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     public Set<String> getFilters()             { return commonInfo.getFilters(); }
     public boolean isFiltered()                 { return commonInfo.isFiltered(); }
     public boolean isNotFiltered()              { return commonInfo.isNotFiltered(); }
+    public boolean filtersWereApplied()         { return filtersWereAppliedToContext; }
     public boolean hasNegLog10PError()          { return commonInfo.hasNegLog10PError(); }
     public double getNegLog10PError()           { return commonInfo.getNegLog10PError(); }
     public double getPhredScaledQual()          { return commonInfo.getPhredScaledQual(); }
@@ -724,7 +737,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * Returns the number of chromosomes carrying any allele in the genotypes (i.e., excluding NO_CALLS
      *
-     * @return
+     * @return chromosome count
      */
     public int getChromosomeCount() {
         int n = 0;
@@ -739,8 +752,8 @@ public class VariantContext implements Feature { // to enable tribble intergrati
     /**
      * Returns the number of chromosomes carrying allele A in the genotypes
      *
-     * @param a
-     * @return
+     * @param a allele
+     * @return chromosome count
      */
     public int getChromosomeCount(Allele a) {
         int n = 0;

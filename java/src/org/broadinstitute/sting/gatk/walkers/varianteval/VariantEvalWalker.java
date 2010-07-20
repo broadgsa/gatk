@@ -353,9 +353,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         return new HashSet<String>(toExclude);
     }
 
-    private final static String ID = "ID";
     private boolean excludeComp(VariantContext vc) {
-        String id = vc != null && vc.hasAttribute(ID) ? vc.getAttributeAsString(ID) : null;
+        String id = vc != null && vc.hasAttribute(VariantContext.ID_KEY) ? vc.getAttributeAsString(VariantContext.ID_KEY) : null;
         boolean ex = rsIDsToExclude != null && id != null && rsIDsToExclude.contains(id);
         //System.out.printf("Testing id %s ex=%b against %s%n", id, ex, vc);
         return ex;

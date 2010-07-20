@@ -84,7 +84,7 @@ public class AnnotationDataManager {
                 treeSet.add(datum);
             }
 
-            final boolean isNovelVariant = infoField.containsKey("ID");
+            final boolean isNovelVariant = infoField.containsKey(VariantContext.ID_KEY);
 
             // Decide if the variant is a transition or transversion
             if ( vc.isSNP() ) {

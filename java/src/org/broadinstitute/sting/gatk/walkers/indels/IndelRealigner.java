@@ -321,9 +321,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         readsToClean.clear();
         readsNotToClean.clear();
 
-        do {
-            currentInterval = intervals.hasNext() ? intervals.next() : null;
-        } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
+        try {
+            do {
+                currentInterval = intervals.hasNext() ? intervals.next() : null;
+            } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
+        } catch (StingException e) {
+            throw new StingException(e.getMessage() + " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***");
+        }
+
 
         // call back into map now that the state has been updated
         map(ref, read, metaDataTracker);

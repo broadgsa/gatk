@@ -191,8 +191,8 @@ public class VariantAnnotatorEngine {
                 DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, dbsnp == null ? false : true);
                 // annotate dbsnp id if available and not already there
-                if ( dbsnp != null && (!vc.hasAttribute("ID") || vc.getAttribute("ID").equals(VCFConstants.EMPTY_ID_FIELD)) )
-                    infoAnnotations.put("ID", dbsnp.getRsID());
+                if ( dbsnp != null && (!vc.hasAttribute(VariantContext.ID_KEY) || vc.getAttribute(VariantContext.ID_KEY).equals(VCFConstants.EMPTY_ID_FIELD)) )
+                    infoAnnotations.put(VariantContext.ID_KEY, dbsnp.getRsID());
             } else {
                 List<Object> dbRod = tracker.getReferenceMetaData(dbSet.getKey());
                 infoAnnotations.put(dbSet.getValue(), dbRod.size() == 0 ?  false : true);
@@ -252,7 +252,7 @@ public class VariantAnnotatorEngine {
         //Create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
         Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
         for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
-            returnValue.add( new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), infoAnnotationOutput) );
+            returnValue.add( new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
         }
 
         return returnValue;

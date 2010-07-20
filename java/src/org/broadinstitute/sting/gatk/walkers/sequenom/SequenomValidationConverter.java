@@ -209,7 +209,7 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
 
         // set the id if it's a plink rod
         if ( rod instanceof PlinkRod )
-            infoMap.put("ID", ((PlinkRod)rod).getVariantName());
+            infoMap.put(VariantContext.ID_KEY, ((PlinkRod)rod).getVariantName());
 
         vContext = VariantContextUtils.modifyAttributes(vContext, infoMap);
 

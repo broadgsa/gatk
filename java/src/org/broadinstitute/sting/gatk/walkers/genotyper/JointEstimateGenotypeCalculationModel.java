@@ -372,7 +372,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         DbSNPFeature dbsnp = getDbSNP(tracker);
         if ( dbsnp != null )
-            attributes.put("ID", dbsnp.getRsID());
+            attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
 
         if ( !UAC.NO_SLOD ) {
             // the overall lod

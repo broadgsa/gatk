@@ -17,11 +17,14 @@ public class Genotype {
     protected InferredGeneticContext commonInfo;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
     protected List<Allele> alleles = null; // new ArrayList<Allele>();
+
     private boolean genotypesArePhased = false;
+    private boolean filtersWereAppliedToContext;
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean genotypesArePhased) {
         this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
+        filtersWereAppliedToContext = filters != null;
         this.genotypesArePhased = genotypesArePhased;
         validate();
     }
@@ -191,6 +194,7 @@ public class Genotype {
     public Set<String> getFilters()     { return commonInfo.getFilters(); }
     public boolean isFiltered()         { return commonInfo.isFiltered(); }
     public boolean isNotFiltered()      { return commonInfo.isNotFiltered(); }
+    public boolean filtersWereApplied() { return filtersWereAppliedToContext; }
     public boolean hasNegLog10PError()  { return commonInfo.hasNegLog10PError(); }
     public double getNegLog10PError()   { return commonInfo.getNegLog10PError(); }
     public double getPhredScaledQual()  { return commonInfo.getPhredScaledQual(); }

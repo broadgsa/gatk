@@ -260,7 +260,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         // validate the fields
         validateFields(attributes.keySet(),new ArrayList(infoFields.keySet()));
 
-        attributes.put("ID", id);
+        attributes.put(VariantContext.ID_KEY, id);
         return attributes;
     }
 
@@ -285,15 +285,9 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @return return a double
      */
     private Double parseQual(String qualString) {
-        if (qualString.equals(VCFConstants.MISSING_VALUE_v4))
+        if ( qualString.equals(VCFConstants.MISSING_VALUE_v4) || qualString.equals(VCFConstants.MISSING_QUALITY_v3) )
             return VariantContext.NO_NEG_LOG_10PERROR;
-        else {
-            double q = Double.valueOf(qualString);
-            if ( q == -1 )
-               return VariantContext.NO_NEG_LOG_10PERROR;
-            else
-                return Double.valueOf(qualString) / 10;
-        }
+        return Double.valueOf(qualString) / 10;
     }
 
     /**
@@ -357,36 +351,36 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      * @return a set of the filters applied
      */
     private Set<String> parseFilters(String filterString) {
-        Set<String> fFields;
 
-        // a PASS is simple (no filters)
-        String passString = VCFConstants.PASSES_FILTERS_v3;
-        if (this.version == VCFHeaderVersion.VCF4_0)
-            passString = VCFConstants.PASSES_FILTERS_v4;
+        // null for unfiltered
+        if ( filterString.equals(VCFConstants.UNFILTERED) )
+            return null;
 
-        if ( filterString.equals(passString) ) {
-            return null;
+        // empty set for passes filters
+        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
+
+        if ( this.version == VCFHeaderVersion.VCF4_0 ) {
+            if ( filterString.equals(VCFConstants.PASSES_FILTERS_v4) )
+                return fFields;
+            if ( filterString.equals(VCFConstants.PASSES_FILTERS_v3) )
+                throw new StingException(VCFConstants.PASSES_FILTERS_v3 + " is an invalid filter name in vcf4.0");
+        } else if ( filterString.equals(VCFConstants.PASSES_FILTERS_v3) ) {
+            return fFields;
         }
-        if ( filterString.equals(VCFConstants.UNFILTERED)) {
-            return null;
-        }
-        // else do we have the filter string cached?
-        else if (filterHash.containsKey(filterString)) {
-            fFields = filterHash.get(filterString);
-        }
+
+        // do we have the filter string cached?
+        if ( filterHash.containsKey(filterString) )
+            return filterHash.get(filterString);
+
         // otherwise we have to parse and cache the value
-        else {
-            LinkedHashSet<String> s = new LinkedHashSet<String>(1);
-            if ( filterString.indexOf(";") == -1 ) {
-                s.add(filterString);
-            } else {
-                s.addAll(Utils.split(filterString, ";"));
-            }
-            filterHash.put(filterString,s);
-            fFields = s;
-        }
+        if ( filterString.indexOf(";") == -1 )
+            fFields.add(filterString);
+        else
+            fFields.addAll(Utils.split(filterString, ";"));
 
-        validateFields(fFields,filterFields);
+        filterHash.put(filterString, fFields);
+
+        validateFields(fFields, filterFields);
         return fFields;
     }
 

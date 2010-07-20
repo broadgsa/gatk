@@ -20,7 +20,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("519593d09da03e6503a863dce439151b");
+        md5.add("b4f98bee580508637c88c421064936fc");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
@@ -37,7 +37,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("4541686d38eced70b8fb6647551d2329");
+        md5.add("0f310612c8609cba3dcf9cc97b2c1195");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
@@ -70,7 +70,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingVCFInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("919eb499bfcc980a14825a0265e575e3");
+        md5.add("19371e6cfea5f29fb75d5a2be7fccd34");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + oneKGLocation + "reference/human_b36_both.fasta" +

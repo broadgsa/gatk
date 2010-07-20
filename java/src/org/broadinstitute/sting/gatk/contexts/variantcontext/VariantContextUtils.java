@@ -242,8 +242,8 @@ public class VariantContextUtils {
             filters.addAll(vc.getFilters());
             if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
                 depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
-            if ( rsID == null && vc.hasAttribute("ID") )
-                rsID = vc.getAttributeAsString("ID");
+            if ( rsID == null && vc.hasAttribute(VariantContext.ID_KEY) )
+                rsID = vc.getAttributeAsString(VariantContext.ID_KEY);
 
             for ( Map.Entry<String, Object> p : vc.getAttributes().entrySet() ) {
                 if ( ! attributes.containsKey(p.getKey()) || attributes.get(p.getKey()).equals(".") )  { // no value
@@ -277,7 +277,7 @@ public class VariantContextUtils {
         if ( depth > 0 )
             attributes.put(VCFConstants.DEPTH_KEY, String.valueOf(depth));
         if ( rsID != null )
-            attributes.put("ID", rsID);
+            attributes.put(VariantContext.ID_KEY, rsID);
 
         VariantContext merged = new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
@@ -431,11 +431,11 @@ public class VariantContextUtils {
     }
 
     public static VariantContext modifyGenotypes(VariantContext vc, Map<String, Genotype> genotypes) {
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
+        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
     }
 
     public static VariantContext modifyLocation(VariantContext vc, GenomeLoc loc) {
-        return new VariantContext(vc.getName(), loc, vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
+        return new VariantContext(vc.getName(), loc, vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
     }
 
     public static VariantContext modifyFilters(VariantContext vc, Set<String> filters) {
@@ -443,15 +443,15 @@ public class VariantContextUtils {
     }
 
     public static VariantContext modifyAttributes(VariantContext vc, Map<String, Object> attributes) {
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.getFilters(), attributes);
+        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes);
     }
 
     public static Genotype modifyName(Genotype g, String name) {
-        return new Genotype(name, g.getAlleles(), g.getNegLog10PError(), g.getFilters(), g.getAttributes(), g.genotypesArePhased());
+        return new Genotype(name, g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.genotypesArePhased());
     }
 
     public static Genotype modifyAttributes(Genotype g, Map<String, Object> attributes) {
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.getFilters(), attributes, g.genotypesArePhased());
+        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.genotypesArePhased());
     }
 
     public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {

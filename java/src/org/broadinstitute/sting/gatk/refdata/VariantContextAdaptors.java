@@ -108,7 +108,7 @@ public class VariantContextAdaptors {
                 }
 
                 Map<String, String> attributes = new HashMap<String, String>();
-                attributes.put("ID", dbsnp.getRsID());
+                attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
                 Collection<Genotype> genotypes = null;
                 VariantContext vc = new VariantContext(name, GenomeLocParser.createGenomeLoc(dbsnp.getChr(),dbsnp.getStart(),dbsnp.getEnd()), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
                 return vc;
@@ -133,7 +133,7 @@ public class VariantContextAdaptors {
 
             Set<String> filters = vcf.isFiltered() ? new HashSet<String>(Arrays.asList(vcf.getFilteringCodes())) : null;
             Map<String, String> attributes = new HashMap<String, String>(vcf.getInfoValues());
-            attributes.put("ID", vcf.getID());
+            attributes.put(VariantContext.ID_KEY, vcf.getID());
 
             // add all of the alt alleles
             List<Allele> alleles = new ArrayList<Allele>();

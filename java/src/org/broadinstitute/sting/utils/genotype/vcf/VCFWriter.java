@@ -153,7 +153,7 @@ public class VCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // ID
-            String ID = vc.hasAttribute("ID") ? vc.getAttributeAsString("ID") : VCFConstants.EMPTY_ID_FIELD;
+            String ID = vc.hasAttribute(VariantContext.ID_KEY) ? vc.getAttributeAsString(VariantContext.ID_KEY) : VCFConstants.EMPTY_ID_FIELD;
             mWriter.write(ID);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -186,11 +186,11 @@ public class VCFWriter {
             if ( !vc.hasNegLog10PError() )
                 mWriter.write(VCFConstants.MISSING_VALUE_v4);
             else
-                mWriter.write(String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, vc.getPhredScaledQual()));
+                mWriter.write(getQualValue(vc.getPhredScaledQual()));
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // FILTER
-            String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
+            String filters = vc.isFiltered() ? Utils.join(";", Utils.sorted(vc.getFilters())) : (filtersWereAppliedToContext || vc.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
             mWriter.write(filters);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -198,7 +198,7 @@ public class VCFWriter {
             Map<String, String> infoFields = new TreeMap<String, String>();
             for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
                 String key = field.getKey();
-                if ( key.equals("ID") || key.equals(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY) )
+                if ( key.equals(VariantContext.ID_KEY) || key.equals(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY) )
                     continue;
 
                 String outputValue = formatVCFField(field.getValue());
@@ -233,6 +233,13 @@ public class VCFWriter {
             throw new RuntimeException("Unable to write the VCF object to a file");
         }
 
+    }
+
+    private String getQualValue(double qual) {
+        String s = String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, qual);
+        if ( s.endsWith(VCFConstants.DOUBLE_PRECISION_INT_SUFFIX) )
+            s = s.substring(0, s.length() - VCFConstants.DOUBLE_PRECISION_INT_SUFFIX.length());
+        return s;
     }
 
     private String makeAlleleString(Allele allele, boolean isIndel, byte ref) {
@@ -322,14 +329,14 @@ public class VCFWriter {
                     if ( MathUtils.compareDoubles(g.getNegLog10PError(), Genotype.NO_NEG_LOG_10PERROR) == 0 )
                         val = VCFConstants.MISSING_VALUE_v4;
                     else {
-                        val = String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
+                        val = getQualValue(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
                     }
                 } else if ( key.equals(VCFConstants.DEPTH_KEY) && val == null ) {
                     ReadBackedPileup pileup = (ReadBackedPileup)g.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
                     if ( pileup != null )
                         val = pileup.size();
                 } else if ( key.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
-                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : VCFConstants.PASSES_FILTERS_v4;
+                    val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : (g.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
                 }
 
                 VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(key);

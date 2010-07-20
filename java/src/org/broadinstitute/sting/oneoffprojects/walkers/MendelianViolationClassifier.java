@@ -202,7 +202,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
 
         public VariantContext toVariantContext() {
             newAttributes.putAll(trio.getAttributes());
-            return new VariantContext(trio.getName(),trio.getLocation(),trio.getAlleles(),trio.getGenotypes(),trio.getNegLog10PError(),trio.getFilters(),newAttributes);
+            return new VariantContext(trio.getName(),trio.getLocation(),trio.getAlleles(),trio.getGenotypes(),trio.getNegLog10PError(),trio.filtersWereApplied()?trio.getFilters():null,newAttributes);
         }
 
         public boolean siteIsFiltered() {

@@ -284,7 +284,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
         }
 
-        VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getLocation(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.getFilters(), vc_input.getAttributes());
+        VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getLocation(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
 
         Set<Allele> altAlleles = filteredVC.getAlternateAlleles();
         StringBuffer altAlleleCountString = new StringBuffer();

@@ -72,7 +72,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         for ( VariantContext vc : contexts ) {
             Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
             if ( dbsnp != null )
-                attrs.put("ID", dbsnp.getRsID());
+                attrs.put(VariantContext.ID_KEY, dbsnp.getRsID());
             vc = VariantContextUtils.modifyAttributes(vc, attrs);
 
             // set the appropriate sample name if necessary
