@@ -24,11 +24,12 @@
 package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
 
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broad.tribble.index.Index;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,12 +40,11 @@ import java.util.Map;
 
 
 /**
- * 
- * @author aaron 
- * 
- * Class TribbleRMDTrackBuilderUnitTest
- *
- * Testing out the builder for tribble Tracks
+ * @author aaron
+ *         <p/>
+ *         Class TribbleRMDTrackBuilderUnitTest
+ *         <p/>
+ *         Testing out the builder for tribble Tracks
  */
 public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     private TribbleRMDTrackBuilder builder;
@@ -52,37 +52,99 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     @Before
     public void setup() {
         builder = new TribbleRMDTrackBuilder();
+        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
+        GenomeLocParser.setupRefContigOrdering(seq);
     }
 
     @Test
     public void testBuilder() {
-        Map<String,Class> classes = builder.getAvailableTrackNamesAndTypes();
+        Map<String, Class> classes = builder.getAvailableTrackNamesAndTypes();
         Assert.assertTrue(classes.size() > 0);
     }
 
     //@Test
+    // in this test, the index exists, but is out of date.
     public void testBuilderIndexUnwriteable() {
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/relic.vcf");
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/relic.vcf");
         try {
-            builder.loadIndex(vcfFile,new VCFCodec(), true);
+            builder.loadIndex(vcfFile, new VCFCodec(), true);
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());
         }
         // make sure we didn't write the file (check that it's timestamp is within bounds)
         //System.err.println(new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).lastModified());
-        Assert.assertTrue(Math.abs(1275597793000l - new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).lastModified()) < 100);
+        Assert.assertTrue(Math.abs(1279591752000l - new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).lastModified()) < 100);
 
+    }
+
+    // we have a good index file, in a read-only dir. This would cause the previous version to remake the index; make
+    // sure we don't do this
+    @Test
+    public void testDirIsLockedIndexFromDisk() {
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/good_index.vcf");
+        File vcfFileIndex = new File(validationDataLocation + "/ROD_validation/read_only/good_index.vcf.idx");
+        Index ind = null;
+        try {
+            ind = builder.attemptIndexFromDisk(vcfFile,new VCFCodec(),vcfFileIndex,new FSLockWithShared(vcfFile));
+        } catch (IOException e) {
+            Assert.fail("We weren't expecting an exception -> " + e.getMessage());
+        }
+        Assert.assertTrue(ind != null);
+    }
+
+
+
+    @Test
+    public void testBuilderIndexDirectoryUnwritable() {
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf.vcf");
+        File vcfFileIndex = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf.idx");
+
+        Index ind = null;
+        try {
+            ind = builder.loadIndex(vcfFile, new VCFCodec(), true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Assert.fail("IO exception unexpected" + e.getMessage());
+        }
+        // make sure we didn't write the file (check that it's timestamp is within bounds)
+        Assert.assertTrue(!vcfFileIndex.exists());
+        Assert.assertTrue(ind != null);
+
+    }
+
+
+    @Test
+    public void testGenerateIndexForUnindexedFile() {
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/always_reindex.vcf");
+        File vcfFileIndex = new File(validationDataLocation + "/ROD_validation/always_reindex.vcf.idx");
+
+        // if we can't write to the directory, don't fault the tester, just pass
+        if (!vcfFileIndex.getParentFile().canWrite()) {
+            logger.warn("Unable to run test testGenerateIndexForUnindexedFile: unable to write to dir " + vcfFileIndex.getParentFile());
+            return;
+        }
+        // clean-up our test, and previous tests that may have written the file
+        vcfFileIndex.deleteOnExit();
+        if (vcfFileIndex.exists()) vcfFileIndex.delete();
+
+        try {
+            builder.loadIndex(vcfFile, new VCFCodec(), true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Assert.fail("IO exception unexpected" + e.getMessage());
+        }
+        // make sure we wrote the file
+        Assert.assertTrue(vcfFileIndex.exists());
     }
 
 
     // test to make sure we delete the index and regenerate if it's out of date
     //@Test
     public void testBuilderIndexOutOfDate() {
-        Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
         File vcfFile = createOutofDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
         try {
-            builder.loadIndex(vcfFile,new VCFCodec(), true);
+            builder.loadIndex(vcfFile, new VCFCodec(), true);
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());
@@ -95,13 +157,12 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     }
 
     // test to make sure we delete the index and regenerate if it's out of date
-    //@Test
+    // @Test
     public void testBuilderIndexGoodDate() {
-        Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
         File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
         Long indexTimeStamp = new File(vcfFile.getAbsolutePath() + ".idx").lastModified();
         try {
-            builder.loadIndex(vcfFile,new VCFCodec(), true);
+            builder.loadIndex(vcfFile, new VCFCodec(), true);
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());
@@ -115,14 +176,17 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
 
     /**
      * create a temporary file and an associated out of date index file
+     *
      * @param tribbleFile the tribble file
      * @return a file pointing to the new tmp location, with out of date index
      */
     private File createOutofDateIndexFile(File tribbleFile) {
         try {
             // first copy the tribble file to a temperary file
-            File tmpFile = File.createTempFile("TribbleUnitTestFile","");
-            logger.info("creating temp file " + tmpFile); 
+            File tmpFile = File.createTempFile("TribbleUnitTestFile", "");
+            tmpFile.deleteOnExit();
+
+            logger.info("creating temp file " + tmpFile);
             // create a fake index, before we copy so it's out of date
             File tmpIndex = new File(tmpFile.getAbsolutePath() + ".idx");
             tmpIndex.deleteOnExit();
@@ -131,7 +195,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
             Thread.sleep(2000);
 
             // copy the vcf (tribble) file to the tmp file location
-            copyFile(tribbleFile,tmpFile);
+            copyFile(tribbleFile, tmpFile);
 
             // sleep again, to make sure the timestamps are different (vcf vrs updated index file)
             Thread.sleep(2000);
@@ -148,17 +212,19 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
 
     /**
      * create a temporary file and an associated out of date index file
+     *
      * @param tribbleFile the tribble file
      * @return a file pointing to the new tmp location, with out of date index
      */
     private File createCorrectDateIndexFile(File tribbleFile) {
         try {
             // first copy the tribble file to a temperary file
-            File tmpFile = File.createTempFile("TribbleUnitTestFile","");
+            File tmpFile = File.createTempFile("TribbleUnitTestFile", "");
+            tmpFile.deleteOnExit();
             logger.info("creating temp file " + tmpFile);
 
             // copy the vcf (tribble) file to the tmp file location
-            copyFile(tribbleFile,tmpFile);
+            copyFile(tribbleFile, tmpFile);
 
             // sleep again, to make sure the timestamps are different (vcf vrs updated index file)
             Thread.sleep(2000);
@@ -168,7 +234,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
             tmpIndex.deleteOnExit();
 
             // copy the vcf (tribble) file to the tmp file location
-            copyFile(new File(tribbleFile + ".idx"),tmpIndex);
+            copyFile(new File(tribbleFile + ".idx"), tmpIndex);
 
             return tmpFile;
 
@@ -182,6 +248,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
 
     /**
      * copy a file, from http://www.exampledepot.com/egs/java.nio/File2File.html
+     *
      * @param srFile the source file
      * @param dtFile the destination file
      */
@@ -191,7 +258,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
             FileChannel srcChannel = new FileInputStream(srFile).getChannel();
 
             // Create channel on the destination
-            FileChannel dstChannel = new FileOutputStream(dtFile).getChannel(); 
+            FileChannel dstChannel = new FileOutputStream(dtFile).getChannel();
 
             // Copy file contents from source to destination
             dstChannel.transferFrom(srcChannel, 0, srcChannel.size());

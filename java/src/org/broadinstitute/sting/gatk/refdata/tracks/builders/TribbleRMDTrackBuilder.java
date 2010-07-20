@@ -31,16 +31,15 @@ import org.broad.tribble.*;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.index.linear.LinearIndex;
-import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.vcf.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.file.FSLock;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.file.FSLockWithShared;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -178,65 +177,108 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
 
         // create the index file name, locking on the index file name
         File indexFile = new File(inputFile.getAbsoluteFile() + linearIndexExtension);
-        FSLock lock = new FSLock(indexFile);
+        FSLockWithShared lock = new FSLockWithShared(indexFile);
 
         // acquire a lock on the file
-        boolean obtainedLock = lock.lock();
-        try {
-            // check to see if the index file is out of date
-            if (indexFile.exists() && indexFile.canRead() && obtainedLock && indexFile.lastModified() < inputFile.lastModified()) {
-                logger.warn("Tribble index file " + indexFile + " is older than the track file " + inputFile + ", deleting and regenerating");
-                indexFile.delete();
-            }
-            // if the file exists, and we can read it, load the index from disk (i.e. wasn't deleted in the last step).
-            if (indexFile.exists() && indexFile.canRead() && obtainedLock) {
-                logger.info("Loading Tribble index from disk for file " + inputFile);
-                Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
-                if (index.isCurrentVersion())
-                    return index;
+        Index idx = null;
+        if (indexFile.canRead())
+            idx = attemptIndexFromDisk(inputFile, codec, indexFile, lock);
 
-                logger.warn("Index file " + indexFile + " is out of date (old version), deleting and updating the index file");
-                indexFile.delete();
-            }
-            return writeIndexToDisk(inputFile, codec, onDisk, indexFile, obtainedLock);
+        // if we managed to make an index, return
+        if (idx != null) return idx;
+
+        // we couldn't read the file, or we fell out of the conditions above, continue on to making a new index
+        return createNewIndex(inputFile, codec, onDisk, indexFile, lock);
+    }
+
+    /**
+     * attempt to read the index from disk
+     * @param inputFile the input file
+     * @param codec the codec to read from
+     * @param indexFile the index file itself
+     * @param lock the lock file
+     * @return an index, or null if we couldn't load one
+     * @throws IOException if we fail for FS issues
+     */
+    protected static Index attemptIndexFromDisk(File inputFile, FeatureCodec codec, File indexFile, FSLockWithShared lock) throws IOException {
+        boolean locked = lock.sharedLock();
+        Index idx;
+        try {
+            if (!locked) // can't lock file
+                idx = createIndexInMemory(inputFile, codec);
+            else
+                idx = loadFromDisk(inputFile, indexFile);
+        } finally {
+            if (locked) lock.unlock();
         }
-        finally {
-            lock.unlock();
+        return idx;
+    }
+
+    /**
+     * load the index from disk, checking for out of date indexes and old versions (both of which are deleted)
+     * @param inputFile the input file
+     * @param indexFile the input file, plus the index extension
+     * @return an Index, or null if we're unable to load
+     */
+    public static Index loadFromDisk(File inputFile, File indexFile) {
+        logger.info("Loading Tribble index from disk for file " + inputFile);
+        Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
+
+        // check if the file is up-to date (filestamp and version check)
+        if (index.isCurrentVersion() && indexFile.lastModified() > inputFile.lastModified())
+            return index;
+        else if (indexFile.lastModified() < inputFile.lastModified())
+            logger.warn("Index file " + indexFile + " is out of date (index older than input file), deleting and updating the index file");
+        else // we've loaded an old version of the index, we want to remove it
+            logger.warn("Index file " + indexFile + " is out of date (old version), deleting and updating the index file");
+
+        // however we got here, remove the index and return null
+        boolean deleted = indexFile.delete();
+
+        if (!deleted) logger.warn("Index file " + indexFile + " is out of date, but could not be removed; it will not be trusted (we'll try to rebuild an in-memory copy)");
+        return null;
+    }
+
+
+    /**
+     * attempt to create the index, and write it to disk
+     * @param inputFile the input file
+     * @param codec the codec to use
+     * @param onDisk if they asked for disk storage or now
+     * @param indexFile the index file location
+     * @param lock the locking object
+     * @return the index object
+     * @throws IOException
+     */
+    private static Index createNewIndex(File inputFile, FeatureCodec codec, boolean onDisk, File indexFile, FSLockWithShared lock) throws IOException {
+        Index index = createIndexInMemory(inputFile, codec);
+
+        boolean locked = false; // could we exclusive lock the file?
+        try {
+            locked = lock.exclusiveLock();
+            if (locked) {
+                logger.info("Writing Tribble index to disk for file " + inputFile);
+                index.write(indexFile);
+            }
+            else // we can't write it to disk, just store it in memory, tell them this
+                if (onDisk) logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
+            return index;
+        } finally {
+            if (locked) lock.unlock();
         }
 
     }
 
     /**
-     * attempt to create the index, and to disk
+     * create the index in memory, given the input file and feature codec
      * @param inputFile the input file
-     * @param codec the codec to use
-     * @param onDisk if they asked for disk storage or now
-     * @param indexFile the index file location
-     * @param obtainedLock did we obtain the lock on the file?
-     * @return the index object
+     * @param codec the codec
+     * @return a LinearIndex, given the file location
      * @throws IOException
      */
-    private static LinearIndex writeIndexToDisk(File inputFile, FeatureCodec codec, boolean onDisk, File indexFile, boolean obtainedLock) throws IOException {
-        LinearIndexCreator create = new LinearIndexCreator(inputFile, codec);
-
+    private static Index createIndexInMemory(File inputFile, FeatureCodec codec) throws IOException {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
-        LinearIndex index = (LinearIndex)create.createIndex(); // we don't want to write initially, so we pass in null
-
-        // if the index doesn't exist, and we can write to the directory, and we got a lock: write to the disk
-        if (indexFile.getParentFile().canWrite() &&
-                (!indexFile.exists() || indexFile.canWrite()) &&
-                onDisk &&
-                obtainedLock) {
-            logger.info("Writing Tribble index to disk for file " + inputFile);
-            index.write(indexFile);
-            return index;
-        }
-        // we can't write it to disk, just store it in memory
-        else {
-            // if they wanted to write, let them know we couldn't
-            if (onDisk) logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
-            return index;
-        }
+        return new LinearIndex(16000,inputFile.getAbsolutePath());
     }
 }
