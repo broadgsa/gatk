@@ -97,7 +97,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
 
     @Test
     public void testBuilderIndexDirectoryUnwritable() {
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf.vcf");
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf");
         File vcfFileIndex = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf.idx");
 
         Index ind = null;

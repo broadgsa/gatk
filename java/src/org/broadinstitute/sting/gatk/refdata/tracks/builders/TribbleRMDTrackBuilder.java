@@ -31,6 +31,7 @@ import org.broad.tribble.*;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.index.linear.LinearIndex;
+import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.vcf.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
@@ -279,6 +280,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     private static Index createIndexInMemory(File inputFile, FeatureCodec codec) throws IOException {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
-        return new LinearIndex(16000,inputFile.getAbsolutePath());
+        LinearIndexCreator creator = new LinearIndexCreator(inputFile,codec,null);
+        return creator.createIndex();
     }
 }
