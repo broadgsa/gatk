@@ -58,7 +58,7 @@ public class CreateTiTvTrack extends RodWalker<VariantContext,TiTvWindow> {
         return window;
     }
 
-    public void onTraversalDone() {
+    public void onTraversalDone(TiTvWindow window) {
         
     }
 
