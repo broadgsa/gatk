@@ -115,9 +115,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="select", doc="One or more stratifications to use when evaluating the data", required=false)
     protected String[] SELECT_EXPS = {};
-
+    //protected String[] SELECT_EXPS = {"set == \"Intersection\"",
+    //        "set == \"HiSeq.WGS.cleaned.ug.vcf\"",
+    //        "set == \"HiSeq.WGS.cleaned.ug.vcf\" || set == \"Intersection\"",
+    //        "set == \"HiSeq.WGS.raw.OQ.ug.vcf\"",
+    //        "set == \"HiSeq.WGS.raw.OQ.ug.vcf\" || set == \"Intersection\""};
+    
     @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
     protected String[] SELECT_NAMES = {};
+    //protected String[] SELECT_NAMES = {"Intersection", "x1", "x2", "x3", "x4"};
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {DbSNPHelper.STANDARD_DBSNP_TRACK_NAME};
