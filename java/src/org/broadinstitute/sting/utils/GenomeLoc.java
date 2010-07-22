@@ -172,6 +172,16 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
                              Math.max( getStop(), that.getStop()) );
     }
 
+    public GenomeLoc intersect( GenomeLoc that ) throws StingException {
+        if (!(this.overlapsP(that))) {
+            throw new StingException("GenomeLoc::intersect(): The two genome loc's need to overlap");
+        }
+
+        return new GenomeLoc(getContig(), this.contigIndex,
+                             Math.max(getStart(), that.getStart()),
+                             Math.min( getStop(), that.getStop()) );
+    }
+
     public final boolean containsP(GenomeLoc that) {
         return onSameContig(that) && getStart() <= that.getStart() && getStop() >= that.getStop();
     }
@@ -214,7 +224,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
         return ( comparison == 1 || ( comparison == 0 && this.getStart() > that.getStop() ));
     }
 
-    
+
 
     /**
      * Check to see whether two genomeLocs are equal.
