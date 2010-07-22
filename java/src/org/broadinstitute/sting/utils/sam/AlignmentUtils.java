@@ -350,6 +350,20 @@ public class AlignmentUtils {
         return Utils.reverse(read.getBaseQualities());
     }
 
+    /** Returns the array of original base qualitites (before recalibration) in the order the bases were read on the machine (i.e. always starting from
+     * cycle 1). In other words, if the read is unmapped or aligned in the forward direction, the read's own base
+     * qualities are returned as stored in the SAM record; if the read is aligned in the reverse direction, the array
+     * of read's base qualitites is inverted (in this case new array is allocated and returned). If no original base qualities
+     * are available this method will throw a runtime exception.
+      * @param read
+     * @return
+     */
+    public static byte [] getOriginalQualsInCycleOrder(SAMRecord read) {
+        if ( isReadUnmapped(read) || ! read.getReadNegativeStrandFlag() ) return read.getOriginalBaseQualities();
+
+        return Utils.reverse(read.getOriginalBaseQualities());
+    }
+
     /** Takes the alignment of the read sequence <code>readSeq</code> to the reference sequence <code>refSeq</code>
      * starting at 0-based position <code>refIndex</code> on the <code>refSeq</code> and specified by its <code>cigar</code>.
      * The last argument <code>readIndex</code> specifies 0-based position on the read where the alignment described by the
