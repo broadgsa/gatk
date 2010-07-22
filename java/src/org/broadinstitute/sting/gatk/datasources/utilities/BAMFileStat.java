@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.datasources;
+package org.broadinstitute.sting.gatk.datasources.utilities;
 
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
@@ -31,8 +31,6 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
 import java.io.PrintStream;
-
-import net.sf.samtools.*;
 
 /**
  *
