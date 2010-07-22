@@ -85,10 +85,14 @@ public class VCFHeader {
      */
     private void loadMetaDataMaps() {
         for ( VCFHeaderLine line : mMetaData ) {
-            if ( line instanceof VCFInfoHeaderLine )
-                mInfoMetaData.put(line.getKey(), (VCFInfoHeaderLine)line);
-            else if ( line instanceof VCFFormatHeaderLine )
-                mFormatMetaData.put(line.getKey(), (VCFFormatHeaderLine)line);
+            if ( line instanceof VCFInfoHeaderLine )  {
+                VCFInfoHeaderLine infoLine = (VCFInfoHeaderLine)line;
+                mInfoMetaData.put(infoLine.getName(), infoLine);
+            }
+            else if ( line instanceof VCFFormatHeaderLine ) {
+                VCFFormatHeaderLine formatLine = (VCFFormatHeaderLine)line;
+                mFormatMetaData.put(formatLine.getName(), formatLine);
+            }
         }
     }
 

@@ -898,7 +898,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 //        if ( getType() == Type.INDEL ) {
 //            if ( getReference().length() != (getLocation().size()-1) ) {
         if ( (getReference().isNull() && getLocation().size() != 1 ) ||
-                (getReference().isNonNull() && getReference().length() != getLocation().size()) ) {
+                (getReference().isNonNull() && (getLocation().size() - getReference().length()  > 1))) {
             throw new IllegalStateException("BUG: GenomeLoc " + getLocation() + " has a size == " + getLocation().size() + " but the variation reference allele has length " + getReference().length() + " this = " + this);
         }
     }

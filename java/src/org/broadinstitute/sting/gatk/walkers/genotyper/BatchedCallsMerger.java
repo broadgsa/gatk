@@ -148,7 +148,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         }
 
         // merge the variant contexts
-        return VariantContextUtils.simpleMerge(calls);
+        return VariantContextUtils.simpleMerge(calls, ref.getBases());
     }
 
     private AlignmentContext filterForSamples(ReadBackedPileup pileup, Set<String> samples) {

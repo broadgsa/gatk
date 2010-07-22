@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 import java.io.Serializable;
 import java.util.*;
 import org.apache.commons.jexl2.*;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -170,8 +171,8 @@ public class VariantContextUtils {
         UNION, INTERSECT
     }
 
-    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs) {
-        return simpleMerge(unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false);
+    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, byte[] refBases) {
+        return simpleMerge(unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false, refBases);
     }
 
 
@@ -188,7 +189,7 @@ public class VariantContextUtils {
      */
     public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
-                                             boolean annotateOrigin, boolean printMessages ) {
+                                             boolean annotateOrigin, boolean printMessages, byte[] inputRefBases ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
@@ -198,7 +199,16 @@ public class VariantContextUtils {
         if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
             verifyUniqueSampleNames(unsortedVCs);
 
-        List<VariantContext> VCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
+
+
+        List<VariantContext> prepaddedVCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
+        // Make sure all variant contexts are padded with reference base in case of indels if necessary
+        List<VariantContext> VCs = new ArrayList<VariantContext>();
+
+        for (VariantContext vc : prepaddedVCs) {
+            VCs.add(createVariantContextWithPaddedAlleles(vc,inputRefBases));
+        }
+
 
         // establish the baseline info from the first VC
         VariantContext first = VCs.get(0);
@@ -377,6 +387,133 @@ public class VariantContextUtils {
         }
     }
 
+
+    public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
+        // see if we need to trim common reference base from all alleles
+        boolean trimVC = true;
+
+        // We need to trim common reference base from all alleles if a ref base is common to all alleles
+        Allele refAllele = inputVC.getReference();
+        if (!inputVC.isVariant())
+            trimVC = false;
+        else if (refAllele.isNull())
+            trimVC = false;
+        else {
+            for (Allele a : inputVC.getAlternateAlleles()) {
+                if (a.length() < 1 || (a.getBases()[0] != refAllele.getBases()[0]))
+                    trimVC = false;
+            }
+        }
+
+        // nothing to do if we don't need to trim bases
+        if (trimVC) {
+            List<Allele> alleles = new ArrayList<Allele>();
+            Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
+
+            Map<String, Genotype> inputGenotypes = inputVC.getGenotypes();
+            // set the reference base for indels in the attributes
+            Map<String,Object> attributes = new TreeMap<String,Object>();
+
+            for ( Map.Entry<String, Object> p : inputVC.getAttributes().entrySet() ) {
+                attributes.put(p.getKey(), p.getValue());
+            }
+
+            attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(inputVC.getReference().getBases()[0]));
+
+
+            for (Allele a : inputVC.getAlleles()) {
+                // get bases for current allele and create a new one with trimmed bases
+                byte[] newBases = Arrays.copyOfRange(a.getBases(),1,a.length());
+                alleles.add(Allele.create(newBases,a.isReference()));
+            }
+
+            // now we can recreate new genotypes with trimmed alleles
+            for (String sample : inputVC.getSampleNames()) {
+                Genotype g = inputGenotypes.get(sample);
+
+                List<Allele> inAlleles = g.getAlleles();
+                List<Allele> newGenotypeAlleles = new ArrayList<Allele>();
+                for (Allele a : inAlleles) {
+                    byte[] newBases = Arrays.copyOfRange(a.getBases(),1,a.length());
+                    newGenotypeAlleles.add(Allele.create(newBases, a.isReference()));
+                }
+                genotypes.put(sample, new Genotype(sample, newGenotypeAlleles, g.getNegLog10PError(),
+                        g.getFilters(),g.getAttributes(),g.genotypesArePhased()));
+
+            }
+            return new VariantContext(inputVC.getName(), inputVC.getLocation(), alleles, genotypes, inputVC.getNegLog10PError(),
+                    inputVC.getFilters(), attributes);
+
+        }
+        else
+            return inputVC;
+
+    }
+
+    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, byte[] inputRefBase) {
+        Allele refAllele = inputVC.getReference();
+
+
+        // see if we need to pad common reference base from all alleles
+        boolean padVC;
+
+        // We need to pad a VC with a common base if the reference allele length is less than the vc location span.
+        long locLength = inputVC.getLocation().size();
+        if (refAllele.length() == locLength)
+            padVC = false;
+        else if (refAllele.length() == locLength-1)
+            padVC = true;
+        else throw new StingException("Badly formed variant context, reference length must be at most one base shorter than location size");
+
+
+        // nothing to do if we don't need to pad bases
+        if (padVC) {
+            Byte refByte;
+
+            Map<String,Object> attributes = inputVC.getAttributes();
+
+            if (BaseUtils.isRegularBase(inputRefBase[0]))
+                refByte = inputRefBase[0];
+            else if (attributes.containsKey(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY))
+                refByte = (Byte)attributes.get(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY);
+            else
+                throw new StingException("Error when trying to pad Variant Context: either input reference base must be a regular base, or input VC must contain reference base key");
+
+            List<Allele> alleles = new ArrayList<Allele>();
+            Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
+
+            Map<String, Genotype> inputGenotypes = inputVC.getGenotypes();
+
+            for (Allele a : inputVC.getAlleles()) {
+                // get bases for current allele and create a new one with trimmed bases
+                String newBases = new String(new byte[]{refByte}) + new String(a.getBases());
+                alleles.add(Allele.create(newBases,a.isReference()));
+            }
+
+            // now we can recreate new genotypes with trimmed alleles
+            for (String sample : inputVC.getSampleNames()) {
+                Genotype g = inputGenotypes.get(sample);
+
+                List<Allele> inAlleles = g.getAlleles();
+                List<Allele> newGenotypeAlleles = new ArrayList<Allele>();
+                for (Allele a : inAlleles) {
+                    String newBases = new String(new byte[]{refByte}) + new String(a.getBases());
+                    newGenotypeAlleles.add(Allele.create(newBases,a.isReference()));
+                }
+                genotypes.put(sample, new Genotype(sample, newGenotypeAlleles, g.getNegLog10PError(),
+                        g.getFilters(),g.getAttributes(),g.genotypesArePhased()));
+
+            }
+            return new VariantContext(inputVC.getName(), inputVC.getLocation(), alleles, genotypes, inputVC.getNegLog10PError(),
+                    inputVC.getFilters(), attributes);
+
+
+
+        }
+        else
+            return inputVC;
+
+    }
 
     static class CompareByPriority implements Comparator<VariantContext>, Serializable {
         List<String> priorityListOfVCs;

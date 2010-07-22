@@ -5,6 +5,7 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -139,6 +140,9 @@ public class VCFWriter {
             throw new IllegalArgumentException("The reference base must be provided to write VCF records");
 
         try {
+
+            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, refBases);
+
             GenomeLoc loc = vc.getLocation();
             Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size());
             alleleMap.put(Allele.NO_CALL, VCFConstants.EMPTY_ALLELE); // convenience for lookup
@@ -148,8 +152,7 @@ public class VCFWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // POS
-            // TODO -- Remove this off-by-one issue when positions are settled in the input
-            mWriter.write(String.valueOf(loc.getStart() - (vc.isIndel() ? 1 : 0)));
+            mWriter.write(String.valueOf(loc.getStart()));
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // ID
@@ -159,7 +162,7 @@ public class VCFWriter {
 
             // REF
             alleleMap.put(vc.getReference(), "0");
-            String refString = makeAlleleString(vc.getReference(), vc.isIndel(), refBases[0]);
+            String refString = makeAlleleString(vc.getReference());
             mWriter.write(refString);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -167,13 +170,13 @@ public class VCFWriter {
             if ( vc.isVariant() ) {
                 Allele altAllele = vc.getAlternateAllele(0);
                 alleleMap.put(altAllele, "1");
-                String alt = makeAlleleString(altAllele, vc.isIndel(), refBases[0]);
+                String alt = makeAlleleString(altAllele);
                 mWriter.write(alt);
 
                 for (int i = 1; i < vc.getAlternateAlleles().size(); i++) {
                     altAllele = vc.getAlternateAllele(i);
                     alleleMap.put(altAllele, String.valueOf(i+1));
-                    alt = makeAlleleString(altAllele, vc.isIndel(), refBases[0]);
+                    alt = makeAlleleString(altAllele);
                     mWriter.write(",");
                     mWriter.write(alt);
                 }
@@ -242,11 +245,10 @@ public class VCFWriter {
         return s;
     }
 
-    private String makeAlleleString(Allele allele, boolean isIndel, byte ref) {
+    private String makeAlleleString(Allele allele) {
         String s = new String(allele.getBases());
-        if ( isIndel || s.length() == 0 ) // in case the context is monomorphic at an indel site
-            s = (char)ref + s;
-        return s;
+
+        return new String(allele.getBases());
     }
 
     /**

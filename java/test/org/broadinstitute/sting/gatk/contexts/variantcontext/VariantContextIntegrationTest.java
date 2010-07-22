@@ -18,11 +18,11 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
-        expectations.put("-L 1:1-10000 --printPerLocus", "cdd4cb53670a6c0f26e21bc220579654");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "7e1d9e181cc489aff847528664cf35bf");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "2226dc7ec9a21d8f0e86dc1b934b1d3e");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "272a9dff802d1d9f391ad53bc8c23da8");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "7444609b931d10cfc1fdccca9b4a2ab5");
+        expectations.put("-L 1:1-10000 --printPerLocus", "63fd69e4ab430b79fb213dd27b58ae1c");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "276ed96efaaffc2fc1c3b3deb4e04d1d");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "a37f7bc34c1824688d3e475945c19d5a");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "1715a6e0daf873f2e2cd10cb56085174");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "bf33ab1ed65da7f56c02ca7956d9c31e");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "629ffd6b3b9ea1bce29cb715576f5c8a");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "d4b812b2fec231f8f5b61d6f26cf86a5");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "546e8e546f2cdfba31f91ed083137c42");

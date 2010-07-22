@@ -37,7 +37,7 @@ public class RodSystemValidationIntegrationTest extends WalkerTest {
                 baseTestString1KG() + " -B eval,VCF," + validationDataLocation + "MultiSample.vcf" +
                 " -B eval2,VCF," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf4"
                 , 1,
-                Arrays.asList("216b5de6f58be6cf3286ed5261772904"));
+                Arrays.asList("8d97cbc29f73a0027267858f961e6fe5"));
         executeTest("testComplexVCFPileup", spec);
     }
 

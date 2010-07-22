@@ -9,6 +9,7 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -393,46 +394,46 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
      */
     private VariantContext parseVCFLine(String[] parts, boolean parseGenotypes) {
 //        try {
-            // increment the line count
-            lineNo++;
-            
-            // parse out the required fields
-            String contig = parts[0];
-            long pos = Long.valueOf(parts[1]);
-            String id = parts[2];
-            String ref = parts[3].toUpperCase();
-            String alts = parts[4].toUpperCase();
-            Double qual = parseQual(parts[5]);
-            String filter = parts[6];
-            String info = parts[7];
+        // increment the line count
+        lineNo++;
 
-            // get our alleles, filters, and setup an attribute map
-            List<Allele> alleles = parseAlleles(ref, alts);
-            Set<String> filters = parseFilters(filter);
-            Map<String, Object> attributes = parseInfo(info, id);
+        // parse out the required fields
+        String contig = parts[0];
+        long pos = Long.valueOf(parts[1]);
+        String id = parts[2];
+        String ref = parts[3].toUpperCase();
+        String alts = parts[4].toUpperCase();
+        Double qual = parseQual(parts[5]);
+        String filter = parts[6];
+        String info = parts[7];
 
-            // set the reference base for indels in the attributes
-            attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte((byte)ref.charAt(0)));
+        // get our alleles, filters, and setup an attribute map
+        List<Allele> alleles = parseAlleles(ref, alts);
+        Set<String> filters = parseFilters(filter);
+        Map<String, Object> attributes = parseInfo(info, id);
 
-            // find out our current location, and clip the alleles down to their minimum length
-            Pair<GenomeLoc, List<Allele>> locAndAlleles;
-            if ( !isSingleNucleotideEvent(alleles) ) {
-                if (this.version != VCFHeaderVersion.VCF4_0)
-                    throw new VCFParserException("Saw Indel/non SNP event on a VCF 3.3 or earlier file. Please convert file to VCF4.0 with VCFTools before using the GATK on it");
-                locAndAlleles = clipAlleles(contig, pos, ref, alleles);
-            } else {
-                locAndAlleles = new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
-            }
+       // find out our current location, and clip the alleles down to their minimum length
+        Pair<GenomeLoc, List<Allele>> locAndAlleles;
+        if ( !isSingleNucleotideEvent(alleles) ) {
+            if (this.version != VCFHeaderVersion.VCF4_0)
+                throw new VCFParserException("Saw Indel/non SNP event on a VCF 3.3 or earlier file. Please convert file to VCF4.0 with VCFTools before using the GATK on it");
+            locAndAlleles = clipAlleles(contig, pos, ref, alleles);
+        } else {
+            locAndAlleles = new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
+        }
 
-            // a map to store our genotypes
-            Map<String, Genotype> genotypes = null;
+        // a map to store our genotypes
+        Map<String, Genotype> genotypes = null;
 
-            // do we have genotyping data
-            if (parts.length > 8 && parseGenotypes) {
-                genotypes = createGenotypeMap(parts, locAndAlleles, 8);
-            }
+        // do we have genotyping data
+        if (parts.length > 8 && parseGenotypes) {
+            genotypes = createGenotypeMap(parts, locAndAlleles, 8);
+        }
 
-            return new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
+        VariantContext vc =  new VariantContext(name, locAndAlleles.first, locAndAlleles.second, genotypes, qual, filters, attributes);
+
+        // Trim bases of all alleles if necessary
+        return VariantContextUtils.createVariantContextWithTrimmedAlleles(vc);
     }
 
     private boolean isSingleNucleotideEvent(List<Allele> alleles) {
@@ -523,11 +524,11 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
 
             // add it to the list
             genotypes.put(sampleName, new Genotype(sampleName,
-                                      parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], locAndAlleles.second, alleleMap),
-                                      GTQual,
-                                      genotypeFilters, 
-                                      gtAttributes,
-                                      phased));
+                    parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], locAndAlleles.second, alleleMap),
+                    GTQual,
+                    genotypeFilters,
+                    gtAttributes,
+                    phased));
 
         }
         return genotypes;
@@ -545,22 +546,16 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
     static Pair<GenomeLoc,List<Allele>> clipAlleles(String contig, long position, String ref, List<Allele> unclippedAlleles) {
         List<Allele> newAlleleList = new ArrayList<Allele>();
 
-/*        //+
-        boolean clipping = true;
-        int forwardClipping = 0;
-        while(clipping) {
-            for (Allele a : unclippedAlleles) {
-                if (a.length()-forwardClipping == 0)
-                    clipping = false;
-                else if (a.getBases()[forwardClipping] != ref.getBytes()[forwardClipping])
-                    clipping = false;
-                if (clipping) forwardClipping++;
-            }
+        // Forward clipping (i.e. of first reference base) is not done here, but rather once a properly formed VC is obtained first.
+//        System.out.format("%s:%d ",contig, position);
+//for (Allele a : unclippedAlleles) {
+//    System.out.print(a.toString());
+//}
+//        System.out.println();
+//
+//
 
-
-        }
-         //-
- */       // find the preceeding string common to all alleles and the reference
+        // find the preceeding string common to all alleles and the reference
         boolean clipping = true;
         for (Allele a : unclippedAlleles)
                 if (a.length() < 1 || (a.getBases()[0] != ref.getBytes()[0])) {
@@ -582,11 +577,12 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         for (Allele a : unclippedAlleles)
             newAlleleList.add(Allele.create(Arrays.copyOfRange(a.getBases(),forwardClipping,a.getBases().length-reverseClipped),a.isReference()));
 
-        // the new reference length
-        int refLength = ref.length() - forwardClipping - reverseClipped;
 
-        return new Pair<GenomeLoc,List<Allele>>(GenomeLocParser.createGenomeLoc(contig,position+forwardClipping,(position+forwardClipping+Math.max(refLength - 1,0))),
-                                                newAlleleList);
+        // the new reference length
+        int refLength = ref.length() - reverseClipped;
+
+        return new Pair<GenomeLoc,List<Allele>>(GenomeLocParser.createGenomeLoc(contig,position,(position+Math.max(refLength - 1,0))),
+                newAlleleList);
     }
 
 
@@ -598,7 +594,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
     public Class getFeatureType() {
         return VariantContext.class;
     }
-    
+
     /**
      * get the name of this codec
      * @return our set name
@@ -619,7 +615,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
         this.transformer = transformer;
     }
 
-    
+
     /**
      * set the name of this codec
      * @param name

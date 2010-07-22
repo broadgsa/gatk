@@ -58,7 +58,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
     private String OUTPUT_FILE = null;
 
 
-    public static final String INPUT_ROD_NAME = "vcf";
+    public static final String INPUT_ROD_NAME = "variant";
 
     protected static String line = null;
     final TreeSet<String> samples = new TreeSet<String>();
@@ -98,12 +98,12 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
 
                 final Set<String> vcfSamples = header.getGenotypeSamples();
                 samples.addAll(vcfSamples);
-            
+                vcfWriter.writeHeader(header);
+
 
             }
         }
 
-        vcfWriter.writeHeader(header);
 
     }
 
@@ -119,7 +119,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
             return 0;
 
         GenomeLoc loc = context.getLocation();
-        VariantContext vc = tracker.getVariantContext(ref,"vcf", null, loc, true);
+        VariantContext vc = tracker.getVariantContext(ref,INPUT_ROD_NAME, null, loc, true);
 
 
         if (vc == null)
