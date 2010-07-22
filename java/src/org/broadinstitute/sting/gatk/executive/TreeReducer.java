@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -88,10 +89,12 @@ public class TreeReducer implements Callable {
                 result = walker.treeReduce( lhs.get(), rhs.get() );
         }
         catch( InterruptedException ex ) {
-            throw new RuntimeException("Hierarchical reduce interrupted", ex);
+            microScheduler.notifyOfTraversalError(ex);
+            throw new StingException("Hierarchical reduce interrupted", ex);
         }
         catch( ExecutionException ex ) {
-            throw new RuntimeException("Hierarchical reduce failed", ex);
+            microScheduler.notifyOfTraversalError(ex);
+            throw new StingException("Hierarchical reduce failed", ex);
         }
 
         long endTime = System.currentTimeMillis();

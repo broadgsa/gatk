@@ -53,6 +53,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     private final Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
 
     /**
+     * An exception that's occurred in this traversal.  If null, no exception has occurred.
+     */
+    private Throwable error = null;
+
+    /**
      * Keep a queue of shard traversals, and constantly monitor it to see what output
      * merge tasks remain.
      * TODO: Integrate this into the reduce tree.
@@ -126,6 +131,10 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         totalTraversals = traverseTasks.size();
 
         while (isShardTraversePending() || isTreeReducePending()) {
+            // Check for errors during execution.
+            if(hasTraversalErrorOccurred())
+                throw new StingException("An error has occurred during the traversal.",getTraversalError());
+
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
                 mergeExistingOutput(false);
@@ -341,6 +350,27 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         TreeReduceTask reducer = new TreeReduceTask(new TreeReducer(this, lhs, rhs));
         reduceTasks.add(reducer);
         return reducer;
+    }
+
+    /**
+     * Detects whether an execution error has occurred.
+     * @return True if an error has occurred.  False otherwise.
+     */
+    private synchronized boolean hasTraversalErrorOccurred() {
+        return error != null;
+    }
+
+    private synchronized Throwable getTraversalError() {
+        if(!hasTraversalErrorOccurred())
+            throw new StingException("User has attempted to retrieve a traversal error when none exists");
+        return error;
+    }
+
+    /**
+     * Allows other threads to notify of an error during traversal.
+     */
+    protected synchronized void notifyOfTraversalError(Throwable error) {
+        this.error = error;    
     }
 
 
