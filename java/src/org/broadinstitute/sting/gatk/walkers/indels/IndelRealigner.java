@@ -275,14 +275,17 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 readsNotToClean.add(read);
             } else {
                 boolean wellCoveredInterval = readsToClean.add(read, ref.getBases());
-                if ( !wellCoveredInterval )
-                    abortCleanForCurrentInterval();                
+                if ( !wellCoveredInterval ) {
+                    logger.info("We are aborting the realignment in interval " + currentInterval + " because it is not fully covered by reads");
+                    abortCleanForCurrentInterval();
+                }
 
                 // add the rods to the list of known variants
                 populateKnownIndels(metaDataTracker, ref);
             }
 
             if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
+                logger.info("We are aborting the realignment in interval " + currentInterval + " because there are too many reads (see --maxReadsForRealignment for details)");
                 abortCleanForCurrentInterval();
             }
         }
@@ -1126,8 +1129,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 cigar = reclipCigar(cigar);
 
             // no change?
-            if ( getCigar().equals(cigar) )
+            if ( read.getCigar().equals(cigar) ) {
+                newCigar = null;
                 return;
+            }
 
             // no indel?
             String str = cigar.toString();
