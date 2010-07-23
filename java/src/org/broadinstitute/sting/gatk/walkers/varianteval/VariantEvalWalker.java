@@ -201,7 +201,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
 
     /** private class holding all of the information about a single evaluation group (e.g., for eval ROD) */
-    private class EvaluationContext implements Comparable<EvaluationContext> {
+    public class EvaluationContext implements Comparable<EvaluationContext> {
         // useful for typing
         public String evalTrackName, compTrackName, novelty, filtered;
         public boolean enableInterestingSiteCaptures = false;
@@ -220,6 +220,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         public String getDisplayName() {
             return Utils.join(CONTEXT_SEPARATOR, Arrays.asList(evalTrackName, compTrackName, selectExp == null ? "all" : selectExp.name, filtered, novelty));
         }
+
+        public String toString() { return getDisplayName(); }
 
         public int compareTo(EvaluationContext other) {
             return this.getDisplayName().compareTo(other.getDisplayName());
@@ -495,7 +497,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                     switch ( evaluation.getComparisonOrder() ) {
                         case 1:
                             if ( evalWantsVC && vc != null ) {
-                                String interesting = evaluation.update1(vc, tracker, ref, context);
+                                String interesting = evaluation.update1(vc, tracker, ref, context, group);
                                 if ( interesting != null ) interestingReasons.add(interesting);
                             }
                             break;
@@ -506,7 +508,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                                     comp.hasNegLog10PError() &&
                                     comp.getNegLog10PError() < (minCompQualScore / 10.0) )
                                 comp = null;
-                            String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context );
+                            String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
                             if ( interesting != null ) interestingReasons.add(interesting);
                             break;
                         default:

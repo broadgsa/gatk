@@ -38,6 +38,8 @@ import java.util.*;
 
 @Analysis(name = "Genotype Concordance", description = "Determine the genotype concordance between the genotypes in difference tracks")
 public class GenotypeConcordance extends VariantEvaluator {
+    private static final boolean  PRINT_INTERESTING_SITES = false;
+
     protected final static Logger logger = Logger.getLogger(GenotypeConcordance.class);
 
     // a mapping from allele count to stats
@@ -58,6 +60,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     private static final int MAX_MISSED_VALIDATION_DATA = 100;
 
+    private VariantEvalWalker.EvaluationContext group = null;
 
     static class FrequencyStats implements TableType {
         class Stats {
@@ -229,7 +232,9 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     private boolean warnedAboutValidationData = false;
 
-    public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
+        this.group = group;
+
         String interesting = null;
 
         // sanity check that we at least have either eval or validation data
@@ -287,7 +292,6 @@ public class GenotypeConcordance extends VariantEvaluator {
                     truth = Genotype.Type.NO_CALL;
                 } else {
                     truth = validation.getGenotype(sample).getType();
-                    // TODO -- capture "interesting" sites here, for example:
                     // interesting = "ConcordanceStatus=FP";
                 }
 
@@ -301,6 +305,9 @@ public class GenotypeConcordance extends VariantEvaluator {
             for (final String sample : validation.getSampleNames()) {
                 final Genotype.Type truth = validation.getGenotype(sample).getType();
                 sampleStats.incrValue(sample, truth, called);
+                if ( (truth == Genotype.Type.HOM_VAR || truth == Genotype.Type.HET) && called == Genotype.Type.NO_CALL ) {
+                    if ( PRINT_INTERESTING_SITES ) System.out.printf("%s: HM3 FN => %s%n", group, validation);
+                }
             }
         }
 

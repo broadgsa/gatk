@@ -25,7 +25,10 @@
 
 package org.broad.tribble.vcf;
 
+import java.util.Locale;
+
 public final class VCFConstants {
+    public static final Locale VCF_LOCALE = Locale.US;
 
     // standard INFO/FORMAT field keys
     public static final String ANCESTRAL_ALLELE_KEY = "AA";

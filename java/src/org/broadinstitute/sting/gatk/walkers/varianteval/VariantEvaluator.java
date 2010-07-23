@@ -59,9 +59,19 @@ abstract class VariantEvaluator {
         return null;
     }
 
+    public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
+        return update1(vc1, tracker, ref, context);
+    }
+
+
     public String update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return null;
     }
+
+    public String update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
+        return update2(vc1, vc2, tracker, ref, context);
+    }
+
 
     /**
      * override this method for any finalization of calculations after the analysis is completed

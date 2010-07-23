@@ -239,7 +239,7 @@ public class VCFWriter {
     }
 
     private String getQualValue(double qual) {
-        String s = String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, qual);
+        String s = String.format(VCFConstants.VCF_LOCALE, VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, qual);
         if ( s.endsWith(VCFConstants.DOUBLE_PRECISION_INT_SUFFIX) )
             s = s.substring(0, s.length() - VCFConstants.DOUBLE_PRECISION_INT_SUFFIX.length());
         return s;
@@ -387,7 +387,7 @@ public class VCFWriter {
         if ( val == null )
             result = VCFConstants.MISSING_VALUE_v4;
         else if ( val instanceof Double )
-            result = String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, (Double)val);
+            result = String.format(VCFConstants.VCF_LOCALE, VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, (Double)val);
         else if ( val instanceof Boolean )
             result = (Boolean)val ? "" : null; // empty string for true, null for false
         else if ( val instanceof List ) {
