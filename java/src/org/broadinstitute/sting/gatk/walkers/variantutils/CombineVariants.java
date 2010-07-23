@@ -113,15 +113,17 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             return 0;
 
         // get all of the vcf rods at this locus
+        // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
-        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, variantMergeOption, genotypeMergeOption, true, printComplexMerges, ref.getBases(), SET_KEY);
+        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, variantMergeOption,
+                genotypeMergeOption, true, printComplexMerges, ref.getBasesAtLocus(1), SET_KEY);
 
 
         //out.printf("   merged => %s%nannotated => %s%n", mergedVC, annotatedMergedVC);
 
         if ( mergedVC != null ) { // only operate at the start of events
             VariantContext annotatedMergedVC = engine.annotateContext(tracker, ref, mergedVC);
-            vcfWriter.add(annotatedMergedVC, ref.getBases());
+            vcfWriter.add(annotatedMergedVC, ref.getBasesAtLocus(1));
         }
 
         return vcs.isEmpty() ? 0 : 1;

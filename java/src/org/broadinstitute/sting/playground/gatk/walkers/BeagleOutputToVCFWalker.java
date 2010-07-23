@@ -95,9 +95,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             final RMDTrack rod = source.getReferenceOrderedData();
 
             if (rod.getName().equals(COMP_ROD_NAME)) {
-                hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Hapmap at this site"));
-                hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Hapmap at this site"));
-                hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Hapmap at this site"));
+                hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
+                hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
+                hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
                 break;
             }
 

@@ -59,14 +59,13 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "bbeb813ff559b630570725419e4e1adc"); }
     @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", "38b7e64b91c726867a604cf95b9cb10a"); } // official project VCF files in tabix format
 
-    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "9f35f86f45e13819993d269f5a798854"); }
-    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "02f3627501e782a5d3dece1dc69e7dca"); }
+    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "4c667935099544a1863e70ae88ddd685"); }
+    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "cbd061cf35e0ffc48621111a602f3871"); }
 
     @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "f3fce9ae729548e7e7c378a8282df235"); } // official project VCF files in tabix format
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "c87851a23df6165225a964b68d240e05"); }
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "f2a2854f26734c8c3412f842a245fd34"); }
 
-    // todo -  Guillermo / Eric, please fix.  createVariantContextWithPaddedAlleles() func itself or call in merge is broken.
-    //@Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "d28282213298878fd315a24d533db122"); }
+    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "a66a799b1ae9fd09b40f78af6ef538d8"); }
 
     @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "a9126d1cbe1fdf741236763fb3e3461f"); }
 }
