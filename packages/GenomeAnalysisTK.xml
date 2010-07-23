@@ -37,6 +37,7 @@
   </modules>
   <resources>
     <!-- GATK sample code and build scripts -->
+    <file name="java/src/org/broadinstitute/sting/gatk/walkers/variantutils/CombineVariants.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java" />
