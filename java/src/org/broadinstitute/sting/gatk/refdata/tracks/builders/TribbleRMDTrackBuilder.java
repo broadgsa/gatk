@@ -35,8 +35,8 @@ import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.index.interval.IntervalIndexCreator;
 import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.source.BasicFeatureSource;
-import org.broad.tribble.util.LEDataOutputStream;
-import org.broad.tribble.util.LEDataStreamUtils;
+import org.broad.tribble.util.LittleEndianInputStream;
+import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broad.tribble.vcf.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -46,9 +46,7 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 
@@ -267,7 +265,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             locked = lock.exclusiveLock();
             if (locked) {
                 logger.info("Writing Tribble index to disk for file " + inputFile);
-                LEDataOutputStream stream = LEDataStreamUtils.createOutputStream(indexFile);
+                LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
                 index.write(stream);
                 stream.close();
             }
