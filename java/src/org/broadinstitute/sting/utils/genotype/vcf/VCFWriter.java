@@ -162,7 +162,7 @@ public class VCFWriter {
 
             // REF
             alleleMap.put(vc.getReference(), "0");
-            String refString = makeAlleleString(vc.getReference());
+            String refString = new String(vc.getReference().getBases());
             mWriter.write(refString);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -170,13 +170,13 @@ public class VCFWriter {
             if ( vc.isVariant() ) {
                 Allele altAllele = vc.getAlternateAllele(0);
                 alleleMap.put(altAllele, "1");
-                String alt = makeAlleleString(altAllele);
+                String alt = new String(altAllele.getBases());
                 mWriter.write(alt);
 
                 for (int i = 1; i < vc.getAlternateAlleles().size(); i++) {
                     altAllele = vc.getAlternateAllele(i);
                     alleleMap.put(altAllele, String.valueOf(i+1));
-                    alt = makeAlleleString(altAllele);
+                    alt = new String(altAllele.getBases());
                     mWriter.write(",");
                     mWriter.write(alt);
                 }
@@ -243,12 +243,6 @@ public class VCFWriter {
         if ( s.endsWith(VCFConstants.DOUBLE_PRECISION_INT_SUFFIX) )
             s = s.substring(0, s.length() - VCFConstants.DOUBLE_PRECISION_INT_SUFFIX.length());
         return s;
-    }
-
-    private String makeAlleleString(Allele allele) {
-        String s = new String(allele.getBases());
-
-        return new String(allele.getBases());
     }
 
     /**

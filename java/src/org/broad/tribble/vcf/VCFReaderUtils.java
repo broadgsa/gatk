@@ -25,9 +25,8 @@ public class VCFReaderUtils {
         Set<String> auxTags = new LinkedHashSet<String>();
         // iterate over all the passed in strings
         for ( String str : headerStrings ) {
-            if ( !str.startsWith("##") ) {
-                String[] strings = str.substring(1).split("\\t");
-                // the columns should be in order according to Richard Durbin
+            if ( !str.startsWith(VCFHeader.METADATA_INDICATOR) ) {
+                String[] strings = str.substring(1).split(VCFConstants.FIELD_SEPARATOR);
                 int arrayIndex = 0;
                 for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
                     try {
@@ -38,11 +37,15 @@ public class VCFReaderUtils {
                     }
                     arrayIndex++;
                 }
-                while (arrayIndex < strings.length) {
-                    if (!strings[arrayIndex].equals("FORMAT"))
-                        auxTags.add(strings[arrayIndex]);
+                if ( arrayIndex < strings.length ) {
+                    if ( !strings[arrayIndex].equals("FORMAT") )
+                        throw new RuntimeException("VCFReaderUtils: we were expecting column name FORMAT but we saw " + strings[arrayIndex]);
                     arrayIndex++;
                 }
+
+                while (arrayIndex < strings.length)
+                    auxTags.add(strings[arrayIndex++]);
+                
             } else {
                 if ( str.startsWith("##INFO=") )
                     metaData.add(new VCFInfoHeaderLine(str.substring(7),version));
