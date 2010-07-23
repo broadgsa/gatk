@@ -317,7 +317,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
 
 
-        vcfWriter.add(VariantContextUtils.modifyAttributes(filteredVC, attributes), new byte[]{ref.getBase()});
+        vcfWriter.add(VariantContextUtils.modifyAttributes(filteredVC, attributes), ref.getBase());
 
 
         return 1;

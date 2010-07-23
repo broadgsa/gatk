@@ -142,12 +142,12 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
         if ( vcfWriter != null ) {
             int i = 0;
             while ( i < compContexts.size() && compContexts.get(i).getLocation().isBefore(evalContexts.get(0).getLocation())) {
-                vcfWriter.add(compContexts.get(i), new byte[]{compContexts.get(i).getReference().getBases()[0]});
+                vcfWriter.add(compContexts.get(i),compContexts.get(i).getReference().getBases()[0]);
                 i++;
             }
-            vcfWriter.add(evalContexts.get(0), new byte[]{ref.getBase()});
+            vcfWriter.add(evalContexts.get(0), ref.getBase());
             while ( i < compContexts.size() && compContexts.get(i).getLocation().distance(evalContexts.get(0).getLocation()) <= indelWindow) {
-                vcfWriter.add(compContexts.get(i), new byte[]{compContexts.get(i).getReference().getBases()[0]});
+                vcfWriter.add(compContexts.get(i), compContexts.get(i).getReference().getBases()[0]);
                 i++;
             }
         }

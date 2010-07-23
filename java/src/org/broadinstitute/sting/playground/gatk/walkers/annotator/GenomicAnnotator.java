@@ -303,7 +303,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
         } else {
             //write results to disk immediately
             for(VariantContext annotatedVC : annotatedVCs ) {
-                vcfWriter.add(annotatedVC, new byte[]{ref.getBase()});
+                vcfWriter.add(annotatedVC,ref.getBase());
             }
         }
 
@@ -346,7 +346,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
         if(multiThreadedMode) {
             //finally write results to disk
             for(VariantContext vc : totalOutputRecords ) {
-                vcfWriter.add(vc, vc.getReference().getBases());
+                vcfWriter.add(vc, vc.getReference().getBases()[0]);
             }
         }
 

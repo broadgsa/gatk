@@ -150,7 +150,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                         vc = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), filters, vc.getAttributes());
                     }
                 }
-                vcfWriter.add( vc, new byte[]{ref.getBase()} );
+                vcfWriter.add( vc, ref.getBase() );
             }
 
         }

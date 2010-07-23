@@ -77,7 +77,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
                         wroteHeader = true;
                     }
 
-                    writer.add(vc, new byte[]{ref.getBase()});
+                    writer.add(vc, ref.getBase());
                 }
 
                 n++;

@@ -64,7 +64,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         if ( recordRef != ref ) {
             failedLocs++;
         } else {
-            writer.add(vc, new byte[]{ref});
+            writer.add(vc, ref);
         }
     }
 

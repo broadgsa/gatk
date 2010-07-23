@@ -86,7 +86,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
         if ( toInterval != null ) {
             vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getEnd()));
-            writer.add(vc, new byte[]{ref.getBase()});
+            writer.add(vc, ref.getBase());
             successfulIntervals++;
         } else {
             failedIntervals++;

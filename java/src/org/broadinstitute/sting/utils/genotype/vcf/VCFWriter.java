@@ -133,15 +133,13 @@ public class VCFWriter {
         }
     }
 
-    public void add(VariantContext vc, byte[] refBases) {
+    public void add(VariantContext vc, byte refBase) {
         if ( mHeader == null )
             throw new IllegalStateException("The VCF Header must be written before records can be added");
-        if ( refBases == null || refBases.length < 1 )
-            throw new IllegalArgumentException("The reference base must be provided to write VCF records");
 
         try {
 
-            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, refBases);
+            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, refBase);
 
             GenomeLoc loc = vc.getLocation();
             Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size());

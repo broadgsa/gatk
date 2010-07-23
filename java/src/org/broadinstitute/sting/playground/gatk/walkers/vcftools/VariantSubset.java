@@ -73,7 +73,7 @@ public class VariantSubset extends RodWalker<Integer, Integer> {
 
             if ( (vc.isPolymorphic() || INCLUDE_NON_VARIANTS) &&
                     (!subset.isFiltered() || INCLUDE_FILTERED) )
-                writer.add(subset, new byte[]{ref.getBase()});
+                writer.add(subset, ref.getBase());
         }
 
         return 1;

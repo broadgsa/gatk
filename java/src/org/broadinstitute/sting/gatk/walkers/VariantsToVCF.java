@@ -129,7 +129,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
-        vcfwriter.add(vc, new byte[]{ref});
+        vcfwriter.add(vc,ref);
     }
 
     public Integer reduceInit() {

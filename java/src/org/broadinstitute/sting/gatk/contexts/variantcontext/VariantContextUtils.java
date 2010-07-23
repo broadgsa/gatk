@@ -171,8 +171,8 @@ public class VariantContextUtils {
         UNION, INTERSECT
     }
 
-    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, byte[] refBases) {
-        return simpleMerge(unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false, refBases);
+    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, byte refBase) {
+        return simpleMerge(unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false, refBase);
     }
 
 
@@ -189,14 +189,14 @@ public class VariantContextUtils {
      */
     public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
-                                             boolean annotateOrigin, boolean printMessages, byte[] inputRefBases ) {
+                                             boolean annotateOrigin, boolean printMessages, byte inputRefBase ) {
 
-        return simpleMerge(unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBases, "set");
+        return simpleMerge(unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set");
     }
 
 public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                          VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
-                                         boolean annotateOrigin, boolean printMessages, byte[] inputRefBases, String setKey ) {
+                                         boolean annotateOrigin, boolean printMessages, byte inputRefBase, String setKey ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
@@ -213,7 +213,7 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
         List<VariantContext> VCs = new ArrayList<VariantContext>();
 
         for (VariantContext vc : prepaddedVCs) {
-            VCs.add(createVariantContextWithPaddedAlleles(vc,inputRefBases));
+            VCs.add(createVariantContextWithPaddedAlleles(vc,inputRefBase));
         }
 
 
@@ -479,7 +479,7 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
 
     }
 
-    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, byte[] inputRefBase) {
+    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, byte inputRefBase) {
         Allele refAllele = inputVC.getReference();
 
 
@@ -501,8 +501,8 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
 
             Map<String,Object> attributes = inputVC.getAttributes();
 
-            if (BaseUtils.isRegularBase(inputRefBase[0]))
-                refByte = inputRefBase[0];
+            if (BaseUtils.isRegularBase(inputRefBase))
+                refByte = inputRefBase;
             else if (attributes.containsKey(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY))
                 refByte = (Byte)attributes.get(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY);
             else

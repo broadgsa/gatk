@@ -109,7 +109,7 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
         Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
         attrs.put("type",annotationString);
         vc = VariantContextUtils.modifyAttributes(vc, attrs);
-        vcfWriter.add(vc, new byte[]{ref.getBase()});
+        vcfWriter.add(vc, ref.getBase());
 
         return 1;
     }

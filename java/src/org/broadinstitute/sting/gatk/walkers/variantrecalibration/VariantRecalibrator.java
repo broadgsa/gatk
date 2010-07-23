@@ -194,10 +194,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     filters.add(VCFConstants.PASSES_FILTERS_v4);
                     VariantContext newVC = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.getGenotypes(), variantDatum.qual / 10.0, filters, attrs);
 
-                    vcfWriter.add( newVC, new byte[]{ref.getBase()} );
+                    vcfWriter.add( newVC, ref.getBase() );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
-                    vcfWriter.add( vc, new byte[]{ref.getBase()} ); 
+                    vcfWriter.add( vc, ref.getBase() ); 
                 }
             }
 

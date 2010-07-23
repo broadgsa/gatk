@@ -139,7 +139,7 @@ public class VariantSelect extends RodWalker<Integer, Integer> {
         }
 
         if ( someoneMatched )
-            writer.add(vc, new byte[]{ref.getBase()});
+            writer.add(vc, ref.getBase());
 
         return 1;
     }

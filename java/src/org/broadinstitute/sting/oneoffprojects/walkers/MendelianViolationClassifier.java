@@ -601,7 +601,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     public VCFWriter reduce(MendelianViolation variant, VCFWriter writer) {
         if ( variant != null ) {
             trioStructure.updateHomozygosityRegions(variant,bedOutput);
-            writer.add(variant.toVariantContext(), new byte[]{variant.getRefBase()});
+            writer.add(variant.toVariantContext(),variant.getRefBase());
         }
 
         return writer;

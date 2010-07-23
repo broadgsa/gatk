@@ -126,7 +126,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
             return 0;
 
         // Write directly variant context to VCF4.0 format.
-        vcfWriter.add(vc, ref.getBases());
+        vcfWriter.add(vc, ref.getBase());
 
         return 1;
     }

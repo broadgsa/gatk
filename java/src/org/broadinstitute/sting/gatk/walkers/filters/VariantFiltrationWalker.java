@@ -216,7 +216,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     private void writeVCF(VariantContext vc, byte ref) {
         if ( writer == null )
             initializeVcfWriter(vc);
-        writer.add(vc, new byte[]{ref});
+        writer.add(vc, ref);
     }
 
     public Integer reduce(Integer value, Integer sum) {

@@ -63,7 +63,7 @@ public class VCFGenotypeWriterAdapter extends VCFWriter implements VCFGenotypeWr
 
     public void addCall(VariantContext vc, byte ref) {
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatKeys);
-        add(vc, new byte[]{ref});
+        add(vc, ref);
     }
 
     public void writeHeader(VCFHeader header) {
@@ -112,7 +112,7 @@ public class VCFGenotypeWriterAdapter extends VCFWriter implements VCFGenotypeWr
             while ( iterator.hasNext() ) {
                 VariantContext vc = iterator.next();
                 vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatKeys);
-                add(vc, new byte[]{vc.getReferenceBaseForIndel()});
+                add(vc, vc.getReferenceBaseForIndel());
             }
             vcfReader.close();
         } catch (FileNotFoundException e) {
