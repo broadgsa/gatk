@@ -602,12 +602,12 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
             hBuilder.append(String.format("from_%d_to_%d)%s",leftEnds[i-1],leftEnds[i],separator));
         hBuilder.append(String.format("from_%d_to_inf%n",leftEnds[leftEnds.length-1]));
         output.print(hBuilder.toString());
-        Map<String,int[]> histograms = stats.getHistograms();
+        Map<String,long[]> histograms = stats.getHistograms();
 
-        for ( Map.Entry<String, int[]> p : histograms.entrySet() ) {
+        for ( Map.Entry<String, long[]> p : histograms.entrySet() ) {
             StringBuilder sBuilder = new StringBuilder();
             sBuilder.append(String.format("sample_%s",p.getKey()));
-            for ( int count : p.getValue() ) {
+            for ( long count : p.getValue() ) {
                 sBuilder.append(String.format("%s%d",separator,count));
             }
             sBuilder.append(String.format("%n"));
@@ -625,7 +625,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         int[] endpoints = stats.getEndpoints();
         int samples = stats.getHistograms().size();
 
-        int[][] baseCoverageCumDist = stats.getLocusCounts();
+        long[][] baseCoverageCumDist = stats.getLocusCounts();
 
         // rows - # of samples
         // columns - depth of coverage
@@ -693,14 +693,14 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
 
         output.printf("%n");
 
-        Map<String,int[]> histograms = stats.getHistograms();
+        Map<String,long[]> histograms = stats.getHistograms();
         Map<String,Double> means = stats.getMeans();
         Map<String,Long> totals = stats.getTotals();
         int[] leftEnds = stats.getEndpoints();
 
-        for ( Map.Entry<String, int[]> p : histograms.entrySet() ) {
+        for ( Map.Entry<String, long[]> p : histograms.entrySet() ) {
             String s = p.getKey();
-            int[] histogram = p.getValue();
+            long[] histogram = p.getValue();
             int median = getQuantile(histogram,0.5);
             int q1 = getQuantile(histogram,0.25);
             int q3 = getQuantile(histogram,0.75);
@@ -728,7 +728,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         }
     }
 
-    private int getQuantile(int[] histogram, double prop) {
+    private int getQuantile(long[] histogram, double prop) {
         int total = 0;
 
         for ( int i = 0; i < histogram.length; i ++ ) {
@@ -745,7 +745,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<CoverageAggregator.Ag
         return bin == -1 ? 0 : bin;
     }
 
-    private double getPctBasesAbove(int[] histogram, int bin) {
+    private double getPctBasesAbove(long[] histogram, int bin) {
         long below = 0l;
         long above = 0l;
         for ( int index = 0; index < histogram.length; index++) {

@@ -23,10 +23,10 @@ public class DepthOfCoverageStats {
     // STANDARD DATA
     ////////////////////////////////////////////////////////////////////////////////////
 
-    private Map<String,int[]> granularHistogramBySample; // holds the counts per each bin
+    private Map<String,long[]> granularHistogramBySample; // holds the counts per each bin
     private Map<String,Long> totalCoverages; // holds total coverage per sample
     private int[] binLeftEndpoints; // describes the left endpoint for each bin
-    private int[][] locusCoverageCounts; // holds counts of number of bases with >=X samples at >=Y coverage
+    private long[][] locusCoverageCounts; // holds counts of number of bases with >=X samples at >=Y coverage
     private boolean tabulateLocusCounts = false;
     private long nLoci; // number of loci seen
     private long totalDepthOfCoverage;
@@ -77,7 +77,7 @@ public class DepthOfCoverageStats {
 
     public DepthOfCoverageStats(int[] leftEndpoints) {
         this.binLeftEndpoints = leftEndpoints;
-        granularHistogramBySample = new HashMap<String,int[]>();
+        granularHistogramBySample = new HashMap<String,long[]>();
         totalCoverages = new HashMap<String,Long>();
         nLoci = 0;
         totalLocusDepth = 0;
@@ -86,10 +86,10 @@ public class DepthOfCoverageStats {
 
     public DepthOfCoverageStats(DepthOfCoverageStats cloneMe) {
         this.binLeftEndpoints = cloneMe.binLeftEndpoints;
-        granularHistogramBySample = new HashMap<String,int[]>();
+        granularHistogramBySample = new HashMap<String,long[]>();
         totalCoverages = new HashMap<String,Long>();
         for ( String s : cloneMe.getAllSamples() ) {
-            granularHistogramBySample.put(s,new int[cloneMe.getHistograms().get(s).length]);
+            granularHistogramBySample.put(s,new long[cloneMe.getHistograms().get(s).length]);
             for ( int i = 0; i < granularHistogramBySample.get(s).length; i++ ) {
                 granularHistogramBySample.get(s)[i] = cloneMe.getHistograms().get(s)[i];
             }
@@ -98,7 +98,7 @@ public class DepthOfCoverageStats {
 
         this.includeDeletions = cloneMe.includeDeletions;
         if ( cloneMe.tabulateLocusCounts ) {
-            this.locusCoverageCounts = new int[cloneMe.locusCoverageCounts.length][cloneMe.locusCoverageCounts[0].length];
+            this.locusCoverageCounts = new long[cloneMe.locusCoverageCounts.length][cloneMe.locusCoverageCounts[0].length];
         }
         //this.granularHistogramBySample = cloneMe.granularHistogramBySample;
         //this.totalCoverages = cloneMe.totalCoverages;
@@ -112,7 +112,7 @@ public class DepthOfCoverageStats {
             return;
         }
 
-        int[] binCounts = new int[this.binLeftEndpoints.length+1];
+        long[] binCounts = new long[this.binLeftEndpoints.length+1];
         for ( int b = 0; b < binCounts.length; b ++ ) {
             binCounts[b] = 0;
         }
@@ -122,7 +122,7 @@ public class DepthOfCoverageStats {
     }
 
     public void initializeLocusCounts() {
-        locusCoverageCounts = new int[granularHistogramBySample.size()][binLeftEndpoints.length+1];
+        locusCoverageCounts = new long[granularHistogramBySample.size()][binLeftEndpoints.length+1];
         locusHistogram = new int[binLeftEndpoints.length+1];
         for ( int b = 0; b < binLeftEndpoints.length+1; b ++ ) {
             for ( int a = 0; a < granularHistogramBySample.size(); a ++ ) {
@@ -190,7 +190,7 @@ public class DepthOfCoverageStats {
     private int updateSample(String sample, int depth) {
         totalCoverages.put(sample,totalCoverages.get(sample)+depth);
 
-        int[] granularBins = granularHistogramBySample.get(sample);
+        long[] granularBins = granularHistogramBySample.get(sample);
         for ( int b = 0; b < binLeftEndpoints.length; b ++ ) {
             if ( depth < binLeftEndpoints[b] ) {
                 granularBins[b]++;
@@ -212,11 +212,11 @@ public class DepthOfCoverageStats {
     }
 
     private void mergeSamples(DepthOfCoverageStats otherStats) {
-        Map<String,int[]> otherHistogram = otherStats.getHistograms();
+        Map<String,long[]> otherHistogram = otherStats.getHistograms();
         Map<String,Double> otherMeans = otherStats.getMeans();
         for ( String s : this.getAllSamples() ) {
-            int[] internalCounts = granularHistogramBySample.get(s);
-            int[] externalCounts = otherHistogram.get(s);
+            long[] internalCounts = granularHistogramBySample.get(s);
+            long[] externalCounts = otherHistogram.get(s);
             for ( int b = 0; b < internalCounts.length; b++ ) {
                 internalCounts[b] += externalCounts[b];
             }
@@ -225,7 +225,7 @@ public class DepthOfCoverageStats {
         }
     }
 
-    private void mergeLocusCounts( int[][] otherCounts ) {
+    private void mergeLocusCounts( long[][] otherCounts ) {
         for ( int a = 0; a < locusCoverageCounts.length; a ++ ) {
             for ( int b = 0; b < locusCoverageCounts[0].length; b ++ ) {
                 locusCoverageCounts[a][b] += otherCounts[a][b];
@@ -260,11 +260,11 @@ public class DepthOfCoverageStats {
     // ACCESSOR METHODS
     ////////////////////////////////////////////////////////////////////////////////////
 
-    public Map<String,int[]> getHistograms() {
+    public Map<String,long[]> getHistograms() {
         return granularHistogramBySample;
     }
 
-    public int[][] getLocusCounts() {
+    public long[][] getLocusCounts() {
         return locusCoverageCounts;
     }
 
@@ -302,7 +302,7 @@ public class DepthOfCoverageStats {
     }
 
     public double[] getCoverageProportions(String sample) {
-        int[] hist = granularHistogramBySample.get(sample);
+        long[] hist = granularHistogramBySample.get(sample);
         double[] distribution = new double[hist.length];
         long count = 0;
         for ( int i = hist.length-1; i >= 0; i -- ) {
