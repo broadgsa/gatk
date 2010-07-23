@@ -190,6 +190,13 @@ public class VariantContextUtils {
     public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte[] inputRefBases ) {
+
+        return simpleMerge(unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBases, "set");
+    }
+
+public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
+                                         VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
+                                         boolean annotateOrigin, boolean printMessages, byte[] inputRefBases, String setKey ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
@@ -220,6 +227,7 @@ public class VariantContextUtils {
         double negLog10PError = -1;
         Set<String> filters = new TreeSet<String>();
         Map<String, Object> attributes = new TreeMap<String, Object>();
+        Set<String> inconsistentAttributes = new HashSet<String>();
         String rsID = null;
         int depth = 0;
 
@@ -250,15 +258,36 @@ public class VariantContextUtils {
             negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
 
             filters.addAll(vc.getFilters());
+
+
+            //
+            // add attributes
+            //
+            // special case DP (add it up) and ID (just preserve it)
+            //
             if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
                 depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
             if ( rsID == null && vc.hasAttribute(VariantContext.ID_KEY) )
                 rsID = vc.getAttributeAsString(VariantContext.ID_KEY);
 
             for ( Map.Entry<String, Object> p : vc.getAttributes().entrySet() ) {
-                if ( ! attributes.containsKey(p.getKey()) || attributes.get(p.getKey()).equals(".") )  { // no value
-                    //if ( vc != first ) System.out.printf("Adding key %s => %s%n", p.getKey(), p.getValue());
-                    attributes.put(p.getKey(), p.getValue());
+                String key = p.getKey();
+
+                // if we don't like the key already, don't go anywhere
+                if ( ! inconsistentAttributes.contains(key) ) {
+                    boolean alreadyFound = attributes.containsKey(key);
+                    Object boundValue = attributes.get(key);
+                    boolean boundIsMissingValue = alreadyFound && boundValue.equals(VCFConstants.MISSING_VALUE_v4);
+
+                    if ( alreadyFound && ! boundValue.equals(p.getValue()) && ! boundIsMissingValue ) {
+                        // we found the value but we're inconsistent, put it in the exclude list
+                        //System.out.printf("Inconsistent INFO values: %s => %s and %s%n", key, boundValue, p.getValue());
+                        inconsistentAttributes.add(key);
+                        attributes.remove(key);
+                    } else if ( ! alreadyFound || boundIsMissingValue )  { // no value
+                        //if ( vc != first ) System.out.printf("Adding key %s => %s%n", p.getKey(), p.getValue());
+                        attributes.put(key, p.getValue());
+                    }
                 }
             }
         }
@@ -281,7 +310,7 @@ public class VariantContextUtils {
                 setValue = Utils.join("-", s);
             }
             
-            attributes.put("set", setValue);
+            attributes.put(setKey, setValue);
         }
 
         if ( depth > 0 )

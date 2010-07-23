@@ -181,6 +181,26 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
+    /**
+     * A slightly simplified interface for when you don't have any reads, so the stratifiedContexts aren't necessary, and
+     * you only permit a single return value
+     *
+     * @param tracker
+     * @param ref
+     * @param vc
+     * @return
+     */
+    public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc) {
+        Collection<VariantContext> results = this.annotateContext(tracker, ref, EMPTY_STRATIFIED_ALIGNMENT_CONTEXT, vc);
+
+        if ( results.size() != 1 )
+            throw new StingException("BUG: annotateContext call requires 1 resulting annotated VC, but got " + results);
+
+        return results.iterator().next();
+
+    }
+    private static final Map<String, StratifiedAlignmentContext> EMPTY_STRATIFIED_ALIGNMENT_CONTEXT = (Map<String, StratifiedAlignmentContext>)Collections.EMPTY_MAP;
+
     public Collection<VariantContext> annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
 
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
