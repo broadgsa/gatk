@@ -206,8 +206,6 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
         if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
             verifyUniqueSampleNames(unsortedVCs);
 
-
-
         List<VariantContext> prepaddedVCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
         // Make sure all variant contexts are padded with reference base in case of indels if necessary
         List<VariantContext> VCs = new ArrayList<VariantContext>();
@@ -231,8 +229,8 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
         String rsID = null;
         int depth = 0;
 
-        // filtering values
-        int nFiltered = 0;
+        // counting the number of filtered and varint VCs
+        int nFiltered = 0, nVariant = 0;
 
         Allele refAllele = determineReferenceAllele(VCs);
         boolean remapped = false;
@@ -247,6 +245,7 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
                 loc = vc.getLocation(); // get the longest location
 
             nFiltered += vc.isFiltered() ? 1 : 0;
+            nVariant += vc.isVariant() ? 1 : 0;
 
             AlleleMapper alleleMapping = resolveIncompatibleAlleles(refAllele, vc, alleles);
             remapped = remapped || alleleMapping.needsRemapping();
@@ -258,7 +257,6 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
             negLog10PError = Math.max(negLog10PError, vc.isVariant() ? vc.getNegLog10PError() : -1);
 
             filters.addAll(vc.getFilters());
-
 
             //
             // add attributes
@@ -299,14 +297,15 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
         // we care about where the call came from
         if ( annotateOrigin ) {
             String setValue;
-            if ( nFiltered == 0 && VCs.size() == priorityListOfVCs.size() )                   // nothing was unfiltered
+            if ( nFiltered == 0 && nVariant == priorityListOfVCs.size() )                   // nothing was unfiltered
                 setValue = "Intersection";
             else if ( nFiltered == VCs.size() )     // everything was filtered out
                 setValue = "FilteredInAll";
             else {                                  // we are filtered in some subset
                 List<String> s = new ArrayList<String>();
                 for ( VariantContext vc : VCs )
-                    s.add( vc.isFiltered() ? "filterIn" + vc.getName() : vc.getName() );
+                    if ( vc.isVariant() )
+                        s.add( vc.isFiltered() ? "filterIn" + vc.getName() : vc.getName() );
                 setValue = Utils.join("-", s);
             }
             
