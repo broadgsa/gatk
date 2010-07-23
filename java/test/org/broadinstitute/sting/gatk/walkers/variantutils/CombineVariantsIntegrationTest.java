@@ -40,8 +40,12 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     }
 
     public void test1InOut(String file, String md5) {
+        test1InOut(file, md5, "");
+    }
+
+    public void test1InOut(String file, String md5, String args) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1 -B v1,VCF," + validationDataLocation + file),
+                 baseTestString(" -priority v1 -B v1,VCF," + validationDataLocation + file + args),
                  1,
                  Arrays.asList(md5));
          executeTest("testInOut1--" + file, spec);
@@ -57,6 +61,8 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
 
     @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "bbeb813ff559b630570725419e4e1adc"); }
+    @Test public void test2SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "5039478bd5bb05b4c4e8309cdd887e5f", " -setKey foo"); }
+    @Test public void test3SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "8502338872d241857379fd25878a7700", " -setKey null"); }
     @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", "38b7e64b91c726867a604cf95b9cb10a"); } // official project VCF files in tabix format
 
     @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "4c667935099544a1863e70ae88ddd685"); }

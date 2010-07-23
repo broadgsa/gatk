@@ -65,7 +65,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
     public boolean printComplexMerges = false;
 
-    @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.", required=false)
+    @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
     public String SET_KEY = "set";
 
     private VCFWriter vcfWriter = null;
@@ -84,9 +84,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         String[] annotationClassesToUse = { "Standard" };
         engine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
 
+        if ( SET_KEY.toLowerCase().equals("null") )
+            SET_KEY = null;
+
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         headerLines.add(new VCFHeaderLine("source", "CombineVariants"));
-        headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
+        if ( SET_KEY != null )
+            headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 

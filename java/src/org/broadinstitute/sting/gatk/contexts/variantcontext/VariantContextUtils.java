@@ -310,7 +310,7 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
                 setValue = Utils.join("-", s);
             }
             
-            attributes.put(setKey, setValue);
+            if ( setKey != null ) attributes.put(setKey, setValue);
         }
 
         if ( depth > 0 )
