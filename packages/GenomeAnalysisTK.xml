@@ -29,6 +29,7 @@
       <class name="org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker" />
       <!-- Other misc walkers -->
       <class name="org.broadinstitute.sting.gatk.walkers.sequenom.SequenomValidationConverter" />
+      <class name="org.broadinstitute.sting.gatk.walkers.variantutils.CombineVariants" />
       <class name="org.broadinstitute.sting.gatk.walkers.VariantsToVCF" />
     </dependencies>
   </executable>
@@ -37,7 +38,6 @@
   </modules>
   <resources>
     <!-- GATK sample code and build scripts -->
-    <file name="java/src/org/broadinstitute/sting/gatk/walkers/variantutils/CombineVariants.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java" />
