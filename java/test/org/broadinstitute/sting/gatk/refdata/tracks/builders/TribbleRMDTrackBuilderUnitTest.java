@@ -73,8 +73,8 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
             Assert.fail("IO exception unexpected" + e.getMessage());
         }
         // make sure we didn't write the file (check that it's timestamp is within bounds)
-        //System.err.println(new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).lastModified());
-        Assert.assertTrue(Math.abs(1279591752000l - new File(vcfFile + TribbleRMDTrackBuilder.linearIndexExtension).lastModified()) < 100);
+        //System.err.println(new File(vcfFile + TribbleRMDTrackBuilder.indexExtension).lastModified());
+        Assert.assertTrue(Math.abs(1279591752000l - new File(vcfFile + TribbleRMDTrackBuilder.indexExtension).lastModified()) < 100);
 
     }
 

@@ -76,7 +76,7 @@ public class VCFWriterUnitTest extends BaseTest {
                 counter++;
             }
             Assert.assertEquals(2,counter);
-            new File(fakeVCFFile + TribbleRMDTrackBuilder.linearIndexExtension).delete();
+            new File(fakeVCFFile + TribbleRMDTrackBuilder.indexExtension).delete();
             fakeVCFFile.delete();
         }
         catch (IOException e ) {

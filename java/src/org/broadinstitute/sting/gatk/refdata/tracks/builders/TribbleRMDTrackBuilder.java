@@ -26,13 +26,17 @@
 package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.*;
 import org.broad.tribble.index.Index;
+import org.broad.tribble.index.IndexCreator;
 import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.index.linear.LinearIndex;
+import org.broad.tribble.index.interval.IntervalIndexCreator;
 import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.source.BasicFeatureSource;
+import org.broad.tribble.util.LEDataOutputStream;
+import org.broad.tribble.util.LEDataStreamUtils;
 import org.broad.tribble.vcf.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -45,8 +49,7 @@ import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -65,9 +68,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      */
     private static Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
 
+    // what index to use
+    static boolean useLinearIndex = true;
 
     // the linear index extension
-    public static final String linearIndexExtension = ".idx";
+    public static final String indexExtension = ".idx";
 
     /** Create a new plugin manager. */
     public TribbleRMDTrackBuilder() {
@@ -157,7 +162,10 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         Pair<BasicFeatureSource, SAMSequenceDictionary> reader;
         try {
             Index index = loadIndex(inputFile, createCodec(targetClass, name), true);
-            reader = new Pair<BasicFeatureSource, SAMSequenceDictionary>(new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(targetClass, name)),index.getSequenceDictionary());
+            reader = new Pair<BasicFeatureSource, SAMSequenceDictionary>(new BasicFeatureSource(inputFile.getAbsolutePath(),
+                                                                                                index,
+                                                                                                createCodec(targetClass, name)),
+                                                                                                sequenceSetToDictionary(index.getSequenceNames()));
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to create reader with file " + inputFile, e);
         } catch (IOException e) {
@@ -177,7 +185,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public synchronized static Index loadIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
 
         // create the index file name, locking on the index file name
-        File indexFile = new File(inputFile.getAbsoluteFile() + linearIndexExtension);
+        File indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
         FSLockWithShared lock = new FSLockWithShared(indexFile);
 
         // acquire a lock on the file
@@ -259,7 +267,9 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             locked = lock.exclusiveLock();
             if (locked) {
                 logger.info("Writing Tribble index to disk for file " + inputFile);
-                index.write(indexFile);
+                LEDataOutputStream stream = LEDataStreamUtils.createOutputStream(indexFile);
+                index.write(stream);
+                stream.close();
             }
             else // we can't write it to disk, just store it in memory, tell them this
                 if (onDisk) logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
@@ -280,7 +290,28 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     private static Index createIndexInMemory(File inputFile, FeatureCodec codec) throws IOException {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
-        LinearIndexCreator creator = new LinearIndexCreator(inputFile,codec,null);
+        IndexCreator creator;
+        if (useLinearIndex)
+            creator = new LinearIndexCreator(inputFile,codec,null);
+        else
+            creator = new IntervalIndexCreator(inputFile, codec, null);
         return creator.createIndex();
     }
+
+    /**
+     * convert a list of Strings into a sequence dictionary
+     * @param contigList the contig list, in coordinate order, this is allowed to be null
+     * @return a SAMSequenceDictionary, WITHOUT contig sizes
+     */
+    private static final SAMSequenceDictionary sequenceSetToDictionary(LinkedHashSet<String> contigList) {
+        SAMSequenceDictionary dict = new SAMSequenceDictionary();
+        if (contigList == null) return dict;
+
+        for (String name : contigList) {
+            SAMSequenceRecord seq = new SAMSequenceRecord(name, 0);
+            dict.addSequence(seq);
+        }
+        return dict;
+    }
+
 }
