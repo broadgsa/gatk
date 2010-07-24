@@ -173,8 +173,8 @@ public class AminoAcidTransition extends VariantEvaluator {
 
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         String interesting = null;
-        if ( eval != null && eval.hasAttribute(infoKey) ) {
-	    //if ( enabled && eval != null && eval.hasAttribute(infoKey) ) {
+        //if ( eval != null && eval.hasAttribute(infoKey) ) {
+	if ( enabled && eval != null && eval.hasAttribute(infoKey) ) {
             String[] parsedNames = ( (String) eval.getAttribute(infoKey)).split(infoValueSplit);
             String first = "none";
             String second = "none";
