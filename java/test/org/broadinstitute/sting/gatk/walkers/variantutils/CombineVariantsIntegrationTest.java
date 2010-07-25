@@ -74,4 +74,20 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "a66a799b1ae9fd09b40f78af6ef538d8"); }
 
     @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "a9126d1cbe1fdf741236763fb3e3461f"); }
+
+    @Test public void threeWayWithRefs() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(" -B NA19240_BGI,VCF4,"+validationDataLocation+"NA19240.BGI.RG.vcf" +
+                        " -B NA19240_ILLUMINA,VCF4,"+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
+                        " -B NA19240_WUGSC,VCF4,"+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
+                        " -B denovoInfo,VCF,"+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
+                        " -setKey centerSet" +
+                        " -variantMergeOptions UNION" +
+                        " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
+                        " -genotypeMergeOptions UNIQUIFY -L 1"),
+                1,
+                Arrays.asList("37c66ca16fb5f890bcaa8e226a5f2e61"));
+        executeTest("threeWayWithRefs", spec);
+        
+    }
 }

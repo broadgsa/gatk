@@ -301,6 +301,8 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
                 setValue = "Intersection";
             else if ( nFiltered == VCs.size() )     // everything was filtered out
                 setValue = "FilteredInAll";
+            else if ( nVariant == 0 )               // everyone was reference
+                setValue = "ReferenceInAll";
             else {                                  // we are filtered in some subset
                 List<String> s = new ArrayList<String>();
                 for ( VariantContext vc : VCs )
