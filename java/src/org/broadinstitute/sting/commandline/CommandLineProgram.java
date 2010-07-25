@@ -327,9 +327,9 @@ public abstract class CommandLineProgram {
         System.out.printf("The following error has occurred:%n%n");
         System.out.printf("%s:%n%n", msg);
         System.out.printf("Please check your command line arguments for any typos or inconsistencies.%n");
-        System.out.printf("Also please review our documentation at:%n");
+        System.out.printf("Also, please review our documentation at:%n");
         System.out.printf("        http://www.broadinstitute.org/gsa/wiki %n%n");
-        System.out.printf("To report bugs or to get help resolving undocumented issues, please contact us via our support site at%n");
+        System.out.printf("To report bugs or to get help resolving undocumented issues, please contact us via our support site at:%n");
         System.out.printf("        http://getsatisfaction.com/gsa %n%n");
         System.out.printf("Please be sure to include the stack trace below when posting a message on the support site:%n");
     }
