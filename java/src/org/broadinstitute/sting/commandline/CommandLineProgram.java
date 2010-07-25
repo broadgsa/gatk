@@ -248,7 +248,7 @@ public abstract class CommandLineProgram {
         catch (Exception e) {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
             // TODO: what if the logger is the exception? hmm...
-            logger.fatal("Exception caught by base Command Line Program.  Stack trace is as follows:");
+            logger.fatal("\n");
             toErrorLog(clp, e);
             throw new RuntimeException(e);
         }
@@ -324,12 +324,14 @@ public abstract class CommandLineProgram {
      * @param msg
      */
     private static void printExitSystemMsg(final String msg) {
-        System.out.printf("------------------------------------------------------------------------------------------%n");
         System.out.printf("The following error has occurred:%n%n");
         System.out.printf("%s:%n%n", msg);
         System.out.printf("Please check your command line arguments for any typos or inconsistencies.%n");
-        System.out.printf("Please review our general documentation at http://www.broadinstitute.org/gsa/wiki or contact us via our%n");
-        System.out.printf("support site at http://getsatisfaction.com/gsa to report bugs or get help resolving undocumented issues%n");
+        System.out.printf("Also please review our documentation at:%n");
+        System.out.printf("        http://www.broadinstitute.org/gsa/wiki %n%n");
+        System.out.printf("To report bugs or to get help resolving undocumented issues, please contact us via our support site at%n");
+        System.out.printf("        http://getsatisfaction.com/gsa %n%n");
+        System.out.printf("Please be sure to include the stack trace below when posting a message on the support site:%n");
     }
 
     /**
@@ -372,8 +374,11 @@ public abstract class CommandLineProgram {
      * @param e   the error
      */
     public static void exitSystemWithError(final String msg, Exception e) {
-        e.printStackTrace();
+        System.out.printf("------------------------------------------------------------------------------------------%n");
         printExitSystemMsg(msg);
+        System.out.printf("------------------------------------------------------------------------------------------%n");
+        e.printStackTrace();
+        System.out.printf("------------------------------------------------------------------------------------------%n");
         System.exit(1);
     }
 
