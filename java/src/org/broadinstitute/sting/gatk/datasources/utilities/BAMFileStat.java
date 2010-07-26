@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.datasources.utilities;
+package org.broadinstitute.sting.gatk.datasources;
 
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
@@ -31,6 +31,11 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.List;
+
+import net.sf.samtools.*;
 
 /**
  *
@@ -47,28 +52,15 @@ public class BAMFileStat extends CommandLineProgram {
     @Argument(doc="The BAM file to inspect.",required=true)
     private String bamFileName;
 
-    @Argument(doc="The range of blocks to inspect.",required=false)
+    @Argument(doc="The range to inspect.",required=false)
     private String range;
 
     public int execute() {
-        Integer startPosition = null, stopPosition = null;
-        if(range != null) {
-            int dashPosition = range.indexOf('-');
-            if(dashPosition > 0) {
-                if(dashPosition > 0)
-                    startPosition = Integer.valueOf(range.substring(0,dashPosition));
-                if(dashPosition < range.length()-1)
-                    stopPosition = Integer.valueOf(range.substring(dashPosition+1));
-            }
-            else
-                startPosition = Integer.valueOf(range);
-        }
-
         switch(command) {
             case ShowBlocks:
                 throw new StingException("The BAM block inspector has been disabled.");
             case ShowIndex:
-                showIndexBins(new File(bamFileName+".bai"));
+                showIndexBins(new File(bamFileName),range);
                 break;
         }
         return 0;
@@ -88,36 +80,102 @@ public class BAMFileStat extends CommandLineProgram {
         }
     }
 
-    private void showIndexBins(File bamFile) {
-        BAMFileIndexContentInspector inspector = new BAMFileIndexContentInspector(bamFile);
-        inspector.inspect(System.out,null,null);
-    }
+    private void showIndexBins(File bamFile,String contigName) {
+        SAMFileReader reader;
+        BAMIndex index;
 
-    private class BAMFileIndexContentInspector /*extends CachingBAMFileIndex*/ {
-        public BAMFileIndexContentInspector(File bamFileIndex) {
-//            super(bamFileIndex);    
-        }
+        reader = new SAMFileReader(bamFile);
+        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.enableIndexCaching(true);
+        index = reader.getIndex();
 
-        public void inspect(PrintStream outputStream, Integer startPosition, Integer stopPosition) {
-            /*
-            outputStream.printf("Number of reference sequences: %d%n", this.referenceToBins.size());
-            for(int referenceSequence: referenceToBins.keySet()) {
-                Bin[] bins = referenceToBins.get(referenceSequence);
-                outputStream.printf("Reference sequence: %d%n",referenceSequence);
-                outputStream.printf("number of bins: %d%n",bins.length);
-                for(Bin bin: bins) {
-                    List<Chunk> chunks = binToChunks.get(bin);
-                    outputStream.printf("\tBin: %d, number of chunks: %d%n", bin.binNumber, chunks.size());
-                    for(Chunk chunk: chunks)
-                        outputStream.printf("\t\tChunk: %s%n", chunk);
+        reader.queryOverlapping(contigName,1,reader.getFileHeader().getSequence(contigName).getSequenceLength()).close();
+
+        int numBins = 0;
+        int numChunks = 0;
+        int numLinearIndexEntries = 0;
+
+        try {
+            Field[] fields = index.getClass().getDeclaredFields();
+            for(Field field: fields) {
+                if(field.getName().equals("mLastReferenceRetrieved")) {
+                    field.setAccessible(true);
+                    Integer lastReferenceRetrieved = (Integer)field.get(index);
+                    System.out.printf("Last reference retrieved: %d%n", lastReferenceRetrieved);
                 }
-                LinearIndex linearIndex = referenceToLinearIndices.get(referenceSequence);
-                outputStream.printf("\t\tIndex entries: %d", linearIndex.indexEntries.length);
-                for(long indexEntry: linearIndex.indexEntries)
-                    outputStream.printf("%d,",indexEntry);
-                outputStream.printf("%n");
+
+                if(field.getName().equals("mQueriesByReference")) {
+                    field.setAccessible(true);
+                    Map<Integer,Object> cachedQueries = (Map<Integer,Object>)field.get(index);
+
+                    for(Object bamIndexContent: cachedQueries.values()) {
+                        List<Object> bins = null;
+                        Map<Object,Object> binToChunkMap = null;
+                        Object linearIndex = null;
+
+                        Field[] indexContentFields = bamIndexContent.getClass().getDeclaredFields();
+                        for(Field indexContentField: indexContentFields) {
+                            if(indexContentField.getName().equals("mReferenceSequence")) {
+                                indexContentField.setAccessible(true);
+                                System.out.printf("Reference sequence: %d%n", indexContentField.getInt(bamIndexContent));
+                            }
+
+                            if(indexContentField.getName().equals("mBins")) {
+                                indexContentField.setAccessible(true);
+                                bins = (List<Object>)indexContentField.get(bamIndexContent);
+                            }
+
+                            if(indexContentField.getName().equals("mBinToChunks")) {
+                                indexContentField.setAccessible(true);
+                                binToChunkMap = (Map<Object,Object>)indexContentField.get(bamIndexContent);
+                            }
+
+                            if(indexContentField.getName().equals("mLinearIndex")) {
+                                indexContentField.setAccessible(true);
+                                linearIndex = indexContentField.get(bamIndexContent);
+                            }
+                        }
+
+                        numBins = bins.size();
+                        for(Object bin: bins) {
+                            int binNumber;
+
+                            Field[] binFields = bin.getClass().getDeclaredFields();
+                            for(Field binField: binFields) {
+                                if(binField.getName().equals("binNumber")) {
+                                    binField.setAccessible(true);
+                                    binNumber = binField.getInt(bin);
+                                    List<Object> chunks = (List<Object>)binToChunkMap.get(bin);
+                                    System.out.printf("\tBin: %d, number of chunks: %d%n",binNumber,chunks.size());
+                                    for(Object chunk: chunks)
+                                        System.out.printf("\t\tChunk: %s%n",chunk);
+                                    numChunks += chunks.size();
+                                }
+                            }
+                        }
+
+                        Field[] linearIndexFields = linearIndex.getClass().getDeclaredFields();
+                        for(Field linearIndexField: linearIndexFields) {
+                            if(linearIndexField.getName().equals("mIndexEntries")) {
+                                linearIndexField.setAccessible(true);
+                                long[] linearIndexEntries = (long[])linearIndexField.get(linearIndex);
+                                System.out.printf("\t\tIndex entries: %d", linearIndexEntries.length);
+                                for(long indexEntry: linearIndexEntries)
+                                    System.out.printf("%d,",indexEntry);
+                                System.out.printf("%n");
+                                numLinearIndexEntries = linearIndexEntries.length;
+                            }
+                        }
+                    }
+                }
             }
-            */
         }
+        catch(IllegalAccessException ex) {
+            throw new StingException("Unable to examine cached index",ex);
+        }
+
+        System.out.printf("%nOverall: %d bins, %d chunks, %d linear index entries",numBins,numChunks,numLinearIndexEntries);
+
+        reader.close();
     }
 }
