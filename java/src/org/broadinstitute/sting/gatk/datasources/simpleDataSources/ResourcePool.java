@@ -67,9 +67,12 @@ abstract class ResourcePool <T,I extends Iterator> {
 
         I iterator = createIteratorFromResource(segment, selectedResource);
 
-        // Make a note of this assignment for proper releasing later.
-        resourceAssignments.put(iterator, selectedResource);
-
+        // also protect the resource assignment
+        synchronized (this) {
+            // Make a note of this assignment for proper releasing later.
+            resourceAssignments.put(iterator, selectedResource);
+        }
+        
         return iterator;
     }
 
