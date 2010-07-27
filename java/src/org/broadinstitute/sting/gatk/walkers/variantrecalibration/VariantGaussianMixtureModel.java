@@ -586,6 +586,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
 
             annIndex++;
+            outputFile.close();
         }
 
        // BUGBUG: next output the actual cluster on top by integrating out every other annotation

@@ -34,7 +34,7 @@ import net.sf.picard.util.IlluminaUtil;
 
 public class TileCovariate implements ExperimentalCovariate {
 
-    private static boolean exceptionWhenNoTile = false;
+    private boolean exceptionWhenNoTile = false;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     public void initialize( final RecalibrationArgumentCollection RAC ) {

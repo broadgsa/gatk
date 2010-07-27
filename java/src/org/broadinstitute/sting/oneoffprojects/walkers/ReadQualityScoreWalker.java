@@ -68,8 +68,8 @@ public class ReadQualityScoreWalker extends ReadWalker<SAMRecord, SAMFileWriter>
     @Argument(fullName = "threshold", shortName = "th", doc="Flag reads whose read quality score is below this threshold", required = false)
     protected int qualityThreshold = 13;
 
-    protected static BufferedReader inputReader = null;
-    protected static String line = null;
+    private BufferedReader inputReader = null;
+    private static String line = null;
 
     public SAMRecord map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
         return read; // all the work is done in the reduce step for this walker

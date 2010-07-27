@@ -53,8 +53,8 @@ public class VariantQualityScore extends VariantEvaluator {
     @DataPoint(name="Quality by Allele Count", description = "average variant quality for each allele count")
     AlleleCountStats alleleCountStats = null;
 
-    class TiTvStats implements TableType {
-        final int NUM_BINS = 20;
+    static class TiTvStats implements TableType {
+        final static int NUM_BINS = 20;
         final HashMap<Integer, Pair<Long,Long>> qualByIsTransition = new HashMap<Integer, Pair<Long,Long>>(); // A hashMap holds all the qualities until we are able to bin them appropriately
         final long transitionByQuality[] = new long[NUM_BINS];
         final long transversionByQuality[] = new long[NUM_BINS];
@@ -81,13 +81,14 @@ public class VariantQualityScore extends VariantEvaluator {
         }
 
         public String toString() {
-            String returnString = "";
+            StringBuffer returnString = new StringBuffer();
             // output the ti/tv array
-            returnString += "titvByQuality: ";
+            returnString.append("titvByQuality: ");
             for( int iii = 0; iii < NUM_BINS; iii++ ) {
-                returnString += titvByQuality[iii] + " ";
+                returnString.append(titvByQuality[iii]);
+                returnString.append(" ");
             }
-            return returnString;
+            return returnString.toString();
         }
 
         public void incrValue( final double qual, final boolean isTransition ) {
