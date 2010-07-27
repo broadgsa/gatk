@@ -23,14 +23,14 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.datasources;
+package org.broadinstitute.sting.gatk.datasources.utilities;
 
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.List;
@@ -175,6 +175,9 @@ public class BAMFileStat extends CommandLineProgram {
         }
 
         System.out.printf("%nOverall: %d bins, %d chunks, %d linear index entries",numBins,numChunks,numLinearIndexEntries);
+        if(Sizeof.isEnabled())
+            System.out.printf(", total index size in bytes: %d",Sizeof.getObjectGraphSize(index));
+        System.out.println();
 
         reader.close();
     }

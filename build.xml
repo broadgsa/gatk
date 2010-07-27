@@ -141,6 +141,9 @@
 
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}" includes="**/utils/**/*.class"/>
+            <manifest>
+                <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
+            </manifest>
         </jar>
 
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
@@ -152,7 +155,7 @@
               <include name="**/oneoffprojects/**/*.class" />
             </fileset>
             <manifest>
-                <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK"/>
+                <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK" />
             </manifest>
         </jar>
 
