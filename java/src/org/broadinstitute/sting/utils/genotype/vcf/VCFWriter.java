@@ -102,26 +102,6 @@ public class VCFWriter {
     }
 
     /**
-     * output a record to the VCF file
-     *
-     * @param record                the record to output
-     */
-    @Deprecated
-    public void addRecord(VCFRecord record) {
-        if ( mHeader == null )
-            throw new IllegalStateException("The VCF Header must be written before records can be added");
-
-        String vcfString = record.toStringEncoding(mHeader);
-        try {
-            mWriter.write(vcfString + "\n");
-            mWriter.flush();  // necessary so that writing to an output stream will work
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to write the VCF object to a file");
-        }
-
-    }
-
-    /**
      * attempt to close the VCF file
      */
     public void close() {
