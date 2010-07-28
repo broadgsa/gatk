@@ -3,7 +3,7 @@ package org.broadinstitute.sting.queue.function.scattergather
 import java.io.File
 import org.broadinstitute.sting.commandline.Input
 
-class BamGatherFunction extends GatherFunction {
+class FixMatesGatherFunction extends GatherFunction {
   type GatherType = File
 
   @Input(doc="Picard FixMateInformation.jar.  At the Broad this can be found at /seq/software/picard/current/bin/FixMateInformation.jar.  Outside the broad see http://picard.sourceforge.net/")
