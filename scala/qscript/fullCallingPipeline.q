@@ -284,7 +284,7 @@ def endToEnd(base: String, snps: UnifiedGenotyper, indels: UnifiedGenotyperIndel
  handFilter.unfilteredVCF = annotated.annotatedVCF
  handFilter.indelMask = indels.indelVCF
  handFilter.filterNames = List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
- handFilter.filterExpressions = List("SB>=0.10","AB>=0.75","QD<5","HRun>=4")
+ handFilter.filterExpressions = List("\"SB>=0.10\"","\"AB>=0.75\"","QD<5","\"HRun>=4\"")
  handFilter.filteredVCF = swapExt(annotated.annotatedVCF,".vcf",".handfiltered.vcf")
  // 3.i generate gaussian clusters on the masked vcf
  val clusters = new GenerateVariantClusters
