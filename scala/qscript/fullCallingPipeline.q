@@ -39,8 +39,6 @@ class RealignerTargetCreator extends GatkFunction {
 class IndelRealigner extends GatkFunction {
  @Input(doc="Intervals to clean")
  var intervalsToClean: File = _
- @Input(doc="Number of contigs in the contig intervals",required=false)
- var numContigs: Int = 24
  @Scatter(classOf[ContigScatterFunction])
  @Input(doc="Contig intervals")
  var contigIntervals: File = _
@@ -48,7 +46,7 @@ class IndelRealigner extends GatkFunction {
  @Output(doc="Cleaned bam file")
  var cleanedBam: File = _
 
- this.scatterCount = numContigs
+ this.javaTmpDir = parseArgs("-tmpdir") // todo -- hack, move into script or something
 
  def commandLine = gatkCommandLine("IndelRealigner") + "--output %s -targetIntervals %s -L %s".format(cleanedBam,intervalsToClean,contigIntervals)
 }
@@ -95,7 +93,7 @@ class UnifiedGenotyperIndels extends GatkFunction {
  var indelVCF: File = _
  // todo -- add inputs for the indel genotyper
 
- def commandLine = gatkCommandLine("UnifiedGenotyper") + "-varout %s -gm INDELS"
+ def commandLine = gatkCommandLine("UnifiedGenotyper") + "-varout %s -gm INDELS".format(indelVCF)
 }
 
 /////////////////////////////////////////////////
@@ -168,7 +166,8 @@ class ApplyVariantCuts extends GatkFunction {
  var tranchFile: File = _
  // todo -- fdr inputs, etc
 
- def commandLine = gatkCommandLine("ApplyVariantCuts") + "-B input,VCF,%s -outputVCF %s --tranchesFile %s --fdr_filter_level 10.0"
+ def commandLine = gatkCommandLine("ApplyVariantCuts") +
+         "-B input,VCF,%s -outputVCF %s --tranchesFile %s --fdr_filter_level 10.0".format(recalibratedVCF,tranchedVCF,tranchFile)
 }
 
 /////////////////////////////////////////////////
@@ -218,8 +217,8 @@ for ( bam <- inputs("bam") ) {
 
  // put unclean bams in unclean genotypers
 
-  uncleanSNPCalls.bamFiles += bam
-  uncleanIndelCalls.bamFiles += bam
+  uncleanSNPCalls.bamFiles :+= bam
+  uncleanIndelCalls.bamFiles :+= bam
 
  // in advance, create the extension files
 
@@ -229,20 +228,20 @@ for ( bam <- inputs("bam") ) {
  // create the cleaning commands
 
  val targetCreator = new RealignerTargetCreator
- targetCreator.bamFiles += bam
+ targetCreator.bamFiles :+= bam
  targetCreator.realignerIntervals = indel_targets
 
  val realigner = new IndelRealigner
  realigner.bamFiles = targetCreator.bamFiles
  realigner.contigIntervals = new File(parseArgs("-contigIntervals"))
  realigner.intervalsToClean = targetCreator.realignerIntervals
- realigner.numContigs = parseArgs("-numContigs").toInt
+ realigner.scatterCount = parseArgs("-numContigs").toInt
  realigner.cleanedBam = cleaned_bam
 
  // put clean bams in clean genotypers
 
-  cleanSNPCalls.bamFiles += realigner.cleanedBam
-  cleanIndelCalls.bamFiles += realigner.cleanedBam
+  cleanSNPCalls.bamFiles :+= realigner.cleanedBam
+  cleanIndelCalls.bamFiles :+= realigner.cleanedBam
 
   add(targetCreator,realigner)
 }
@@ -260,14 +259,16 @@ def endToEnd(base: String, snps: UnifiedGenotyper, indels: UnifiedGenotyperIndel
  snps.trigger = new File(parseArgs("-trigger"))
  // todo -- hack -- get this from the command line, or properties
  snps.compTracks :+= ( "comp1KG_CEU",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/100328.CEU.hg18.sites.vcf") )
- snps.scatterCount = 100
+ snps.scatterCount = 20
  indels.indelVCF = new File(base+".indels.vcf")
- indels.scatterCount = 100
+ indels.scatterCount = 20
  // 1b. genomically annotate SNPs -- slow, but scatter it
  val annotated = new GenomicAnnotator
  annotated.inputVCF = snps.rawVCF
+ annotated.refseqTable = new File(parseArgs("-refseqTable"))
+ annotated.dbsnpTable = new File(parseArgs("-dbsnpTable"))
  annotated.annotatedVCF = swapExt(snps.rawVCF,".vcf",".annotated.vcf")
- annotated.scatterCount = 100
+ annotated.scatterCount = 20
  // 2.a filter on cluster and near indels
  val masker = new VariantFiltration
  masker.unfilteredVCF = annotated.annotatedVCF
