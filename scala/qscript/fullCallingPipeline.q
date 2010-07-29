@@ -26,7 +26,11 @@ def parseArgs(flag: String): String = {
 /////////////////////////////////////////////////
 // todo -- make me less of a hack that makes Khalid cry
 abstract class GatkFunctionLocal extends GatkFunction {
-  this.intervals = QScript.inputs("interval_list").head
+  if ( QScript.inputs("interval_list").size > 0 ) {
+   this.intervals = QScript.inputs("interval_list").head
+  } else {
+    this.intervals = QScript.inputs("interval.list").head
+  }
 }
 
 class RealignerTargetCreator extends GatkFunctionLocal {
@@ -189,7 +193,7 @@ class GenomicAnnotator extends GatkFunctionLocal {
  @Output(doc="A genomically annotated VCF file")
  var annotatedVCF: File = _
 
- def commandLine = gatkCommandLine("GenomicAnnotator") + " -B variant,VCF,%s -B refseq,AnnotatorInputTable,%s -B dbsnp,AnnotatorInputTable,%s -vcf %s -s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet".format(inputVCF,refseqTable,dbsnpTable,annotatedVCF)
+ def commandLine = gatkCommandLine("GenomicAnnotator") + " -B variant,VCF,%s -B refseq,AnnotatorInputTable,%s -B dbsnp,AnnotatorInputTable,%s -vcf %s -s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet -BTI variant".format(inputVCF,refseqTable,dbsnpTable,annotatedVCF)
 }
 
 /////////////////////////////////////////////////
@@ -264,16 +268,16 @@ def endToEnd(base: String, snps: UnifiedGenotyper, indels: UnifiedGenotyperIndel
  snps.trigger = new File(parseArgs("-trigger"))
  // todo -- hack -- get this from the command line, or properties
  snps.compTracks :+= ( "comp1KG_CEU",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/100328.CEU.hg18.sites.vcf") )
- snps.scatterCount = 20
+ snps.scatterCount = 100
  indels.indelVCF = new File(base+".indels.vcf")
- indels.scatterCount = 20
+ indels.scatterCount = 100
  // 1b. genomically annotate SNPs -- slow, but scatter it
  val annotated = new GenomicAnnotator
  annotated.inputVCF = snps.rawVCF
  annotated.refseqTable = new File(parseArgs("-refseqTable"))
  annotated.dbsnpTable = new File(parseArgs("-dbsnpTable"))
  annotated.annotatedVCF = swapExt(snps.rawVCF,".vcf",".annotated.vcf")
- annotated.scatterCount = 20
+ annotated.scatterCount = 100
  // 2.a filter on cluster and near indels
  val masker = new VariantFiltration
  masker.unfilteredVCF = annotated.annotatedVCF
