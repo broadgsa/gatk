@@ -11,5 +11,5 @@ class CreateTempDirsFunction extends CommandLineFunction {
   @Output(doc="Temporary directories to create")
   var tempDirectories: List[File] = Nil
 
-  def commandLine = "mkdir%s".format(repeat(" '", tempDirectories, "'"))
+  def commandLine = "mkdir -pv%s".format(repeat(" '", tempDirectories, "'"))
 }
