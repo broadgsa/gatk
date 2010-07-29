@@ -306,8 +306,16 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
             Utils.warnUser("We are currently unable to parse out CNV encodings in VCF, we saw the following allele = " + allele);
             return false;
         }
-        else if ( ! Allele.acceptableAlleleBases(allele,isRef) ) {
-            throw new VCFParserException("Unparsable vcf record with allele " + allele);
+        else {
+            // check for VCF3.3 insertions or deletions
+            if (this.version != VCFHeaderVersion.VCF4_0) {
+                    if ((allele.toUpperCase().charAt(0) == 'D') || (allele.toUpperCase().charAt(0) == 'D'))
+                        throw new VCFParserException("Insertions/Deletions are not supported when reading 3.x VCF's. Please" +
+                                " convert your file to VCF 4.0 using VCFTools, available at http://vcftools.sourceforge.net/index.html");
+            }
+
+            if ( ! Allele.acceptableAlleleBases(allele,isRef) )
+                throw new VCFParserException("Unparsable vcf record with allele " + allele);
         }
         return true;
     }
@@ -396,9 +404,7 @@ public class VCF4Codec implements FeatureCodec, NameAwareCodec {
        // find out our current location, and clip the alleles down to their minimum length
         Pair<GenomeLoc, List<Allele>> locAndAlleles;
         if ( !isSingleNucleotideEvent(alleles) ) {
-            if (this.version != VCFHeaderVersion.VCF4_0)
-                throw new VCFParserException("Saw Indel/non SNP event on a VCF 3.3 or earlier file. Please convert file to VCF4.0 with VCFTools before using the GATK on it");
-            locAndAlleles = clipAlleles(contig, pos, ref, alleles);
+             locAndAlleles = clipAlleles(contig, pos, ref, alleles);
         } else {
             locAndAlleles = new Pair<GenomeLoc, List<Allele>>(GenomeLocParser.createGenomeLoc(contig, pos), alleles);
         }
