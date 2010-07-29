@@ -1,4 +1,5 @@
 import org.broadinstitute.sting.queue.function.scattergather.{ContigScatterFunction, FixMatesGatherFunction}
+import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.QScript._
 // Other imports can be added here
 
@@ -23,8 +24,12 @@ def parseArgs(flag: String): String = {
 /////////////////////////////////////////////////
 // step one: we need to create a set of realigner targets, one for each bam file
 /////////////////////////////////////////////////
+// todo -- make me less of a hack that makes Khalid cry
+abstract class GatkFunctionLocal extends GatkFunction {
+  this.intervals = QScript.inputs("interval_list").head
+}
 
-class RealignerTargetCreator extends GatkFunction {
+class RealignerTargetCreator extends GatkFunctionLocal {
  @Gather(classOf[SimpleTextGatherFunction])
  @Output(doc="Realigner targets")
  var realignerIntervals: File = _
@@ -36,7 +41,7 @@ class RealignerTargetCreator extends GatkFunction {
 // step two: we need to clean each bam file - gather will fix mates
 /////////////////////////////////////////////////
 
-class IndelRealigner extends GatkFunction {
+class IndelRealigner extends GatkFunctionLocal {
  @Input(doc="Intervals to clean")
  var intervalsToClean: File = _
  @Scatter(classOf[ContigScatterFunction])
@@ -55,7 +60,7 @@ class IndelRealigner extends GatkFunction {
 // step three: we need to call (multisample) over all bam files
 /////////////////////////////////////////////////
 
-class UnifiedGenotyper extends GatkFunction {
+class UnifiedGenotyper extends GatkFunctionLocal {
  @Input(doc="An optional trigger track (trigger emit will be set to 0)",required=false)
  var trigger: File = _
  @Input(doc="A list of comparison files for annotation",required=false)
@@ -87,7 +92,7 @@ class UnifiedGenotyper extends GatkFunction {
 // step four: we need to call indels (multisample) over all bam files
 /////////////////////////////////////////////////
 
-class UnifiedGenotyperIndels extends GatkFunction {
+class UnifiedGenotyperIndels extends GatkFunctionLocal {
  @Gather(classOf[SimpleTextGatherFunction])
  @Output(doc="indel vcf")
  var indelVCF: File = _
@@ -99,7 +104,7 @@ class UnifiedGenotyperIndels extends GatkFunction {
 /////////////////////////////////////////////////
 // step five: we need to filter variants on cluster and with indel mask
 /////////////////////////////////////////////////
-class VariantFiltration extends GatkFunction {
+class VariantFiltration extends GatkFunctionLocal {
  @Input(doc="A VCF file to filter")
  var unfilteredVCF: File = _
  @Input(doc="An interval mask to use to filter indels")
@@ -119,7 +124,7 @@ class VariantFiltration extends GatkFunction {
 /////////////////////////////////////////////////
 // step six: we need to generate gaussian clusters with the optimizer
 /////////////////////////////////////////////////
-class GenerateVariantClusters extends GatkFunction {
+class GenerateVariantClusters extends GatkFunctionLocal {
  @Input(doc="A VCF that has been filtered for clusters and indels")
  var initialFilteredVCF: File = _
  @Output(doc="Variant cluster file generated from input VCF")
@@ -141,7 +146,7 @@ class GenerateVariantClusters extends GatkFunction {
 /////////////////////////////////////////////////
 // step seven: we need to apply gaussian clusters to our variants
 /////////////////////////////////////////////////
-class ApplyGaussianClusters extends GatkFunction {
+class ApplyGaussianClusters extends GatkFunctionLocal {
  @Input(doc="A VCF file to which to apply clusters")
  var inputVCF: File = _
  @Input(doc="A variant cluster file")
@@ -157,7 +162,7 @@ class ApplyGaussianClusters extends GatkFunction {
 /////////////////////////////////////////////////
 // step eight: we need to make tranches out of the recalibrated qualities
 /////////////////////////////////////////////////
-class ApplyVariantCuts extends GatkFunction {
+class ApplyVariantCuts extends GatkFunctionLocal {
  @Input(doc="A VCF file that has been recalibrated")
  var recalibratedVCF: File = _
  @Output(doc="A VCF file that has had tranches marked")
@@ -173,7 +178,7 @@ class ApplyVariantCuts extends GatkFunction {
 /////////////////////////////////////////////////
 // step nine: we need to annotate variants using the annotator [or maf, for now]
 /////////////////////////////////////////////////
-class GenomicAnnotator extends GatkFunction {
+class GenomicAnnotator extends GatkFunctionLocal {
  @Input(doc="A VCF file to be annotated")
  var inputVCF: File = _
  @Input(doc="Refseq input table to use with the annotator")
@@ -190,7 +195,7 @@ class GenomicAnnotator extends GatkFunction {
 /////////////////////////////////////////////////
 // step ten: we need to evaluate variants with variant eval
 /////////////////////////////////////////////////
-class VariantEval extends GatkFunction {
+class VariantEval extends GatkFunctionLocal {
  @Input(doc="An optimized vcf file to evaluate")
  var optimizedVCF: File = _
  @Input(doc="A hand-fitlered vcf file to evaluate")
