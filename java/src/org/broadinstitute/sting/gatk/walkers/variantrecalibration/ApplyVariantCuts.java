@@ -72,14 +72,61 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     final ExpandingArrayList<Double> qCuts = new ExpandingArrayList<Double>();
     final ExpandingArrayList<String> filterName = new ExpandingArrayList<String>();
 
+    public static class Tranche {
+        public double fdr, pCut, novelTiTv;
+        public int numNovel;
+        public String name;
+
+        public Tranche(double fdr, double pCut, double novelTiTv, int numNovel, String name) {
+            this.fdr = fdr;
+            this.pCut = pCut;
+            this.novelTiTv = novelTiTv;
+            this.numNovel = numNovel;
+            this.name = name;
+        }
+
+        public Tranche(final String line) {
+            final String[] vals = line.split(",");
+            this.fdr = Double.parseDouble(vals[0]);
+            this.novelTiTv = Double.parseDouble(vals[1]);
+            this.pCut = Double.parseDouble(vals[2]);
+            this.numNovel = Integer.parseInt(vals[3]);
+            this.name = vals[4];
+        }
+
+        public String toString() {
+            return String.format("[Tranche %s cut = %.3f with %d novels @ %.2f]", name, pCut, numNovel, novelTiTv);
+        }
+    }
+
     //---------------------------------------------------------------------------------------------------------------
     //
     // initialize
     //
     //---------------------------------------------------------------------------------------------------------------
 
+    public static List<Tranche> readTraches(File f) {
+        boolean firstLine = true;
+        List<Tranche> tranches = new ArrayList<Tranche>();
+
+        try {
+            for( final String line : new XReadLines(f) ) {
+                if( ! firstLine ) {
+                    tranches.add(new Tranche(line));
+                }
+                firstLine = false;
+            }
+
+            return tranches;
+        } catch( FileNotFoundException e ) {
+            throw new StingException("Can not find input file: " + f);
+        }
+    }
+
     public void initialize() {
 
+        // todo -- ryan, it's always best to use a read data structure, I need to read these in.
+        // todo -- I would have updated your code but there's no integration test to protect me from unexpected effects
         boolean firstLine = true;
         try {
             for( final String line : new XReadLines(new File( TRANCHE_FILENAME )) ) {

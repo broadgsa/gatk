@@ -77,6 +77,13 @@ public class VariantContextUtils {
         return VariantContextUtils.initializeMatchExps(map);
     }
 
+    public static List<JexlVCMatchExp> initializeMatchExps(ArrayList<String> names, ArrayList<String> exps) {
+        String[] nameArray = new String[names.size()];
+        String[] expArray = new String[exps.size()];
+        return initializeMatchExps(names.toArray(nameArray), exps.toArray(expArray));
+    }
+
+
     /**
      * Method for creating JexlVCMatchExp from input walker arguments mapping from names to exps.  These two arrays contain
      * the name associated with each JEXL expression. initializeMatchExps will parse each expression and return
@@ -191,12 +198,13 @@ public class VariantContextUtils {
                                              VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte inputRefBase ) {
 
-        return simpleMerge(unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set");
+        return simpleMerge(unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set", false);
     }
 
-public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
-                                         VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
-                                         boolean annotateOrigin, boolean printMessages, byte inputRefBase, String setKey ) {
+    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
+                                             VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
+                                             boolean annotateOrigin, boolean printMessages, byte inputRefBase, String setKey,
+                                             boolean filteredAreUncalled ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
@@ -211,9 +219,13 @@ public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs,
         List<VariantContext> VCs = new ArrayList<VariantContext>();
 
         for (VariantContext vc : prepaddedVCs) {
-            VCs.add(createVariantContextWithPaddedAlleles(vc,inputRefBase));
+            // also a reasonable place to remove filtered calls, if needed
+            if ( ! filteredAreUncalled || vc.isNotFiltered() )
+                VCs.add(createVariantContextWithPaddedAlleles(vc,inputRefBase));
         }
 
+        if ( VCs.size() == 0 ) // everything is filtered out and we're filteredareUncalled
+            return null;
 
         // establish the baseline info from the first VC
         VariantContext first = VCs.get(0);

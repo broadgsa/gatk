@@ -38,7 +38,7 @@ import java.util.*;
 
 @Analysis(name = "Genotype Concordance", description = "Determine the genotype concordance between the genotypes in difference tracks")
 public class GenotypeConcordance extends VariantEvaluator {
-    private static final boolean  PRINT_INTERESTING_SITES = false;
+    private static final boolean PRINT_INTERESTING_SITES = true;
 
     protected final static Logger logger = Logger.getLogger(GenotypeConcordance.class);
 
@@ -306,7 +306,8 @@ public class GenotypeConcordance extends VariantEvaluator {
                 final Genotype.Type truth = validation.getGenotype(sample).getType();
                 sampleStats.incrValue(sample, truth, called);
                 if ( (truth == Genotype.Type.HOM_VAR || truth == Genotype.Type.HET) && called == Genotype.Type.NO_CALL ) {
-                    if ( PRINT_INTERESTING_SITES ) System.out.printf("%s: HM3 FN => %s%n", group, validation);
+                    if ( PRINT_INTERESTING_SITES && super.getVEWalker().printInterestingSites() )
+                        System.out.printf("%s: HM3 FN => %s%n", group, validation);
                 }
             }
         }

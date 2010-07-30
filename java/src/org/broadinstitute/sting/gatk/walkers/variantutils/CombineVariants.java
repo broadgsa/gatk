@@ -65,6 +65,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
     public boolean printComplexMerges = false;
 
+    @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="If true, then filtered VCFs are treated as uncalled, so that filtered set annotation don't appear in the combined VCF", required=false)
+    public boolean filteredAreUncalled = false;
+
     @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
     public String SET_KEY = "set";
 
@@ -120,7 +123,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
         VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, variantMergeOption,
-                genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY);
+                genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY, filteredAreUncalled);
 
 
         //out.printf("   merged => %s%nannotated => %s%n", mergedVC, annotatedMergedVC);

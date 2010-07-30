@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.variantrecalibration.ApplyVariantCuts;
 import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
@@ -114,7 +115,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // --------------------------------------------------------------------------------------------------------------
 
     @Argument(shortName="select", doc="One or more stratifications to use when evaluating the data", required=false)
-    protected String[] SELECT_EXPS = {};
+    protected ArrayList<String> SELECT_EXPS = new ArrayList<String>();
     //protected String[] SELECT_EXPS = {"set == \"Intersection\"",
     //        "set == \"HiSeq.WGS.cleaned.ug.vcf\"",
     //        "set == \"HiSeq.WGS.cleaned.ug.vcf\" || set == \"Intersection\"",
@@ -122,7 +123,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     //        "set == \"HiSeq.WGS.raw.OQ.ug.vcf\" || set == \"Intersection\""};
     
     @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
-    protected String[] SELECT_NAMES = {};
+    protected ArrayList<String> SELECT_NAMES = new ArrayList<String>();
     //protected String[] SELECT_NAMES = {"Intersection", "x1", "x2", "x3", "x4"};
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
@@ -193,6 +194,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="aatUseCodons", fullName="aminoAcidsRepresentedByCodons", doc="for the amino acid table, specifiy that the transitions are represented as codon changes, and not directly amino acid names", required = false)
     protected boolean aatUseCodons = false;
+
+    @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
+    private String TRANCHE_FILENAME = null;
+
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -279,6 +284,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     //
     // --------------------------------------------------------------------------------------------------------------
 
+    public boolean printInterestingSites() { return writer != null; }
+
     public void initialize() {
         if ( dels ) {
             ALLOW_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.NO_VARIATION);
@@ -293,6 +300,17 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
         determineEvalations();
 
+        if ( TRANCHE_FILENAME != null ) {
+            // we are going to build a few select names automatically from the tranches file
+            for ( ApplyVariantCuts.Tranche t : ApplyVariantCuts.readTraches(new File(TRANCHE_FILENAME)) ) {
+                logger.info("Adding select for all variant above the pCut of : " + t);
+                SELECT_EXPS.add(String.format("QUAL >= %.2f", t.pCut));
+                SELECT_NAMES.add(String.format("FDR-%.2f", t.fdr));
+            }
+        }
+
+        logger.info("Selects: " + SELECT_NAMES);
+        logger.info("Selects: " + SELECT_EXPS);
         List<VariantContextUtils.JexlVCMatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
 
         for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
