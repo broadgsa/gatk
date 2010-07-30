@@ -85,15 +85,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     // ADVANCED OPTIONS FOLLOW
 
-    @Argument(fullName="outputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
-    protected String OUT_INDELS = null;
-
-    @Argument(fullName="statisticsFile", shortName="stats", doc="print out statistics (what does or doesn't get cleaned)", required=false)
-    protected String OUT_STATS = null;
-
-    @Argument(fullName="SNPsFile", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out", required=false)
-    protected String OUT_SNPS = null;
-
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_CONSENSUSES = 30;
 
@@ -118,6 +109,17 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.  Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.")
     protected boolean TARGET_NOT_SORTED = false;
+
+    // DEBUGGING OPTIONS FOLLOW
+
+    @Argument(fullName="indelsFileForDebugging", shortName="indels", required=false, doc="Output file (text) for the indels found; FOR DEBUGGING PURPOSES ONLY")
+    protected String OUT_INDELS = null;
+
+    @Argument(fullName="statisticsFileForDebugging", shortName="stats", doc="print out statistics (what does or doesn't get cleaned); FOR DEBUGGING PURPOSES ONLY", required=false)
+    protected String OUT_STATS = null;
+
+    @Argument(fullName="SNPsFileForDebugging", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out; FOR DEBUGGING PURPOSES ONLY", required=false)
+    protected String OUT_SNPS = null;
 
     // the intervals input by the user
     private Iterator<GenomeLoc> intervals = null;
