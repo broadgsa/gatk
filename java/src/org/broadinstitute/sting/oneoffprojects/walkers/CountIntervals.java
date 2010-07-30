@@ -17,31 +17,38 @@ import java.util.List;
  * very useful since overlapping intervals get merged, so you can count the number of intervals the GATK merges down to.
  * This was its very first use.
  */
-public class CountIntervals extends RefWalker<GenomeLoc, Pair<GenomeLoc,Long>> {
+public class CountIntervals extends RefWalker<Long, Long> {
 
-    public Pair<GenomeLoc,Long> reduceInit() {
-        return new Pair<GenomeLoc,Long>(null,0l);
+    public Long reduceInit() {
+        return 0l;
     }
 
-    public GenomeLoc map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public boolean isReduceByInterval() { return true; }
+
+    public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null ) {
             return null;
         }
 
-        return ref.getLocus();
+        List<GATKFeature> checkIntervals = tracker.getGATKFeatureMetaData("check",false);
+        return (long) checkIntervals.size();
     }
 
-    public Pair<GenomeLoc,Long> reduce(GenomeLoc loc, Pair<GenomeLoc,Long> prev) {
-        if ( prev.first == null || prev.first.distance(loc) > 1 ) {
-            prev.second ++;
+    public Long reduce(Long loc, Long prev) {
+        if ( loc == null ) {
+            return 0l;
+        } else {
+            return Math.max(prev,loc);
         }
-
-        prev.first = loc;
-
-        return prev;
     }
 
-    public void onTraversalDone(Pair<GenomeLoc,Long> finalReduce ) {
-        out.printf("Number of contiguous intervals: %d",finalReduce.second);
+    public void onTraversalDone(List<Pair<GenomeLoc,Long>> finalReduce) {
+        long count = 0;
+        for ( Pair<GenomeLoc,Long> g : finalReduce ) {
+            if ( g.second > 1) {
+                count ++;
+            }
+        }
+        out.printf("Number of contiguous intervals: %d",count);
     }
 }
