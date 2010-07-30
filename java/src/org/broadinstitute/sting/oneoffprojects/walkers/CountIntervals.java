@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -18,6 +19,8 @@ import java.util.List;
  * This was its very first use.
  */
 public class CountIntervals extends RefWalker<Long, Long> {
+    @Argument(fullName="numOverlaps",shortName="no",doc="Count all occurrences of X or more overlapping intervals; defaults to 2", required=false)
+    int numOverlaps = 2;
 
     public Long reduceInit() {
         return 0l;
@@ -45,7 +48,7 @@ public class CountIntervals extends RefWalker<Long, Long> {
     public void onTraversalDone(List<Pair<GenomeLoc,Long>> finalReduce) {
         long count = 0;
         for ( Pair<GenomeLoc,Long> g : finalReduce ) {
-            if ( g.second > 1) {
+            if ( g.second >= numOverlaps) {
                 count ++;
             }
         }
