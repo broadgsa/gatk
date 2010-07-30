@@ -28,13 +28,17 @@ def main():
     mitotemp = open("mtmp",'w')
     for line in open(b36vcf):
         length = len(line)
-        if length > 2 and line[0] != '#':
-            if line[0:2] == 'MT':
-                spline = line.split("\t")
-                spline[0] = "chrM"
-                mitotemp.write("\t".join(spline))
-            line = 'chr' + line
-        temp.write(line)
+        if length > 2 :
+            if line[0:2] == 'MT' or line[0] == "#":
+                if line[0] == "#":
+                    mitotemp.write(line)
+                else:
+                    spline = line.split("\t")
+                    spline[0] = "chrM"
+                    mitotemp.write("\t".join(spline))
+            else:
+                line = 'chr' + line
+                temp.write(line)
     temp.close()
     mitotemp.close()
     os.system("cat mtmp tmp > "+hg18vcf+" ; rm mtmp ; rm tmp")
