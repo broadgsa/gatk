@@ -35,7 +35,7 @@ def main():
                 mitotemp.write("\t".join(spline))
             line = 'chr' + line
         temp.write(line)
-    out.close()
+    temp.close()
     mitotemp.close()
     os.system("cat mtmp tmp > "+hg18vcf+" ; rm mtmp ; rm tmp")
 
