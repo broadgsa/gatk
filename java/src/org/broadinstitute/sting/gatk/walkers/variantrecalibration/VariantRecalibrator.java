@@ -89,6 +89,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private String PATH_TO_RESOURCES = "R/";
     @Argument(fullName="quality_step", shortName="qStep", doc="Resolution in QUAL units for optimization and tranche calculations", required=false)
     private double QUAL_STEP = 0.1;
+    @Argument(fullName="singleton_fp_rate", shortName="fp_rate", doc="Prior expectation that a singleton call would be a FP", required=false)
+    private double SINGLETON_FP_RATE = -1;
 
     /////////////////////////////
     // Private Member Variables
@@ -113,6 +115,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
                 theModel = new VariantGaussianMixtureModel( TARGET_TITV, CLUSTER_FILENAME, BACKOFF_FACTOR );
+                if ( SINGLETON_FP_RATE != -1 )
+                    theModel.setSingletonFPRate(SINGLETON_FP_RATE);
                 break;
             //case K_NEAREST_NEIGHBORS:
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );

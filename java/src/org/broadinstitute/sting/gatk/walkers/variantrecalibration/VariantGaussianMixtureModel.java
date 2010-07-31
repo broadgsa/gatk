@@ -49,7 +49,12 @@ import java.util.regex.Pattern;
 public final class VariantGaussianMixtureModel extends VariantOptimizationModel {
 
     protected final static Logger logger = Logger.getLogger(VariantGaussianMixtureModel.class);
-    
+
+    /**
+     * Est. FP rate for singleton calls.  Used to estimate FP rate as a function of AC
+     */
+    private double singletonFPRate = -1;
+
     public final VariantDataManager dataManager;
     private final int maxGaussians;
     private final int maxIterations;
@@ -152,7 +157,9 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         alleleCountFactorArray = new double[alleleCountLines.size() + 1];
         for( final String line : alleleCountLines ) {
             final String[] vals = line.split(",");
-            alleleCountFactorArray[Integer.parseInt(vals[1])] = Double.parseDouble(vals[2]);
+            int i = Integer.parseInt(vals[1]);
+            alleleCountFactorArray[i] = Double.parseDouble(vals[2]);
+            double oldACPrior = alleleCountFactorArray[i];
         }
 
         int kkk = 0;
@@ -315,8 +322,16 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
+    public void setSingletonFPRate(double rate) {
+        this.singletonFPRate = rate;
+    }
+
     public final double getAlleleCountPrior( final int alleleCount ) {
-        return alleleCountFactorArray[alleleCount];
+        if ( this.singletonFPRate == -1 )
+            return alleleCountFactorArray[alleleCount];
+        else {
+            return 1 - Math.pow(singletonFPRate, alleleCount);
+        }
     }
 
     private void initializeUsingKMeans( final VariantDatum[] data ) {
