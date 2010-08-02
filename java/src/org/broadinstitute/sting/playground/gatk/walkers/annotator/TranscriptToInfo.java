@@ -916,6 +916,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         final char lastChromChar = txChrom.charAt(txChrom.length() -1);
         switch( Character.toLowerCase(lastChromChar) ) {
         case 'm':
+        case 't': // for hg19 or b36
             key = 0;
             break;
         case 'x':
@@ -925,7 +926,11 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             key = 24;
             break;
         default:
-            key = Integer.parseInt(txChrom.substring(3));
+	    if( txChrom.startsWith("chr") ) {
+		key = Integer.parseInt(txChrom.substring(3));
+	    } else {
+		key = Integer.parseInt(txChrom);
+	    }
             break;
         }
 
