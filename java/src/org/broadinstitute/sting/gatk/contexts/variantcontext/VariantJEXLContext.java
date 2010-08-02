@@ -67,9 +67,9 @@ class VariantJEXLContext implements JexlContext {
         x.put("FILTER",    new AttributeGetter() { public Object get(VariantContext vc) { return vc.isFiltered() ? "1" : "0"; }});
 
 //        x.put("GT",        new AttributeGetter() { public Object get(VariantContext vc) { return g.getGenotypeString(); }});
-//        x.put("isHomRef",  new AttributeGetter() { public Object get(VariantContext vc) { return g.isHomRef() ? "1" : "0"; }});
-//        x.put("isHet",     new AttributeGetter() { public Object get(VariantContext vc) { return g.isHet() ? "1" : "0"; }});
-//        x.put("isHomVar",  new AttributeGetter() { public Object get(VariantContext vc) { return g.isHomVar() ? "1" : "0"; }});
+        x.put("homRefCount",  new AttributeGetter() { public Object get(VariantContext vc) { return vc.getHomRefCount(); }});
+        x.put("hetCount",     new AttributeGetter() { public Object get(VariantContext vc) { return vc.getHetCount(); }});
+        x.put("homVarCount",  new AttributeGetter() { public Object get(VariantContext vc) { return vc.getHomVarCount(); }});
     }
 
     public VariantJEXLContext(VariantContext vc) {
