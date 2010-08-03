@@ -89,6 +89,14 @@ public class CommandLineGATK extends CommandLineExecutable {
     }
 
     /**
+     * The very first thing that the GATK does is forces the JVM locale into US English, so that we don't have
+     * to think about number formatting issues.
+     */
+    {
+        forceJVMLocaleToUSEnglish();
+    }
+
+    /**
      * Required main method implementation.
      */
     public static void main(String[] argv) {

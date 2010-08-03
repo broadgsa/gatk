@@ -32,10 +32,7 @@ import org.broadinstitute.sting.utils.help.HelpFormatter;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Enumeration;
+import java.util.*;
 
 public abstract class CommandLineProgram {
 
@@ -399,5 +396,12 @@ public abstract class CommandLineProgram {
      */
     public void generateErrorLog(PrintStream stream, Exception e) {
         stream.println(e.getStackTrace().toString());
+    }
+
+    /**
+     * A hack to ensure that numbers are always formatted in the US style.
+     */
+    protected static void forceJVMLocaleToUSEnglish() {
+        Locale.setDefault(Locale.US);
     }
 }
