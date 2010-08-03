@@ -307,7 +307,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
                 sampleStats.incrValue(sample, truth, called);
                 if ( (truth == Genotype.Type.HOM_VAR || truth == Genotype.Type.HET) && called == Genotype.Type.NO_CALL ) {
                     if ( PRINT_INTERESTING_SITES && super.getVEWalker().printInterestingSites() )
-                        System.out.printf("%s: HM3 FN => %s%n", group, validation);
+                        ;//System.out.printf("%s: HM3 FN => %s%n", group, validation);
                 }
             }
         }
