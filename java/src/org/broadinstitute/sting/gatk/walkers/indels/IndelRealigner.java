@@ -767,7 +767,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     // create a Consensus from just the indel string that falls on the reference
     private Consensus createAlternateConsensus(final int indexOnRef, final byte[] reference, final byte[] indelStr, final boolean isDeletion) {
-        if ( indexOnRef < 0 )
+        if ( indexOnRef < 0 || indexOnRef >= reference.length )
             return null;
 
         // create the new consensus
