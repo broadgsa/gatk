@@ -345,7 +345,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     private void listModulesAndExit() {
         List<Class<? extends VariantEvaluator>> veClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
         out.println("\nAvailable eval modules:");
-        for (Class<? extends VariantEvaluator> veClass : veClasses) out.println("\t" + veClass.getSimpleName());
+        out.println("(Standard modules are starred)");
+        for (Class<? extends VariantEvaluator> veClass : veClasses)
+            out.println("\t" + veClass.getSimpleName() + (StandardEval.class.isAssignableFrom(veClass) ? "*" : ""));
         out.println();
         System.exit(0);
     }
