@@ -8,7 +8,6 @@ import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.StingException;
-import org.broad.tribble.vcf.VCFGenotypeRecord;
 
 import java.util.ArrayList;
 
@@ -43,7 +42,7 @@ import java.util.ArrayList;
  */
 
 @Analysis(name = "Quality Metrics by allele count", description = "Shows various stats binned by allele count")
-public class SimpleMetricsByAC extends VariantEvaluator {
+public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval {
     // a mapping from quality score histogram bin to Ti/Tv ratio
     @DataPoint(name="TiTv by AC", description = "TiTv by allele count")
     MetricsByAc metrics = null;

@@ -8,7 +8,7 @@ import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 
 @Analysis(name = "Ti/Tv Variant Evaluator", description = "Ti/Tv Variant Evaluator")
-public class TiTvVariantEvaluator extends VariantEvaluator {
+public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEval {
 
     @DataPoint(name = "ti_count", description = "number of transition loci")
     long nTi = 0;

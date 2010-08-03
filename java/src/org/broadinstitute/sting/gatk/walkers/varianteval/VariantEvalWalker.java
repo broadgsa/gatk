@@ -136,11 +136,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     //
     // Arguments for choosing which modules to run
     //
-    @Argument(fullName="evalModule", shortName="E", doc="One or more specific eval modules to apply to the eval track(s)", required=false)
+    @Argument(fullName="evalModule", shortName="E", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noStandard is specified)", required=false)
     protected String[] modulesToUse = {};
 
-    @Argument(fullName="useNoModules", shortName="none", doc="Use no eval modules", required=false)
-    protected Boolean USE_NO_MODULES = false;
+    @Argument(fullName="doNotUseAllStandardModules", shortName="noStandard", doc="Do not use the standard modules by default (instead, only those that are specified with the -E option)")
+    protected Boolean NO_STANDARD = false;
 
     @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit")
     protected Boolean LIST = false;
@@ -272,7 +272,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     }
 
     // Dynamically determined variantEvaluation classes
-    private List<Class<? extends VariantEvaluator>> evaluationClasses = null;
+    private Set<Class<? extends VariantEvaluator>> evaluationClasses = null;
 
     /** output writer for interesting sites */
     private VCFWriter writer = null;
@@ -392,19 +392,21 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( Class<? extends VariantEvaluator> c : PackageUtils.getClassesImplementingInterface(VariantEvaluator.class) )
             classMap.put(c.getSimpleName(), c);
 
-        if ( USE_NO_MODULES ) {
-            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(0);
-        } else if ( modulesToUse.length == 0 ) {
-            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(classMap.values());
-        } else {
-            // get the specific classes provided
-            evaluationClasses = new ArrayList<Class<? extends VariantEvaluator>>(modulesToUse.length);
-            for ( String module : modulesToUse ) {
-                Class<? extends VariantEvaluator> moduleClass = classMap.get(module);
-                if ( moduleClass == null )
-                    throw new StingException("Class " + module + " is not found; please check that you have specified the class name correctly");
-                evaluationClasses.add(moduleClass);
+        evaluationClasses = new HashSet<Class<? extends VariantEvaluator>>();
+
+        // by default, use standard eval modules
+        if ( !NO_STANDARD ) {
+            for ( Class<? extends StandardEval> myClass : PackageUtils.getClassesImplementingInterface(StandardEval.class) ) {
+                if ( classMap.containsKey(myClass.getSimpleName()) )
+                    evaluationClasses.add(classMap.get(myClass.getSimpleName()));
             }
+        }
+
+        // get the specific classes provided
+        for ( String module : modulesToUse ) {
+            if ( !classMap.containsKey(module) )
+                throw new StingException("Class " + module + " is not found; please check that you have specified the class name correctly");
+            evaluationClasses.add(classMap.get(module));
         }
 
         for ( VariantEvaluator e : instantiateEvalationsSet() ) {

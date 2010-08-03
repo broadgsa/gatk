@@ -18,7 +18,7 @@ import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 @Analysis(name = "Comp Overlap", description = "the overlap between eval and comp sites")
-public class CompOverlap extends VariantEvaluator {
+public class CompOverlap extends VariantEvaluator implements StandardEval {
 
     @DataPoint(name = "eval sites", description = "number of eval SNP sites")
     long nEvalSNPs = 0;

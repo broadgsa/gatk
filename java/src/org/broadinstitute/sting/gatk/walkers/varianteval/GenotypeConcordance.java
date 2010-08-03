@@ -37,7 +37,7 @@ import java.util.*;
  */
 
 @Analysis(name = "Genotype Concordance", description = "Determine the genotype concordance between the genotypes in difference tracks")
-public class GenotypeConcordance extends VariantEvaluator {
+public class GenotypeConcordance extends VariantEvaluator implements StandardEval {
     private static final boolean PRINT_INTERESTING_SITES = true;
 
     protected final static Logger logger = Logger.getLogger(GenotypeConcordance.class);

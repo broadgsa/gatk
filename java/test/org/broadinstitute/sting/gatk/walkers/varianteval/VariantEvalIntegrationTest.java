@@ -29,7 +29,7 @@ public class
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
-                    1, Arrays.asList("119601d7e9e67a1053663b2e546250ed"));
+                    1, Arrays.asList("a12bd969ca3bc676752e078d205c730a"));
             executeTest("testSelect1", spec);
         }
     }
@@ -38,7 +38,7 @@ public class
     public void testSelect2() {
         String extraArgs = "-L 1:1-10,000,000";
         WalkerTestSpec spec = new WalkerTestSpec( withSelect(withSelect(root, "DP < 50", "DP50"), "set==\"Intersection\"", "intersection") + " " + extraArgs + " -o %s",
-                1, Arrays.asList("06d495ab8169a2570eebdc54ecdffe10"));
+                1, Arrays.asList("2c1a99b225b55dcf605410ba5e6be789"));
         executeTest("testSelect2", spec);
     }
 
@@ -46,7 +46,7 @@ public class
     public void testVEGenotypeConcordance() {
         String vcfFiles[] = {"GenotypeConcordanceEval.vcf", "GenotypeConcordanceEval.vcf.gz"};
         for (String vcfFile : vcfFiles) {
-            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B eval,VCF," + validationDataLocation + vcfFile + " -B comp,VCF," + validationDataLocation + "GenotypeConcordanceComp.vcf -E GenotypeConcordance -reportType CSV -o %s",
+            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B eval,VCF," + validationDataLocation + vcfFile + " -B comp,VCF," + validationDataLocation + "GenotypeConcordanceComp.vcf -noStandard -E GenotypeConcordance -reportType CSV -o %s",
                     1,
                     Arrays.asList("15d1075d384da2bb7445f7493f2b6a07"));
             executeTest("testVEGenotypeConcordance" + vcfFile, spec);
@@ -57,8 +57,8 @@ public class
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "629b8b124306435ff56b66357354dfbc");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0", "f51c299d500b347d098c7ab25f54a436");
+        expectations.put("-L 1:1-10,000,000", "a48e4ca3a019bf46eb3a178a6a80822f");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0 -E MendelianViolationEvaluator", "bc35dfefce72899d4c673bfc37c9a7f3");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -75,15 +75,15 @@ public class
     @Test
     public void testVEComplex() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        String extraArgs1 = "-L " + validationDataLocation + "chr1_b36_pilot3.interval_list -family NA19238+NA19239=NA19240 -MVQ 30" +
+        String extraArgs1 = "-L " + validationDataLocation + "chr1_b36_pilot3.interval_list -family NA19238+NA19239=NA19240 -MVQ 30 -E MendelianViolationEvaluator" +
                 " -B dbsnp_130,dbSNP," + GATKDataLocation + "dbsnp_130_b36.rod" +
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
-        String matchingMD5 = "d01725ce4e46c8fea0855a923c1598fd";
+        String matchingMD5 = "38c8906cc364d04ba39a437d93d752d3";
         expectations.put("", matchingMD5);
         expectations.put(" -known comp_hapmap -known dbsnp", matchingMD5);
-        expectations.put(" -known comp_hapmap", "a50be9240f6c90503fb6333d8a78b974");
+        expectations.put(" -known comp_hapmap", "b839c8e9f26b01281899f86362b5323c");
         for (String tests : testsEnumerations) {
             for (Map.Entry<String, String> entry : expectations.entrySet()) {
                 String extraArgs2 = entry.getKey();
@@ -103,7 +103,7 @@ public class
                        "-R " + oneKGLocation + "reference/human_b36_both.fasta " +
                        "-L 21 " +
                        "-D " + GATKDataLocation + "dbsnp_129_b36.rod " +
-                       "-E CountFunctionalClasses " +
+                       "-E CountFunctionalClasses -noStandard " +
                        "-B eval,VCF," + validationDataLocation + "test.filtered.maf_annotated.vcf " +
                        "-o %s";
         String md5 = "d41d8cd98f00b204e9800998ecf8427e";
@@ -114,11 +114,11 @@ public class
 
     @Test
     public void testVEWriteVCF() {
-        String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30";
+        String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30 -E MendelianViolationEvaluator";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
                     2,
-                    Arrays.asList("483f821ce96f4cf571e9bba356c9f325", "989bc30dea6c8a4cf771cd1b9fdab488"));
+                    Arrays.asList("8059c6b53ba15598bf89d65c79742566", "989bc30dea6c8a4cf771cd1b9fdab488"));
             executeTest("testVEWriteVCF", spec);
         }
     }

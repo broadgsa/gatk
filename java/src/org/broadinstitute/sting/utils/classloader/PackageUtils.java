@@ -28,10 +28,9 @@ package org.broadinstitute.sting.utils.classloader;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
 import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.ManifestAwareClasspathHelper;
-import org.slf4j.LoggerFactory;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.net.URL;
 import java.util.Set;
@@ -79,6 +78,24 @@ public class PackageUtils {
         }
 
         return concreteTypes;
+    }
+
+    public static <T> List<T> getInstancesOfClassesImplementingInterface(Class<T> iface) {
+        List<Class<? extends T>> classes = PackageUtils.getClassesImplementingInterface(iface);
+        List<T> instances = new ArrayList<T>();
+        for ( Class<? extends T> c : classes )
+            instances.add(getSimpleInstance(c));
+        return instances;
+    }
+
+    public static <T> T getSimpleInstance(Class<T> c) {
+        try {
+            return c.newInstance();
+        } catch (InstantiationException e) {
+            throw new StingException(String.format("Cannot instantiate class '%s': must be concrete class", c.getSimpleName()));
+        } catch (IllegalAccessException e) {
+            throw new StingException(String.format("Cannot instantiate class '%s': must have no-arg constructor", c.getSimpleName()));
+        }
     }
 
     /**

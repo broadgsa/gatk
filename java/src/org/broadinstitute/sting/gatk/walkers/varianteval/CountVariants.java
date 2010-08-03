@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.StingException;
 
 
 @Analysis(name = "Count Variants", description = "Counts different classes of variants in the sample")
-public class CountVariants extends VariantEvaluator {
+public class CountVariants extends VariantEvaluator implements StandardEval {
 
     // the following fields are in output order:
 

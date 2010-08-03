@@ -63,7 +63,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     protected String[] annotationsToUse = {};
 
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
-    protected String[] annotationClassesToUse = { };
+    protected String[] annotationGroupsToUse = {};
 
     @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
@@ -131,7 +131,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( USE_ALL_ANNOTATIONS )
             engine = new VariantAnnotatorEngine(getToolkit());
         else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
+            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse);
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

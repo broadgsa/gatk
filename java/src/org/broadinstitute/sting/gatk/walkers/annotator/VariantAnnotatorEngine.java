@@ -60,8 +60,8 @@ public class VariantAnnotatorEngine {
 
     public static final String dbPrefix = "comp";
 
-    private ArrayList<InfoFieldAnnotation> requestedInfoAnnotations;
-    private ArrayList<GenotypeAnnotation> requestedGenotypeAnnotations;
+    private List<InfoFieldAnnotation> requestedInfoAnnotations;
+    private List<GenotypeAnnotation> requestedGenotypeAnnotations;
 
     private HashMap<String, String> dbAnnotations = new HashMap<String, String>();
 
@@ -82,16 +82,14 @@ public class VariantAnnotatorEngine {
 
     // use this constructor if you want all possible annotations
     public VariantAnnotatorEngine(GenomeAnalysisEngine engine) {
-        List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class);
-        requestedInfoAnnotations = getInstances(infoAnnotationClasses);
-        List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = PackageUtils.getClassesImplementingInterface(GenotypeAnnotation.class);
-        requestedGenotypeAnnotations = getInstances(genotypeAnnotationClasses);
-
+        requestedInfoAnnotations = PackageUtils.getInstancesOfClassesImplementingInterface(InfoFieldAnnotation.class);
+        requestedGenotypeAnnotations = PackageUtils.getInstancesOfClassesImplementingInterface(GenotypeAnnotation.class);
         initialize(engine);
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, String[] annotationClassesToUse, String[] annotationsToUse) {
+    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, String[] annotationGroupsToUse, String[] annotationsToUse) {
+
         // create a map for all annotation classes which implement our top-level interfaces
         HashMap<String, Class> classMap = new HashMap<String, Class>();
         for ( Class c : PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class) )
@@ -103,7 +101,7 @@ public class VariantAnnotatorEngine {
 
         HashSet<Class> classes = new HashSet<Class>();
         // get the classes from the provided groups (interfaces)
-        for ( String group : annotationClassesToUse ) {
+        for ( String group : annotationGroupsToUse ) {
             Class interfaceClass = classMap.get(group);
             if ( interfaceClass == null )
                 interfaceClass = classMap.get(group + "Annotation");
@@ -128,29 +126,12 @@ public class VariantAnnotatorEngine {
         for ( Class c : classes ) {
             // note that technically an annotation can work on both the INFO and FORMAT fields
             if ( InfoFieldAnnotation.class.isAssignableFrom(c) )
-                requestedInfoAnnotations.add((InfoFieldAnnotation)getInstance(c));
+                requestedInfoAnnotations.add((InfoFieldAnnotation)PackageUtils.getSimpleInstance(c));
             if ( GenotypeAnnotation.class.isAssignableFrom(c) )
-                requestedGenotypeAnnotations.add((GenotypeAnnotation)getInstance(c));
+                requestedGenotypeAnnotations.add((GenotypeAnnotation)PackageUtils.getSimpleInstance(c));
         }
 
         initialize(engine);
-    }
-
-    private static <T> ArrayList<T> getInstances(List<Class<? extends T>> classes) {
-        ArrayList<T> objects = new ArrayList<T>();
-        for ( Class c : classes )
-            objects.add((T)getInstance(c));
-        return objects;
-    }
-
-    private static <T> T getInstance(Class<T> c) {
-        try {
-            return c.newInstance();
-        } catch (InstantiationException e) {
-            throw new StingException(String.format("Cannot instantiate annotation class '%s': must be concrete class", c.getSimpleName()));
-        } catch (IllegalAccessException e) {
-            throw new StingException(String.format("Cannot instantiate annotation class '%s': must have no-arg constructor", c.getSimpleName()));
-        }
     }
 
     private void initialize(GenomeAnalysisEngine engine) {
@@ -181,15 +162,8 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
-    /**
-     * A slightly simplified interface for when you don't have any reads, so the stratifiedContexts aren't necessary, and
-     * you only permit a single return value
-     *
-     * @param tracker
-     * @param ref
-     * @param vc
-     * @return
-     */
+    // A slightly simplified interface for when you don't have any reads, so the stratifiedContexts aren't necessary, and
+    // you only permit a single return value
     public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc) {
         Collection<VariantContext> results = this.annotateContext(tracker, ref, EMPTY_STRATIFIED_ALIGNMENT_CONTEXT, vc);
 
@@ -278,13 +252,7 @@ public class VariantAnnotatorEngine {
         return returnValue;
     }
 
-    /**
-     * Finish processing data from GenomicAnnotation.
-     *
-     * @param infoAnnotationOutputsList
-     * @param annotationsForCurrentLocusFromAllAnnotatorInputTables
-     * @return
-     */
+    // Finish processing data from GenomicAnnotation.
     private List<Map<String, Object>> processGenomicAnnotation( List<Map<String, Object>> infoAnnotationOutputsList, Map<String, Object> annotationsForCurrentLocusFromAllAnnotatorInputTables)
     {
 
@@ -330,15 +298,8 @@ public class VariantAnnotatorEngine {
         return infoAnnotationOutputsList;
     }
 
-    /**
-     * Performs a join between the an info field record represented by outputRecordInfoField and the infoAnnotationOutputsList.
-     *
-     * @param infoAnnotationOutputsList
-     * @param outputRecordInfoField
-     * @param joinTable
-     * @return
-     */
-    private List<Map<String, Object>> performJoin( List<Map<String, Object>> infoAnnotationOutputsList,  Map<String, Object> outputRecordInfoField, JoinTable joinTable)
+   // Performs a join between the an info field record represented by outputRecordInfoField and the infoAnnotationOutputsList.
+   private List<Map<String, Object>> performJoin( List<Map<String, Object>> infoAnnotationOutputsList,  Map<String, Object> outputRecordInfoField, JoinTable joinTable)
     {
         //System.err.println("Looking at: " + joinTable.getLocalBindingName()+ "- join to " + joinTable.getExternalBindingName() + "." + joinTable.getExternalColumnName() );
         //for the current joinTable, for each output line, find the externalJoinColumnValue and see if it matches the joinColumnValue of any record(s) in this joinTable.
@@ -413,16 +374,10 @@ public class VariantAnnotatorEngine {
     }
 
 
-    /**
-     * Implements not-oneToMany mode, where the output lines have a one-to-one relationship
-     * with the input variants, and all multiple-match records are collapsed into the single info field.
-     * The collapsing is done by appending an _i to each key name (where 'i' is a record counter), as well
-     * as a special bindingName.numMatchingRecords=n key-value pair which specifies the upper limit of the counter.
-     *
-     * @param infoAnnotationOutputsList
-     * @param matchingRecords
-     * @param bindingName
-     */
+    // Implements not-oneToMany mode, where the output lines have a one-to-one relationship
+    // with the input variants, and all multiple-match records are collapsed into the single info field.
+    // The collapsing is done by appending an _i to each key name (where 'i' is a record counter), as well
+    // as a special bindingName.numMatchingRecords=n key-value pair which specifies the upper limit of the counter.
     private void addToExistingAnnotationOutputs(
             final List<Map<String, Object>> infoAnnotationOutputsList,
             final List<Map<String, String>> matchingRecords,
@@ -470,19 +425,12 @@ public class VariantAnnotatorEngine {
         }
     }
 
-    /**
-     * Implements oneToMany mode. Takes the current infoAnnotationOutputsList
-     * (where each element represents a line in the output VCF file), and
-     * generates a new infoAnnotationOutputsList which contains one copy of the current
-     * infoAnnotationOutputs for each record matchingRecords.
-     * The returned list will have size:
-     * infoAnnotationOutputsList.size() * matchingRecords.size()
-     *
-     * @param infoAnnotationOutputsList
-     * @param matchingRecords
-     * @param bindingName
-     * @return
-     */
+    // Implements oneToMany mode. Takes the current infoAnnotationOutputsList
+    // (where each element represents a line in the output VCF file), and
+    // generates a new infoAnnotationOutputsList which contains one copy of the current
+    // infoAnnotationOutputs for each record matchingRecords.
+    // The returned list will have size:
+    // infoAnnotationOutputsList.size() * matchingRecords.size()
     private List<Map<String, Object>> explodeInfoAnnotationOutputsList(
             final List<Map<String, Object>> infoAnnotationOutputsList,
             final List<Map<String, String>> matchingRecords,
@@ -515,8 +463,8 @@ public class VariantAnnotatorEngine {
      * Records statistics for the explodeInfoAnnotationOutputsList(..) calculation.
      * @param bindingName The table from which annotations were gotten
      * @param numNewVCFRecordsAnnotatedWithBindingNameData The number of new output VCF records created with annotations from this table
-     * @param infoAnnotationOutputsList
-     * @parma matchingRecordsSize
+     * @param infoAnnotationOutputsList output list
+     * @param matchingRecordsSize  matching records size
      */
     private void recordStats( final String bindingName, int numNewVCFRecordsAnnotatedWithBindingNameData, final List<Map<String, Object>> infoAnnotationOutputsList, int matchingRecordsSize ) {
 
@@ -549,13 +497,7 @@ public class VariantAnnotatorEngine {
     }
 
 
-
-    /**
-     * Applies the -S arg to the results
-     *
-     * @param infoAnnotationOutputsList
-     * @return The new newInfoAnnotationOutputList with -S arg applied.
-     */
+    // Applies the -S arg to the results
     private List<Map<String, Object>> applySelectArg( final List<Map<String, Object>> infoAnnotationOutputsList )
     {
         final List<Map<String, Object>> newInfoAnnotationOutputList = new LinkedList<Map<String, Object>>();
@@ -614,7 +556,7 @@ public class VariantAnnotatorEngine {
      *
      * See class-level comments for more details.
      *
-     * @param oneToMany
+     * @param oneToMany true if we should break out from one to many
      */
     public void setOneToMany(boolean oneToMany) {
         this.oneToMany = oneToMany;
@@ -694,9 +636,7 @@ public class VariantAnnotatorEngine {
     }
 
 
-    /**
-     * Returns a map containing stats on how many output vcf records were annotated from each database
-     */
+    //Returns a map containing stats on how many output vcf records were annotated from each database
     public Map<String, Integer> getInputTableHitCounter() {
         return Collections.unmodifiableMap(inputTableHitCounter);
     }
