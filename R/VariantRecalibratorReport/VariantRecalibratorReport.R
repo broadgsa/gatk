@@ -16,6 +16,9 @@ if (is.na(vcfTable)) { vcfTable = "/home/radon01/kiran/scr1/projects/DataProcess
 lociFile = args[4];
 if (is.na(lociFile)) { lociFile = "/home/radon01/kiran/scr1/projects/DataProcessingPaper/scratch/MarkBustedWEx.loci"; }
 
+maxVariants = args[5];
+if (is.na(maxVariants)) { maxVariants = -1; }
+
 getAnnIndex <- function(d, ann) {
     index = -1;
     for (i in c(1:length(names(d)))) {
@@ -225,7 +228,7 @@ for (ann1 in c[[1]]$anns) {
 
     for (ann2 in c[[1]]$anns) {
         if (ann1 != ann2) {
-            plotClusters(d.known, d.novel, d.loci, c, ann1, ann2, paste(plotRoot, ".cluster.", ann1, "_vs_", ann2, ".pdf", sep=""), maxVariants=1000);
+            plotClusters(d.known, d.novel, d.loci, c, ann1, ann2, paste(plotRoot, ".cluster.", ann1, "_vs_", ann2, ".pdf", sep=""), maxVariants=maxVariants);
         }
     }
 }
