@@ -62,7 +62,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         fl = new ArrayList<File>();
 
         // sequence
-        seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 

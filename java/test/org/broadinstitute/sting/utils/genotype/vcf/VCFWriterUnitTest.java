@@ -37,7 +37,7 @@ public class VCFWriterUnitTest extends BaseTest {
 
     @BeforeClass
     public static void beforeTests() {
-        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 

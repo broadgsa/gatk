@@ -18,8 +18,6 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
 
     private boolean RUN_TESTS = true;
     private String root = "-T DepthOfCoverage ";
-    private String hg18 = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
-    private String b36 = "/broad/1KG/reference/human_b36_both.fasta";
 
     private String buildRootCmd(String ref, List<String> bams, List<String> intervals) {
         StringBuilder bamBuilder = new StringBuilder();
@@ -53,7 +51,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         String[] intervals = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/fhs_jhs_30_targts.interval_list"};
         String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/FHS_indexed_subset.bam"};
 
-        String cmd = buildRootCmd(hg18,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 0 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv -ct 10 -ct 15 -ct 20 -ct 25";
+        String cmd = buildRootCmd(hg18Reference,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 0 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv -ct 10 -ct 15 -ct 20 -ct 25";
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
 
         // now add the expected files that get generated
@@ -88,7 +86,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         String[] intervals = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/fhs_jhs_30_targts.interval_list"};
         String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/FHS_indexed_subset.bam"};
 
-        String cmd = buildRootCmd(hg18,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 5 --maxBaseQuality 4 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv";
+        String cmd = buildRootCmd(hg18Reference,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 5 --maxBaseQuality 4 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv";
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
 
         spec.addAuxFile("d570c27d82a80ebd2852e9d34aff4e87",baseOutputFile);

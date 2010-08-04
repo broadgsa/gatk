@@ -52,7 +52,7 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
     @Before
     public void setup() {
         builder = new TribbleRMDTrackBuilder();
-        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
+        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(b36KGReference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 

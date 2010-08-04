@@ -46,7 +46,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     @BeforeClass
     public static void init() throws FileNotFoundException {
         // sequence
-        seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 

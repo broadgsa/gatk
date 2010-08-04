@@ -10,10 +10,10 @@ import java.util.List;
 public class DuplicatesWalkersIntegrationTest extends WalkerTest {
     public void testCounter(String name, String args, String md5) {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T CountDuplicates " +
-                        "-R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta " +
-                        "-I /humgen/gsa-hpprojects/GATK/data/Validation_Data/TCGA-06-0188.aligned.duplicates_marked.bam " +
-                        "-o %s " + args,
+                "-T CountDuplicates" +
+                        " -R " + hg18Reference +
+                        " -I /humgen/gsa-hpprojects/GATK/data/Validation_Data/TCGA-06-0188.aligned.duplicates_marked.bam" +
+                        " -o %s " + args,
                 1, // just one output file
                 Arrays.asList("tmp"),
                 Arrays.asList(md5));
@@ -25,10 +25,10 @@ public class DuplicatesWalkersIntegrationTest extends WalkerTest {
 
     public void testCombiner(String name, String args, String md51, String md52) {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T CombineDuplicates " +
-                        "-R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta " +
-                        "-I /humgen/gsa-hpprojects/GATK/data/Validation_Data/TCGA-06-0188.aligned.duplicates_marked.bam " +
-                        "-o %s --outputBAM %s " + args,
+                "-T CombineDuplicates" +
+                        " -R " + hg18Reference +
+                        " -I /humgen/gsa-hpprojects/GATK/data/Validation_Data/TCGA-06-0188.aligned.duplicates_marked.bam" +
+                        " -o %s --outputBAM %s " + args,
                 2, // just one output file
                 Arrays.asList("tmp", "bam"),
                 Arrays.asList(md51, md52));

@@ -45,7 +45,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @BeforeClass
     public static void init() throws FileNotFoundException {
-        File sequenceFile = new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta");
+        File sequenceFile = new File(hg18Reference);
         GenomeLocParser.setupRefContigOrdering(new IndexedFastaSequenceFile(sequenceFile));
         TabularROD.setDelimiter(TabularROD.DEFAULT_DELIMITER, TabularROD.DEFAULT_DELIMITER_REGEX);
     }

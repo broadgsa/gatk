@@ -18,8 +18,6 @@ public class DepthOfCoverageB36IntegrationTest extends WalkerTest {
 
     private boolean RUN_TESTS = true;
     private String root = "-T DepthOfCoverage ";
-    private String hg18 = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
-    private String b36 = "/broad/1KG/reference/human_b36_both.fasta";
 
     private String buildRootCmd(String ref, List<String> bams, List<String> intervals) {
         StringBuilder bamBuilder = new StringBuilder();
@@ -59,7 +57,7 @@ public class DepthOfCoverageB36IntegrationTest extends WalkerTest {
         String[] intervals = {"1:10,000,000-10,002,000","1:10,003,000-10,004,000"};
         String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam"};
 
-        String cmd = buildRootCmd(b36,new ArrayList<String>(Arrays.asList(bams)), new ArrayList<String>(Arrays.asList(intervals))) + " --maxMappingQuality 0";
+        String cmd = buildRootCmd(b36KGReference,new ArrayList<String>(Arrays.asList(bams)), new ArrayList<String>(Arrays.asList(intervals))) + " --maxMappingQuality 0";
 
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0,new ArrayList<String>());
 

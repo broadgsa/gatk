@@ -10,7 +10,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
 
     private void testCountCovariatesWholeGenomeRunner(String moreArgs) {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T CountCovariates" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
                         " -L chr1:1-50,000,000" +
@@ -24,7 +24,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
 
     private  void testCountCovariatesWholeExomeRunner(String moreArgs) {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T CountCovariates" +
                         " -I " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.bam" +
                         " -L " + evaluationDataLocation + "whole_exome_agilent_designed_120.targets.chr1.interval_list" +
@@ -49,7 +49,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
     @Test
     public void testTableRecalibratorWholeGenome() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T TableRecalibration" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
                         " -L chr1:1-50,000,000" +
@@ -64,7 +64,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
     @Test
     public void testTableRecalibratorWholeExome() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T TableRecalibration" +
                         " -I " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.bam" +
                         " -L " + evaluationDataLocation + "whole_exome_agilent_designed_120.targets.chr1.interval_list" +

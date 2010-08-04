@@ -10,8 +10,8 @@ import java.util.List;
 public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     public void testClipper(String name, String args, String md51, String md52) {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta " +
-                        "-T ClipReads " +
+                "-R " + hg18Reference +
+                        " -T ClipReads " +
                         "-I " + validationDataLocation + "clippingReadsTest.bam " +
                         "-o %s " +
                         "-ob %s " + args,
@@ -43,7 +43,7 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testUseOriginalQuals() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T ClipReads" +
                         " -I " + validationDataLocation + "originalQuals.chr1.1-1K.bam" +
                         " -L chr1:1-1,000" +

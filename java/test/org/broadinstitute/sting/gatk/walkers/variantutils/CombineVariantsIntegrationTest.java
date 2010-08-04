@@ -36,7 +36,7 @@ import java.util.Arrays;
 public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public static String baseTestString(String args) {
-        return "-T CombineVariants -L 1:1-50,000,000 -o %s -R " + oneKGLocation + "reference/human_b36_both.fasta" + args;
+        return "-T CombineVariants -L 1:1-50,000,000 -o %s -R " + b36KGReference + args;
     }
 
     public void test1InOut(String file, String md5) {

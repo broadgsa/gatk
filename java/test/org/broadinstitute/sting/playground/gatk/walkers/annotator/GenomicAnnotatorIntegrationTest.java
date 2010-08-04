@@ -14,7 +14,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
         TODO put this test back in once it gets faster.
         String[] md5 = {"d19d6d1eb52fb09e7493653dc645d92a"};
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T GenomicAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta " +
+                "-T GenomicAnnotator -R " + b36KGReference + " " +
                 "-B variant,vcf,/humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf " +
                 "-B dbsnp,AnnotatorInputTable,/humgen/gsa-hpprojects/GATK/data/Annotations/dbsnp/b130/snp130-b36-only-the-SNPs.txt " +
                 "-m " + //generate many records from one input record if necessary
@@ -28,13 +28,13 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
 
         String[] md5WithDashSArg = {"94edacdaee0dd58508d35d4d6040e31b"};
         WalkerTestSpec specWithSArg = new WalkerTestSpec(
-                "-T GenomicAnnotator -R " + oneKGLocation + "reference/human_b36_both.fasta " +
-                "-B variant,vcf,/humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf " +
-                "-B dbsnp,AnnotatorInputTable,/humgen/gsa-hpprojects/GATK/data/Annotations/dbsnp/b130/snp130-b36-only-the-SNPs.txt " +
-                "-m " + //generate many records from one input record if necessary
-                "-vcf %s " +
-                "-BTI variant " +
-                "-s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet",
+                "-T GenomicAnnotator -R " + b36KGReference +
+                " -B variant,vcf,/humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf" +
+                " -B dbsnp,AnnotatorInputTable,/humgen/gsa-hpprojects/GATK/data/Annotations/dbsnp/b130/snp130-b36-only-the-SNPs.txt" +
+                " -m" + //generate many records from one input record if necessary
+                " -vcf %s" +
+                " -BTI variant" +
+                " -s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet",
                  1,
                  Arrays.asList(md5WithDashSArg));
         executeTest("test with dbSNP and -s arg", specWithSArg);

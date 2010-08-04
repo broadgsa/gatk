@@ -10,7 +10,7 @@ public class RealignerTargetCreatorPerformanceTest extends WalkerTest {
     public void testRealignerTargetCreator() {
 
         WalkerTestSpec spec1 = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T RealignerTargetCreator" +
                         " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
                         " -I " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.bam" +
@@ -21,7 +21,7 @@ public class RealignerTargetCreatorPerformanceTest extends WalkerTest {
         executeTest("testRealignerTargetCreatorWholeGenome", spec1);
 
         WalkerTestSpec spec2 = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T RealignerTargetCreator" +
                         " -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod" +
                         " -I " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.bam" +

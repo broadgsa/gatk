@@ -11,7 +11,7 @@ import java.util.Arrays;
 public class RodSystemValidationIntegrationTest extends WalkerTest {
 
     public static String baseTestString1KG() {
-            return "-T RodSystemValidation -o %s -R " + oneKGLocation + "reference/human_b36_both.fasta";
+            return "-T RodSystemValidation -o %s -R " + b36KGReference;
         }
 
 

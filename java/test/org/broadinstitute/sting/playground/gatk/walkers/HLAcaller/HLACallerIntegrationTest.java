@@ -38,7 +38,7 @@ public class HLACallerIntegrationTest extends WalkerTest {
     @Test
     public void testFindClosestHLA() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T FindClosestHLA -I " + validationDataLocation + "NA12878.HISEQ.HLA.bam -R " + oneKGLocation + "reference/human_b36_both.fasta -L " + intervals + " -useInterval " + intervals + " -HLAdictionary " + validationDataLocation + "HLA_DICTIONARY.txt -PolymorphicSites " + validationDataLocation + "HLA_POLYMORPHIC_SITES.txt -o %s", 1,
+                "-T FindClosestHLA -I " + validationDataLocation + "NA12878.HISEQ.HLA.bam -R " + b36KGReference + " -L " + intervals + " -useInterval " + intervals + " -HLAdictionary " + validationDataLocation + "HLA_DICTIONARY.txt -PolymorphicSites " + validationDataLocation + "HLA_POLYMORPHIC_SITES.txt -o %s", 1,
                 Arrays.asList("a49b6f54a4585d1dd958c55a5523427d"));
         executeTest("test FindClosestHLA", spec);
     }
@@ -46,7 +46,7 @@ public class HLACallerIntegrationTest extends WalkerTest {
     @Test
     public void testCalculateBaseLikelihoods() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T CalculateBaseLikelihoods -I " + validationDataLocation + "NA12878.HISEQ.HLA.bam -R " + oneKGLocation + "reference/human_b36_both.fasta -L " + intervals + " -filter " + validationDataLocation + "HLA_HISEQ.filter -maxAllowedMismatches 6 -minRequiredMatches 0 -o %s", 1,
+                "-T CalculateBaseLikelihoods -I " + validationDataLocation + "NA12878.HISEQ.HLA.bam -R " + b36KGReference + " -L " + intervals + " -filter " + validationDataLocation + "HLA_HISEQ.filter -maxAllowedMismatches 6 -minRequiredMatches 0 -o %s", 1,
                 Arrays.asList("98e64882f93bf7550457bee4182caab6"));
         executeTest("test CalculateBaseLikelihoods", spec);
     }
@@ -54,7 +54,7 @@ public class HLACallerIntegrationTest extends WalkerTest {
     @Test
     public void testHLACaller() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T HLACaller -noVerbose -I " + validationDataLocation + "NA12878.HISEQ.HLA.bam -R " + oneKGLocation + "reference/human_b36_both.fasta -L " + intervals + " -useInterval " + intervals + " -HLAdictionary " + validationDataLocation + "HLA_DICTIONARY.txt -filter " + validationDataLocation + "HLA_HISEQ.filter -maxAllowedMismatches 6 -minRequiredMatches 5 -HLAfrequencies " + validationDataLocation + "HLA_FREQUENCIES.txt -bl " + validationDataLocation + "HLA_HISEQ.baselikelihoods -o %s", 1,
+                "-T HLACaller -noVerbose -I " + validationDataLocation + "NA12878.HISEQ.HLA.bam -R " + b36KGReference + " -L " + intervals + " -useInterval " + intervals + " -HLAdictionary " + validationDataLocation + "HLA_DICTIONARY.txt -filter " + validationDataLocation + "HLA_HISEQ.filter -maxAllowedMismatches 6 -minRequiredMatches 5 -HLAfrequencies " + validationDataLocation + "HLA_FREQUENCIES.txt -bl " + validationDataLocation + "HLA_HISEQ.baselikelihoods -o %s", 1,
                 Arrays.asList("f9931b378bde213e71fca6ecaa24b48b"));
         executeTest("test HLACaller", spec);
     }

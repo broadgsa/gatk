@@ -36,7 +36,7 @@ public class BeagleIntegrationTest extends WalkerTest {
     @Test
     public void testBeagleOutput() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T BeagleOutputToVCF -R " + oneKGLocation + "reference/human_g1k_v37.fasta " +
+                "-T BeagleOutputToVCF -R " + hg19Reference + " " +
                         "-B variant,VCF," + beagleValidationDataLocation + "inttestbgl.input.vcf " +
                         "-B beagleR2,BEAGLE," + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "-B beagleProbs,BEAGLE," + beagleValidationDataLocation + "inttestbgl.gprobs " +
@@ -48,7 +48,7 @@ public class BeagleIntegrationTest extends WalkerTest {
     @Test
     public void testBeagleInput() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T ProduceBeagleInput -R " + oneKGLocation + "reference/human_g1k_v37.fasta " +
+                "-T ProduceBeagleInput -R " + hg19Reference + " " +
                         "-B variant,VCF," + beagleValidationDataLocation + "inttestbgl.input.vcf " +
                          "-beagle %s", 1, Arrays.asList("c0d30e5dbe903874f8422a0e63a5118e"));
         executeTest("test BeagleInput", spec);

@@ -10,7 +10,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
     public void testRealigner() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
 
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T IndelRealigner" +
                         " -LOD 5" +
                         " -maxConsensuses 100" +
@@ -25,7 +25,7 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
         executeTest("testIndelRealignerWholeGenome", spec1);
 
         WalkerTestSpec spec2 = new WalkerTestSpec(
-                "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta" +
+                "-R " + hg18Reference +
                         " -T IndelRealigner" +
                         " -LOD 5" +
                         " -maxConsensuses 100" +

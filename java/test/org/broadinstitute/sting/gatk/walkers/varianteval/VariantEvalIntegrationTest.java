@@ -10,7 +10,7 @@ import java.util.Map;
 public class
         VariantEvalIntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T VariantEval" +
-            " -R " + oneKGLocation + "reference/human_b36_both.fasta";
+            " -R " + b36KGReference;
 
     private static String root = cmdRoot +
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
@@ -99,13 +99,13 @@ public class
 
     @Test
     public void testVEGenomicallyAnnotated() {
-        String vecmd = "-T VariantEval " +
-                       "-R " + oneKGLocation + "reference/human_b36_both.fasta " +
-                       "-L 21 " +
-                       "-D " + GATKDataLocation + "dbsnp_129_b36.rod " +
-                       "-E CountFunctionalClasses -noStandard " +
-                       "-B eval,VCF," + validationDataLocation + "test.filtered.maf_annotated.vcf " +
-                       "-o %s";
+        String vecmd = "-T VariantEval" +
+                       " -R " + b36KGReference +
+                       " -L 21" +
+                       " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                       " -E CountFunctionalClasses -noStandard" +
+                       " -B eval,VCF," + validationDataLocation + "test.filtered.maf_annotated.vcf" +
+                       " -o %s";
         String md5 = "d41d8cd98f00b204e9800998ecf8427e";
 
         WalkerTestSpec spec = new WalkerTestSpec(vecmd, 1, Arrays.asList(md5));

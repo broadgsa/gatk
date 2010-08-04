@@ -33,7 +33,7 @@ import java.util.Arrays;
 public class VariantSelectIntegrationTest extends WalkerTest {
 
     public static String baseTestString() {
-        return "-T VariantSelect -o %s -R " + oneKGLocation + "reference/human_b36_both.fasta";
+        return "-T VariantSelect -o %s -R " + b36KGReference;
     }
 
 

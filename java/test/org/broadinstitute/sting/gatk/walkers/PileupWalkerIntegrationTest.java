@@ -17,7 +17,7 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testGnarleyFHSPileup() {
         String gatk_args = "-T Pileup -I " + validationDataLocation + "FHS_Pileup_Test.bam "
-                 + "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
+                 + "-R " + hg18Reference
                  +  " -L chr15:46,347,148 -o %s";
         String expected_md5 = "052187dd2bf2516a027578c8775856a8";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(expected_md5));
@@ -27,7 +27,7 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testExtendedEventPileup() {
         String gatk_args = "-T Pileup -I " + validationDataLocation + "OV-0930.normal.chunk.bam "
-                 + "-R " + seqLocation + "references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
+                 + "-R " + hg18Reference
                 + " -show_indels -o %s";
         String expected_md5="06eedc2e7927650961d99d703f4301a4";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args,1,Arrays.asList(expected_md5));

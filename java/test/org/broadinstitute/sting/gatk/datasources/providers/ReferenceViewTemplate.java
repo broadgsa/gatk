@@ -42,7 +42,7 @@ public abstract class ReferenceViewTemplate extends BaseTest {
      */
     @BeforeClass
     public static void initialize() throws FileNotFoundException {
-        sequenceFile = new IndexedFastaSequenceFile( new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta") );
+        sequenceFile = new IndexedFastaSequenceFile( new File(hg18Reference) );
         GenomeLocParser.setupRefContigOrdering(sequenceFile);
     }
 

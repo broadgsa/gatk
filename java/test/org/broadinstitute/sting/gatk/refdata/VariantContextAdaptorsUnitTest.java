@@ -40,7 +40,7 @@ public class VariantContextAdaptorsUnitTest extends BaseTest {
 
     @BeforeClass
     public static void beforeClass() {
-        seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "/reference/human_b36_both.fasta")); // TODO: make human reference use BaseTest
+        seq = new IndexedFastaSequenceFile(new File(b36KGReference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 

@@ -32,7 +32,7 @@ public class PlinkRodUnitTest extends BaseTest {
     @BeforeClass
     public static void beforeTests() {
         try {
-            seq = new IndexedFastaSequenceFile(new File(oneKGLocation + "reference/human_b36_both.fasta"));
+            seq = new IndexedFastaSequenceFile(new File(b36KGReference));
         } catch (FileNotFoundException e) {
             throw new StingException("unable to load the sequence dictionary");
         }

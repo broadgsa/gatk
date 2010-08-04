@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 public class VariantContextIntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T TestVariantContext" +
-            " -R " + oneKGLocation + "reference/human_b36_both.fasta";
+            " -R " + b36KGReference;
 
     private static String root = cmdRoot +
             " -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +

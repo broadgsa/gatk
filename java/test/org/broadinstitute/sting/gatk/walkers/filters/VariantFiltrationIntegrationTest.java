@@ -8,7 +8,7 @@ import java.util.Arrays;
 public class VariantFiltrationIntegrationTest extends WalkerTest {
 
     public static String baseTestString() {
-        return "-T VariantFiltration -o %s -R " + oneKGLocation + "reference/human_b36_both.fasta";
+        return "-T VariantFiltration -o %s -R " + b36KGReference;
     }
 
 

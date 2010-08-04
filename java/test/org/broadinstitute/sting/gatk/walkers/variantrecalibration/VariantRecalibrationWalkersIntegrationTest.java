@@ -19,7 +19,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                    "-R " + b36KGReference +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T GenerateVariantClusters" +
                             " -B input,VCF," + vcf +
@@ -47,7 +47,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             if ( paramsFile != null ) {
                 File file = createTempFile("cluster",".vcf");
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                                 " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                                 " -T VariantRecalibrator" +
                                 " -B input,VCF," + vcf +

@@ -34,7 +34,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -100,7 +99,7 @@ public class RMDTrackManagerUnitTest extends BaseTest {
     // @Test used only to determine how fast queries are, don't uncomment! (unless you know what you're doing).
     public void testSpeedOfRealQuery() {
         IndexedFastaSequenceFile file = null;
-        file = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
+        file = new IndexedFastaSequenceFile(new File(b36KGReference));
         final int intervalSize = 10000000;
         GenomeLocParser.setupRefContigOrdering(file.getSequenceDictionary());
         RMDTrackManager manager = new RMDTrackManager();

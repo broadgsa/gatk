@@ -28,7 +28,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                 String md5 = entry.getValue();
 
                 WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                                 " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                                 " -T CountCovariates" +
                                 " -I " + bam +
@@ -64,7 +64,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
@@ -90,7 +90,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                    "-R " + b36KGReference +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -L 1:1-1,000" +
@@ -115,7 +115,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
@@ -144,7 +144,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                    "-R " + b36KGReference +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
@@ -172,7 +172,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 " -outputBam %s" +
@@ -201,7 +201,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                    "-R " + b36KGReference +
                             " -B dbsnp,VCF," + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
@@ -225,7 +225,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                    "-R " + b36KGReference +
                             " -B anyNameABCD,VCF," + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
@@ -253,7 +253,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                    "-R " + b36KGReference +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
@@ -285,7 +285,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 " -L 1:10,100,000-10,300,000" +
@@ -312,7 +312,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                    "-R " + b36KGReference +
                             " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
@@ -340,7 +340,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
             if ( paramsFile != null ) {
                 WalkerTestSpec spec = new WalkerTestSpec(
-                        "-R " + oneKGLocation + "reference/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 " -outputBam %s" +
