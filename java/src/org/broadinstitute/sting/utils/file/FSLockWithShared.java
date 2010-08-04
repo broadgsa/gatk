@@ -26,6 +26,14 @@ public class FSLockWithShared {
 
     // the file channel we open
     private FileChannel channel = null;
+
+    /**
+     * A bit of experimental code for Siva at Partners.  Conditionally throw an
+     * exception in the case where an unknown failure occurs, in an effort to stave
+     * off disabled nfs file locks.
+     */
+    private boolean throwExceptionOnUnknownFailure = false;
+
     /**
      * create a file system, given a base file to which a lock string gets appended.
      * @param baseFile File descriptor of file to lock
@@ -34,12 +42,17 @@ public class FSLockWithShared {
         file = baseFile;
     }
 
+    public FSLockWithShared(File baseFile,boolean throwExceptionOnUnknownFailure) {
+        this(baseFile);
+        this.throwExceptionOnUnknownFailure = throwExceptionOnUnknownFailure;
+    }
+
     /**
      * Get a shared (read) lock on a file
      * Cannot get shared lock if it does not exist
      * @return boolean true if we obtained a lock
      */
-    public boolean sharedLock() {
+    public boolean sharedLock() throws FileSystemInabilityToLockException {
 
         // get read-only file channel
         try {
@@ -66,8 +79,11 @@ public class FSLockWithShared {
             return false;
         }
         catch (IOException e) {
-            logger.debug("Unable to lock file (due to IO exception)");
-            return false;
+            logger.debug("Unable to lock file: " + e.getMessage());
+            if(throwExceptionOnUnknownFailure)
+                throw new FileSystemInabilityToLockException(e.getMessage(),e);
+            else
+                return false;
         }
         return true;
     }
@@ -76,7 +92,7 @@ public class FSLockWithShared {
      * Get an exclusive lock on a file
      * @return boolean true if we obtained a lock
      */
-    public boolean exclusiveLock() {
+    public boolean exclusiveLock() throws FileSystemInabilityToLockException {
 
         // read/write file channel is necessary for exclusive lock
         try {
@@ -106,8 +122,11 @@ public class FSLockWithShared {
             return false;
         }
         catch (IOException e) {
-            logger.debug("Unable to lock file (due to IO exception)");
-            return false;
+            logger.debug("Unable to lock file: " + e.getMessage());
+            if(throwExceptionOnUnknownFailure)
+                throw new FileSystemInabilityToLockException(e.getMessage(),e);
+            else
+                return false;
         }
     }
     

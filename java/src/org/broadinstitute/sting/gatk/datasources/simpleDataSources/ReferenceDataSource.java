@@ -31,6 +31,7 @@ import net.sf.picard.sam.CreateSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.FastaSequenceIndex;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
+import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 
 import java.io.File;
 
@@ -62,7 +63,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
           */
         if (!indexFile.exists()) {
             logger.info(String.format("Index file %s does not exist. Trying to create it now.", indexFile.getAbsolutePath()));
-            FSLockWithShared indexLock = new FSLockWithShared(indexFile);
+            FSLockWithShared indexLock = new FSLockWithShared(indexFile,true);
             try {
                 // get exclusive lock
                 if (!indexLock.exclusiveLock())
@@ -73,7 +74,13 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
                 FastaSequenceIndex sequenceIndex = faiBuilder.createIndex();
                 FastaSequenceIndexBuilder.saveAsFaiFile(sequenceIndex, indexFile);
             }
+            catch(FileSystemInabilityToLockException ex) {
+                logger.info("Unable to create write lock: " + ex.getMessage());
+                logger.info("Skipping index creation.");
+            }
             catch (Exception e) {
+                // If lock creation succeeded, the failure must have been generating the index.
+                // If lock creation failed, just skip over index creation entirely.
                 throw new StingException("Index file does not exist and could not be created. See error below.", e);
             }
             finally {
@@ -96,15 +103,13 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
              */
 
             // get read lock on dict file so nobody else can read it
-            FSLockWithShared dictLock = new FSLockWithShared(dictFile);
-
+            FSLockWithShared dictLock = new FSLockWithShared(dictFile,true);
             try {
                 // get shared lock on dict file so nobody else can start creating it
                 if (!dictLock.exclusiveLock())
                     throw new StingException("Dictionary file could not be written because a lock could not be obtained." +
                             "If you are running multiple instances of GATK, another process is probably creating this " +
                             "file now. Please wait until it is finished and try again.");
-
                 // dict will be written to random temporary file in same directory (see note above)
                 File tempFile = File.createTempFile("dict", null, dictFile.getParentFile());
                 tempFile.deleteOnExit();
@@ -117,7 +122,13 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
                 if (!tempFile.renameTo(dictFile))
                     throw new StingException("Error transferring temp file to dict file");
             }
+            catch(FileSystemInabilityToLockException ex) {
+                logger.info("Unable to create write lock: " + ex.getMessage());
+                logger.info("Skipping dictionary creation.");
+            }
             catch (Exception e) {
+                // If lock creation succeeded, the failure must have been generating the index.
+                // If lock creation failed, just skip over index creation entirely.
                 throw new StingException("Dictionary file does not exist and could not be created. See error below.", e);
             }
             finally {
@@ -132,14 +143,27 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
          * but is incomplete). To avoid this, obtain shared locks on both files before creating IndexedFastaSequenceFile.
          */
 
-        FSLockWithShared dictLock = new FSLockWithShared(dictFile);
-        FSLockWithShared indexLock = new FSLockWithShared(indexFile);
+        FSLockWithShared dictLock = new FSLockWithShared(dictFile,true);
+        FSLockWithShared indexLock = new FSLockWithShared(indexFile,true);
         try {
-            if (!dictLock.sharedLock()) {
-                throw new StingException("Could not open dictionary file because a lock could not be obtained.");
+            try {
+                if (!dictLock.sharedLock()) {
+                    throw new StingException("Could not open dictionary file because a lock could not be obtained.");
+                }
             }
-            if (!indexLock.sharedLock()) {
-                throw new StingException("Could not open dictionary file because a lock could not be obtained.");
+            catch(FileSystemInabilityToLockException ex) {
+                logger.info(String.format("Unable to create a lock on dictionary file: %s",ex.getMessage()));
+                logger.info("Treating existing dictionary file as complete.");
+            }
+
+            try {
+                if (!indexLock.sharedLock()) {
+                    throw new StingException("Could not open index file because a lock could not be obtained.");
+                }
+            }
+            catch(FileSystemInabilityToLockException ex) {
+                logger.info(String.format("Unable to create a lock on index file: %s",ex.getMessage()));
+                logger.info("Treating existing index file as complete.");
             }
 
             index = new IndexedFastaSequenceFile(fastaFile);

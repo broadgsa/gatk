@@ -45,6 +45,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
+import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 
 import java.io.*;
 import java.util.*;
@@ -208,7 +209,13 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @throws IOException if we fail for FS issues
      */
     protected static Index attemptIndexFromDisk(File inputFile, FeatureCodec codec, File indexFile, FSLockWithShared lock) throws IOException {
-        boolean locked = lock.sharedLock();
+        boolean locked;
+        try {
+            locked = lock.sharedLock();
+        }
+        catch(FileSystemInabilityToLockException ex) {
+            throw new StingException("Unexpected inability to lock exception", ex);
+        }
         Index idx;
         try {
             if (!locked) // can't lock file
@@ -272,7 +279,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             else // we can't write it to disk, just store it in memory, tell them this
                 if (onDisk) logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
             return index;
-        } finally {
+        }
+        catch(FileSystemInabilityToLockException ex) {
+            throw new StingException("Unexpected inability to lock exception", ex);
+        }
+        finally {
             if (locked) lock.unlock();
         }
 
