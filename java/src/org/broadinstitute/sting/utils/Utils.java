@@ -359,6 +359,78 @@ public class Utils {
         return new_array;
     }
 
+
+    /**
+     * Returns a copy of array a, extended with additional n elements to the right (if n > 0 ) or -n elements to the
+     * left (if n<0), copying the values form the original array. Newly added elements are filled with value v. Note that
+     * if array a is being padded to the left, first (-n) elements of the returned array are v's, followed by the content of
+     * array a.
+     * @param a original array
+     * @param n number of (v-filled) elements to append to a on the right (n>0) or on the left (n<0)
+     * @return
+     */
+    public static byte [] extend(final byte[] a, int n, byte v) {
+
+        byte [] newA;
+
+        if ( n > 0 ) {
+            newA = Arrays.copyOf(a, a.length+n);
+            if ( v != 0) { // java pads with 0's for us, so there is nothing to do if v==0
+                for ( int i = a.length; i < newA.length ; i++ ) newA[i] = v;
+            }
+            return newA;
+        }
+
+        // we are here only if n < 0:
+        n = (-n);
+        newA = new byte[ a.length + n ];
+        int i;
+        if ( v!= 0 ) {
+            i = 0;
+            for( ; i < n; i++ ) newA[i] = v;
+        } else {
+            i = n;
+        }
+        for ( int j = 0 ; j < a.length ; i++, j++) newA[i]=a[j];
+        return newA;
+    }
+
+
+    /**
+     * Returns a copy of array a, extended with additional n elements to the right (if n > 0 ) or -n elements to the
+     * left (if n<0), copying the values form the original array. Newly added elements are filled with value v. Note that
+     * if array a is padded to the left, first (-n) elements of the returned array are v's, followed by the content of
+     * array a.
+     * @param a original array
+     * @param n number of (v-filled) elements to append to a on the right (n>0) or on the left (n<0)
+     * @return
+     */
+    public static short [] extend(final short[] a, int n, short v) {
+
+        short [] newA;
+
+        if ( n > 0 ) {
+            newA = Arrays.copyOf(a, a.length+n);
+            if ( v != 0) { // java pads with 0's for us, so there is nothing to do if v==0
+                for ( int i = a.length; i < newA.length ; i++ ) newA[i] = v;
+            }
+            return newA;
+        }
+
+        // we are here only if n < 0:
+        n = (-n);
+        newA = new short[ a.length + n ];
+        int i;
+        if ( v!= 0 ) {
+            i = 0;
+            for( ; i < n; i++ ) newA[i] = v;
+        } else {
+            i = n;
+        }
+        for ( int j = 0 ; j < a.length ; i++, j++) newA[i]=a[j];
+        return newA;
+    }
+
     /* TEST ME
         public static void main(String[] argv) {
             List<Integer> l1 = new LinkedList<Integer>();
