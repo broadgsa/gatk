@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.io.IOException;
@@ -243,7 +244,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
             try {
                 Runtime.getRuntime().exec( rScriptCommandLine );
             } catch ( IOException e ) {
-                throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
+                Utils.warnUser("Unable to execute the RScript command.  While not critical to the calculations themselves, the script outputs a report that is extremely useful for confirming that the recalibration proceded as expected.  We highly recommend trying to rerun the script manually if possible.");
             }
         }
     }
