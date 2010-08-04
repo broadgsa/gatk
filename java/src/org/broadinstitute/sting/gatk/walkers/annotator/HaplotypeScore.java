@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2010, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,15 +12,14 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
@@ -34,20 +33,16 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
-// todo -- rename to haplotype penalty
 public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
-
-    // if true, we compute a second haplotype from the reads, instead of constraining ourselves to the reference
-    // as a haplotype itself
-    private final static boolean USE_NON_REFERENCE_SECOND_HAPLOTYPE = true;
+    private final static String REGEXP_WILDCARD = ".";
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isBiallelic() || !vc.isSNP() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
@@ -58,13 +53,14 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         int contextWingSize = Math.min(((int)ref.getWindow().size() - 1)/2, MIN_CONTEXT_WING_SIZE);
         int contextSize = contextWingSize * 2 + 1;
 
-        // calculate
-        Haplotype refHaplotype = calcRefHaplotype(vc, ref, context, contextSize);
-        Haplotype altHaplotype = new Haplotype(getPileupOfAllele(vc.getAlternateAllele(0), context.getBasePileup()), contextSize);
+        // Compute all haplotypes consistent with the current read pileup
+        List<Haplotype> haplotypes = computeHaplotypes(context.getBasePileup(), contextSize);
 
-        //System.exit(1);
         // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
-        double score = scoreReadsAgainstHaplotypes(Arrays.asList(refHaplotype, altHaplotype), context.getBasePileup(), contextSize);
+        double score = 0.0;
+
+        if (haplotypes != null)
+            score = scoreReadsAgainstHaplotypes(haplotypes, context.getBasePileup(), contextSize);
 
         // return the score
         Map<String, Object> map = new HashMap<String, Object>();
@@ -72,36 +68,183 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         return map;
     }
 
-    // todo -- note that the refPileup.size() won't deal correctly with the situation where the current site is hom-var
-    // todo -- but there's nearby het size.  In order to really handle this we need to group reads into two clusters,
-    // todo -- but if we are going to do this we might as well just assemble the whole region
-    public Haplotype calcRefHaplotype(VariantContext vc, ReferenceContext ref, AlignmentContext context, int contextSize) {
-        ReadBackedPileup refPileup = getPileupOfAllele(vc.getReference(), context.getBasePileup());
-        if ( USE_NON_REFERENCE_SECOND_HAPLOTYPE && refPileup.size() > 0 ) {
-            // we are calculating the reference haplotype from the reads itself -- effectively allows us to
-            // have het haplotypes that are hom-var in the surrounding context, indicating that the individual
-            // as two alt haplotypes
-            return new Haplotype(refPileup, contextSize);
-        } else {
-            // we are constraining the reference haplotype to really be the reference itself
-            int contextWingSize = (contextSize - 1) / 2;
-            int refMiddle = (int)(ref.getWindow().size() - 1) / 2;
-            int refStart = refMiddle - contextWingSize;
-            int refStop = refMiddle + contextWingSize + 1;
-            String refString = new String(ref.getBases()).substring(refStart, refStop);
-            return new Haplotype(refString.getBytes(), 60);
+    private class HaplotypeComparator implements Comparator<Haplotype>{
+
+        public int compare(Haplotype a, Haplotype b) {
+            if (a.getQualitySum() < b.getQualitySum())
+                return 1;
+            if (a.getQualitySum() > b.getQualitySum()){
+                return -1;
+            }
+            return 0;
         }
     }
 
+
+    private List<Haplotype> computeHaplotypes(ReadBackedPileup pileup, int contextSize) {
+        // Compute all possible haplotypes consistent with current pileup
+        ArrayList<Haplotype> haplotypeList = new ArrayList<Haplotype>();
+        PriorityQueue<Haplotype> haplotypeQueue = new PriorityQueue<Haplotype>(100, new HaplotypeComparator());
+
+
+        for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
+            if (ReadUtils.is454Read(p.getRead()))
+                continue;
+            Haplotype haplotypeFromRead = getHaplotypeFromRead(p, contextSize);
+
+
+            haplotypeQueue.add(haplotypeFromRead);
+            //haplotypeList.add(haplotypeFromRead);
+        }
+
+        // Now that priority queue has been built with all reads at context, we need to merge and find possible segregating haplotypes
+        Haplotype elem;
+        while ((elem = haplotypeQueue.poll()) != null)  {
+            //System.out.print("element: "+elem.toString());
+            //System.out.format(" SumQual = %f\n", elem.getQualitySum());
+            boolean foundHaplotypeMatch = false;
+            //Haplotype[] remainingHaplotypes = haplotypeQueue.toArray(new Haplotype[haplotypeQueue.size()]);
+            for ( Haplotype haplotypeFromList : haplotypeList ) {
+
+                Haplotype consensusHaplotype = getConsensusHaplotype(elem, haplotypeFromList);
+                //System.out.format("-Checking consensus for %s:", haplotypeFromList.toString());
+                if (consensusHaplotype != null)  {
+                    //System.out.format("--Consensus haplotype  = %s, qual = %f\n", consensusHaplotype.toString(), consensusHaplotype.getQualitySum());
+                    foundHaplotypeMatch = true;
+                    if (consensusHaplotype.getQualitySum() > haplotypeFromList.getQualitySum()) {
+                        haplotypeList.remove(haplotypeFromList);
+                        haplotypeList.add(consensusHaplotype);
+                    }
+                    break;
+                }
+        /*        else {
+                    System.out.println("no consensus found");
+                }
+          */
+            }
+
+            if (!foundHaplotypeMatch) {
+                haplotypeList.add(elem);
+            }
+        }
+        // Now retrieve two most popular haplotypes
+        // TODO - quick and dirty solution, could use better data structures to do this automatically
+        int bestIdx=0, secondBestIdx=0;
+        double bestIdxVal=-1.0, secondBestIdxVal = -1.0;
+
+        for (int k=0; k < haplotypeList.size(); k++) {
+
+            double qualSum = haplotypeList.get(k).getQualitySum();
+            if (qualSum >= bestIdxVal) {
+                secondBestIdx = bestIdx;
+                secondBestIdxVal = bestIdxVal;
+                bestIdx = k;
+                bestIdxVal = qualSum;
+            }
+            else if (qualSum >= secondBestIdxVal) {
+                // check if current is second best
+                secondBestIdx = k;
+                secondBestIdxVal = qualSum;
+            }
+        }
+        if (haplotypeList.size() > 0) {
+            Haplotype haplotypeR = haplotypeList.get(bestIdx);
+            Haplotype haplotypeA = haplotypeList.get(secondBestIdx);
+
+            // Temp hack to match old implementation's scaling, TBD better behavior
+
+            return Arrays.asList(new Haplotype(haplotypeR.bases, 60), new Haplotype(haplotypeA.bases, contextSize));
+        }
+        else
+            return null;
+    }
+
+    private Haplotype getHaplotypeFromRead(ExtendedPileupElement p, int contextSize) {
+        SAMRecord read = p.getRead();
+        int readOffsetFromPileup = p.getOffset();
+        int baseOffsetStart = readOffsetFromPileup - (contextSize - 1)/2;
+        byte[] haplotypeBases = new byte[contextSize];
+
+        for(int i=0; i < contextSize; i++) {
+            haplotypeBases[i] = REGEXP_WILDCARD.getBytes()[0];
+        }
+
+        double[] baseQualities = new double[contextSize];
+        Arrays.fill(baseQualities,0.0);
+
+        for (int i = 0; i < contextSize; i++ ) {
+            int baseOffset = i + baseOffsetStart;
+            if ( baseOffset < 0 )
+                continue;
+            if ( baseOffset >= read.getReadLength() )
+                break;
+
+            haplotypeBases[i] = read.getReadBases()[baseOffset];
+            baseQualities[i] = (double)read.getBaseQualities()[baseOffset];
+        }
+
+
+        return new Haplotype(haplotypeBases, baseQualities);
+
+    }
+
+
+
+    private Haplotype getConsensusHaplotype(Haplotype haplotypeA, Haplotype haplotypeB) {
+        String a = haplotypeA.toString();
+        String b = haplotypeB.toString();
+
+        if (a.length() != b.length())
+            throw new StingException("Haplotypes a and b must be of same length");
+
+        char chA, chB;
+        char wc = REGEXP_WILDCARD.charAt(0);
+
+
+        char[] consensusChars = new char[a.length()];
+        double[] consensusQuals = new double[a.length()];
+
+        for (int i=0; i < a.length(); i++) {
+            chA = a.charAt(i);
+            chB = b.charAt(i);
+
+            if ((chA != chB) && (chA != wc) && (chB != wc))
+                return null;
+
+            if ((chA == wc) && (chB == wc)) {
+                consensusChars[i] = wc;
+                consensusQuals[i] = 0.0;
+            }
+            else if ((chA == wc)) {
+                consensusChars[i] = chB;
+                consensusQuals[i] = haplotypeB.quals[i];
+            }
+            else if ((chB == wc)){
+                consensusChars[i] = chA;
+                consensusQuals[i] = haplotypeA.quals[i];
+            } else {
+                consensusChars[i] = chA;
+                consensusQuals[i] = haplotypeA.quals[i]+haplotypeB.quals[i];
+            }
+
+
+        }
+
+
+        return new Haplotype(new String(consensusChars), consensusQuals);
+    }
     // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
     private double scoreReadsAgainstHaplotypes(List<Haplotype> haplotypes, ReadBackedPileup pileup, int contextSize) {
-        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(0));
-        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(1));
+//        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(0));
+//        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(1));
 
         double[][] haplotypeScores = new double[pileup.size()][haplotypes.size()];
         for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
             SAMRecord read = p.getRead();
             int readOffsetFromPileup = p.getOffset();
+
+            if (ReadUtils.is454Read(read))
+                continue;
 
             if ( DEBUG ) System.out.printf("--------------------------------------------- Read %s%n", read.getReadName());
             double m = 10000000;
@@ -172,112 +315,38 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 
     private class Haplotype {
         byte[] bases = null;
-        byte[] quals = null;
+        double[] quals = null;
 
         /**
          * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
          *
-         * @param bases
-         * @param qual
+         * @param bases bases
+         * @param qual  qual
          */
         Haplotype(byte[] bases, int qual) {
             this.bases = bases;
-            quals = new byte[bases.length];
-            Arrays.fill(quals, (byte)qual);
+            quals = new double[bases.length];
+            Arrays.fill(quals, (double)qual);
         }
 
-        Haplotype(ReadBackedPileup pileup, int contextSize ) {
-            this.bases = new byte[contextSize];
-            this.quals = new byte[contextSize];
-            calculateConsensusOverWindow(pileup, contextSize, (contextSize - 1) / 2);
+        Haplotype(byte[] bases, double[] quals) {
+            this.bases = bases;
+            this.quals = quals;
         }
 
-        private void calculateConsensusOverWindow(ReadBackedPileup pileup, int contextSize, int pileupOffset) {
-            // for each context position
-            for ( int i = 0; i < contextSize; i++ ) {
-                int offsetFromPileup = i - pileupOffset;
-                ReadBackedPileup offsetPileup = pileupAtOffset(pileup, offsetFromPileup);
-                if ( DEBUG ) System.out.printf("pileup is %s%n", offsetPileup);
-                BaseQual bq = calcConsensusAtLocus(offsetPileup, FLAT_BASE_PRIORS);
-                this.bases[i] = bq.getBase();
-                this.quals[i] = bq.getQual();
-                if ( DEBUG ) System.out.printf("  At %d: offset %d bq = %c / %d%n", i, offsetFromPileup, (char)bq.getBase(), bq.getQual());
-            }
+        Haplotype(String bases, double[] quals) {
+            this.bases = bases.getBytes();
+            this.quals = quals;
         }
-
-        private BaseQual calcConsensusAtLocus( ReadBackedPileup pileup, double[] log10priors ) {
-            double[] log10BaseLikelihoods = new double[BaseUtils.Base.values().length];
-
-            // loop over a, c, g, t and determine the most likely hypothesis
-            for ( BaseUtils.Base base : BaseUtils.Base.values() ) {
-                double log10L = log10priors[base.getIndex()];
-
-                for ( PileupElement p : pileup ) {
-                    byte qual = p.getQual();
-                    if ( qual > 5 ) {
-                        double baseP = QualityUtils.qualToProb(qual);
-                        double L = base.sameBase(p.getBase()) ? baseP : 1 - baseP;
-                        if ( Double.isInfinite(Math.log10(L)) )
-                            throw new StingException("BUG -- base likelihood is infinity!");
-                        log10L += Math.log10(L);
-                    }
-                }
-
-                log10BaseLikelihoods[base.getIndex()] = log10L;
-            }
-
-            double[] posteriors = MathUtils.normalizeFromLog10(log10BaseLikelihoods, false);
-            int mostLikelyIndex = MathUtils.maxElementIndex(posteriors);
-            byte mostLikelyBase = BaseUtils.Base.values()[mostLikelyIndex].getBase();                // get the most likely option
-            double MAX_CONSENSUS_QUALITY = 0.000001;
-            byte qual = QualityUtils.probToQual(posteriors[mostLikelyIndex],MAX_CONSENSUS_QUALITY);  // call posterior calculator here over L over bases
-            return new BaseQual(mostLikelyBase, qual);
-        }
-
         public String toString() { return new String(this.bases); }
-    }
 
-    private static class BaseQual extends Pair<Byte, Byte> {
-        public BaseQual(byte base, byte qual) {
-            super(base, qual);
-        }
-
-        public byte getBase() { return getFirst(); }
-        public byte getQual() { return getSecond(); }
-    }
-
-    private static ReadBackedPileup pileupAtOffset(ReadBackedPileup pileup, int offsetFromPileup) {
-        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
-        ArrayList<Integer> offsets = new ArrayList<Integer>();
-
-        // go through the pileup, read by read, collecting up the context at offset
-        for ( PileupElement p : pileup ) {
-            // not safe -- doesn't work for indel-containing reads!
-
-            // whole algorithm should be restructured to handle other reads in the window or use LocusIteratorByState
-            SAMRecord read = p.getRead();
-            int readOffsetInPileup = p.getOffset();
-            int neededReadOffset = readOffsetInPileup + offsetFromPileup;
-            if ( neededReadOffset >= 0 && neededReadOffset < read.getReadLength() ) {
-                reads.add(p.getRead());
-                offsets.add(neededReadOffset);
+        double getQualitySum() {
+            double s = 0;
+            for (int k=0; k < bases.length; k++) {
+                s += quals[k];
             }
+            return s;
         }
-
-        return new ReadBackedPileupImpl(pileup.getLocation(), reads, offsets);
-    }
-
-    private static ReadBackedPileup getPileupOfAllele( Allele allele, ReadBackedPileup pileup ) {
-        ArrayList<PileupElement> filteredPileup = new ArrayList<PileupElement>();
-        byte alleleBase = allele.getBases()[0]; // assumes SNP 
-
-        for ( PileupElement p : pileup ) {
-            if ( p.getBase() == alleleBase ) {
-                filteredPileup.add(p);
-            }
-        }
-
-        return new ReadBackedPileupImpl(pileup.getLocation(), filteredPileup);
     }
 
     public List<String> getKeyNames() { return Arrays.asList("HaplotypeScore"); }
