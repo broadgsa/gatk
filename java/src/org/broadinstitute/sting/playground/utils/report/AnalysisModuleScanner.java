@@ -87,13 +87,15 @@ public class AnalysisModuleScanner {
      */
     private void scanFields() {
         // get the fields from the class, and extract
-        for (Field f : cls.getDeclaredFields())
-            for (Annotation annotation : f.getAnnotations()) {
-                if (annotation.annotationType().equals(Param.class))
-                    parameters.put(f, (Param) annotation);
-                if (annotation.annotationType().equals(DataPoint.class))
-                    datums.put(f,(DataPoint) annotation);
-            }
+        for ( Class superCls = cls; superCls != null; superCls=superCls.getSuperclass() ) {
+            for (Field f : superCls.getDeclaredFields())
+                for (Annotation annotation : f.getAnnotations()) {
+                    if (annotation.annotationType().equals(Param.class))
+                        parameters.put(f, (Param) annotation);
+                    if (annotation.annotationType().equals(DataPoint.class))
+                        datums.put(f,(DataPoint) annotation);
+                }
+        }
     }
 
     /**
