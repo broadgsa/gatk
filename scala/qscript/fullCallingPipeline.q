@@ -45,7 +45,7 @@ class RealignerTargetCreator extends GatkFunctionLocal {
 // step two: we need to clean each bam file - gather will fix mates
 /////////////////////////////////////////////////
 
-class IndelRealigner extends GatkFunctionLocal {
+class IndelRealigner extends GatkFunction {
  @Input(doc="Intervals to clean")
  var intervalsToClean: File = _
  @Scatter(classOf[ContigScatterFunction])
@@ -56,6 +56,12 @@ class IndelRealigner extends GatkFunctionLocal {
  var cleanedBam: File = _
 
  this.javaTmpDir = parseArgs("-tmpdir") // todo -- hack, move into script or something
+
+ override def freeze = {
+   this.intervals = contigIntervals
+   this.jobQueue = "long"
+   super.freeze
+ }
 
  def commandLine = gatkCommandLine("IndelRealigner") + "--output %s -targetIntervals %s -L %s".format(cleanedBam,intervalsToClean,contigIntervals)
 }
@@ -267,7 +273,8 @@ def endToEnd(base: String, snps: UnifiedGenotyper, indels: UnifiedGenotyperIndel
  snps.callConf = 30
  snps.trigger = new File(parseArgs("-trigger"))
  // todo -- hack -- get this from the command line, or properties
- snps.compTracks :+= ( "comp1KG_CEU",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/100328.CEU.hg18.sites.vcf") )
+ snps.compTracks :+= ( "comp1KG_CEU",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/CEU.low_coverage.2010_07.sites.hg18.vcf.gz") )
+ snps.compTracks :+= ( "comp1KG_ALL",new File(parseArgs("-trigger") ) )
  snps.scatterCount = 100
  indels.indelVCF = new File(base+".indels.vcf")
  indels.scatterCount = 100
