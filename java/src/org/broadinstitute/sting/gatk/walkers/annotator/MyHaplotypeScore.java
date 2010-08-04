@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
@@ -38,6 +39,8 @@ import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
+
 public class MyHaplotypeScore implements InfoFieldAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
@@ -56,7 +59,10 @@ public class MyHaplotypeScore implements InfoFieldAnnotation {
         List<Haplotype> haplotypes = computeHaplotypes(context.getBasePileup(), contextSize);
 
         // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
-        double score = scoreReadsAgainstHaplotypes(haplotypes, context.getBasePileup(), contextSize);
+        double score = 0.0;
+
+        if (haplotypes != null)
+            score = scoreReadsAgainstHaplotypes(haplotypes, context.getBasePileup(), contextSize);
 
         // return the score
         Map<String, Object> map = new HashMap<String, Object>();
@@ -85,7 +91,10 @@ public class MyHaplotypeScore implements InfoFieldAnnotation {
 
 
         for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
+            if (ReadUtils.is454Read(p.getRead()))
+                continue;
             Haplotype haplotypeFromRead = getHaplotypeFromRead(p, contextSize);
+
 
             haplotypeQueue.add(haplotypeFromRead);
             //haplotypeList.add(haplotypeFromRead);
@@ -141,12 +150,16 @@ public class MyHaplotypeScore implements InfoFieldAnnotation {
                 secondBestIdxVal = qualSum;
             }
         }
-        Haplotype haplotypeR = haplotypeList.get(bestIdx);
-        Haplotype haplotypeA = haplotypeList.get(secondBestIdx);
+        if (haplotypeList.size() > 0) {
+            Haplotype haplotypeR = haplotypeList.get(bestIdx);
+            Haplotype haplotypeA = haplotypeList.get(secondBestIdx);
 
-        // Temp hack to match old implementation's scaling, TBD better behavior
+            // Temp hack to match old implementation's scaling, TBD better behavior
 
-        return Arrays.asList(new Haplotype(haplotypeR.bases, 60), new Haplotype(haplotypeA.bases, contextSize));
+            return Arrays.asList(new Haplotype(haplotypeR.bases, 60), new Haplotype(haplotypeA.bases, contextSize));
+        }
+        else
+            return null;
     }
 
     private Haplotype getHaplotypeFromRead(ExtendedPileupElement p, int contextSize) {
@@ -232,6 +245,9 @@ public class MyHaplotypeScore implements InfoFieldAnnotation {
         for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
             SAMRecord read = p.getRead();
             int readOffsetFromPileup = p.getOffset();
+
+            if (ReadUtils.is454Read(read))
+                continue;
 
             if ( DEBUG ) System.out.printf("--------------------------------------------- Read %s%n", read.getReadName());
             double m = 10000000;
