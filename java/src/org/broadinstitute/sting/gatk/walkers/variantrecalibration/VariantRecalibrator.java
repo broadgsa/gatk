@@ -243,7 +243,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         try {
             Runtime.getRuntime().exec( rScriptCommandLine );
         } catch ( IOException e ) {
-            throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
+            Utils.warnUser("Unable to execute the RScript command.  While not critical to the calculations themselves, the script outputs a report that is extremely useful for confirming that the recalibration proceded as expected.  We highly recommend trying to rerun the script manually if possible.");
         }
     }
 }
