@@ -244,7 +244,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
             try {
                 Runtime.getRuntime().exec( rScriptCommandLine );
             } catch ( IOException e ) {
-                Utils.warnUser("Unable to execute the RScript command.  While not critical to the calculations themselves, the script outputs a report that is extremely useful for confirming that the clustering proceded as expected.  We highly recommend trying to rerun the script manually if possible.");
+                Utils.warnUser("Unable to execute the RScript command because of [" + e.getMessage() + "].  While not critical to the calculations themselves, the script outputs a report that is extremely useful for confirming that the clustering proceded as expected.  We highly recommend trying to rerun the script manually if possible.");
             }
         }
     }
