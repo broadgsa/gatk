@@ -714,7 +714,31 @@ public class MathUtils {
         return getQScoreOrderStatistic(reads, offsets, (int)Math.floor(reads.size()/2.));
     }
 
+    /** A utility class that computes on the fly average and standard deviation for a stream of numbers.
+     * The number of observations does not have to be known in advance, and can be also very big (so that
+     * it could overflow any naive summation-based scheme or cause loss of precision).
+     * Instead, adding a new number <code>observed</code>
+     * to a sample with <code>add(observed)</code> immediately updates the instance of this object so that
+     * it contains correct mean and standard deviation for all the numbers seen so far. Source: Knuth, vol.2
+     * (see also e.g. http://www.johndcook.com/standard_deviation.html for online reference).
+     */
+    public static class RunningAverage {
+        private double mean = 0.0;
+        private double s = 0.0;
+        private long obs_count = 0;
 
+        public void add(double obs) {
+            obs_count++;
+            double oldMean = mean;
+            mean += ( obs - mean ) / obs_count; // update mean
+            s += ( obs - oldMean ) * ( obs - mean );
+        }
+
+        public double mean() { return mean; }
+        public double stddev() { return Math.sqrt(s/(obs_count - 1)); }
+        public long observationCount() { return obs_count; }
+    }
+    
     //
     // useful common utility routines
     //

@@ -123,5 +123,20 @@ public class MathUtilsUnitTest extends BaseTest {
         Assert.assertTrue(BigFiveAlpha.containsAll(FiveAlpha));
         Assert.assertTrue(FiveAlpha.containsAll(BigFiveAlpha));
     }
+
+    /** Tests that we correctly compute mean and standard deviation from a stream of numbers */
+    @Test
+    public void testRunningAverage() {
+        logger.warn("Executing testRunningAverage");
+
+        int [] numbers = {1,2,4,5,3,128,25678,-24};
+        MathUtils.RunningAverage r = new MathUtils.RunningAverage();
+
+        for ( int i = 0 ; i < numbers.length ; i++ ) r.add((double)numbers[i]);
+
+        Assert.assertEquals(r.observationCount(),(long)numbers.length);
+        Assert.assertTrue(r.mean()- 3224.625 < 2e-10 );
+        Assert.assertTrue(r.stddev()-9072.6515881128 < 2e-10);
+    }
     
 }
