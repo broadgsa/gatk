@@ -539,8 +539,14 @@ public class VariantContextUtils {
                 List<Allele> inAlleles = g.getAlleles();
                 List<Allele> newGenotypeAlleles = new ArrayList<Allele>();
                 for (Allele a : inAlleles) {
-                    String newBases = new String(new byte[]{refByte}) + new String(a.getBases());
-                    newGenotypeAlleles.add(Allele.create(newBases,a.isReference()));
+                    if (a.isCalled()) {
+                        String newBases = new String(new byte[]{refByte}) + new String(a.getBases());
+                        newGenotypeAlleles.add(Allele.create(newBases,a.isReference()));
+                    }
+                    else {
+                        // add no-call allele
+                        newGenotypeAlleles.add(Allele.NO_CALL);
+                    }
                 }
                 genotypes.put(sample, new Genotype(sample, newGenotypeAlleles, g.getNegLog10PError(),
                         g.getFilters(),g.getAttributes(),g.genotypesArePhased()));
