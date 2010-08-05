@@ -137,15 +137,22 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
             return false;
         VCFCompoundHeaderLine other = (VCFCompoundHeaderLine)o;
         return name.equals(other.name) &&
-               count == other.count &&
-               description.equals(other.description) &&
-               type == other.type;
+                count == other.count &&
+                description.equals(other.description) &&
+                type == other.type &&
+                lineType == other.lineType;
     }
 
     public boolean equalsExcludingDescription(VCFCompoundHeaderLine other) {
         return count == other.count &&
-               type == other.type &&
-               name.equals(other.name);
+                type == other.type &&
+                lineType == other.lineType &&
+                name.equals(other.name);
+    }
+
+    public boolean sameLineTypeAndName(VCFCompoundHeaderLine other) {
+        return  lineType == other.lineType &&
+                name.equals(other.name);
     }
 
     /**

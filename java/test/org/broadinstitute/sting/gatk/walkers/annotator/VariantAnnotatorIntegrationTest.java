@@ -76,6 +76,14 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testOverwritingHeader() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample4.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,001,292", 1,
+                Arrays.asList("87d124ddfee8537e2052c495777d2b3b"));
+        executeTest("test overwriting header", spec);
+    }
+
+    @Test
     public void testNoReads() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFCompoundHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -134,10 +135,14 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse);
 
         // setup the header fields
+        // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")));
-        hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
+        hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
+        for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")) ) {
+            if ( isUniqueHeaderLine(line, hInfo) )
+                hInfo.add(line);
+        }
 
         vcfWriter = new VCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
@@ -146,6 +151,18 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( indelsOnly ) {
             indelBufferContext = null;
         }
+    }
+
+    private static boolean isUniqueHeaderLine(VCFHeaderLine line, Set<VCFHeaderLine> currentSet) {
+        if ( !(line instanceof VCFCompoundHeaderLine) )
+            return true;
+
+        for ( VCFHeaderLine hLine : currentSet ) {
+            if ( hLine instanceof VCFCompoundHeaderLine && ((VCFCompoundHeaderLine)line).sameLineTypeAndName((VCFCompoundHeaderLine)hLine) )
+                return false;
+        }
+
+        return true;
     }
 
     /**
