@@ -84,10 +84,18 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testDBTag() {
+    public void testDBTagWithDbsnp() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -D " + GATKDataLocation + "dbsnp_129_b36.rod -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
                 Arrays.asList("24d9649943be876e78f76bbf9ff5b501"));
-        executeTest("getting DB tag", spec);
+        executeTest("getting DB tag with dbSNP", spec);
+    }
+
+    @Test
+    public void testDBTagWithHapMap() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -B compH3,VCF," + validationDataLocation + "fakeHM3.vcf -G \"Standard\" -B variant,VCF," + validationDataLocation + "vcfexample3empty.vcf -BTI variant", 1,
+                Arrays.asList("77980e4f741c09d88f7a91faf86037c6"));
+        executeTest("getting DB tag with HM3", spec);
     }
 }

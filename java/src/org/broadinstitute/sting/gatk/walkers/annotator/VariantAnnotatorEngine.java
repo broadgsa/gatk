@@ -188,8 +188,14 @@ public class VariantAnnotatorEngine {
                 if ( dbsnp != null && (!vc.hasAttribute(VariantContext.ID_KEY) || vc.getAttribute(VariantContext.ID_KEY).equals(VCFConstants.EMPTY_ID_FIELD)) )
                     infoAnnotations.put(VariantContext.ID_KEY, dbsnp.getRsID());
             } else {
-                List<Object> dbRod = tracker.getReferenceMetaData(dbSet.getKey());
-                infoAnnotations.put(dbSet.getValue(), dbRod.size() == 0 ?  false : true);
+                boolean overlapsComp = false;
+                for ( VariantContext comp : tracker.getVariantContexts(ref, dbSet.getKey(), null, ref.getLocus(), false, false) ) {
+                    if ( !comp.isFiltered() ) {
+                        overlapsComp = true;
+                        break;
+                    }
+                }
+                infoAnnotations.put(dbSet.getValue(), overlapsComp ? true : false);
             }
         }
 
