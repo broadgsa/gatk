@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.walkers.Hidden;
 import org.apache.log4j.Logger;
 
 import java.lang.annotation.Annotation;
@@ -127,6 +128,7 @@ public abstract class ArgumentTypeDescriptor {
                                        source.field.getName(),
                                        source.isFlag(),
                                        source.isMultiValued(),
+                                       source.isHidden(),
                                        getValidOptions(source) );
     }
 
@@ -197,6 +199,15 @@ public abstract class ArgumentTypeDescriptor {
             if (field.isAnnotationPresent(annotation))
                 return true;
         return false;
+    }
+
+    /**
+     * Returns true if the given annotation is hidden from the help system.
+     * @param field Field to test.
+     * @return True if argument should be hidden.  False otherwise.
+     */
+    public static boolean isArgumentHidden(Field field) {
+        return field.isAnnotationPresent(Hidden.class);
     }
 }
 

@@ -89,6 +89,8 @@ public class HelpFormatter {
 
         for( ArgumentDefinitionGroup argumentGroup: argumentGroups ) {
             for( ArgumentDefinition argumentDefinition: argumentGroup.argumentDefinitions ) {
+                if(argumentDefinition.isHidden)
+                    continue;
                 lineFormatter.format(" ");
                 if( !argumentDefinition.required ) lineFormatter.format("[");
                 if( argumentDefinition.shortName != null )
@@ -125,23 +127,32 @@ public class HelpFormatter {
     private String getDetailed( List<ArgumentDefinitionGroup> argumentGroups ) {
         StringBuilder builder = new StringBuilder();
 
-        for( ArgumentDefinitionGroup argumentGroup: argumentGroups ) {
-            if( argumentGroup.groupName != null && argumentGroup.argumentDefinitions.size() != 0 )
-                builder.append( String.format("%nArguments for %s:%n", argumentGroup.groupName ) );
-            builder.append( getDetailForGroup( argumentGroup.argumentDefinitions ) );
-        }
+        for( ArgumentDefinitionGroup argumentGroup: argumentGroups )
+            builder.append( getDetailForGroup( argumentGroup ) );
 
         return builder.toString();
     }
 
     /**
      * Gets a detailed description for a given argument group.
-     * @param argumentDefinitions The argument definitions contained withina group.
+     * @param argumentDefinitionGroup The group of argument definitions to render.
      * @return A string giving detailed info about the contents of this group.
      */
-    private String getDetailForGroup( List<ArgumentDefinition> argumentDefinitions ) {
+    private String getDetailForGroup( ArgumentDefinitionGroup argumentDefinitionGroup ) {
+        if(argumentDefinitionGroup.allHidden())
+            return "";
+
         StringBuilder builder = new StringBuilder();
         Formatter formatter = new Formatter( builder );
+
+        if( argumentDefinitionGroup.groupName != null && argumentDefinitionGroup.argumentDefinitions.size() != 0 )
+            builder.append( String.format("%nArguments for %s:%n", argumentDefinitionGroup.groupName ) );
+
+        List<ArgumentDefinition> argumentDefinitions = new ArrayList<ArgumentDefinition>();
+        for(ArgumentDefinition argumentDefinition: argumentDefinitionGroup.argumentDefinitions) {
+            if(!argumentDefinition.isHidden)
+                argumentDefinitions.add(argumentDefinition);
+        }
 
         // Try to fit the entire argument definition across the screen, but impose an arbitrary cap of 3/4 *
         // LINE_WIDTH in case the length of the arguments gets out of control.

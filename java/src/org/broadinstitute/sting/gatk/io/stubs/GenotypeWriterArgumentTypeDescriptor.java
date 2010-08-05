@@ -162,6 +162,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
                                        "varout",
                                        false,
                                        source.isMultiValued(),
+                                       source.isHidden(),
                                        null );
     }
 
@@ -179,6 +180,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
                                        false,
                                        false,
                                        false,
+                                       source.isHidden(),
                                        null,
                                        null,
                                        null );

@@ -86,4 +86,16 @@ public class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
     public Iterator<ArgumentDefinition> iterator() {
         return argumentDefinitions.iterator();
     }
+
+    /**
+     * Reports whether all the arguments in this group are hidden.
+     * @return True if all are hidden, false if some or none are hidden.
+     */
+    public boolean allHidden() {
+        for(ArgumentDefinition argumentDefinition: argumentDefinitions) {
+            if(!argumentDefinition.isHidden)
+                return false;
+        }
+        return true;
+    }
 }

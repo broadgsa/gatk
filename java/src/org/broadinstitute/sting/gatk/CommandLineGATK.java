@@ -187,7 +187,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         
         int longestPackageName = 0;
         int longestWalkerName = 0;
-        for(Map.Entry<String,Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage().entrySet()) {
+        for(Map.Entry<String,Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(true).entrySet()) {
             // Get the display name.
             String packageName = walkersByPackage.getKey();
             String packageDisplayName = walkerManager.getPackageDisplayName(walkersByPackage.getKey());

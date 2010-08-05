@@ -66,11 +66,15 @@ public class WalkerManager extends PluginManager<Walker> {
     /**
      * Get the list of walkers currently available to the GATK, organized
      * by package.
+     * @param visibleWalkersOnly If true, return only the walker names that aren't hidden.
      * @return Names of currently available walkers.
      */
-    public Map<String,Collection<Class<? extends Walker>>> getWalkerNamesByPackage() {
+    public Map<String,Collection<Class<? extends Walker>>> getWalkerNamesByPackage(boolean visibleWalkersOnly) {
         Map<String,Collection<Class<? extends Walker>>> walkersByPackage = new HashMap<String,Collection<Class<? extends Walker>>>();
         for(Class<? extends Walker> walker: pluginsByName.values()) {
+            if(visibleWalkersOnly && isHidden(walker))
+                continue;
+
             // Extract the name for the package; if the walker is in the unnamed package, use the empty string
             String walkerPackage = walker.getPackage() != null ? walker.getPackage().getName() : "";
             if(!walkersByPackage.containsKey(walkerPackage))
@@ -223,6 +227,15 @@ public class WalkerManager extends PluginManager<Walker> {
     public static List<RMD> getRequiredMetaData(Walker walker) {
         Requires requiresDataSource = getWalkerRequirements(walker);
         return Arrays.asList(requiresDataSource.referenceMetaData());
+    }
+
+    /**
+     * Reports whether this walker type is hidden -- in other words, whether it'll appear in the help output.
+     * @param walkerType Class to test for visibility.
+     * @return True if the walker should be hidden.  False otherwise.
+     */
+    public static boolean isHidden(Class<? extends Walker> walkerType) {
+        return walkerType.isAnnotationPresent(Hidden.class);    
     }
 
     /**

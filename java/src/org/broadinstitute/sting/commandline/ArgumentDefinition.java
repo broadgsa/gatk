@@ -71,6 +71,11 @@ public class ArgumentDefinition {
     public final boolean isMultiValued;
 
     /**
+     * Is this argument hidden from the help system?
+     */
+    public final boolean isHidden;
+    
+    /**
      * Is this argument exclusive of other arguments?
      */
     public final String exclusiveOf;
@@ -94,6 +99,7 @@ public class ArgumentDefinition {
      * @param required Whether or not this argument is required.
      * @param isFlag Whether or not this argument should be treated as a flag.
      * @param isMultiValued Whether or not this argument supports multiple values.
+     * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
      * @param exclusiveOf Whether this command line argument is mutually exclusive of other arguments.
      * @param validation A regular expression for command-line argument validation.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null. 
@@ -105,6 +111,7 @@ public class ArgumentDefinition {
                                boolean required,
                                boolean isFlag,
                                boolean isMultiValued,
+                               boolean isHidden,
                                String exclusiveOf,
                                String validation,
                                List<String> validOptions) {
@@ -115,6 +122,7 @@ public class ArgumentDefinition {
         this.required = required;
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
+        this.isHidden = isHidden;
         this.exclusiveOf = exclusiveOf;
         this.validation = validation;
         this.validOptions = validOptions;
@@ -127,6 +135,7 @@ public class ArgumentDefinition {
      * @param defaultShortName Default short name for this argument definition.
      * @param isFlag Whether or not this argument should be treated as a flag.
      * @param isMultiValued Whether or not this argument supports multiple values.
+     * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null.
      */
     public ArgumentDefinition( Annotation annotation,
@@ -134,6 +143,7 @@ public class ArgumentDefinition {
                                String defaultShortName,
                                boolean isFlag,
                                boolean isMultiValued,
+                               boolean isHidden,
                                List<String> validOptions) {
 
         String fullName = (String)getValue(annotation, "fullName");
@@ -159,6 +169,7 @@ public class ArgumentDefinition {
         this.required = isRequired(annotation, isFlag);
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
+        this.isHidden = isHidden;
         this.exclusiveOf = getExclusiveOf(annotation);
         this.validation = getValidationRegex(annotation);
         this.validOptions = validOptions;
@@ -170,12 +181,14 @@ public class ArgumentDefinition {
      * @param fieldName Default full name for this argument definition.
      * @param isFlag Whether or not this argument should be treated as a flag.
      * @param isMultiValued Whether or not this argument supports multiple values.
+     * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null.
      */
     public ArgumentDefinition( Annotation annotation,
                                String fieldName,
                                boolean isFlag,
                                boolean isMultiValued,
+                               boolean isHidden,
                                List<String> validOptions) {
         this.ioType = getIOType(annotation);
         this.fullName = getFullName(annotation, fieldName);
@@ -184,6 +197,7 @@ public class ArgumentDefinition {
         this.required = isRequired(annotation, isFlag);
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
+        this.isHidden = isHidden;
         this.exclusiveOf = getExclusiveOf(annotation);
         this.validation = getValidationRegex(annotation);
         this.validOptions = validOptions;

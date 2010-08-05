@@ -101,6 +101,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        DEFAULT_ARGUMENT_SHORTNAME,
                                        false,
                                        source.isMultiValued(),
+                                       source.isHidden(),
                                        null );
     }
 
@@ -118,6 +119,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        false,
                                        false,
                                        false,
+                                       source.isHidden(),
                                        null,
                                        null,
                                        null );

@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.gatk.walkers.Hidden;
+
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
@@ -145,6 +147,14 @@ public class ArgumentSource {
     public boolean isMultiValued() {
         Class argumentType = field.getType();
         return Collection.class.isAssignableFrom(argumentType) || field.getType().isArray();
+    }
+
+    /**
+     * Should the given class be hidden from the command-line argument system.
+     * @return True if so.  False otherwise.
+     */
+    public boolean isHidden() {
+        return field.isAnnotationPresent(Hidden.class);
     }
 
     /**
