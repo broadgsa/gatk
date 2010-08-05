@@ -30,7 +30,11 @@ public class QualityUtils {
     }
 
     static public double qualToProb(int qual) {
-        return 1.0 - Math.pow(10.0, ((double) qual)/-10.0);
+        return qualToProb( (double)qual );
+    }
+
+    static public double qualToProb(double qual) {
+        return 1.0 - Math.pow(10.0, qual/(-10.0));
     }
 
     /**
@@ -75,6 +79,10 @@ public class QualityUtils {
 
     static public double phredScaleErrorRate(double errorRate) {
         return -10.0*Math.log10(errorRate);
+    }
+
+    static public double lodToPhredScaleErrorRate(double lod) {
+        return phredScaleErrorRate(1.0 / (Math.pow(10.0, lod) + 1.0));
     }
     
     /**

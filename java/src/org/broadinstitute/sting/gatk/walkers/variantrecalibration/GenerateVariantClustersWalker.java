@@ -67,7 +67,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
     private String CLUSTER_FILENAME = "optimizer.cluster";
     @Argument(fullName="maxGaussians", shortName="mG", doc="The maximum number of Gaussians to try during Bayesian clustering", required=false)
-    private int MAX_GAUSSIANS = 30;
+    private int MAX_GAUSSIANS = 4;
     @Argument(fullName="maxIterations", shortName="mI", doc="The maximum number of iterations to be performed when clustering. Clustering will normally end when convergence is detected.", required=false)
     private int MAX_ITERATIONS = 200;
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
@@ -87,9 +87,9 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Argument(fullName="forceIndependent", shortName="forceIndependent", doc="Force off-diagonal entries in the covariance matrix to be zero.", required=false)
     private boolean FORCE_INDEPENDENT = false;
     @Argument(fullName="stdThreshold", shortName="std", doc="If a variant has annotations more than -std standard deviations away from mean then don't use it for clustering.", required=false)
-    private double STD_THRESHOLD = 6.0;
+    private double STD_THRESHOLD = 4.5;
     @Argument(fullName="qualThreshold", shortName="qual", doc="If a known variant has raw QUAL value less than -qual then don't use it for clustering.", required=false)
-    private double QUAL_THRESHOLD = 300.0;
+    private double QUAL_THRESHOLD = 1000.0;
     @Argument(fullName="shrinkage", shortName="shrinkage", doc="The shrinkage parameter in variational Bayes algorithm.", required=false)
     private double SHRINKAGE = 0.0001;
     @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in variational Bayes algoirthm.", required=false)

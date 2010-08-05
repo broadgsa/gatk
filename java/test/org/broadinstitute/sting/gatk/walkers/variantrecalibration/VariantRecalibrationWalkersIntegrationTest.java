@@ -12,7 +12,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testGenerateVariantClusters() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "72558d2c49bb94dc59e9d4146fe0bc05" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "05d1692624a28cd9446feac8fd2408ab" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -37,7 +37,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testVariantRecalibrator() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "0cb94385ced8a7a537d7bc79f82c01d3" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "4570c93c96de61342d75c1c658e2d5c1" );
         
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();

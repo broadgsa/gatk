@@ -330,7 +330,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         if ( this.singletonFPRate == -1 )
             return alleleCountFactorArray[alleleCount];
         else {
-            return 1 - Math.pow(singletonFPRate, alleleCount);
+            return Math.min(0.95, 1.0 - Math.pow(singletonFPRate, alleleCount)); //TODO -- define the vals
         }
     }
 
@@ -345,7 +345,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
         }
 
-        for( int ttt = 0; ttt < 20; ttt++ ) {
+        for( int ttt = 0; ttt < 60; ttt++ ) {
             performKMeansIteration( data );
         }
     }
@@ -528,12 +528,12 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         return value;
     }
 
-    public final double evaluateVariantLog10( final VariantContext vc ) {
+    public final double evaluateVariant( final VariantContext vc ) {
         final double[] pVarInCluster = new double[maxGaussians];
         final double[] annotations = new double[dataManager.numAnnotations];
 
         for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
-            final double value = decodeAnnotation( dataManager.annotationKeys.get(jjj), vc, true );
+            final double value = decodeAnnotation( dataManager.annotationKeys.get(jjj), vc, false );
             annotations[jjj] = (value - dataManager.meanVector[jjj]) / dataManager.varianceVector[jjj];
         }
 
@@ -544,12 +544,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             sum += pVarInCluster[kkk]; // * clusterTruePositiveRate[kkk];
         }
 
-        double sumLog10 = Math.log10(sum);
-        if( Double.isInfinite(sumLog10) || Double.isNaN(sumLog10) ) {
-            //logger.warn("pTrueLog10 = -Infinity, capped at -20");
-            sumLog10 = -20;
-        }
-        return sumLog10;
+        return sum;
     }
 
    public final void outputClusterReports( final String outputPrefix ) {
@@ -839,22 +834,30 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         final int numAnnotations = annotations.length;
         final double mult[] = new double[numAnnotations];
+
+        final double evalGaussianPDFLog10[] = new double[maxGaussians];
         for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
             final double sigmaVals[][] = sigmaInverse[kkk].getArray();
             double sum = 0.0;
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                mult[jjj] = 0.0;
+                double value = 0.0;
                 for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                    mult[jjj] += (annotations[ppp] - mu[kkk][ppp]) * sigmaVals[ppp][jjj];
+                    final double myMu = mu[kkk][ppp];
+                    final double myAnn = annotations[ppp];
+                    final double mySigma = sigmaVals[ppp][jjj];
+                    value += (myAnn - myMu) * mySigma;
                 }
+                mult[jjj] = value;
             }
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 sum += mult[jjj] * (annotations[jjj] - mu[kkk][jjj]);
             }
 
             final double denomLog10 = Math.log10(Math.pow(2.0 * Math.PI, ((double)numAnnotations) / 2.0)) + Math.log10(Math.pow(determinant[kkk], 0.5));
-            pVarInCluster[kkk] = Math.pow(10.0, pClusterLog10[kkk] + (( -0.5 * sum ) / Math.log(10.0)) - denomLog10);
+            evalGaussianPDFLog10[kkk] = (( -0.5 * sum ) / Math.log(10.0)) - denomLog10;
+            pVarInCluster[kkk] = Math.pow(10.0, pClusterLog10[kkk] + evalGaussianPDFLog10[kkk]);
         }
+
     }
 
 

@@ -69,12 +69,12 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
+    @Argument(fullName="hapmap_prior", shortName="hapmapPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true.", required=false)
+    private double HAPMAP_QUAL_PRIOR = 15.0;
     @Argument(fullName="known_prior", shortName="knownPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true.", required=false)
-    private int KNOWN_QUAL_PRIOR = 9;
+    private double KNOWN_QUAL_PRIOR = 10.0;
     @Argument(fullName="novel_prior", shortName="novelPrior", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
-    private int NOVEL_QUAL_PRIOR = 2;
-    @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
-    private double QUALITY_SCALE_FACTOR = 1600.0;
+    private double NOVEL_QUAL_PRIOR = 2.0;
     @Argument(fullName="output_prefix", shortName="output", doc="The prefix added to output VCF file name and optimization curve pdf file name", required=false)
     private String OUTPUT_PREFIX = "optimizer";
     @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
@@ -90,7 +90,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="quality_step", shortName="qStep", doc="Resolution in QUAL units for optimization and tranche calculations", required=false)
     private double QUAL_STEP = 0.1;
     @Argument(fullName="singleton_fp_rate", shortName="fp_rate", doc="Prior expectation that a singleton call would be a FP", required=false)
-    private double SINGLETON_FP_RATE = -1;
+    private double SINGLETON_FP_RATE = 0.5;
 
     /////////////////////////////
     // Private Member Variables
@@ -98,6 +98,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private VariantGaussianMixtureModel theModel = null;
     private VCFWriter vcfWriter;
     private Set<String> ignoreInputFilterSet = null;
+    private int numUnstable = 0;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -185,11 +186,27 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     variantDatum.isKnown = dbsnp != null;
                     variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes. Also, what to do about tri-allelic sites?
 
-                    final double acPriorLog10 =  Math.log10(theModel.getAlleleCountPrior( variantDatum.alleleCount ));
-                    final double knownPriorLog10 = Math.log10( variantDatum.isKnown ? QualityUtils.qualToProb(KNOWN_QUAL_PRIOR) : QualityUtils.qualToProb(NOVEL_QUAL_PRIOR) );
-                    final double pTrue = Math.pow(10.0, theModel.evaluateVariantLog10( vc ) + acPriorLog10 + knownPriorLog10);
+                    final double acPrior = theModel.getAlleleCountPrior( variantDatum.alleleCount );
+                    double knownPrior = variantDatum.isKnown ? QualityUtils.qualToProb(KNOWN_QUAL_PRIOR) : QualityUtils.qualToProb(NOVEL_QUAL_PRIOR);
+                    if(variantDatum.isKnown && DbSNPHelper.isHapmap( dbsnp ) ) {
+                        knownPrior = QualityUtils.qualToProb(HAPMAP_QUAL_PRIOR);
+                    }
+                    final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
 
-                    variantDatum.qual = QUALITY_SCALE_FACTOR * QualityUtils.phredScaleErrorRate( Math.max(1.0 - pTrue, 0.000000001) ); // BUGBUG: don't have a normalizing constant, so need to scale up qual scores arbitrarily
+                    if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
+                        throw new StingException("Some is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                    }
+
+                    double pVar = theModel.evaluateVariant( vc );
+
+                    if( pVar > 1.0 ) {
+                        pVar = 0.99;
+                        numUnstable++;
+                    }
+
+                    final double lod = (Math.log10(totalPrior) + Math.log10(pVar)) - ((Math.log10(1.0 - totalPrior)) + Math.log10(1.0 - pVar));
+                    variantDatum.qual = 10.0 * QualityUtils.lodToPhredScaleErrorRate(lod);
+
                     mapList.add( variantDatum );
 
                     Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
@@ -228,6 +245,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
 
         vcfWriter.close();
+
+        if( numUnstable > 0 ) {
+            logger.warn("WARNING: Found " + numUnstable + " variant(s) with pVar > 1, Most likely numerical instability during clustering     !!!!!");
+        }
         
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
