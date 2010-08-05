@@ -213,6 +213,33 @@ public class VariantContextUtils {
         return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
     }
 
+    public static VariantContext pruneVariantContext(VariantContext vc) {
+        return pruneVariantContext(vc, null);
+    }
+
+    public static VariantContext pruneVariantContext(VariantContext vc, Set<String> keysToPreserve ) {
+        MutableVariantContext mvc = new MutableVariantContext(vc);
+
+        if ( keysToPreserve == null || keysToPreserve.size() == 0 )
+            mvc.clearAttributes();
+        else {
+            Map<String, Object> d = mvc.getAttributes();
+            mvc.clearAttributes();
+            for ( String key : keysToPreserve )
+                mvc.putAttribute(key, d.get(key));
+        }
+
+        Collection<Genotype> gs = mvc.getGenotypes().values();
+        mvc.clearGenotypes();
+        for ( Genotype g : gs ) {
+            MutableGenotype mg = new MutableGenotype(g);
+            mg.clearAttributes();
+            mvc.addGenotype(mg);
+        }
+
+        return mvc;
+    }
+
     public enum GenotypeMergeType {
         UNIQUIFY, PRIORITIZE, UNSORTED, REQUIRE_UNIQUE
     }
