@@ -26,7 +26,6 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -85,7 +84,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         final Interval toInterval = liftOver.liftOver(fromInterval);
 
         if ( toInterval != null ) {
-            vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getEnd()));
+            vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getEnd()));
             writer.add(vc, ref.getBase());
             successfulIntervals++;
         } else {
