@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.utils.StingException;

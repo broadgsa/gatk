@@ -25,6 +25,9 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -64,7 +67,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     @Argument(fullName="output_file", shortName="output", doc="VCF file to which output should be written", required=true)
     private String OUTPUT_FILE = null;
 
-    @Argument(fullName="nocall_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
+    @Argument(fullName="no" +
+            "call_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
     private double noCallThreshold = 0.0;
 
     protected static String line = null;
@@ -284,7 +288,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 
         }
 
-        VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getLocation(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
+        VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
 
         Set<Allele> altAlleles = filteredVC.getAlternateAlleles();
         StringBuffer altAlleleCountString = new StringBuffer();

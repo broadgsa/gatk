@@ -4,6 +4,10 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 // the imports for unit testing.
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.MutableVariantContext;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -67,10 +71,10 @@ public class VariantContextUnitTest extends BaseTest {
         logger.warn("testCreatingSNPVariantContext");
 
         List<Allele> alleles = Arrays.asList(Aref, T);
-        VariantContext vc = new VariantContext("test", snpLoc, alleles);
+        VariantContext vc = new VariantContext("test", snpLoc.getContig(),snpLoc.getStart(), snpLoc.getStop(), alleles);
         logger.warn("vc = " + vc);
 
-        Assert.assertEquals(vc.getLocation(), snpLoc);
+        Assert.assertEquals(VariantContextUtils.getLocation(vc), snpLoc);
         Assert.assertEquals(vc.getType(), VariantContext.Type.SNP);
         Assert.assertTrue(vc.isSNP());
         Assert.assertFalse(vc.isIndel());
@@ -80,8 +84,8 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertTrue(vc.isBiallelic());
         Assert.assertEquals(vc.getNAlleles(), 2);
 
-        Assert.assertTrue(vc.isTransversion());
-        Assert.assertFalse(vc.isTransition());
+        Assert.assertTrue(VariantContextUtils.isTransversion(vc));
+        Assert.assertFalse(VariantContextUtils.isTransition(vc));
 
         Assert.assertEquals(vc.getReference(), Aref);
         Assert.assertEquals(vc.getAlleles().size(), 2);
@@ -98,10 +102,10 @@ public class VariantContextUnitTest extends BaseTest {
         logger.warn("testCreatingRefVariantContext");
 
         List<Allele> alleles = Arrays.asList(Aref);
-        VariantContext vc = new VariantContext("test", snpLoc, alleles);
+        VariantContext vc = new VariantContext("test", snpLoc.getContig(),snpLoc.getStart(), snpLoc.getStop(), alleles);
         logger.warn("vc = " + vc);
 
-        Assert.assertEquals(snpLoc, vc.getLocation());
+        Assert.assertEquals(snpLoc, VariantContextUtils.getLocation(vc));
         Assert.assertEquals(VariantContext.Type.NO_VARIATION, vc.getType());
         Assert.assertFalse(vc.isSNP());
         Assert.assertFalse(vc.isIndel());
@@ -125,10 +129,10 @@ public class VariantContextUnitTest extends BaseTest {
         logger.warn("testCreatingDeletionVariantContext");
 
         List<Allele> alleles = Arrays.asList(ATCref, del);
-        VariantContext vc = new VariantContext("test", delLoc, alleles);
+        VariantContext vc = new VariantContext("test", delLoc.getContig(), delLoc.getStart(), delLoc.getStop(), alleles);
         logger.warn("vc = " + vc);
 
-        Assert.assertEquals(vc.getLocation(), delLoc);
+        Assert.assertEquals(VariantContextUtils.getLocation(vc), delLoc);
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
         Assert.assertFalse(vc.isSNP());
         Assert.assertTrue(vc.isIndel());
@@ -153,10 +157,10 @@ public class VariantContextUnitTest extends BaseTest {
         logger.warn("testCreatingInsertionVariantContext");
 
         List<Allele> alleles = Arrays.asList(delRef, ATC);
-        VariantContext vc = new VariantContext("test", insLoc, alleles);
+        VariantContext vc = new VariantContext("test", insLoc.getContig(), insLoc.getStart(), insLoc.getStop(), alleles);
         logger.warn("vc = " + vc);
 
-        Assert.assertEquals(vc.getLocation(), insLoc);
+        Assert.assertEquals(VariantContextUtils.getLocation(vc), insLoc);
         Assert.assertEquals(vc.getType(), VariantContext.Type.INDEL);
         Assert.assertFalse(vc.isSNP());
         Assert.assertTrue(vc.isIndel());
@@ -179,45 +183,45 @@ public class VariantContextUnitTest extends BaseTest {
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs1() {
         logger.warn("testBadConstructorArgs1");
-        new VariantContext("test", insLoc, Arrays.asList(delRef, ATCref));
+        new VariantContext("test", insLoc.getContig(), insLoc.getStart(), insLoc.getStop(), Arrays.asList(delRef, ATCref));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs2() {
         logger.warn("testBadConstructorArgs2");
-        new VariantContext("test", insLoc, Arrays.asList(delRef, del));
+        new VariantContext("test", insLoc.getContig(), insLoc.getStart(), insLoc.getStop(), Arrays.asList(delRef, del));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgs3() {
         logger.warn("testBadConstructorArgs3");
-        new VariantContext("test", insLoc, Arrays.asList(del));
+        new VariantContext("test", insLoc.getContig(), insLoc.getStart(), insLoc.getStop(), Arrays.asList(del));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgsDuplicateAlleles1() {
         logger.warn("testBadConstructorArgsDuplicateAlleles1");
-        new VariantContext("test", insLoc, Arrays.asList(Aref, T, T));
+        new VariantContext("test", insLoc.getContig(), insLoc.getStart(), insLoc.getStop(), Arrays.asList(Aref, T, T));
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testBadConstructorArgsDuplicateAlleles2() {
         logger.warn("testBadConstructorArgsDuplicateAlleles2");
-        new VariantContext("test", insLoc, Arrays.asList(Aref, A));
+        new VariantContext("test", insLoc.getContig(), insLoc.getStart(), insLoc.getStop(), Arrays.asList(Aref, A));
     }
 
     @Test (expected = IllegalStateException.class)
     public void testBadLoc1() {
         logger.warn("testBadLoc1");
         List<Allele> alleles = Arrays.asList(Aref, T, del);
-        VariantContext vc = new VariantContext("test", delLoc, alleles);
+        VariantContext vc = new VariantContext("test", delLoc.getContig(), delLoc.getStart(), delLoc.getStop(), alleles);
     }
 
 
     @Test (expected = IllegalStateException.class)
     public void testBadTiTvRequest() {
         logger.warn("testBadConstructorArgsDuplicateAlleles2");
-        new VariantContext("test", insLoc, Arrays.asList(Aref, ATC)).isTransition();
+        VariantContextUtils.isTransition(new VariantContext("test", insLoc.getContig(), insLoc.getStart(), insLoc.getStop(), Arrays.asList(Aref, ATC)));
     }
 
     @Test
@@ -230,7 +234,7 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
         Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
 
-        VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1, g2, g3));
+        VariantContext vc = new VariantContext("test", snpLoc.getContig(),snpLoc.getStart(), snpLoc.getStop(), alleles, Arrays.asList(g1, g2, g3));
         logger.warn("vc = " + vc);
 
         Assert.assertTrue(vc.hasGenotypes());
@@ -272,7 +276,7 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g5 = new Genotype("dd", Arrays.asList(del, del), 10);
         Genotype g6 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
 
-        VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1, g2, g3, g4, g5, g6));
+        VariantContext vc = new VariantContext("test", snpLoc.getContig(),snpLoc.getStart(), snpLoc.getStop(), alleles, Arrays.asList(g1, g2, g3, g4, g5, g6));
         logger.warn("vc = " + vc);
 
         Assert.assertTrue(vc.hasGenotypes());
@@ -301,7 +305,7 @@ public class VariantContextUnitTest extends BaseTest {
             Genotype g1 = new Genotype("AA1", Arrays.asList(Aref, Aref), 10);
             Genotype g2 = new Genotype("AA2", Arrays.asList(Aref, Aref), 10);
             Genotype g3 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
-            VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1, g2, g3));
+            VariantContext vc = new VariantContext("test", snpLoc.getContig(),snpLoc.getStart(), snpLoc.getStop(), alleles, Arrays.asList(g1, g2, g3));
             logger.warn("vc = " + vc);
 
             Assert.assertTrue(vc.hasGenotypes());
@@ -323,7 +327,7 @@ public class VariantContextUnitTest extends BaseTest {
         List<Allele> alleles = Arrays.asList(Aref, T, del);
         Genotype g1 = new Genotype("AA", Arrays.asList(Aref, Aref), 10);
         Genotype g2 = new Genotype("AT", Arrays.asList(Aref, T), 10);
-        MutableVariantContext vc = new MutableVariantContext("test", snpLoc, alleles, Arrays.asList(g1,g2));
+        MutableVariantContext vc = new MutableVariantContext("test", snpLoc.getContig(),snpLoc.getStart(), snpLoc.getStop(), alleles, Arrays.asList(g1,g2));
         logger.warn("vc = " + vc);
 
         Assert.assertTrue(vc.isNotFiltered());
@@ -359,7 +363,7 @@ public class VariantContextUnitTest extends BaseTest {
         Genotype g3 = new Genotype("TT", Arrays.asList(T, T), 10);
         Genotype g4 = new Genotype("..", Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 10);
         Genotype g5 = new Genotype("--", Arrays.asList(del, del), 10);
-        VariantContext vc = new VariantContext("test", snpLoc, alleles, Arrays.asList(g1,g2,g3,g4,g5));
+        VariantContext vc = new VariantContext("test", snpLoc.getContig(),snpLoc.getStart(), snpLoc.getStop() , alleles, Arrays.asList(g1,g2,g3,g4,g5));
         logger.warn("vc = " + vc);
 
         VariantContext vc12 = vc.subContextFromGenotypes(Arrays.asList(g1,g2));

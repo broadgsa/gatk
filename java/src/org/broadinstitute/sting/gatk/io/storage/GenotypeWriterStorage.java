@@ -28,8 +28,8 @@ package org.broadinstitute.sting.gatk.io.storage;
 import java.io.*;
 import java.util.Set;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;

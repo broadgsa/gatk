@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 public class ClusteredSnps {
@@ -27,7 +28,7 @@ public class ClusteredSnps {
                 continue;
 
             // find the nth variant
-            GenomeLoc left = variants[i].getVariantContext().getLocation();
+            GenomeLoc left = VariantContextUtils.getLocation(variants[i].getVariantContext());
             GenomeLoc right = null;
             int snpsSeen = 1;
 
@@ -35,7 +36,7 @@ public class ClusteredSnps {
             while ( ++currentIndex < variants.length ) {
                 if ( variants[currentIndex] != null && variants[currentIndex].getVariantContext() != null && variants[currentIndex].getVariantContext().isVariant() ) {
                     if ( ++snpsSeen == snpThreshold ) {
-                        right = variants[currentIndex].getVariantContext().getLocation();
+                        right = VariantContextUtils.getLocation(variants[currentIndex].getVariantContext());
                         break;
                     }
                 }

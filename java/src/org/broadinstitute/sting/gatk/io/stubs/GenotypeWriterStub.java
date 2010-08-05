@@ -28,9 +28,9 @@ package org.broadinstitute.sting.gatk.io.stubs;
 import java.io.File;
 import java.io.PrintStream;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import net.sf.samtools.SAMFileHeader;

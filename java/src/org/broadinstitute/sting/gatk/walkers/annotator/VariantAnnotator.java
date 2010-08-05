@@ -25,13 +25,14 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFCompoundHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -222,7 +223,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
                 vcfWriter.add(annotatedVC, ref.getBase());
         } else {
             // check to see if the buffered context is different (in location) this context
-            if ( indelBufferContext != null && ! indelBufferContext.iterator().next().getLocation().equals(annotatedVCs.iterator().next().getLocation()) ) {
+            if ( indelBufferContext != null && ! VariantContextUtils.getLocation(indelBufferContext.iterator().next()).equals(VariantContextUtils.getLocation(annotatedVCs.iterator().next())) ) {
                 for ( VariantContext annotatedVC : indelBufferContext )
                     vcfWriter.add(annotatedVC, ref.getBase());
                 indelBufferContext = annotatedVCs;

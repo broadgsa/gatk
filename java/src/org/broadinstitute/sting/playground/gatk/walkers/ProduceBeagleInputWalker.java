@@ -25,13 +25,14 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -93,10 +94,10 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                      return 0;
              
             // output marker ID to Beagle input file
-            beagleWriter.print(String.format("%s ", vc_eval.getLocation().toString()));
+            beagleWriter.print(String.format("%s ", VariantContextUtils.getLocation(vc_eval).toString()));
 
             if (beagleGenotypesWriter != null)
-                beagleGenotypesWriter.print(String.format("%s ", vc_eval.getLocation().toString()));
+                beagleGenotypesWriter.print(String.format("%s ", VariantContextUtils.getLocation(vc_eval).toString()));
 
             for (Allele allele: vc_eval.getAlleles()) {
                 // TODO -- check whether this is really needed by Beagle

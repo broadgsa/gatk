@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2010, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,25 +12,26 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
@@ -124,7 +125,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<Pair<VariantContextStat
         GenomeLoc refLoc = ref.getLocus();
     	while (!siteQueue.isEmpty()) {
     	    VariantContext vc = siteQueue.peek().variant;
-            if (!isInWindowRange(refLoc, vc.getLocation())) { // Already saw all variant positions within cacheWindow distance ahead of vc (on its contig)
+            if (!isInWindowRange(refLoc, VariantContextUtils.getLocation(vc))) { // Already saw all variant positions within cacheWindow distance ahead of vc (on its contig)
                 VariantContext phasedVc = this.phaseVariantAndRemove();
     		    phasedList.add(phasedVc);
     	    }
@@ -159,11 +160,11 @@ public class ReadBackedPhasingWalker extends LocusWalker<Pair<VariantContextStat
 
         //
         if (true) {
-            out.println("Will phase vc = " + vc.getLocation());
+            out.println("Will phase vc = " + VariantContextUtils.getLocation(vc));
             ListIterator<VariantAndAlignment> windowVcIt = windowVcList.listIterator();
             while (windowVcIt.hasNext()) {
                 VariantContext phaseInfoVc = windowVcIt.next().variant;
-                out.println("Using phaseInfoVc = " + phaseInfoVc.getLocation());
+                out.println("Using phaseInfoVc = " + VariantContextUtils.getLocation(phaseInfoVc));
             }
             out.println("");
         }
@@ -226,12 +227,12 @@ public class ReadBackedPhasingWalker extends LocusWalker<Pair<VariantContextStat
         }
         siteQueue.remove(); // remove vc from head of queue
 
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), phasedGtMap, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
+        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), phasedGtMap, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
     }
 
     private boolean isInWindowRange(VariantContext vc1, VariantContext vc2) {
-        GenomeLoc loc1 = vc1.getLocation();
-        GenomeLoc loc2 = vc2.getLocation();
+        GenomeLoc loc1 = VariantContextUtils.getLocation(vc1);
+        GenomeLoc loc2 = VariantContextUtils.getLocation(vc2);
 
         return isInWindowRange(loc1, loc2);
     }

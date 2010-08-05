@@ -1,17 +1,16 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.wiggle.WiggleHeader;
 import org.broadinstitute.sting.utils.wiggle.WiggleWriter;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -50,9 +49,9 @@ public class CreateTiTvTrack extends RodWalker<VariantContext,TiTvWindow> {
             return window;
         }
         
-        window.update(vc.isTransition());
+        window.update(VariantContextUtils.isTransition(vc));
         if ( window.getTiTv() != null ) {
-            writer.writeData(vc.getLocation(),window.getTiTv());
+            writer.writeData(VariantContextUtils.getLocation(vc),window.getTiTv());
         }
 
         return window;

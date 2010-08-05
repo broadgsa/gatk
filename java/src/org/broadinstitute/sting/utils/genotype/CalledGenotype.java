@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.MutableGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;

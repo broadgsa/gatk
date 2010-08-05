@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.VariantContext;
 
 /**
  * Created by IntelliJ IDEA.

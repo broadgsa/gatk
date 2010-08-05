@@ -40,6 +40,7 @@ import java.io.File;
 import java.util.*;
 
 @By(DataSource.READS)
+// walker to count realigned reads
 public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
 
     public static final String ORIGINAL_CIGAR_TAG = "OC";

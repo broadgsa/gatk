@@ -4,12 +4,14 @@ import edu.mit.broad.picard.genotype.DiploidGenotype;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
+import org.broad.tribble.hapmap.HapMapFeature;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.MutableGenotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
@@ -42,9 +44,8 @@ public class VariantContextAdaptors {
 
     static {
         adaptors.put(DbSNPFeature.class, new DBSnpAdaptor());
-        adaptors.put(VCFRecord.class, new VCFRecordAdaptor());
         adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
-        adaptors.put(HapMapROD.class, new HapMapAdaptor());
+        adaptors.put(HapMapFeature.class, new HapMapAdaptor());
         adaptors.put(GeliTextFeature.class, new GeliTextAdaptor());
         adaptors.put(rodGELI.class, new GeliAdaptor());
         adaptors.put(VariantContext.class, new VariantContextAdaptor());
@@ -110,128 +111,14 @@ public class VariantContextAdaptors {
                 Map<String, String> attributes = new HashMap<String, String>();
                 attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
                 Collection<Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, GenomeLocParser.createGenomeLoc(dbsnp.getChr(),dbsnp.getStart(),dbsnp.getEnd()), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
+                VariantContext vc = new VariantContext(name, dbsnp.getChr(),dbsnp.getStart(),dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
                 return vc;
             } else
                 return null; // can't handle anything else
         }
     }
 
-    private static class VCFRecordAdaptor extends VCAdaptor {
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
-            return vcfToVariantContext(name, (VCFRecord)input, ref);
-        }
-    }
 
-    private static VariantContext vcfToVariantContext(String name, VCFRecord vcf, ReferenceContext ref) {
-        if ( vcf.isReference() || vcf.isSNP() || vcf.isIndel() ) {
-            // add the reference allele
-            if ( ! Allele.acceptableAlleleBases(vcf.getReference(),true) ) {
-                System.out.printf("Excluding vcf record %s%n", vcf);
-                return null;
-            }
-
-            Set<String> filters = vcf.isFiltered() ? new HashSet<String>(Arrays.asList(vcf.getFilteringCodes())) : null;
-            Map<String, String> attributes = new HashMap<String, String>(vcf.getInfoValues());
-            attributes.put(VariantContext.ID_KEY, vcf.getID());
-
-            // add all of the alt alleles
-            List<Allele> alleles = new ArrayList<Allele>();
-            Allele refAllele = determineRefAllele(vcf, ref);
-            alleles.add(refAllele);
-
-            for ( VCFGenotypeEncoding alt : vcf.getAlternateAlleles() ) {
-                if ( ! Allele.acceptableAlleleBases(alt.getBases(),false) ) {
-                    //System.out.printf("Excluding vcf record %s%n", vcf);
-                    return null;
-                }
-
-                Allele allele;
-                // special case: semi-deletion
-                if ( vcf.isDeletion() && refAllele.length() > alt.getLength() ) {
-                    byte[] semiDeletion = new byte[refAllele.length() - alt.getLength()];
-                    System.arraycopy(ref.getBases(), alt.getLength(), semiDeletion, 0, refAllele.length() - alt.getLength());
-                    allele = Allele.create(new String(semiDeletion), false);
-                } else {
-                    allele = Allele.create(alt.getBases(), false);
-                }
-                if ( ! allele.isNoCall() )
-                    alleles.add(allele);
-            }
-
-            Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
-            for ( VCFGenotypeRecord vcfG : vcf.getVCFGenotypeRecords() ) {
-                List<Allele> genotypeAlleles = new ArrayList<Allele>();
-                for ( VCFGenotypeEncoding s : vcfG.getAlleles() ) {
-                    Allele a = Allele.getMatchingAllele(alleles, s.getBases());
-                    if ( a == null ) {
-                        if ( vcf.isIndel() )
-                            genotypeAlleles.add(refAllele);
-                        else
-                            throw new StingException("Invalid VCF genotype allele " + s + " in VCF " + vcf);
-                    } else {
-                        genotypeAlleles.add(a);
-                    }
-                }
-
-                Map<String, String> fields = new HashMap<String, String>();
-                for ( Map.Entry<String, String> e : vcfG.getFields().entrySet() ) {
-                    // todo -- fixme if we put GQ and FT into key itself
-                    if ( ! e.getKey().equals(VCFConstants.GENOTYPE_QUALITY_KEY) && ! e.getKey().equals(VCFConstants.GENOTYPE_FILTER_KEY) )
-                        fields.put(e.getKey(), e.getValue());
-                }
-
-                Set<String> genotypeFilters = new HashSet<String>();
-                if ( vcfG.isFiltered() ) // setup the genotype filter fields
-                    genotypeFilters.addAll(Arrays.asList(vcfG.getFields().get(VCFConstants.GENOTYPE_FILTER_KEY).split(";")));
-
-                double qual = vcfG.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcfG.getNegLog10PError();
-                Genotype g = new Genotype(vcfG.getSampleName(), genotypeAlleles, qual, genotypeFilters, fields, vcfG.getPhaseType() == VCFGenotypeRecord.PHASE.PHASED);
-                genotypes.put(g.getSampleName(), g);
-            }
-
-            double qual = vcf.isMissingQual() ? VariantContext.NO_NEG_LOG_10PERROR : vcf.getNegLog10PError();
-
-            GenomeLoc loc = GenomeLocParser.createGenomeLoc(vcf.getChr(),vcf.getStart());
-            if ( vcf.isDeletion() )
-                loc = GenomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), loc.getStart()+refAllele.length()-1);
-
-            VariantContext vc = new VariantContext(name, loc, alleles, genotypes, qual, filters, attributes);
-            return vc;
-        } else
-            return null; // can't handle anything else
-    }
-
-    private static Allele determineRefAllele(VCFRecord vcf, ReferenceContext ref) {
-        if ( ref == null )
-            throw new StingException("Illegal determineRefAllele call!");
-
-        Allele refAllele;
-        if ( vcf.isInsertion() ) {
-            refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
-//        } else if ( ref == null ) {
-//            refAllele = Allele.create(vcf.getReference(), true);
-        } else if ( !vcf.isIndel() ) {
-            refAllele = Allele.create(ref.getBase(), true);
-            if ( (char)ref.getBase() != vcf.getReference().charAt(0) )
-                throw new StingException("The VCF reference base (" + vcf.getReference().charAt(0) + ") doesn't match the actual reference base (" + (char)ref.getBase() + "); please check that you are using the appropriate reference file");
-        } else if ( vcf.isDeletion() ) {
-            int start = vcf.getPosition() - (int)ref.getWindow().getStart() + 1;
-            int delLength = 0;
-            for ( VCFGenotypeEncoding enc : vcf.getAlternateAlleles() ) {
-                if ( enc.getLength() > delLength )
-                    delLength = enc.getLength();
-            }
-            if ( delLength > ref.getWindow().getStop() - vcf.getPosition() )
-                throw new IllegalArgumentException("Length of deletion is larger than reference context provided at " + ref.getLocus());
-
-            refAllele = deletionAllele(ref, start, delLength);
-        } else {
-            throw new UnsupportedOperationException("Conversion of VCF type " + vcf.getType() + " is not supported.");
-        }
-
-        return refAllele;
-    }
 
     private static Allele deletionAllele(ReferenceContext ref, int start, int len) {
         byte[] deletion = new byte[len];
@@ -314,7 +201,7 @@ public class VariantContextAdaptors {
             // create the variant context
             try {
                 GenomeLoc loc = GenomeLocParser.setStop(plink.getLocation(), plink.getLocation().getStop() + plink.getLength()-1);
-                VariantContext vc = new VariantContext(plink.getVariantName(), loc, VCAlleles, genotypes);
+                VariantContext vc = VariantContextUtils.toVC(plink.getVariantName(), loc, VCAlleles, genotypes);
                 return vc;
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(e.getMessage() + "; please make sure that e.g. a sample isn't present more than one time in your ped file");
@@ -399,7 +286,7 @@ public class VariantContextAdaptors {
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
                 alleles.add(refAllele);
-                VariantContext vc = new VariantContext(name, GenomeLocParser.createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
+                VariantContext vc = VariantContextUtils.toVC(name, GenomeLocParser.createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
                 return vc;
             } else
                 return null; // can't handle anything else
@@ -472,7 +359,7 @@ public class VariantContextAdaptors {
 
             // add the call to the genotype list, and then use this list to create a VariantContext
             genotypes.add(call);
-            VariantContext vc = new VariantContext(name, ((rodGELI) input).getLocation(), alleles, genotypes, geli.getBestToReferenceLod(), null, attributes);
+            VariantContext vc = VariantContextUtils.toVC(name, ((rodGELI) input).getLocation(), alleles, genotypes, geli.getBestToReferenceLod(), null, attributes);
             return vc;
 
         }
@@ -506,7 +393,7 @@ public class VariantContextAdaptors {
             if ( ref == null )
                 throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires a reference context");
 
-            HapMapROD hapmap = (HapMapROD)input;
+            HapMapFeature hapmap = (HapMapFeature)input;
 
             // add the reference allele
             HashSet<Allele> alleles = new HashSet<Allele>();
@@ -539,7 +426,7 @@ public class VariantContextAdaptors {
                 genotypes.put(samples[i], g);
             }
 
-            VariantContext vc = new VariantContext(name, hapmap.getLocation(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, new HashMap<String, String>());
+            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), hapmap.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, new HashMap<String, String>());
             return vc;
        }
     }

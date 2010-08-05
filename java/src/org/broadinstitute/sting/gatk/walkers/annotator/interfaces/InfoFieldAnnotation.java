@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 
 import java.util.Map;
 import java.util.List;

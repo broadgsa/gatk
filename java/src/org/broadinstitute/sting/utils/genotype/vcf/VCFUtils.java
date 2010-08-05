@@ -25,11 +25,14 @@
 
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.Utils;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -101,8 +104,11 @@ public class VCFUtils {
         return fields;
     }
 
+    
+
     public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers, Logger logger) throws IllegalStateException {
         HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
+        HashSet<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
 
         // todo -- needs to remove all version headers from sources and add its own VCF version line
         for ( VCFHeader source : headers ) {
@@ -110,7 +116,7 @@ public class VCFUtils {
             for ( VCFHeaderLine line : source.getMetaData()) {
                 String key = line.getKey();
 
-                if ( line instanceof VCFNamedHeaderLine )
+                if ( line instanceof VCFNamedHeaderLine)
                     key = key + "." + ((VCFNamedHeaderLine) line).getName();
 
                 if ( map.containsKey(key) ) {
@@ -119,9 +125,8 @@ public class VCFUtils {
                         continue;
                     else if ( ! line.getClass().equals(other.getClass()) )
                         throw new IllegalStateException("Incompatible header types: " + line + " " + other );
-                    else if ( line instanceof VCFFilterHeaderLine ) {
-                        String lineName = ((VCFFilterHeaderLine) line).getName();
-                        String otherName = ((VCFFilterHeaderLine) other).getName();
+                    else if ( line instanceof VCFFilterHeaderLine) {
+                        String lineName = ((VCFFilterHeaderLine) line).getName();                                                                                                         String otherName = ((VCFFilterHeaderLine) other).getName();
                         if ( ! lineName.equals(otherName) )
                             throw new IllegalStateException("Incompatible header types: " + line + " " + other );
                     } else if ( line instanceof VCFCompoundHeaderLine ) {
@@ -157,4 +162,18 @@ public class VCFUtils {
 
         return new HashSet<VCFHeaderLine>(map.values());
     }
+
+    /**
+     * return a set of supported format lines; what we currently support for output in the genotype fields of a VCF
+     * @return a set of VCF format lines
+     */
+    public static Set<VCFFormatHeaderLine> getSupportedHeaderStrings() {
+        Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+        return result;
+    }
+    
 }

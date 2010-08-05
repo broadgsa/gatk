@@ -27,15 +27,11 @@ package org.broadinstitute.sting.gatk.refdata.features.beagle;
 import org.broad.tribble.Feature;
 
 
-import org.broad.tribble.Feature;
-
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import net.sf.samtools.util.StringUtil;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broad.tribble.util.variantcontext.Allele;
 
 public class BeagleFeature implements Feature {
 

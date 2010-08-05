@@ -1,14 +1,15 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
@@ -83,7 +84,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
             if ( ! v.siteIsFiltered() ) {
                 ArrayList<HomozygosityRegion> brokenRegions = new ArrayList<HomozygosityRegion>(3);
                 // can only enter or break regions at unfiltered calls
-                for( Map.Entry<String,Genotype> memberGenotype : v.getUnderlyingGenotypes().entrySet() ) {
+                for( Map.Entry<String, Genotype> memberGenotype : v.getUnderlyingGenotypes().entrySet() ) {
                     // for each family member
                     if ( homozygousRegions.get(memberGenotype.getKey()) == null ) {
                         // currently in a heterozygous region, update if possible
@@ -202,7 +203,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
 
         public VariantContext toVariantContext() {
             newAttributes.putAll(trio.getAttributes());
-            return new VariantContext(trio.getName(),trio.getLocation(),trio.getAlleles(),trio.getGenotypes(),trio.getNegLog10PError(),trio.filtersWereApplied()?trio.getFilters():null,newAttributes);
+            return new VariantContext(trio.getName(), trio.getChr(), trio.getStart(), trio.getEnd(),trio.getAlleles(),trio.getGenotypes(),trio.getNegLog10PError(),trio.filtersWereApplied()?trio.getFilters():null,newAttributes);
         }
 
         public boolean siteIsFiltered() {
@@ -234,7 +235,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         }
 
         public GenomeLoc getLocus() {
-            return trio.getLocation();
+            return VariantContextUtils.getLocation(trio);
         }
 
         public byte getRefBase() {

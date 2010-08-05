@@ -28,9 +28,10 @@ package org.broadinstitute.sting.playground.gatk.walkers.graphalign;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
@@ -112,7 +113,7 @@ public class GraphReferenceBuilder extends RefWalker<Integer, Integer> {
             if ( ! alreadyAddedAtThisLoc ) {
                 // if we have multiple variants at a locus, just take the first damn one we see for now
                 // todo -- getAlternativeBases should be getAlleles()
-                GenomeLoc loc = vc.getLocation();
+                GenomeLoc loc = VariantContextUtils.getLocation(vc);
                 String[] allAllelesList = null; // variant.getAlternateBases().split(""); // todo fixme
                 if ( allAllelesList.length >= 3 ) { // bad dbSNP format :-(
                     List<String> alleles = Arrays.asList(allAllelesList).subList(1,3);

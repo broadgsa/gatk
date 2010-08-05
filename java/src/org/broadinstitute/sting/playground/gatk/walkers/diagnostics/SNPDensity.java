@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.diagnostics;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -58,6 +58,7 @@ public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDe
 
         public Counter(Long linearOffset) {
             this.linearOffset = linearOffset;
+            
             //System.out.printf("linear offset %d%n", linearOffset);
         }
     }

@@ -27,10 +27,11 @@ package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.dbsnp.DbSNPCodec;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
@@ -111,9 +112,9 @@ public class PickSequenomProbes extends RodWalker<String, String> {
         // we don't want to see the same multi-base deletion multiple times
         if ( positionOfLastVariant != null &&
                 positionOfLastVariant.size() > 1 &&
-                positionOfLastVariant.equals(vc.getLocation()) )
+                positionOfLastVariant.equals(VariantContextUtils.getLocation(vc)) )
             return "";
-        positionOfLastVariant = vc.getLocation();
+        positionOfLastVariant = VariantContextUtils.getLocation(vc);
 
 		String contig = context.getLocation().getContig();
 		long   offset = context.getLocation().getStart();

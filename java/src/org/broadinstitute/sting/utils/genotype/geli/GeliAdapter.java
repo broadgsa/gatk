@@ -4,12 +4,13 @@ import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.io.File;
 
@@ -150,8 +151,8 @@ public class GeliAdapter implements GeliGenotypeWriter {
         }
 
         LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        addCall(GenomeLocParser.getContigInfo(vc.getLocation().getContig()),
-                (int)vc.getLocation().getStart(),
+        addCall(GenomeLocParser.getContigInfo(vc.getChr()),
+                vc.getStart(),
                 ref,
                 maxMappingQual,
                 readCount,

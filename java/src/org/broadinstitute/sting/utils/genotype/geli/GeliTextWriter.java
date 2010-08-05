@@ -2,8 +2,9 @@ package org.broadinstitute.sting.utils.genotype.geli;
 
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -77,7 +78,7 @@ public class GeliTextWriter implements GeliGenotypeWriter {
         if ( vc.getNSamples() != 1 )
             throw new IllegalArgumentException("The Geli format does not support multi-sample or no-calls");
 
-        org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype genotype = vc.getGenotypes().values().iterator().next();
+        Genotype genotype = vc.getGenotypes().values().iterator().next();
         if ( genotype.isNoCall() )
             throw new IllegalArgumentException("The Geli format does not support no-calls");
 
@@ -128,8 +129,8 @@ public class GeliTextWriter implements GeliGenotypeWriter {
             sb.append(base);
 
         mWriter.println(String.format("%s    %16d  %c  %8d  %.0f  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
-                                      vc.getLocation().getContig(),
-                                      vc.getLocation().getStart(),
+                                      vc.getChr(),
+                                      vc.getStart(),
                                       ref,
                                       readCount,
                                       maxMappingQual,

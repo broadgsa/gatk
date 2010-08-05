@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.VariantContext;
 
 
 /*

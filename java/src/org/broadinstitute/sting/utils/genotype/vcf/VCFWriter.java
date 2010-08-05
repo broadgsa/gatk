@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -121,7 +121,7 @@ public class VCFWriter {
 
             vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, refBase);
 
-            GenomeLoc loc = vc.getLocation();
+            GenomeLoc loc = VariantContextUtils.getLocation(vc);
             Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size());
             alleleMap.put(Allele.NO_CALL, VCFConstants.EMPTY_ALLELE); // convenience for lookup
 

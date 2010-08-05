@@ -1,11 +1,13 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.util.*;
 
@@ -410,7 +412,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             attributes.put("SB", Double.valueOf(strandScore));
         }
 
-        VariantContext vc = new VariantContext("UG_SNP_call", loc, alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);
+        VariantContext vc = new VariantContext("UG_SNP_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);
 
         return new VariantCallContext(vc, passesCallThreshold(phredScaledConfidence));
     }

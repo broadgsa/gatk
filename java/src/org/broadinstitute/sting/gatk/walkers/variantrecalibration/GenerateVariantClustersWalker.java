@@ -26,9 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -41,7 +42,6 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -164,7 +164,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.annotations = annotationValues;
-                    variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+                    variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
                     variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes
                     if( variantDatum.alleleCount > maxAC ) {
                         maxAC = variantDatum.alleleCount;

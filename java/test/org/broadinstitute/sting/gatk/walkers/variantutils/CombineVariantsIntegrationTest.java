@@ -77,9 +77,9 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -B NA19240_BGI,VCF4,"+validationDataLocation+"NA19240.BGI.RG.vcf" +
-                        " -B NA19240_ILLUMINA,VCF4,"+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
-                        " -B NA19240_WUGSC,VCF4,"+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
+                baseTestString(" -B NA19240_BGI,VCF,"+validationDataLocation+"NA19240.BGI.RG.vcf" +
+                        " -B NA19240_ILLUMINA,VCF,"+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
+                        " -B NA19240_WUGSC,VCF,"+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
                         " -B denovoInfo,VCF,"+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
                         " -setKey centerSet" +
                         " -variantMergeOptions UNION" +

@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.SampleDataPoint;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluatorBySample;
@@ -78,7 +79,7 @@ class TiTvRatioSample extends SampleDataPoint {
 
     public void update2(VariantContext vc, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( vc != null && vc.isSNP() ) {
-            if ( vc.isTransition() ) {
+            if ( VariantContextUtils.isTransition(vc) ) {
                 nTi++;
             } else {
                 nTv++;

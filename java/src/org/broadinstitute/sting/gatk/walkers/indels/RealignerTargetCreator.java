@@ -25,9 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
@@ -123,7 +124,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
                         break;
                 }
                 if ( hasIndel )
-                    furthestStopPos = vc.getLocation().getStop();
+                    furthestStopPos = vc.getEnd();
             }
         }
 

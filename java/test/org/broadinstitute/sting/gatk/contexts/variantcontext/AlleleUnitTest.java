@@ -29,6 +29,7 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 // the imports for unit testing.
 
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Assert;
 import org.junit.Before;

@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;

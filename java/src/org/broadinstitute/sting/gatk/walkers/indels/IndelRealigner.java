@@ -27,9 +27,9 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
@@ -612,7 +612,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( knownIndel == null || !knownIndel.isIndel() )
                 continue;
             byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
-            int start = (int)(knownIndel.getLocation().getStart() - leftmostIndex) + 1;
+            int start = (int)(knownIndel.getStart() - leftmostIndex) + 1;
             Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel.isDeletion());
             if ( c != null )
                 altConsensesToPopulate.add(c);

@@ -27,7 +27,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.papergenotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
@@ -35,8 +34,6 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotypePriors;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-
-import java.io.PrintStream;
 
 
 /**

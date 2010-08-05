@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -125,7 +125,7 @@ public class VCFWriterUnitTest extends BaseTest {
             genotypes.put(name,gt);
             
         }
-        return new VariantContext("RANDOM",loc, alleles, genotypes, 0, filters, attributes);
+        return new VariantContext("RANDOM",loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, 0, filters, attributes);
 
 
     }

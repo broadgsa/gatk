@@ -8,9 +8,9 @@ import java.util.Iterator;
 import org.broad.tribble.FeatureSource;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.source.BasicFeatureSource;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.StingException;
 
 /** The VCFReader class, which given a valid vcf file, parses out the header and VariantContexts */

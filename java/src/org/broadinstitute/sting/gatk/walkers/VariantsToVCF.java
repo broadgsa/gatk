@@ -26,12 +26,13 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.hapmap.HapMapFeature;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
@@ -117,8 +118,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                         throw new IllegalStateException("No rod data is present");
 
                     Object rod = rods.get(0);
-                    if ( rod instanceof HapMapROD )
-                        samples.addAll(Arrays.asList(((HapMapROD)rod).getSampleIDs()));
+                    if ( rod instanceof HapMapFeature)
+                        samples.addAll(Arrays.asList(((HapMapFeature)rod).getSampleIDs()));
                     else
                         samples.addAll(vc.getSampleNames());
                 }

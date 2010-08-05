@@ -147,7 +147,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
 
         // FORMAT and INFO fields
-        headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings(VCFHeaderVersion.VCF3_3));
+        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings());
 
         // FILTER fields
         if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING ||

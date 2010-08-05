@@ -25,20 +25,15 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
-import org.broad.tribble.vcf.VCFRecord;
-import org.broad.tribble.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -138,7 +133,7 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
                 Genotype compGenotype = compGenotypes.get(sample);
 
 
-                outputWriter.format("%d %d %d %d %d ", vc_postbgl.getLocation().getStart(), alleleCountH, chrCountH,
+                outputWriter.format("%d %d %d %d %d ", vc_postbgl.getStart(), alleleCountH, chrCountH,
                         alleleCountEmp, chrCountEmp);
 
 

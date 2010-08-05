@@ -1,11 +1,13 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 
 import java.util.*;
 
@@ -72,7 +74,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
                 throw new StingException("Internal error (probably a bug): event does not conform to expected format: "+ bestEvent);
         }
 
-        VariantContext vc = new VariantContext("UG_Indel_call", loc, alleles, new HashMap<String,Genotype>() /* genotypes */,
+        VariantContext vc = new VariantContext("UG_Indel_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, new HashMap<String, Genotype>() /* genotypes */,
                 -1.0 /* log error */, null /* filters */, null /* attributes */);
 
         vcc = new VariantCallContext(vc,true);

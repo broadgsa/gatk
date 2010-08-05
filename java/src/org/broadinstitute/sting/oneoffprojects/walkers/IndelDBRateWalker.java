@@ -1,11 +1,12 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.Reference;
@@ -115,12 +116,12 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
 
     public OverlapTable getOverlapTable(ReferenceContext ref) {
         // step 1: check that the eval queue is non-empty and that we are outside the window
-        if ( evalContexts.isEmpty() || evalContexts.get(0).getLocation().distance(ref.getLocus()) <= indelWindow ) {
+        if ( evalContexts.isEmpty() || VariantContextUtils.getLocation(evalContexts.get(0)).distance(ref.getLocus()) <= indelWindow ) {
             return null;
         }
         // step 2: discard all comp variations which come before the window
-        while ( ! compContexts.isEmpty() && compContexts.get(0).getLocation().isBefore(ref.getLocus()) &&
-                compContexts.get(0).getLocation().distance(ref.getLocus()) > indelWindow) {
+        while ( ! compContexts.isEmpty() && VariantContextUtils.getLocation(compContexts.get(0)).isBefore(ref.getLocus()) &&
+                VariantContextUtils.getLocation(compContexts.get(0)).distance(ref.getLocus()) > indelWindow) {
             compContexts.remove(0);
         }
         // step 3: see if there are any contexts left; if so then they must be within the window
@@ -141,12 +142,12 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
     public OverlapTable nonEmptyOverlapTable(ReferenceContext ref) {
         if ( vcfWriter != null ) {
             int i = 0;
-            while ( i < compContexts.size() && compContexts.get(i).getLocation().isBefore(evalContexts.get(0).getLocation())) {
+            while ( i < compContexts.size() && VariantContextUtils.getLocation(compContexts.get(i)).isBefore(VariantContextUtils.getLocation(evalContexts.get(0)))) {
                 vcfWriter.add(compContexts.get(i),compContexts.get(i).getReference().getBases()[0]);
                 i++;
             }
             vcfWriter.add(evalContexts.get(0), ref.getBase());
-            while ( i < compContexts.size() && compContexts.get(i).getLocation().distance(evalContexts.get(0).getLocation()) <= indelWindow) {
+            while ( i < compContexts.size() && VariantContextUtils.getLocation(compContexts.get(i)).distance(VariantContextUtils.getLocation(evalContexts.get(0))) <= indelWindow) {
                 vcfWriter.add(compContexts.get(i), compContexts.get(i).getReference().getBases()[0]);
                 i++;
             }
@@ -183,8 +184,8 @@ class OverlapTable {
     public void setDistances(List<VariantContext> comps, VariantContext eval, int winsize) {
         distances = new ExpandingArrayList<Integer>();
         for ( VariantContext comp : comps ) {
-            if ( comp.getLocation().distance(eval.getLocation()) <= winsize ) {
-                distances.add(comp.getLocation().distance(eval.getLocation()));
+            if ( VariantContextUtils.getLocation(comp).distance(VariantContextUtils.getLocation(eval)) <= winsize ) {
+                distances.add(VariantContextUtils.getLocation(comp).distance(VariantContextUtils.getLocation(eval)));
             }
         }
     }

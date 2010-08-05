@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.refdata.features.vcf4.VCF4Codec;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -22,7 +21,7 @@ import java.util.List;
 public class VCFHeaderUnitTest extends BaseTest {
 
     private VCFHeader createHeader(String[] headerStr) {
-        VCF4Codec codec = new VCF4Codec();
+        VCFCodec codec = new VCFCodec();
         List<String> headerFields = new ArrayList<String>();
         for (String str : headerStr)
             headerFields.add(str);

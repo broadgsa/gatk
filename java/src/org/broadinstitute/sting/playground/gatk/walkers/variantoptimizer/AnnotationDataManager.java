@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
 
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 

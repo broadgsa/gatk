@@ -37,7 +37,6 @@ import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.util.LittleEndianInputStream;
 import org.broad.tribble.util.LittleEndianOutputStream;
-import org.broad.tribble.vcf.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
@@ -69,6 +68,9 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
 
     // what index to use
     static boolean useLinearIndex = true;
+
+    // our bin size
+    static int binSize = 1600;
 
     // the linear index extension
     public static final String indexExtension = ".idx";
@@ -239,11 +241,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
         // check if the file is up-to date (filestamp and version check)
-        if (index.isCurrentVersion() && indexFile.lastModified() > inputFile.lastModified())
+        if (/*index.isCurrentVersion() &&  */ indexFile.lastModified() > inputFile.lastModified())
             return index;
         else if (indexFile.lastModified() < inputFile.lastModified())
             logger.warn("Index file " + indexFile + " is out of date (index older than input file), deleting and updating the index file");
-        else // we've loaded an old version of the index, we want to remove it
+        else // we've loaded an old version of the index, we want to remove it <-- currently not used, but may re-enable
             logger.warn("Index file " + indexFile + " is out of date (old version), deleting and updating the index file");
 
         // however we got here, remove the index and return null
@@ -300,10 +302,13 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
         IndexCreator creator;
-        if (useLinearIndex)
+        if (useLinearIndex) {
             creator = new LinearIndexCreator(inputFile,codec,null);
-        else
+            ((LinearIndexCreator)creator).setBinWidth(binSize);
+        } else {
             creator = new IntervalIndexCreator(inputFile, codec, null);
+            ((IntervalIndexCreator)creator).setFeaturesPerInterval(binSize);  
+        }
         return creator.createIndex();
     }
 

@@ -3,9 +3,10 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.MutableGenotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.MutableGenotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.CalledGenotype;
@@ -159,7 +160,7 @@ public class GLFWriter implements GLFGenotypeWriter {
         if ( vc.getNSamples() != 1 )
             throw new IllegalArgumentException("The GLF format does not support multi-sample or no-calls");
 
-        org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype genotype = vc.getGenotypes().values().iterator().next();
+        Genotype genotype = vc.getGenotypes().values().iterator().next();
         if ( genotype.isNoCall() )
             throw new IllegalArgumentException("The GLF format does not support no-calls");
 
@@ -194,7 +195,7 @@ public class GLFWriter implements GLFGenotypeWriter {
         if (genotype.hasAttribute(VCFConstants.DEPTH_KEY) && 0 == readCount)
             readCount = (Integer)((MutableGenotype)genotype).getAttribute(VCFConstants.DEPTH_KEY);
 
-        addCall(GenomeLocParser.getContigInfo(vc.getLocation().getContig()), (int)vc.getLocation().getStart(), (float) rms, ref, readCount, obj);
+        addCall(GenomeLocParser.getContigInfo(vc.getChr()), vc.getStart(), (float) rms, ref, readCount, obj);
     }
 
 

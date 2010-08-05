@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broad.tribble.vcf.VCFCodec;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.gatk.refdata.features.vcf4.VCF4Codec;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderUnitTest;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.junit.Assert;
@@ -60,7 +60,7 @@ public class CombineVariantsUnitTest {
                 };
 
     private VCFHeader createHeader(String[] headerStr) {
-        VCF4Codec codec = new VCF4Codec();
+        VCFCodec codec = new VCFCodec();
         List<String> headerFields = new ArrayList<String>();
         for (String str : headerStr)
             headerFields.add(str);

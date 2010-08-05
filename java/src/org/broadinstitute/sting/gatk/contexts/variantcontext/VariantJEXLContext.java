@@ -25,7 +25,8 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
-//import org.apache.commons.jexl2.JexlHelper;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broad.tribble.vcf.VCFConstants;
@@ -58,8 +59,8 @@ class VariantJEXLContext implements JexlContext {
     private static Map<String, AttributeGetter> x = new HashMap<String, AttributeGetter>();
 
     static {
-        x.put("CHROM",   new AttributeGetter() { public Object get(VariantContext vc) { return vc.getLocation().getContig(); }});
-        x.put("POS",     new AttributeGetter() { public Object get(VariantContext vc) { return vc.getLocation().getStart(); }});
+        x.put("CHROM",   new AttributeGetter() { public Object get(VariantContext vc) { return vc.getChr(); }});
+        x.put("POS",     new AttributeGetter() { public Object get(VariantContext vc) { return vc.getStart(); }});
         x.put("TYPE",    new AttributeGetter() { public Object get(VariantContext vc) { return vc.getType().toString(); }});
         x.put("QUAL",    new AttributeGetter() { public Object get(VariantContext vc) { return 10 * vc.getNegLog10PError(); }});
         x.put("ALLELES", new AttributeGetter() { public Object get(VariantContext vc) { return vc.getAlleles(); }});
@@ -164,8 +165,8 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
 
             if ( vc != null ) {
                 // create a mapping of what we know about the variant context, its Chromosome, positions, etc.
-                infoMap.put("CHROM", vc.getLocation().getContig());
-                infoMap.put("POS", String.valueOf(vc.getLocation().getStart()));
+                infoMap.put("CHROM", VariantContextUtils.getLocation(vc).getContig());
+                infoMap.put("POS", String.valueOf(VariantContextUtils.getLocation(vc).getStart()));
                 infoMap.put("TYPE", vc.getType().toString());
                 infoMap.put("QUAL", String.valueOf(vc.getPhredScaledQual()));
 

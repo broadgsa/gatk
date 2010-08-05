@@ -26,10 +26,11 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -180,7 +181,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     final VariantDatum variantDatum = new VariantDatum();
-                    variantDatum.isTransition = vc.getSNPSubstitutionType().compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+                    variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
 
                     final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                     variantDatum.isKnown = dbsnp != null;
@@ -213,7 +214,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     attrs.put("OQ", String.format("%.2f", ((Double)vc.getPhredScaledQual())));
                     Set<String> filters = new HashSet<String>();
                     filters.add(VCFConstants.PASSES_FILTERS_v4);
-                    VariantContext newVC = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.getGenotypes(), variantDatum.qual / 10.0, filters, attrs);
+                    VariantContext newVC = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), variantDatum.qual / 10.0, filters, attrs);
 
                     vcfWriter.add( newVC, ref.getBase() );
 

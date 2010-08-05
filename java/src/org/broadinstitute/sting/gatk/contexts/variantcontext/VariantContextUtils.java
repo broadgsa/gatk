@@ -26,15 +26,58 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 import java.io.Serializable;
 import java.util.*;
 import org.apache.commons.jexl2.*;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
+import org.broad.tribble.util.variantcontext.*;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broad.tribble.vcf.VCFConstants;
 
 public class VariantContextUtils {
     final public static JexlEngine engine = new JexlEngine();
+
+    /**
+     * Create a new VariantContext
+     *
+     * @param name            name
+     * @param loc             location
+     * @param alleles         alleles
+     * @param genotypes       genotypes set
+     * @param negLog10PError  qual
+     * @param filters         filters: use null for unfiltered and empty set for passes filters
+     * @param attributes      attributes
+     */
+    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
+        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes != null ? VariantContext.genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes);
+    }
+
+    /**
+     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
+     * @param name            name
+     * @param loc             location
+     * @param alleles         alleles
+     */
+    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles) {
+        return new VariantContext (name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, VariantContext.NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+    }
+
+    /**
+     * Create a new variant context without genotypes and no Perror, no filters, and no attributes
+     * @param name            name
+     * @param loc             location
+     * @param alleles         alleles
+     * @param genotypes       genotypes
+     */
+    public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
+        return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
+    }
+
+    /**
+     * Copy constructor
+     *
+     * @param other the VariantContext to copy
+     */
+    public static VariantContext toVC(VariantContext other) {
+        return new VariantContext(other.getName(), other.getChr(), other.getStart(), other.getEnd(), other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.getFilters(), other.getAttributes());
+    }
 
     /** 
      * A simple but common wrapper for matching VariantContext objects using JEXL expressions
@@ -230,7 +273,7 @@ public class VariantContextUtils {
         // establish the baseline info from the first VC
         VariantContext first = VCs.get(0);
         String name = first.getName();
-        GenomeLoc loc = first.getLocation();
+        GenomeLoc loc = getLocation(first);
 
         Set<Allele> alleles = new TreeSet<Allele>();
         Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
@@ -250,11 +293,11 @@ public class VariantContextUtils {
         // cycle through and add info from the other VCs, making sure the loc/reference matches
 
         for ( VariantContext vc : VCs ) {
-            if ( loc.getStart() != vc.getLocation().getStart() ) // || !first.getReference().equals(vc.getReference()) )
+            if ( loc.getStart() != vc.getStart() ) // || !first.getReference().equals(vc.getReference()) )
                 throw new StingException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
 
-            if ( vc.getLocation().size() > loc.size() )
-                loc = vc.getLocation(); // get the longest location
+            if ( getLocation(vc).size() > loc.size() )
+                loc = getLocation(vc); // get the longest location
 
             nFiltered += vc.isFiltered() ? 1 : 0;
             nVariant += vc.isVariant() ? 1 : 0;
@@ -331,7 +374,7 @@ public class VariantContextUtils {
         if ( rsID != null )
             attributes.put(VariantContext.ID_KEY, rsID);
 
-        VariantContext merged = new VariantContext(name, loc, alleles, genotypes, negLog10PError, filters, attributes);
+        VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, attributes);
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
@@ -483,7 +526,7 @@ public class VariantContextUtils {
                         g.getFilters(),g.getAttributes(),g.genotypesArePhased()));
 
             }
-            return new VariantContext(inputVC.getName(), inputVC.getLocation(), alleles, genotypes, inputVC.getNegLog10PError(),
+            return new VariantContext(inputVC.getName(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(),
                     inputVC.getFilters(), attributes);
 
         }
@@ -500,7 +543,7 @@ public class VariantContextUtils {
         boolean padVC;
 
         // We need to pad a VC with a common base if the reference allele length is less than the vc location span.
-        long locLength = inputVC.getLocation().size();
+        long locLength = getLocation(inputVC).size();
         if (refAllele.length() == locLength)
             padVC = false;
         else if (refAllele.length() == locLength-1)
@@ -552,7 +595,7 @@ public class VariantContextUtils {
                         g.getFilters(),g.getAttributes(),g.genotypesArePhased()));
 
             }
-            return new VariantContext(inputVC.getName(), inputVC.getLocation(), alleles, genotypes, inputVC.getNegLog10PError(),
+            return new VariantContext(inputVC.getName(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(),
                     inputVC.getFilters(), attributes);
 
 
@@ -616,19 +659,19 @@ public class VariantContextUtils {
     }
 
     public static VariantContext modifyGenotypes(VariantContext vc, Map<String, Genotype> genotypes) {
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
     }
 
     public static VariantContext modifyLocation(VariantContext vc, GenomeLoc loc) {
-        return new VariantContext(vc.getName(), loc, vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+        return new VariantContext(vc.getName(), loc.getContig(), loc.getStart(), loc.getStop(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
     }
 
     public static VariantContext modifyFilters(VariantContext vc, Set<String> filters) {
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
+        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd() , vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), filters, vc.getAttributes());
     }
 
     public static VariantContext modifyAttributes(VariantContext vc, Map<String, Object> attributes) {
-        return new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes);
+        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes);
     }
 
     public static Genotype modifyName(Genotype g, String name) {
@@ -655,4 +698,34 @@ public class VariantContextUtils {
 
         return VariantContextUtils.modifyGenotypes(vc, newGenotypes);
     }
+
+    public static BaseUtils.BaseSubstitutionType getSNPSubstitutionType(VariantContext context) {
+        if (!context.isSNP() || !context.isBiallelic())
+            throw new IllegalStateException("Requested SNP substitution type for bialleic non-SNP " + context);
+        return BaseUtils.SNPSubstitutionType(context.getReference().getBases()[0], context.getAlternateAllele(0).getBases()[0]);
+    }
+
+    /**
+     * If this is a BiAlleic SNP, is it a transition?
+     */
+    public static boolean isTransition(VariantContext context) {
+        return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSITION;
+    }
+
+    /**
+     * If this is a BiAlleic SNP, is it a transversion?
+     */
+    public static boolean isTransversion(VariantContext context) {
+        return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
+    }
+
+    /**
+     * create a genome location, given a variant context
+     * @param vc the variant context
+     * @return the genomeLoc
+     */
+    public static final GenomeLoc getLocation(VariantContext vc) {
+        return GenomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd());
+    }
+
 }

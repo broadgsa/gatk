@@ -1,12 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
@@ -14,8 +13,6 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.analysis.AminoAcid;
 import org.broadinstitute.sting.utils.analysis.AminoAcidTable;
 import org.broadinstitute.sting.utils.analysis.AminoAcidUtils;
-
-import java.util.ArrayList;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -201,7 +198,7 @@ public class AminoAcidTransition extends VariantEvaluator {
             } else if ( alternate == null ) {
                 interesting = "Unknown Alternate Codon";
             } else {
-                acidTable.update(reference,alternate,eval.isTransition());
+                acidTable.update(reference,alternate, VariantContextUtils.isTransition(eval));
             }
 
         }

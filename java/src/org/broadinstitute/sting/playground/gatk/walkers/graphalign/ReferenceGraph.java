@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.graphalign;
 
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleDirectedGraph;
 import org.apache.log4j.Logger;
@@ -12,7 +12,6 @@ import net.sf.samtools.util.StringUtil;
 import java.util.*;
 import java.io.Serializable;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
 
 /**

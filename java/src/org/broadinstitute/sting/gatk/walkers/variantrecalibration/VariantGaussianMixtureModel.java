@@ -26,7 +26,8 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
@@ -522,7 +523,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
             } catch( Exception e ) {
                 throw new StingException("No double value detected for annotation = " + annotationKey +
-                        " in variant at " + vc.getLocation() + ", reported annotation value = " + vc.getAttribute( annotationKey ) ); 
+                        " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ) );
             }
         }
         return value;

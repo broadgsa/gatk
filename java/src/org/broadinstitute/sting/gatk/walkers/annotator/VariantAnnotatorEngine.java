@@ -38,12 +38,12 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
@@ -252,7 +252,7 @@ public class VariantAnnotatorEngine {
         //Create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
         Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
         for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
-            returnValue.add( new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
+            returnValue.add( new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
         }
 
         return returnValue;

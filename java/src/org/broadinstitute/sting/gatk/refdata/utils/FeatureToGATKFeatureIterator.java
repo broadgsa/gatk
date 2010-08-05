@@ -25,6 +25,7 @@ package org.broadinstitute.sting.gatk.refdata.utils;
 
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.Feature;
+import org.broad.tribble.iterators.CloseableTribbleIterator;
 
 import java.util.Iterator;
 
@@ -38,10 +39,10 @@ import java.util.Iterator;
  * a wrapper on Tribble feature iterators so that they produce GATKFeatures (which produce GenomeLocs)
  */
 public class FeatureToGATKFeatureIterator implements CloseableIterator<GATKFeature> {
-    private final CloseableIterator<Feature> iterator;
+    private final CloseableTribbleIterator<Feature> iterator;
     private final String name;
 
-    public FeatureToGATKFeatureIterator(CloseableIterator<Feature> iter, String name) {
+    public FeatureToGATKFeatureIterator(CloseableTribbleIterator<Feature> iter, String name) {
         this.name = name;
         this.iterator = iter;
     }
@@ -63,6 +64,6 @@ public class FeatureToGATKFeatureIterator implements CloseableIterator<GATKFeatu
 
     @Override
     public void close() {
-        this.iterator.close();
+        // we don't close them anymore
     }
 }

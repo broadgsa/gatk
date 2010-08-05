@@ -25,10 +25,11 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
@@ -233,7 +234,7 @@ public class VariantQualityScore extends VariantEvaluator {
 
         if( eval != null && eval.isSNP() && eval.isBiallelic() ) { //BUGBUG: only counting biallelic sites (revisit what to do with triallelic sites)
             if( titvStats == null ) { titvStats = new TiTvStats(); }
-            titvStats.incrValue(eval.getPhredScaledQual(), eval.isTransition());
+            titvStats.incrValue(eval.getPhredScaledQual(), VariantContextUtils.isTransition(eval));
 
             if( alleleCountStats == null ) { alleleCountStats = new AlleleCountStats(); }
             int alternateAlleleCount = 0;

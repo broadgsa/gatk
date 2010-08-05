@@ -8,6 +8,9 @@
     <property name="java.classes" value="${build.dir}/java/classes" />
     <property name="resource.file" value="StingText.properties" />
 
+    <!-- where to find the tribble distro -->
+    <property name="tribble.dir" value="tribble" />
+
     <!-- where to find 'findbugs', which you must set if you plan to use 'ant findbugs' -->
     <property name="findbugs.home" value="./findbugs"/>
 
@@ -108,7 +111,7 @@
       <mkdir dir="${java.classes}"/>
     </target>
 
-    <target name="java.compile" depends="init,resolve"
+    <target name="java.compile" depends="tribble,init,resolve"
             description="compile the source">
       <!-- Compile the java code from ${src} into build -->
       <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
@@ -357,7 +360,8 @@
             <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
                 <formatter type="brief" usefile="false" />
                 <formatter type="xml"/> 
-
+                <jvmarg value="-Xdebug"/>
+                <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8091"/>
                 <classpath>
                     <pathelement location="${java.classes}"/>
                     <path refid="runtime.dependencies"/>
@@ -378,26 +382,54 @@
 
 
     <!-- our three different test conditions: Test, IntegrationTest, PerformanceTest -->
-    <target name="test" depends="java.test.compile" description="Run unit tests">
+    <target name="test" depends="java.test.compile,tribble.test" description="Run unit tests">
         <condition property="ttype" value="*UnitTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${ttype}"/>
     </target>
-    <target name="integrationtest" depends="java.test.compile" description="Run unit tests">
+    <target name="integrationtest" depends="java.test.compile" description="Run integration tests">
         <condition property="itype" value="*IntegrationTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${itype}"/>
     </target>
-    <target name="performancetest" depends="java.test.compile" description="Run unit tests">
+    <target name="performancetest" depends="java.test.compile" description="Run performance tests">
        <condition property="ptype" value="*PerformanceTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${ptype}"/>
     </target>
-    
+
     <!-- ***************************************************************************** -->
+    <!-- ***********                     Tribble                             ********* -->
+    <!-- ***************************************************************************** -->
+    <!-- compile the library -->
+    <target name="tribble.compile" description="compiles the tribble library">
+        <echo message="Building the Tribble Library..."/>
+        <ant antfile="build.xml" target="all" dir="${tribble.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- build the jar -->
+    <target name="tribble" description="Builds the tribble jar" depends="tribble.compile">
+        <copy todir="lib">
+                <fileset dir="${tribble.dir}/dist" includes="*.jar"/>
+            </copy>
+    </target>
+
+    <!-- test tribble using the unit tests set in tribble -->
+    <target name="tribble.test" description="runs the tribble tests" depends="tribble.compile">
+        <echo message="Testing the Tribble Library..."/>
+        <ant antfile="build.xml" target="test" dir="${tribble.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- clean tribble -->
+    <target name="tribble.clean" description="cleans the tribble library">
+        <echo message="Cleaning the Tribble Library..."/>
+        <ant antfile="build.xml" target="clean" dir="${tribble.dir}" inheritAll="false"/>
+    </target>
+    <!-- ***************************************************************************** -->
+
 
     <target name="javadoc" depends="init,resolve" description="generates javadoc">
       <mkdir dir="javadoc"/>
@@ -482,11 +514,14 @@
 
 
 
-    <target name="clean" description="clean up">
+    <target name="clean" description="clean up" depends="tribble.clean">
         <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="lib"/>
         <delete dir="staging"/>
         <delete dir="${dist.dir}"/>
+        <!-- When we clean, make sure to clean out tribble as well -->
+        <ant antfile="tribble/build.xml" target="clean"/>
+
     </target>
 </project>

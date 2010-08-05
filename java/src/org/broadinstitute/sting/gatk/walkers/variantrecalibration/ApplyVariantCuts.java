@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -194,7 +194,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                     if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
                         Set<String> filters = new HashSet<String>();
                         filters.add(filterString);
-                        vc = new VariantContext(vc.getName(), vc.getLocation(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), filters, vc.getAttributes());
+                        vc = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), filters, vc.getAttributes());
                     }
                 }
                 vcfWriter.add( vc, ref.getBase() );
