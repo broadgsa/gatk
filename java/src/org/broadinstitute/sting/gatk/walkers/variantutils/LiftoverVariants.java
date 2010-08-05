@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -71,7 +72,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         liftOver.validateToSequences(toHeader.getSequenceDictionary());
 
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
-        Map<String, VCFHeader> vcfHeaders = SampleUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
+        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
         writer = new VCFWriter(out);
         final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);

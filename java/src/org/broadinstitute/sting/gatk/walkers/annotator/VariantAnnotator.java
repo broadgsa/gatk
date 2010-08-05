@@ -135,7 +135,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")));
         hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 

@@ -43,6 +43,24 @@ public class VCFUtils {
      */
     private VCFUtils() { }
 
+    public static Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
+        Map<String, VCFHeader> data = new HashMap<String, VCFHeader>();
+
+        // iterate to get all of the sample names
+        List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            // ignore the rod if it's not in our list
+            if ( rodNames != null && !rodNames.contains(source.getName()) )
+                continue;
+
+            RMDTrack rod = source.getReferenceOrderedData();
+            if ( rod.getHeader() != null && rod.getHeader() instanceof VCFHeader )
+                data.put(rod.getName(), (VCFHeader)rod.getHeader());
+        }
+
+        return data;
+    }
+
     /**
      * Gets the header fields from all VCF rods input by the user
      *
@@ -51,6 +69,18 @@ public class VCFUtils {
      * @return a set of all fields
      */
     public static Set<VCFHeaderLine> getHeaderFields(GenomeAnalysisEngine toolkit) {
+        return getHeaderFields(toolkit, null);
+    }
+
+    /**
+     * Gets the header fields from all VCF rods input by the user
+     *
+     * @param toolkit    GATK engine
+     * @param rodNames   names of rods to use, or null if we should use all possible ones
+     *
+     * @return a set of all fields
+     */
+    public static Set<VCFHeaderLine> getHeaderFields(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
 
         // keep a map of sample name to occurrences encountered
         TreeSet<VCFHeaderLine> fields = new TreeSet<VCFHeaderLine>();
@@ -58,6 +88,10 @@ public class VCFUtils {
         // iterate to get all of the sample names
         List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
+            // ignore the rod if it's not in our list
+            if ( rodNames != null && !rodNames.contains(source.getName()) )
+                continue;
+
             RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getRecordType().equals(VariantContext.class)) {
                 fields.addAll(((VCFHeader)rod.getHeader()).getMetaData());

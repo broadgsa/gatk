@@ -233,7 +233,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")));
         hInfo.add(new VCFHeaderLine("source", "Annotator"));
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());

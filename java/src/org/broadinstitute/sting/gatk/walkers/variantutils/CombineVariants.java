@@ -80,7 +80,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         vcfWriter = new VCFWriter(out);
         validateAnnotateUnionArguments();
 
-        Map<String, VCFHeader> vcfRods = SampleUtils.getVCFHeadersFromRods(getToolkit(), null);
+        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
         Set<String> samples = SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
         String[] annotationsToUse = {};
