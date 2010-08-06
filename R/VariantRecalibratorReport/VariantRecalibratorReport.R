@@ -124,6 +124,7 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     mult2 = c[[1]]$conversions[[cindex2]]$multiplier;
     off2 = c[[1]]$conversions[[cindex2]]$offset;
 
+    # todo -- should only include min/max actually observed if bounds are bigger than actual distributions
     xvalsForLims = c(-5, 5)
     yvalsForLims = c(-5, 5)
     #xvalsForLims = (d.known[,index1] - off1)/mult1
