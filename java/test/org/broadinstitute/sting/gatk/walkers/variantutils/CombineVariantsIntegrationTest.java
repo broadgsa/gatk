@@ -51,9 +51,9 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
          executeTest("testInOut1--" + file, spec);
     }
 
-    public void combine2(String file1, String file2, String md5) {
+    public void combine2(String file1, String file2, String args, String md5) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1,v2 -B v1,VCF," + validationDataLocation + file1 + " -B v2,VCF," + validationDataLocation + file2),
+                 baseTestString(" -priority v1,v2 -B v1,VCF," + validationDataLocation + file1 + " -B v2,VCF," + validationDataLocation + file2 + args),
                  1,
                  Arrays.asList(md5));
          executeTest("combine2 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
@@ -68,12 +68,13 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "4c667935099544a1863e70ae88ddd685"); }
     @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "17c8468b1b963c9abc49dff17fd811ba"); }
 
-    @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "f3fce9ae729548e7e7c378a8282df235"); } // official project VCF files in tabix format
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "7fce3e9539ce4eb0a839d9236c928dfc"); }
+    @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "", "f3fce9ae729548e7e7c378a8282df235"); } // official project VCF files in tabix format
+    @Test public void combineTrioCallsMin() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", " -minimalVCF", "7ad58764b855ec7ad61075dda63567b3"); } // official project VCF files in tabix format
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "7fce3e9539ce4eb0a839d9236c928dfc"); }
 
-    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "528cff763b95b82717008d2c05e8c393"); }
+    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "528cff763b95b82717008d2c05e8c393"); }
 
-    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "a9126d1cbe1fdf741236763fb3e3461f"); }
+    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "a9126d1cbe1fdf741236763fb3e3461f"); }
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(

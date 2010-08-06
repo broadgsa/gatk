@@ -68,6 +68,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="If true, then filtered VCFs are treated as uncalled, so that filtered set annotation don't appear in the combined VCF", required=false)
     public boolean filteredAreUncalled = false;
 
+    @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="If true, then the output VCF will contain no INFO or genotype INFO field", required=false)
+    public boolean minimalVCF = false;
+
     @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
     public String SET_KEY = "set";
 
@@ -130,6 +133,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         if ( mergedVC != null ) { // only operate at the start of events
             VariantContext annotatedMergedVC = engine.annotateContext(tracker, ref, mergedVC);
+            if ( minimalVCF )
+                annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, new HashSet(Arrays.asList(SET_KEY)));
             vcfWriter.add(annotatedMergedVC, ref.getBase());
         }
 
