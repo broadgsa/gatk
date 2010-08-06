@@ -25,8 +25,7 @@ public class RealignerTargetCreatorIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
                 "-T RealignerTargetCreator -R " + b36KGReference + " -B indels,VCF," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 -BTI indels -o %s",
                  1,
-                 Arrays.asList("1a11cfc9cc713617c82bdec503ebe02a"));
-        //TODO -- Guillermo, re-enable this when the VCF->VC conversion works with indels
-        //executeTest("test rods only", spec3);
+                 Arrays.asList("5206cee6c01b299417bf2feeb8b3dc96"));
+        executeTest("test rods only", spec3);
     }
 }
