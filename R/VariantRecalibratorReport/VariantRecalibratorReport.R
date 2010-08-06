@@ -14,10 +14,11 @@ vcfTable = args[3];
 if (is.na(vcfTable)) { vcfTable = "/home/radon01/kiran/scr1/projects/DataProcessingPaper/scratch/MarkBustedWEx.table"; }
 
 lociFile = args[4];
-if (is.na(lociFile)) { lociFile = "/home/radon01/kiran/scr1/projects/DataProcessingPaper/scratch/MarkBustedWEx.loci"; }
+if (is.na(lociFile) | lociFile == "NA" ) { lociFile = "/home/radon01/kiran/scr1/projects/DataProcessingPaper/scratch/MarkBustedWEx.loci"; }
 
 maxVariants = args[5];
 if (is.na(maxVariants)) { maxVariants = -1; }
+maxVariants = as.integer(maxVariants)
 
 getAnnIndex <- function(d, ann) {
     index = -1;
@@ -123,8 +124,12 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     mult2 = c[[1]]$conversions[[cindex2]]$multiplier;
     off2 = c[[1]]$conversions[[cindex2]]$offset;
 
-    xlims = c(min((d.novel[,index1] - off1)/mult1), 1.2*max((d.novel[,index1] - off1)/mult1)); 
-    ylims = c(min((d.novel[,index2] - off2)/mult2), max((d.novel[,index2] - off2)/mult2)); 
+    xvalsForLims = c(-5, 5)
+    yvalsForLims = c(-5, 5)
+    #xvalsForLims = (d.known[,index1] - off1)/mult1
+    #yvalsForLims = (d.known[,index2] - off2)/mult2
+    xlims = c(min(xvalsForLims), 1.2*max(xvalsForLims)); 
+    ylims = c(min(yvalsForLims), max(yvalsForLims)); 
 
     clusterColors = c("#A62103", "#F27405", "#F29F05", "#F2B705", "#F2CB05");
 
@@ -133,10 +138,14 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     par(mar=c(5, 6, 2, 5));
     plot(0, 0, type="n", xaxt="n", yaxt="n", xlim=xlims, ylim=ylims, xlab=ann1, ylab=ann2, bty="n");
 
-    mv.known = ifelse(maxVariants == -1, nrow(d.known), maxVariants);
-    mv.novel = ifelse(maxVariants == -1, nrow(d.novel), maxVariants);
-    points(((d.known[,index1] - off1)/mult1)[1:mv.known], ((d.known[,index2] - off2)/mult2)[1:mv.known], pch=19, cex=0.4, col="blue");
-    points(((d.novel[,index1] - off1)/mult1)[1:mv.novel], ((d.novel[,index2] - off2)/mult2)[1:mv.novel], pch=19, cex=0.4, col="red");
+    mv.known = if (maxVariants == -1 | maxVariants >= nrow(d.known)) { seq(1, nrow(d.known)) } else { as.integer(runif(maxVariants, 1, nrow(d.known)+1))}
+    mv.novel = if (maxVariants == -1 | maxVariants >= nrow(d.novel)) { 1:nrow(d.novel) } else { as.integer(runif(maxVariants, 1, nrow(d.novel)+1)) }
+    
+    print(dim(mv.known))
+    print(maxVariants)
+    
+    points(((d.known[,index1] - off1)/mult1)[mv.known], ((d.known[,index2] - off2)/mult2)[mv.known], pch=19, cex=0.3, col="#0000FF33");
+    points(((d.novel[,index1] - off1)/mult1)[mv.novel], ((d.novel[,index2] - off2)/mult2)[mv.novel], pch=19, cex=0.3, col="#FF000033");
 
     for (clusterIndex in c(1:length(c))) {
         mu = c(c[[clusterIndex]]$means[cindex1], c[[clusterIndex]]$means[cindex2]);
@@ -161,7 +170,7 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
         else if (weight > 0.60 && weight <= 0.80) { color = clusterColors[4]; }
         else if (weight > 0.80) { color = clusterColors[5]; }
 
-        lineweight = ifelse(weight > 0.50, 2, 1);
+        lineweight = ifelse(weight > 0.50, 4, 3);
 
         points(mu[1], mu[2], pch=21, col=color, cex=0.5);
         points(ellipse(t(cov), centre=mu), type="l", lwd=lineweight, col=color);
@@ -208,13 +217,14 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     dev.off();
 }
 
-d = read.table(vcfTable, header=TRUE);
-c = read.clusters(clusterFile);
 l = c();
 if (!is.na(lociFile)) {
     t = read.table(lociFile, header=TRUE);
     l = t$POS;
 }
+
+d = read.table(vcfTable, header=TRUE);
+c = read.clusters(clusterFile);
 
 d.known = d[which(d$DB == 1),];
 d.novel = d[which(d$DB == 0),];
