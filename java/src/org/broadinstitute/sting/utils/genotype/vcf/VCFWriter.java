@@ -315,10 +315,6 @@ public class VCFWriter {
 
                 VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(key);
                 if ( metaData != null ) {
-                    VCFHeaderLineType formatType = metaData.getType();
-                    if ( !(val instanceof String) )
-                        val = formatType.convert(String.valueOf(val), VCFCompoundHeaderLine.SupportedHeaderLineType.FORMAT);
-
                     int numInFormatField = metaData.getCount();
                     if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
                         // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
@@ -340,7 +336,7 @@ public class VCFWriter {
 
             // strip off trailing missing values
             for (int i = attrs.size()-1; i >= 0; i--) {
-                if ( attrs.get(i).equals(VCFConstants.MISSING_VALUE_v4) )
+                if ( isMissingValue(attrs.get(i)) )
                     attrs.remove(i);
                 else
                     break;
@@ -351,6 +347,11 @@ public class VCFWriter {
                 mWriter.write(s);
             }
         }
+    }
+
+    private boolean isMissingValue(String s) {
+        // we need to deal with the case that it's a list of missing values
+        return (MathUtils.countOccurrences(VCFConstants.MISSING_VALUE_v4.charAt(0), s) + MathUtils.countOccurrences(',', s) == s.length());
     }
 
     private void writeAllele(Allele allele, Map<Allele, String> alleleMap) throws IOException {
@@ -369,13 +370,15 @@ public class VCFWriter {
         else if ( val instanceof Boolean )
             result = (Boolean)val ? "" : null; // empty string for true, null for false
         else if ( val instanceof List ) {
-            List list = (List)val;
-            if ( list.size() == 0 )
+            result = formatVCFField(((List)val).toArray());
+        } else if ( val instanceof Object[] ) {
+            Object[] array = (Object[])val;
+            if ( array.length == 0 )
                 return formatVCFField(null);
-            StringBuffer sb = new StringBuffer(formatVCFField(list.get(0)));
-            for ( int i = 1; i < list.size(); i++) {
+            StringBuffer sb = new StringBuffer(formatVCFField(array[0]));
+            for ( int i = 1; i < array.length; i++) {
                 sb.append(",");
-                sb.append(formatVCFField(list.get(i)));
+                sb.append(formatVCFField(array[i]));
             }
             result = sb.toString();
         } else

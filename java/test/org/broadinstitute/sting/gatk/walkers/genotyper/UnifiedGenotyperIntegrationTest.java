@@ -35,7 +35,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("0c1a5f6372f6d17544a95292bd313c86"));
+                Arrays.asList("680292498be02796787bc4b2393a003c"));
         executeTest("testMultiSamplePilot1 - Joint Estimate", spec);
     }
 
@@ -43,7 +43,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,050,000", 1,
-                Arrays.asList("049c98bc6db7029995f8893f570dd9ad"));
+                Arrays.asList("1bf2dc92f97f7bd661e61453b657477a"));
         executeTest("testMultiSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -51,7 +51,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testSingleSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000", 1,
-                Arrays.asList("6c278b09727cd14523423a6beda627a5"));
+                Arrays.asList("6cab256a3c984c8938ffe026ed620c36"));
         executeTest("testSingleSamplePilot2 - Joint Estimate", spec);
     }
 
@@ -63,7 +63,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     @Test
     public void testParallelization() {
-        String md5 = "c66c55363fb9e951569667e3ff6eb728";
+        String md5 = "8f464769be0920ee2bdfd72da2193161";
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,075,000", 1,
@@ -90,11 +90,11 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "dfe1a220ee0966a20af4a2fca9e635fe" );
-        e.put( "-all_bases", "e7b766485dd37631b3fcf9f655588456" );
-        e.put( "--min_base_quality_score 26", "e4e318853e091e63166eaef648ec26ac" );
-        e.put( "--min_mapping_quality_score 26", "57fffb32a3a7a736f6c30ae08ef71c91" );
-        e.put( "--max_mismatches_in_40bp_window 5", "4f7a5c22247234c4ee3ca2cfbbc16729" );
+        e.put( "-genotype", "e4735f7d20f8d82d359f89824cfafbad" );
+        e.put( "-all_bases", "c41acfac9f7908609a8d0ccdcefbd9e4" );
+        e.put( "--min_base_quality_score 26", "6fea507d70c1b7b74fb6b553bd8904c2" );
+        e.put( "--min_mapping_quality_score 26", "f8b1a0449f0a49c1c5edb70f4e90b5f8" );
+        e.put( "--max_mismatches_in_40bp_window 5", "bf29fc94431f7b18fd4c65025294de3c" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -108,12 +108,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testConfidence() {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -stand_call_conf 10 ", 1,
-                Arrays.asList("8b4ebcbf330340a437e572a73a99227b"));
+                Arrays.asList("065be668bbea5342c7700017e131eb2a"));
         executeTest("testConfidence1", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,010,000 -stand_emit_conf 10 ", 1,
-                Arrays.asList("0d8825a98a8918bed2c02ac44e15dde7"));
+                Arrays.asList("b58578df1d05926fb7ecd9fecffa9c5e"));
         executeTest("testConfidence2", spec2);
     }
 

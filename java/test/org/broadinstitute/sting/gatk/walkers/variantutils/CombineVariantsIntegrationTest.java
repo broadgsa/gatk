@@ -66,12 +66,12 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", "38b7e64b91c726867a604cf95b9cb10a"); } // official project VCF files in tabix format
 
     @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "4c667935099544a1863e70ae88ddd685"); }
-    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "cbd061cf35e0ffc48621111a602f3871"); }
+    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "17c8468b1b963c9abc49dff17fd811ba"); }
 
     @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "f3fce9ae729548e7e7c378a8282df235"); } // official project VCF files in tabix format
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "f2a2854f26734c8c3412f842a245fd34"); }
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "7fce3e9539ce4eb0a839d9236c928dfc"); }
 
-    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "a66a799b1ae9fd09b40f78af6ef538d8"); }
+    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "528cff763b95b82717008d2c05e8c393"); }
 
     @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "a9126d1cbe1fdf741236763fb3e3461f"); }
 
@@ -86,7 +86,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
                         " -genotypeMergeOptions UNIQUIFY -L 1"),
                 1,
-                Arrays.asList("37c66ca16fb5f890bcaa8e226a5f2e61"));
+                Arrays.asList("daf2c43b629c9fc8d5f064e05bbc51b7"));
         executeTest("threeWayWithRefs", spec);
         
     }
