@@ -224,10 +224,12 @@ if (length(l) > 0) {
 }
 
 for (ann1 in c[[1]]$anns) {
+    print(ann1)
     plotAnn(d.known, d.novel, d.loci, ann1, paste(plotRoot, ".anndist.", ann1, ".pdf", sep=""));
 
     for (ann2 in c[[1]]$anns) {
         if (ann1 != ann2) {
+	    print(paste("-- v ", ann2))
             plotClusters(d.known, d.novel, d.loci, c, ann1, ann2, paste(plotRoot, ".cluster.", ann1, "_vs_", ann2, ".pdf", sep=""), maxVariants=maxVariants);
         }
     }
