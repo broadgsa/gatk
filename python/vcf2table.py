@@ -15,6 +15,9 @@ if __name__ == "__main__":
     parser.add_option("-s", "--s", dest="skip",
                         type='int', default=0,
                         help="Only print out every 1 / skip records")
+    parser.add_option("-o", "--output", dest="OUTPUT",
+                        type='string', default=None,
+                        help="Path to output file.  stdout if not provided")
                         
     (OPTIONS, args) = parser.parse_args()
     if len(args) > 1:
@@ -28,11 +31,14 @@ if __name__ == "__main__":
     if OPTIONS.fields == None:
         sys.exit("Fields argument must be provided")
 
+    out = sys.stdout
+    if OPTIONS.OUTPUT != None: out = open(OPTIONS.OUTPUT, 'w') 
+
     fields = OPTIONS.fields.split(',')
     for header, vcf, count in lines2VCF(src, extendedOutput = True):
         #print vcf, count
         if count == 1 and vcf.hasHeader():
-            print '\t'.join(fields)
+            print >> out, '\t'.join(fields)
 
         if counter > 0:
             counter -= 1                      
@@ -41,4 +47,4 @@ if __name__ == "__main__":
             if OPTIONS.filter and vcf.failsFilters():
                 pass
             else:
-                print '\t'.join([ str(vcf.getField(field, '0')) for field in fields])
+                print >> out, '\t'.join([ str(vcf.getField(field, '0')) for field in fields])

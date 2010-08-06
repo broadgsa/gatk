@@ -105,7 +105,7 @@ class VCFRecord:
     #def getInfo(self): return self.get("INFO")
     def getInfo(self): 
         def info2str(x,y):
-            if type(y) == bool:
+            if type(y) == bool or x == '.':
                 return str(x)
             else:
                 return str(x) + '=' + str(y)
