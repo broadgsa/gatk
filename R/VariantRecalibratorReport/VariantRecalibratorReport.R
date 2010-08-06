@@ -20,6 +20,10 @@ maxVariants = args[5];
 if (is.na(maxVariants)) { maxVariants = -1; }
 maxVariants = as.integer(maxVariants)
 
+greedy = args[6]
+if (is.na(greedy)) { greedy = -1; }
+greedy = as.integer(greedy)
+
 getAnnIndex <- function(d, ann) {
     index = -1;
     for (i in c(1:length(names(d)))) {
@@ -111,6 +115,32 @@ read.clusters <- function(filename) {
     clusters;
 }
 
+clusterLimits <- function( vals, defaultMin, defaultMax ) {
+    x = c(max(defaultMin, min(vals, -2)), min(defaultMax, max(vals, 2)))
+    print(x)
+    x
+}
+
+makeAxis <- function( num, vals, off1, mult1, xmin, xmax ) {
+    #labels=as.integer(seq(from=min(vals), to=max(vals), by=(abs(min(vals)) + abs(max(vals)))/5))
+    #at=seq(from=min((vals - off1)/mult1), to=max((vals - off1)/mult1), by=(abs(min((vals - off1)/mult1)) + abs(max((vals - off1)/mult1)))/5)
+
+    #from = xmin * mult1 + off1
+    #to = xmax * mult1 + off1
+    #print(list(off1=off1, mult1=mult1, xmin=xmin, xmax=xmax))
+    at = as.integer(seq(from=xmin, to=xmax, by=(abs(xmin) + abs(xmax))/5))
+    labels = as.integer(at * mult1 + off1)
+    #print(list(from=from, to=to, by=(abs(from) + abs(to))/5))
+    #print(list(labels=labels, at=at))
+
+    axis(num, labels=labels, at=at);
+
+#    axis(num,
+#        labels=as.integer(seq(from=min(vals), to=max(vals), by=(abs(min(vals)) + abs(max(vals)))/5)),
+#        at=seq(from=min((vals - off1)/mult1), to=max((vals - off1)/mult1), by=(abs(min((vals - off1)/mult1)) + abs(max((vals - off1)/mult1)))/5)
+#    );
+}
+
 plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxVariants = -1) {
     index1 = getAnnIndex(d.known, ann1);
     index2 = getAnnIndex(d.known, ann2);
@@ -125,8 +155,11 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     off2 = c[[1]]$conversions[[cindex2]]$offset;
 
     # todo -- should only include min/max actually observed if bounds are bigger than actual distributions
-    xvalsForLims = c(-5, 5)
-    yvalsForLims = c(-5, 5)
+    xvalsForLims = clusterLimits(d.known[,index1], -4, 4)
+    yvalsForLims = clusterLimits(d.known[,index2], -4, 4)
+    
+    #d.known = d.known[(d.known[,index1]-off1)/mult1 >= xvalsForLims[1] & (d.known[,index1]-off1)/mult1 <= xvalsForLims[2] & (d.known[,index2]-off2)/mult2 >= yvalsForLims[1] & (d.known[,index2]-off2)/mult2 <= yvalsForLims[2],]
+    
     #xvalsForLims = (d.known[,index1] - off1)/mult1
     #yvalsForLims = (d.known[,index2] - off2)/mult2
     xlims = c(min(xvalsForLims), 1.2*max(xvalsForLims)); 
@@ -177,14 +210,8 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
         points(ellipse(t(cov), centre=mu), type="l", lwd=lineweight, col=color);
     }
 
-    axis(1,
-        labels=as.integer(seq(from=min(d.novel[,index1]), to=max(d.novel[,index1]), by=(abs(min(d.novel[,index1])) + abs(max(d.novel[,index1])))/5)),
-        at=seq(from=min((d.novel[,index1] - off1)/mult1), to=max((d.novel[,index1] - off1)/mult1), by=(abs(min((d.novel[,index1] - off1)/mult1)) + abs(max((d.novel[,index1] - off1)/mult1)))/5)
-    );
-    axis(2,
-        labels=as.integer(seq(from=min(d.novel[,index2]), to=max(d.novel[,index2]), by=(abs(min(d.novel[,index2])) + abs(max(d.novel[,index2])))/5)),
-        at=seq(from=min((d.novel[,index2] - off2)/mult2), to=max((d.novel[,index2] - off2)/mult2), by=(abs(min((d.novel[,index2] - off2)/mult2)) + abs(max((d.novel[,index2] - off2)/mult2)))/5)
-    );
+    makeAxis(1, d.novel[,index1], off1, mult1, xvalsForLims[1], xvalsForLims[2]) 
+    makeAxis(2, d.novel[,index2], off2, mult2, yvalsForLims[1], yvalsForLims[2]) 
 
     if (!is.na(d.loci)) {
         legend("bottomleft", c("Known", "Novel", "Suspicious loci"), col=c("blue", "red", "yellow3"), pch=19);
@@ -224,7 +251,8 @@ if (!is.na(lociFile)) {
     l = t$POS;
 }
 
-d = read.table(vcfTable, header=TRUE);
+print("Greedy reading")
+d = read.table(vcfTable, header=TRUE, nrows = greedy);
 c = read.clusters(clusterFile);
 
 d.known = d[which(d$DB == 1),];
