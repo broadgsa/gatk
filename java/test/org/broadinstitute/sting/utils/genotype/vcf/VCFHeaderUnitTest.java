@@ -58,19 +58,6 @@ public class VCFHeaderUnitTest extends BaseTest {
         Assert.assertTrue(md5sum.equals(md5SumFile(myTempFile)));
     }
 
-    @Test
-    public void checkInfoCanHaveFlagValues() {
-        VCFHeaderLineType type = VCFHeaderLineType.Flag;
-        type.convert("true", VCFCompoundHeaderLine.SupportedHeaderLineType.INFO);
-    }
-
-    @Test(expected=IllegalStateException.class)
-    public void checkFormatCannotHaveFlagValues() {
-        VCFHeaderLineType type = VCFHeaderLineType.Flag;
-        type.convert("true", VCFCompoundHeaderLine.SupportedHeaderLineType.FORMAT);
-    }
-
-
     public static String[] VCF4headerStrings = {
                 "##fileformat=VCFv4.0",
                 "##filedate=2010-06-21",
