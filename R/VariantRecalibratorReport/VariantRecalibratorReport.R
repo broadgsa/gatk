@@ -17,7 +17,7 @@ lociFile = args[4];
 if (is.na(lociFile) | lociFile == "NA" ) { lociFile = "/home/radon01/kiran/scr1/projects/DataProcessingPaper/scratch/MarkBustedWEx.loci"; }
 
 maxVariants = args[5];
-if (is.na(maxVariants)) { maxVariants = -1; }
+if (is.na(maxVariants)) { maxVariants = 5000; }
 maxVariants = as.integer(maxVariants)
 
 greedy = args[6]
