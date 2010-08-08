@@ -27,11 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import net.sf.samtools.*;
@@ -46,7 +42,6 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -54,11 +49,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.commandline.ArgumentDefinition;
-import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
@@ -261,27 +252,25 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
             programRecord.setProgramVersion( headerInfo.getString("org.broadinstitute.sting.gatk.version") );
-            String commandLineString = "Covariates=[";
+
+            HashSet<Object> args = new HashSet<Object>();
+            args.add(RAC);
+            StringBuffer sb = new StringBuffer();
+            sb.append(CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()));
+            sb.append(" Covariates=[");
             for( Covariate cov : requestedCovariates ) {
-                commandLineString += cov.getClass().getSimpleName() + ", ";
+                sb.append(cov.getClass().getSimpleName());
+                sb.append(", ");
             }
-            commandLineString = commandLineString.substring( 0, commandLineString.length() - 2 ); // Trim off the trailing comma
-            commandLineString += "], ";
-            // Add all of the arguments from the recalibration argument collection to the command line string
-            final Field[] fields = RAC.getClass().getFields();
-            for( Field field : fields ) {
-                final ArgumentTypeDescriptor atd = ArgumentTypeDescriptor.create(field.getType());
-                final List<ArgumentDefinition> adList = atd.createArgumentDefinitions(new ArgumentSource(field.getType(), field));
-                for( ArgumentDefinition ad : adList ) {
-                    if( !ad.fullName.equalsIgnoreCase( "recalFile" ) && !ad.fullName.equalsIgnoreCase( "recal_file" ) ) { // recalFile argument is not added to the PG tag
-                        commandLineString += (ad.fullName + "=" + JVMUtils.getFieldValue(field, RAC) + ", ");
-                    }
-                }
-            }
-            commandLineString += "pQ=" + PRESERVE_QSCORES_LESS_THAN + ", ";
-            commandLineString += "maxQ=" + MAX_QUALITY_SCORE + ", ";
-            commandLineString += "smoothing=" + SMOOTHING;
-            programRecord.setCommandLine( commandLineString );
+            sb.setCharAt(sb.length()-2, ']');
+            sb.setCharAt(sb.length()-1, ' ');
+            sb.append("pQ=");
+            sb.append(PRESERVE_QSCORES_LESS_THAN);
+            sb.append(" maxQ=");
+            sb.append(MAX_QUALITY_SCORE);
+            sb.append(" smoothing=");
+            sb.append(SMOOTHING);
+            programRecord.setCommandLine(sb.toString());
 
             List<SAMProgramRecord> oldRecords = header.getProgramRecords();
             List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
