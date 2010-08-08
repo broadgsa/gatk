@@ -26,11 +26,10 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 
-import java.util.Map;
-import java.util.List;
-import java.util.LinkedHashMap;
-import java.util.Collection;
+import java.util.*;
 
 /**
  * Static utility methods for working with command-line arguments.
@@ -66,4 +65,27 @@ public class CommandLineUtils {
 
         return commandLineArguments;
     }
+
+    public static String createApproximateCommandLineArgumentString(GenomeAnalysisEngine toolkit, Collection<Object> otherArgumentProviders, Class<? extends Walker> walkerType) {
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("analysis_type=");
+        sb.append(toolkit.getWalkerName(walkerType));
+
+        ArrayList<Object> allArgumentProviders = new ArrayList<Object>();
+        allArgumentProviders.add(toolkit.getArguments());
+        allArgumentProviders.addAll(otherArgumentProviders);
+
+        Map<String,String> commandLineArgs = getApproximateCommandLineArguments(allArgumentProviders);
+
+        for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() ) {
+            sb.append(" ");
+            sb.append(commandLineArg.getKey());
+            sb.append("=");
+            sb.append(commandLineArg.getValue());
+        }
+
+        return sb.toString();
+    }  
+
 }

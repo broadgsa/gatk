@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
 import java.io.PrintStream;
-import java.io.File;
 
 
 /**
@@ -56,16 +55,20 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public GenotypeWriter writer = null;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
-    public PrintStream verboseWriter = null;
+    protected PrintStream verboseWriter = null;
 
     @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print any relevant callability metrics output", required = false)
-    public PrintStream metricsWriter = null;
+    protected PrintStream metricsWriter = null;
 
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected String[] annotationsToUse = {};
 
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected String[] annotationClassesToUse = { "Standard" };
+
+    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
+    protected Boolean NO_VCF_HEADER_LINE = false;
+
 
     // the calculation arguments
     private UnifiedGenotyperEngine UG_engine = null;
@@ -133,10 +136,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         if ( !(writer instanceof VCFGenotypeWriter) )
             return headerInfo;
 
-        // first, the basic info
-        headerInfo.add(new VCFHeaderLine("source", "UnifiedGenotyper"));
-        headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-
         // all annotation fields from VariantAnnotatorEngine
         headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
@@ -155,16 +154,12 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
             headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
 
         // all of the arguments from the argument collection
-        Set<Object> args = new HashSet<Object>();
-        args.add(UAC);
-        args.addAll(getToolkit().getFilters());
-        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(args);
-        for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
-            headerInfo.add(new VCFHeaderLine(String.format("UG_%s", commandLineArg.getKey()), commandLineArg.getValue()));
-        // also, the list of input bams
-        for ( File file : getToolkit().getArguments().samFiles )
-            headerInfo.add(new VCFHeaderLine("UG_bam_file_used", file.getName()));
-
+        if ( !NO_VCF_HEADER_LINE ) {
+            Set<Object> args = new HashSet<Object>();
+            args.add(UAC);
+            headerInfo.add(new VCFHeaderLine("UnifiedGenotyper", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
+        }
+        
         return headerInfo;
     }
 
