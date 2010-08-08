@@ -86,9 +86,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
         Set<String> samples = SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
-        String[] annotationsToUse = {};
-        String[] annotationClassesToUse = { "Standard" };
-        engine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
+        ArrayList<String> annotationClassesToUse = new ArrayList<String>();
+        annotationClassesToUse.add("Standard");
+        engine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, new ArrayList<String>());
 
         if ( SET_KEY.toLowerCase().equals("null") )
             SET_KEY = null;

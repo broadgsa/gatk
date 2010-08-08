@@ -226,7 +226,9 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
         }
 
         //instanciate the VariantAnnotatorEngine
-        engine = new VariantAnnotatorEngine(getToolkit(), new String[] { }, new String[] { "GenomicAnnotation" });
+        ArrayList<String> annotationsToUse = new ArrayList<String>();
+        annotationsToUse.add("GenomicAnnotation");
+        engine = new VariantAnnotatorEngine(getToolkit(), new ArrayList<String>(), annotationsToUse);
         engine.setOneToMany( Boolean.TRUE.equals( ONE_TO_MANY ) );
         engine.setRequestedColumns(SELECT_COLUMNS);
         engine.setJoinTables(joinTables);
