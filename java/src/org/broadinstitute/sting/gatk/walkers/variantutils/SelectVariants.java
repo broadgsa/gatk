@@ -212,7 +212,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         attributes.put("AC", alleleCount);
         attributes.put("AN", numberOfAlleles);
-        attributes.put("AF", ((double) alleleCount) / ((double) numberOfAlleles));
+        if (numberOfAlleles == 0) {
+            attributes.put("AF", 0.0);
+        } else {
+            attributes.put("AF", ((double) alleleCount) / ((double) numberOfAlleles));
+        }
         attributes.put("DP", depth);
 
         sub = VariantContextUtils.modifyAttributes(sub, attributes);
