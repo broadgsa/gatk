@@ -43,6 +43,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
@@ -62,10 +63,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     protected String sampleName = null;
 
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
-    protected String[] annotationsToUse = {};
+    protected List<String> annotationsToUse = new ArrayList<String>();
 
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
-    protected String[] annotationGroupsToUse = {};
+    protected List<String> annotationGroupsToUse = new ArrayList<String>();
 
     @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
@@ -78,6 +79,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
+
+    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
+    protected Boolean NO_VCF_HEADER_LINE = false;
 
     private VCFWriter vcfWriter;
 
@@ -139,10 +143,14 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        hInfo.add(new VCFHeaderLine("source", "VariantAnnotator"));
         for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
+        }
+        if ( !NO_VCF_HEADER_LINE ) {
+            Set<Object> args = new HashSet<Object>();
+            args.add(this);
+            hInfo.add(new VCFHeaderLine("VariantAnnotator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
         vcfWriter = new VCFWriter(out);

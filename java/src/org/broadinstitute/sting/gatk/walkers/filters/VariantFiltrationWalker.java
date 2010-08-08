@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
@@ -51,14 +52,14 @@ import java.util.*;
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
-    protected String[] FILTER_EXPS = new String[]{};
+    protected ArrayList<String> FILTER_EXPS = new ArrayList<String>();
     @Argument(fullName="filterName", shortName="filterName", doc="Names to use for the list of filters (must be a 1-to-1 mapping); this name is put in the FILTER field for variants that get filtered", required=false)
-    protected String[] FILTER_NAMES = new String[]{};
+    protected ArrayList<String> FILTER_NAMES = new ArrayList<String>();
 
     @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see wiki docs for more info)", required=false)
-    protected String[] GENOTYPE_FILTER_EXPS = new String[]{};
+    protected ArrayList<String> GENOTYPE_FILTER_EXPS = new ArrayList<String>();
     @Argument(fullName="genotypeFilterName", shortName="G_filterName", doc="Names to use for the list of sample/genotype filters (must be a 1-to-1 mapping); this name is put in the FILTER field for variants that get filtered", required=false)
-    protected String[] GENOTYPE_FILTER_NAMES = new String[]{};
+    protected ArrayList<String> GENOTYPE_FILTER_NAMES = new ArrayList<String>();
 
     @Argument(fullName="clusterSize", shortName="cluster", doc="The number of SNPs which make up a cluster (see also --clusterWindowSize); [default:3]", required=false)
     protected Integer clusterSize = 3;
@@ -67,6 +68,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
+
+    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
+    protected Boolean NO_VCF_HEADER_LINE = false;
 
     // JEXL expressions for the filters
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
@@ -88,8 +92,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFHeaderLine("source", "VariantFiltration"));
-        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
@@ -108,6 +110,12 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                 hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
                 break;
             }
+        }
+
+        if ( !NO_VCF_HEADER_LINE ) {
+            Set<Object> args = new HashSet<Object>();
+            args.add(this);
+            hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
         writer = new VCFWriter(out);

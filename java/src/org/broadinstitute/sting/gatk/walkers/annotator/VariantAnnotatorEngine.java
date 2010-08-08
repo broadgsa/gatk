@@ -88,7 +88,7 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, String[] annotationGroupsToUse, String[] annotationsToUse) {
+    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, List<String> annotationGroupsToUse, List<String> annotationsToUse) {
 
         // create a map for all annotation classes which implement our top-level interfaces
         HashMap<String, Class> classMap = new HashMap<String, Class>();

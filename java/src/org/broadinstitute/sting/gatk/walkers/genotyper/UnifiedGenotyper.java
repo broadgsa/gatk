@@ -61,7 +61,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     protected PrintStream metricsWriter = null;
 
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
-    protected String[] annotationsToUse = {};
+    protected List<String> annotationsToUse = new ArrayList<String>();
 
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected String[] annotationClassesToUse = { "Standard" };
@@ -112,7 +112,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      **/
     public void initialize() {
 
-        annotationEngine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, annotationsToUse);
+        annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, annotationEngine);
 
         // initialize the writers
