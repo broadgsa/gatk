@@ -15,7 +15,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            baseTestString(" -sn A -sn [CDEH] -env -ef -select 'AF < 0.2' -B variant,VCF," + testfile),
+            baseTestString(" -sn A -sn '[CDEH]' -env -ef -select 'AF < 0.2' -B variant,VCF," + testfile),
             1,
             Arrays.asList("3a15628b5980031c629c0c33e7e60b40")
         );
