@@ -96,16 +96,16 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
             // Finally, warn the user about any leftover sample expressions that had no effect
             if (sampleExpressionsThatDidNotWork.size() > 0) {
-                logger.warn("The following arguments to --sample did not work:");
-
                 for (String exp : sampleExpressionsThatDidNotWork) {
-                    logger.warn("\t" + exp);
+                    logger.warn("The sample expression '" + exp + "' had no effect (no matching sample or pattern match found).  Skipping.");
                 }
-
-                logger.warn("Continuing on with the expressions that did work.");
             }
         } else {
             samples.addAll(vcfSamples);
+        }
+
+        for (String sample : samples) {
+            logger.info("Including sample '" + sample + "'");
         }
 
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
