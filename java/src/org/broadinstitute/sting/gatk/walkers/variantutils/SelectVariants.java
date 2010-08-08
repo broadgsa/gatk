@@ -29,16 +29,16 @@ import java.util.regex.Pattern;
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
 public class SelectVariants extends RodWalker<Integer, Integer> {
-    @Argument(fullName="sample", shortName="SN", doc="Sample(s) to include.  Can be a single sample, specified multiple times for many samples, or a regular expression to select many samples", required=false)
+    @Argument(fullName="sample", shortName="SN", doc="Sample(s) to include.  Can be a single sample, specified multiple times for many samples, or a regular expression to select many samples.", required=false)
     public Set<String> SAMPLE_EXPRESSIONS;
 
-    @Argument(shortName="select", doc="One or more criteria to use when selecting the data", required=false)
+    @Argument(shortName="select", doc="One or more criteria to use when selecting the data.  Evaluated *after* the specified samples are extracted and the INFO-field annotations are updated.", required=false)
     public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<String>();
 
-    @Argument(fullName="excludeNonVariants", shortName="ENV", doc="Don't include loci found to be non-variant after the subsetting procedure", required=false)
+    @Argument(fullName="excludeNonVariants", shortName="ENV", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
     private boolean EXCLUDE_NON_VARIANTS = false;
 
-    @Argument(fullName="excludeFiltered", shortName="EF", doc="Don't include filtered loci", required=false)
+    @Argument(fullName="excludeFiltered", shortName="EF", doc="Don't include filtered loci.", required=false)
     private boolean EXCLUDE_FILTERED = false;
 
     private ArrayList<String> selectNames = new ArrayList<String>();
@@ -121,25 +121,25 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         jexls = VariantContextUtils.initializeMatchExps(selectNames, SELECT_EXPRESSIONS);
     }
 
-    /**
-     * If JEXL expressions are supplied, include only records that satisfy the expression
-     *
-     * @param  tracker   the ROD tracker
-     * @param  ref       reference information
-     * @param  context   alignment info
-     * @return true if no JEXL expressions are supplied or if a record satisfies all JEXL criteria, false if otherwise
-     */
-    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), true);
-
-        for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
-            if ( !VariantContextUtils.match(vc, jexl) ) {
-                return false;
-            }
-        }
-
-        return true;
-    }
+//    /**
+//     * If JEXL expressions are supplied, include only records that satisfy the expression
+//     *
+//     * @param  tracker   the ROD tracker
+//     * @param  ref       reference information
+//     * @param  context   alignment info
+//     * @return true if no JEXL expressions are supplied or if a record satisfies all JEXL criteria, false if otherwise
+//     */
+//    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+//        VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), true);
+//
+//        for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
+//            if ( !VariantContextUtils.match(vc, jexl) ) {
+//                return false;
+//            }
+//        }
+//
+//        return true;
+//    }
 
     /**
      * Subset VC record if necessary and emit the modified record (provided it satisfies criteria for printing)
@@ -158,6 +158,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         VariantContext sub = subsetRecord(vc, samples);
 
         if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+            for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
+                if ( !VariantContextUtils.match(sub, jexl) ) {
+                    return 0;
+                }
+            }
+
             vcfWriter.add(sub, ref.getBase());
         }
 
