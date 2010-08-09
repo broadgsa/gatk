@@ -140,7 +140,7 @@ public class VCFWriter {
 
             // REF
             alleleMap.put(vc.getReference(), "0");
-            String refString = new String(vc.getReference().getBases());
+            String refString = vc.getReference().getBaseString();
             mWriter.write(refString);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -148,13 +148,13 @@ public class VCFWriter {
             if ( vc.isVariant() ) {
                 Allele altAllele = vc.getAlternateAllele(0);
                 alleleMap.put(altAllele, "1");
-                String alt = new String(altAllele.getBases());
+                String alt = altAllele.getBaseString();
                 mWriter.write(alt);
 
                 for (int i = 1; i < vc.getAlternateAlleles().size(); i++) {
                     altAllele = vc.getAlternateAllele(i);
                     alleleMap.put(altAllele, String.valueOf(i+1));
-                    alt = new String(altAllele.getBases());
+                    alt = altAllele.getBaseString();
                     mWriter.write(",");
                     mWriter.write(alt);
                 }

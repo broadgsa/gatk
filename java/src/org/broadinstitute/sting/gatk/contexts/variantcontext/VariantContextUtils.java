@@ -598,7 +598,7 @@ public class VariantContextUtils {
 
             for (Allele a : inputVC.getAlleles()) {
                 // get bases for current allele and create a new one with trimmed bases
-                String newBases = new String(new byte[]{refByte}) + new String(a.getBases());
+                String newBases = new String(new byte[]{refByte}) + a.getBaseString();
                 alleles.add(Allele.create(newBases,a.isReference()));
             }
 
@@ -610,7 +610,7 @@ public class VariantContextUtils {
                 List<Allele> newGenotypeAlleles = new ArrayList<Allele>();
                 for (Allele a : inAlleles) {
                     if (a.isCalled()) {
-                        String newBases = new String(new byte[]{refByte}) + new String(a.getBases());
+                        String newBases = new String(new byte[]{refByte}) + a.getBaseString();
                         newGenotypeAlleles.add(Allele.create(newBases,a.isReference()));
                     }
                     else {

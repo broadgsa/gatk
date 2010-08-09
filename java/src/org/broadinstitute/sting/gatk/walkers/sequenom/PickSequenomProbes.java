@@ -129,7 +129,6 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             RODRecordList snpList =  snpMaskIterator.seekForward(GenomeLocParser.createGenomeLoc(contig,offset-200,offset+200));
             if ( snpList != null && snpList.size() != 0 ) {
                 Iterator<GATKFeature>  snpsInWindow = snpList.iterator();
-                int i = 0;
                 while ( snpsInWindow.hasNext() ) {
                     GenomeLoc snp = snpsInWindow.next().getLocation();
                     // we don't really want to mask out multi-base indels
@@ -157,7 +156,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
         else if ( vc.isInsertion() )
             assay_sequence = leading_bases + "[-/" + vc.getAlternateAllele(0).toString() + "]" + (char)ref.getBase() + trailing_bases;
         else if ( vc.isDeletion() )
-            assay_sequence = leading_bases + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length()-1);
+            assay_sequence = leading_bases + "[" + vc.getReference().getBaseString() + "/-]" + trailing_bases.substring(vc.getReference().length()-1);
         else
             return "";
 
