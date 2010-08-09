@@ -174,10 +174,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
 
-    @Element(required = false)
-    @Argument(fullName = "enable_overlap_filters",shortName="eof", doc="Enable automatic removal of bases that overlap adaptor sequence or that overlap their mate pair", required = false)
-    public boolean enableOverlapFilters = false;
-
     /**
      * marshal the data out to a object
      *
@@ -342,9 +338,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (other.intervalMerging != this.intervalMerging) {
-            return false;
-        }
-        if (enableOverlapFilters != other.enableOverlapFilters) {
             return false;
         }
         if ((other.RODToInterval == null && RODToInterval != null) ||
