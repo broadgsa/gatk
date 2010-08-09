@@ -129,10 +129,6 @@ public class GATKArgumentCollection {
     public String outErrFileName = null;
 
     @Element(required = false)
-    @Argument(fullName = "maximum_iterations", shortName = "M", doc = "Maximum number of iterations to process before exiting, the lower bound is zero.  Intended only for testing", required = false)
-    public Integer maximumEngineIterations = -1;
-
-    @Element(required = false)
     @Argument(fullName = "filterZeroMappingQualityReads", shortName = "fmq0", doc = "If true, mapping quality zero reads will be filtered at the lowest GATK level.  Vastly improves performance at areas with abnormal depth due to mapping Q0 reads", required = false)
     public Boolean filterZeroMappingQualityReads = false;
 
@@ -292,9 +288,6 @@ public class GATKArgumentCollection {
                 return false;
         }
         if (!(other.readBufferSize == null && this.readBufferSize == null) && (other.readBufferSize == null || this.readBufferSize == null)) {
-            return false;
-        }
-        if (!other.maximumEngineIterations.equals(this.maximumEngineIterations)) {
             return false;
         }
         if (!other.strictnessLevel.equals(this.strictnessLevel)) {

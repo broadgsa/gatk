@@ -196,11 +196,6 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
             }
 
             printProgress(DUPS_STRING, site);
-
-            if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
-                logger.warn(String.format(("Maximum number of duplicate sets encountered, terminating traversal " + TraversalStatistics.nRecords)));
-                break;
-            }
         }
 
         return sum;

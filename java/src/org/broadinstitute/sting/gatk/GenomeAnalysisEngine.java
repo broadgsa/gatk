@@ -169,11 +169,10 @@ public class GenomeAnalysisEngine {
         ShardStrategy shardStrategy = getShardStrategy(my_walker,
                 microScheduler.getReference(),
                 intervals,
-                argCollection.maximumEngineIterations,
                 readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
 
         // execute the microscheduler, storing the results
-        Object result =  microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
+        Object result =  microScheduler.execute(my_walker, shardStrategy);
 
         //monitor.stop();
         //logger.info(String.format("Maximum heap size consumed: %d",monitor.getMaxMemoryUsed()));
@@ -719,13 +718,11 @@ public class GenomeAnalysisEngine {
      * @param walker            Walker for which to infer sharding strategy.
      * @param drivingDataSource Data on which to shard.
      * @param intervals         Intervals to use when limiting sharding.
-     * @param maxIterations     the maximum number of iterations to run through
      * @return Sharding strategy for this driving data source.
      */
     protected ShardStrategy getShardStrategy(Walker walker,
                                              ReferenceSequenceFile drivingDataSource,
                                              GenomeLocSortedSet intervals,
-                                             Integer maxIterations,
                                              ValidationExclusion exclusions) {
         // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
         // sharding system; it's required with the new sharding system only for locus walkers.
@@ -775,13 +772,13 @@ public class GenomeAnalysisEngine {
                         ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
-                        intervals, maxIterations);
+                        intervals);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
                         ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
                         drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE, maxIterations);
+                        SHARD_SIZE);
         } else if (walker instanceof ReadWalker ||
                 walker instanceof DuplicateWalker) {
             shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL;
@@ -792,13 +789,13 @@ public class GenomeAnalysisEngine {
                         shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
-                        intervals, maxIterations);
+                        intervals);
             } else {
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
                         shardType,
                         drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE, maxIterations);
+                        SHARD_SIZE);
             }
         } else if (walker instanceof ReadPairWalker) {
             if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
@@ -810,7 +807,7 @@ public class GenomeAnalysisEngine {
                     referenceDataSource.getReference(),
                     ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                     drivingDataSource.getSequenceDictionary(),
-                    SHARD_SIZE, maxIterations);
+                    SHARD_SIZE);
         } else
             throw new StingException("Unable to support walker of type" + walker.getClass().getName());
 

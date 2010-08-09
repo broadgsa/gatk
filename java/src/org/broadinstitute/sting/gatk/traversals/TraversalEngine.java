@@ -24,19 +24,8 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private final long MAX_PROGRESS_PRINT_TIME = 30 * 1000;        // 10 seconds in millisecs
     private final long N_RECORDS_TO_PRINT = 1000000;
 
-    // Maximum number of reads to process before finishing
-    protected long maximumIterations = -1;
-
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
-
-    /**
-     * set the max number of iterations
-     * @param maximumIterations the number of iterations
-     */
-    public void setMaximumIterations(final int maximumIterations) {
-        this.maximumIterations = maximumIterations;
-    }
 
     /**
      * @param curTime (current runtime, in millisecs)

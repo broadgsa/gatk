@@ -47,11 +47,7 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param walker    Computation to perform over dataset.
      * @param shardStrategy A strategy for sharding the data.
      */
-    public Object execute(Walker walker, ShardStrategy shardStrategy, int maxIterations) {
-        // Having maxiterations in the execute method is a holdover from the old TraversalEngine days.
-        // Lets do something else with this.
-        traversalEngine.setMaximumIterations(maxIterations);
-
+    public Object execute(Walker walker, ShardStrategy shardStrategy) {
         walker.initialize();
         Accumulator accumulator = Accumulator.create(engine,walker);
 

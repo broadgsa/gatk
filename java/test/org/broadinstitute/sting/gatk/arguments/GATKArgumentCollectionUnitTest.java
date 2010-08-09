@@ -80,7 +80,6 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         List<File> input = new ArrayList<File>();
         input.add(new File("test.file"));
         collect.samFiles = input;
-        collect.maximumEngineIterations = -1;
         collect.strictnessLevel = SAMFileReader.ValidationStringency.STRICT;
         collect.referenceFile = new File("referenceFile".toLowerCase());
         collect.DBSNPFile = "DBSNPFile".toLowerCase();

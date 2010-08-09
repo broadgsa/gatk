@@ -133,7 +133,7 @@ public abstract class MicroScheduler {
      *
      * @return the return type of the walker
      */
-    public abstract Object execute(Walker walker, ShardStrategy shardStrategy, int iterations );
+    public abstract Object execute(Walker walker, ShardStrategy shardStrategy);
 
     /**
      * Retrieves the object responsible for tracking and managing output.

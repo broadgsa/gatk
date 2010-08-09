@@ -113,14 +113,10 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         }
     }
 
-    public Object execute( Walker walker, ShardStrategy shardStrategy, int maxIterations ) {
+    public Object execute( Walker walker, ShardStrategy shardStrategy ) {
         // Fast fail for walkers not supporting TreeReducible interface.
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");
-
-        // Having maxiterations in the execute method is a holdover from the old TraversalEngine days.
-        // Lets do something else with this.
-        traversalEngine.setMaximumIterations(maxIterations);
 
         ReduceTree reduceTree = new ReduceTree(this);
 

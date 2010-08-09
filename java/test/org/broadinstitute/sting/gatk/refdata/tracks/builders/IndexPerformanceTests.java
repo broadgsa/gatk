@@ -14,6 +14,7 @@ import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTableCodec;
 import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTableFeature;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.junit.Assert;
@@ -162,35 +163,104 @@ public class IndexPerformanceTests extends BaseTest {
 
     //@Test
     public void testBigTable() {
+        // store the mapping of location -> variant; this will get big
+        Map<GenomeLoc, Integer> features = new TreeMap<GenomeLoc,Integer>();
+
+        Map<Integer,Integer> bucketToCount = getMapOfFeatures(features,false);
+        Pair<BasicFeatureSource, SAMSequenceDictionary> pairing;
+
+        Map<GenomeLoc, Integer> features2 = new TreeMap<GenomeLoc,Integer>();
+        Map<Integer,Integer> bucketToCount2 = getMapOfFeatures(features2,true);
+
+        System.err.println("Summary: ");
+        System.err.println("Summary: tree " + features.size());
+        System.err.println("Summary: linear " + features2.size());
+
+        // compare the two
+        for (Map.Entry<GenomeLoc,Integer> entry: features.entrySet()) {
+            if (!features2.containsKey(entry.getKey())) {
+                System.err.println("key " + entry + " missing from linear, count " + entry.getValue());
+
+            }
+            else if (features2.get(entry.getKey()) != entry.getValue()) {
+                /*System.err.println("counts are not equal at " +
+                        entry.getKey() +
+                        " features2.get(entry.getKey()) = " +
+                        features2.get(entry.getKey()) +
+                        " feature1 = " + entry.getValue());*/
+            }
+            if (features2.containsKey(entry.getKey())) features2.remove(entry.getKey());
+        }
+        System.err.println("Missing from the tree :");
+        for (Map.Entry<GenomeLoc,Integer> entry2: features2.entrySet()) {
+            System.err.println("Position " + entry2.getKey() + " count = " + entry2.getValue());
+        }
+
+        for (Integer bucket : bucketToCount.keySet()) {
+            if (!bucketToCount2.get(bucket).equals(bucketToCount.get(bucket))) {
+                System.err.println("Bucket " + bucket + " tree != linear, " + bucketToCount2.get(bucket) + " " + bucketToCount.get(bucket));
+            }
+        }
+    }
+
+    private Map<Integer,Integer> getMapOfFeatures(Map<GenomeLoc, Integer> features, boolean useLinear) {
         File bigTable = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/slowAnnotator/big.table.txt");
-        TribbleRMDTrackBuilder.useLinearIndex = false;
+        TribbleRMDTrackBuilder.useLinearIndex = useLinear;
         TribbleRMDTrackBuilder.binSize = 1000;
 
         deleteIndex(inputFiles.get("Big Table"));
         // time creating the index
         logger.warn("creating index");
-        long createTime = System.currentTimeMillis();
+
+        Map<Integer,Integer> bucketToCount = new TreeMap<Integer,Integer>();
         Pair<BasicFeatureSource, SAMSequenceDictionary> pairing = builder.createFeatureReader(inputTypes.get("Big Table"),inputFiles.get("Big Table"));
-        createTime = System.currentTimeMillis() - createTime;
-        //System.err.println("index creation took " + createTime);
-        PrintWriter stream = null;
-        logger.warn("reading and writing");
         try {
-            stream = new PrintWriter(new File("bigTable.out.tree"));
-        } catch (FileNotFoundException e) {
-            Assert.fail("Fail!!!");
-        }
-        try {
-            for (int x = 1; x < 200000; x = x + 1000) {
+            for (int x = 5000; x < 6000; x = x + 1000) {
+                int bucketCount = 0;
                 CloseableTribbleIterator<Feature> iter = pairing.first.query("chr1", x, x+1000); // query
                 for (Feature feat : iter) {
-                    stream.println(((AnnotatorInputTableFeature)feat).toString());
+                    GenomeLoc loc = GenomeLocParser.createGenomeLoc(feat.getChr(),feat.getStart(),feat.getEnd());
+                    if (loc.getStop() < 5000 || loc.getStart() > 6000) continue;
+                    int count = 0;
+                    if (features.containsKey(loc))
+                        count = features.get(loc)+1;
+                    features.put(loc,count);
+                    bucketCount++;
                 }
+                bucketToCount.put(x,bucketCount);
             }
         } catch (IOException e) {
             Assert.fail("Unable to load file for query!!");
         }
-        stream.close();
+        return bucketToCount;
+    }
+
+    //@Test
+    public void testGetTreeIndexLocation() {
+        File bigTable = new File("small.table.txt");
+        TribbleRMDTrackBuilder.useLinearIndex = false;
+        TribbleRMDTrackBuilder.binSize = 1000;
+
+        deleteIndex(bigTable);
+        // time creating the index
+        logger.warn("creating index");
+
+        Map<Integer,Integer> bucketToCount = new TreeMap<Integer,Integer>();
+        Pair<BasicFeatureSource, SAMSequenceDictionary> pairing = builder.createFeatureReader(inputTypes.get("Big Table"),bigTable);
+        try {
+            int count= 0;
+            CloseableTribbleIterator<Feature> iter = null;
+            for (int x = 5000; x < 6000; x = x + 1000)
+                iter = pairing.first.query("chr1", x, x+1000); // query
+                for (Feature feat : iter) {
+                    GenomeLoc loc = GenomeLocParser.createGenomeLoc(feat.getChr(),feat.getStart(),feat.getEnd());
+                    if (loc.getStop() < 5000 || loc.getStart() > 6000) continue;
+                    count++;
+                }
+        System.err.println(count);
+        } catch (IOException e) {
+            Assert.fail("Unable to load file for query!!");
+        }
     }
 
 

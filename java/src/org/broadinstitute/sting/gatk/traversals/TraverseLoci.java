@@ -76,11 +76,6 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
                     sum = walker.reduce(x, sum);
                 }
 
-                if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
-                    logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
-                    break;
-                }
-
                 printProgress(LOCI_STRING, locus.getLocation());
             }
         }
