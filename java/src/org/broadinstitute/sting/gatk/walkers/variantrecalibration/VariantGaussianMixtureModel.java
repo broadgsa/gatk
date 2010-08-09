@@ -545,6 +545,9 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             sum += pVarInCluster[kkk]; // * clusterTruePositiveRate[kkk];
         }
 
+        // if ( sum > 1 )
+        //     System.out.printf("Bad pVar, bad!");
+
         return sum;
     }
 
@@ -834,7 +837,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private void evaluateGaussiansForSingleVariant( final double[] annotations, final double[] pVarInCluster ) {
 
         final int numAnnotations = annotations.length;
-        final double mult[] = new double[numAnnotations];
+        //final double mult[] = new double[numAnnotations];
 
         final double evalGaussianPDFLog10[] = new double[maxGaussians];
         for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
@@ -848,15 +851,16 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     final double mySigma = sigmaVals[ppp][jjj];
                     value += (myAnn - myMu) * mySigma;
                 }
-                mult[jjj] = value;
-            }
-            for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                sum += mult[jjj] * (annotations[jjj] - mu[kkk][jjj]);
+                double jNorm = annotations[jjj] - mu[kkk][jjj];
+                double prod = value * jNorm;
+                sum += prod;
             }
 
-            final double denomLog10 = Math.log10(Math.pow(2.0 * Math.PI, ((double)numAnnotations) / 2.0)) + Math.log10(Math.pow(determinant[kkk], 0.5));
+            final double log10SqrtDet = Math.log10(Math.pow(determinant[kkk], 0.5));
+            final double denomLog10 = Math.log10(Math.pow(2.0 * Math.PI, ((double)numAnnotations) / 2.0)) + log10SqrtDet;
             evalGaussianPDFLog10[kkk] = (( -0.5 * sum ) / Math.log(10.0)) - denomLog10;
-            pVarInCluster[kkk] = Math.pow(10.0, pClusterLog10[kkk] + evalGaussianPDFLog10[kkk]);
+            double pVar1 = Math.pow(10.0, pClusterLog10[kkk] + evalGaussianPDFLog10[kkk]);
+            pVarInCluster[kkk] = pVar1;
         }
 
     }
