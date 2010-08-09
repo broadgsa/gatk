@@ -360,8 +360,6 @@
             <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
                 <formatter type="brief" usefile="false" />
                 <formatter type="xml"/> 
-                <jvmarg value="-Xdebug"/>
-                <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8091"/>
                 <classpath>
                     <pathelement location="${java.classes}"/>
                     <path refid="runtime.dependencies"/>
