@@ -413,7 +413,13 @@
     </target>
 
     <target name="queue" description="force a build of Queue">
-        <antcall target="dist" inheritAll="true">
+        <!--
+        inheritAll is false so that 'ant queue' does not accidentally import
+        params if the build was called with 'ant clean oneoffs queue'.
+        Instead this task resets the parameters and is just like running
+        a fresh 'ant dist -Dqueue.target=core'.
+        -->
+        <antcall target="dist" inheritAll="false">
             <param name="queue.target" value="core" />
         </antcall>
     </target>
