@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,6 +68,49 @@ public class IntervalUtils {
         }
 
         return rawIntervals;
+    }
+
+    /**
+     * merge two interval lists, using an interval set rule
+     * @param setOne a list of genomeLocs, in order (cannot be NULL)
+     * @param setTwo a list of genomeLocs, also in order (cannot be NULL)
+     * @param rule the rule to use for merging, i.e. union, intersection, etc
+     * @return a list, correctly merged using the specified rule
+     */
+    public static List<GenomeLoc> mergeListsBySetOperator(List<GenomeLoc> setOne, List<GenomeLoc> setTwo, IntervalSetRule rule) {
+        // shortcut, if either set is zero, return the other set
+        if (setOne.size() == 0 || setTwo.size() == 0) return (setOne.size() == 0) ? setTwo : setOne;
+
+        // if we're set to UNION, just add them all
+        if (rule == IntervalSetRule.UNION) {
+            setOne.addAll(setTwo);
+            return setOne;
+        }
+
+        // else we're INTERSECTION, create two indexes into the lists
+        int iOne = 0;
+        int iTwo = 0;
+
+        // our master list, since we can't guarantee removal time in a generic list
+        LinkedList<GenomeLoc> retList = new LinkedList<GenomeLoc>();
+
+        // merge the second into the first using the rule
+        while (iTwo < setTwo.size() && iOne < setOne.size())
+            // if the first list is ahead, drop items off the second until we overlap
+            if (setTwo.get(iTwo).isBefore(setOne.get(iOne)))
+                iTwo++;
+            // if the second is ahead, drop intervals off the first until we overlap
+            else if (setOne.get(iOne).isBefore(setTwo.get(iTwo)))
+                iOne++;
+            // we overlap, intersect the two intervals and add the result.  Then remove the interval that ends first.
+            else {
+                retList.add(setOne.get(iOne).intersect(setTwo.get(iTwo)));
+                if (setOne.get(iOne).getStop() < setTwo.get(iTwo).getStop()) iOne++;
+                else iTwo++;
+            }
+        
+        // we don't need to add the rest of remaining locations, since we know they don't overlap. return what we have
+        return retList;
     }
 
     /**

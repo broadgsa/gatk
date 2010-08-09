@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;
 import org.simpleframework.xml.stream.Format;
@@ -92,7 +93,11 @@ public class GATKArgumentCollection {
 
     @Element(required = false)
     @Argument(fullName = "rodToIntervalTrackName", shortName = "BTI", doc = "Indicates that the named track should be converted into an interval list, to drive the traversal", required = false)
-    public String RODToInterval = null; 
+    public String RODToInterval = null;
+
+    @Element(required = false)
+    @Argument(fullName = "BTI_merge_rule", shortName = "BTIMR", doc = "Indicates the merging approach the interval parser should use to combine the BTI track with other -L options", required = false)
+    public IntervalSetRule BTIMergeRule = IntervalSetRule.UNION;
 
     @Element(required = false)
     @Argument(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
@@ -351,6 +356,9 @@ public class GATKArgumentCollection {
             (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
             return false;
         }
+        if (BTIMergeRule != other.BTIMergeRule)
+                return false;
+
 //        if (other.enableRodWalkers != this.enableRodWalkers) {
 //            return false;
 //        }

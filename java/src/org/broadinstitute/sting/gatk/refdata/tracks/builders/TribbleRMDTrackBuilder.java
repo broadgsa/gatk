@@ -105,7 +105,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         // return a feature reader track
         Pair<BasicFeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
         if (pair == null) throw new StingException("Unable to make the feature reader for input file " + inputFile);
-        return new TribbleTrack(targetClass, createCodec(targetClass, name).getFeatureType(), name, inputFile, pair.first, pair.second);
+        return new TribbleTrack(targetClass, name, inputFile, pair.first, pair.second, createCodec(targetClass, name));
     }
 
     public Pair<BasicFeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {

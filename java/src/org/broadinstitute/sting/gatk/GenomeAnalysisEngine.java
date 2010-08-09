@@ -227,16 +227,14 @@ public class GenomeAnalysisEngine {
      * @param additionalIntervals a list of additional intervals to add to the returned set.  Can be null.
      * @return A sorted, merged list of all intervals specified in this arg list.
      */
-    private GenomeLocSortedSet loadIntervals(List<String> argList, IntervalMergingRule mergingRule, List<GenomeLoc> additionalIntervals) {
-        List<GenomeLoc> rawIntervals = (additionalIntervals == null) ? new ArrayList<GenomeLoc>() : additionalIntervals;  // running list of raw GenomeLocs
+    private GenomeLocSortedSet loadIntervals(List<String> argList,
+                                             IntervalMergingRule mergingRule,
+                                             List<GenomeLoc> additionalIntervals) {
 
-        rawIntervals.addAll(IntervalUtils.parseIntervalArguments(argList));
-
-        // redundant check => default no arguments is null, not empty list
-        if (rawIntervals.size() == 0)
-            return null;
-
-        return IntervalUtils.sortAndMergeIntervals(rawIntervals,mergingRule);
+        return IntervalUtils.sortAndMergeIntervals(IntervalUtils.mergeListsBySetOperator(additionalIntervals,
+                                                                                         IntervalUtils.parseIntervalArguments(argList),
+                                                                                         argCollection.BTIMergeRule),
+                                                   mergingRule);
     }
 
     /**

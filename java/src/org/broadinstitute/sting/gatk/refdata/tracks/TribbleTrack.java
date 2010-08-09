@@ -25,6 +25,7 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
+import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureSource;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
@@ -51,20 +52,23 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
     // our sequence dictionary, which can be null
     private final SAMSequenceDictionary dictionary;
 
+    // our codec type
+    private final FeatureCodec codec;
     /**
      * Create a track
      *
      * @param type the type of track, used for track lookup
-     * @param recordType the type of record we produce
      * @param name the name of this specific track
      * @param file the associated file, for reference or recreating the reader
      * @param reader the feature reader to use as the underlying data source
      * @param dict the sam sequence dictionary
+     * @param codec the feature codec we use to decode this type
      */
-    public TribbleTrack(Class type, Class recordType, String name, File file, BasicFeatureSource reader, SAMSequenceDictionary dict) {
-        super(type, recordType, name, file);
+    public TribbleTrack(Class type, String name, File file, BasicFeatureSource reader, SAMSequenceDictionary dict, FeatureCodec codec) {
+        super(type, codec.getFeatureType(), name, file);
         this.reader = reader;
         this.dictionary = dict;
+        this.codec = codec;
     }
 
     /**
@@ -134,5 +138,9 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
 
     public Object getHeader() {
         return reader.getHeader();
+    }
+
+    public FeatureCodec getCodec() {
+        return codec;
     }
 }
