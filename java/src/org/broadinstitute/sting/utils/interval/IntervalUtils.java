@@ -79,7 +79,7 @@ public class IntervalUtils {
      */
     public static List<GenomeLoc> mergeListsBySetOperator(List<GenomeLoc> setOne, List<GenomeLoc> setTwo, IntervalSetRule rule) {
         // shortcut, if either set is zero, return the other set
-        if (setOne.size() == 0 || setTwo.size() == 0) return (setOne.size() == 0) ? setTwo : setOne;
+        if (setOne == null || setOne.size() == 0 || setTwo == null || setTwo.size() == 0) return (setOne == null || setOne.size() == 0) ? setTwo : setOne;
 
         // if we're set to UNION, just add them all
         if (rule == IntervalSetRule.UNION) {
