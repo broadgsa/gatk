@@ -250,12 +250,15 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         // Execute Rscript command to plot the optimization curve
         // Print out the command line to make it clear to the user what is being executed and how one might modify it
-        final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
-        logger.info( rScriptCommandLine );
+        final String rScriptOptimizationCurveCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
+        final String rScriptTranchesCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Tranches.R" + " " + OUTPUT_PREFIX + ".dat" + " " + TARGET_TITV;
+        logger.info( rScriptOptimizationCurveCommandLine );
+        logger.info( rScriptTranchesCommandLine );
 
         // Execute the RScript command to plot the table of truth values
         try {
-            Runtime.getRuntime().exec( rScriptCommandLine );
+            Runtime.getRuntime().exec( rScriptOptimizationCurveCommandLine );
+            Runtime.getRuntime().exec( rScriptTranchesCommandLine );
         } catch ( IOException e ) {
             Utils.warnUser("Unable to execute the RScript command.  While not critical to the calculations themselves, the script outputs a report that is extremely useful for confirming that the recalibration proceded as expected.  We highly recommend trying to rerun the script manually if possible.");
         }
