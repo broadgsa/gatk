@@ -545,9 +545,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             sum += pVarInCluster[kkk]; // * clusterTruePositiveRate[kkk];
         }
 
-        // if ( sum > 1 )
-        //     System.out.printf("Bad pVar, bad!");
-
         return sum;
     }
 
@@ -837,7 +834,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private void evaluateGaussiansForSingleVariant( final double[] annotations, final double[] pVarInCluster ) {
 
         final int numAnnotations = annotations.length;
-        //final double mult[] = new double[numAnnotations];
 
         final double evalGaussianPDFLog10[] = new double[maxGaussians];
         for( int kkk = 0; kkk < maxGaussians; kkk++ ) {

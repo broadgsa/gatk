@@ -92,6 +92,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private double QUAL_STEP = 0.1;
     @Argument(fullName="singleton_fp_rate", shortName="fp_rate", doc="Prior expectation that a singleton call would be a FP", required=false)
     private double SINGLETON_FP_RATE = 0.5;
+    @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
+    private double QUALITY_SCALE_FACTOR = 20.0;
 
     /////////////////////////////
     // Private Member Variables
@@ -99,7 +101,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private VariantGaussianMixtureModel theModel = null;
     private VCFWriter vcfWriter;
     private Set<String> ignoreInputFilterSet = null;
-    private int numUnstable = 0;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -195,18 +196,13 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
 
                     if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
-                        throw new StingException("Some is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                        throw new StingException("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
                     }
 
-                    double pVar = theModel.evaluateVariant( vc );
+                    final double pVar = theModel.evaluateVariant( vc );
 
-                    if( pVar > 1.0 ) {
-                        pVar = 0.99;
-                        numUnstable++;
-                    }
-
-                    final double lod = (Math.log10(totalPrior) + Math.log10(pVar)) - ((Math.log10(1.0 - totalPrior)) + Math.log10(1.0 - pVar));
-                    variantDatum.qual = 10.0 * QualityUtils.lodToPhredScaleErrorRate(lod);
+                    final double lod = (Math.log10(totalPrior) + Math.log10(pVar)) - ((Math.log10(1.0 - totalPrior)) + Math.log10(1.0));
+                    variantDatum.qual = QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod);
 
                     mapList.add( variantDatum );
 
@@ -247,10 +243,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         vcfWriter.close();
 
-        if( numUnstable > 0 ) {
-            logger.warn("WARNING: Found " + numUnstable + " variant(s) with pVar > 1, Most likely numerical instability during clustering     !!!!!");
-        }
-        
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
