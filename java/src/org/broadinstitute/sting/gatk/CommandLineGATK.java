@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.GATKErrorReport;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.commandline.*;
@@ -135,7 +134,7 @@ public class CommandLineGATK extends CommandLineExecutable {
      * @return A string summarizing the walkers available in this distribution.
      */
     private String getAdditionalHelp() {
-        String additionalHelp = "";
+        String additionalHelp;
 
         // If no analysis name is present, fill in extra help on the walkers.
         WalkerManager walkerManager = GATKEngine.getWalkerManager();
@@ -152,7 +151,7 @@ public class CommandLineGATK extends CommandLineExecutable {
     private static final int WALKER_INDENT = 3;
     private static final String FIELD_SEPARATOR = "  ";
 
-    private String getWalkerHelp(Class<Walker> walkerType) {
+    private String getWalkerHelp(Class<? extends Walker> walkerType) {
         // Construct a help string to output details on this walker.
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);

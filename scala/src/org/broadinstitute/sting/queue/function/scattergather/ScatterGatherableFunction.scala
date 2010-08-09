@@ -1,141 +1,367 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import java.lang.reflect.Field
 import java.io.File
 import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.commandline.Input
+import org.broadinstitute.sting.commandline.ArgumentSource
+import org.broadinstitute.sting.queue.function.CommandLineFunction
+import com.rits.cloning.Cloner
 
+/**
+ * A function that can be run faster by splitting it up into pieces and then joining together the results.
+ */
 trait ScatterGatherableFunction extends CommandLineFunction {
 
-  @Input(doc="Number of parts to scatter the function into")
+  /** Number of parts to scatter the function into" */
   var scatterCount: Int = 1
 
-  def scatterField = this.inputFields.find(field => ReflectionUtils.hasAnnotation(field, classOf[Scatter])).get
+  /** scatter gather directory */
+  var scatterGatherDirectory: File = _
 
-  def scatterGatherable = {
-    if (scatterCount < 2)
-      false
-    else if (!hasFieldValue(scatterField))
-      false
-    else
-      true
-  }
+  /** cleanup temporary directories */
+  var cleanupTempDirectories = false
 
-  def generateFunctions() = ScatterGatherableFunction.generateFunctions(this)
-}
+  /** Class to use for creating temporary directories.  Defaults to CreateTempDirsFunction. */
+  var createTempDirsClass: Class[_ <: CreateTempDirsFunction] = _
 
-object ScatterGatherableFunction {
-  private def generateFunctions(originalFunction: ScatterGatherableFunction) = {
+  /** Class to use for scattering.  Defaults to the annotation used in the @Scatter tag. */
+  var scatterClass: Class[_ <: ScatterFunction] = _
+
+  /**
+   * Function that returns the class to use for gathering a directory.  If it returns null then @Gather annotation will be used.
+   * @param gatherField Field that is to be gathered.
+   * @return The class of the GatherFunction to be used or null.
+   */
+  var gatherClass: PartialFunction[ArgumentSource, Class[_ <: GatherFunction]] = _
+
+  /** Class to use for removing temporary directories.  Defaults to CleanupTempDirsFunction. */
+  var cleanupTempDirsClass: Class[_ <: CleanupTempDirsFunction] = _
+
+  /**
+   * Allows external modification of the CreateTempDirsFunction that will create the temporary directories.
+   * @param initializeFunction The function that will create the temporary directories.
+   * @param inputFields The input fields that the original function was dependent on.
+   */
+  var setupInitializeFunction: PartialFunction[(CreateTempDirsFunction, List[ArgumentSource]), Unit] = _
+
+  /**
+   * Allows external modification of the ScatterFunction that will create the scatter pieces in the temporary directories.
+   * @param scatterFunction The function that will create the scatter pieces in the temporary directories.
+   * @param scatterField The input field being scattered.
+   */
+  var setupScatterFunction: PartialFunction[(ScatterFunction, ArgumentSource), Unit] = _
+
+  /**
+   * Allows external modification of the GatherFunction that will collect the gather pieces in the temporary directories.
+   * @param gatherFunction The function that will merge the gather pieces from the temporary directories.
+   * @param gatherField The output field being gathered.
+   */
+  var setupGatherFunction: PartialFunction[(GatherFunction, ArgumentSource), Unit] = _
+
+  /**
+   * Allows external modification of the cloned function.
+   * @param cloneFunction The clone of this ScatterGatherableFunction
+   * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
+   */
+  var setupCloneFunction: PartialFunction[(ScatterGatherableFunction, Int), Unit] = _
+
+  /**
+   * Allows external modification of the CleanupTempDirsFunction that will remove the temporary directories.
+   * @param cleanupFunction The function that will remove the temporary directories.
+   * @param gatherFunctions The functions that will gather up the original output fields.
+   * @param outputFields The output fields that the original function was dependent on.
+   */
+  var setupCleanupFunction: PartialFunction[(CleanupTempDirsFunction, Map[ArgumentSource, GatherFunction], List[ArgumentSource]), Unit] = _
+
+  /**
+   * Returns true if the function is ready to be scatter / gathered.
+   * The base implementation checks if the scatter count is greater than one,
+   * and that the scatter field has a value.
+   * @return true if the function is ready to be scatter / gathered.
+   */
+  def scatterGatherable = this.scatterCount > 1 && hasFieldValue(this.scatterField)
+
+  /**
+   * Returns a list of scatter / gather and clones of this function
+   * that can be run in parallel to produce the same output as this
+   * command line function.
+   * @return List[CommandLineFunction] to run instead of this function.
+   */
+  def generateFunctions() = {
     var functions = List.empty[CommandLineFunction]
     var tempDirectories = List.empty[File]
 
-    // Create a function that will remove any temporary items
-    var cleanupFunction = new CleanupTempDirsFunction
-    cleanupFunction.properties = originalFunction.properties
-    cleanupFunction.jobNamePrefix = originalFunction.jobNamePrefix
-    cleanupFunction.commandDirectory = originalFunction.commandDirectory
-
-    // Find the field with @Scatter and its value
-    var scatterField = originalFunction.scatterField
-    val originalValue = originalFunction.getFieldValue(scatterField)
+    // Only depend on input fields that have a value
+    val inputFieldsWithValues = this.inputFields.filter(hasFieldValue(_))
+    // Only gather up fields that will have a value
+    val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
 
     // Create the scatter function based on @Scatter
-    val scatterFunction = getScatterFunction(scatterField)
-    scatterFunction.setOriginalFunction(originalFunction)
-    scatterFunction.properties = originalFunction.properties
-    scatterFunction.jobNamePrefix = originalFunction.jobNamePrefix
-    scatterFunction.commandDirectory = originalFunction.temp("scatter-" + scatterField.getName)
-    scatterFunction.originalInput = originalValue.asInstanceOf[scatterFunction.ScatterType]
+    val scatterFunction = this.newScatterFunction(this.scatterField)
+    initScatterFunction(scatterFunction, this.scatterField)
     tempDirectories :+= scatterFunction.commandDirectory
     functions :+= scatterFunction
 
     // Create the gather functions for each output field
-    var gatherFunctions = Map.empty[Field, GatherFunction]
-    for (outputField <- originalFunction.outputFieldsWithValues) {
-
-      // Create the gather function based on @Gather
-      val gatherFunction = getGatherFunction(outputField)
-      gatherFunction.setOriginalFunction(originalFunction)
-      gatherFunction.properties = originalFunction.properties
-      gatherFunction.jobNamePrefix = originalFunction.jobNamePrefix
-      gatherFunction.commandDirectory = originalFunction.temp("gather-" + outputField.getName)
-
-      val gatheredValue = originalFunction.getFieldValue(outputField).asInstanceOf[gatherFunction.GatherType]
-      gatherFunction.originalOutput = gatheredValue
-
+    var gatherFunctions = Map.empty[ArgumentSource, GatherFunction]
+    for (gatherField <- outputFieldsWithValues) {
+      val gatherFunction = this.newGatherFunction(gatherField)
+      initGatherFunction(gatherFunction, gatherField)
       tempDirectories :+= gatherFunction.commandDirectory
-      cleanupFunction.originalOutputs += gatheredValue
-
       functions :+= gatherFunction
-
-      gatherFunctions += outputField -> gatherFunction
+      gatherFunctions += gatherField -> gatherFunction
     }
 
     // Create the clone functions for running the parallel jobs
     var cloneFunctions = List.empty[CommandLineFunction]
-    for (i <- 1 to originalFunction.scatterCount) {
-      val cloneFunction = newFunctionClone(originalFunction)
+    for (i <- 1 to this.scatterCount) {
+      val cloneFunction = this.newCloneFunction()
+      initCloneFunction(cloneFunction, i)
       cloneFunctions :+= cloneFunction
+      tempDirectories :+= cloneFunction.commandDirectory
 
-      val tempDir = originalFunction.temp("temp-"+i)
-      cloneFunction.commandDirectory = tempDir
-      tempDirectories :+= tempDir
-
-      // Reset the input of the clone to the the temp dir and add it as an output of the scatter
-      var scatterPart = CollectionUtils.updated(originalValue, resetToTempDir(tempDir))
-      scatterFunction.scatterParts :+= scatterPart.asInstanceOf[scatterFunction.ScatterType]
-      cloneFunction.setFieldValue(scatterField, scatterPart)
-
-      // For each each output field, change value to the temp dir and feed it into the gatherer
-      for (outputField <- originalFunction.outputFields) {
-        val gatherFunction = gatherFunctions(outputField)
-        val gatherPart = cloneFunction.mapField(outputField, resetToTempDir(tempDir))
-        gatherFunction.gatherParts :+= gatherPart.asInstanceOf[gatherFunction.GatherType]
-      }
+      bindCloneFunctionScatter(scatterFunction, this.scatterField, cloneFunction, i)
+      // For each each output field, change value to the scatterGatherTempDir dir and feed it into the gatherer
+      for (gatherField <- outputFieldsWithValues)
+        bindCloneFunctionGather(gatherFunctions(gatherField), gatherField, cloneFunction, i)
     }
-    functions = cloneFunctions ::: functions
+    functions ++= cloneFunctions
 
-    // Create a function to create all of the temp directories.
+    // Create a function to create all of the scatterGatherTempDir directories.
     // All of its inputs are the inputs of the original function.
-    val initializeFunction = new CreateTempDirsFunction
-    initializeFunction.properties = originalFunction.properties
-    initializeFunction.jobNamePrefix = originalFunction.jobNamePrefix
-    initializeFunction.commandDirectory = originalFunction.commandDirectory
+    val initializeFunction = this.newInitializeFunction()
+    initInitializeFunction(initializeFunction, inputFieldsWithValues)
 
-    for (inputField <- originalFunction.inputFieldsWithValues)
-      initializeFunction.originalInputs += originalFunction.getFieldValue(inputField)
+    // Create a function that will remove any temporary items
+    // All of its inputs are the outputs of the original function.
+    var cleanupFunction = newCleanupFunction()
+    initCleanupFunction(cleanupFunction, gatherFunctions, outputFieldsWithValues)
 
+    // Set the temporary directories, for the initialize function as outputs for scatter and cleanup as inputs.
     initializeFunction.tempDirectories = tempDirectories
     scatterFunction.tempDirectories = tempDirectories
     cleanupFunction.tempDirectories = tempDirectories
 
     functions +:= initializeFunction
-    functions :+= cleanupFunction
+    if (this.cleanupTempDirectories)
+      functions :+= cleanupFunction
 
     // Return all the various functions we created
     functions
   }
 
-  private def resetToTempDir(tempDir: File): Any => Any = {
-    (any: Any) => {
-      any match {
-        case file: File => IOUtils.reset(tempDir, file)
-        case x => x
-      }
-    }
+  /**
+   * Sets the scatter gather directory to the command directory if it is not already set.
+   */
+  override def freezeFieldValues = {
+    super.freezeFieldValues
+    if (this.scatterGatherDirectory == null)
+      this.scatterGatherDirectory = this.commandDirectory
   }
 
-  private def getScatterFunction(inputField: Field) =
-    ReflectionUtils.getAnnotation(inputField, classOf[Scatter]).value.newInstance.asInstanceOf[ScatterFunction]
+  /**
+   * Retrieves the scatter field from the first field that has the annotation @Scatter.
+   */
+  protected lazy val scatterField =
+    this.inputFields.find(field => ReflectionUtils.hasAnnotation(field.field, classOf[Scatter])).get
 
-  private def getGatherFunction(outputField: Field) =
-    ReflectionUtils.getAnnotation(outputField, classOf[Gather]).value.newInstance.asInstanceOf[GatherFunction]
+  /**
+   * Creates a new initialize CreateTempDirsFunction that will create the temporary directories.
+   * @return A CreateTempDirsFunction that will create the temporary directories.
+   */
+  protected def newInitializeFunction(): CreateTempDirsFunction = {
+    if (createTempDirsClass != null)
+      this.createTempDirsClass.newInstance
+    else
+      new CreateTempDirsFunction
+  }
 
-  private def newFunctionClone(originalFunction: ScatterGatherableFunction) = {
-    val cloneFunction = originalFunction.cloneFunction.asInstanceOf[ScatterGatherableFunction]
+  /**
+   * Initializes the CreateTempDirsFunction that will create the temporary directories.
+   * The initializeFunction jobNamePrefix is set so that the CreateTempDirsFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The initializeFunction commandDirectory is set so that the function runs in the directory as this ScatterGatherableFunction.
+   * The initializeFunction is modified to become dependent on the input files for this ScatterGatherableFunction.
+   * Calls setupInitializeFunction with initializeFunction.
+   * @param initializeFunction The function that will create the temporary directories.
+   * @param inputFields The input fields that the original function was dependent on.
+   */
+  protected def initInitializeFunction(initializeFunction: CreateTempDirsFunction, inputFields: List[ArgumentSource]) = {
+    initializeFunction.jobNamePrefix = this.jobNamePrefix
+    initializeFunction.commandDirectory = this.commandDirectory
+    for (inputField <- inputFields)
+      initializeFunction.originalInputs ++= this.getFieldFiles(inputField)
+    if (this.setupInitializeFunction != null)
+      if (this.setupInitializeFunction.isDefinedAt(initializeFunction, inputFields))
+        this.setupInitializeFunction(initializeFunction, inputFields)
+  }
+
+  /**
+   * Creates a new ScatterFunction for the scatterField.
+   * @param scatterField Field that defined @Scatter.
+   * @return A ScatterFunction instantiated from @Scatter or scatterClass if scatterClass was set on this ScatterGatherableFunction.
+   */
+  protected def newScatterFunction(scatterField: ArgumentSource): ScatterFunction = {
+    var scatterClass = this.scatterClass
+    if (scatterClass == null)
+      scatterClass = ReflectionUtils.getAnnotation(scatterField.field, classOf[Scatter])
+              .value.asSubclass(classOf[ScatterFunction])
+    scatterClass.newInstance.asInstanceOf[ScatterFunction]
+  }
+
+  /**
+   * Initializes the ScatterFunction created by newScatterFunction() that will create the scatter pieces in the temporary directories.
+   * The scatterFunction jobNamePrefix is set so that the ScatterFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The scatterFunction commandDirectory is set so that the function runs from a temporary directory under the scatterDirectory.
+   * The scatterFunction has it's originalInput set with the file to be scattered into scatterCount pieces.
+   * Calls scatterFunction.setOriginalFunction with this ScatterGatherableFunction.
+   * Calls setupScatterFunction with scatterFunction.
+   * @param scatterFunction The function that will create the scatter pieces in the temporary directories.
+   * @param scatterField The input field being scattered.
+   */
+  protected def initScatterFunction(scatterFunction: ScatterFunction, scatterField: ArgumentSource) = {
+    scatterFunction.jobNamePrefix = this.jobNamePrefix
+    scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter-" + scatterField.field.getName)
+    scatterFunction.originalInput = this.getFieldFile(scatterField)
+    scatterFunction.setOriginalFunction(this, scatterField)
+    if (this.setupScatterFunction != null)
+      if (this.setupScatterFunction.isDefinedAt(scatterFunction, scatterField))
+        this.setupScatterFunction(scatterFunction, scatterField)
+  }
+
+  /**
+   * Creates a new GatherFunction for the gatherField.
+   * @param gatherField Field that defined @Gather.
+   * @return A GatherFunction instantiated from @Gather.
+   */
+  protected def newGatherFunction(gatherField: ArgumentSource) : GatherFunction = {
+    var gatherClass: Class[_ <: GatherFunction] = null
+    if (this.gatherClass != null)
+      if (this.gatherClass.isDefinedAt(gatherField))
+        gatherClass = this.gatherClass(gatherField)
+    if (gatherClass == null)
+      gatherClass = ReflectionUtils.getAnnotation(gatherField.field, classOf[Gather])
+              .value.asSubclass(classOf[GatherFunction])
+    gatherClass.newInstance.asInstanceOf[GatherFunction]
+  }
+
+  /**
+   * Initializes the GatherFunction created by newGatherFunction() that will collect the gather pieces in the temporary directories.
+   * The gatherFunction jobNamePrefix is set so that the GatherFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The gatherFunction commandDirectory is set so that the function runs from a temporary directory under the scatterDirectory.
+   * The gatherFunction has it's originalOutput set with the file to be gathered from the scatterCount pieces.
+   * Calls the gatherFunction.setOriginalFunction with this ScatterGatherableFunction.
+   * Calls setupGatherFunction with gatherFunction.
+   * @param gatherFunction The function that will merge the gather pieces from the temporary directories.
+   * @param gatherField The output field being gathered.
+   */
+  protected def initGatherFunction(gatherFunction: GatherFunction, gatherField: ArgumentSource) = {
+    gatherFunction.jobNamePrefix = this.jobNamePrefix
+    gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
+    gatherFunction.originalOutput = this.getFieldFile(gatherField)
+    gatherFunction.setOriginalFunction(this, gatherField)
+    if (this.setupGatherFunction != null)
+      if (this.setupGatherFunction.isDefinedAt(gatherFunction, gatherField))
+        this.setupGatherFunction(gatherFunction, gatherField)
+  }
+
+  /**
+   * Creates a new clone of this ScatterGatherableFunction, setting the scatterCount to 1 so it doesn't infinitely scatter.
+   * @return A clone of this ScatterGatherableFunction
+   */
+  protected def newCloneFunction(): ScatterGatherableFunction = {
+    val cloneFunction = ScatterGatherableFunction.cloner.deepClone(this)
     // Make sure clone doesn't get scattered
     cloneFunction.scatterCount = 1
     cloneFunction
   }
+
+  /**
+   * Initializes the cloned function created by newCloneFunction() by setting it's commandDirectory to a temporary directory under scatterDirectory.
+   * Calls setupCloneFunction with cloneFunction.
+   * @param cloneFunction The clone of this ScatterGatherableFunction
+   * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
+   */
+  protected def initCloneFunction(cloneFunction: ScatterGatherableFunction, index: Int) = {
+    cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+index)
+    if (this.setupCloneFunction != null)
+      if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
+        this.setupCloneFunction(cloneFunction, index)
+  }
+
+  /**
+   * Joins a piece of the ScatterFunction output to the cloned function's input.
+   * The input of the clone is changed to be in the output directory of the clone.
+   * The scatter function piece is added as an output of the scatterFunction.
+   * The clone function's original input is changed to use the piece from the output directory.
+   * Finally the scatterFunction.setCloneFunction is called with the clone of this ScatterGatherableFunction.
+   * @param scatterFunction Function that will create the pieces including the piece that will go to cloneFunction.
+   * @param scatterField The field to be scattered.
+   * @param cloneFunction Clone of this ScatterGatherableFunction.
+   * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
+   */
+  protected def bindCloneFunctionScatter(scatterFunction: ScatterFunction, scatterField: ArgumentSource, cloneFunction: ScatterGatherableFunction, index: Int) = {
+    // Reset the input of the clone to the the scatterGatherTempDir dir and add it as an output of the scatter
+    val scatterPart = IOUtils.resetParent(cloneFunction.commandDirectory, scatterFunction.originalInput)
+    scatterFunction.scatterParts :+= scatterPart
+    cloneFunction.setFieldValue(scatterField, scatterPart)
+    scatterFunction.setCloneFunction(cloneFunction, index, scatterField)
+  }
+
+  /**
+   * Joins the cloned function's output as a piece of the GatherFunction's input.
+   * Finally the scatterFunction.setCloneFunction is called with the clone of this ScatterGatherableFunction.
+   * @param cloneFunction Clone of this ScatterGatherableFunction.
+   * @param gatherFunction Function that will create the pieces including the piece that will go to cloneFunction.
+   * @param gatherField The field to be gathered.
+   */
+  protected def bindCloneFunctionGather(gatherFunction: GatherFunction, gatherField: ArgumentSource, cloneFunction: ScatterGatherableFunction, index: Int) = {
+    val gatherPart = cloneFunction.resetFieldFile(gatherField, cloneFunction.commandDirectory)
+    gatherFunction.gatherParts :+= gatherPart
+    gatherFunction.setCloneFunction(cloneFunction, index, gatherField)
+  }
+
+  /**
+   * Creates a new function that will remove the temporary directories.
+   * @return A CleanupTempDirs function that will remove the temporary directories.
+   */
+  protected def newCleanupFunction(): CleanupTempDirsFunction = {
+    if (cleanupTempDirsClass != null)
+      this.cleanupTempDirsClass.newInstance
+    else
+      new CleanupTempDirsFunction
+  }
+
+  /**
+   * Initializes the CleanupTempDirsFunction created by newCleanupFunction() that will remove the temporary directories.
+   * The cleanupFunction jobNamePrefix is set so that the CleanupTempDirsFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The cleanupFunction commandDirectory is set so that the function runs in the directory as this ScatterGatherableFunction.
+   * The initializeFunction is modified to become dependent on the output files for this ScatterGatherableFunction.
+   * Calls setupCleanupFunction with cleanupFunction.
+   * @param cleanupFunction The function that will remove the temporary directories.
+   * @param gatherFunctions The functions that will gather up the original output fields.
+   * @param outputFields The output fields that the original function was dependent on.
+   */
+  protected def initCleanupFunction(cleanupFunction: CleanupTempDirsFunction, gatherFunctions: Map[ArgumentSource, GatherFunction], outputFields: List[ArgumentSource]) = {
+    cleanupFunction.jobNamePrefix = this.jobNamePrefix
+    cleanupFunction.commandDirectory = this.commandDirectory
+    for (gatherField <- outputFields)
+      cleanupFunction.originalOutputs += gatherFunctions(gatherField).originalOutput
+    if (this.setupCleanupFunction != null)
+      if (this.setupCleanupFunction.isDefinedAt(cleanupFunction, gatherFunctions, outputFields))
+        this.setupCleanupFunction(cleanupFunction, gatherFunctions, outputFields)
+  }
+
+  /**
+   * Returns a temporary directory under this scatter gather directory.
+   * @param Sub directory under the scatter gather directory.
+   * @return temporary directory under this scatter gather directory.
+   */
+  private def scatterGatherTempDir(subDir: String) = IOUtils.subDir(this.scatterGatherDirectory, this.jobName + "-" + subDir)
+}
+
+/**
+ * A function that can be run faster by splitting it up into pieces and then joining together the results.
+ */
+object ScatterGatherableFunction {
+  /** Used to deep clone a ScatterGatherableFunction. */
+  private lazy val cloner = new Cloner
 }

@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.analyzecovariates;
 
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.walkers.recalibration.*;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -51,7 +52,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
     // Command Line Arguments
     /////////////////////////////
 
-    @Argument(fullName = "recal_file", shortName = "recalFile", doc = "The input recal csv file to analyze", required = false)
+    @Input(fullName = "recal_file", shortName = "recalFile", doc = "The input recal csv file to analyze", required = false)
     private String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName = "output_dir", shortName = "outputDir", doc = "The directory in which to output all the plots and intermediate data files", required = false)
     private String OUTPUT_DIR = "analyzeCovariates/";

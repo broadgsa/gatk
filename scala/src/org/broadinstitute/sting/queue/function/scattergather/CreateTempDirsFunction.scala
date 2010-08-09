@@ -2,25 +2,28 @@ package org.broadinstitute.sting.queue.function.scattergather
 
 import java.io.File
 import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.commandline.{Output, Input}
+import org.broadinstitute.sting.commandline.{Argument, Output, Input}
 
+/**
+ * Creates the temporary directories for scatter / gather.
+ * The script can be changed by setting mkdirScript.
+ * By default uses mkdir -pv
+ * The format of the call is <rmdirScript> <dir_1> [.. <dir_n>]
+ */
 class CreateTempDirsFunction extends CommandLineFunction {
   @Input(doc="Original inputs to the scattered function")
-  var originalInputs: Set[Any] = Set.empty[Any]
+  var originalInputs: Set[File] = Set.empty[File]
 
   @Output(doc="Temporary directories to create")
   var tempDirectories: List[File] = Nil
 
-  @Input(doc="Sleep seconds", required=false)
-  var mkdirSleepSeconds: Option[Int] = None
+  @Argument(doc="mkdir script or command")
+  var mkdirScript = "mkdir -pv"
 
-  // TODO: After port of LSF submitter use -cwd <dir> instead of trying to run from the directory
-  // For now, create the directory so that BroadCore can run bsub from it -kshakir July 27, 2010 on chartl's computer
+  def commandLine = "%s%s".format(mkdirScript, repeat(" '", tempDirectories, "'"))
 
-  override def freeze = {
-    super.freeze
-    tempDirectories.foreach(_.mkdirs)
-  }
-
-  def commandLine = "mkdir -pv%s%s".format(repeat(" '", tempDirectories, "'"), optional(" && sleep ", mkdirSleepSeconds))
+  /**
+   * This function is creating the directories, so returns just this command directory.
+   */
+  override def jobDirectories = Set(commandDirectory)
 }

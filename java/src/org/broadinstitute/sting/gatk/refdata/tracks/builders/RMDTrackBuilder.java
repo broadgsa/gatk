@@ -44,6 +44,9 @@ public interface RMDTrackBuilder {
     /** @return a list of all available tracks types we currently have access to create */
     public Map<String, Class> getAvailableTrackNamesAndTypes();
 
+    /** @return a list of all available track record types we currently have access to create */
+    public Map<String, Class> getAvailableTrackNamesAndRecordTypes();
+
     /**
      * create a RMDTrack of the specified type
      *

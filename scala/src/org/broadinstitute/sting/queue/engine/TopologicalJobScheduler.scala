@@ -7,21 +7,29 @@ import org.broadinstitute.sting.queue.util.Logging
 import org.broadinstitute.sting.queue.function._
 
 /**
- * Loops over the job graph running jobs as the edges are traversed
+ * Loops over the job graph running jobs as the edges are traversed.
+ * @param val The graph that contains the jobs to be run.
  */
 abstract class TopologicalJobScheduler(private val qGraph: QGraph)
-    extends CommandLineRunner with DispatchJobRunner with Logging {
+    extends ShellJobRunner with DispatchJobRunner with Logging {
 
   protected val iterator = new TopologicalOrderIterator(qGraph.jobGraph)
 
   iterator.addTraversalListener(new TraversalListenerAdapter[QNode, QFunction] {
+    /**
+     * As each edge is traversed, either dispatch the job or run it locally.
+     * @param event Event holding the edge that was passed.
+     */
     override def edgeTraversed(event: EdgeTraversalEvent[QNode, QFunction]) = event.getEdge match {
-      case f: DispatchFunction if (qGraph.bsubAllJobs) => dispatch(f, qGraph)
+      case f: CommandLineFunction if (qGraph.bsubAllJobs) => dispatch(f, qGraph)
       case f: CommandLineFunction => run(f, qGraph)
       case f: MappingFunction => /* do nothing for mapping functions */
     }
   })
 
+  /**
+   * Runs the jobs by traversing the graph.
+   */
   def runJobs = {
     logger.info("Number of jobs: %s".format(qGraph.numJobs))
     if (logger.isTraceEnabled)
@@ -39,7 +47,6 @@ abstract class TopologicalJobScheduler(private val qGraph: QGraph)
     if (qGraph.bsubAllJobs && qGraph.bsubWaitJobs) {
       logger.info("Waiting for jobs to complete.")
       val wait = new DispatchWaitFunction
-      wait.properties = qGraph.properties
       wait.freeze
       dispatch(wait, qGraph)
     }

@@ -1,8 +1,16 @@
-import org.broadinstitute.sting.queue.QScript._
-// Other imports can be added here
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.{GenotypeMergeType, VariantMergeType}
+import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory.VE2TemplateType
+import org.broadinstitute.sting.queue.extensions.gatk._
+import org.broadinstitute.sting.queue.QScript
 
-val UNIVERSAL_GATK_ARGS = " -l INFO " // -L 1 
-val unusedArgs = setArgs(args)
+class Onekg_table1 extends QScript {
+  @Argument(doc="stage")
+  var stage: String = _
+
+  @Argument(doc="gatkJarFile")
+  var gatkJarFile: File = _
+
+trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile } // -L 1
 
 class Target(project: String, snpVCF: String, indelVCF: String, calledGenome: Double, targetGenome: Double, pop: String, pilot : String, bam: String = null) {
     def reportFile: String = List(pop, pilot, "report").mkString(".")
@@ -40,9 +48,9 @@ for ( (pop: String, called) <- p2Targets )
   targets ::= new Target("SRP000032", "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/trio/snps/" + pop + ".trio.2010_03.genotypes.vcf.gz", "v1/dindel-v2/"+pop+".trio.2010_06.indel.genotypes.vcf", called, 2.85e9, pop, "pilot2")
 
 // pilot 3
-for (POP <- List("CEU", "CHB", "CHD", "JPT", "LWK", "TSI", "YRI")) {
-  val indels = if ( POP != "LWK" ) "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/exon/indel/"+POP+".exon.2010_06.genotypes.vcf.gz" else null
-  targets ::= new Target("SRP000033", "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/exon/snps/" + POP + ".exon.2010_03.genotypes.vcf.gz", indels, 1.43e6, 1.43e6, POP, "pilot3", "/humgen/gsa-hpprojects/1kg/1kg_pilot3/useTheseBamsForAnalysis/pilot3.%s.cleaned.bam".format(POP))
+for (pop <- List("CEU", "CHB", "CHD", "JPT", "LWK", "TSI", "YRI")) {
+  val indels = if ( pop != "LWK" ) "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/exon/indel/"+pop+".exon.2010_06.genotypes.vcf.gz" else null
+  targets ::= new Target("SRP000033", "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/exon/snps/" + pop + ".exon.2010_03.genotypes.vcf.gz", indels, 1.43e6, 1.43e6, pop, "pilot3", "/humgen/gsa-hpprojects/1kg/1kg_pilot3/useTheseBamsForAnalysis/pilot3.%s.cleaned.bam".format(pop))
 }
 
 // merged files
@@ -57,7 +65,7 @@ val INTERVALS = Map(
     "pilot3" -> "/humgen/gsa-hpprojects/1kg/1kg_pilot3/documents/CenterSpecificTargetLists/results/p3overlap.targets.b36.interval_list"
     )
 
-def setupStage(stage: String) = stage match { 
+def script = stage match {
     case "ALL" =>
         // initial pilot1 merge -- autosomes + x
         for ( (pop: String,called) <- p1Targets ) {
@@ -106,36 +114,36 @@ def setupStage(stage: String) = stage match {
     case _ => throw new Exception("Unknown stage" + stage)
 }
 
-setupStage(unusedArgs(0))
-
-// Populate parameters passed in via -P
-setParams
-
-// Run the pipeline
-run
-
 // Using scala anonymous classes
-class VariantEval(vcfIn: String, evalOut: String, vcfType: String = "VCF") extends GatkFunction {
-    @Input(doc="foo") var vcfFile: File = new File(vcfIn)
-    @Output(doc="foo") var evalFile: File = new File(evalOut)
+class VariantEval(vcfIn: String, evalOut: String, vcfType: String = "VCF") extends org.broadinstitute.sting.queue.extensions.gatk.VariantEval with UNIVERSAL_GATK_ARGS {
+    val vcfFile = new File(vcfIn)
+    this.rodBind :+= RodBind("eval", vcfType, vcfFile)
+    this.out = new File(evalOut)
+    this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b36.rod")
+    this.reportType = Some(VE2TemplateType.Grep)
+    this.evalModule :+= "CompOverlap"
+
     override def dotString = "VariantEval: " + vcfFile.getName
-    def commandLine = gatkCommandLine("VariantEval") + UNIVERSAL_GATK_ARGS + "-D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_b36.rod -reportType Grep -B eval,%s,%s -o %s -E CompOverlap".format(vcfType, vcfFile, evalFile)
 }
 
 class StatPop(target: Target) extends CommandLineFunction {
     @Input(doc="foo") var snpVCF = new File(target.getSNPVCF)
     @Input(doc="foo") var snpEval = new File(target.getSNPEval)
-    @Input(doc="foo") var indelVCF = if (target.hasIndelVCF) new File(target.getIndelVCF) else {}
+    @Input(doc="foo", required=false) var indelVCF: File = if (target.hasIndelVCF) new File(target.getIndelVCF) else { null }
     @Output(doc="foo") var reportFile: File = new File(target.reportFile)
     override def dotString = "1kgStats: " + reportFile
     def commandLine = "python ~/dev/GenomeAnalysisTK/trunk/python/1kgStatsForCalls.py -v -a pilot_data.alignment.index -s pilot_data.sequence.index -r /broad/1KG/DCC/ftp/ -o " + target.reportFile + " " + target.extraArgs + (if (target.hasDOC) " -c " + target.getDOCSummaryFile else "") + " --snpsEval " + target.getSNPEval + (if (target.hasIndelVCF) " --indels " + target.getIndelVCF else "")
 }
 
-class Combine(vcfsInArg: List[String], vcfOutPath: String) extends GatkFunction {
-  @Input(doc="foo") var vcfs = vcfsInArg.map((x: String) => new File(x))
-  @Output(doc="foo") var vcfFile: File = new File(vcfOutPath)
+class Combine(vcfsInArg: List[String], vcfOutPath: String) extends org.broadinstitute.sting.queue.extensions.gatk.CombineVariants with UNIVERSAL_GATK_ARGS {
+  val vcfs = vcfsInArg.map((x: String) => new File(x))
+  val vcfFile = new File(vcfOutPath)
+  this.variantmergeoption = Some(VariantMergeType.UNION)
+  this.genotypemergeoption = Some(GenotypeMergeType.PRIORITIZE)
+  this.out = vcfFile
+  this.rodBind ++= vcfs.map( input => RodBind(input.getName,"VCF",input) )
+  this.rod_priority_list = vcfs.map( _.getName ).mkString(",")
   override def dotString = "CombineVariants: " + vcfs.map(_.getName).mkString(",") + " => " + vcfFile.getName
-  def commandLine = gatkCommandLine("CombineVariants") + UNIVERSAL_GATK_ARGS + "-variantMergeOptions UNION -genotypeMergeOptions PRIORITIZE -o %s %s -priority %s".format(vcfFile, vcfs.map( input => " -B %s,VCF,%s".format(input.getName,input)).mkString(""), vcfs.map( _.getName ).mkString(","))
 }
 
 class MaskStats(pop: String) extends CommandLineFunction {
@@ -143,9 +151,19 @@ class MaskStats(pop: String) extends CommandLineFunction {
     def commandLine = "python ~/dev/GenomeAnalysisTK/trunk/python/maskStats.py masks/" + pop + ".mask.fa.gz -x MT -x Y -o " + outFile
 }
 
-class DepthOfCoverage(bam: String, docOutPath: String, interval: String) extends GatkFunction {
-  @Input(doc="foo") var bamFile: File = new File(bam)
-  @Output(doc="foo") var docFile: File = new File(docOutPath)
+class DepthOfCoverage(bam: String, docOutPath: String, interval: String) extends org.broadinstitute.sting.queue.extensions.gatk.DepthOfCoverage with UNIVERSAL_GATK_ARGS {
+  val bamFile = new File(bam)
+  this.omitIntervalStatistics = true
+  this.omitDepthOutputAtEachBase = true
+  this.minBaseQuality = Some(0)
+  this.minMappingQuality = Some(0)
+  this.out = new File(docOutPath)
+  this.input_file :+= bamFile
+  if (interval != null) {
+    this.intervalsString :+= interval
+    this.excludeIntervalsString ++= List("MT", "Y")
+  }
+
   override def dotString = "DOC: " + bamFile.getName
-  def commandLine = gatkCommandLine("DepthOfCoverage") + UNIVERSAL_GATK_ARGS + "-omitIntervals -omitBaseOutput -mbq 0 -mmq 0 -o %s -I %s".format(docFile, bamFile) + (if (interval != null) " -XL MT -XL Y -L " + interval else "") 
+}
 }

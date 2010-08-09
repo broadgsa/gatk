@@ -40,18 +40,9 @@ import org.broadinstitute.sting.utils.help.SummaryTaglet;
 import java.util.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: hanna
- * Date: Mar 17, 2009
- * Time: 3:14:28 PM
- * To change this template use File | Settings | File Templates.
+ * Plugin manager that also provides various utilities for inspecting Walkers.
  */
 public class WalkerManager extends PluginManager<Walker> {
-
-    /**
-     * our log, which we want to capture anything from this class
-     */
-    private static Logger logger = Logger.getLogger(WalkerManager.class);
 
     /**
      * A collection of help text for walkers and their enclosing packages.
@@ -92,7 +83,7 @@ public class WalkerManager extends PluginManager<Walker> {
     public String getPackageDisplayName(String packageName) {
         // Try to find an override for the display name of this package.
         String displayNameKey = String.format("%s.%s",packageName,DisplayNameTaglet.NAME);
-        String displayName = null;
+        String displayName;
         if(helpText.containsKey(displayNameKey)) {
             displayName = helpText.getString(displayNameKey);
         }
@@ -131,6 +122,15 @@ public class WalkerManager extends PluginManager<Walker> {
     }
 
     /**
+     * Gets the summary help text associated with a given walker type.
+     * @param walker Walker for which to search for help text.
+     * @return Walker summary description, or "" if none exists.
+     */
+    public String getWalkerSummaryText(Walker walker) {
+        return getWalkerSummaryText(walker.getClass());
+    }
+
+    /**
      * Gets the descriptive help text associated with a given walker type.
      * @param walkerType Type of walker for which to search for help text.
      * @return Walker full description, or "" if none exists.
@@ -143,12 +143,33 @@ public class WalkerManager extends PluginManager<Walker> {
     }
 
     /**
+     * Gets the descriptive help text associated with a given walker type.
+     * @param walker Walker for which to search for help text.
+     * @return Walker full description, or "" if none exists.
+     */
+    public String getWalkerDescriptionText(Walker walker) {
+        return getWalkerDescriptionText(walker.getClass());
+    }
+
+    /**
      * Retrieves the walker class given a walker name.
      * @param walkerName Name of the walker.
      * @return Class representing the walker.
      */
-    public Class<Walker> getWalkerClassByName(String walkerName) {
-        return (Class<Walker>)pluginsByName.get(walkerName);
+    public Class<? extends Walker> getWalkerClassByName(String walkerName) {
+        return pluginsByName.get(walkerName);
+    }
+
+    /**
+     * Gets the data source for the provided walker.
+     * @param walkerClass The class of the walker.
+     * @return Which type of data source to traverse over...reads or reference?
+     */
+    public static DataSource getWalkerDataSource(Class<? extends Walker> walkerClass) {
+        By byDataSource = walkerClass.getAnnotation(By.class);
+        if( byDataSource == null )
+            throw new StingException("Unable to find By annotation for walker class " + walkerClass.getName());
+        return byDataSource.value();
     }
 
     /**
@@ -157,21 +178,38 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Which type of data source to traverse over...reads or reference?
      */
     public static DataSource getWalkerDataSource(Walker walker) {
-        Class<? extends Walker> walkerClass = walker.getClass();
-        By byDataSource = walkerClass.getAnnotation(By.class);
-        if( byDataSource == null )
-            throw new StingException("Unable to find By annotation for walker class " + walkerClass.getName());
-        return byDataSource.value();
+        return getWalkerDataSource(walker.getClass());
+    }
+
+    /**
+     * Get a list of RODs allowed by the walker.
+     * @param walkerClass Class of the walker to query.
+     * @return The list of allowed reference meta data.
+     */
+    public static List<RMD> getAllowsMetaData(Class<? extends Walker> walkerClass) {
+        Allows allowsDataSource = getWalkerAllowed(walkerClass);
+        if (allowsDataSource == null)
+            return Collections.<RMD>emptyList();
+        return Arrays.asList(allowsDataSource.referenceMetaData());
+    }
+
+    /**
+     * Get a list of RODs allowed by the walker.
+     * @param walker Walker to query.
+     * @return The list of allowed reference meta data.
+     */
+    public static List<RMD> getAllowsMetaData(Walker walker) {
+        return getAllowsMetaData(walker.getClass());
     }
 
     /**
      * Determine whether the given walker supports the given data source.
-     * @param walker Walker to query.
+     * @param walkerClass Class of the walker to query.
      * @param dataSource Source to check for .
      * @return True if the walker forbids this data type.  False otherwise.
      */
-    public static boolean isAllowed(Walker walker, DataSource dataSource) {
-        Allows allowsDataSource = getWalkerAllowed(walker);
+    public static boolean isAllowed(Class<? extends Walker> walkerClass, DataSource dataSource) {
+        Allows allowsDataSource = getWalkerAllowed(walkerClass);
 
         // Allows is less restrictive than requires.  If an allows
         // clause is not specified, any kind of data is allowed.
@@ -182,13 +220,23 @@ public class WalkerManager extends PluginManager<Walker> {
     }
 
     /**
-     * Determine whether the given walker supports the given reference ordered data.
+     * Determine whether the given walker supports the given data source.
      * @param walker Walker to query.
+     * @param dataSource Source to check for .
+     * @return True if the walker forbids this data type.  False otherwise.
+     */
+    public static boolean isAllowed(Walker walker, DataSource dataSource) {
+        return isAllowed(walker.getClass(), dataSource);
+    }
+
+    /**
+     * Determine whether the given walker supports the given reference ordered data.
+     * @param walkerClass Class of the walker to query.
      * @param rod Source to check.
      * @return True if the walker forbids this data type.  False otherwise.
      */
-    public static boolean isAllowed(Walker walker, RMDTrack rod) {
-        Allows allowsDataSource = getWalkerAllowed(walker);
+    public static boolean isAllowed(Class<? extends Walker> walkerClass, RMDTrack rod) {
+        Allows allowsDataSource = getWalkerAllowed(walkerClass);
 
         // Allows is less restrictive than requires.  If an allows
         // clause is not specified, any kind of data is allowed.
@@ -209,24 +257,53 @@ public class WalkerManager extends PluginManager<Walker> {
     }
 
     /**
+     * Determine whether the given walker supports the given reference ordered data.
+     * @param walker Walker to query.
+     * @param rod Source to check.
+     * @return True if the walker forbids this data type.  False otherwise.
+     */
+    public static boolean isAllowed(Walker walker, RMDTrack rod) {
+        return isAllowed(walker.getClass(), rod);
+    }
+
+    /**
+     * Determine whether the given walker requires the given data source.
+     * @param walkerClass Class of the walker to query.
+     * @param dataSource Source to check for.
+     * @return True if the walker allows this data type.  False otherwise.
+     */
+    public static boolean isRequired(Class<? extends Walker> walkerClass, DataSource dataSource) {
+        Requires requiresDataSource = getWalkerRequirements(walkerClass);
+        return Arrays.asList(requiresDataSource.value()).contains(dataSource);
+    }
+
+    /**
      * Determine whether the given walker requires the given data source.
      * @param walker Walker to query.
      * @param dataSource Source to check for.
      * @return True if the walker allows this data type.  False otherwise.
      */
     public static boolean isRequired(Walker walker, DataSource dataSource) {
-        Requires requiresDataSource = getWalkerRequirements(walker);
-        return Arrays.asList(requiresDataSource.value()).contains(dataSource);
+        return isRequired(walker.getClass(), dataSource);
+    }
+
+    /**
+     * Get a list of RODs required by the walker.
+     * @param walkerClass Class of the walker to query.
+     * @return The list of required reference meta data.
+     */
+    public static List<RMD> getRequiredMetaData(Class<? extends Walker> walkerClass) {
+        Requires requiresDataSource = getWalkerRequirements(walkerClass);
+        return Arrays.asList(requiresDataSource.referenceMetaData());
     }
 
     /**
      * Get a list of RODs required by the walker.
      * @param walker Walker to query.
-     * @return True if the walker allows this data type.  False otherwise.
+     * @return The list of required reference meta data.
      */
     public static List<RMD> getRequiredMetaData(Walker walker) {
-        Requires requiresDataSource = getWalkerRequirements(walker);
-        return Arrays.asList(requiresDataSource.referenceMetaData());
+        return getRequiredMetaData(walker.getClass());
     }
 
     /**
@@ -240,15 +317,46 @@ public class WalkerManager extends PluginManager<Walker> {
 
     /**
      * Extracts filters that the walker has requested be run on the dataset.
+     * @param walkerClass Class of the walker to inspect for filtering requests.
+     * @param filterManager Manages the creation of filters.
+     * @return A non-empty list of filters to apply to the reads.
+     */
+    public static List<SamRecordFilter> getReadFilters(Class<? extends Walker> walkerClass, FilterManager filterManager) {
+        List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
+        for(Class<? extends SamRecordFilter> filterType: getReadFilterTypes(walkerClass))
+            filters.add(filterManager.createFilterByType(filterType));
+        return filters;
+    }
+
+    /**
+     * Extracts filters that the walker has requested be run on the dataset.
      * @param walker Walker to inspect for filtering requests.
      * @param filterManager Manages the creation of filters.
      * @return A non-empty list of filters to apply to the reads.
      */
     public static List<SamRecordFilter> getReadFilters(Walker walker, FilterManager filterManager) {
-        List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
-        for(Class<? extends SamRecordFilter> filterType: getReadFilterTypes(walker))
-            filters.add(filterManager.createFilterByType(filterType));
-        return filters;
+        return getReadFilters(walker.getClass(), filterManager);
+    }
+
+    /**
+     * Gets the type of downsampling method requested by the walker.  If an alternative
+     * downsampling method is specified on the command-line, the command-line version will
+     * be used instead.
+     * @param walkerClass The class of the walker to interrogate.
+     * @return The downsampling method, as specified by the walker.  Null if none exists.
+     */
+    public static DownsamplingMethod getDownsamplingMethod(Class<? extends Walker> walkerClass) {
+        DownsamplingMethod downsamplingMethod = null;
+
+        if( walkerClass.isAnnotationPresent(Downsample.class) ) {
+            Downsample downsampleParameters = walkerClass.getAnnotation(Downsample.class);
+            DownsampleType type = downsampleParameters.by();
+            Integer toCoverage = downsampleParameters.toCoverage() >= 0 ? downsampleParameters.toCoverage() : null;
+            Double toFraction = downsampleParameters.toFraction() >= 0.0d ? downsampleParameters.toFraction() : null;
+            downsamplingMethod = new DownsamplingMethod(type,toCoverage,toFraction);
+        }
+
+        return downsamplingMethod;
     }
 
     /**
@@ -259,17 +367,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return The downsampling method, as specified by the walker.  Null if none exists.
      */
     public static DownsamplingMethod getDownsamplingMethod(Walker walker) {
-        DownsamplingMethod downsamplingMethod = null;
-
-        if( walker.getClass().isAnnotationPresent(Downsample.class) ) {
-            Downsample downsampleParameters = walker.getClass().getAnnotation(Downsample.class);
-            DownsampleType type = downsampleParameters.by();
-            Integer toCoverage = downsampleParameters.toCoverage() >= 0 ? downsampleParameters.toCoverage() : null;
-            Double toFraction = downsampleParameters.toFraction() >= 0.0d ? downsampleParameters.toFraction() : null;
-            downsamplingMethod = new DownsamplingMethod(type,toCoverage,toFraction);
-        }
-
-        return downsamplingMethod;
+        return getDownsamplingMethod(walker.getClass());
     }
 
     /**
@@ -293,15 +391,34 @@ public class WalkerManager extends PluginManager<Walker> {
     /**
      * Utility to get the requires attribute from the walker.
      * Throws an exception if requirements are missing.
-     * @param walker Walker to query for required data.
+     * @param walkerClass Class of the walker to query for required data.
      * @return Required data attribute.
      */
-    private static Requires getWalkerRequirements(Walker walker) {
-        Class<? extends Walker> walkerClass = walker.getClass();
+    private static Requires getWalkerRequirements(Class<? extends Walker> walkerClass) {
         Requires requiresDataSource = walkerClass.getAnnotation(Requires.class);
         if( requiresDataSource == null )
             throw new StingException( "Unable to find data types required by walker class " + walkerClass.getName());
         return requiresDataSource;
+    }
+
+    /**
+     * Utility to get the requires attribute from the walker.
+     * Throws an exception if requirements are missing.
+     * @param walker Walker to query for required data.
+     * @return Required data attribute.
+     */
+    private static Requires getWalkerRequirements(Walker walker) {
+        return getWalkerRequirements(walker.getClass());
+    }
+
+    /**
+     * Utility to get the forbidden attribute from the walker.
+     * @param walkerClass Class of the walker to query for required data.
+     * @return Required data attribute.  Null if forbidden info isn't present.
+     */
+    private static Allows getWalkerAllowed(Class<? extends Walker> walkerClass) {
+        Allows allowsDataSource = walkerClass.getAnnotation(Allows.class);
+        return allowsDataSource;
     }
 
     /**
@@ -310,9 +427,19 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Required data attribute.  Null if forbidden info isn't present.
      */
     private static Allows getWalkerAllowed(Walker walker) {
-        Class<? extends Walker> walkerClass = walker.getClass();
-        Allows allowsDataSource = walkerClass.getAnnotation(Allows.class);
-        return allowsDataSource;
+        return getWalkerAllowed(walker.getClass());
+    }
+
+    /**
+     * Gets the list of filtering classes specified as walker annotations.
+     * @param walkerClass Class of the walker to inspect.
+     * @return An array of types extending from SamRecordFilter.  Will never be null.
+     */
+    @SuppressWarnings("unchecked")
+    public static Class<? extends SamRecordFilter>[] getReadFilterTypes(Class<? extends Walker> walkerClass) {
+        if( !walkerClass.isAnnotationPresent(ReadFilters.class) )
+            return new Class[0];
+        return walkerClass.getAnnotation(ReadFilters.class).value();
     }
 
     /**
@@ -320,10 +447,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param walker The walker to inspect.
      * @return An array of types extending from SamRecordFilter.  Will never be null.
      */
-    private static Class<? extends SamRecordFilter>[] getReadFilterTypes(Walker walker) {
-        Class<? extends Walker> walkerClass = walker.getClass();
-        if( !walkerClass.isAnnotationPresent(ReadFilters.class) )
-            return new Class[0];
-        return walkerClass.getAnnotation(ReadFilters.class).value();
+    public static Class<? extends SamRecordFilter>[] getReadFilterTypes(Walker walker) {
+        return getReadFilterTypes(walker.getClass());
     }
 }

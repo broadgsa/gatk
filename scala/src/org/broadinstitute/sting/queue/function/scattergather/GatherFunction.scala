@@ -1,20 +1,31 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import org.broadinstitute.sting.queue.function.{CommandLineFunction}
-import org.broadinstitute.sting.commandline.{Input, Output}
+import java.io.File
+import org.broadinstitute.sting.commandline.{ArgumentSource, Input, Output}
 
 /**
  * Base class for Gather command line functions.
- * NOTE: Using an abstract class instead of a trait due to scala parameterized type erasure on traits.
  */
-abstract class GatherFunction extends CommandLineFunction {
-  type GatherType
-
+trait GatherFunction extends CommandLineFunction {
   @Input(doc="Parts to gather back into the original output")
-  var gatherParts: List[GatherType] = Nil
+  var gatherParts: List[File] = Nil
 
   @Output(doc="The original output of the scattered function")
-  var originalOutput: GatherType = _
+  var originalOutput: File = _
 
-  def setOriginalFunction(originalFunction: ScatterGatherableFunction) = {}
+  /**
+   * Sets the original function used to create this scatter function.
+   * @param originalFunction The ScatterGatherableFunction.
+   * @param gatherField The field being gathered.
+   */
+  def setOriginalFunction(originalFunction: ScatterGatherableFunction, gatherField: ArgumentSource) = {}
+
+  /**
+   * Sets the clone function creating one of the inputs for this gather function.
+   * @param cloneFunction The clone of the ScatterGatherableFunction.
+   * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
+   * @param gatherField The field to be gathered.
+   */
+  def setCloneFunction(cloneFunction: ScatterGatherableFunction, index: Int, gatherField: ArgumentSource) = {}
 }

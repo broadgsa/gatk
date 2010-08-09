@@ -1,239 +1,60 @@
-import org.broadinstitute.sting.queue.function.scattergather.{ContigScatterFunction, FixMatesGatherFunction}
+import org.broadinstitute.sting.gatk.DownsampleType
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
+import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.QScript._
-// Other imports can be added here
 
-val unparsedArgs  = setArgs(args)
+class fullCallingPipeline extends QScript {
+  qscript =>
 
-// very slow-to-run fast-to-write parse args function. Only worth changing if using lots of flags with lots of lookups.
+  @Argument(doc="contigIntervals", shortName="contigIntervals")
+  var contigIntervals: File = _
 
-def parseArgs(flag: String): String = {
- var retNext: Boolean = false
- for ( f <- unparsedArgs ) {
-  if ( retNext ) {
-    return f
-  } else {
-    if ( f.equals(flag) ) {
-      retNext = true
-    }
-  }
- }
-  return "None"
-}
+  @Argument(doc="numContigs", shortName="numContigs")
+  var numContigs: Int = _
 
-/////////////////////////////////////////////////
-// step one: we need to create a set of realigner targets, one for each bam file
-/////////////////////////////////////////////////
-// todo -- make me less of a hack that makes Khalid cry
-abstract class GatkFunctionLocal extends GatkFunction {
-  if ( QScript.inputs("interval_list").size > 0 ) {
-   this.intervals = QScript.inputs("interval_list").head
-  } else {
-    this.intervals = QScript.inputs("interval.list").head
-  }
-}
+  @Argument(doc="project", shortName="project")
+  var project: String = _
 
-class RealignerTargetCreator extends GatkFunctionLocal {
- @Gather(classOf[SimpleTextGatherFunction])
- @Output(doc="Realigner targets")
- var realignerIntervals: File = _
+  @Input(doc="trigger", shortName="trigger", required=false)
+  var trigger: File = _
 
- def commandLine = gatkCommandLine("RealignerTargetCreator") + "-o %s".format(realignerIntervals)
-}
+  @Input(doc="refseqTable", shortName="refseqTable")
+  var refseqTable: File = _
 
-/////////////////////////////////////////////////
-// step two: we need to clean each bam file - gather will fix mates
-/////////////////////////////////////////////////
+  @Input(doc="dbsnpTable", shortName="dbsnpTable")
+  var dbsnpTable: File = _
 
-class IndelRealigner extends GatkFunction {
- @Input(doc="Intervals to clean")
- var intervalsToClean: File = _
- @Scatter(classOf[ContigScatterFunction])
- @Input(doc="Contig intervals")
- var contigIntervals: File = _
- @Gather(classOf[FixMatesGatherFunction])
- @Output(doc="Cleaned bam file")
- var cleanedBam: File = _
+  @Input(doc="Picard FixMateInformation.jar.  At the Broad this can be found at /seq/software/picard/current/bin/FixMateInformation.jar.  Outside the broad see http://picard.sourceforge.net/")
+  var picardFixMatesJar: File = _
 
- this.javaTmpDir = parseArgs("-tmpdir") // todo -- hack, move into script or something
+  @Input(doc="intervals")
+  var intervals: File = _
 
- override def freeze = {
-   this.intervals = contigIntervals
-   this.jobQueue = "long"
-   super.freeze
- }
+  @Input(doc="bam files", shortName="I")
+  var bamFiles: List[File] = Nil
 
- def commandLine = gatkCommandLine("IndelRealigner") + "--output %s -targetIntervals %s -L %s".format(cleanedBam,intervalsToClean,contigIntervals)
-}
+  @Input(doc="gatk jar")
+  var gatkJar: File = _
 
-/////////////////////////////////////////////////
-// step three: we need to call (multisample) over all bam files
-/////////////////////////////////////////////////
-
-class UnifiedGenotyper extends GatkFunctionLocal {
- @Input(doc="An optional trigger track (trigger emit will be set to 0)",required=false)
- var trigger: File = _
- @Input(doc="A list of comparison files for annotation",required=false)
- var compTracks: List[(String,File)] = Nil
- @Input(doc="Calling confidence level (may change depending on depth and number of samples)")
- var callConf: Int = _
- @Gather(classOf[SimpleTextGatherFunction])
- @Output(doc="raw vcf")
- var rawVCF: File = _
- 
- // todo -- add input for comps, triggers, etc
-
- def commandLine = gatkCommandLine("UnifiedGenotyper") + "-G Standard -A MyHaplotypeScore -varout %s".format(rawVCF) +
-         " -stand_emit_conf 10 -mmq 20 -mbq 20 -dt EXPERIMENTAL_BY_SAMPLE -dcov 200" +
-         " -stand_call_conf %d".format(callConf) +
-         ( if (trigger == null )  "" else " -trig_call_conf %d -trig_emit_conf 0 -B trigger,VCF,%s".format(callConf,trigger) ) +
-         makeCompString
-
- def makeCompString = {
-  var S: String = ""
-  for ( tup <- compTracks ) {
-    S += " -B comp%s,VCF,%s".format(tup._1,tup._2)
-  }
-  S
- }
-}
-
-/////////////////////////////////////////////////
-// step four: we need to call indels (multisample) over all bam files
-/////////////////////////////////////////////////
-
-class UnifiedGenotyperIndels extends GatkFunctionLocal {
- @Gather(classOf[SimpleTextGatherFunction])
- @Output(doc="indel vcf")
- var indelVCF: File = _
- // todo -- add inputs for the indel genotyper
-
- def commandLine = gatkCommandLine("UnifiedGenotyper") + "-varout %s -gm INDELS".format(indelVCF)
-}
-
-/////////////////////////////////////////////////
-// step five: we need to filter variants on cluster and with indel mask
-/////////////////////////////////////////////////
-class VariantFiltration extends GatkFunctionLocal {
- @Input(doc="A VCF file to filter")
- var unfilteredVCF: File = _
- @Input(doc="An interval mask to use to filter indels")
- var indelMask: File = _
- @Input(doc="Filter names",required=false)
- var filterNames: List[String] = Nil
- @Input(doc="Filter expressions",required=false)
- var filterExpressions: List[String] = Nil
- @Output(doc="The input VCF file, but filtered")
- var filteredVCF: File = _
- // to do -- snp cluster args?
-
- def commandLine = gatkCommandLine("VariantFiltration") + "-B variant,VCF,%s -B mask,VCF,%s --maskName NearIndel --clusterWindowSize 20 --clusterSize 7 -o %s".format(unfilteredVCF,indelMask,filteredVCF) +
-                    "%s%s".format(repeat(" -filterName ",filterNames), repeat(" -filterExpression ",filterExpressions))
-}
-
-/////////////////////////////////////////////////
-// step six: we need to generate gaussian clusters with the optimizer
-/////////////////////////////////////////////////
-class GenerateVariantClusters extends GatkFunctionLocal {
- @Input(doc="A VCF that has been filtered for clusters and indels")
- var initialFilteredVCF: File = _
- @Output(doc="Variant cluster file generated from input VCF")
- var clusterFile: File = _
- // todo -- args for annotations?
- // todo -- args for resources (properties file)
-
- override def freeze = {
-   // todo -- hacky change in memory limit -- fix this when more official roads to do this are in place
-   this.memoryLimit = Some(8)
-   this.jobQueue = "hugemem"
-   super.freeze
- }
-
- def commandLine = gatkCommandLine("GenerateVariantClusters") + "-an QD -an SB -an MyHaplotypeScore -an HRun " +
-         "-resources /humgen/gsa-scr1/chartl/sting/R -B input,VCF,%s -clusterFile %s".format(initialFilteredVCF,clusterFile)
-}
-
-/////////////////////////////////////////////////
-// step seven: we need to apply gaussian clusters to our variants
-/////////////////////////////////////////////////
-class ApplyGaussianClusters extends GatkFunctionLocal {
- @Input(doc="A VCF file to which to apply clusters")
- var inputVCF: File = _
- @Input(doc="A variant cluster file")
- var clusterFile: File = _
- @Output(doc="A quality-score recalibrated VCF file")
- var recalibratedVCF: File = _
- // todo -- inputs for Ti/Tv expectation and other things
-
- def commandLine = gatkCommandLine("VariantRecalibrator") + "--target_titv 2.1 -resources /humgen/gsa-scr1/chartl/sting/R " +
-         "-B input,VCF,%s -clusterFile %s -output %s".format(inputVCF,clusterFile,recalibratedVCF)
-}
-
-/////////////////////////////////////////////////
-// step eight: we need to make tranches out of the recalibrated qualities
-/////////////////////////////////////////////////
-class ApplyVariantCuts extends GatkFunctionLocal {
- @Input(doc="A VCF file that has been recalibrated")
- var recalibratedVCF: File = _
- @Output(doc="A VCF file that has had tranches marked")
- var tranchedVCF: File = _
- @Output(doc="A tranch dat file")
- var tranchFile: File = _
- // todo -- fdr inputs, etc
-
- def commandLine = gatkCommandLine("ApplyVariantCuts") +
-         "-B input,VCF,%s -outputVCF %s --tranchesFile %s --fdr_filter_level 10.0".format(recalibratedVCF,tranchedVCF,tranchFile)
-}
-
-/////////////////////////////////////////////////
-// step nine: we need to annotate variants using the annotator [or maf, for now]
-/////////////////////////////////////////////////
-class GenomicAnnotator extends GatkFunctionLocal {
- @Input(doc="A VCF file to be annotated")
- var inputVCF: File = _
- @Input(doc="Refseq input table to use with the annotator")
- var refseqTable: File = _
- @Input(doc="Dbsnp input table to use with the annotator")
- var dbsnpTable: File = _
- @Gather(classOf[SimpleTextGatherFunction])
- @Output(doc="A genomically annotated VCF file")
- var annotatedVCF: File = _
-
- def commandLine = gatkCommandLine("GenomicAnnotator") + " -B variant,VCF,%s -B refseq,AnnotatorInputTable,%s -B dbsnp,AnnotatorInputTable,%s -vcf %s -s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet -BTI variant".format(inputVCF,refseqTable,dbsnpTable,annotatedVCF)
-}
-
-/////////////////////////////////////////////////
-// step ten: we need to evaluate variants with variant eval
-/////////////////////////////////////////////////
-class VariantEval extends GatkFunctionLocal {
- @Input(doc="An optimized vcf file to evaluate")
- var optimizedVCF: File = _
- @Input(doc="A hand-fitlered vcf file to evaluate")
- var handFilteredVCF: File = _
- @Output(doc="An evaluation file")
- var evalOutput: File = _
- // todo -- make comp tracks command-line arguments or properties
-
- def commandLine = gatkCommandLine("VariantEval") + "-B evalOptimized,VCF,%s -B evalHandFiltered,VCF,%s -E CountFunctionalClasses -E CompOverlap -E CountVariants -E TiTvVariantEvaluator -o %s".format(optimizedVCF,handFilteredVCF,evalOutput)
+trait CommandLineGATKArgs extends CommandLineGATK {
+  this.intervals = qscript.intervals
+  this.jarFile = qscript.gatkJar
 }
 
 // ------------ SETUP THE PIPELINE ----------- //
 
 // todo -- the unclean and clean pipelines are the same, so the code can be condensed significantly
 
+  def script = {
+    val projectBase: String = qscript.project
+    val cleanedBase: String = projectBase + ".cleaned"
+    val uncleanedBase: String = projectBase + ".uncleaned"
 // there are commands that use all the bam files
+    var cleanBamFiles = List.empty[File]
 
-val cleanSNPCalls = new UnifiedGenotyper
-val uncleanSNPCalls = new UnifiedGenotyper
-val cleanIndelCalls = new UnifiedGenotyperIndels
-val uncleanIndelCalls = new UnifiedGenotyperIndels
-
-for ( bam <- inputs("bam") ) {
+for ( bam <- bamFiles ) {
 
  // put unclean bams in unclean genotypers
-
-  uncleanSNPCalls.bamFiles :+= bam
-  uncleanIndelCalls.bamFiles :+= bam
 
  // in advance, create the extension files
 
@@ -242,86 +63,129 @@ for ( bam <- inputs("bam") ) {
 
  // create the cleaning commands
 
- val targetCreator = new RealignerTargetCreator
- targetCreator.bamFiles :+= bam
- targetCreator.realignerIntervals = indel_targets
+ val targetCreator = new RealignerTargetCreator with CommandLineGATKArgs
+ targetCreator.input_file :+= bam
+ targetCreator.out = indel_targets
 
- val realigner = new IndelRealigner
- realigner.bamFiles = targetCreator.bamFiles
- realigner.contigIntervals = new File(parseArgs("-contigIntervals"))
- realigner.intervalsToClean = targetCreator.realignerIntervals
- realigner.scatterCount = parseArgs("-numContigs").toInt
- realigner.cleanedBam = cleaned_bam
+ val realigner = new IndelRealigner with CommandLineGATKArgs
+ realigner.input_file = targetCreator.input_file
+ realigner.intervals = qscript.contigIntervals
+ //realigner.targetIntervals = targetCreator.out
+ realigner.targetIntervals = targetCreator.out.getAbsolutePath
+ realigner.scatterCount = qscript.numContigs
+ realigner.out = cleaned_bam
+ realigner.scatterClass = classOf[ContigScatterFunction]
+ realigner.setupGatherFunction = { case (f: BamGatherFunction, _) => f.jarFile = qscript.picardFixMatesJar }
+ realigner.jobQueue = "long"
 
  // put clean bams in clean genotypers
 
-  cleanSNPCalls.bamFiles :+= realigner.cleanedBam
-  cleanIndelCalls.bamFiles :+= realigner.cleanedBam
+ cleanBamFiles :+= realigner.out
 
   add(targetCreator,realigner)
 }
+    endToEnd(uncleanedBase,bamFiles)
+    endToEnd(cleanedBase,cleanBamFiles)
+  }
 
-val projectBase: String = parseArgs("-project")
-val cleanedBase: String = projectBase + ".cleaned"
-val uncleanedBase: String = projectBase + ".uncleaned"
-
-def endToEnd(base: String, snps: UnifiedGenotyper, indels: UnifiedGenotyperIndels) = {
+def endToEnd(base: String, bamFiles: List[File]) = {
 
  // step through the un-indel-cleaned graph:
  // 1a. call snps and indels
- snps.rawVCF = new File(base+".vcf")
- snps.callConf = 30
- snps.trigger = new File(parseArgs("-trigger"))
+ val snps = new UnifiedGenotyper with CommandLineGATKArgs
+ snps.input_file = bamFiles
+ snps.group :+= "Standard"
+ snps.annotation :+= "MyHamplotypeScore"
+ snps.variants_out = new File(base+".vcf")
+ snps.standard_min_confidence_threshold_for_emitting = Some(10)
+ snps.min_mapping_quality_score = Some(20)
+ snps.min_base_quality_score = Some(20)
+ snps.downsampling_type = Some(DownsampleType.EXPERIMENTAL_BY_SAMPLE)
+ snps.downsample_to_coverage = Some(200)
+ // todo -- add input for comps, triggers, etc
+ if (qscript.trigger != null) {
+  snps.trigger_min_confidence_threshold_for_calling = Some(30)
+  snps.rodBind :+= RodBind("trigger", "VCF", qscript.trigger)
+ }
  // todo -- hack -- get this from the command line, or properties
- snps.compTracks :+= ( "comp1KG_CEU",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/CEU.low_coverage.2010_07.sites.hg18.vcf.gz") )
- snps.compTracks :+= ( "comp1KG_ALL",new File(parseArgs("-trigger") ) )
+ snps.rodBind :+= RodBind( "comp1KG_CEU", "VCF", new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/CEU.low_coverage.2010_07.sites.hg18.vcf.gz") )
+
+
+ // TODO: what is the 1KG_ALL track?
+ //snps.rodBind :+= RodBind( "comp1KG_ALL", "VCF", qscript.trigger )
+
+
  snps.scatterCount = 100
- indels.indelVCF = new File(base+".indels.vcf")
+ val indels = new UnifiedGenotyper with CommandLineGATKArgs
+ indels.input_file = bamFiles
+ indels.variants_out = new File(base+".indels.vcf")
+ indels.genotype_model = Some(Model.INDELS)
  indels.scatterCount = 100
+ // todo -- add inputs for the indel genotyper
  // 1b. genomically annotate SNPs -- slow, but scatter it
- val annotated = new GenomicAnnotator
- annotated.inputVCF = snps.rawVCF
- annotated.refseqTable = new File(parseArgs("-refseqTable"))
- annotated.dbsnpTable = new File(parseArgs("-dbsnpTable"))
- annotated.annotatedVCF = swapExt(snps.rawVCF,".vcf",".annotated.vcf")
+ val annotated = new GenomicAnnotator with CommandLineGATKArgs
+ annotated.rodBind :+= RodBind("variant", "VCF", snps.variants_out)
+ annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.refseqTable)
+ annotated.rodBind :+= RodBind("dbsnp", "AnnotatorInputTable", qscript.dbsnpTable)
+ annotated.vcfOutput = swapExt(snps.variants_out,".vcf",".annotated.vcf")
+ annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
+ annotated.rodToIntervalTrackName = "variant"
  annotated.scatterCount = 100
  // 2.a filter on cluster and near indels
- val masker = new VariantFiltration
- masker.unfilteredVCF = annotated.annotatedVCF
- masker.indelMask = indels.indelVCF
- masker.filteredVCF = swapExt(annotated.annotatedVCF,".vcf",".indel.masked.vcf")
+ val masker = new VariantFiltration with CommandLineGATKArgs
+ masker.rodBind :+= RodBind("variant", "VCF", annotated.vcfOutput)
+ masker.rodBind :+= RodBind("mask", "VCF", indels.variants_out)
+ masker.maskName = "NearIndel"
+ masker.clusterWindowSize = Some(20)
+ masker.clusterSize = Some(7)
+ masker.out = swapExt(annotated.vcfOutput,".vcf",".indel.masked.vcf")
+ // todo -- snp cluster args?
  // 2.b hand filter with standard filter
- val handFilter = new VariantFiltration
- handFilter.unfilteredVCF = annotated.annotatedVCF
- handFilter.indelMask = indels.indelVCF
- handFilter.filterNames = List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
- handFilter.filterExpressions = List("\"SB>=0.10\"","\"AB>=0.75\"","QD<5","\"HRun>=4\"")
- handFilter.filteredVCF = swapExt(annotated.annotatedVCF,".vcf",".handfiltered.vcf")
+ val handFilter = new VariantFiltration with CommandLineGATKArgs
+ handFilter.rodBind :+= RodBind("variant", "VCF", annotated.vcfOutput)
+ handFilter.rodBind :+= RodBind("mask", "VCF", indels.variants_out)
+ handFilter.filterName ++= List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
+ handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","QD<5","\"HRun>=4\"")
+ handFilter.out = swapExt(annotated.vcfOutput,".vcf",".handfiltered.vcf")
  // 3.i generate gaussian clusters on the masked vcf
- val clusters = new GenerateVariantClusters
- clusters.initialFilteredVCF = masker.filteredVCF
- clusters.clusterFile = swapExt(snps.rawVCF,".vcf",".cluster")
+ val clusters = new GenerateVariantClusters with CommandLineGATKArgs
+ clusters.rodBind :+= RodBind("input", "VCF", masker.out)
+ //clusters.clusterFile = swapExt(snps.variants_out,".vcf",".cluster")
+ val clusters_clusterFile = swapExt(snps.variants_out,".vcf",".cluster")
+ clusters.clusterFile = clusters_clusterFile.getAbsolutePath
+ clusters.memoryLimit = Some(8)
+ clusters.jobQueue = "hugemem"
+ // todo -- args for annotations?
+ // todo -- args for resources (properties file)
+ clusters.use_annotation ++= List("QD", "SB", "MyHaplotypeScore", "HRun")
+ clusters.path_to_resources = "/humgen/gsa-scr1/chartl/sting/R"
  // 3.ii apply gaussian clusters to the masked vcf
- val recalibrate = new ApplyGaussianClusters
+ val recalibrate = new VariantRecalibrator with CommandLineGATKArgs
  recalibrate.clusterFile = clusters.clusterFile
- recalibrate.inputVCF = masker.filteredVCF
- recalibrate.recalibratedVCF = swapExt(masker.filteredVCF,".vcf",".optimized.vcf")
+ recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
+ recalibrate.out = swapExt(masker.out,".vcf",".optimized.vcf")
+ // todo -- inputs for Ti/Tv expectation and other things
+ recalibrate.target_titv = Some(2.1)
  // 3.iii apply variant cuts to the clusters
- val cut = new ApplyVariantCuts
- cut.recalibratedVCF = recalibrate.recalibratedVCF
- cut.tranchedVCF = swapExt(recalibrate.recalibratedVCF,".vcf",".tranched.vcf")
- cut.tranchFile = swapExt(recalibrate.recalibratedVCF,".vcf",".tranch")
+ val cut = new ApplyVariantCuts with CommandLineGATKArgs
+ cut.rodBind :+= RodBind("input", "VCF", recalibrate.out)
+ //cut.outputVCFFile = swapExt(recalibrate.out,".vcf",".tranched.vcf")
+ //cut.tranchesFile = swapExt(recalibrate.out,".vcf",".tranch")
+ val cut_outputVCFFile = swapExt(recalibrate.out,".vcf",".tranched.vcf")
+ val cut_tranchesFile = swapExt(recalibrate.out,".vcf",".tranch")
+ cut.outputVCFFile = cut_outputVCFFile.getAbsolutePath
+ cut.tranchesFile = cut_tranchesFile.getAbsolutePath
+ // todo -- fdr inputs, etc
+ cut.fdr_filter_level = Some(10)
  // 4. Variant eval the cut and the hand-filtered vcf files
- val eval = new VariantEval
- eval.optimizedVCF = cut.tranchedVCF
- eval.handFilteredVCF = handFilter.filteredVCF
- eval.evalOutput = new File(base+".eval")
+ val eval = new VariantEval with CommandLineGATKArgs
+ eval.rodBind :+= RodBind("evalOptimized", "VCF", cut_outputVCFFile)
+ eval.rodBind :+= RodBind("evalHandFiltered", "VCF", handFilter.out)
+ // todo -- make comp tracks command-line arguments or properties
+ eval.evalModule ++= List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
+ eval.out = new File(base+".eval")
 
  add(snps,indels,annotated,masker,handFilter,clusters,recalibrate,cut,eval)
 }
 
-endToEnd(uncleanedBase,uncleanSNPCalls,uncleanIndelCalls)
-endToEnd(cleanedBase,cleanSNPCalls,cleanIndelCalls)
-
-setParams
-run
+}

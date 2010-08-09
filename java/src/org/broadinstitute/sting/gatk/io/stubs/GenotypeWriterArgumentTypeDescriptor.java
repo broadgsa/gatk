@@ -158,10 +158,12 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
         Annotation annotation = this.getArgumentAnnotation(source);
 
         return new ArgumentDefinition( annotation,
+                                       source.field.getType(),
                                        "variants_out",
                                        "varout",
                                        false,
                                        source.isMultiValued(),
+                                       getCollectionComponentType(source.field),
                                        source.isHidden(),
                                        null );
     }
@@ -173,13 +175,15 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      */
     private ArgumentDefinition createGenotypeFormatArgumentDefinition(ArgumentSource source) {
         Annotation annotation = this.getArgumentAnnotation(source);
-        return new ArgumentDefinition( ArgumentDefinition.getIOType(annotation),
+        return new ArgumentDefinition( ArgumentIOType.getIOType(annotation),
+                                       GenotypeWriterFactory.GENOTYPE_FORMAT.class,
                                        "variant_output_format",
                                        "vf",
                                        "Format to be used to represent variants; default is VCF",
                                        false,
                                        false,
                                        false,
+                                       null,
                                        source.isHidden(),
                                        null,
                                        null,

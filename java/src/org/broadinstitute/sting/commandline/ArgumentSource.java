@@ -28,7 +28,7 @@ package org.broadinstitute.sting.commandline;
 import org.broadinstitute.sting.gatk.walkers.Hidden;
 
 import java.lang.reflect.Field;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,9 +41,9 @@ import java.util.List;
  */
 public class ArgumentSource {
     /**
-     * Class to which the field belongs.
+     * Field into which to inject command-line arguments.
      */
-    public final Class clazz;
+    public final Field[] parentFields;
 
     /**
      * Field into which to inject command-line arguments.
@@ -57,11 +57,19 @@ public class ArgumentSource {
 
     /**
      * Create a new command-line argument target.
-     * @param clazz Class containing the argument.
-     * @param field Field containing the argument.  Field must be annotated with 'Argument'.
+     * @param field Field containing the argument.  Field must be annotated with 'Input' or 'Output'.
      */
-    public ArgumentSource( Class clazz, Field field ) {
-        this.clazz = clazz;
+    public ArgumentSource( Field field ) {
+        this(new Field[0], field);
+    }
+
+    /**
+     * Create a new command-line argument target.
+     * @param parentFields Parent fields containing the the field.  Field must be annotated with 'ArgumentCollection'.
+     * @param field Field containing the argument.  Field must be annotated with 'Input' or 'Output'.
+     */
+    public ArgumentSource( Field[] parentFields, Field field ) {
+        this.parentFields = parentFields;
         this.field = field;
         this.typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
     }
@@ -80,7 +88,7 @@ public class ArgumentSource {
             return false;
 
         ArgumentSource otherArgumentSource = (ArgumentSource)other;
-        return this.clazz.equals(otherArgumentSource.clazz) && this.field.equals(otherArgumentSource.field);
+        return this.field == otherArgumentSource.field && Arrays.equals(this.parentFields, otherArgumentSource.parentFields);
     }
 
     /**
@@ -89,7 +97,7 @@ public class ArgumentSource {
      */
     @Override
     public int hashCode() {
-        return clazz.hashCode() ^ field.hashCode();
+        return field.hashCode();
     }
 
     /**
@@ -118,18 +126,11 @@ public class ArgumentSource {
 
     /**
      * Parses the specified value based on the specified type.
-     * @param source The type of value to be parsed.
      * @param values String representation of all values passed.
      * @return the parsed value of the object.
      */
-    public Object parse( ArgumentSource source, ArgumentMatches values ) {
-        Object value = null;
-        if( !isFlag() )
-            value = typeDescriptor.parse( source, values );
-        else
-            value = true;
-
-        return value;
+    public Object parse( ArgumentMatches values ) {
+        return typeDescriptor.parse( this, values );
     }
 
     /**
@@ -145,8 +146,7 @@ public class ArgumentSource {
      * @return True if the argument supports multiple values.
      */
     public boolean isMultiValued() {
-        Class argumentType = field.getType();
-        return Collection.class.isAssignableFrom(argumentType) || field.getType().isArray();
+        return typeDescriptor.isMultiValued( this );
     }
 
     /**
@@ -162,6 +162,6 @@ public class ArgumentSource {
      * @return String representation of the argument source.
      */
     public String toString() {
-        return clazz.getSimpleName() + ": " + field.getName();    
+        return field.getDeclaringClass().getSimpleName() + ": " + field.getName();
     }
 }

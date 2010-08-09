@@ -2,23 +2,33 @@ package org.broadinstitute.sting.queue.function.scattergather
 
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import java.io.File
-import org.broadinstitute.sting.commandline.{Input, Output}
+import org.broadinstitute.sting.commandline.{ArgumentSource, Input, Output}
 
 /**
  * Base class for Scatter command line functions.
- * NOTE: Using an abstract class instead of a trait due to scala parameterized type erasure on traits.
  */
-abstract class ScatterFunction extends CommandLineFunction {
-  type ScatterType
-
+trait ScatterFunction extends CommandLineFunction {
   @Input(doc="Original input to scatter")
-  var originalInput: ScatterType = _
+  var originalInput: File = _
+
+  @Output(doc="Scattered parts of the original input, one per temp directory")
+  var scatterParts: List[File] = Nil
 
   @Input(doc="Temporary directories for each scatter part")
   var tempDirectories: List[File] = Nil
 
-  @Output(doc="Scattered parts of the original input, one per temp directory")
-  var scatterParts: List[ScatterType] = Nil
+  /**
+   * Sets the original function used to create this scatter function.
+   * @param originalFunction The ScatterGatherableFunction.
+   * @param scatterField The field being scattered.
+   */
+  def setOriginalFunction(originalFunction: ScatterGatherableFunction, scatterField: ArgumentSource) = {}
 
-  def setOriginalFunction(originalFunction: ScatterGatherableFunction) = {}
+  /**
+   * Sets the clone function using one of the outputs of this scatter function.
+   * @param cloneFunction The clone of the ScatterGatherableFunction.
+   * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
+   * @param scatterField The field being scattered.
+   */
+  def setCloneFunction(cloneFunction: ScatterGatherableFunction, index: Int, scatterField: ArgumentSource) = {}
 }

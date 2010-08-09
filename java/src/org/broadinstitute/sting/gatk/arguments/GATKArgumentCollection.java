@@ -29,6 +29,8 @@ import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.simpleframework.xml.*;
@@ -64,7 +66,7 @@ public class GATKArgumentCollection {
 
     // parameters and their defaults
     @ElementList(required = false)
-    @Argument(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
+    @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<File> samFiles = new ArrayList<File>();
 
     @Element(required = false)
@@ -76,19 +78,19 @@ public class GATKArgumentCollection {
     public List<String> readFilters = new ArrayList<String>();
 
     @ElementList(required = false)
-    @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
+    @Input(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
     public List<String> intervals = null;
 
     @ElementList(required = false)
-    @Argument(fullName = "excludeIntervals", shortName = "XL", doc = "A list of genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file.", required = false)
+    @Input(fullName = "excludeIntervals", shortName = "XL", doc = "A list of genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file.", required = false)
     public List<String> excludeIntervals = null;
 
     @Element(required = false)
-    @Argument(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
+    @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 
     @ElementList(required = false)
-    @Argument(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form <name>,<type>,<file>", required = false)
+    @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form <name>,<type>,<file>", required = false)
     public ArrayList<String> RODBindings = new ArrayList<String>();
 
     @Element(required = false)
@@ -100,30 +102,30 @@ public class GATKArgumentCollection {
     public IntervalSetRule BTIMergeRule = IntervalSetRule.UNION;
 
     @Element(required = false)
-    @Argument(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
+    @Input(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
     public String DBSNPFile = null;
 
     @Element(required = false)
-    @Argument(fullName = "hapmap", shortName = "H", doc = "Hapmap file", required = false)
+    @Input(fullName = "hapmap", shortName = "H", doc = "Hapmap file", required = false)
     public String HAPMAPFile = null;
 
     @Element(required = false)
-    @Argument(fullName = "hapmap_chip", shortName = "hc", doc = "Hapmap chip file", required = false)
+    @Input(fullName = "hapmap_chip", shortName = "hc", doc = "Hapmap chip file", required = false)
     public String HAPMAPChipFile = null;
 
     /** An output file presented to the walker. */
     @Element(required = false)
-    @Argument(fullName = "out", shortName = "o", doc = "An output file presented to the walker.  Will overwrite contents if file exists.", required = false)
+    @Output(fullName = "out", shortName = "o", doc = "An output file presented to the walker.  Will overwrite contents if file exists.", required = false)
     public String outFileName = null;
 
     /** An error output file presented to the walker. */
     @Element(required = false)
-    @Argument(fullName = "err", shortName = "e", doc = "An error output file presented to the walker.  Will overwrite contents if file exists.", required = false)
+    @Output(fullName = "err", shortName = "e", doc = "An error output file presented to the walker.  Will overwrite contents if file exists.", required = false)
     public String errFileName = null;
 
     /** A joint file for both 'normal' and error output presented to the walker. */
     @Element(required = false)
-    @Argument(fullName = "outerr", shortName = "oe", doc = "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", required = false)
+    @Output(fullName = "outerr", shortName = "oe", doc = "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", required = false)
     public String outErrFileName = null;
 
     @Element(required = false)

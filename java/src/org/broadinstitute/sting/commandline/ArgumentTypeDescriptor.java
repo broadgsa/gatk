@@ -113,8 +113,24 @@ public abstract class ArgumentTypeDescriptor {
         return Collections.singletonList(createDefaultArgumentDefinition(source));
     }
 
+    /**
+     * Parses an argument source to an object.
+     * @param source The source used to find the matches.
+     * @param matches The matches for the source.
+     * @return The parsed object.
+     */
     public Object parse( ArgumentSource source, ArgumentMatches matches ) {
         return parse( source, source.field.getType(), matches );
+    }
+
+    /**
+     * Returns true if the field is a collection or an array.
+     * @param source The argument source to check.
+     * @return true if the field is a collection or an array.
+     */
+    public boolean isMultiValued( ArgumentSource source ) {
+        Class argumentType = source.field.getType();
+        return Collection.class.isAssignableFrom(argumentType) || argumentType.isArray();
     }
 
     /**
@@ -125,15 +141,41 @@ public abstract class ArgumentTypeDescriptor {
      */
     protected ArgumentDefinition createDefaultArgumentDefinition( ArgumentSource source ) {
         return new ArgumentDefinition( getArgumentAnnotation(source),
+                                       source.field.getType(),
                                        source.field.getName(),
                                        source.isFlag(),
                                        source.isMultiValued(),
+                                       getCollectionComponentType(source.field),
                                        source.isHidden(),
                                        getValidOptions(source) );
     }
 
-    public abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
+    /**
+     * Return the component type of a field, or String.class if the type cannot be found.
+     * @param field The reflected field to inspect.
+     * @return The parameterized component type, or String.class if the parameterized type could not be found.
+     * @throws IllegalArgumentException If more than one parameterized type is found on the field.
+     */
+    protected Class getCollectionComponentType( Field field ) {
+            // If this is a parameterized collection, find the contained type.  If blow up if more than one type exists.
+            if( field.getGenericType() instanceof ParameterizedType) {
+                ParameterizedType parameterizedType = (ParameterizedType)field.getGenericType();
+                if( parameterizedType.getActualTypeArguments().length > 1 )
+                    throw new IllegalArgumentException("Unable to determine collection type of field: " + field.toString());
+                return (Class)parameterizedType.getActualTypeArguments()[0];
+            }
+            else
+                return String.class;
+    }
 
+    /**
+     * Parses the argument matches for a class type into an object.
+     * @param source The original argument source used to find the matches.
+     * @param type The current class type being inspected.  May not match the argument source.field.getType() if this as a collection for example.
+     * @param matches The argument matches for the argument source, or the individual argument match for a scalar if this is being called to help parse a collection.
+     * @return The individual parsed object matching the argument match with Class type.
+     */
+    public abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
 
     /**
      * If the argument source only accepts a small set of options, populate the returned list with
@@ -193,6 +235,11 @@ public abstract class ArgumentTypeDescriptor {
         throw new StingException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
     }
 
+    /**
+     * Returns true if an argument annotation is present
+     * @param field The field to check for an annotation.
+     * @return True if an argument annotation is present on the field.
+     */
     @SuppressWarnings("unchecked")
     public static boolean isArgumentAnnotationPresent(Field field) {
         for (Class annotation: ARGUMENT_ANNOTATIONS)
@@ -235,6 +282,8 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
+        if (source.isFlag())
+            return true;
         String value = getArgumentValue( createDefaultArgumentDefinition(source), matches );
 
         // lets go through the types we support
@@ -301,7 +350,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public boolean supports( Class type ) {
         return ( Collection.class.isAssignableFrom(type) || type.isArray() );
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )
@@ -319,16 +368,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 else if( java.util.Set.class.isAssignableFrom(type) ) type = java.util.TreeSet.class;
             }
 
-            // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
-            if( source.field.getGenericType() instanceof ParameterizedType) {
-                ParameterizedType parameterizedType = (ParameterizedType)source.field.getGenericType();
-                if( parameterizedType.getActualTypeArguments().length > 1 )
-                    throw new IllegalArgumentException("Unable to determine collection type of field: " + source.field.toString());
-                componentType = (Class)parameterizedType.getActualTypeArguments()[0];
-            }
-            else
-                componentType = String.class;
-
+            componentType = getCollectionComponentType( source.field );
             ArgumentTypeDescriptor componentArgumentParser = ArgumentTypeDescriptor.create( componentType );
 
             Collection collection;

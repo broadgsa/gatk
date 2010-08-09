@@ -7,7 +7,14 @@
     <property name="java.source.dir" value="java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
     <property name="resource.file" value="StingText.properties" />
+    <property name="resource.path" value="${java.classes}/StingText.properties" />
 
+    <property name="queue.source.dir" value="scala/src" />
+    <property name="queue.classes" value="${build.dir}/scala/classes" />
+
+    <property name="queue-gatk-extensions.source.dir" value="${build.dir}/queue-gatk-extensions/src" />
+    <property name="queue-gatk-extensions.classes" value="${build.dir}/queue-gatk-extensions/classes" />
+    
     <!-- where to find the tribble distro -->
     <property name="tribble.dir" value="tribble" />
 
@@ -24,9 +31,7 @@
     <!-- If running the 'package' task, this property controls the name of the xml file to package -->
     <property name="executable" value="GenomeAnalysisTK" />
 
-    <!-- Set target based on STING_BUILD_TYPE environment variable -->
     <property environment="env"/>
-    <property name="target" value="${env.STING_BUILD_TYPE}" />
 
     <dirset id="java.source.files" dir="${java.source.dir}">
       <patternset>
@@ -55,21 +60,28 @@
       </fileset>
     </path>
 
-    <path id="classpath">
-      <path refid="runtime.dependencies" />
-      <pathelement location="${java.classes}" />
-    </path>
-
-    <!-- ivy properties -->
-    <property name="ivy.install.version" value="2.0.0"/>
-    <property name="ivy.home" value="${user.home}/.ant"/>
-    <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
-    <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
-    <property name="ivy.settings.dir" value="settings"/>
-    <property file="${ivy.settings.dir}/ivysettings.properties"/>
-    <property name="ivy.conf" value="default"/>
     <target name="resolve" depends="init"
             description="locate and download library dependencies">
+        <!-- ivy properties -->
+        <property name="ivy.install.version" value="2.0.0"/>
+        <property name="ivy.home" value="${user.home}/.ant"/>
+        <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
+        <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
+        <property name="ivy.settings.dir" value="settings"/>
+        <property file="${ivy.settings.dir}/ivysettings.properties"/>
+        <property name="gatk.ivy.conf" value="default" />
+        <property name="scala.ivy.conf" value="default" />
+
+
+        <!-- Remove the reflections cache as the local dependency settings have changed. -->
+        <!-- Ok to remove after reflections goes back to a stable release. -->
+        <delete dir="${ivy.home}/cache/org.reflections/reflections"/>
+
+
+        <condition property="queue.ivy.conf" value="queue" else="default">
+            <isset property="queue.include" />
+        </condition>
+        <property name="ivy.conf" value="default, ${gatk.ivy.conf}, ${scala.ivy.conf}, ${queue.ivy.conf}"/>
       <mkdir dir="${ivy.jar.dir}"/>
       <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
            dest="${ivy.jar.dir}/${ivy.jar.file}"
@@ -91,48 +103,144 @@
         <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
       </tstamp>
 
-      <echo message="Compiling module: ${target}"/>
+        <!-- Set target based on STING_BUILD_TYPE environment variable -->
+        <condition property="sting.target" value="core" else="${env.STING_BUILD_TYPE}">
+            <equals arg1="${env.STING_BUILD_TYPE}" arg2="$${env.STING_BUILD_TYPE}" />
+        </condition>
+
+        <!-- Get the gatk build target.  Default to the STING_BUILD_TYPE.  -->
+        <condition property="gatk.target" value="${sting.target}" else="${env.GATK_BUILD_TYPE}">
+            <equals arg1="${env.GATK_BUILD_TYPE}" arg2="$${env.GATK_BUILD_TYPE}" />
+        </condition>
+
+        <!-- Get the queue build target.  Default to none.  -->
+        <condition property="queue.target" value="none" else="${env.QUEUE_BUILD_TYPE}">
+            <equals arg1="${env.QUEUE_BUILD_TYPE}" arg2="$${env.QUEUE_BUILD_TYPE}" />
+        </condition>
+
+        <!-- Get the queue-gatk-extensions build target.  Default to the queue target. -->
+        <condition property="queue-gatk-extensions.target" value="${queue.target}" else="${env.QUEUE_GATK_EXTENSIONS_BUILD_TYPE}">
+            <equals arg1="${env.QUEUE_GATK_EXTENSIONS_BUILD_TYPE}" arg2="$${env.QUEUE_GATK_EXTENSIONS_BUILD_TYPE}" />
+        </condition>
+
+        <!-- If the queue-gatk-extensions target is set, include all queue-gatk-extensions tasks. -->
+        <condition property="queue-gatk-extensions.include">
+            <not><equals arg1="${queue-gatk-extensions.target}" arg2="none" /></not>
+        </condition>
+
+        <!-- If the queue target is set, or if the queue-gatk-extensions needs to be built, then include all queue tasks. -->
+        <condition property="queue.include">
+            <or>
+                <not><equals arg1="${queue.target}" arg2="none" /></not>
+                <isset property="queue-gatk-extensions.include" />
+            </or>
+        </condition>
+
+        <!-- If queue or queue-gatk-extensions are build built, then include scala tasks (init.scalatasks) -->
+        <condition property="scala.include">
+            <or>
+                <isset property="queue.include" />
+                <isset property="queue-gatk-extensions.include" />
+            </or>
+        </condition>
+        
+        <echo message="GATK build      : ${gatk.target}"/>
+        <echo message="Queue build     : ${queue.target}"/>
+        <echo message="Queue GATK ext. : ${queue-gatk-extensions.target}"/>
       <echo message="source revision : ${build.version}"/>
       <echo message="build time      : ${build.timestamp}" />
       
       <condition property="include.oneoffs">
-        <equals arg1="${target}" arg2="oneoffs" casesensitive="false" />
+        <equals arg1="${gatk.target}" arg2="oneoffs" casesensitive="false" />
       </condition>
       
       <condition property="include.playground">
         <or>
-          <equals arg1="${target}" arg2="playground" casesensitive="false"/>
-          <equals arg1="${target}" arg2="oneoffs" casesensitive="false" />
+          <equals arg1="${gatk.target}" arg2="playground" casesensitive="false"/>
+          <equals arg1="${gatk.target}" arg2="oneoffs" casesensitive="false" />
         </or>
       </condition>
-      
+
       <!-- Create the build directory structure used by compile -->
       <mkdir dir="${build.dir}"/>
       <mkdir dir="${java.classes}"/>
     </target>
 
-    <target name="java.compile" depends="tribble,init,resolve"
+    <target name="init.scalatasks" depends="resolve" if="scala.include"
+            description="Initializes the scala ant tasks from scala-compiler.jar">
+        <path id="scala.classpath">
+            <fileset dir="lib">
+                <include name="scala-compiler-*.jar"/>
+                <include name="scala-library-*.jar"/>
+            </fileset>
+        </path>
+        <taskdef resource="scala/tools/ant/antlib.xml">
+            <classpath refid="scala.classpath"/>
+        </taskdef>
+    </target>
+
+    <target name="gatk.compile" depends="tribble,init,resolve"
             description="compile the source">
       <!-- Compile the java code from ${src} into build -->
       <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
+          <exclude name="**/examples/**" />
         <exclude name="**/playground/**" unless="include.playground"/>
         <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
       </javac>
     </target>
 
-    <target name="extracthelp" depends="init,java.compile" 
+    <!-- Queue depends on the gatk since it contains the StingUtils (including CommandLine) -->
+    <target name="queue.compile" depends="init,resolve,gatk.compile,init.scalatasks" if="queue.include" description="build Queue">
+        <path id="queue.classpath">
+          <path refid="runtime.dependencies" />
+          <pathelement location="${java.classes}" />
+        </path>
+        <mkdir dir="${queue.classes}"/>
+        <echo>Building Queue...</echo>
+        <scalac srcdir="${queue.source.dir}" destdir="${queue.classes}" classpathref="queue.classpath" deprecation="yes" unchecked="yes">
+            <include name="org/broadinstitute/sting/queue/**/*.scala"/>
+        </scalac>
+    </target>
+
+    <!-- NOTE: Extracting help first to avoid "Unable to load help text.  Help output will be sparse." warning message. -->
+    <target name="queue-gatk-extensions.compile" depends="gatk.compile, queue.compile, extracthelp" if="queue-gatk-extensions.include" description="generate GATK modules for Queue">
+        <mkdir dir="${queue-gatk-extensions.source.dir}"/>
+        <mkdir dir="${queue-gatk-extensions.classes}"/>
+        <path id="queue-gatk-extensions.classpath">
+          <path refid="runtime.dependencies" />
+          <pathelement location="${resource.path}" />
+          <pathelement location="${java.classes}" />
+          <pathelement location="${queue.classes}" />
+        </path>
+        <echo>Generating Queue GATK extensions...</echo>
+        <java fork="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="queue-gatk-extensions.classpath">
+            <arg value="-outDir" />
+            <arg path="${queue-gatk-extensions.source.dir}" />
+        </java>
+        <echo>Building Queue GATK extensions...</echo>
+        <scalac srcdir="${queue-gatk-extensions.source.dir}" destdir="${queue-gatk-extensions.classes}" classpathref="queue-gatk-extensions.classpath" deprecation="yes" unchecked="yes">
+            <include name="**/*.scala"/>
+        </scalac>
+    </target>
+
+    <target name="extracthelp" depends="init,gatk.compile"
 	    description="Extract help key/value pair file from the JavaDoc tags."
 	    unless="disable.help">
+        <path id="doclet.classpath">
+          <path refid="runtime.dependencies" />
+          <pathelement location="${java.classes}" />
+        </path>
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
-	       docletpathref="classpath"
+	       docletpathref="doclet.classpath"
 	       classpathref="runtime.dependencies"
-	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${java.classes}/${resource.file}">
+	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path}">
 	<packageset refid="java.source.files"/>
       </javadoc>
     </target>
 
-    <target name="dist" depends="java.compile,extracthelp"
-            description="generate the distribution">
+    <target name="sting.compile" depends="gatk.compile, queue.compile, queue-gatk-extensions.compile" />
+
+    <target name="init.jar" depends="sting.compile,extracthelp">
         <mkdir dir="${dist.dir}"/>
         <delete>
           <fileset dir="${dist.dir}" includes="*.jar" />
@@ -141,14 +249,20 @@
         <copy todir="${dist.dir}">
             <fileset dir="lib" includes="*.jar"/>
         </copy>
+    </target>
 
+    <target name="sting-utils.jar" depends="gatk.compile, init.jar">
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}" includes="**/utils/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
             </manifest>
         </jar>
+    </target>
 
+    <target name="gatk.jar" depends="gatk.compile, init.jar"
+            description="generate the GATK distribution">
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <path refid="gatk.resources"/>
             <fileset dir="${java.classes}">
@@ -193,22 +307,50 @@
             <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.vcf.VCFTool" />
           </manifest>
         </jar>
-    
+    </target>
+
+    <target name="queue.jar" depends="queue.compile, init.jar" if="queue.include">
+        <jar jarfile="${dist.dir}/Queue.jar">
+            <fileset dir="${queue.classes}">
+                <include name="org/broadinstitute/sting/queue/**/*.class"/>
+            </fileset>
+            <manifest>
+                <attribute name="Main-Class" value="org.broadinstitute.sting.queue.QCommandLine" />
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="queue-gatk-extensions.jar" depends="queue-gatk-extensions.compile, init.jar" if="queue-gatk-extensions.include">
+        <jar jarfile="${dist.dir}/QueueGATKExtensions.jar">
+          <fileset dir="${queue-gatk-extensions.classes}">
+            <include name="**/*.class" />
+          </fileset>
+        </jar>
+    </target>
+
+    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, queue.jar, queue-gatk-extensions.jar" />
+
+    <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
             <flattenmapper/>
             <fileset dir="${dist.dir}" includes="*.jar"/>
             <filelist files="GATKScala.jar"/>
         </pathconvert>
+    </target>
+
+    <target name="sting-utils.manifests" depends="sting-utils.jar, init.manifests">
+        <jar jarfile="${dist.dir}/StingUtils.jar" update="true">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="gatk.manifests" depends="gatk.jar, init.manifests">
 
         <jar jarfile="${dist.dir}/VCFTool.jar" update="true" >
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/StingUtils.jar" update="true">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
         </jar>
 
@@ -232,22 +374,48 @@
 
     </target>
 
+    <target name="queue.manifests" depends="queue.jar, init.manifests" if="queue.include">
+        <jar jarfile="${dist.dir}/Queue.jar" update="true" >
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="queue-gatk-extensions.manifests" depends="queue-gatk-extensions.jar, init.manifests" if="queue-gatk-extensions.include">
+        <jar jarfile="${dist.dir}/QueueGATKExtensions.jar" update="true" >
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, queue.manifests, queue-gatk-extensions.manifests" />
+
+    <target name="dist" depends="sting.manifests" />
+
     <target name="core" description="force a build of the Sting core code">
         <antcall target="dist" inheritAll="true">
-          <param name="target" value="core" />
+            <param name="sting.target" value="core" />
         </antcall>
     </target>
 
     <target name="playground" description="force a build of the Sting experimental code">
       <antcall target="dist" inheritAll="true">
-        <param name="target" value="playground" />
+        <param name="sting.target" value="playground" />
 	 </antcall>
     </target>
 
     <target name="oneoffs" description="force a build of the Sting experimental code and one-offs">
       <antcall target="dist" inheritAll="true">
-        <param name="target" value="oneoffs" />
+        <param name="sting.target" value="oneoffs" />
       </antcall>
+    </target>
+
+    <target name="queue" description="force a build of Queue">
+        <antcall target="dist" inheritAll="true">
+            <param name="queue.target" value="core" />
+        </antcall>
     </target>
 
     <target name="java.test.compile" depends="oneoffs">
@@ -255,6 +423,8 @@
         <mkdir dir="${java.test.classes}"/>
         <javac destdir="${java.test.classes}" debug="true" optimize="on">
             <src path="${java.test.sources}"/>
+            <exclude name="**/playground/**" unless="include.playground"/>
+            <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
             <classpath>
                 <path refid="runtime.dependencies" />
                 <pathelement location="${java.classes}"/>
@@ -297,46 +467,6 @@
         <fileset dir="${scala.classes}">
           <include name="*.class"/>
         </fileset>
-      </jar>
-    </target>
-    
-    <!-- Queue target -->
-    
-    <target name="queue" description="build Queue">
-      <antcall target="resolve">
-        <param name="ivy.conf" value="queue"/>
-      </antcall>
-      <!-- Call dist so jar files are picked up for manifest. -->
-      <antcall target="dist" />
-      <property name="queue.source.dir" value="scala/src" />
-      <property name="queue.classes" value="${build.dir}/scala/classes" />
-      
-      <path id="queue.classpath">
-	<path refid="runtime.dependencies" />
-	<pathelement location="${java.classes}" />
-      </path>
-      <taskdef resource="scala/tools/ant/antlib.xml">
-        <classpath refid="queue.classpath"/>
-      </taskdef>
-      <mkdir dir="${queue.classes}"/>
-      <echo>Building Queue...</echo>
-      <scalac srcdir="${queue.source.dir}" destdir="${queue.classes}" classpathref="queue.classpath">
-        <include name="org/broadinstitute/sting/queue/**/*.scala"/>
-      </scalac>
-
-      <pathconvert property="queuejar.classpath" pathsep=" ">
-        <flattenmapper/>
-        <fileset dir="${dist.dir}" includes="*.jar"/>
-      </pathconvert>
-
-      <jar jarfile="${dist.dir}/Queue.jar">
-        <fileset dir="${queue.classes}">
-          <include name="org/broadinstitute/sting/queue/**/*.class"/>
-        </fileset>
-        <manifest>
-          <attribute name="Main-Class" value="org.broadinstitute.sting.queue.QCommandLine" />
-          <attribute name="Class-Path" value="${queuejar.classpath}" />
-        </manifest>
       </jar>
     </target>
     

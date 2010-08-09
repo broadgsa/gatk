@@ -97,10 +97,12 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     private ArgumentDefinition createBAMArgumentDefinition(ArgumentSource source) {
         Annotation annotation = this.getArgumentAnnotation(source);
         return new ArgumentDefinition( annotation,
+                                       source.field.getType(),
                                        DEFAULT_ARGUMENT_FULLNAME,
                                        DEFAULT_ARGUMENT_SHORTNAME,
                                        false,
                                        source.isMultiValued(),
+                                       getCollectionComponentType(source.field),
                                        source.isHidden(),
                                        null );
     }
@@ -112,13 +114,15 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
      */
     private ArgumentDefinition createBAMCompressionArgumentDefinition(ArgumentSource source) {
         Annotation annotation = this.getArgumentAnnotation(source);
-        return new ArgumentDefinition( ArgumentDefinition.getIOType(annotation),
+        return new ArgumentDefinition( ArgumentIOType.getIOType(annotation),
+                                       int.class,
                                        COMPRESSION_FULLNAME,
                                        COMPRESSION_SHORTNAME,
                                        "Compression level to use for writing BAM files",
                                        false,
                                        false,
                                        false,
+                                       null,
                                        source.isHidden(),
                                        null,
                                        null,

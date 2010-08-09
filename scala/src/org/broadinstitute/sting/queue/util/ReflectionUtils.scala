@@ -2,67 +2,90 @@ package org.broadinstitute.sting.queue.util
 
 import org.broadinstitute.sting.queue.QException
 import java.lang.annotation.Annotation
-import scala.concurrent.JavaConversions._
 import java.lang.reflect.{ParameterizedType, Field}
 import org.broadinstitute.sting.commandline.ClassType
+import org.broadinstitute.sting.utils.classloader.JVMUtils
 
+/**
+ * A collection of scala extensions to the Sting JVMUtils.
+ */
 object ReflectionUtils {
+
+  /**
+   * Returns true if field has the annotation.
+   * @param field Field to check.
+   * @param annotation Class of the annotation to look for.
+   * @return true if field has the annotation.
+   */
   def hasAnnotation(field: Field, annotation: Class[_ <: Annotation]) = field.getAnnotation(annotation) != null
 
+  /**
+   * Gets the annotation or throws an exception if the annotation is not found.
+   * @param field Field to check.
+   * @param annotation Class of the annotation to look for.
+   * @return The annotation.
+   */
   def getAnnotation[T <: Annotation](field: Field, annotation: Class[T]): T = {
     if (!hasAnnotation(field, annotation))
       throw new QException("Field %s is missing annotation %s".format(field, annotation))
     field.getAnnotation(annotation).asInstanceOf[T]
   }
-  
+
+  /**
+   * Returns all the declared fields on a class in order of sub type to super type.
+   * @param clazz Base class to start looking for fields.
+   * @return List[Field] found on the class and all super classes.
+   */
   def getAllFields(clazz: Class[_]) = getAllTypes(clazz).map(_.getDeclaredFields).flatMap(_.toList)
 
-  def filterFields(fields: List[Field], annotation: Class[_ <: Annotation]) = fields.filter(field => hasAnnotation(field, annotation))
-
-  def getFieldValues(obj: AnyRef, fields: List[Field]) = fields.map(field => fieldGetter(field).invoke(obj))
-
+  /**
+   * Gets all the types on a class in order of sub type to super type.
+   * @param clazz Base class.
+   * @return List[Class] including the class and all super classes.
+   */
   def getAllTypes(clazz: Class[_]) = {
     var types = List.empty[Class[_]]
-      var c = clazz
-      while (c != null) {
-        types :+= c
-        c = c.getSuperclass
-      }
+    var c = clazz
+    while (c != null) {
+      types :+= c
+      c = c.getSuperclass
+    }
     types
   }
 
-  def getValue(obj: AnyRef, field: Field) = fieldGetter(field).invoke(obj)
-  def setValue(obj: AnyRef, field: Field, value: Any) = fieldSetter(field).invoke(obj, value.asInstanceOf[AnyRef])
-
-  def addOrUpdateWithStringValue(obj: AnyRef, field: Field, value: String) = {
-    val getter = fieldGetter(field)
-    val setter = fieldSetter(field)
-
-    if (classOf[Seq[_]].isAssignableFrom(field.getType)) {
-
-      val fieldType = getCollectionType(field)
-      val typeValue = coerce(fieldType, value)
-
-      var list = getter.invoke(obj).asInstanceOf[Seq[_]]
-      list :+= typeValue
-      setter.invoke(obj, list)
-
-    } else if (classOf[Option[_]].isAssignableFrom(field.getType)) {
-
-      val fieldType = getCollectionType(field)
-      val typeValue = coerce(fieldType, value)
-
-      setter.invoke(obj, Some(typeValue))
-
-    } else {
-
-      val fieldType = field.getType
-      val typeValue = coerce(fieldType, value)
-
-      setter.invoke(obj, typeValue.asInstanceOf[AnyRef])
+  /**
+   * Gets a field value using reflection.
+   * Attempts to use the scala getter then falls back to directly accessing the field.
+   * @param obj Object to inspect.
+   * @param field Field to retrieve.
+   * @return The field value.
+   */
+  def getValue(obj: AnyRef, field: Field): AnyRef =
+    try {
+      field.getDeclaringClass.getMethod(field.getName).invoke(obj)
+    } catch {
+      case e: NoSuchMethodException => JVMUtils.getFieldValue(field, obj)
     }
-  }
 
+  /**
+   * Sets a field value using reflection.
+   * Attempts to use the scala setter then falls back to directly accessing the field.
+   * @param obj Object to inspect.
+   * @param field Field to set.
+   * @param value The new field value.
+   */
+  def setValue(obj: AnyRef, field: Field, value: Any) =
+    try {
+      field.getDeclaringClass.getMethod(field.getName+"_$eq", field.getType).invoke(obj, value.asInstanceOf[AnyRef])
+    } catch {
+      case e: NoSuchMethodException => JVMUtils.setFieldValue(field, obj, value)
+    }
+
+  /**
+   * Returns the collection type of a field or throws an exception if the field contains more than one parameterized type, or the collection type cannot be found.
+   * @param field Field to retrieve the collection type.
+   * @return The collection type for the field.
+   */
   def getCollectionType(field: Field) = {
     getGenericTypes(field) match {
       case Some(classes) =>
@@ -70,10 +93,15 @@ object ReflectionUtils {
           throw new IllegalArgumentException("Field contains more than one generic type: " + field)
         classes(0)
       case None =>
-        throw new QException("Generic type not set for collection: " + field)
+        throw new QException("Generic type not set for collection.  Did it declare an @ClassType?: " + field)
     }
   }
 
+  /**
+   * Returns the generic types for a field or None.
+   * @param field Field to retrieve the collection type.
+   * @return The array of classes that are in the collection type, or None if the type cannot be found.
+   */
   private def getGenericTypes(field: Field): Option[Array[Class[_]]] = {
     // TODO: Refactor: based on java code in org.broadinstitute.sting.commandline.ArgumentTypeDescriptor
     // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
@@ -84,40 +112,5 @@ object ReflectionUtils {
       Some(Array(getAnnotation(field, classOf[ClassType]).value))
     }
     else None
-  }
-
-  private def fieldGetter(field: Field) =
-    try {
-      field.getDeclaringClass.getMethod(field.getName)
-    } catch {
-      case e: NoSuchMethodException => throw new QException("Field may be private?  Unable to find getter for field: " + field)
-    }
-
-  private def fieldSetter(field: Field) =
-    try {
-      field.getDeclaringClass.getMethod(field.getName+"_$eq", field.getType)
-    } catch {
-      case e: NoSuchMethodException => throw new QException("Field may be a val instead of var?  Unable to find setter for field: " + field)
-    }
-
-  private def coerce(clazz: Class[_], value: String) = {
-    if (classOf[String] == clazz) value
-    else if (classOf[Boolean] == clazz) value.toBoolean
-    else if (classOf[Byte] == clazz) value.toByte
-    else if (classOf[Short] == clazz) value.toShort
-    else if (classOf[Int] == clazz) value.toInt
-    else if (classOf[Long] == clazz) value.toLong
-    else if (classOf[Float] == clazz) value.toFloat
-    else if (classOf[Double] == clazz) value.toDouble
-    else if (hasStringConstructor(clazz))
-      clazz.getConstructor(classOf[String]).newInstance(value)
-    else throw new QException("Unable to coerce value '%s' to type '%s'.".format(value, clazz))
-  }
-
-  private def hasStringConstructor(clazz: Class[_]) = {
-    clazz.getConstructors.exists(constructor => {
-      val parameters = constructor.getParameterTypes
-      parameters.size == 1 && parameters.head == classOf[String]
-    })
   }
 }

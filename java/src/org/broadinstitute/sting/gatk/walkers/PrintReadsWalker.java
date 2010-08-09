@@ -31,6 +31,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 /**
  * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear
@@ -42,7 +43,7 @@ import org.broadinstitute.sting.commandline.Argument;
 public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     /** an optional argument to dump the reads out to a BAM file */
-    @Argument(fullName = "outputBamFile", shortName = "of", doc = "Write output to this BAM filename instead of STDOUT", required = false)
+    @Output(fullName = "outputBamFile", shortName = "of", doc = "Write output to this BAM filename instead of STDOUT", required = false)
     SAMFileWriter outputBamFile = null;
     @Argument(fullName = "readGroup", shortName = "readGroup", doc="Discard reads not belonging to the specified read group", required = false)
     String readGroup = null;

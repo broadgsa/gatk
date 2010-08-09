@@ -75,15 +75,19 @@ public class RODTrackBuilder implements RMDTrackBuilder {
            return new RODRMDTrack(targetClass, name, inputFile, createROD(name,targetClass,inputFile));
        }
 
-    /** @return a map of all available tracks we currently have access to create */
+    /** @return a map of all available track types we currently have access to create */
+    @Override
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
-        Map<String, Class> ret = new HashMap<String, Class>();
-        for (String name : Types.keySet())
-            ret.put(name, Types.get(name));
-        return ret;
+        return new HashMap<String, Class>(Types);
     }
 
-/**
+    /** @return a map of all available track record types we currently have access to create */
+    @Override
+    public Map<String, Class> getAvailableTrackNamesAndRecordTypes() {
+        return new HashMap<String, Class>(Types);
+    }
+
+    /**
      * Helpful function that parses a single triplet of <name> <type> <file> and returns the corresponding ROD with
      * <name>, of type <type> that reads its input from <file>.
      *

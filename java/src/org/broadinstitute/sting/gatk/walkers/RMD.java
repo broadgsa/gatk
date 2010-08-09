@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broad.tribble.Feature;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -25,5 +27,5 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RMD {
     String name();    
-    Class type();
+    Class type() default Feature.class;
 }

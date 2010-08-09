@@ -270,24 +270,36 @@ public class ParsingEngine {
             return;
 
         // Target instance into which to inject the value.
-        List<Object> targets = new ArrayList<Object>();
-
-        // Check to see whether the instance itself can be the target.
-        if( source.clazz.isAssignableFrom(instance.getClass()) ) {
-            targets.add(instance);
-        }
-
-        // Check to see whether a contained class can be the target.
-        targets.addAll(getContainersMatching(instance,source.clazz));
+        Collection<Object> targets = findTargets( source, instance );
 
         // Abort if no home is found for the object.
         if( targets.size() == 0 )
             throw new StingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
-            Object value = (argumentMatches.size() != 0) ? source.parse(source,argumentMatches) : source.getDefault();
+            Object value = (argumentMatches.size() != 0) ? source.parse(argumentMatches) : source.getDefault();
             JVMUtils.setFieldValue(source.field,target,value);
         }
+    }
+
+    /**
+     * Gets a collection of the container instances of the given type stored within the given target.
+     * @param source Argument source.
+     * @param instance Container.
+     * @return A collection of containers matching the given argument source.
+     */
+    private Collection<Object> findTargets(ArgumentSource source, Object instance) {
+        LinkedHashSet<Object> targets = new LinkedHashSet<Object>();
+        for( Class clazz = instance.getClass(); clazz != null; clazz = clazz.getSuperclass() ) {
+            for( Field field: clazz.getDeclaredFields() ) {
+                if( field.equals(source.field) ) {
+                    targets.add(instance);
+                } else if( field.isAnnotationPresent(ArgumentCollection.class) ) {
+                    targets.addAll(findTargets(source, JVMUtils.getFieldValue(field, instance)));
+                }
+            }
+        }
+        return targets;
     }
 
     /**
@@ -303,15 +315,22 @@ public class ParsingEngine {
      * @param sourceClass class to act as sources for other arguments.
      * @return A list of sources associated with this object and its aggregated objects.
      */
-    protected static List<ArgumentSource> extractArgumentSources(Class sourceClass) {
+    public static List<ArgumentSource> extractArgumentSources(Class sourceClass) {
+        return extractArgumentSources(sourceClass, new Field[0]);
+    }
+
+    private static List<ArgumentSource> extractArgumentSources(Class sourceClass, Field[] parentFields) {
         List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();
             for( Field field: fields ) {
                 if( ArgumentTypeDescriptor.isArgumentAnnotationPresent(field) )
-                    argumentSources.add( new ArgumentSource(sourceClass,field) );
-                if( field.isAnnotationPresent(ArgumentCollection.class) )
-                    argumentSources.addAll( extractArgumentSources(field.getType()) );
+                    argumentSources.add( new ArgumentSource(parentFields, field) );
+                if( field.isAnnotationPresent(ArgumentCollection.class) ) {
+                    Field[] newParentFields = Arrays.copyOf(parentFields, parentFields.length + 1);
+                    newParentFields[parentFields.length] = field;
+                    argumentSources.addAll( extractArgumentSources(field.getType(), newParentFields) );
+                }
             }
             sourceClass = sourceClass.getSuperclass();
         }
@@ -349,24 +368,6 @@ public class ParsingEngine {
 
         // No parse results found.
         return null;
-    }
-
-    /**
-     * Gets a list of the container instances of the given type stored within the given target.
-     * @param target Class holding the container.
-     * @param type Container type.
-     * @return A list of containers matching the given type.
-     */
-    private List<Object> getContainersMatching(Object target, Class<?> type) {
-        List<Object> containers = new ArrayList<Object>();
-
-        Field[] fields = target.getClass().getDeclaredFields();
-        for( Field field: fields ) {
-            if( field.isAnnotationPresent(ArgumentCollection.class) && type.isAssignableFrom(field.getType()) )
-                containers.add(JVMUtils.getFieldValue(field,target));
-        }
-
-        return containers;
     }
 }
 

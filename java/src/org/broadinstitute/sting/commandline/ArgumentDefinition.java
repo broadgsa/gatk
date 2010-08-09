@@ -41,6 +41,11 @@ public class ArgumentDefinition {
     public final ArgumentIOType ioType;
 
     /**
+     * The class of the argument.
+     */
+    public final Class argumentType;
+
+    /**
      * Full name of the argument.  Must have a value.
      */
     public final String fullName;
@@ -71,6 +76,11 @@ public class ArgumentDefinition {
     public final boolean isMultiValued;
 
     /**
+     * The class of the componentType.  Not used for scalars.
+     */
+    public final Class componentType;
+
+    /**
      * Is this argument hidden from the help system?
      */
     public final boolean isHidden;
@@ -93,35 +103,41 @@ public class ArgumentDefinition {
     /**
      * Creates a new argument definition.
      * @param ioType Whether the argument is an input or an output.
+     * @param argumentType The class of the field.
      * @param fullName Full name for this argument definition.
      * @param shortName Short name for this argument definition.
      * @param doc Doc string for this argument.
      * @param required Whether or not this argument is required.
      * @param isFlag Whether or not this argument should be treated as a flag.
      * @param isMultiValued Whether or not this argument supports multiple values.
+     * @param componentType For multivalued arguments the type of the components.
      * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
      * @param exclusiveOf Whether this command line argument is mutually exclusive of other arguments.
      * @param validation A regular expression for command-line argument validation.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null. 
      */
     public ArgumentDefinition( ArgumentIOType ioType,
+                               Class argumentType,
                                String fullName,
                                String shortName,
                                String doc,
                                boolean required,
                                boolean isFlag,
                                boolean isMultiValued,
+                               Class componentType,
                                boolean isHidden,
                                String exclusiveOf,
                                String validation,
                                List<String> validOptions) {
         this.ioType = ioType;
+        this.argumentType = argumentType;
         this.fullName = fullName;
         this.shortName = shortName;
         this.doc = doc;
         this.required = required;
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
+        this.componentType = componentType;
         this.isHidden = isHidden;
         this.exclusiveOf = exclusiveOf;
         this.validation = validation;
@@ -131,18 +147,22 @@ public class ArgumentDefinition {
     /**
      * Creates a new argument definition.
      * @param annotation The annotation on the field.
+     * @param argumentType The class of the field.
      * @param defaultFullName Default full name for this argument definition.
      * @param defaultShortName Default short name for this argument definition.
      * @param isFlag Whether or not this argument should be treated as a flag.
      * @param isMultiValued Whether or not this argument supports multiple values.
+     * @param componentType For multivalued arguments the type of the components.
      * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null.
      */
     public ArgumentDefinition( Annotation annotation,
+                               Class argumentType,
                                String defaultFullName,
                                String defaultShortName,
                                boolean isFlag,
                                boolean isMultiValued,
+                               Class componentType,
                                boolean isHidden,
                                List<String> validOptions) {
 
@@ -162,13 +182,15 @@ public class ArgumentDefinition {
         else
             shortName = null;
 
-        this.ioType = getIOType(annotation);
+        this.ioType = ArgumentIOType.getIOType(annotation);
+        this.argumentType = argumentType;
         this.fullName = fullName;
         this.shortName = shortName;
         this.doc = getDoc(annotation);
         this.required = isRequired(annotation, isFlag);
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
+        this.componentType = componentType;
         this.isHidden = isHidden;
         this.exclusiveOf = getExclusiveOf(annotation);
         this.validation = getValidationRegex(annotation);
@@ -178,25 +200,31 @@ public class ArgumentDefinition {
     /**
      * Creates a new argument definition.
      * @param annotation The annotation on the field.
+     * @param argumentType The class of the field.
      * @param fieldName Default full name for this argument definition.
      * @param isFlag Whether or not this argument should be treated as a flag.
      * @param isMultiValued Whether or not this argument supports multiple values.
+     * @param componentType For multivalued arguments the type of the components.
      * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null.
      */
     public ArgumentDefinition( Annotation annotation,
+                               Class argumentType,
                                String fieldName,
                                boolean isFlag,
                                boolean isMultiValued,
+                               Class componentType,
                                boolean isHidden,
                                List<String> validOptions) {
-        this.ioType = getIOType(annotation);
+        this.ioType = ArgumentIOType.getIOType(annotation);
+        this.argumentType = argumentType;
         this.fullName = getFullName(annotation, fieldName);
         this.shortName = getShortName(annotation);
         this.doc = getDoc(annotation);
         this.required = isRequired(annotation, isFlag);
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
+        this.componentType = componentType;
         this.isHidden = isHidden;
         this.exclusiveOf = getExclusiveOf(annotation);
         this.validation = getValidationRegex(annotation);
@@ -222,17 +250,6 @@ public class ArgumentDefinition {
                Utils.equals(shortName,other.shortName);
     }
 
-    /**
-     * Returns the ArgumentIOType for the annotation.
-     * @param annotation @Input or @Output
-     * @return ArgumentIOType.Input, Output, or Unknown
-     */
-    public static ArgumentIOType getIOType(Annotation annotation) {
-        if (annotation instanceof Input) return ArgumentIOType.INPUT;
-        if (annotation instanceof Output) return ArgumentIOType.OUTPUT;
-        return ArgumentIOType.UNKNOWN;
-    }
-    
     /**
      * A hack to get around the fact that Java doesn't like inheritance in Annotations.
      * @param annotation to run the method on

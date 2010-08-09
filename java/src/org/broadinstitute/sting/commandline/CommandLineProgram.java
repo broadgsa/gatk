@@ -43,11 +43,11 @@ public abstract class CommandLineProgram {
     private static Logger logger = Logger.getRootLogger();
 
     /** the default log level */
-    @Input(fullName = "logging_level",
+    @Argument(fullName = "logging_level",
               shortName = "l",
               doc = "Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging.",
               required = false)
-    protected String logging_level = "WARN";
+    protected String logging_level = "INFO";
 
 
     /** where to send the output of our logger */
@@ -58,21 +58,21 @@ public abstract class CommandLineProgram {
     protected String toFile = null;
 
     /** do we want to silence the command line output */
-    @Input(fullName = "quiet_output_mode",
+    @Argument(fullName = "quiet_output_mode",
               shortName = "quiet",
               doc = "Set the logging to quiet mode, no output to stdout",
               required = false)
     protected Boolean quietMode = false;
 
     /** do we want to generate debugging information with the logs */
-    @Input(fullName = "debug_mode",
+    @Argument(fullName = "debug_mode",
               shortName = "debug",
               doc = "Set the logging file string to include a lot of debugging information (SLOW!)",
               required = false)
     protected Boolean debugMode = false;
 
     /** this is used to indicate if they've asked for help */
-    @Input(fullName = "help", shortName = "h", doc = "Generate this help message", required = false)
+    @Argument(fullName = "help", shortName = "h", doc = "Generate this help message", required = false)
     public Boolean help = false;
 
     /** our logging output patterns */
@@ -146,6 +146,7 @@ public abstract class CommandLineProgram {
      * @param clp  the command line program to execute
      * @param args the command line arguments passed in
      */
+    @SuppressWarnings("unchecked")
     public static void start(CommandLineProgram clp, String[] args) {
 
         try {
@@ -174,14 +175,14 @@ public abstract class CommandLineProgram {
                     parser.addArgumentSource(clp.getArgumentSourceName(argumentSource), argumentSource);
                 parser.parse(args);
 
-                if (isHelpPresent(clp, parser))
+                if (isHelpPresent(parser))
                     printHelpAndExit(clp, parser);
 
                 parser.validate();
             } else {
                 parser.parse(args);
 
-                if (isHelpPresent(clp, parser))
+                if (isHelpPresent(parser))
                     printHelpAndExit(clp, parser);
 
                 parser.validate();
@@ -216,7 +217,7 @@ public abstract class CommandLineProgram {
 
             // if they specify a log location, output our data there
             if (clp.toFile != null) {
-                FileAppender appender = null;
+                FileAppender appender;
                 try {
                     appender = new FileAppender(layout, clp.toFile, false);
                     logger.addAppender(appender);
@@ -258,7 +259,7 @@ public abstract class CommandLineProgram {
      */
     private static void toErrorLog(CommandLineProgram clp, Exception e) {
         File logFile = new File("GATK_Error.log");
-        PrintStream stream = null;
+        PrintStream stream;
         try {
             stream = new PrintStream(logFile);
         } catch (Exception e1) { // catch all the exceptions here, if we can't create the file, do the alternate path
@@ -280,21 +281,11 @@ public abstract class CommandLineProgram {
     }
 
     /**
-     * a manual way to load argument providing objects into the program
-     *
-     * @param clp the command line program
-     * @param cls the class to load the arguments off of
-     */
-    public void loadAdditionalSource(CommandLineProgram clp, Class cls) {
-        parser.addArgumentSource(clp.getArgumentSourceName(cls), cls);
-    }
-
-    /**
      * this function checks the logger level passed in on the command line, taking the lowest
      * level that was provided.
      */
     private void setupLoggerLevel() {
-        Level par = Level.WARN;
+        Level par;
         if (logging_level.toUpperCase().equals("DEBUG")) {
             par = Level.DEBUG;
         } else if (logging_level.toUpperCase().equals("ERROR")) {
@@ -316,9 +307,9 @@ public abstract class CommandLineProgram {
     }
 
     /**
-     * a function used to indicate an error occured in the command line tool
+     * a function used to indicate an error occurred in the command line tool
      *
-     * @param msg
+     * @param msg message to display
      */
     private static void printExitSystemMsg(final String msg) {
         System.out.printf("The following error has occurred:%n%n");
@@ -334,12 +325,11 @@ public abstract class CommandLineProgram {
     /**
      * Do a cursory search for the given argument.
      *
-     * @param clp    Instance of the command-line program.
      * @param parser Parser
      *
      * @return True if help is present; false otherwise.
      */
-    private static boolean isHelpPresent(CommandLineProgram clp, ParsingEngine parser) {
+    private static boolean isHelpPresent(ParsingEngine parser) {
         return parser.isArgumentPresent("help");
     }
 

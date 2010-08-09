@@ -1,55 +1,76 @@
 package org.broadinstitute.sting.queue.engine
 
-import collection.JavaConversions._
-import edu.mit.broad.core.lsf.LocalLsfJob
-import java.util.ArrayList
-import org.broadinstitute.sting.queue.util.Logging
-import org.broadinstitute.sting.queue.function.{DispatchWaitFunction, DispatchFunction}
+import org.broadinstitute.sting.queue.function.{CommandLineFunction, DispatchWaitFunction}
+import org.broadinstitute.sting.queue.util.{IOUtils, LsfJob, Logging}
 
+/**
+ * Runs jobs on an LSF compute cluster.
+ */
 trait LsfJobRunner extends DispatchJobRunner with Logging {
-  type DispatchJobType = LocalLsfJob
+  type DispatchJobType = LsfJob
 
-  def dispatch(function: DispatchFunction, qGraph: QGraph) = {
-    val job = new LocalLsfJob
-    job.setName(function.jobName)
-    job.setOutputFile(function.jobOutputFile)
-    job.setErrFile(function.jobErrorFile)
-    job.setWorkingDir(function.commandDirectory)
-    job.setProject(function.jobProject)
-    job.setQueue(function.jobQueue)
-    job.setCommand(function.commandLine)
+  /**
+   * Dispatches the function on the LSF cluster.
+   * @param function Command to run.
+   * @param qGraph graph that holds the job, and if this is a dry run.
+   */
+  def dispatch(function: CommandLineFunction, qGraph: QGraph) = {
+    val job = new LsfJob
+    job.name = function.jobName
+    job.outputFile = function.jobOutputFile
+    job.errorFile = function.jobErrorFile
+    job.project = function.jobProject
+    job.queue = function.jobQueue
+    job.command = function.commandLine
 
-    var extraArgs = List("-r")
+    if (!IOUtils.CURRENT_DIR.getCanonicalFile.equals(function.commandDirectory))
+      job.workingDir = function.commandDirectory
+
+    if (function.jobRestartable)
+      job.extraBsubArgs :+= "-r"
 
     if (function.memoryLimit.isDefined)
-      extraArgs :::= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
+      job.extraBsubArgs ++= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
 
-    val previous =
+    val previous: Iterable[LsfJob] =
       if (function.isInstanceOf[DispatchWaitFunction]) {
-        extraArgs :+= "-K"
-        getWaitJobs(qGraph).toList
+        job.waitForCompletion = true
+        getWaitJobs(qGraph)
       } else {
         previousJobs(function, qGraph)
       }
 
-    if (previous.size > 0)
-      extraArgs :::= List("-w", dependencyExpression(previous))
+    mountCommand(function) match {
+      case Some(command) => job.preExecCommand = command
+      case None => /* ignore */
+    }
 
-    job.setExtraBsubArgs(new ArrayList(extraArgs))
+    if (previous.size > 0)
+      job.extraBsubArgs ++= List("-w", dependencyExpression(previous, function.jobRunOnlyIfPreviousSucceed))
 
     addJob(function, qGraph, job, previous)
 
     if (logger.isDebugEnabled) {
-      logger.debug(function.commandDirectory + " > " + job.getBsubCommand.mkString(" "))
+      logger.debug(function.commandDirectory + " > " + job.bsubCommand.mkString(" "))
     } else {
-      logger.info(job.getBsubCommand.mkString(" "))
+      logger.info(job.bsubCommand.mkString(" "))
     }
 
     if (!qGraph.dryRun)
-      job.start
+      job.run
   }
 
-  private def dependencyExpression(jobs: List[LocalLsfJob]) = {
-    jobs.toSet[LocalLsfJob].map(_.getName).mkString("ended(\"", "\") && ended(\"", "\")")
+  /**
+   * Returns the dependency expression for the prior jobs.
+   * @param jobs Previous jobs this job is dependent on.
+   * @param runOnSuccess Run the job only if the previous jobs succeed.
+   * @return The dependency expression for the prior jobs.
+   */
+  private def dependencyExpression(jobs: Iterable[LsfJob], runOnSuccess: Boolean) = {
+    val jobNames = jobs.toSet[LsfJob].map(_.name)
+    if (runOnSuccess)
+      jobNames.mkString("done(\"", "\") && done(\"", "\")")
+    else
+      jobNames.mkString("ended(\"", "\") && ended(\"", "\")")
   }
 }

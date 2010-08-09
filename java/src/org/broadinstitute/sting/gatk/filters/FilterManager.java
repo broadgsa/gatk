@@ -30,6 +30,8 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 
 import net.sf.picard.filter.SamRecordFilter;
 
+import java.util.Collection;
+
 /**
  * Manage filters and filter options.  Any requests for basic filtering classes
  * should ultimately be made through this class.
@@ -38,11 +40,6 @@ import net.sf.picard.filter.SamRecordFilter;
  * @version 0.1
  */
 public class FilterManager extends PluginManager<SamRecordFilter> {
-    /**
-     * our log, which we want to capture anything from this class
-     */
-    private static Logger logger = Logger.getLogger(FilterManager.class);
-
     public FilterManager() {
         super(SamRecordFilter.class,"filter","Filter");
     }
@@ -50,10 +47,14 @@ public class FilterManager extends PluginManager<SamRecordFilter> {
     /**
      * Instantiate a filter of the given type.  Along the way, scream bloody murder if
      * the filter is not available.
-     * @param filterType
-     * @return
+     * @param filterType The type of the filter
+     * @return The filter
      */
     public SamRecordFilter createFilterByType(Class<? extends SamRecordFilter> filterType) {
         return this.createByName(getName(filterType));
+    }
+
+    public Collection<Class<? extends SamRecordFilter>> getValues() {
+        return this.pluginsByName.values();
     }
 }

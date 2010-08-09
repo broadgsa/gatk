@@ -35,7 +35,6 @@ import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.index.interval.IntervalIndexCreator;
 import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.source.BasicFeatureSource;
-import org.broad.tribble.util.LittleEndianInputStream;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -80,12 +79,20 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         super(FeatureCodec.class, "Codecs", "Codec");
     }
 
-    /** @return a list of all available tracks we currently have access to create */
+    /** @return a list of all available track types we currently have access to create */
     @Override
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
+        return new HashMap<String, Class>(this.pluginsByName);
+    }
+
+    /** @return a list of all available track record types we currently have access to create */
+    @Override
+    public Map<String, Class> getAvailableTrackNamesAndRecordTypes() {
         Map<String, Class> classes = new HashMap<String, Class>();
-        for (String c : this.pluginsByName.keySet())
-            classes.put(c, this.pluginsByName.get(c));
+        for (String name: this.pluginsByName.keySet()) {
+            FeatureCodec codec = this.createByName(name);
+            classes.put(name, codec.getFeatureType());
+        }
         return classes;
     }
 
@@ -115,11 +122,12 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     /**
      * create a feature reader of the specified type
      * @param targetClass the target codec type
+     * @param name the target name
      * @param inputFile the input file to create the track from (of the codec type)
      * @return the FeatureReader instance
      */
     public Pair<BasicFeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, String name, File inputFile) {
-        Pair<BasicFeatureSource, SAMSequenceDictionary> pair = null;
+        Pair<BasicFeatureSource, SAMSequenceDictionary> pair;
         if (inputFile.getAbsolutePath().endsWith(".gz"))
             pair = createBasicFeatureSourceNoAssumedIndex(targetClass, name, inputFile);
         else
@@ -133,6 +141,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * exists.
      *
      * @param targetClass the codec class type
+     * @param name the name of the track
      * @param inputFile the file to load
      * @return a feature reader implementation
      */
@@ -156,6 +165,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     /**
      * create a linear feature reader, where we create the index ahead of time
      * @param targetClass the target class
+     * @param name the name of the codec
      * @param inputFile the tribble file to parse
      * @return the input file as a FeatureReader
      */
@@ -264,7 +274,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param indexFile the index file location
      * @param lock the locking object
      * @return the index object
-     * @throws IOException
+     * @throws IOException when unable to create the new index
      */
     private static Index createNewIndex(File inputFile, FeatureCodec codec, boolean onDisk, File indexFile, FSLockWithShared lock) throws IOException {
         Index index = createIndexInMemory(inputFile, codec);
@@ -296,7 +306,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param inputFile the input file
      * @param codec the codec
      * @return a LinearIndex, given the file location
-     * @throws IOException
+     * @throws IOException when unable to create the index in memory
      */
     private static Index createIndexInMemory(File inputFile, FeatureCodec codec) throws IOException {
         // this can take a while, let them know what we're doing
@@ -317,7 +327,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @param contigList the contig list, in coordinate order, this is allowed to be null
      * @return a SAMSequenceDictionary, WITHOUT contig sizes
      */
-    private static final SAMSequenceDictionary sequenceSetToDictionary(LinkedHashSet<String> contigList) {
+    private static SAMSequenceDictionary sequenceSetToDictionary(LinkedHashSet<String> contigList) {
         SAMSequenceDictionary dict = new SAMSequenceDictionary();
         if (contigList == null) return dict;
 

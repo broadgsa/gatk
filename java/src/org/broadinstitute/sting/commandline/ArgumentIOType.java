@@ -24,6 +24,28 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.utils.StingException;
+
+import java.lang.annotation.Annotation;
+
 public enum ArgumentIOType {
-    INPUT, OUTPUT, UNKNOWN
+    INPUT(Input.class), OUTPUT(Output.class), ARGUMENT(Argument.class);
+
+    public final Class<? extends Annotation> annotationClass;
+
+    ArgumentIOType(Class<? extends Annotation> annotationClass) {
+        this.annotationClass = annotationClass;
+    }
+
+    /**
+     * Returns the ArgumentIOType for the annotation.
+     * @param annotation @Input or @Output
+     * @return ArgumentIOType.Input, Output, or Unknown
+     */
+    public static ArgumentIOType getIOType(Annotation annotation) {
+        for (ArgumentIOType ioType: ArgumentIOType.values())
+            if (ioType.annotationClass.isAssignableFrom(annotation.getClass()))
+                return ioType;
+        throw new StingException("Unknown annotation type: " + annotation);
+    }
 }

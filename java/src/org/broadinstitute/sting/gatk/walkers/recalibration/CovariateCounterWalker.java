@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
@@ -85,7 +86,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the outputted covariates table recalibration file")
+    @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the outputted covariates table recalibration file")
     public PrintStream RECAL_FILE;
 
     @Argument(fullName="list", shortName="ls", doc="List the available covariates and exit", required=false)

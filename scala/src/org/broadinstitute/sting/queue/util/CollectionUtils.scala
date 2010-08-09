@@ -1,18 +1,16 @@
 package org.broadinstitute.sting.queue.util
 
 /**
- * Utilities that try to deeply apply operations to collections
+ * Utilities that try to deeply apply operations to collections, specifically Traversable and Option.
  */
 object CollectionUtils {
 
-  def test(value: Any, f: Any => Boolean): Boolean = {
-    var result = f(value)
-    foreach(value, (item, collection) => {
-      result |= f(item)
-    })
-    result
-  }
-
+  /**
+   * Loops though a collection running the function f on each value.
+   * @param value The value to run f on, or a collection of values for which f should be run on.
+   * @param f The function to run on value, or to run on the values within the collection.
+   * @return The updated value.
+   */
   def updated(value: Any, f: Any => Any): Any = {
     value match {
       case traversable: Traversable[_] => traversable.map(updated(_, f))
@@ -21,6 +19,11 @@ object CollectionUtils {
     }
   }
 
+  /**
+   * Utility for recursively processing collections.
+   * @param value Initial the collection to be processed
+   * @param f a function that will be called for each (item, collection) in the initial collection
+   */
   def foreach(value: Any, f: (Any, Any) => Unit): Unit = {
     value match {
       case traversable: Traversable[_] =>
@@ -37,11 +40,24 @@ object CollectionUtils {
     }
   }
 
-  // Because scala allows but throws NPE when trying to hash a collection with a null in it.
-  // http://thread.gmane.org/gmane.comp.lang.scala.internals/3267
-  // https://lampsvn.epfl.ch/trac/scala/ticket/2935
-  def removeNullOrEmpty[T](value: T): T = filterNotNullOrNotEmpty(value)
+  /**
+   * Utility for recursively processing collections.
+   * @param value Initial the collection to be processed
+   * @param f a function that will be called for each (item, collection) in the initial collection
+   */
+  def foreach(value: Any, f: (Any) => Unit): Unit = {
+    value match {
+      case traversable: Traversable[_] => traversable.foreach(f(_))
+      case option: Option[_] => option.foreach(f(_))
+      case item => f(item)
+    }
+  }
 
+  /**
+   * Removes empty values from collections.
+   * @param value The collection to test.
+   * @return The value if it is not a collection, otherwise the collection with nulls and empties removed.
+   */
   private def filterNotNullOrNotEmpty[T](value: T): T = {
     val newValue = value match {
       case traversable: Traversable[_] => traversable.map(filterNotNullOrNotEmpty(_)).filter(isNotNullOrNotEmpty(_)).asInstanceOf[T]
@@ -51,7 +67,20 @@ object CollectionUtils {
     newValue
   }
 
-  private def isNotNullOrNotEmpty(value: Any): Boolean = {
+
+  /**
+   * Returns true if the value is null or an empty collection.
+   * @param value Value to test for null, or a collection to test if it is empty.
+   * @return true if the value is null, or false if the collection is empty, otherwise true.
+   */
+  def isNullOrEmpty(value: Any): Boolean = !isNotNullOrNotEmpty(value)
+
+  /**
+   * Returns false if the value is null or an empty collection.
+   * @param value Value to test for null, or a collection to test if it is empty.
+   * @return false if the value is null, or false if the collection is empty, otherwise true.
+   */
+  def isNotNullOrNotEmpty(value: Any): Boolean = {
     val result = value match {
       case traversable: Traversable[_] => !filterNotNullOrNotEmpty(traversable).isEmpty
       case option: Option[_] => !filterNotNullOrNotEmpty(option).isEmpty

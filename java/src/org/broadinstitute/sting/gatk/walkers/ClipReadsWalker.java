@@ -487,7 +487,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     /**
      * How should we represent a clipped bases in a read?
      */
-    private enum ClippingRepresentation {
+    public enum ClippingRepresentation {
         WRITE_NS,           // change the bases to Ns
         WRITE_Q0S,          // change the quality scores to Q0
         WRITE_NS_Q0S,       // change the quality scores to Q0 and write Ns

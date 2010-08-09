@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.queue.function
 
+import java.io.File
+
 /**
  * The base interface for all functions in Queue.
  * Inputs and outputs are specified as Sets of values.
@@ -16,12 +18,15 @@ trait QFunction {
   /**
    * Set of inputs for this function.
    */
-  def inputs: Set[Any]
+  def inputs: Set[File]
 
   /**
    * Set of outputs for this function.
    */
-  def outputs: Set[Any]
+  def outputs: Set[File]
 
+  /**
+   * The function description in .dot files
+   */
   def dotString = ""
 }
