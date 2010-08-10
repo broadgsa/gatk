@@ -94,27 +94,22 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
         return true;
     }
 
-    @Override
     public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
     }
 
-    @Override
     public CloseableIterator<GATKFeature> query(GenomeLoc interval, boolean contained) throws IOException {
-        return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop(), contained),this.getName());
+        return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
     }
 
-    @Override
     public CloseableIterator<GATKFeature> query(String contig, int start, int stop) throws IOException {
         return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop),this.getName());
     }
 
-    @Override
     public CloseableIterator<GATKFeature> query(String contig, int start, int stop, boolean contained) throws IOException {
-        return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop, contained),this.getName());
+        return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop),this.getName());
     }
 
-    @Override
     public void close() {
         try {
             reader.close();
