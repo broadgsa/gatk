@@ -12,7 +12,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.io.File;

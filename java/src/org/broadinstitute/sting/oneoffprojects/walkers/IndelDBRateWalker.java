@@ -15,7 +15,7 @@ import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.io.PrintStream;

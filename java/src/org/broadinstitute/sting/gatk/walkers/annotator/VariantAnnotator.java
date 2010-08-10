@@ -44,7 +44,7 @@ import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.util.*;

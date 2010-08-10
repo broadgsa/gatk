@@ -38,7 +38,7 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.util.*;

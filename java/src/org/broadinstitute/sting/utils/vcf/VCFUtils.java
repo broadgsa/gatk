@@ -23,16 +23,13 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.genotype.vcf;
+package org.broadinstitute.sting.utils.vcf;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.Utils;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -108,7 +105,6 @@ public class VCFUtils {
 
     public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers, Logger logger) throws IllegalStateException {
         HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
-        HashSet<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
 
         // todo -- needs to remove all version headers from sources and add its own VCF version line
         for ( VCFHeader source : headers ) {
@@ -117,7 +113,7 @@ public class VCFUtils {
                 String key = line.getKey();
 
                 if ( line instanceof VCFNamedHeaderLine)
-                    key = key + "." + ((VCFNamedHeaderLine) line).getName();
+                    key = key + "" + ((VCFNamedHeaderLine) line).getName();
 
                 if ( map.containsKey(key) ) {
                     VCFHeaderLine other = map.get(key);

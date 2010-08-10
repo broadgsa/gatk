@@ -41,7 +41,7 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.util.*;

@@ -61,7 +61,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 /**

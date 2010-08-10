@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;

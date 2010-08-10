@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 

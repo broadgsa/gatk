@@ -40,6 +40,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFFilterHeaderLine;

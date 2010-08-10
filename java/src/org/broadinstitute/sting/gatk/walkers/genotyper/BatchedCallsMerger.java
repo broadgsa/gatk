@@ -26,19 +26,18 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFHeader;
 
@@ -67,9 +66,6 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
     // the calculation arguments
     private UnifiedGenotyperEngine UG_engine = null;
 
-    // all samples to be used
-    private Set<String> samples = new HashSet<String>();
-
     // mapping from rod name to set of samples coming from it
     private Map<String, Set<String>> rodsToSamples = new HashMap<String, Set<String>>();
 
@@ -85,24 +81,11 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
 
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
 
-        // iterate to get all of the sample names
-        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
-        for ( ReferenceOrderedDataSource source : dataSources ) {
-            RMDTrack rod = source.getReferenceOrderedData();
-            // if it's one of our target rods
-            if ( targetRods.contains(rod.getName()) ) {
-                // read the samples and store them
-                VCFReader reader = new VCFReader(rod.getFile());
-                HashSet<String> mySamples = new HashSet<String>(reader.getHeader().getGenotypeSamples());
-                rodsToSamples.put(rod.getName(), mySamples);
-                samples.addAll(mySamples);
-
-                // while we're here, pull out the header lines
-                headerLines.addAll(reader.getHeader().getMetaData());
-
-                reader.close();
-            }
-        }
+        // get all of the sample names and meta data
+        Map<String, VCFHeader> headers = VCFUtils.getVCFHeadersFromRods(getToolkit(), targetRods);
+        Set<String> samples = SampleUtils.getSampleList(headers);
+        for ( VCFHeader header : headers.values() )
+            headerLines.addAll(header.getMetaData());
 
         // update the engine
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, null, null);

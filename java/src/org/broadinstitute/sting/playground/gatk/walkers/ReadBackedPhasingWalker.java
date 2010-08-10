@@ -39,7 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.PileupElement;

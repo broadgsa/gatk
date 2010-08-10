@@ -4,7 +4,7 @@ import org.broad.tribble.vcf.VCFCodec;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderUnitTest;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
