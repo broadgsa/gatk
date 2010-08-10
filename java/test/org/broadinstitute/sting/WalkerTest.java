@@ -271,8 +271,16 @@ public class WalkerTest extends BaseTest {
             command = cmd2;
         }
         System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",command)));
-        CommandLineExecutable.start(instance, command);
 
+        // add the logging level to each of the integration test commands
+        String[] cmd2 = Arrays.copyOf(command, command.length + 2);
+        cmd2[command.length] = "-l";
+        cmd2[command.length+1] = "WARN";
+
+        // run the executable
+        CommandLineExecutable.start(instance, cmd2);
+
+        // catch failures from the integration test
         if (CommandLineExecutable.result != 0) {
             throw new RuntimeException("Error running the GATK with arguments: " + args);
         }
