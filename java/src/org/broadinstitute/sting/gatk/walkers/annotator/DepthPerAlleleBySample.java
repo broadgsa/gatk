@@ -2,8 +2,10 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.vcf.VCFFormatHeaderLine;
 import org.broad.tribble.vcf.VCFHeaderLineType;
+import org.broad.tribble.vcf.VCFCompoundHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
@@ -18,9 +20,6 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
         if ( g == null || !g.isCalled() )
             return null;
 
-        if ( !vc.isBiallelic() )
-            return null;
-
         if ( vc.isSNP() )
             return annotateSNP(stratifiedContext, vc);
         if ( vc.isIndel() )
@@ -32,8 +31,8 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
     private Map<String,Object> annotateSNP(StratifiedAlignmentContext stratifiedContext, VariantContext vc) {
 
         HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
-        alleleCounts.put(vc.getReference().getBases()[0], 0);
-        alleleCounts.put(vc.getAlternateAllele(0).getBases()[0], 0);
+        for ( Allele allele : vc.getAlleles() )
+            alleleCounts.put(allele.getBases()[0], 0);
 
         ReadBackedPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
         for ( PileupElement p : pileup ) {
@@ -42,10 +41,11 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
         }
 
         // we need to add counts in the correct order
-        Integer[] counts = new Integer[2];
+        Integer[] counts = new Integer[alleleCounts.size()];
         counts[0] = alleleCounts.get(vc.getReference().getBases()[0]);
-        counts[1] = alleleCounts.get(vc.getAlternateAllele(0).getBases()[0]);
-
+        for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
+            counts[i+1] = alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]);
+        
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), counts);
         return map;
@@ -76,5 +76,5 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
 
     public List<String> getKeyNames() { return Arrays.asList("AD"); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), 2, VCFHeaderLineType.Integer, "Allelic depths for the ref and alt alleles; currently only works for bi-allelic sites")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), VCFCompoundHeaderLine.UNBOUNDED, VCFHeaderLineType.Integer, "Allelic depths for the ref and alt alleles in the order listed")); }
 }
