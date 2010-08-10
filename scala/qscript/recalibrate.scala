@@ -19,7 +19,7 @@ def script = {
       val recalData = new File(bamRoot + ".recal_data.csv")
       val recalBam = new File(bamRoot + ".recal.bam")
       val recalRecalData = new File(bamRoot + ".recal.recal_data.csv")
-      //add(new CountCovariates(root, recalData, "-OQ"))
+      //add(new CountCovariates(bamIn, recalData, "-OQ"))
       val tableRecal = new TableRecalibrate(bamIn, recalData, recalBam) { useOriginalQualities = true }
       if ( scatter ) {
             tableRecal.intervals = new File("/humgen/gsa-hpprojects/GATK/data/chromosomes.hg18.interval_list")
@@ -69,7 +69,7 @@ class AnalyzeCovariates(recalDataIn: File, outputDir: File) extends  org.broadin
     this.output_dir = outputDir.toString
     this.path_to_resources = "/home/radon01/depristo/dev/GenomeAnalysisTK/trunk/R/"
     this.ignoreQ = Some(5)
-    this.path_to_Rscript = "/broad/tools/apps/R-2.6.0/bin/Rscript"
+    this.path_to_Rscript = "/broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.7.2/bin/Rscript"
     this.memoryLimit = Some(4)
 
     override def dotString = "AnalyzeCovariates: %s".format(recalDataIn.getName)
