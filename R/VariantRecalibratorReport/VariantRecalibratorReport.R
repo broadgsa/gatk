@@ -8,13 +8,13 @@ plotRoot = args[1];
 if (is.na(plotRoot)) { plotRoot = "test"; }
 
 clusterFile = args[2];
-if (is.na(clusterFile)) { clusterFile = "/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v7/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized"; }
+if (is.na(clusterFile)) { clusterFile = "/Volumes/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v8/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized"; }
 
 vcfTable = args[3];
-if (is.na(vcfTable)) { vcfTable = "/home/radon01/kiran/scr1/projects/DataProcessingPaper/scratch/MarkBustedWEx.table"; }
+if (is.na(vcfTable)) { vcfTable = "/Volumes/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v8/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.table"; }
 
 lociFile = args[4];
-if (is.na(lociFile) | lociFile == "NA" ) { lociFile = "/home/radon01/kiran/scr1/projects/DataProcessingPaper/scratch/MarkBustedWEx.loci"; }
+if (is.na(lociFile) | lociFile == "NA" ) { lociFile = NA; }
 
 maxVariants = args[5];
 if (is.na(maxVariants)) { maxVariants = 5000; }
@@ -121,6 +121,15 @@ clusterLimits <- function( vals, defaultMin, defaultMax ) {
     x
 }
 
+getClusterColor <- function(clusterIndex, nClusters) {
+    clusterColors(nClusters)[clusterIndex]
+}
+
+clusterColors <- function(nClusters) {
+    rainbow(nClusters)
+}
+
+
 makeAxis <- function( num, vals, off1, mult1, xmin, xmax ) {
     #labels=as.integer(seq(from=min(vals), to=max(vals), by=(abs(min(vals)) + abs(max(vals)))/5))
     #at=seq(from=min((vals - off1)/mult1), to=max((vals - off1)/mult1), by=(abs(min((vals - off1)/mult1)) + abs(max((vals - off1)/mult1)))/5)
@@ -154,22 +163,14 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     mult2 = c[[1]]$conversions[[cindex2]]$multiplier;
     off2 = c[[1]]$conversions[[cindex2]]$offset;
 
-    # todo -- should only include min/max actually observed if bounds are bigger than actual distributions
     xvalsForLims = clusterLimits(d.known[,index1], -4, 4)
     yvalsForLims = clusterLimits(d.known[,index2], -4, 4)
-    
-    #d.known = d.known[(d.known[,index1]-off1)/mult1 >= xvalsForLims[1] & (d.known[,index1]-off1)/mult1 <= xvalsForLims[2] & (d.known[,index2]-off2)/mult2 >= yvalsForLims[1] & (d.known[,index2]-off2)/mult2 <= yvalsForLims[2],]
-    
-    #xvalsForLims = (d.known[,index1] - off1)/mult1
-    #yvalsForLims = (d.known[,index2] - off2)/mult2
     xlims = c(min(xvalsForLims), 1.2*max(xvalsForLims)); 
     ylims = c(min(yvalsForLims), max(yvalsForLims)); 
 
-    clusterColors = c("#A62103", "#F27405", "#F29F05", "#F2B705", "#F2CB05");
-
     pdf(filename);
 
-    par(mar=c(5, 6, 2, 5));
+    # par(mar=c(5, 6, 2, 5));
     plot(0, 0, type="n", xaxt="n", yaxt="n", xlim=xlims, ylim=ylims, xlab=ann1, ylab=ann2, bty="n");
 
     mv.known = if (maxVariants == -1 | maxVariants >= nrow(d.known)) { seq(1, nrow(d.known)) } else { as.integer(runif(maxVariants, 1, nrow(d.known)+1))}
@@ -181,7 +182,8 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     points(((d.known[,index1] - off1)/mult1)[mv.known], ((d.known[,index2] - off2)/mult2)[mv.known], pch=19, cex=0.3, col="#0000FF33");
     points(((d.novel[,index1] - off1)/mult1)[mv.novel], ((d.novel[,index2] - off2)/mult2)[mv.novel], pch=19, cex=0.3, col="#FF000033");
 
-    for (clusterIndex in c(1:length(c))) {
+    nClusters = length(c)
+    for (clusterIndex in c(1:nClusters)) {
         mu = c(c[[clusterIndex]]$means[cindex1], c[[clusterIndex]]$means[cindex2]);
         cov = matrix(as.numeric(
                 matrix(
@@ -197,13 +199,7 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
         );
 
         weight = c[[clusterIndex]]$mixtureWeight;
-
-        if (weight <= 0.20) { color = clusterColors[1]; }
-        else if (weight > 0.20 && weight <= 0.40) { color = clusterColors[2]; }
-        else if (weight > 0.40 && weight <= 0.60) { color = clusterColors[3]; }
-        else if (weight > 0.60 && weight <= 0.80) { color = clusterColors[4]; }
-        else if (weight > 0.80) { color = clusterColors[5]; }
-
+        color = getClusterColor(clusterIndex, nClusters);
         lineweight = ifelse(weight > 0.50, 4, 3);
 
         points(mu[1], mu[2], pch=21, col=color, cex=0.5);
@@ -213,30 +209,18 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     makeAxis(1, d.novel[,index1], off1, mult1, xvalsForLims[1], xvalsForLims[2]) 
     makeAxis(2, d.novel[,index2], off2, mult2, yvalsForLims[1], yvalsForLims[2]) 
 
+    # add points legend on the lower left
     if (!is.na(d.loci)) {
         legend("bottomleft", c("Known", "Novel", "Suspicious loci"), col=c("blue", "red", "yellow3"), pch=19);
     } else {
         legend("bottomleft", c("Known", "Novel"), col=c("blue", "red"), pch=19);
     }
-
-    pieces = 100;
-    scale = ((abs(ylims[1]) + abs(ylims[2]))/pieces);
-    width = ((abs(xlims[1]) + abs(xlims[2]))/12);
-    offset = ylims[1];
-
-    for (i in c(1:pieces)) {
-        color = clusterColors[1];
-        if (i <= 20) { color = clusterColors[1]; }
-        else if (i > 20 && i <= 40) { color = clusterColors[2]; }
-        else if (i > 40 && i <= 60) { color = clusterColors[3]; }
-        else if (i > 60 && i <= 80) { color = clusterColors[4]; }
-        else if (i > 80) { color = clusterColors[5]; }
-
-        polygon(x=xlims[2] + c(0, 0, width, width), y=offset + scale*c((i-1), (i), (i), (i-1)), col=color, border=color);
-    }
-
-    axis(4, labels=c(0.0, 0.20, 0.40, 0.60, 0.80, 1.0), at=c(ylims[1], ylims[1] + 20*scale, ylims[1] + 40*scale, ylims[1] + 60*scale, ylims[1] + 80*scale, ylims[2]));
-    mtext("Mixture coefficient", 4, line=3);
+    
+    # add upper right legend with cluster id and weights
+    weights = round(sapply(c, function(x) x$mixtureWeight),2)
+    clusterNames = paste("C", paste(1:nClusters), sep="")
+    clusterLegendNames = paste(clusterNames, weights, sep="-W=") 
+    legend("topright", clusterLegendNames, fill=clusterColors(nClusters))
 
     if (!is.na(d.loci)) {
         points((d.loci[,index1] - off1)/mult1, (d.loci[,index2] - off2)/mult2, pch=19, cex=0.8, col="yellow3");
