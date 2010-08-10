@@ -63,7 +63,7 @@ public class StorageFactory {
      * @return Storage object with a facade of type T.
      */
     public static <T> Storage<T> createStorage( Stub<T> stub, File file ) {
-        Storage storage = null;
+        Storage storage;
 
         if(stub instanceof OutputStreamStub) {
             if( file != null )
@@ -79,42 +79,10 @@ public class StorageFactory {
         }
         else if(stub instanceof GenotypeWriterStub) {
             GenotypeWriterStub genotypeWriterStub = (GenotypeWriterStub)stub;
-            if( file != null ) {
-                switch(genotypeWriterStub.getFormat()) {
-                    case GELI:
-                        storage = new GeliTextGenotypeWriterStorage(genotypeWriterStub,file);
-                        break;
-                    case GELI_BINARY:
-                        storage = new GeliBinaryGenotypeWriterStorage(genotypeWriterStub,file);
-                        break;
-                    case GLF:
-                        storage = new GLFGenotypeWriterStorage(genotypeWriterStub,file);
-                        break;
-                    case VCF:
-                        storage = new VCFGenotypeWriterStorage(genotypeWriterStub,file);
-                        break;
-                    default:
-                        throw new StingException("Unsupported genotype file format: " + genotypeWriterStub.getFormat());
-                }
-            }
-            else {
-                switch(genotypeWriterStub.getFormat()) {
-                    case GELI:
-                        storage = new GeliTextGenotypeWriterStorage(genotypeWriterStub);
-                        break;
-                    case GELI_BINARY:
-                        storage = new GeliBinaryGenotypeWriterStorage(genotypeWriterStub);
-                        break;
-                    case GLF:
-                        storage = new GLFGenotypeWriterStorage(genotypeWriterStub);
-                        break;
-                    case VCF:
-                        storage = new VCFGenotypeWriterStorage(genotypeWriterStub);
-                        break;
-                    default:
-                        throw new StingException("Unsupported genotype file format: " + genotypeWriterStub.getFormat());
-                }
-            }
+            if( file != null )
+                storage = new VCFGenotypeWriterStorage(genotypeWriterStub,file);
+            else
+                storage = new VCFGenotypeWriterStorage(genotypeWriterStub);
         }
         else
             throw new StingException("Unsupported stub type: " + stub.getClass().getName());

@@ -14,8 +14,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.CalledGenotype;
-import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 
 import java.util.*;
 
@@ -279,9 +277,9 @@ public class VariantContextAdaptors {
                 MutableGenotype call = new MutableGenotype(name, genotypeAlleles);
 
                 // set the likelihoods, depth, and RMS mapping quality values
-                call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY,geli.getLikelihoods());
-                call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY,geli.getMaximumMappingQual());
-                call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY,geli.getDepthOfCoverage());
+                //call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY,geli.getLikelihoods());
+                //call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY,geli.getMaximumMappingQual());
+                //call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY,geli.getDepthOfCoverage());
 
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
@@ -353,9 +351,9 @@ public class VariantContextAdaptors {
                 post[x] = Double.valueOf(geli.getLikelihood(DiploidGenotype.fromBases((byte) gTypes[x].charAt(0), (byte) gTypes[x].charAt(1))));
 
             // set the likelihoods, depth, and RMS mapping quality values
-            call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY, post);
-            call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY, (int) geli.getMaxMappingQuality());
-            call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY, geli.getNumReads());
+            //call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY, post);
+            //call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY, (int) geli.getMaxMappingQuality());
+            //call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY, geli.getNumReads());
 
             // add the call to the genotype list, and then use this list to create a VariantContext
             genotypes.add(call);

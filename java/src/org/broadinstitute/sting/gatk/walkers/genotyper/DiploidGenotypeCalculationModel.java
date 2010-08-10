@@ -31,7 +31,6 @@ import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 
@@ -150,20 +149,17 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                 myAlleles.add(altAllele);
             }
 
-            CalledGenotype cg = new CalledGenotype(sample, myAlleles, AFbasedGenotype.second);
-            cg.setLikelihoods(GLs.get(sample).getLikelihoods());
-            cg.setReadBackedPileup(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup());
-            cg.putAttribute(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+            HashMap<String, Object> attributes = new HashMap<String, Object>();
+            attributes.put(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
 
-            cg.setPosteriors(GLs.get(sample).getPosteriors());
             double[] likelihoods = GLs.get(sample).getLikelihoods();
             String GL = String.format("%.2f,%.2f,%.2f",
                     likelihoods[refGenotype.ordinal()],
                     likelihoods[hetGenotype.ordinal()],
                     likelihoods[homGenotype.ordinal()]);
-            cg.putAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, GL);
+            attributes.put(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, GL);
 
-            calls.put(sample, cg);
+            calls.put(sample, new Genotype(sample, myAlleles, AFbasedGenotype.second, null, attributes, false));
         }
 
         return calls;

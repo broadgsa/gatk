@@ -39,12 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
-import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.glf.GLFGenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriter;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broad.tribble.vcf.VCFConstants;
 
@@ -94,12 +89,9 @@ public class UnifiedGenotyperEngine {
         this.annotationEngine = engine;
 
         // deal with input errors
-        if ( UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS && !(genotypeWriter instanceof VCFGenotypeWriter) ) {
-            throw new IllegalArgumentException("Attempting to use an output format other than VCF with indels. Please set the output format to VCF.");
-        }
         if ( toolkit.getArguments().numberOfThreads > 1 && UAC.ASSUME_SINGLE_SAMPLE != null ) {
             // the ASSUME_SINGLE_SAMPLE argument can't be handled (at least for now) while we are multi-threaded because the IO system doesn't know how to get the sample name
-            throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads");
+            throw new IllegalArgumentException("For technical reasons, the ASSUME_SINGLE_SAMPLE argument cannot be used with multiple threads; please run again without the -nt argument");
         }
 
         // get all of the unique sample names
@@ -133,18 +125,7 @@ public class UnifiedGenotyperEngine {
 
         // initialize the GenotypeCalculationModel for this thread if that hasn't been done yet
         if ( gcm.get() == null ) {
-            GenotypeWriterFactory.GENOTYPE_FORMAT format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-            if ( genotypeWriter != null ) {
-                if ( genotypeWriter instanceof VCFGenotypeWriter )
-                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-                else if ( genotypeWriter instanceof GLFGenotypeWriter)
-                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
-                else if ( genotypeWriter instanceof GeliGenotypeWriter)
-                    format = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
-                else
-                    throw new StingException("Unsupported genotype format: " + genotypeWriter.getClass().getName());
-            }
-            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, format, verboseWriter));
+            gcm.set(GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC, verboseWriter));
         }
 
         byte ref = refContext.getBase();

@@ -10,8 +10,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.CalledGenotype;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.*;
 import java.util.*;
@@ -305,10 +303,6 @@ public class VCFWriter {
                     else {
                         val = getQualValue(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
                     }
-                } else if ( key.equals(VCFConstants.DEPTH_KEY) && val == null ) {
-                    ReadBackedPileup pileup = (ReadBackedPileup)g.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
-                    if ( pileup != null )
-                        val = pileup.size();
                 } else if ( key.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                     val = g.isFiltered() ? Utils.join(";", Utils.sorted(g.getFilters())) : (g.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
                 }

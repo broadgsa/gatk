@@ -129,8 +129,8 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
     /**
      * @{inheritDoc}
      */
-    public void addCall(VariantContext vc, byte ref) {
-        outputTracker.getStorage(this).addCall(vc,ref);
+    public void add(VariantContext vc, byte ref) {
+        outputTracker.getStorage(this).add(vc,ref);
     }
 
     /**

@@ -55,9 +55,9 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
         this.file = stub.getFile();
         this.stream = stub.getOutputStream();
         if(file != null)
-            writer = GenotypeWriterFactory.create(stub.getFormat(), file);
+            writer = GenotypeWriterFactory.create(file);
         else if(stream != null)
-            writer = GenotypeWriterFactory.create(stub.getFormat(), stream);
+            writer = GenotypeWriterFactory.create(stream);
         else
             throw new StingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
     }
@@ -70,13 +70,13 @@ public abstract class GenotypeWriterStorage<T extends GenotypeWriter> implements
     public GenotypeWriterStorage( GenotypeWriterStub stub, File file ) {
         this.file = file;
         this.stream = null;
-        writer = GenotypeWriterFactory.create(stub.getFormat(), file);
+        writer = GenotypeWriterFactory.create(file);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
-        GenotypeWriterFactory.writeHeader(writer, stub.getSAMFileHeader(), new VCFHeader(null, samples));
+        GenotypeWriterFactory.writeHeader(writer, new VCFHeader(null, samples));
     }
 
-    public void addCall(VariantContext vc, byte ref) {
-        writer.addCall(vc, ref);
+    public void add(VariantContext vc, byte ref) {
+        writer.add(vc, ref);
     }
 
     public void close() {

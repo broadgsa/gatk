@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
@@ -127,7 +126,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
 
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), new VCFHeader(getHeaderInfo(), UG_engine.samples)) ;
+        GenotypeWriterFactory.writeHeader(writer, new VCFHeader(getHeaderInfo(), UG_engine.samples)) ;
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
@@ -207,7 +206,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         try {
             // we are actually making a call
             sum.nCallsMade++;
-            writer.addCall(value.vc, value.refBase);
+            writer.add(value.vc, value.refBase);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

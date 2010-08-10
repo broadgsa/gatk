@@ -108,42 +108,18 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing other output formats
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    @Test
-    public void testOtherFormat() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "GLF", "b3d463eb0b7e59604296747e1eb7103c" );
-        e.put( "GELI_BINARY", "764a0fed1b3cf089230fd91f3be9c2df" );
-
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -vf " + entry.getKey(), 1,
-                    Arrays.asList(entry.getValue()));
-            executeTest(String.format("testOtherFormat[%s]", entry.getKey()), spec);
-        }
-    }
-
-    // --------------------------------------------- //
-    // ALL REMAINING TESTS ARE OUTPUT IN GELI FORMAT //
-    // --------------------------------------------- //
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
     // testing heterozygosity
     //
     // --------------------------------------------------------------------------------------------------------------
     @Test
     public void testHeterozyosity() {
         HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 0.01, "ee390f91867e8729b96220115e56ddb3" );
-        e.put( 1.0 / 1850, "f96ad0ed71449bdb16b0c5561303a05a" );
+        e.put( 0.01, "79be222f9c5fa7091723b8172c236a22" );
+        e.put( 1.0 / 1850, "e217d213a7ebaf9c4bd41f79234055cc" );
 
         for ( Map.Entry<Double, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    baseCommand + " -vf GELI -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 --heterozygosity " + entry.getKey(), 1,
+                    baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 --heterozygosity " + entry.getKey(), 1,
                     Arrays.asList(entry.getValue()));
             executeTest(String.format("testHeterozyosity[%s]", entry.getKey()), spec);
         }
@@ -158,12 +134,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testOtherBaseCallModel() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "one_state", "bcc983210b576d9fd228a67c5b9f372a" );
-        e.put( "three_state", "2db3a5f3d46e13e2f44c34fbb7e7936f" );
+        e.put( "one_state", "8e7a18b71c08d655df15b3e5204ae924" );
+        e.put( "three_state", "eacf6c82bf81d20f3fc4a74051869375" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    baseCommand + " -vf GELI -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm " + entry.getKey(), 1,
+                    baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm " + entry.getKey(), 1,
                     Arrays.asList(entry.getValue()));
             executeTest(String.format("testOtherBaseCallModel[%s]", entry.getKey()), spec);
         }
@@ -180,10 +156,9 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 baseCommand +
                         " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
                         " -varout %s" +
-                        " -L 1:10,000,000-10,100,000" +
-		                " -vf GELI",
+                        " -L 1:10,000,000-10,100,000",
                 1,
-                Arrays.asList("f67c690bf2e4eee2bb7c58b6646a2a98"));
+                Arrays.asList("99102fb35f0f33f582da8dbde64d80cd"));
 
         executeTest(String.format("testMultiTechnologies"), spec);
     }

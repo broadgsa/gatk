@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 
 import java.io.PrintStream;
 import java.util.Map;
@@ -29,7 +28,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected UnifiedArgumentCollection UAC;
     protected Set<String> samples;
     protected Logger logger;
-    protected GenotypeWriterFactory.GENOTYPE_FORMAT OUTPUT_FORMAT;
     protected PrintStream verboseWriter;
 
     /**
@@ -44,17 +42,14 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param samples       samples in input bam
      * @param logger        logger
      * @param UAC           unified arg collection
-     * @param outputFormat  output format
      * @param verboseWriter verbose writer
      */
     protected void initialize(Set<String> samples,
                               Logger logger,
                               UnifiedArgumentCollection UAC,
-                              GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
                               PrintStream verboseWriter) {
         this.UAC = UAC.clone();
         this.samples = new TreeSet<String>(samples);
-        OUTPUT_FORMAT = outputFormat;
         this.logger = logger;
         this.verboseWriter = verboseWriter;
     }

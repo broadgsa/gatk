@@ -37,11 +37,11 @@ import org.broad.tribble.util.variantcontext.VariantContext;
  */
 public interface GenotypeWriter {
     /**
-     * Add a genotype, given a variant context
+     * Add a record, given a variant context, with the genotype fields restricted to what is defined in the header
      * @param vc  the variant context representing the call to add
      * @param refBase This is required for VCF writers, as the VCF format explicitly requires (previous) ref base for an indel. 
      */
-    public void addCall(VariantContext vc, byte refBase);
+    public void add(VariantContext vc, byte refBase);
 
     /** finish writing, closing any open files. */
     public void close();

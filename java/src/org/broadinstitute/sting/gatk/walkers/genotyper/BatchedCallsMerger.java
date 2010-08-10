@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -92,7 +91,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         UG_engine.samples = samples;        
 
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, GenomeAnalysisEngine.instance.getSAMFileHeader(), new VCFHeader(headerLines, samples));
+        GenotypeWriterFactory.writeHeader(writer, new VCFHeader(headerLines, samples));
     }
 
     public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -159,7 +158,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
             return sum;
 
         try {
-            writer.addCall(value, value.getReference().getBases()[0]);
+            writer.add(value, value.getReference().getBases()[0]);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

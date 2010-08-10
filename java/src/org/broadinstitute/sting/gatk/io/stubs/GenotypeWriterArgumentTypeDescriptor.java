@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -111,38 +110,8 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
         String writerFileName = getArgumentValue(createGenotypeFileArgumentDefinition(source),matches);
         File writerFile = writerFileName != null ? new File(writerFileName) : null;
 
-        // Get the format of the genotype object, if it exists.
-        String genotypeFormatText = getArgumentValue(createGenotypeFormatArgumentDefinition(source),matches);
-        GenotypeWriterFactory.GENOTYPE_FORMAT genotypeFormat = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
-        if(genotypeFormatText != null) {
-            try {
-                genotypeFormat = Enum.valueOf(GenotypeWriterFactory.GENOTYPE_FORMAT.class,genotypeFormatText);
-            }
-            catch(IllegalArgumentException ex) {
-                throw new StingException(String.format("Genotype format %s is invalid.",genotypeFormatText));
-            }            
-        }
-
         // Create a stub for the given object.
-        GenotypeWriterStub stub;
-        switch(genotypeFormat) {
-            case GELI:
-                stub = (writerFile != null) ? new GeliTextGenotypeWriterStub(engine, writerFile) : new GeliTextGenotypeWriterStub(engine,System.out);
-                break;
-            case GELI_BINARY:
-                if(writerFile == null)
-                    throw new StingException("Geli binary files cannot be output to the console.");
-                stub = new GeliBinaryGenotypeWriterStub(engine, writerFile);
-                break;
-            case GLF:
-                stub = (writerFile != null) ? new GLFGenotypeWriterStub(engine, writerFile) : new GLFGenotypeWriterStub(engine,System.out);
-                break;
-            case VCF:
-                stub = (writerFile != null) ? new VCFGenotypeWriterStub(engine, writerFile) : new VCFGenotypeWriterStub(engine,System.out);
-                break;
-            default:
-                throw new StingException("Unable to create stub for file format " + genotypeFormat);
-        }
+        GenotypeWriterStub stub = (writerFile != null) ? new VCFGenotypeWriterStub(engine, writerFile) : new VCFGenotypeWriterStub(engine,System.out);
 
         engine.addOutput(stub);
 

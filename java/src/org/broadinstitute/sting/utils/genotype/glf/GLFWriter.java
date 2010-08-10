@@ -3,17 +3,9 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
-import org.broad.tribble.util.variantcontext.Genotype;
-import org.broad.tribble.util.variantcontext.MutableGenotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.CalledGenotype;
 import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -151,67 +143,8 @@ public class GLFWriter implements GLFGenotypeWriter {
      * @param vc  the variant context representing the call to add
      * @param refBase not used by this writer
      */
-    public void addCall(VariantContext vc, byte refBase) {
-        if ( headerText == null )
-            throw new IllegalStateException("The GLF Header must be written before calls can be added");
-
-
-        char ref = vc.getReference().toString().charAt(0);
-        if ( vc.getNSamples() != 1 )
-            throw new IllegalArgumentException("The GLF format does not support multi-sample or no-calls");
-
-        Genotype genotype = vc.getGenotypes().values().iterator().next();
-        if ( genotype.isNoCall() )
-            throw new IllegalArgumentException("The GLF format does not support no-calls");
-
-        ReadBackedPileup pileup;
-        double[] likelihoods;
-        if ( genotype instanceof CalledGenotype) {
-            pileup = ((CalledGenotype)genotype).getReadBackedPileup();
-            likelihoods = ((CalledGenotype)genotype).getLikelihoods();
-        } else {
-            pileup = (ReadBackedPileup)genotype.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
-            likelihoods = (double[])genotype.getAttribute(CalledGenotype.LIKELIHOODS_ATTRIBUTE_KEY);
-        }
-
-        if ( likelihoods == null )
-            throw new IllegalArgumentException("The GLF format requires likelihoods");
-        LikelihoodObject obj = new LikelihoodObject(likelihoods, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);  // transform! ... to negitive log likelihoods
-
-        // calculate the RMS mapping qualities and the read depth
-        double rms = 0.0;
-        int readCount = 0;
-
-        if ( pileup != null) {
-            rms = calculateRMS(pileup);
-            readCount = pileup.size();
-        }
-        // if we can't get the rms from the read pile-up (preferred), check the tags, the VC might have it
-        if (genotype.hasAttribute(RMS_MAPPING_QUAL) && new Double(0.0).equals(rms))
-            rms = (Double)((MutableGenotype)genotype).getAttribute(RMS_MAPPING_QUAL);
-
-        // if we can't get the depth from the read pile-up (preferred), check the tags, the VC might have it
-        if (genotype.hasAttribute(VCFConstants.DEPTH_KEY) && 0 == readCount)
-            readCount = (Integer)((MutableGenotype)genotype).getAttribute(VCFConstants.DEPTH_KEY);
-
-        addCall(GenomeLocParser.getContigInfo(vc.getChr()), vc.getStart(), (float) rms, ref, readCount, obj);
-    }
-
-
-    /**
-     * calculate the rms , given the read pileup
-     *
-     * @param pileup the pileup
-     *
-     * @return the rms of the read mapping qualities
-     */
-    private double calculateRMS(ReadBackedPileup pileup) {
-        int[] qualities = new int[pileup.size()];
-        int index = 0;
-        for (PileupElement p : pileup )
-            qualities[index++] = p.getMappingQual();
-        return MathUtils.rms(qualities);
+    public void add(VariantContext vc, byte refBase) {
+        throw new UnsupportedOperationException("We no longer support writing GLF");
     }
 
     /**

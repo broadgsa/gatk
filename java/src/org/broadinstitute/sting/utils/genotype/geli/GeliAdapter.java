@@ -3,14 +3,7 @@ package org.broadinstitute.sting.utils.genotype.geli;
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMSequenceRecord;
-import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.CalledGenotype;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.io.File;
 
@@ -73,30 +66,6 @@ public class GeliAdapter implements GeliGenotypeWriter {
         this.writer = GeliFileWriter.newInstanceForPresortedRecords(writeTo, fileHeader);
     }
 
-
-    /**
-     * add a single point genotype call to the genotype likelihood file
-     *
-     * @param contig        the contig you're calling in
-     * @param position      the position on the contig
-     * @param referenceBase the reference base
-     * @param maxMappingQuality the max MQ
-     * @param readCount     the read count
-     * @param likelihoods   the likelihoods of each of the possible alleles
-     */
-    private void addCall(SAMSequenceRecord contig,
-                         int position,
-                         char referenceBase,
-                         double maxMappingQuality,
-                         int readCount,
-                         LikelihoodObject likelihoods) {
-        GenotypeLikelihoods lk = likelihoods.convertToGenotypeLikelihoods(writer.getFileHeader(), contig.getSequenceIndex(), position, (byte) referenceBase);
-        lk.setNumReads(readCount);
-
-        lk.setMaxMappingQuality(maxMappingQuality > Short.MAX_VALUE ? Short.MAX_VALUE : (short)Math.round(maxMappingQuality));
-        writer.addGenotypeLikelihoods(lk);
-    }
-
     public void addGenotypeLikelihoods(GenotypeLikelihoods gl) {
         if ( writer == null )
             throw new IllegalStateException("The Geli Header must be written before records can be added");
@@ -110,53 +79,8 @@ public class GeliAdapter implements GeliGenotypeWriter {
      * @param vc  the variant context representing the call to add
      * @param refBase not used by this writer
      */
-    public void addCall(VariantContext vc, byte refBase) {
-        if ( writer == null )
-            throw new IllegalStateException("The Geli Header must be written before calls can be added");
-
-        char ref = vc.getReference().toString().charAt(0);
-        if ( vc.getNSamples() != 1 )
-            throw new IllegalArgumentException("The Geli format does not support multi-sample or no-calls");
-
-        Genotype genotype = vc.getGenotypes().values().iterator().next();
-        if ( genotype.isNoCall() )
-            throw new IllegalArgumentException("The Geli format does not support no-calls");
-
-        ReadBackedPileup pileup;
-        double[] posteriors;
-        if ( genotype instanceof CalledGenotype ) {
-            pileup = ((CalledGenotype)genotype).getReadBackedPileup();
-            posteriors = ((CalledGenotype)genotype).getPosteriors();
-        } else {
-            pileup = (ReadBackedPileup)genotype.getAttribute(CalledGenotype.READBACKEDPILEUP_ATTRIBUTE_KEY);
-            posteriors = (double[])genotype.getAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY);
-        }
-
-        if ( posteriors == null )
-            throw new IllegalArgumentException("The Geli format requires posteriors");
-
-        int readCount = 0;
-        double maxMappingQual = 0;
-        if ( pileup != null ) {
-            readCount = pileup.size();
-            for (PileupElement p : pileup ) {
-                if ( maxMappingQual < p.getMappingQual() )
-                    maxMappingQual = p.getMappingQual();
-            }
-        } else {
-            if (genotype.hasAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY))
-                readCount = genotype.getAttributeAsInt(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY);
-            if (genotype.hasAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY))
-                maxMappingQual = Double.valueOf(genotype.getAttributeAsInt(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY));
-        }
-
-        LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        addCall(GenomeLocParser.getContigInfo(vc.getChr()),
-                vc.getStart(),
-                ref,
-                maxMappingQual,
-                readCount,
-                obj);
+    public void add(VariantContext vc, byte refBase) {
+        throw new UnsupportedOperationException("We no longer support writing Geli");
     }
 
     /** finish writing, closing any open files. */

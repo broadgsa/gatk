@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import static org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model.*;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.apache.log4j.Logger;
 
 import java.util.Set;
@@ -34,7 +33,6 @@ import java.io.PrintStream;
 
 
 public class GenotypeCalculationModelFactory {
-    //private GenotypeCalculationModelFactory() {} // cannot be instantiated
 
     public static GenotypeCalculationModel.Model getGenotypeCalculationModel(final String name) {
         return valueOf(name);
@@ -46,7 +44,6 @@ public class GenotypeCalculationModelFactory {
      * @param samples       samples in bam
      * @param logger        logger
      * @param UAC           the unified argument collection
-     * @param outputFormat  the output format
      * @param verboseWriter verbose writer
      *
      * @return model
@@ -54,7 +51,6 @@ public class GenotypeCalculationModelFactory {
     public static GenotypeCalculationModel makeGenotypeCalculation(Set<String> samples,
                                                                    Logger logger,
                                                                    UnifiedArgumentCollection UAC,
-                                                                   GenotypeWriterFactory.GENOTYPE_FORMAT outputFormat,
                                                                    PrintStream verboseWriter) {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
@@ -63,16 +59,13 @@ public class GenotypeCalculationModelFactory {
                 boolean useExptGenotypeLikelihoods = UAC.genotypeModel == JOINT_ESTIMATE_EXPT_GL;
                 gcm = new DiploidGenotypeCalculationModel(useExptGenotypeLikelihoods);
                 break;
-//            case POOLED:
-//                gcm = new PooledCalculationModel();
-//                break;
             case INDELS:
                 gcm = new SimpleIndelCalculationModel();
                 break;
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
 
-        gcm.initialize(samples, logger, UAC, outputFormat, verboseWriter);
+        gcm.initialize(samples, logger, UAC, verboseWriter);
         return gcm;
     }
 }
