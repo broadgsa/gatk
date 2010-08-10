@@ -62,6 +62,8 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
 
     private static final int MAX_MISSED_VALIDATION_DATA = 100;
 
+		private boolean discordantInteresting = false;
+
     private VariantEvalWalker.EvaluationContext group = null;
 
     static class FrequencyStats implements TableType {
@@ -214,6 +216,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
 
     public GenotypeConcordance(VariantEvalWalker parent) {
         super(parent);
+				discordantInteresting = parent.DISCORDANT_INTERESTING;
     }
 
     public String getName() {
@@ -295,6 +298,10 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
                 } else {
                     truth = validation.getGenotype(sample).getType();
                     // interesting = "ConcordanceStatus=FP";
+										if (discordantInteresting && truth.ordinal() != called.ordinal())
+										{
+												interesting = "ConcordanceStatus=" + truth.ordinal() + "/" + called.ordinal();
+										}
                 }
 
                 sampleStats.incrValue(sample, truth, called);

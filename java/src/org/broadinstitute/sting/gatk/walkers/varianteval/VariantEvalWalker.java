@@ -195,6 +195,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="aatUseCodons", fullName="aminoAcidsRepresentedByCodons", doc="for the amino acid table, specifiy that the transitions are represented as codon changes, and not directly amino acid names", required = false)
     protected boolean aatUseCodons = false;
 
+    @Argument(shortName="disI", fullName="discordantInteresting", doc="If passed, write discordant sites as interesting", required=false)
+		protected boolean DISCORDANT_INTERESTING = false;
+
     @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
     private String TRANCHE_FILENAME = null;
 
@@ -530,7 +533,21 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                                     comp.hasNegLog10PError() &&
                                     comp.getNegLog10PError() < (minCompQualScore / 10.0) )
                                 comp = null;
-                            String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
+
+														String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
+
+														/** TODO 
+																-- for Eric: Fix me (current implementation causes GenotypeConcordance
+																to treat sites that don't match JEXL as no-calls)
+
+														String interesting = null;
+														if (evalWantsVC)
+														{
+																interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
+														}
+														**/
+
+														
                             if ( interesting != null ) interestingReasons.add(interesting);
                             break;
                         default:
