@@ -42,6 +42,16 @@ public class RodSystemValidationIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testBTIWithROD() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString1KG() + " -B eval,VCF," + validationDataLocation + "MultiSample.vcf" +
+                " -B eval2,VCF," + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf4" + " -BTI eval"
+                , 1,
+                Arrays.asList("ccfc0389a3c614f7892dbe972543f0ec"));
+        executeTest("testBTIWithROD", spec);
+    }
+
+    @Test
     public void testLargeComplexVCFPileup() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString1KG() + " -B eval,VCF," + validationDataLocation + "MultiSample.vcf" +

@@ -112,12 +112,10 @@ public abstract class BaseTest {
                 foundString = true;
         }
 
-        @Override
         public void close() {
             // do nothing
         }
 
-        @Override
         public boolean requiresLayout() {
             return false;
         }
