@@ -10,7 +10,10 @@ class Onekg_table1 extends QScript {
   @Argument(doc="gatkJarFile")
   var gatkJarFile: File = _
 
-trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile } // -L 1
+  @Argument(shortName = "R", doc="gatkJarFile")
+  var referenceFile: File = _
+
+trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; reference_sequence = referenceFile } // -L 1
 
 class Target(project: String, snpVCF: String, indelVCF: String, calledGenome: Double, targetGenome: Double, pop: String, pilot : String, bam: String = null) {
     def reportFile: String = List(pop, pilot, "report").mkString(".")
@@ -71,7 +74,7 @@ def script = stage match {
         for ( (pop: String,called) <- p1Targets ) {
             val auto = "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/low_coverage/snps/"+ pop +".low_coverage.2010_07.genotypes.vcf.gz"
             // todo -- remove fixed when Laura gives us the official calls
-            val x = "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/low_coverage/snps/"+ pop +".low_coverage.2010_07.xchr.fixed.genotypes.vcf.gz"
+            val x = "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/low_coverage/snps/"+ pop +".low_coverage.2010_07.xchr.fixed.genotypes.vcf"
             val combineSNPs = new Combine(List(auto, x), pop + ".pilot1.vcf")
             add(combineSNPs)
         }
@@ -93,14 +96,14 @@ def script = stage match {
         val snps = "1kg.snps.merged.vcf"
         val indels = "1kg.indels.merged.vcf"
 
-        add(new Combine(pilots.map(_ + ".snps.merged.vcf"), snps))
+        //add(new Combine(pilots.map(_ + ".snps.merged.vcf"), snps))
         add(new Combine(pilots.map(_ + ".indels.merged.vcf"), indels))
 
         // VariantEval of the SNPs
-        for (target <- targets) {
-          add(new VariantEval(target.getSNPVCF, target.getSNPEval))
-          add(new StatPop(target))
-        }
+        //for (target <- targets) {
+        //  add(new VariantEval(target.getSNPVCF, target.getSNPEval))
+        //  add(new StatPop(target))
+        //}
 
     case "DOC" => 
         for (target <- targets) {
