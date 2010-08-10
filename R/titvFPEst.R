@@ -1,4 +1,8 @@
-titvFPEst <- function(titvExpected, titvObserved) { 1 - (titvObserved - 0.5) / (titvExpected - 0.5) }
+titvFPEst <- function(titvExpected, titvObserved) { max(min(1 - (titvObserved - 0.5) / (titvExpected - 0.5), 1), 0.001) }
+
+titvFPEstV <- function(titvExpected, titvs) {
+    sapply(titvs, function(x) titvFPEst(titvExpected, x))
+}
 
 calcHet <- function(nknown, knownTiTv, nnovel, novelTiTv, callable) {
   TP <- nknown + (1-titvFPEst(knownTiTv, novelTiTv)) * nnovel
