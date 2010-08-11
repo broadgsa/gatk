@@ -20,6 +20,8 @@ class CreateTempDirsFunction extends CommandLineFunction {
   @Argument(doc="mkdir script or command")
   var mkdirScript = "mkdir -pv"
 
+  override def upToDate = tempDirectories.forall(_.exists)
+
   def commandLine = "%s%s".format(mkdirScript, repeat(" '", tempDirectories, "'"))
 
   /**

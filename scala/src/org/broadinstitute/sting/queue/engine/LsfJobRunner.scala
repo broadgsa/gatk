@@ -6,7 +6,7 @@ import org.broadinstitute.sting.queue.util.{IOUtils, LsfJob, Logging}
 /**
  * Runs jobs on an LSF compute cluster.
  */
-trait LsfJobRunner extends DispatchJobRunner with Logging {
+class LsfJobRunner extends DispatchJobRunner with Logging {
   type DispatchJobType = LsfJob
 
   /**
@@ -14,7 +14,7 @@ trait LsfJobRunner extends DispatchJobRunner with Logging {
    * @param function Command to run.
    * @param qGraph graph that holds the job, and if this is a dry run.
    */
-  def dispatch(function: CommandLineFunction, qGraph: QGraph) = {
+  def run(function: CommandLineFunction, qGraph: QGraph) = {
     val job = new LsfJob
     job.name = function.jobName
     job.outputFile = function.jobOutputFile

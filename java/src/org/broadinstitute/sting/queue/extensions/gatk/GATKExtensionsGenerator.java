@@ -117,7 +117,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                             argumentFields.addAll(ReadFilterField.getFilterArguments(walkerType));
 
                             writeClass(COMMANDLINE_PACKAGE_NAME + "." + clpClassName, WALKER_PACKAGE_NAME,
-                                    walkerName, String.format("analysis_type = \"%s\"%n%n", walkerName), argumentFields);
+                                    walkerName, String.format("analysis_type = \"%s\"%n", walkerName), argumentFields);
                         }
                     }
                 }

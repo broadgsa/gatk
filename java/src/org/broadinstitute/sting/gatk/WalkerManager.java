@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.*;

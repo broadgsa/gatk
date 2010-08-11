@@ -9,7 +9,6 @@ object IOUtils {
   /** The current directory "." */
   val CURRENT_DIR = new File(".")
 
-
   /**
    * Returns the sub path rooted at the parent.
    * If the sub path is already absolute, returns the sub path.
@@ -21,27 +20,30 @@ object IOUtils {
    * @return The absolute path to the file in the parent dir if the path was not absolute, otherwise the original path.
    */
   def subDir(dir: File, path: String): File =
-    subDir(dir.getAbsoluteFile, new File(path))
+    subDir(dir, new File(path))
 
   /**
    * Returns the sub path rooted at the parent.
    * If the sub path is already absolute, returns the sub path.
    * If the parent is the current directory, returns the sub path.
-   * If the sub bath is the current directory, returns the parent.
+   * If the sub path is the current directory, returns the parent.
    * Else returns new File(parent, subPath)
    * @param parent The parent directory
    * @param file The sub path to append to the parent, if the path is not absolute.
    * @return The absolute path to the file in the parent dir if the path was not absolute, otherwise the original path.
    */
   def subDir(parent: File, file: File): File = {
-    if (parent == CURRENT_DIR && file == CURRENT_DIR)
-      CURRENT_DIR.getCanonicalFile.getAbsoluteFile
-    else if (parent == CURRENT_DIR || file.isAbsolute)
-      file.getAbsoluteFile
-    else if (file == CURRENT_DIR)
-      parent.getAbsoluteFile
+    val parentAbs = absolute(parent)
+    val fileAbs = absolute(file)
+    val currentAbs = absolute(CURRENT_DIR)
+    if (parentAbs == currentAbs && fileAbs == currentAbs)
+      absolute(CURRENT_DIR.getCanonicalFile)
+    else if (parentAbs == currentAbs || file.isAbsolute)
+      fileAbs
+    else if (fileAbs == currentAbs)
+      parentAbs
     else
-      new File(parent, file.getPath).getAbsoluteFile
+      absolute(new File(parentAbs, file.getPath))
   }
 
   /**
@@ -50,7 +52,7 @@ object IOUtils {
    * @param file Path to the file to be re-rooted.
    * @return Absolute path to the new file.
    */
-  def resetParent(dir: File, file: File) = subDir(dir.getAbsoluteFile, file.getName).getAbsoluteFile
+  def resetParent(dir: File, file: File) = absolute(subDir(dir, file.getName))
 
   /**
    * Creates a scatterGatherTempDir directory with the prefix and optional suffix.
@@ -65,6 +67,61 @@ object IOUtils {
       throw new IOException("Could not delete sub file: " + temp.getAbsolutePath())
     if(!temp.mkdir)
       throw new IOException("Could not create sub directory: " + temp.getAbsolutePath())
-    temp
+    absolute(temp)
+  }
+
+  /**
+   * Returns the directory at the number of levels deep.
+   * For example 2 levels of /path/to/dir will return /path/to
+   * @param dir Directory path.
+   * @param level how many levels deep from the root.
+   * @return The path to the parent directory that is level-levels deep.
+   */
+  def dirLevel(dir: File, level: Int): File = {
+    var directories = List.empty[File]
+    var parentDir = absolute(dir)
+    while (parentDir != null) {
+      directories +:= parentDir
+      parentDir = parentDir.getParentFile
+    }
+    if (directories.size <= level)
+      directories.last
+    else
+      directories(level)
+  }
+
+  def absolute(file: File) = {
+    var fileAbs = file.getAbsoluteFile
+    var names = List.empty[String]
+    while (fileAbs != null) {
+      val name = fileAbs.getName
+      fileAbs = fileAbs.getParentFile
+      
+      if (name == ".") {
+        /* skip */
+
+        /* TODO: What do we do for ".."?
+      } else if (name == "..") {
+
+        CentOS tcsh says use getCanonicalFile:
+        ~ $ mkdir -p test1/test2
+        ~ $ ln -s test1/test2 test3
+        ~ $ cd test3/..
+        ~/test1 $
+
+        Mac bash says keep going with getAbsoluteFile:
+        ~ $ mkdir -p test1/test2
+        ~ $ ln -s test1/test2 test3
+        ~ $ cd test3/..
+        ~ $
+
+        For now, leave it and let the shell figure it out.
+        */
+      } else {
+        names +:= name
+      }
+    }
+
+    new File(names.mkString("/", "/", ""))
   }
 }

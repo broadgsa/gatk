@@ -154,8 +154,12 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    */
   override def freezeFieldValues = {
     super.freezeFieldValues
-    if (this.scatterGatherDirectory == null)
-      this.scatterGatherDirectory = this.commandDirectory
+
+    if (this.scatterGatherDirectory == null) {
+      this.scatterGatherDirectory = qSettings.jobScatterGatherDirectory
+      if (this.scatterGatherDirectory == null)
+        this.scatterGatherDirectory = this.commandDirectory
+    }
   }
 
   /**
@@ -177,7 +181,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
   /**
    * Initializes the CreateTempDirsFunction that will create the temporary directories.
-   * The initializeFunction jobNamePrefix is set so that the CreateTempDirsFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The initializeFunction qSettings is set so that the CreateTempDirsFunction runs with the same prefix, etc. as this ScatterGatherableFunction.
    * The initializeFunction commandDirectory is set so that the function runs in the directory as this ScatterGatherableFunction.
    * The initializeFunction is modified to become dependent on the input files for this ScatterGatherableFunction.
    * Calls setupInitializeFunction with initializeFunction.
@@ -185,7 +189,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param inputFields The input fields that the original function was dependent on.
    */
   protected def initInitializeFunction(initializeFunction: CreateTempDirsFunction, inputFields: List[ArgumentSource]) = {
-    initializeFunction.jobNamePrefix = this.jobNamePrefix
+    initializeFunction.qSettings = this.qSettings
     initializeFunction.commandDirectory = this.commandDirectory
     for (inputField <- inputFields)
       initializeFunction.originalInputs ++= this.getFieldFiles(inputField)
@@ -209,7 +213,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
   /**
    * Initializes the ScatterFunction created by newScatterFunction() that will create the scatter pieces in the temporary directories.
-   * The scatterFunction jobNamePrefix is set so that the ScatterFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The scatterFunction qSettings is set so that the ScatterFunction runs with the same prefix, etc. as this ScatterGatherableFunction.
    * The scatterFunction commandDirectory is set so that the function runs from a temporary directory under the scatterDirectory.
    * The scatterFunction has it's originalInput set with the file to be scattered into scatterCount pieces.
    * Calls scatterFunction.setOriginalFunction with this ScatterGatherableFunction.
@@ -218,7 +222,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param scatterField The input field being scattered.
    */
   protected def initScatterFunction(scatterFunction: ScatterFunction, scatterField: ArgumentSource) = {
-    scatterFunction.jobNamePrefix = this.jobNamePrefix
+    scatterFunction.qSettings = this.qSettings
     scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter-" + scatterField.field.getName)
     scatterFunction.originalInput = this.getFieldFile(scatterField)
     scatterFunction.setOriginalFunction(this, scatterField)
@@ -245,7 +249,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
   /**
    * Initializes the GatherFunction created by newGatherFunction() that will collect the gather pieces in the temporary directories.
-   * The gatherFunction jobNamePrefix is set so that the GatherFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The gatherFunction qSettings is set so that the GatherFunction runs with the same prefix, etc. as this ScatterGatherableFunction.
    * The gatherFunction commandDirectory is set so that the function runs from a temporary directory under the scatterDirectory.
    * The gatherFunction has it's originalOutput set with the file to be gathered from the scatterCount pieces.
    * Calls the gatherFunction.setOriginalFunction with this ScatterGatherableFunction.
@@ -254,7 +258,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param gatherField The output field being gathered.
    */
   protected def initGatherFunction(gatherFunction: GatherFunction, gatherField: ArgumentSource) = {
-    gatherFunction.jobNamePrefix = this.jobNamePrefix
+    gatherFunction.qSettings = this.qSettings
     gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
     gatherFunction.originalOutput = this.getFieldFile(gatherField)
     gatherFunction.setOriginalFunction(this, gatherField)
@@ -332,7 +336,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
   /**
    * Initializes the CleanupTempDirsFunction created by newCleanupFunction() that will remove the temporary directories.
-   * The cleanupFunction jobNamePrefix is set so that the CleanupTempDirsFunction runs with the same prefix as this ScatterGatherableFunction.
+   * The cleanupFunction qSettings is set so that the CleanupTempDirsFunction runs with the same prefix, etc. as this ScatterGatherableFunction.
    * The cleanupFunction commandDirectory is set so that the function runs in the directory as this ScatterGatherableFunction.
    * The initializeFunction is modified to become dependent on the output files for this ScatterGatherableFunction.
    * Calls setupCleanupFunction with cleanupFunction.
@@ -341,7 +345,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param outputFields The output fields that the original function was dependent on.
    */
   protected def initCleanupFunction(cleanupFunction: CleanupTempDirsFunction, gatherFunctions: Map[ArgumentSource, GatherFunction], outputFields: List[ArgumentSource]) = {
-    cleanupFunction.jobNamePrefix = this.jobNamePrefix
+    cleanupFunction.qSettings = this.qSettings
     cleanupFunction.commandDirectory = this.commandDirectory
     for (gatherField <- outputFields)
       cleanupFunction.originalOutputs += gatherFunctions(gatherField).originalOutput

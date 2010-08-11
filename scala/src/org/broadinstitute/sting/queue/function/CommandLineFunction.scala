@@ -6,14 +6,16 @@ import org.broadinstitute.sting.commandline._
 import java.io.File
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.function.scattergather.{SimpleTextGatherFunction, Gather}
-import java.lang.management.ManagementFactory
-import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.sting.queue.{QSettings, QException}
 
 /**
  * A command line that will be run in a pipeline.
  */
 trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
+
+  /** Default settings */
+  var qSettings: QSettings = _
 
   /** Upper memory limit */
   var memoryLimit: Option[Int] = None
@@ -25,16 +27,16 @@ trait CommandLineFunction extends QFunction with Logging {
   var commandDirectory: File = IOUtils.CURRENT_DIR
 
   /** Prefix for automatic job name creation */
-  var jobNamePrefix: String = CommandLineFunction.processNamePrefix
+  var jobNamePrefix: String = _
 
   /** The name name of the job */
   var jobName: String = _
 
   /** Job project to run the command */
-  var jobProject = "Queue"
+  var jobProject: String = _
 
   /** Job queue to run the command */
-  var jobQueue = "broad"
+  var jobQueue: String = _
 
   /** Temporary directory to write any files */
   var jobTempDir: File = new File(System.getProperty("java.io.tmpdir"))
@@ -97,6 +99,21 @@ trait CommandLineFunction extends QFunction with Logging {
     for (field <- fields)
       files ++= getFieldFiles(field)
     files
+  }
+
+  /**
+   * Returns true if all outputs already exist and are older that the inputs.
+   * If there are no outputs then returns false.
+   * @return true if all outputs already exist and are older that the inputs.
+   */
+  def upToDate = {
+    val inputFiles = inputs
+    val outputFiles = outputs.filterNot(file => (file == jobOutputFile || file == jobErrorFile))
+    if (outputFiles.size > 0 && outputFiles.forall(_.exists)) {
+      val maxInput = inputFiles.foldLeft(Long.MinValue)((date, file) => date.max(file.lastModified))
+      val minOutput = outputFiles.foldLeft(Long.MaxValue)((date, file) => date.min(file.lastModified))
+      maxInput < minOutput
+    } else false
   }
 
   /**
@@ -177,6 +194,21 @@ trait CommandLineFunction extends QFunction with Logging {
    * Sets all field values.
    */
   def freezeFieldValues = {
+    if (jobNamePrefix == null)
+      jobNamePrefix = qSettings.jobNamePrefix
+
+    if (jobQueue == null)
+      jobQueue = qSettings.jobQueue
+
+    if (jobProject == null)
+      jobProject = qSettings.jobProject
+
+    if (memoryLimit.isEmpty && qSettings.memoryLimit.isDefined)
+      memoryLimit = qSettings.memoryLimit
+
+    if (qSettings.runJobsIfPrecedingFail)
+      jobRunOnlyIfPreviousSucceed = false
+
     if (jobName == null)
       jobName = CommandLineFunction.nextJobName(jobNamePrefix)
 
@@ -202,7 +234,7 @@ trait CommandLineFunction extends QFunction with Logging {
    * Set value to a uniform value across functions.
    * Base implementation changes any relative path to an absolute path.
    * @param value to be updated
-   * @returns the modified value, or a copy if the value is immutable
+   * @return the modified value, or a copy if the value is immutable
    */
   protected def canon(value: Any) = {
     value match {
@@ -276,20 +308,8 @@ trait CommandLineFunction extends QFunction with Logging {
    * Scala sugar type for checking annotation required and exclusiveOf.
    */
   private type ArgumentAnnotation = {
-    /**
-     * Returns true if the field is required.
-     * @return true if the field is required.
-     */
     def required(): Boolean
-    /**
-     * Returns the comma separated list of fields that may be set instead of this field.
-     * @return the comma separated list of fields that may be set instead of this field.
-     */
     def exclusiveOf(): String
-    /**
-     * Returns the documentation for this field.
-     * @return the documentation for this field.
-     */
     def doc(): String
   }
 
@@ -378,15 +398,6 @@ trait CommandLineFunction extends QFunction with Logging {
  * A command line that will be run in a pipeline.
  */
 object CommandLineFunction {
-  /** A semi-unique job prefix using the host name and the process id. */
-  private val processNamePrefix = "Q-" + {
-    var prefix = ManagementFactory.getRuntimeMXBean.getName
-    val index = prefix.indexOf(".")
-    if (index >= 0)
-      prefix = prefix.substring(0, index)
-    prefix
-  }
-
   /** Job index counter for this run of Queue. */
   private var jobIndex = 0
 

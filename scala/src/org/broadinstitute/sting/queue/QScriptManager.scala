@@ -48,7 +48,7 @@ object QScriptManager extends Logging {
     if (scripts.size > 0) {
 
       val settings = new Settings((error: String) => logger.error(error))
-      val outdir = IOUtils.tempDir("Q-classes").getAbsoluteFile
+      val outdir = IOUtils.tempDir("Q-classes")
       settings.outdir.value = outdir.getPath
 
       // Set the classpath to the current class path.

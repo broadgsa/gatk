@@ -51,7 +51,7 @@ class DuplicateCount  {
  * @author mark DePristo
  */
 public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, DuplicateCount> {
-    @Argument(fullName="quiet", required=false, doc="If true, per locus information isn't printex")
+    @Argument(fullName="quietLocus", required=false, doc="If true, per locus information isn't printed")
     public boolean quiet = false;
 
     /**

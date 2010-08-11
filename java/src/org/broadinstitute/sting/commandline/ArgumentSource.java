@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.gatk.walkers.Hidden;
-
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;

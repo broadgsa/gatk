@@ -6,7 +6,7 @@ import org.broadinstitute.sting.queue.function.CommandLineFunction
 /**
  * Runs jobs one at a time locally
  */
-trait ShellJobRunner extends Logging {
+class ShellJobRunner extends JobRunner with Logging {
   /**
    * Runs the function on the local shell.
    * @param function Command to run.

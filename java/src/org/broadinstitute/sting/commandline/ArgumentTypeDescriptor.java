@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.gatk.walkers.Hidden;
 import org.apache.log4j.Logger;
 
 import java.lang.annotation.Annotation;

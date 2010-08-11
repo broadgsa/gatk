@@ -9,7 +9,7 @@ import java.io.File
 class MappingFunction(val inputs: Set[File], val outputs: Set[File]) extends QFunction {
   /**
    * For debugging purposes returns <map>.
-   * @returns <map>
+   * @return <map>
    */
   override def toString = "<map>"
 }

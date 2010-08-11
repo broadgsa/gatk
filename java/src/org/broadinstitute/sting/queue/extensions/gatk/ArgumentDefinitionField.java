@@ -47,10 +47,37 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     @Override protected String getExclusiveOf() { return escape(argumentDefinition.exclusiveOf); }
     @Override protected String getValidation() { return escape(argumentDefinition.validation); }
 
+    protected final String getShortFieldGetter() { return getFieldName(getRawShortFieldName()); }
+    protected final String getShortFieldSetter() { return getFieldName(getRawShortFieldName() + "_="); }
+    protected String getRawShortFieldName() { return argumentDefinition.shortName; }
+    @Override protected String getDefineAddition() {
+        if (argumentDefinition.shortName == null)
+            return "";
+        else if(getShortFieldGetter().equals(getFieldName()))
+            return "";
+        else
+            return String.format("%n" +
+                    "/** %n" +
+                    " *  Short name of %1$s%n" +
+                    " *  @return Short name of %1$s%n" +
+                    " */%n" +
+                    "def %3$s = this.%1$s%n" +
+                    "%n" +
+                    "/** %n" +
+                    " *  Short name of %1$s%n" +
+                    " *  @param value Short name of %1$s%n" +
+                    " */%n" +
+                    "def %4$s(value: %2$s) = this.%1$s = value%n",
+                    getFieldName(),
+                    getFieldType(),
+                    getShortFieldGetter(),
+                    getShortFieldSetter());
+    }
+
     protected static final String REQUIRED_TEMPLATE = " + \" %1$s \" + %2$s.format(%3$s)";
     protected static final String REPEAT_TEMPLATE = " + repeat(\" %1$s \", %3$s, format=%2$s)";
     protected static final String OPTIONAL_TEMPLATE = " + optional(\" %1$s \", %3$s, format=%2$s)";
-    protected static final String FLAG_TEMPLATE = " + (if (%3$s) \" %1$s \" else \"\")";
+    protected static final String FLAG_TEMPLATE = " + (if (%3$s) \" %1$s\" else \"\")";
 
     public final String getCommandLineAddition() {
         return String.format(getCommandLineTemplate(), getCommandLineParam(), getCommandLineFormat(), getFieldName());
@@ -169,6 +196,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected Class<?> getInnerType() { return String.class; }
         @Override protected String getRawFieldName() { return super.getRawFieldName() + "String"; }
         @Override protected String getFullName() { return super.getFullName() + "String"; }
+        @Override protected String getRawShortFieldName() { return super.getRawShortFieldName() + "String"; }
         @Override protected String getFieldType() { return "List[String]"; }
         @Override protected String getDefaultValue() { return "Nil"; }
         @Override public String getCommandLineTemplate() { return REPEAT_TEMPLATE; }

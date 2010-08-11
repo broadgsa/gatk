@@ -3,8 +3,8 @@ package org.broadinstitute.sting.queue
 import java.io.File
 import java.util.Arrays
 import org.broadinstitute.sting.queue.engine.QGraph
-import org.broadinstitute.sting.commandline.{ClassType, Input, Argument, CommandLineProgram}
 import org.broadinstitute.sting.queue.util.{Logging, ScalaCompoundArgumentTypeDescriptor}
+import org.broadinstitute.sting.commandline._
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
@@ -20,11 +20,23 @@ class QCommandLine extends CommandLineProgram with Logging {
   @Argument(fullName="bsub_wait_jobs", shortName="bsubWait", doc="Wait for bsub submitted jobs before exiting", required=false)
   private var bsubWaitJobs = false
 
-  @Argument(fullName="run_scripts", shortName="run", doc="Run QScripts", required=false)
+  @Argument(fullName="run_scripts", shortName="run", doc="Run QScripts.  Without this flag set only performs a dry run.", required=false)
   private var run = false
 
   @Argument(fullName="dot_graph", shortName="dot", doc="Outputs the queue graph to a .dot file.  See: http://en.wikipedia.org/wiki/DOT_language", required=false)
-  private var queueDot: File = _
+  private var dotFile: File = _
+
+  @Argument(fullName="expanded_dot_graph", shortName="expandedDot", doc="Outputs the queue graph of scatter gather to a .dot file.  Otherwise overwrites the dot_graph", required=false)
+  private var expandedDotFile: File = _
+
+  @Argument(fullName="skip_up_to_date", shortName="skipUpToDate", doc="Does not run command line functions that don't depend on other jobs if the outputs exist and are older than the inputs.", required=false)
+  private var skipUpToDate = false
+
+  @Argument(fullName="for_reals", shortName="forReals", doc="Run QScripts", required=false) @Hidden
+  private var runScripts = false
+
+  @ArgumentCollection
+  private val qSettings = new QSettings
 
   /**
    * Takes the QScripts passed in, runs their script() methods, retrieves their generated
@@ -32,9 +44,13 @@ class QCommandLine extends CommandLineProgram with Logging {
    */
   def execute = {
     val qGraph = new QGraph
-    qGraph.dryRun = !run
+    qGraph.dryRun = !(run || runScripts)
     qGraph.bsubAllJobs = bsubAllJobs
     qGraph.bsubWaitJobs = bsubWaitJobs
+    qGraph.skipUpToDateJobs = skipUpToDate
+    qGraph.dotFile = dotFile
+    qGraph.expandedDotFile = expandedDotFile
+    qGraph.qSettings = qSettings
 
     val scripts = qScriptManager.createScripts()
     for (script <- scripts) {
@@ -45,15 +61,9 @@ class QCommandLine extends CommandLineProgram with Logging {
       logger.info("Added " + script.functions.size + " functions")
     }
 
-    logger.info("Binding functions")
-    qGraph.fillIn
-    if (queueDot != null) {
-      logger.info("Generating " + queueDot)
-      qGraph.renderToDot(queueDot)
-    }
-
     logger.info("Running generated graph")
     qGraph.run
+
     logger.info("Done")
     0
   }

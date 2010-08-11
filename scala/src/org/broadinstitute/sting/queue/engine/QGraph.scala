@@ -4,14 +4,15 @@ import org.jgrapht.traverse.TopologicalOrderIterator
 import org.jgrapht.graph.SimpleDirectedGraph
 import scala.collection.JavaConversions
 import scala.collection.JavaConversions._
-import org.broadinstitute.sting.queue.function.{MappingFunction, CommandLineFunction, QFunction}
 import org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
 import org.broadinstitute.sting.queue.util.Logging
-import org.broadinstitute.sting.queue.QException
 import org.jgrapht.alg.CycleDetector
 import org.jgrapht.EdgeFactory
 import org.jgrapht.ext.DOTExporter
 import java.io.File
+import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
+import org.broadinstitute.sting.queue.{QSettings, QException}
+import org.broadinstitute.sting.queue.function.{DispatchWaitFunction, MappingFunction, CommandLineFunction, QFunction}
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -20,8 +21,11 @@ class QGraph extends Logging {
   var dryRun = true
   var bsubAllJobs = false
   var bsubWaitJobs = false
-  val jobGraph = newGraph
-  def numJobs = JavaConversions.asSet(jobGraph.edgeSet).filter(_.isInstanceOf[CommandLineFunction]).size
+  var skipUpToDateJobs = false
+  var dotFile: File = _
+  var expandedDotFile: File = _
+  var qSettings: QSettings = _
+  private val jobGraph = newGraph
 
   /**
    * Adds a QScript created CommandLineFunction to the graph.
@@ -32,15 +36,130 @@ class QGraph extends Logging {
   }
 
   /**
-   * Looks through functions with multiple inputs and outputs and adds mapping functions for single inputs and outputs.
+   * Checks the functions for missing values and the graph for cyclic dependencies and then runs the functions in the graph.
    */
-  def fillIn = {
-    // clone since edgeSet is backed by the graph
-    for (function <- JavaConversions.asSet(jobGraph.edgeSet).clone) {
-      addCollectionOutputs(function.outputs)
-      addCollectionInputs(function.inputs)
+  def run = {
+    fill
+    if (dotFile != null)
+      renderToDot(dotFile)
+    var numMissingValues = validate
+
+    if (numMissingValues == 0 && bsubAllJobs) {
+      logger.debug("Scatter gathering jobs.")
+      var scatterGathers = List.empty[ScatterGatherableFunction]
+      loop({
+        case scatterGather: ScatterGatherableFunction if (scatterGather.scatterGatherable) =>
+          scatterGathers :+= scatterGather
+      })
+
+      var addedFunctions = List.empty[CommandLineFunction]
+      for (scatterGather <- scatterGathers) {
+        val functions = scatterGather.generateFunctions()
+        if (logger.isTraceEnabled)
+          logger.trace("Scattered into %d parts: %n%s".format(functions.size, functions.mkString("%n".format())))
+        addedFunctions ++= functions
+      }
+
+      this.jobGraph.removeAllEdges(scatterGathers)
+      prune
+      addedFunctions.foreach(this.addFunction(_))
+
+      fill
+      val scatterGatherDotFile = if (expandedDotFile != null) expandedDotFile else dotFile
+      if (scatterGatherDotFile != null)
+        renderToDot(scatterGatherDotFile)
+      numMissingValues = validate
     }
 
+    val isReady = numMissingValues == 0
+
+    if (isReady || this.dryRun)
+      runJobs
+
+    if (numMissingValues > 0) {
+      logger.error("Total missing values: " + numMissingValues)
+    }
+
+    if (isReady && this.dryRun) {
+      logger.info("Dry run completed successfully!")
+      logger.info("Re-run with \"-run\" to execute the functions.")
+    }
+  }
+
+  /**
+   * Walks up the graph looking for the previous LsfJobs.
+   * @param function Function to examine for a previous command line job.
+   * @param qGraph The graph that contains the jobs.
+   * @return A list of prior jobs.
+   */
+  def previousJobs(function: QFunction) : List[CommandLineFunction] = {
+    var previous = List.empty[CommandLineFunction]
+
+    val source = this.jobGraph.getEdgeSource(function)
+    for (incomingEdge <- this.jobGraph.incomingEdgesOf(source)) {
+      incomingEdge match {
+
+      // Stop recursing when we find a job along the edge and return its job id
+        case commandLineFunction: CommandLineFunction => previous :+= commandLineFunction
+
+        // For any other type of edge find the LSF jobs preceding the edge
+        case qFunction: QFunction => previous ++= previousJobs(qFunction)
+      }
+    }
+    previous
+  }
+
+  /**
+   * Fills in the graph using mapping functions, then removes out of date
+   * jobs, then cleans up mapping functions and nodes that aren't need.
+   */
+  private def fill = {
+    fillIn
+    if (skipUpToDateJobs)
+      removeUpToDate
+    prune
+  }
+
+  /**
+   * Looks through functions with multiple inputs and outputs and adds mapping functions for single inputs and outputs.
+   */
+  private def fillIn = {
+    // clone since edgeSet is backed by the graph
+    JavaConversions.asSet(jobGraph.edgeSet).clone.foreach {
+      case cmd: CommandLineFunction => {
+        addCollectionOutputs(cmd.outputs)
+        addCollectionInputs(cmd.inputs)
+      }
+      case map: MappingFunction => /* do nothing for mapping functions */
+    }
+  }
+
+  /**
+   * Removes functions that are up to date.
+   */
+  private def removeUpToDate = {
+    var upToDateJobs = Set.empty[CommandLineFunction]
+    loop({
+      case f if (upToDate(f, upToDateJobs)) => {
+        logger.info("Skipping command because it is up to date: %n%s".format(f.commandLine))
+        upToDateJobs += f
+      }
+    })
+    for (upToDateJob <- upToDateJobs)
+      jobGraph.removeEdge(upToDateJob)
+  }
+
+  /**
+   * Returns true if the all previous functions in the graph are up to date, and the function is up to date.
+   */
+  private def upToDate(commandLineFunction: CommandLineFunction, upToDateJobs: Set[CommandLineFunction]) = {
+    this.previousJobs(commandLineFunction).forall(upToDateJobs.contains(_)) && commandLineFunction.upToDate
+  }
+
+  /**
+   *  Removes mapping edges that aren't being used, and nodes that don't belong to anything. 
+   */
+  private def prune = {
     var pruning = true
     while (pruning) {
       pruning = false
@@ -55,27 +174,21 @@ class QGraph extends Logging {
   }
 
   /**
-   * Checks the functions for missing values and the graph for cyclic dependencies and then runs the functions in the graph.
+   * Validates that the functions in the graph have no missing values and that there are no cycles.
+   * @return Number of missing values.
    */
-  def run = {
-    var isReady = true
-    var totalMissingValues = 0
-    for (function <- JavaConversions.asSet(jobGraph.edgeSet)) {
-      function match {
-        case cmd: CommandLineFunction =>
-          val missingFieldValues = cmd.missingFields
-          if (missingFieldValues.size > 0) {
-            totalMissingValues += missingFieldValues.size
-            logger.error("Missing %s values for function: %s".format(missingFieldValues.size, cmd.commandLine))
-            for (missing <- missingFieldValues)
-              logger.error("  " + missing)
-          }
-        case _ =>
-      }
-    }
-
-    if (totalMissingValues > 0) {
-      isReady = false
+  private def validate = {
+    var numMissingValues = 0
+    JavaConversions.asSet(jobGraph.edgeSet).foreach {
+      case cmd: CommandLineFunction =>
+        val missingFieldValues = cmd.missingFields
+        if (missingFieldValues.size > 0) {
+          numMissingValues += missingFieldValues.size
+          logger.error("Missing %s values for function: %s".format(missingFieldValues.size, cmd.commandLine))
+          for (missing <- missingFieldValues)
+            logger.error("  " + missing)
+        }
+      case map: MappingFunction => /* do nothing for mapping functions */
     }
 
     val detector = new CycleDetector(jobGraph)
@@ -83,19 +196,46 @@ class QGraph extends Logging {
       logger.error("Cycles were detected in the graph:")
       for (cycle <- detector.findCycles)
         logger.error("  " + cycle)
-      isReady = false
+      throw new QException("Cycles were detected in the graph.")
     }
 
-    if (isReady || this.dryRun)
-      (new TopologicalJobScheduler(this) with LsfJobRunner).runJobs
+    numMissingValues
+  }
 
-    if (totalMissingValues > 0) {
-      logger.error("Total missing values: " + totalMissingValues)
+  /**
+   * Runs the jobs by traversing the graph.
+   */
+  private def runJobs = {
+    val runner = if (bsubAllJobs) new LsfJobRunner else new ShellJobRunner
+
+    val numJobs = JavaConversions.asSet(jobGraph.edgeSet).filter(_.isInstanceOf[CommandLineFunction]).size
+
+    logger.info("Number of jobs: %s".format(numJobs))
+    if (logger.isTraceEnabled) {
+      val numNodes = jobGraph.vertexSet.size
+      logger.trace("Number of nodes: %s".format(numNodes))
     }
+    var numNodes = 0
 
-    if (isReady && this.dryRun) {
-      logger.info("Dry run completed successfully!")
-      logger.info("Re-run with \"-run\" to execute the functions.")
+    loop(
+      edgeFunction = { case f => runner.run(f, this) },
+      nodeFunction = {
+        case node => {
+          if (logger.isTraceEnabled)
+            logger.trace("Visiting: " + node)
+          numNodes += 1
+        }
+      })
+
+    if (logger.isTraceEnabled)
+      logger.trace("Done walking %s nodes.".format(numNodes))
+
+    if (bsubAllJobs && bsubWaitJobs) {
+      logger.info("Waiting for jobs to complete.")
+      val wait = new DispatchWaitFunction
+      wait.qSettings = this.qSettings
+      wait.freeze
+      runner.run(wait, this)
     }
   }
 
@@ -108,35 +248,29 @@ class QGraph extends Logging {
 
   /**
    * Adds a generic QFunction to the graph.
-   * If the function is scatterable and the jobs request bsub, splits the job into parts and adds the parts instead.
    * @param f Generic QFunction to add to the graph.
    */
   private def addFunction(f: QFunction): Unit = {
     try {
-      f.freeze
-
       f match {
-        case scatterGather: ScatterGatherableFunction if (bsubAllJobs && scatterGather.scatterGatherable) =>
-          val functions = scatterGather.generateFunctions()
-          if (logger.isTraceEnabled)
-            logger.trace("Scattered into %d parts: %s".format(functions.size, functions))
-          functions.foreach(addFunction(_))
-        case _ =>
-          val inputs = QNode(f.inputs)
-          val outputs = QNode(f.outputs)
-          val newSource = jobGraph.addVertex(inputs)
-          val newTarget = jobGraph.addVertex(outputs)
-          val removedEdges = jobGraph.removeAllEdges(inputs, outputs)
-          val added = jobGraph.addEdge(inputs, outputs, f)
-          if (logger.isTraceEnabled) {
-            logger.trace("Mapped from:   " + inputs)
-            logger.trace("Mapped to:     " + outputs)
-            logger.trace("Mapped via:    " + f)
-            logger.trace("Removed edges: " + removedEdges)
-            logger.trace("New source?:   " + newSource)
-            logger.trace("New target?:   " + newTarget)
-            logger.trace("")
-          }
+        case cmd: CommandLineFunction => cmd.qSettings = this.qSettings
+        case map: MappingFunction => /* do nothing for mapping functions */
+      }
+      f.freeze
+      val inputs = QNode(f.inputs)
+      val outputs = QNode(f.outputs)
+      val newSource = jobGraph.addVertex(inputs)
+      val newTarget = jobGraph.addVertex(outputs)
+      val removedEdges = jobGraph.removeAllEdges(inputs, outputs)
+      val added = jobGraph.addEdge(inputs, outputs, f)
+      if (logger.isTraceEnabled) {
+        logger.trace("Mapped from:   " + inputs)
+        logger.trace("Mapped to:     " + outputs)
+        logger.trace("Mapped via:    " + f)
+        logger.trace("Removed edges: " + removedEdges)
+        logger.trace("New source?:   " + newSource)
+        logger.trace("New target?:   " + newTarget)
+        logger.trace("")
       }
     } catch {
       case e: Exception =>
@@ -210,11 +344,27 @@ class QGraph extends Logging {
     (jobGraph.incomingEdgesOf(node).size + jobGraph.outgoingEdgesOf(node).size) == 0
 
   /**
+   * Utility function for looping over the internal graph and running functions.
+   * @param edgeFunction Optional function to run for each edge visited.
+   * @param nodeFunction Optional function to run for each node visited.
+   */
+  private def loop(edgeFunction: PartialFunction[CommandLineFunction, Unit] = null, nodeFunction: PartialFunction[QNode, Unit] = null) = {
+    val iterator = new TopologicalOrderIterator(this.jobGraph)
+    iterator.addTraversalListener(new TraversalListenerAdapter[QNode, QFunction] {
+      override def edgeTraversed(event: EdgeTraversalEvent[QNode, QFunction]) = event.getEdge match {
+        case cmd: CommandLineFunction => if (edgeFunction != null && edgeFunction.isDefinedAt(cmd)) edgeFunction(cmd)
+        case map: MappingFunction => /* do nothing for mapping functions */
+      }
+    })
+    iterator.foreach(node => if (nodeFunction != null && nodeFunction.isDefinedAt(node)) nodeFunction(node))
+  }
+
+  /**
    * Outputs the graph to a .dot file.
    * http://en.wikipedia.org/wiki/DOT_language
    * @param file Path to output the .dot file.
    */
-  def renderToDot(file: java.io.File) = {
+  private def renderToDot(file: java.io.File) = {
     val out = new java.io.FileWriter(file)
 
     // todo -- we need a nice way to visualize the key pieces of information about commands.  Perhaps a

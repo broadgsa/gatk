@@ -20,5 +20,7 @@ class CleanupTempDirsFunction extends CommandLineFunction {
   @Argument(doc="rmdir script or command")
   var rmdirScript = "rm -rf"
 
+  override def upToDate = tempDirectories.forall(!_.exists)
+  
   def commandLine = "%s%s".format(rmdirScript, repeat(" '", tempDirectories, "'"))
 }

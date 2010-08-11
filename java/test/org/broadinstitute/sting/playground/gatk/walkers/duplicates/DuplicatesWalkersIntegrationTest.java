@@ -20,7 +20,7 @@ public class DuplicatesWalkersIntegrationTest extends WalkerTest {
         List<File> result = executeTest(name, spec).getFirst();
     }
 
-    @Test public void testChr110Mb() { testCounter("testChr1-10mb", "-L chr1:1-10,000,000 --quiet", "fa8bfdd0b62a13a543bae90f7c674db7"); }
+    @Test public void testChr110Mb() { testCounter("testChr1-10mb", "-L chr1:1-10,000,000 --quietLocus", "fa8bfdd0b62a13a543bae90f7c674db7"); }
     @Test public void testIntervalVerbose() { testCounter("testIntervalVerbose", "-L chr1:6,527,154-6,528,292", "1ebcc10b85af16805a54391721776657"); }
 
     public void testCombiner(String name, String args, String md51, String md52) {

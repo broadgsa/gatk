@@ -62,7 +62,8 @@ public abstract class ArgumentField {
         return String.format("%n" +
                 "/** %s */%n" +
                 "@%s(fullName=\"%s\", shortName=\"%s\", doc=\"%s\", required=%s, exclusiveOf=\"%s\", validation=\"%s\")%n" +
-                "%svar %s: %s = %s%n",
+                "%svar %s: %s = %s%n" +
+                "%s",
                 getDoc(),
                 getAnnotationIOClass().getSimpleName(),
                 getFullName(),
@@ -71,8 +72,12 @@ public abstract class ArgumentField {
                 isRequired(),
                 getExclusiveOf(),
                 getValidation(),
-                getScatterGatherAnnotation(), getFieldName(), getFieldType(), getDefaultValue());
+                getScatterGatherAnnotation(), getFieldName(), getFieldType(), getDefaultValue(),
+                getDefineAddition());
     }
+
+    /** @return Scala code with defines to append to the argument definition. */
+    protected String getDefineAddition() { return ""; }
 
     /** @return Scala code to append to the command line. */
     public abstract String getCommandLineAddition();
@@ -141,7 +146,7 @@ public abstract class ArgumentField {
      */
     protected static String getFieldName(String rawFieldName) {
         String fieldName = rawFieldName;
-        if (!StringUtils.isAlpha(fieldName.substring(0,1)))
+        if (StringUtils.isNumeric(fieldName.substring(0,1)))
             fieldName = "_" + fieldName;
         if (isReserved(fieldName) || fieldName.contains("-"))
             fieldName = "`" + fieldName + "`";

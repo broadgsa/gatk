@@ -38,15 +38,9 @@ class UnifiedGenotyperExample extends QScript {
       val vf = new VariantFiltration with UnifiedGenotyperArguments
       val ve = new VariantEval with UnifiedGenotyperArguments
 
-      val pr = new PrintReads with UnifiedGenotyperArguments
-      pr.input_file :+= bam
-      pr.outputBamFile = swapExt(bam, "bam", "new.bam")
-      pr.scatterCount = 2
-      pr.setupGatherFunction = { case (f: BamGatherFunction, _) => f.jarFile = new File("/path/to/jar") }
-      add(pr)
-      
       // Make sure the Sting/shell folder is in your path to use mergeText.sh and splitIntervals.sh.
       ug.scatterCount = 3
+      ug.cleanupTempDirectories = true
       ug.input_file :+= bam
       ug.out = swapExt(bam, "bam", "unfiltered.vcf")
 
@@ -56,8 +50,7 @@ class UnifiedGenotyperExample extends QScript {
       ve.rodBind :+= RodBind("vcf", "VCF", vf.out)
       ve.out = swapExt(bam, "bam", "eval")
 
-      //add(ug, vf, ve)
+      add(ug, vf, ve)
     }
-
   }
 }
