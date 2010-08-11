@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Iterator;
@@ -22,11 +22,10 @@ import java.util.NoSuchElementException;
  * A placeholder for an iterator with no data.
  */
 public class NullSAMIterator implements StingSAMIterator {
-    private Reads reads = null;
+    private ReadProperties reads = null;
 
-    public NullSAMIterator( Reads reads ) { this.reads = reads; }
+    public NullSAMIterator( ReadProperties reads ) { this.reads = reads; }
 
-    public Reads getSourceInfo() { return reads; }
     public Iterator<SAMRecord> iterator() { return this; }
     public void close() { /* NO-OP */ }
 

@@ -1,10 +1,12 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 
 import java.util.*;
 
@@ -35,10 +37,7 @@ import net.sf.picard.filter.SamRecordFilter;
  * @version 0.1
  */
 public class ReadShard implements BAMFormatAwareShard {
-    /**
-     * Information about the origins of reads.
-     */
-    private final Reads sourceInfo;
+    private final SAMDataSource readsDataSource;
 
     /**
      * The data backing the next chunks to deliver to the traversal engine.
@@ -51,15 +50,28 @@ public class ReadShard implements BAMFormatAwareShard {
     private final Collection<SAMRecord> reads = new ArrayList<SAMRecord>(ReadShardStrategy.MAX_READS);
 
     /**
+     * Statistics about which reads in this shards were used and which were filtered away.
+     */
+    private final ReadMetrics readMetrics = new ReadMetrics();
+
+    /**
      * The filter to be applied to all reads meeting this criteria.
      */
     private final SamRecordFilter filter;
 
-    public ReadShard(Reads sourceInfo, Map<SAMReaderID,SAMFileSpan> fileSpans, SamRecordFilter filter) {
-        this.sourceInfo = sourceInfo;
+    public ReadShard(SAMDataSource readsDataSource, Map<SAMReaderID,SAMFileSpan> fileSpans, SamRecordFilter filter) {
+        this.readsDataSource = readsDataSource;
         this.fileSpans = fileSpans;
         this.filter = filter;
     }
+
+    /**
+     * Closes the shard, tallying and incorporating read data.
+     */
+    @Override
+    public void close() {
+        readsDataSource.incorporateReadMetrics(readMetrics);
+    }    
 
     /**
      * Get the list of chunks delimiting this shard.
@@ -121,7 +133,7 @@ public class ReadShard implements BAMFormatAwareShard {
      */
     @Override
     public StingSAMIterator iterator() {
-        return StingSAMIteratorAdapter.adapt(sourceInfo,reads.iterator());
+        return StingSAMIteratorAdapter.adapt(reads.iterator());
     }
 
     @Override
@@ -137,7 +149,25 @@ public class ReadShard implements BAMFormatAwareShard {
     @Override
     public ShardType getShardType() {
         return ShardType.READ;
-    }    
+    }
+
+    /**
+     * Gets key read validation and filtering properties.
+     * @return set of read properties associated with this shard.
+     */
+    @Override
+    public ReadProperties getReadProperties() {
+        return readsDataSource.getReadsInfo();
+    }
+
+    /**
+     * Retrieves a storage space of metrics about number of reads included, filtered, etc.
+     * @return Storage space for metrics.
+     */    
+    @Override
+    public ReadMetrics getReadMetrics() {
+        return readMetrics;
+    }
 
     /**
      * String representation of this shard.

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.apache.log4j.Logger;
@@ -42,6 +43,7 @@ import net.sf.picard.filter.SamRecordFilter;
  * Time: 1:53:31 PM
  * To change this template use File | Settings | File Templates.
  */
+@ReadFilters(MalformedReadFilter.class)
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);
 
@@ -133,15 +135,6 @@ public abstract class Walker<MapType, ReduceType> {
 
     public void onTraversalDone(ReduceType result) {
         out.println("[REDUCE RESULT] Traversal result is: " + result);
-    }
-
-
-    /**
-     * Returns a list of SamRecordFilters that *must* be applied to the read stream for the traversal to work
-     * @return a list of SamRecordFilters to apply in order
-     */
-    public List<SamRecordFilter> getMandatoryReadFilters() {
-        return new ArrayList<SamRecordFilter>(); // by default
     }
 
     /**

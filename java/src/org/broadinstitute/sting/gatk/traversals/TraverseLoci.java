@@ -17,17 +17,20 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
  * A simple solution to iterating over all reference positions over a series of genomic locations.
  */
 public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,LocusShardDataProvider> {
-    final private static String LOCI_STRING = "sites";
-
     /**
      * our log, which we want to capture anything from this class
      */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
     @Override
+    protected String getTraversalType() {
+        return "sites";
+    }
+
+    @Override
     public T traverse( LocusWalker<M,T> walker,
                        LocusShardDataProvider dataProvider,
-                       T sum ) {
+                       T sum) {
         logger.debug(String.format("TraverseLoci.traverse: Shard is %s", dataProvider));
 
         LocusView locusView = getLocusView( walker, dataProvider );
@@ -48,7 +51,7 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
                 AlignmentContext locus = locusView.next();
                 GenomeLoc location = locus.getLocation();
 
-                TraversalStatistics.nRecords++;
+                dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
                 if ( locus.hasExtendedEventPileup() ) {
                     // if the alignment context we received holds an "extended" pileup (i.e. pileup of insertions/deletions
@@ -76,7 +79,7 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
                     sum = walker.reduce(x, sum);
                 }
 
-                printProgress(LOCI_STRING, locus.getLocation());
+                printProgress(dataProvider.getShard(),locus.getLocation());
             }
         }
 
@@ -94,15 +97,6 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
         }
 
         return sum;
-    }
-
-    /**
-     * Temporary override of printOnTraversalDone.
-     * 
-     * @param sum Result of the computation.
-     */
-    public void printOnTraversalDone( T sum ) {
-        printOnTraversalDone(LOCI_STRING, sum );
     }
 
     /**

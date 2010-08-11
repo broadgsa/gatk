@@ -3,7 +3,8 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -109,7 +110,7 @@ public class TraverseReadsUnitTest extends BaseTest {
         ref = new IndexedFastaSequenceFile(refFile);
         GenomeLocParser.setupRefContigOrdering(ref);
 
-        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
+        SAMDataSource dataSource = new SAMDataSource(new ReadProperties(bamList));
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                 ref.getSequenceDictionary(),
                 readSize);
@@ -129,7 +130,7 @@ public class TraverseReadsUnitTest extends BaseTest {
             dataProvider.close();
         }
 
-        traversalEngine.printOnTraversalDone("reads", accumulator);
+        traversalEngine.printOnTraversalDone(new ReadMetrics());
         countReadWalker.onTraversalDone(accumulator);
 
         if (!(accumulator instanceof Integer)) {

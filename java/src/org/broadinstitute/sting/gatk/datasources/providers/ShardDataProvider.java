@@ -139,6 +139,9 @@ public abstract class ShardDataProvider {
         // Explicitly purge registered views to ensure that we don't end up with circular references
         // to views, which can in turn hold state.
         registeredViews.clear();
+
+        if(shard != null)
+            shard.close();
     }
 
     @Override

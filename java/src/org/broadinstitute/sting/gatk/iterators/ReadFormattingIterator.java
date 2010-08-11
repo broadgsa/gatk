@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMTag;
 import net.sf.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.apache.log4j.Logger;
 
@@ -33,14 +33,6 @@ public class ReadFormattingIterator implements StingSAMIterator {
      */
     public ReadFormattingIterator(StingSAMIterator wrappedIterator) {
         this.wrappedIterator = wrappedIterator;
-    }
-
-    /**
-     * Get metadata about the reads' sources, etc.
-     * @return Source info about the reads.
-     */
-    public Reads getSourceInfo() {
-        return wrappedIterator.getSourceInfo();
     }
 
     /**

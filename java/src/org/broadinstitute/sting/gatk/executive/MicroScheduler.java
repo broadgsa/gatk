@@ -35,9 +35,9 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
@@ -147,23 +147,15 @@ public abstract class MicroScheduler {
      * @return an iterator over the reads specified in the shard.
      */
     protected StingSAMIterator getReadIterator(Shard shard) {
-        return (reads != null) ? reads.seek(shard) : new NullSAMIterator(new Reads(new ArrayList<File>()));
+        return (!reads.isEmpty()) ? reads.seek(shard) : new NullSAMIterator(new ReadProperties(new ArrayList<File>()));
     }
 
     /**
      * Print summary information for the analysis.
      * @param sum The final reduce output.
      */
-    protected void printOnTraversalDone(Object sum) {
-        // HACK: The microscheduler should be too dumb to know anything about the data
-        //       it's actually processing; it should just funnel anything it receives
-        //       to the traversal engine.
-        // TODO: Implement code to allow the datasources to print summary info of the
-        //       data they've seen.
-        if( reads != null && reads.getViolationHistogram().getViolationCount() > 0 )
-            logger.warn(String.format("%n%s",reads.getViolationHistogram()));
-
-        traversalEngine.printOnTraversalDone(sum);
+    protected void printOnTraversalDone(Object sum, ReadMetrics metrics) {
+        traversalEngine.printOnTraversalDone(metrics);
     }
 
     /**

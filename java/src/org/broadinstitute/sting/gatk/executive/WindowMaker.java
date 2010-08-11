@@ -1,21 +1,14 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.*;
-import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.gatk.DownsampleType;
-import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
-import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
+import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.picard.util.PeekableIterator;
-import net.sf.picard.filter.FilteringIterator;
-import net.sf.picard.filter.SamRecordFilter;
 
 /**
  * Buffer shards of data which may or may not contain multiple loci into
@@ -29,7 +22,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     /**
      * Source information for iteration.
      */
-    private final Reads sourceInfo;
+    private final ReadProperties sourceInfo;
 
     /**
      * Hold the read iterator so that it can be closed later.
@@ -61,14 +54,13 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * the given intervals.
      * @param iterator The data source for this window.
      * @param intervals The set of intervals over which to traverse.
+     * @param discards a filter at that indicates read position relative to some locus?
      */
-    public WindowMaker(StingSAMIterator iterator, List<GenomeLoc> intervals, List<SamRecordFilter> filters, List<LocusIteratorFilter> discards ) {
-        this.sourceInfo = iterator.getSourceInfo();
+    public WindowMaker(Shard shard, StingSAMIterator iterator, List<GenomeLoc> intervals, List<LocusIteratorFilter> discards ) {
+        this.sourceInfo = shard.getReadProperties();
         this.readIterator = iterator;
 
-        LocusIterator locusIterator;
-        Iterator<SAMRecord> wrappedIterator = TraversalEngine.addMandatoryFilteringIterators(iterator, filters);
-        locusIterator = new LocusIteratorByState(wrappedIterator,sourceInfo,discards);
+        LocusIterator locusIterator = new LocusIteratorByState(iterator,sourceInfo,discards);
 
         this.locusOverflowTracker = locusIterator.getLocusOverflowTracker();
 
@@ -108,7 +100,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
             seedNextLocus();
         }
 
-        public Reads getSourceInfo() {
+        public ReadProperties getSourceInfo() {
             return sourceInfo;
         }
 

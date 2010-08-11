@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.*;
 import net.sf.picard.util.PeekableIterator;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.DownsampleType;
@@ -264,7 +264,7 @@ public class LocusIteratorByState extends LocusIterator {
 
     //final boolean DEBUG = false;
     //final boolean DEBUG2 = false && DEBUG;
-    private Reads readInfo;
+    private ReadProperties readInfo;
     private AlignmentContext nextAlignmentContext;
     private List<LocusIteratorFilter> filters = new ArrayList<LocusIteratorFilter>();    
 
@@ -273,11 +273,11 @@ public class LocusIteratorByState extends LocusIterator {
     // constructors and other basic operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation ) {
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation ) {
         this(samIterator, readInformation, NO_FILTERS);
     }
     
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, Reads readInformation, List<LocusIteratorFilter> filters ) {
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, List<LocusIteratorFilter> filters ) {
         // Aggregate all sample names.
         // TODO: Push in header via constructor
         if(GenomeAnalysisEngine.instance != null && GenomeAnalysisEngine.instance.getDataSource() != null) {

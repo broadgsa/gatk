@@ -4,7 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 
 import java.util.Collection;
 
@@ -20,7 +20,7 @@ public class LocusShardDataProvider extends ShardDataProvider {
     /**
      * Information about the source of the read data.
      */
-    private final Reads sourceInfo;
+    private final ReadProperties sourceInfo;
 
     /**
      * The particular locus for which data is provided.  Should be contained within shard.getGenomeLocs().
@@ -37,7 +37,7 @@ public class LocusShardDataProvider extends ShardDataProvider {
      * @param shard The chunk of data over which traversals happen.
      * @param reference A getter for a section of the reference.
      */
-    public LocusShardDataProvider(Shard shard, Reads sourceInfo, GenomeLoc locus, LocusIterator locusIterator, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+    public LocusShardDataProvider(Shard shard, ReadProperties sourceInfo, GenomeLoc locus, LocusIterator locusIterator, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         super(shard,reference,rods);
         this.sourceInfo = sourceInfo;
         this.locus = locus;
@@ -48,7 +48,7 @@ public class LocusShardDataProvider extends ShardDataProvider {
      * Returns information about the source of the reads.
      * @return Info about the source of the reads.
      */
-    public Reads getSourceInfo() {
+    public ReadProperties getSourceInfo() {
         return sourceInfo;
     }
 

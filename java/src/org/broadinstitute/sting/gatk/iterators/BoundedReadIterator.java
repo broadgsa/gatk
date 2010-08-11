@@ -6,7 +6,7 @@ import net.sf.picard.sam.MergingSamRecordIterator;
 
 import java.util.Iterator;
 
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -75,15 +75,6 @@ public class BoundedReadIterator implements StingSAMIterator {
     public void useUnmappedReads(boolean useThem) {
         this.doNotUseThatUnmappedReadPile = useThem;
     }
-
-    /**
-     * Retrieves information about reads sources.
-     * @return Info about the sources of reads.
-     */
-    public Reads getSourceInfo() {
-        return iterator.getSourceInfo();
-    }
-
 
     public SAMFileHeader getHeader() {
         // todo: this is bad, we need an iterface out there for samrecords that supports getting the header,

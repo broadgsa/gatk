@@ -4,19 +4,15 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.util.CloseableIterator;
 
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
-import java.io.File;
 import java.util.*;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
-import org.broadinstitute.sting.gatk.Reads;
 /**
  * User: hanna
  * Date: Jun 11, 2009

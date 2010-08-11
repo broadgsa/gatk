@@ -37,10 +37,10 @@ import org.broadinstitute.sting.gatk.datasources.shards.BAMFormatAwareShard;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShard;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.iterators.*;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
-import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -55,7 +55,12 @@ import java.util.*;
  */
 public class SAMDataSource implements SimpleDataSource {
     /** Backing support for reads. */
-    protected final Reads reads;
+    protected final ReadProperties readProperties;
+
+    /**
+     * Runtime metrics of reads filtered, etc.
+     */
+    protected final ReadMetrics readMetrics;
 
     /**
      * Identifiers for the readers driving this data source.
@@ -92,11 +97,6 @@ public class SAMDataSource implements SimpleDataSource {
     private static Logger logger = Logger.getLogger(SAMDataSource.class);
 
     /**
-     * A histogram of exactly what reads were removed from the input stream and why.
-     */
-    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();
-
-    /**
      * A collection of readers driving the merging process.
      */
     private final SAMResourcePool resourcePool;
@@ -105,13 +105,10 @@ public class SAMDataSource implements SimpleDataSource {
      * Create a new SAM data source given the supplied read metadata.
      * @param reads The read metadata.
      */
-    public SAMDataSource(Reads reads) {
-        this.reads = reads;
+    public SAMDataSource(ReadProperties reads) {
+        this.readProperties = reads;
+        this.readMetrics = new ReadMetrics();
 
-        // check the length
-        if (reads.getReadsFiles().size() < 1) {
-            throw new SimpleDataSourceLoadException("SAMDataSource: you must provide a list of length greater then 0");
-        }
         for (File smFile : reads.getReadsFiles()) {
             if (!smFile.canRead()) {
                 throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + smFile.getName());
@@ -166,7 +163,15 @@ public class SAMDataSource implements SimpleDataSource {
      * information about how they are downsampled, sorted, and filtered
      * @return
      */
-    public Reads getReadsInfo() { return reads; }
+    public ReadProperties getReadsInfo() { return readProperties; }
+
+    /**
+     * Checks to see whether any reads files are supplying data.
+     * @return True if no reads files are supplying data to the traversal; false otherwise.
+     */
+    public boolean isEmpty() {
+        return readProperties.getReadsFiles().size() == 0;
+    }
 
     /**
      * Gets the SAM file associated with a given reader ID.
@@ -263,11 +268,23 @@ public class SAMDataSource implements SimpleDataSource {
     }
 
     /**
-     * Returns a histogram of reads that were screened out, grouped by the nature of the error.
-     * @return Histogram of reads.  Will not be null.
+     * Gets the cumulative read metrics for shards already processed. 
+     * @return Cumulative read metrics.
      */
-    public SAMReadViolationHistogram getViolationHistogram() {
-        return violations;
+    public ReadMetrics getCumulativeReadMetrics() {
+        synchronized(readMetrics) {
+            return readMetrics.clone();
+        }
+    }
+
+    /**
+     * Incorporate the given read metrics into the cumulative read metrics.
+     * @param readMetrics The 'incremental' read metrics, to be incorporated into the cumulative metrics.
+     */
+    public void incorporateReadMetrics(final ReadMetrics readMetrics) {
+        synchronized(this.readMetrics) {
+            this.readMetrics.incrementMetrics(readMetrics);
+        }
     }
 
     /**
@@ -361,18 +378,19 @@ public class SAMDataSource implements SimpleDataSource {
             if(shard.getFileSpans().get(id) == null)
                 continue;
             CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
-            if(reads.getReadBufferSize() != null)
-                iterator = new BufferingReadIterator(iterator,reads.getReadBufferSize());
+            if(readProperties.getReadBufferSize() != null)
+                iterator = new BufferingReadIterator(iterator,readProperties.getReadBufferSize());
             if(shard.getFilter() != null)
                 iterator = new FilteringIterator(iterator,shard.getFilter()); // not a counting iterator because we don't want to show the filtering of reads
             mergingIterator.addIterator(readers.getReader(id),iterator);
         }
 
-        return applyDecoratingIterators(enableVerification,
-                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,mergingIterator)),
-                reads.getDownsamplingMethod().toFraction,
-                reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
-                reads.getSupplementalFilters());
+        return applyDecoratingIterators(shard.getReadMetrics(),
+                enableVerification,
+                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),
+                readProperties.getDownsamplingMethod().toFraction,
+                readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
+                readProperties.getSupplementalFilters());
     }
 
     /**
@@ -389,11 +407,12 @@ public class SAMDataSource implements SimpleDataSource {
         for(SAMReaderID id: getReaderIDs())
             mergingIterator.addIterator(readers.getReader(id),readers.getReader(id).iterator());
 
-        return applyDecoratingIterators(shard instanceof ReadShard,
-                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(reads,mergingIterator)),
-                reads.getDownsamplingMethod().toFraction,
-                reads.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
-                reads.getSupplementalFilters());
+        return applyDecoratingIterators(shard.getReadMetrics(),
+                shard instanceof ReadShard,
+                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),
+                readProperties.getDownsamplingMethod().toFraction,
+                readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
+                readProperties.getSupplementalFilters());
     }
 
     /**
@@ -411,6 +430,7 @@ public class SAMDataSource implements SimpleDataSource {
     /**
      * Filter reads based on user-specified criteria.
      *
+     * @param readMetrics metrics to track when using this iterator.
      * @param enableVerification Verify the order of reads.
      * @param wrappedIterator the raw data source.
      * @param downsamplingFraction whether and how much to downsample the reads themselves (not at a locus).
@@ -418,12 +438,12 @@ public class SAMDataSource implements SimpleDataSource {
      * @param supplementalFilters additional filters to apply to the reads.
      * @return An iterator wrapped with filters reflecting the passed-in parameters.  Will not be null.
      */
-    protected StingSAMIterator applyDecoratingIterators(boolean enableVerification,
+    protected StingSAMIterator applyDecoratingIterators(ReadMetrics readMetrics,
+                                                        boolean enableVerification,
                                                         StingSAMIterator wrappedIterator,
                                                         Double downsamplingFraction,
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<SamRecordFilter> supplementalFilters) {
-        wrappedIterator = new MalformedSAMFilteringIterator(getHeader(),wrappedIterator,violations );
         wrappedIterator = new ReadFormattingIterator(wrappedIterator);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
@@ -436,9 +456,7 @@ public class SAMDataSource implements SimpleDataSource {
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
 
-        for( SamRecordFilter supplementalFilter: supplementalFilters )
-            wrappedIterator = StingSAMIteratorAdapter.adapt(wrappedIterator.getSourceInfo(),
-                    new CountingFilteringIterator(wrappedIterator,supplementalFilter));
+        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
         return wrappedIterator;
     }
@@ -511,7 +529,7 @@ public class SAMDataSource implements SimpleDataSource {
         private synchronized void createNewResource() {
             if(allResources.size() > maxEntries)
                 throw new StingException("Cannot create a new resource pool.  All resources are in use.");
-            SAMReaders readers = new SAMReaders(reads);
+            SAMReaders readers = new SAMReaders(readProperties);
             allResources.add(readers);
             availableResources.add(readers);
         }
@@ -531,7 +549,7 @@ public class SAMDataSource implements SimpleDataSource {
          * Derive a new set of readers from the Reads metadata.
          * @param sourceInfo Metadata for the reads to load.
          */
-        public SAMReaders(Reads sourceInfo) {
+        public SAMReaders(ReadProperties sourceInfo) {
             for(File readsFile: sourceInfo.getReadsFiles()) {
                 SAMFileReader reader = new SAMFileReader(readsFile);
                 reader.enableFileSource(true);
@@ -615,10 +633,6 @@ public class SAMDataSource implements SimpleDataSource {
          * The iterator to wrap.
          */
         private final StingSAMIterator wrappedIterator;
-
-        public Reads getSourceInfo() {
-            return wrappedIterator.getSourceInfo();
-        }
 
         public ReleasingIterator(SAMReaders resource, StingSAMIterator wrapped) {
             this.resource = resource;

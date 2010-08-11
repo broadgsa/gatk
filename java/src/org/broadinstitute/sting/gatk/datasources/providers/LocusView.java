@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
@@ -36,7 +36,7 @@ public abstract class LocusView extends LocusIterator implements View {
     /**
      * Source info for this view.  Informs the class about downsampling requirements.
      */
-    private Reads sourceInfo;
+    private ReadProperties sourceInfo;
 
     /**
      * The actual locus context iterator.

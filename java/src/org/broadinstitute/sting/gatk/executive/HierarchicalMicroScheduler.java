@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
@@ -192,7 +193,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         outputTracker.bypassThreadLocalStorage(true);
         try {
             walker.onTraversalDone(result);
-            printOnTraversalDone(result);
+            printOnTraversalDone(result,engine.getCumulativeMetrics());
         }
         finally {
             outputTracker.bypassThreadLocalStorage(false);

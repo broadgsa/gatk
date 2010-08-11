@@ -138,7 +138,7 @@ public class ReadShardStrategy implements ShardStrategy {
 
                 if(selectedReaders.size() > 0) {
                     filter = new ReadOverlapFilter(currentFilePointer.locations);
-                    BAMFormatAwareShard shard = new ReadShard(dataSource.getReadsInfo(),selectedReaders,filter);
+                    BAMFormatAwareShard shard = new ReadShard(dataSource,selectedReaders,filter);
                     dataSource.fillShard(shard);
 
                     if(!shard.isBufferEmpty()) {
@@ -152,7 +152,7 @@ public class ReadShardStrategy implements ShardStrategy {
             }
         }
         else {
-            BAMFormatAwareShard shard = new ReadShard(dataSource.getReadsInfo(),position,filter);
+            BAMFormatAwareShard shard = new ReadShard(dataSource,position,filter);
             dataSource.fillShard(shard);
             nextShard = !shard.isBufferEmpty() ? shard : null;
         }

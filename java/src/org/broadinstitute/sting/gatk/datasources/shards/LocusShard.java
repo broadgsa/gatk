@@ -3,7 +3,10 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.sting.gatk.ReadProperties;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,11 @@ import net.sf.picard.filter.SamRecordFilter;
  */
 public class LocusShard implements BAMFormatAwareShard {
     /**
+     * Source for read data.
+     */
+    private SAMDataSource dataSource;
+
+    /**
      * A list of the chunks associated with this shard.
      */
     private final Map<SAMReaderID,SAMFileSpan> fileSpans;
@@ -28,13 +36,27 @@ public class LocusShard implements BAMFormatAwareShard {
     private final List<GenomeLoc> loci;
 
     /**
+     * Statistics about which reads in this shards were used and which were filtered away.
+     */
+    private final ReadMetrics readMetrics = new ReadMetrics();
+
+    /**
      * Create a new locus shard, divided by index.
      * @param intervals List of intervals to process.
      * @param fileSpans File spans associated with that interval.
      */
-    public LocusShard(List<GenomeLoc> intervals, Map<SAMReaderID,SAMFileSpan> fileSpans) {
+    public LocusShard(SAMDataSource dataSource, List<GenomeLoc> intervals, Map<SAMReaderID,SAMFileSpan> fileSpans) {
+        this.dataSource = dataSource;
         this.loci = intervals;    
         this.fileSpans = fileSpans;
+    }
+
+    /**
+     * Closes the shard, tallying and incorporating read data.
+     */
+    @Override
+    public void close() {
+        dataSource.incorporateReadMetrics(readMetrics);
     }
 
     /**
@@ -102,6 +124,24 @@ public class LocusShard implements BAMFormatAwareShard {
     @Override
     public ShardType getShardType() {
         return ShardType.LOCUS;
+    }
+
+    /**
+     * Gets key read validation and filtering properties.
+     * @return set of read properties associated with this shard.
+     */
+    @Override
+    public ReadProperties getReadProperties() {
+        return dataSource.getReadsInfo();
+    }
+
+    /**
+     * Retrieves a storage space of metrics about number of reads included, filtered, etc.
+     * @return Storage space for metrics.
+     */    
+    @Override
+    public ReadMetrics getReadMetrics() {
+        return readMetrics;
     }
 
     /**

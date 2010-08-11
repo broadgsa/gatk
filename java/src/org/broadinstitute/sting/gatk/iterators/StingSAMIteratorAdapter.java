@@ -5,7 +5,7 @@ import net.sf.samtools.util.CloseableIterator;
 
 import java.util.Iterator;
 
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -36,12 +36,12 @@ import org.broadinstitute.sting.utils.StingException;
  */
 public class StingSAMIteratorAdapter {  
 
-    public static StingSAMIterator adapt(Reads sourceInfo, Iterator<SAMRecord> iter) {
-        return new PrivateStringSAMIterator(sourceInfo, iter);
+    public static StingSAMIterator adapt(Iterator<SAMRecord> iter) {
+        return new PrivateStringSAMIterator(iter);
     }
 
-    public static StingSAMIterator adapt(Reads sourceInfo, CloseableIterator<SAMRecord> iter) {
-        return new PrivateStringSAMCloseableIterator(sourceInfo, iter);
+    public static StingSAMIterator adapt(CloseableIterator<SAMRecord> iter) {
+        return new PrivateStringSAMCloseableIterator(iter);
     }
 
 }
@@ -52,18 +52,10 @@ public class StingSAMIteratorAdapter {
  * methods that implement the iterable<> interface and the close() method from CloseableIterator
  */
 class PrivateStringSAMIterator implements StingSAMIterator {
-    private Reads sourceInfo = null;
     private Iterator<SAMRecord> iter = null;
 
-    PrivateStringSAMIterator(Reads sourceInfo, Iterator<SAMRecord> iter) {
-        this.sourceInfo = sourceInfo;
+    PrivateStringSAMIterator(Iterator<SAMRecord> iter) {
         this.iter = iter;
-    }
-
-    public Reads getSourceInfo() {
-        if( sourceInfo == null )
-            throw new StingException("Unable to provide source info for the reads.  Please upgrade to the new data sharding framework.");
-        return sourceInfo;
     }
 
     public void close() {
@@ -93,19 +85,11 @@ class PrivateStringSAMIterator implements StingSAMIterator {
  * methods that implement the iterable<> interface.
  */
 class PrivateStringSAMCloseableIterator implements StingSAMIterator {
-    private Reads sourceInfo = null;
     private CloseableIterator<SAMRecord> iter = null;
 
-    PrivateStringSAMCloseableIterator(Reads sourceInfo, CloseableIterator<SAMRecord> iter) {
-        this.sourceInfo = sourceInfo;
+    PrivateStringSAMCloseableIterator(CloseableIterator<SAMRecord> iter) {
         this.iter = iter;
     }
-
-    public Reads getSourceInfo() {
-        if( sourceInfo == null )
-            throw new StingException("Unable to provide source info for the reads.  Please upgrade to the new data sharding framework.");
-        return sourceInfo;
-    }    
 
     public void close() {
         iter.close();

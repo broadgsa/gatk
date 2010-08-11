@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 /**
  *
  * User: aaron
@@ -29,10 +29,4 @@ import org.broadinstitute.sting.gatk.Reads;
  * This is the standard interface for all iterators in the Sting package that iterate over SAMRecords
  */
 public interface StingSAMIterator extends CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
-    /**
-     * Gets source information for the reads.  Contains information about the original reads
-     * files, plus information about downsampling, etc.
-     * @return
-     */
-    public Reads getSourceInfo();
 }

@@ -25,7 +25,7 @@ import java.util.Collection;
  * A data structure containing information about the reads data sources as well as
  * information about how they should be downsampled, sorted, and filtered.
  */
-public class Reads {
+public class ReadProperties {
     private List<File> readsFiles = null;
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
     private Integer readBufferSize = null;
@@ -115,7 +115,7 @@ public class Reads {
      * Simple constructor for unit testing.
      * @param readsFiles List of reads files to open.
      */
-    public Reads( List<File> readsFiles ) {
+    public ReadProperties( List<File> readsFiles ) {
         this.readsFiles = readsFiles;
         this.downsamplingMethod = new DownsamplingMethod(DownsampleType.NONE,null,null);
         this.supplementalFilters = new ArrayList<SamRecordFilter>();
@@ -138,7 +138,7 @@ public class Reads {
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      */
-    Reads( List<File> samFiles,
+    ReadProperties( List<File> samFiles,
            SAMFileReader.ValidationStringency strictness,
            Integer readBufferSize,
            DownsamplingMethod downsamplingMethod,

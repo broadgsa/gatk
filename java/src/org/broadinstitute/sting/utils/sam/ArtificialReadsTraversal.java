@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -71,6 +70,11 @@ public class ArtificialReadsTraversal<M,T> extends TraversalEngine<M,T,Walker<M,
         readOrder = readOrdering;
     }
 
+    @Override
+    protected String getTraversalType() {
+        return "reads";
+    }
+
     /**
      * Traverse by reads, given the data and the walker
      *
@@ -81,8 +85,8 @@ public class ArtificialReadsTraversal<M,T> extends TraversalEngine<M,T,Walker<M,
      * @return the reduce variable of the read walker
      */
     public T traverse( Walker<M, T> walker,
-                              ShardDataProvider dataProvider,
-                              T sum ) {
+                       ShardDataProvider dataProvider,
+                       T sum ) {
 
         if (!( walker instanceof ReadWalker ))
             throw new IllegalArgumentException("Walker isn't a read walker!");
@@ -99,35 +103,15 @@ public class ArtificialReadsTraversal<M,T> extends TraversalEngine<M,T,Walker<M,
         // while we still have more reads
         for (SAMRecord read : iter) {
 
-            // our alignment context
-            AlignmentContext alignment = null;
-
             // an array of characters that represent the reference
             ReferenceContext refSeq = null;
-
-            // update the number of reads we've seen
-            TraversalStatistics.nRecords++;
 
             final boolean keepMeP = readWalker.filter(refSeq, read);
             if (keepMeP) {
                 M x = readWalker.map(refSeq, read, null);  // TODO: fix me at some point, it would be nice to fake out ROD data too
                 sum = readWalker.reduce(x, sum);
             }
-
-            if (alignment != null) { printProgress("reads", alignment.getLocation()); }
         }
         return sum;
     }
-
-    /**
-     * Temporary override of printOnTraversalDone.
-     * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
-     *
-     * @param sum Result of the computation.
-     */
-    public void printOnTraversalDone( T sum ) {
-        printOnTraversalDone("reads", sum);
-    }
-
-
 }

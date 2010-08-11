@@ -12,12 +12,9 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 
 import java.util.Collection;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
@@ -55,7 +52,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             // New experimental code for managing locus intervals.
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 LocusWalker lWalker = (LocusWalker)walker;
-                WindowMaker windowMaker = new WindowMaker(getReadIterator(shard), shard.getGenomeLocs(), walker.getMandatoryReadFilters(), lWalker.getDiscards());
+                WindowMaker windowMaker = new WindowMaker(shard, getReadIterator(shard), shard.getGenomeLocs(), lWalker.getDiscards());
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
@@ -74,7 +71,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         Object result = accumulator.finishTraversal();
 
-        printOnTraversalDone(result);
+        printOnTraversalDone(result,engine.getCumulativeMetrics());
 
         outputTracker.close();
 

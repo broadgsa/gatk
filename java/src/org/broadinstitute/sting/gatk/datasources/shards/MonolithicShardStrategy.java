@@ -2,6 +2,8 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -25,8 +27,8 @@ public class MonolithicShardStrategy implements ShardStrategy {
      * Create a new shard strategy for shards of the given type.
      * @param shardType The shard type.
      */
-    public MonolithicShardStrategy(final Shard.ShardType shardType, final List<GenomeLoc> region) {
-        shard = new MonolithicShard(shardType,region);
+    public MonolithicShardStrategy(final SAMDataSource readsDataSource, final Shard.ShardType shardType, final List<GenomeLoc> region) {
+        shard = new MonolithicShard(readsDataSource,shardType,region);
     }
 
     /**

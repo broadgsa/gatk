@@ -2,18 +2,15 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
+import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
 
 import java.util.Map;
-import java.util.List;
-import java.util.Iterator;
-
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
 
 public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
     // Time in milliseconds since we initialized this engine
@@ -28,6 +25,12 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
     /**
+     * Gets the named traversal type associated with the given traversal.
+     * @return A user-friendly name for the given traversal type.
+     */
+    protected abstract String getTraversalType();
+
+    /**
      * @param curTime (current runtime, in millisecs)
      *
      * @return true if the maximum interval (in millisecs) has passed since the last printing
@@ -39,23 +42,27 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     /**
      * Forward request to printProgress
      *
-     * @param type the TRAVERSAL_TYPE of the traversal
+     * @param shard the given shard currently being processed.
      * @param loc  the location
      */
-    public void printProgress(final String type, GenomeLoc loc) {
-        printProgress(false, type, loc);
+    public void printProgress(Shard shard,GenomeLoc loc) {
+        // A bypass is inserted here for unit testing.
+        // TODO: print metrics outside of the traversal engine to more easily handle cumulative stats.
+        ReadMetrics cumulativeMetrics = GenomeAnalysisEngine.instance != null ? GenomeAnalysisEngine.instance.getCumulativeMetrics().clone() : new ReadMetrics();
+        cumulativeMetrics.incrementMetrics(shard.getReadMetrics());
+        printProgress(loc, cumulativeMetrics, false);
     }
 
     /**
      * Utility routine that prints out process information (including timing) every N records or
      * every M seconds, for N and M set in global variables.
      *
-     * @param mustPrint If true, will print out info, regardless of nRecords or time interval
-     * @param type      String to print out describing our atomic traversal type ("read", "locus", etc)
      * @param loc       Current location
+     * @param metrics   Metrics of reads filtered in/out.
+     * @param mustPrint If true, will print out info, regardless of nRecords or time interval
      */
-    private void printProgress(boolean mustPrint, final String type, GenomeLoc loc) {
-        final long nRecords = TraversalStatistics.nRecords;
+    private void printProgress(GenomeLoc loc, ReadMetrics metrics, boolean mustPrint) {
+        final long nRecords = metrics.getNumIterations();
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
         //System.out.printf("Cur = %d, last print = %d, elapsed=%.2f, nRecords=%d, met=%b%n", curTime, lastProgressPrintTime, elapsed, nRecords, maxElapsedIntervalForPrinting(curTime));
@@ -64,44 +71,35 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
             this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
             if (loc != null)
-                logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, type, elapsed, secsPer1MReads, type));
+                logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, getTraversalType(), elapsed, secsPer1MReads, getTraversalType()));
             else
-                logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, type, elapsed, secsPer1MReads, type));
+                logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, getTraversalType(), elapsed, secsPer1MReads, getTraversalType()));
         }   
     }
 
     /**
-     * A passthrough method so that subclasses can report which types of traversals they're using.
-     *
-     * @param sum Result of the computation.
-     */
-    public abstract void printOnTraversalDone(T sum);
-
-    /**
      * Called after a traversal to print out information about the traversal process
-     *
-     * @param type describing this type of traversal
-     * @param sum  The reduce result of the traversal
      */
-    protected void printOnTraversalDone(final String type, T sum) {
-        printProgress(true, type, null);
+    public void printOnTraversalDone(ReadMetrics cumulativeMetrics) {
+        printProgress(null, cumulativeMetrics, true);
+
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
 
         // count up the number of skipped reads by summing over all filters
         long nSkippedReads = 0L;
-        for ( long counts : TraversalStatistics.counter.values() )
-            nSkippedReads += counts;
+        for ( Map.Entry<Class, Long> countsByFilter: cumulativeMetrics.getCountsByFilter().entrySet())
+            nSkippedReads += countsByFilter.getValue();
 
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours%n", elapsed, elapsed / 60, elapsed / 3600));
         logger.info(String.format("%d reads were filtered out during traversal out of %d total (%.2f%%)",
                 nSkippedReads,
-                TraversalStatistics.nReads,
-                100.0 * MathUtils.ratio(nSkippedReads, TraversalStatistics.nReads)));
-        for ( Map.Entry<Class, Long> filterCounts : TraversalStatistics.counter.entrySet() ) {
+                cumulativeMetrics.getNumReadsSeen(),
+                100.0 * MathUtils.ratio(nSkippedReads,cumulativeMetrics.getNumReadsSeen())));
+        for ( Map.Entry<Class, Long> filterCounts : cumulativeMetrics.getCountsByFilter().entrySet() ) {
             long count = filterCounts.getValue();
             logger.info(String.format("  -> %d reads (%.2f%% of total) failing %s",
-                    count, 100.0 * MathUtils.ratio(count, TraversalStatistics.nReads), Utils.getClassName(filterCounts.getKey())));
+                    count, 100.0 * MathUtils.ratio(count,cumulativeMetrics.getNumReadsSeen()), Utils.getClassName(filterCounts.getKey())));
         }
     }
 
@@ -122,15 +120,4 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     public abstract T traverse(WalkerType walker,
                                ProviderType dataProvider,
                                T sum);
-
-    public static Iterator<SAMRecord> addMandatoryFilteringIterators(Iterator<SAMRecord> iter, List<SamRecordFilter> filters ) {
-        for( SamRecordFilter filter : filters ) {
-            //logger.debug("Adding filter " + filter.getClass());
-            iter = new CountingFilteringIterator(iter,filter);
-        }
-
-        return new CountingFilteringIterator(iter); // special case to count all reads
-    }
-
-
 }

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 
@@ -103,11 +103,6 @@ public class ArtificialSAMIterator implements StingSAMIterator {
         this.currentChromo = 0;
         this.unmappedReadCount = unmappedReadCount;
         reset();
-    }
-
-
-    public Reads getSourceInfo() {
-        throw new UnsupportedOperationException("We don't support this");
     }
 
     public void close() {

@@ -27,43 +27,36 @@ import net.sf.samtools.util.CloserUtil;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Collection;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.filter.SamRecordFilter;
-import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 
 /**
  * Filtering Iterator which takes a filter and an iterator and iterates
  * through only those records which are not rejected by the filter.
- *
- * Just a copy of a unmodifiable FilteringIterator from Picard
- *
  * @author Mark DePristo
  */
 public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
+    private final ReadMetrics runtimeMetrics;
     private final Iterator<SAMRecord> iterator;
-    private final SamRecordFilter filter;
+    private final Collection<SamRecordFilter> filters;
     private SAMRecord next = null;
 
     /**
      * Constructor
      *
+     * @param metrics   metrics to accumulate on the nature of filtered reads.
      * @param iterator  the backing iterator
-     * @param filter    the filter (which may be a FilterAggregator)
+     * @param filters    the filter (which may be a FilterAggregator)
      */
-    public CountingFilteringIterator(Iterator<SAMRecord> iterator, SamRecordFilter filter) {
+    public CountingFilteringIterator(ReadMetrics metrics, Iterator<SAMRecord> iterator, Collection<SamRecordFilter> filters) {
+        this.runtimeMetrics = metrics;
         this.iterator = iterator;
-        this.filter = filter;
+        this.filters = filters;
         next = getNextRecord();
-    }
-
-    /**
-     * Special case to count passing records
-     * @param iterator
-     */
-    public CountingFilteringIterator(Iterator<SAMRecord> iterator) {
-        this(iterator, null);        
     }
 
     /**
@@ -111,15 +104,18 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
     private SAMRecord getNextRecord() {
         while (iterator.hasNext()) {
             SAMRecord record = iterator.next();
+            runtimeMetrics.incrementNumReadsSeen();
 
-            if ( filter == null ) {
-                TraversalStatistics.nReads++;
-                return record;
-            } else if (!filter.filterOut(record)) {
-                return record;
-            } else {
-                TraversalStatistics.incrementFilter(filter);
+            boolean filtered = false;
+            for(SamRecordFilter filter: filters) {
+                if(filter.filterOut(record)) {
+                    runtimeMetrics.incrementFilter(filter);
+                    filtered = true;
+                    break;
+                }
             }
+
+            if(!filtered) return record;
         }
 
         return null;

@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.concurrent.Callable;
@@ -48,7 +47,7 @@ public class ShardTraverser implements Callable {
                            TraversalEngine traversalEngine,
                            Walker walker,
                            Shard shard,
-                           ThreadLocalOutputTracker outputTracker ) {
+                           ThreadLocalOutputTracker outputTracker) {
         this.microScheduler = microScheduler;
         this.walker = walker;
         this.traversalEngine = traversalEngine;
@@ -62,7 +61,7 @@ public class ShardTraverser implements Callable {
 
             Object accumulator = walker.reduceInit();
             LocusWalker lWalker = (LocusWalker)walker;
-            WindowMaker windowMaker = new WindowMaker(microScheduler.getReadIterator(shard),shard.getGenomeLocs(),walker.getMandatoryReadFilters(),lWalker.getDiscards());
+            WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getReadIterator(shard),shard.getGenomeLocs(),lWalker.getDiscards());
             ShardDataProvider dataProvider = null;
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {

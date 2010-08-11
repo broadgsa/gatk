@@ -4,7 +4,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 
 import java.util.Iterator;
 
@@ -23,15 +23,6 @@ public class VerifyingSamIterator implements StingSAMIterator {
     public VerifyingSamIterator(StingSAMIterator it) {
         this.it = it;
     }
-
-    /**
-     * Retrieves information about reads sources.
-     * @return Info about the sources of reads.
-     */
-    public Reads getSourceInfo() {
-        return it.getSourceInfo();
-    }
-
 
     public boolean hasNext() { return this.it.hasNext(); }
     public SAMRecord next() {

@@ -5,7 +5,7 @@ import net.sf.samtools.SAMRecord;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 
 
 public class DownsampleIterator implements StingSAMIterator {
@@ -21,15 +21,6 @@ public class DownsampleIterator implements StingSAMIterator {
         cutoff = (int)(fraction * 10000);
         next = getNextRecord();
     }
-
-    /**
-     * Retrieves information about reads sources.
-     * @return Info about the sources of reads.
-     */
-    public Reads getSourceInfo() {
-        return it.getSourceInfo();
-    }
-
 
     public boolean hasNext() {
         return next != null;

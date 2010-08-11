@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.sting.gatk.ReadProperties;
 
 import java.io.Serializable;
 import java.util.List;
@@ -42,4 +44,21 @@ public interface Shard extends Serializable {
      * @return ShardType, indicating the type
      */
     public ShardType getShardType();
+
+    /**
+     * Does any releasing / aggregation required when the shard is through being processed.
+     */
+    public void close();
+
+    /**
+     * Gets required configuration for validating and filtering reads.
+     * @return read configuration properties.
+     */
+    public ReadProperties getReadProperties();
+
+    /**
+     * Gets the runtime metrics associated with this shard.
+     * @return metrics and read counts.
+     */
+    public ReadMetrics getReadMetrics();
 }

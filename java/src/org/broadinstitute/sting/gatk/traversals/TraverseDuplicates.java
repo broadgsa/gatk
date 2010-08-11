@@ -25,9 +25,7 @@
 
 package org.broadinstitute.sting.gatk.traversals;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
@@ -52,11 +50,13 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseDuplicates.class);
 
-    /** descriptor of the type */
-    private static final String DUPS_STRING = "dups";
-
     /** Turn this to true to enable logger.debug output */
     private final boolean DEBUG = false;
+
+    @Override
+    protected String getTraversalType() {
+        return "dups";
+    }
 
     private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter) {
         GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
@@ -165,8 +165,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
     public T traverse(DuplicateWalker<M, T> walker,
                       ReadShardDataProvider dataProvider,
                       T sum) {
-        Iterator<SAMRecord> filterIter = addMandatoryFilteringIterators(new ReadView(dataProvider).iterator(), walker.getMandatoryReadFilters());
-        PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(filterIter);
+        PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(new ReadView(dataProvider).iterator());
 
         /**
          * while we still have more reads:
@@ -186,7 +185,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
             AlignmentContext locus = new AlignmentContext(site, new ReadBackedPileupImpl(site));
 
             // update the number of duplicate sets we've seen
-            TraversalStatistics.nRecords++;
+            dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
             // actually call filter and map, accumulating sum
             final boolean keepMeP = walker.filter(site, locus, readSets);
@@ -195,18 +194,9 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
                 sum = walker.reduce(x, sum);
             }
 
-            printProgress(DUPS_STRING, site);
+            printProgress(dataProvider.getShard(),site);
         }
 
         return sum;
-    }
-
-    /**
-     * Temporary override of printOnTraversalDone.
-     *
-     * @param sum Result of the computation.
-     */
-    public void printOnTraversalDone(T sum) {
-        printOnTraversalDone(DUPS_STRING, sum);
     }
 }

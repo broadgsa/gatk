@@ -523,7 +523,7 @@ public class GenomeAnalysisEngine {
      * @param argCollection The collection of arguments passed to the engine.
      * @return The reads object providing reads source info.
      */
-    private Reads extractSourceInfo(Walker walker, Collection<SamRecordFilter> filters, GATKArgumentCollection argCollection) {
+    private ReadProperties extractSourceInfo(Walker walker, Collection<SamRecordFilter> filters, GATKArgumentCollection argCollection) {
 
         DownsamplingMethod method = null;
         if(argCollection.downsamplingType != DownsampleType.NONE)
@@ -533,7 +533,7 @@ public class GenomeAnalysisEngine {
         else
             method = new DownsamplingMethod(DownsampleType.NONE,null,null);
 
-        return new Reads(argCollection.samFiles,
+        return new ReadProperties(argCollection.samFiles,
                 argCollection.strictnessLevel,
                 argCollection.readBufferSize,
                 method,
@@ -612,7 +612,7 @@ public class GenomeAnalysisEngine {
      * @param tracks    a collection of the reference ordered data tracks
      */
     private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<RMDTrack> tracks) {
-        if ((reads == null && (tracks == null || tracks.isEmpty())) || reference == null )
+        if ((reads.isEmpty() && (tracks == null || tracks.isEmpty())) || reference == null )
             return;
 
         // Compile a set of sequence names that exist in the reference file.
@@ -623,7 +623,7 @@ public class GenomeAnalysisEngine {
             referenceSequenceNames.add(dictionaryEntry.getSequenceName());
 
 
-        if (reads != null) {
+        if (!reads.isEmpty()) {
             // Compile a set of sequence names that exist in the BAM files.
             SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
 
@@ -752,7 +752,7 @@ public class GenomeAnalysisEngine {
                     region.add(GenomeLocParser.createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
             }
 
-            return new MonolithicShardStrategy(shardType,region);
+            return new MonolithicShardStrategy(readsDataSource,shardType,region);
         }
 
         ShardStrategy shardStrategy = null;
@@ -764,7 +764,7 @@ public class GenomeAnalysisEngine {
             if (walker instanceof RodWalker) SHARD_SIZE *= 1000;
 
             if (intervals != null && !intervals.isEmpty()) {
-                if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
+                if(!readsDataSource.isEmpty() && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     Utils.scareUser("Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file.");
 
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
@@ -820,11 +820,7 @@ public class GenomeAnalysisEngine {
      * @param reads the read source information
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource createReadsDataSource(Reads reads) {
-        // By reference traversals are happy with no reads.  Make sure that case is handled.
-        if (reads.getReadsFiles().size() == 0)
-            return null;
-
+    private SAMDataSource createReadsDataSource(ReadProperties reads) {
         return new SAMDataSource(reads);
     }
 
@@ -933,5 +929,13 @@ public class GenomeAnalysisEngine {
      */
     public List<ReferenceOrderedDataSource> getRodDataSources() {
         return this.rodDataSources;
+    }
+
+    /**
+     * Gets cumulative metrics about the entire run to this point.
+     * @return cumulative metrics about the entire run.
+     */
+    public ReadMetrics getCumulativeMetrics() {
+        return readsDataSource.getCumulativeReadMetrics();
     }
 }

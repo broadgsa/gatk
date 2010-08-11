@@ -7,7 +7,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -100,15 +100,6 @@ class testIterator implements StingSAMIterator {
     SAMFileHeader header;
     testIterator() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1,1,2000);
-    }
-    /**
-     * Gets source information for the reads.  Contains information about the original reads
-     * files, plus information about downsampling, etc.
-     *
-     * @return
-     */
-    public Reads getSourceInfo() {
-        return null;
     }
 
     public void close() {

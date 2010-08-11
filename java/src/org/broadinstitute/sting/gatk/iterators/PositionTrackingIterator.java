@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.iterators;
 
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 
@@ -36,11 +36,6 @@ import net.sf.samtools.util.CloseableIterator;
  */
 public class PositionTrackingIterator implements StingSAMIterator {
     /**
-     * Source information about the reads.
-     */
-    private Reads sourceInfo;
-
-    /**
      * The iterator being tracked.
      */
     private CloseableIterator<SAMRecord> iterator;
@@ -49,13 +44,6 @@ public class PositionTrackingIterator implements StingSAMIterator {
      * Current position within the tracked iterator.
      */
     private long position;
-
-    /**
-     * {@inheritDoc}
-     */
-    public Reads getSourceInfo() {
-        return sourceInfo;
-    }
 
     /**
      * Retrieves the current position of the iterator.  The 'current position' of the iterator is defined as
@@ -69,12 +57,10 @@ public class PositionTrackingIterator implements StingSAMIterator {
     /**
      * Create a new iterator wrapping the given position, assuming that the reader is <code>position</code> reads
      * into the sequence.
-     * @param sourceInfo Information about where these reads came from.
      * @param iterator Iterator to wraps.
      * @param position Non-negative position where the iterator currently sits.
      */
-    public PositionTrackingIterator( Reads sourceInfo, CloseableIterator<SAMRecord> iterator, long position ) {
-        this.sourceInfo = sourceInfo;
+    public PositionTrackingIterator(CloseableIterator<SAMRecord> iterator, long position ) {
         this.iterator = iterator;
         this.position = position;
     }

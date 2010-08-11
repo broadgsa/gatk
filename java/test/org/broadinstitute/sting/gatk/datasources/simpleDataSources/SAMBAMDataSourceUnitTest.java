@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import static junit.framework.Assert.fail;
-import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
@@ -9,7 +8,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.junit.After;
@@ -85,7 +84,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         // setup the data
         fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
-        Reads reads = new Reads(fl);
+        ReadProperties reads = new ReadProperties(fl);
 
         // the sharding strat.
         SAMDataSource data = new SAMDataSource(reads);
@@ -130,7 +129,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         // setup the test files
         fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
-        Reads reads = new Reads(fl);                   
+        ReadProperties reads = new ReadProperties(fl);
 
         // the sharding strat.
         SAMDataSource data = new SAMDataSource(reads);
@@ -172,7 +171,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         fl.clear();
         fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
         fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
-        reads = new Reads(fl);
+        reads = new ReadProperties(fl);
 
         count = 0;
         // the sharding strat.

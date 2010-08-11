@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
@@ -49,8 +50,10 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseReads.class);
 
-    /** descriptor of the type */
-    private static final String READS_STRING = "reads";
+    @Override
+    protected String getTraversalType() {
+        return "reads";
+    }
 
     /**
      * Traverse by reads, given the data and the walker
@@ -87,8 +90,9 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
                 refContext = reference.getReferenceContext(read);
 
             // update the number of reads we've seen
-            TraversalStatistics.nRecords++;
-            TraversalStatistics.nReads++;
+            ReadMetrics readMetrics = dataProvider.getShard().getReadMetrics();
+            readMetrics.incrementNumIterations();
+            readMetrics.incrementNumReadsSeen();
 
             // if the read is mapped, create a metadata tracker
             ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
@@ -99,20 +103,9 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
                 sum = walker.reduce(x, sum);
             }
 
-            printProgress(READS_STRING,
-                          (read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) ?
-                                  null :
-                                  GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),read.getAlignmentStart()));
+            GenomeLoc locus = read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ? null : GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),read.getAlignmentStart());
+            printProgress(dataProvider.getShard(),locus);
         }
         return sum;
-    }
-
-    /**
-     * Temporary override of printOnTraversalDone.
-     * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
-     * @param sum Result of the computation.
-     */
-    public void printOnTraversalDone( T sum ) {
-        printOnTraversalDone(READS_STRING, sum );
     }
 }

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2010, The Broad Institute
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +12,6 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,77 +22,84 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.sting.gatk.filters;
 
+import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 /**
- * Validates reads against a specific set of criteria.  If it finds a
- * read that fails to meet the given criteria, it will throw an exception.
- * The caller can decide whether to ignore the error, hide the read
- * from the user, or blow up in a spectacular ball of fire.
+ * Filter out malformed reads.
  *
- * @author hanna
+ * @author mhanna
  * @version 0.1
  */
-public class SAMReadValidator {
-    /**
-     * Validate the sam read against a list of criteria that are known to cause failures in the GATK.
-     * Throw an exception if the read fails.
-     * @param read the read to validate.  Must not be null.
-     */
-    public static void validate( SAMFileHeader header, SAMRecord read ) throws SAMReadValidationException {
-        checkInvalidAlignmentStart(read);
-        checkInvalidAlignmentEnd(read);
-        checkAlignmentDisagreesWithHeader(header,read);
-        checkCigarDisagreesWithAlignment(read);
+public class MalformedReadFilter implements SamRecordFilter {
+    public boolean filterOut(SAMRecord read) {
+        return !checkInvalidAlignmentStart(read) ||
+                !checkInvalidAlignmentEnd(read) ||
+                !checkAlignmentDisagreesWithHeader(GenomeAnalysisEngine.instance.getSAMFileHeader(),read) ||
+                !checkCigarDisagreesWithAlignment(read);
     }
 
     /**
      * Check for the case in which the alignment start is inconsistent with the read unmapped flag.
      * @param read The read to validate.
+     * @return true if read start is valid, false otherwise.
      */
-    private static void checkInvalidAlignmentStart( SAMRecord read ) {
+    private static boolean checkInvalidAlignmentStart( SAMRecord read ) {
+        // read is not flagged as 'unmapped', but alignment start is NO_ALIGNMENT_START
         if( !read.getReadUnmappedFlag() && read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START )
-            throw new SAMReadValidationException("read is not flagged as 'unmapped', but alignment start is NO_ALIGNMENT_START");
+            return false;
+        // Read is not flagged as 'unmapped', but alignment start is -1
         if( !read.getReadUnmappedFlag() && read.getAlignmentStart() == -1 )
-            throw new SAMReadValidationException("Read is not flagged as 'unmapped', but alignment start is -1");
+            return false;
+        return true;
     }
 
     /**
      * Check for invalid end of alignments.
      * @param read The read to validate.
+     * @return true if read end is valid, false otherwise.
      */
-    private static void checkInvalidAlignmentEnd( SAMRecord read ) {
+    private static boolean checkInvalidAlignmentEnd( SAMRecord read ) {
+        // Alignment ends prior to its beginning
         if( !read.getReadUnmappedFlag() && read.getAlignmentEnd() != -1 && read.getAlignmentEnd() < read.getAlignmentStart() )
-            throw new SAMReadValidationException("Alignment ends prior to its beginning");
+            return false;
+        return true;
     }
 
     /**
      * Check to ensure that the alignment makes sense based on the contents of the header.
      * @param header The SAM file header.
      * @param read The read to verify.
+     * @return true if alignment agrees with header, false othrewise.
      */
-    private static void checkAlignmentDisagreesWithHeader( SAMFileHeader header, SAMRecord read ) {
+    private static boolean checkAlignmentDisagreesWithHeader( SAMFileHeader header, SAMRecord read ) {
+        // Read is aligned to nonexistent contig
         if( read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
-            throw new SAMReadValidationException("Read is aligned to nonexistent contig");
+            return false;
         SAMSequenceRecord contigHeader = header.getSequence( read.getReferenceIndex() );
+        // Read is aligned to a point after the end of the contig
         if( !read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() )
-            throw new SAMReadValidationException("Read is aligned to a point after the end of the contig");
+            return false;
+        return true;
     }
 
     /**
-     * Check for inconsistencies between the cigar string and the 
+     * Check for inconsistencies between the cigar string and the
      * @param read The read to validate.
+     * @return true if cigar agrees with alignment, false otherwise.
      */
-    private static void checkCigarDisagreesWithAlignment( SAMRecord read ) {
+    private static boolean checkCigarDisagreesWithAlignment(SAMRecord read) {
+        // Read has a valid alignment start, but the CIGAR string is empty
         if( !read.getReadUnmappedFlag() &&
             read.getAlignmentStart() != -1 &&
             read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START &&
             read.getAlignmentBlocks().size() == 0 )
-            throw new SAMReadValidationException("Read has a valid alignment start, but the CIGAR string is empty");
+            return false;
+        return true;
     }
 }
-

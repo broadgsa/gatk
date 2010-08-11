@@ -25,8 +25,12 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 
 import java.util.List;
+import java.util.Collections;
+import java.io.File;
 
 /**
  * A mock locus shard, usable for infrastructure that requires a shard to behave properly.
@@ -36,6 +40,6 @@ import java.util.List;
  */
 public class MockLocusShard extends LocusShard {
     public MockLocusShard(final List<GenomeLoc> intervals) {
-        super(intervals,null);
+        super(new SAMDataSource(new ReadProperties(Collections.<File>emptyList())),intervals,null);
     }
 }

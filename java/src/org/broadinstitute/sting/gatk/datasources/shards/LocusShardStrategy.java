@@ -29,8 +29,10 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.ReadProperties;
 
 import java.util.*;
+import java.io.File;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
@@ -57,7 +59,8 @@ public class LocusShardStrategy implements ShardStrategy {
      * @param locations List of locations for which to load data.
      */
     LocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocSortedSet locations) {
-        if(reads != null) {
+        this.reads = reads;
+        if(!reads.isEmpty()) {
             List<GenomeLoc> intervals;
             if(locations == null) {
                 // If no locations were passed in, shard the entire BAM file.
@@ -77,12 +80,10 @@ public class LocusShardStrategy implements ShardStrategy {
             else
                 intervals = locations.toList();
 
-            this.reads = reads;
             this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);
         }
         else {
             final int maxShardSize = 100000;
-            this.reads = null;
             List<FilePointer> filePointers = new ArrayList<FilePointer>();
             if(locations == null) {
                 for(SAMSequenceRecord refSequenceRecord: reference.getSequenceDictionary().getSequences()) {
@@ -118,7 +119,7 @@ public class LocusShardStrategy implements ShardStrategy {
     public LocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
         Map<SAMReaderID,SAMFileSpan> fileSpansBounding = nextFilePointer.fileSpans != null ? nextFilePointer.fileSpans : null;
-        return new LocusShard(nextFilePointer.locations,fileSpansBounding);
+        return new LocusShard(reads,nextFilePointer.locations,fileSpansBounding);
     }
 
     /** we don't support the remove command */

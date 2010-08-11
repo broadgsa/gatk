@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadPairWalker;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.datasources.shards.BAMFormatAwareShard;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.apache.log4j.Logger;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordCoordinateComparator;
@@ -24,8 +24,10 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseReadPairs.class);
 
-    /** descriptor of the type */
-    private static final String PAIRS_STRING = "read pairs";
+    @Override
+    protected String getTraversalType() {
+        return "read pairs";
+    }
 
     /**
      * Traverse by reads, given the data and the walker
@@ -47,7 +49,7 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
         List<SAMRecord> pairs = new ArrayList<SAMRecord>();
 
         for(SAMRecord read: reads) {
-            TraversalStatistics.nReads++;
+            dataProvider.getShard().getReadMetrics().incrementNumReadsSeen();
 
             if(pairs.size() == 0 || pairs.get(0).getReadName().equals(read.getReadName())) {
                 // If this read name is the same as the last, accumulate it.
@@ -55,17 +57,17 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
             }
             else {
                 // Otherwise, walk over the accumulated list, then start fresh with the new read.
-                sum = walkOverPairs(walker,pairs,sum);
+                sum = walkOverPairs(walker,dataProvider.getShard(),pairs,sum);
                 pairs.clear();
                 pairs.add(read);
 
-                printProgress(PAIRS_STRING, null);
+                printProgress(dataProvider.getShard(),null);
             }
         }
 
         // If any data was left in the queue, process it.
         if(pairs.size() > 0)
-            sum = walkOverPairs(walker,pairs,sum);
+            sum = walkOverPairs(walker,dataProvider.getShard(),pairs,sum);
 
         return sum;
     }
@@ -73,13 +75,14 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
     /**
      * Filter / map / reduce over a single pair.
      * @param walker The walker.
+     * @param shard The shard currently being processed.
      * @param reads The reads in the pair.
      * @param sum The accumulator.
      * @return The accumulator after application of the given read pairing.
      */
-    private T walkOverPairs(ReadPairWalker<M,T> walker, List<SAMRecord> reads, T sum) {
+    private T walkOverPairs(ReadPairWalker<M,T> walker, Shard shard, List<SAMRecord> reads, T sum) {
         // update the number of reads we've seen
-        TraversalStatistics.nRecords++;
+        shard.getReadMetrics().incrementNumIterations();
 
         // Sort the reads present in coordinate order.
         Collections.sort(reads,new SAMRecordCoordinateComparator());
@@ -91,14 +94,5 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
         }
 
         return sum;
-    }
-
-    /**
-     * Temporary override of printOnTraversalDone.
-     *
-     * @param sum Result of the computation.
-     */
-    public void printOnTraversalDone(T sum) {
-        printOnTraversalDone(PAIRS_STRING, sum);
     }
 }
