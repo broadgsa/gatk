@@ -9,7 +9,7 @@ $sting = "/humgen/gsa-scr1/ebanks/Sting_dev/dist/GenomeAnalysisTK.jar";
 GetOptions( "dry!" => \$dry,
             "sting=s" => \$sting);
 
-$command_prefix = "java -Xmx4096m -jar $sting -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"; 
+$command_prefix = "java -Xmx4096m -jar $sting -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -l OFF"; 
 
 $random_number = rand();
 $tmp_bam = "/tmp/$random_number.bam";
