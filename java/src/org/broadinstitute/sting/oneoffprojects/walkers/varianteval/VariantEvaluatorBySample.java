@@ -163,7 +163,7 @@ class EvalBySample implements TableType {
     }
 
     public void finalizeTable() {
-        finalizedResults = new Object[sampleAndEvalResults.size()][sampleAndEvalResults.size()];
+        finalizedResults = new Object[sampleAndEvalResults.size()][sampleAndEvalResults.firstEntry().getValue().size()];
         int i = 0;
         for ( Map.Entry<String,List<SampleDataPoint>> evalBySample : sampleAndEvalResults.entrySet() ) {
             int j = 0;

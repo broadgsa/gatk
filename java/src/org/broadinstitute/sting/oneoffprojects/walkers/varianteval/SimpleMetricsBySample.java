@@ -78,7 +78,7 @@ class TiTvRatioSample extends SampleDataPoint {
     }
 
     public void update2(VariantContext vc, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( vc != null && vc.isSNP() ) {
+        if ( vc != null && vc.isSNP() && vc.isBiallelic() ) {
             if ( VariantContextUtils.isTransition(vc) ) {
                 nTi++;
             } else {
