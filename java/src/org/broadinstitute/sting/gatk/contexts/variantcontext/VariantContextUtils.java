@@ -26,9 +26,9 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 import java.io.Serializable;
 import java.util.*;
 import org.apache.commons.jexl2.*;
+import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broad.tribble.vcf.VCFConstants;
 
 public class VariantContextUtils {

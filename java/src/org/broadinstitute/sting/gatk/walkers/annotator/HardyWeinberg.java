@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
@@ -8,7 +9,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
-import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.Map;
