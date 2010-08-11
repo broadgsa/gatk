@@ -10,7 +10,7 @@ targetTITV = as.numeric(args[2])
 # Useful general routines
 # -----------------------------------------------------------------------------------------------
 
-MIN_FP_RATE = 0.01
+MIN_FP_RATE = 0.001 # 1 / 1000 is min error rate 
 
 titvFPEst <- function(titvExpected, titvObserved) { 
     max(min(1 - (titvObserved - 0.5) / (titvExpected - 0.5), 1), MIN_FP_RATE) 
