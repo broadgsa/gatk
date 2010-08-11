@@ -62,6 +62,16 @@ plot.venn <- function(a, b, c=0, a_and_b, a_and_c=0, b_and_c=0,
     unlink(filename);
 }
 
+.attemptToLoadFile <- function(filename) {
+    file = NA;
+
+    if (file.exists(filename) & file.info(filename)$size > 500) {
+        file = read.csv(filename, header=TRUE, comment.char="#");
+    }
+
+    file;
+}
+
 read.eval <- function(evalRoot) {
     fileAlleleCountStats = paste(evalRoot, ".AlleleCountStats.csv", sep="");
     fileCompOverlap = paste(evalRoot, ".Comp_Overlap.csv", sep="");
@@ -78,24 +88,38 @@ read.eval <- function(evalRoot) {
     fileVariant_Quality_Score = paste(evalRoot, ".Variant_Quality_Score.csv", sep="");
 
     eval = list(
-        AlleleCountStats = read.csv(fileAlleleCountStats, header=TRUE, comment.char="#"),
-        CompOverlap = read.csv(fileCompOverlap, header=TRUE, comment.char="#"),
-        CountVariants = read.csv(fileCountVariants, header=TRUE, comment.char="#"),
-        GenotypeConcordance = read.csv(fileGenotypeConcordance, header=TRUE, comment.char="#"),
-        MetricsByAc = read.csv(fileMetricsByAc, header=TRUE, comment.char="#"),
-        MetricsBySample = read.csv(fileMetricsBySample, header=TRUE, comment.char="#"),
-        Quality_Metrics_by_allele_count = read.csv(fileQuality_Metrics_by_allele_count, header=TRUE, comment.char="#"),
-        QualityScoreHistogram = read.csv(fileQualityScoreHistogram, header=TRUE, comment.char="#"),
-        SampleStatistics = read.csv(fileSampleStatistics, header=TRUE, comment.char="#"),
-        SampleSummaryStatistics = read.csv(fileSampleSummaryStatistics, header=TRUE, comment.char="#"),
-        TiTv = read.csv(fileTi_slash_Tv_Variant_Evaluator, header=TRUE, comment.char="#"),
-        TiTvStats = read.csv(fileTiTvStats, header=TRUE, comment.char="#"),
-        Variant_Quality_Score = read.csv(fileVariant_Quality_Score, header=TRUE, comment.char="#"),
+        AlleleCountStats = NA,
+        CompOverlap = NA,
+        CountVariants = NA,
+        GenotypeConcordance = NA,
+        MetricsByAc = NA,
+        MetricsBySample = NA,
+        Quality_Metrics_by_allele_count = NA,
+        QualityScoreHistogram = NA,
+        SampleStatistics = NA,
+        SampleSummaryStatistics = NA,
+        TiTv = NA,
+        TiTvStats = NA,
+        Variant_Quality_Score = NA,
 
         CallsetNames = c(),
         CallsetOnlyNames = c(),
         CallsetFilteredNames = c()
     );
+
+    eval$AlleleCountStats                = .attemptToLoadFile(fileAlleleCountStats);
+    eval$CompOverlap                     = .attemptToLoadFile(fileCompOverlap);
+    eval$CountVariants                   = .attemptToLoadFile(fileCountVariants);
+    eval$GenotypeConcordance             = .attemptToLoadFile(fileGenotypeConcordance);
+    eval$MetricsByAc                     = .attemptToLoadFile(fileMetricsByAc);
+    eval$MetricsBySample                 = .attemptToLoadFile(fileMetricsBySample);
+    eval$Quality_Metrics_by_allele_count = .attemptToLoadFile(fileQuality_Metrics_by_allele_count);
+    eval$QualityScoreHistogram           = .attemptToLoadFile(fileQualityScoreHistogram);
+    eval$SampleStatistics                = .attemptToLoadFile(fileSampleStatistics);
+    eval$SampleSummaryStatistics         = .attemptToLoadFile(fileSampleSummaryStatistics);
+    eval$TiTv                            = .attemptToLoadFile(fileTi_slash_Tv_Variant_Evaluator);
+    eval$TiTvStats                       = .attemptToLoadFile(fileTiTvStats);
+    eval$Variant_Quality_Score           = .attemptToLoadFile(fileVariant_Quality_Score);
 
     uniqueJexlExpressions = unique(eval$TiTv$jexl_expression);
     eval$CallsetOnlyNames = as.vector(uniqueJexlExpressions[grep("Filtered|Intersection|none", uniqueJexlExpressions, invert=TRUE, ignore.case=TRUE)]);
@@ -170,34 +194,62 @@ plot.callsetConcordance <- function(eval, col=c("#FF6342", "#63C6DE", "#ADDE63")
 }
 
 plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
-    aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+
+    aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
+    intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
+    bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
 
     title = paste("Callset concordance per allele count (", novelty_name, " variants)", sep="");
+
+    if (length(intersection$AC) > 0 && length(aonly$AC) == 0) {
+        aonly = intersection;
+        aonly$n = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
+        bonly = intersection;
+        bonly$n = 0;
+    }
 
     if (normalize == TRUE) {
         norm = aonly$n + intersection$n + bonly$n;
         matnorm = rbind(aonly$n/norm, intersection$n/norm, bonly$n/norm);
 
-        barplot(matnorm, col=col, xlab="Allele count", ylab="Fraction", main=title, names.arg=intersection$AC, ylim=c(0, 1.3), border=NA);
+        barplot(matnorm, col=col, xlab="Allele count", ylab="Fraction", main=title, names.arg=intersection$AC, xlim=c(0, max(intersection$AC)), ylim=c(0, 1.3), border=NA);
     } else {
         mat = rbind(aonly$n, intersection$n, bonly$n);
 
-        barplot(mat, col=col, xlab="Allele count", ylab="counts", main=title, names.arg=intersection$AC, border="gray");
+        barplot(mat, col=col, xlab="Allele count", ylab="counts", main=title, names.arg=intersection$AC, xlim=c(0, max(intersection$AC)), ylim=c(0, 1), border=NA);
     }
 
     legend("topright", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
 }
 
 plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
-    aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+
+    aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
+    intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
+    bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
 
     title = paste("Allele count spectrum (", novelty_name, " variants)", sep="");
 
-    suppressWarnings(plot(0, 0, type="n", xlim=c(1, length(intersection$n)), ylim=c(1, max(aonly$n + intersection$n, bonly$n + intersection$n)), xlab="Allele count", ylab="Number of variants", main=title, log="xy", bty="n"));
+    if (length(intersection$AC) > 0 && length(aonly$AC) == 0) {
+        aonly = intersection;
+        aonly$n = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
+        bonly = intersection;
+        bonly$n = 0;
+    }
+
+    suppressWarnings(plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(1, max(aonly$n + intersection$n, bonly$n + intersection$n)), xlab="Allele count", ylab="Number of variants", main=title, log="xy", bty="n"));
     suppressWarnings(points(intersection$AC, aonly$n + intersection$n, type="l", lwd=2, col=col[1]));
     suppressWarnings(points(intersection$AC, intersection$n, type="l", lwd=2, col=col[2]));
     suppressWarnings(points(intersection$AC, bonly$n + intersection$n, type="l", lwd=2, col=col[3]));
@@ -205,12 +257,34 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
     legend("topright", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
 }
 
+eval.getMetricsByAc <- function(eval, jexl_expression, novelty_name="all") {
+    piece = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(jexl_expression) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+}
+
 plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
-    aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+    #bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+
+    aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
+    intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
+    bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
 
     title = paste("Ti/Tv spectrum (", novelty_name, " variants)", sep="");
+
+    if (length(intersection$AC) > 0 && length(aonly$AC) == 0) {
+        aonly = intersection;
+        aonly$n = 0;
+        aonly$nTi = 0;
+        aonly$nTv = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
+        bonly = intersection;
+        bonly$n = 0;
+        bonly$nTi = 0;
+        bonly$nTv = 0;
+    }
 
     titv.aonly = (aonly$nTi + intersection$nTi)/(aonly$nTv + intersection$nTv);
     titv.aonly.finite = titv.aonly[which(is.finite(titv.aonly))];
@@ -223,7 +297,7 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A
     titv.min = min(titv.aonly.finite, titv.intersection.finite, titv.bonly.finite);
     titv.max = max(titv.aonly.finite, titv.intersection.finite, titv.bonly.finite);
 
-    plot(0, 0, type="n", xlim=c(1, length(intersection$n)), ylim=c(titv.min, titv.max), xlab="Allele count", ylab="Transition/transversion (Ti/Tv) ratio", main=title, bty="n");
+    plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(titv.min, titv.max), xlab="Allele count", ylab="Transition/transversion (Ti/Tv) ratio", main=title, bty="n");
     points(intersection$AC, (aonly$nTi + intersection$nTi)/(aonly$nTv + intersection$nTv), type="l", lwd=2, col=col[1]);
     points(intersection$AC, intersection$Ti.Tv, type="l", lwd=2, col=col[2]);
     points(intersection$AC, (bonly$nTi + intersection$nTi)/(bonly$nTv + intersection$nTv), type="l", lwd=2, col=col[3]);
@@ -238,19 +312,21 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A
 }
 
 plot.variantsPerSample <- function(eval) {
-    metrics.all = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "all"),]; 
-    metrics.known = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "known"),]; 
-    metrics.novel = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "novel"),]; 
+    if (!is.na(eval$MetricsBySample)) {
+        metrics.all = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "all"),]; 
+        metrics.known = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "known"),]; 
+        metrics.novel = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "novel"),]; 
 
-    title = "Calls per sample";
-    indices = order(metrics$nVariants, decreasing=TRUE);
+        title = "Calls per sample";
+        indices = order(metrics.all$nVariants, decreasing=TRUE);
 
-    plot(0, 0, type="n", xaxt="n", xlim=c(1, length(metrics$sample)), ylim=c(0, max(metrics$nVariants)), xlab="", ylab="Number of variants", main=title, bty="n");
-    points(c(1:length(metrics.all$sample)), (metrics.all$nVariants)[indices], pch=21, col="black");
-    points(c(1:length(metrics.known$sample)), (metrics.known$nVariants)[indices], pch=21, col="blue");
-    points(c(1:length(metrics.novel$sample)), (metrics.novel$nVariants)[indices], pch=21, col="red");
+        plot(0, 0, type="n", xaxt="n", xlim=c(1, length(metrics.all$sample)), ylim=c(0, max(metrics.all$nVariants)), xlab="", ylab="Number of variants", main=title, bty="n");
+        points(c(1:length(metrics.all$sample)), (metrics.all$nVariants)[indices], pch=21, col="black");
+        points(c(1:length(metrics.known$sample)), (metrics.known$nVariants)[indices], pch=21, col="blue");
+        points(c(1:length(metrics.novel$sample)), (metrics.novel$nVariants)[indices], pch=21, col="red");
 
-    legend("topright", c("All", "Known", "Novel"), pch=21, col=c("black", "blue", "red"));
+        legend("topright", c("All", "Known", "Novel"), pch=21, col=c("black", "blue", "red"));
 
-    axis(1, at=c(1:length(metrics$sample)), labels=(metrics$sample)[indices], las=2, cex.axis=0.4);
+        axis(1, at=c(1:length(metrics.all$sample)), labels=(metrics.all$sample)[indices], las=2, cex.axis=0.4);
+    }
 }
