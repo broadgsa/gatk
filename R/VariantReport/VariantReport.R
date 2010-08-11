@@ -1,13 +1,15 @@
 source(paste(Sys.getenv("STING_DIR"), "/R/gsacommons.R", sep=""));
 
-args = commandArgs(TRUE);
+if (interactive()) {
+    if (!exists("plotRoot")) {
+        plotRoot = "test.plot";
+    }
+} else {
+    args = commandArgs(TRUE);
 
-evalRoot = args[1];
-#if (is.na(evalRoot)) { evalRoot = "/home/radon01/kiran/scr1/projects/ESPGabrielDownsampling/results/v1/merged.vcf.eval120/eval"; }
-if (is.na(evalRoot)) { evalRoot = "/home/radon01/kiran/scr1/projects/ESPGabrielDownsampling/results/v1/merged.vcf.eval.v2/eval"; }
-
-plotRoot = args[2];
-if (is.na(plotRoot)) { plotRoot = "plot"; }
+    evalRoot = args[1];
+    plotRoot = args[2];
+}
 
 eval = read.eval(evalRoot);
 
@@ -56,6 +58,6 @@ plot.titvSpectrum(eval, novelty_name="novel");
 plot.end(plotRoot);
 
 # Per-sample
-plot.begin(plotRoot, "variants_per_sample", width=12, height=8);
-plot.variantsPerSample(eval);
-plot.end(plotRoot);
+#plot.begin(plotRoot, "variants_per_sample", width=12, height=8);
+#plot.variantsPerSample(eval);
+#plot.end(plotRoot);
