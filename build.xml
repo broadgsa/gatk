@@ -98,6 +98,8 @@
         </condition>
         <property name="ivy.conf" value="default, ${gatk.ivy.conf}, ${scala.ivy.conf}, ${queue.ivy.conf}"/>
       <mkdir dir="${ivy.jar.dir}"/>
+      <!-- Remove old versions of ivy. -->
+      <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
       <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
            dest="${ivy.jar.dir}/${ivy.jar.file}"
            usetimestamp="true"/>
