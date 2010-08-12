@@ -75,8 +75,7 @@
         <pathelement location="${resource.path}" />
     </path>
 
-    <target name="resolve" depends="init"
-            description="locate and download library dependencies">
+    <target name="init.resolve" unless="init.resolved">
         <!-- ivy properties -->
         <property name="ivy.install.version" value="2.2.0-rc1"/>
         <property name="ivy.home" value="${user.home}/.ant"/>
@@ -84,19 +83,11 @@
         <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
         <property name="ivy.settings.dir" value="settings"/>
         <property file="${ivy.settings.dir}/ivysettings.properties"/>
-        <property name="gatk.ivy.conf" value="default" />
-        <property name="scala.ivy.conf" value="default" />
-
 
         <!-- Remove the reflections cache as the local dependency settings have changed. -->
         <!-- Ok to remove after reflections goes back to a stable release. -->
         <delete dir="${ivy.home}/cache/org.reflections/reflections"/>
 
-
-        <condition property="queue.ivy.conf" value="queue" else="default">
-            <isset property="queue.include" />
-        </condition>
-        <property name="ivy.conf" value="default, ${gatk.ivy.conf}, ${scala.ivy.conf}, ${queue.ivy.conf}"/>
       <mkdir dir="${ivy.jar.dir}"/>
       <!-- Remove old versions of ivy. -->
       <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
@@ -107,6 +98,17 @@
                uri="antlib:org.apache.ivy.ant"
                classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
       <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
+        <property name="init.resolved" value="true"/>
+    </target>
+
+    <target name="resolve" depends="init.resolve,init"
+            description="locate and download library dependencies">
+        <property name="gatk.ivy.conf" value="default" />
+        <property name="scala.ivy.conf" value="default" />
+        <condition property="queue.ivy.conf" value="queue" else="default">
+            <isset property="queue.include" />
+        </condition>
+        <property name="ivy.conf" value="default, ${gatk.ivy.conf}, ${scala.ivy.conf}, ${queue.ivy.conf}"/>
       <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
     </target>
 
