@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="QueueGenomeAnalysisTK">
+    <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
+    <executable name="QueueGenomeAnalysisTK">
+        <main-class name="org.broadinstitute.sting.queue.QCommandLine" />
+        <resource-bundle file="StingText.properties" />
+        <modules>
+            <module file="Queue.xml" />
+            <module file="GenomeAnalysisTK.xml" />
+        </modules>
+        <dependencies>
+            <!-- Queue GATK Extensions -->
+            <package name="org.broadinstitute.sting.queue.extensions.gatk" />
+        </dependencies>
+    </executable>
+</package>

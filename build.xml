@@ -75,7 +75,7 @@
         <pathelement location="${resource.path}" />
     </path>
 
-    <target name="init.resolve" unless="init.resolved">
+    <target name="init.resolve" unless="init.resolve.done">
         <!-- ivy properties -->
         <property name="ivy.install.version" value="2.2.0-rc1"/>
         <property name="ivy.home" value="${user.home}/.ant"/>
@@ -98,7 +98,7 @@
                uri="antlib:org.apache.ivy.ant"
                classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
       <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
-        <property name="init.resolved" value="true"/>
+        <property name="init.resolve.done" value="true"/>
     </target>
 
     <target name="resolve" depends="init.resolve,init"
@@ -110,6 +110,13 @@
         </condition>
         <property name="ivy.conf" value="default, ${gatk.ivy.conf}, ${scala.ivy.conf}, ${queue.ivy.conf}"/>
       <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
+    </target>
+
+    <target name="init.buildall">
+        <!-- Set the properties needed to build Queue and the Queue GATK Extensions -->
+        <property name="gatk.target" value="oneoffs"/>
+        <property name="queue.target" value="core"/>
+        <property name="queue-gatk-extensions.target" value="core"/>
     </target>
 
     <!-- define some key locations that might change based on how the build is run -->
@@ -256,10 +263,6 @@
 
     <target name="init.jar" depends="sting.compile,extracthelp">
         <mkdir dir="${dist.dir}"/>
-        <delete>
-          <fileset dir="${dist.dir}" includes="*.jar" />
-        </delete>
-
         <copy todir="${dist.dir}">
             <fileset dir="lib" includes="*.jar"/>
         </copy>
@@ -438,13 +441,7 @@
         </antcall>
     </target>
 
-    <target name="init.test.compile">
-        <property name="gatk.target" value="oneoffs"/>
-        <property name="queue.target" value="core"/>
-        <property name="queue-gatk-extensions.target" value="core"/>
-    </target>
-
-    <target name="test.compile" depends="init.test.compile,dist">
+    <target name="test.compile" depends="init.buildall,dist">
         <echo message="Sting: Compiling test cases!"/>
         <mkdir dir="${java.test.classes}"/>
         <javac destdir="${java.test.classes}" debug="true" optimize="on">
@@ -606,14 +603,7 @@
         <delete dir="javadoc"/>
     </target>
 
-    <target name="init.javadoc">
-        <!-- Set the properties needed to build Queue and the Queue GATK Extensions -->
-        <property name="gatk.target" value="oneoffs"/>
-        <property name="queue.target" value="core"/>
-        <property name="queue-gatk-extensions.target" value="core"/>
-    </target>
-
-    <target name="javadoc" depends="init.javadoc,resolve,queue-gatk-extensions.generate" description="generates javadoc">
+    <target name="javadoc" depends="init.buildall,resolve,queue-gatk-extensions.generate" description="generates javadoc">
       <mkdir dir="javadoc"/>
       <javadoc destdir="javadoc"
                classpathref="runtime.dependencies">

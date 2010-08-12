@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="Queue">
+    <executable name="Queue">
+        <main-class name="org.broadinstitute.sting.queue.QCommandLine" />
+        <resource-bundle file="StingText.properties" />
+        <dependencies>
+            <!-- Queue -->
+            <class name="org.broadinstitute.sting.queue.QCommandLine" />
+            <package name="org.broadinstitute.sting.queue.function" />
+            <package name="org.broadinstitute.sting.queue.function.*" />
+            <package name="org.broadinstitute.sting.queue.util" />
+        </dependencies>
+    </executable>
+</package>
