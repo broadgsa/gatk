@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -44,8 +44,6 @@ import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.CommandLineUtils;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -63,7 +61,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     public static final String ORIGINAL_POSITION_TAG = "OP";
     public static final String PROGRAM_RECORD_NAME = "GATK IndelRealigner";
 
-    @Argument(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
+    @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
 
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
@@ -72,7 +70,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
 
-    @Argument(fullName="output", shortName="O", required=false, doc="Output bam")
+    @Output(fullName="output", shortName="O", required=false, doc="Output bam")
     protected String writerFilename = null;
 
     @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
@@ -115,15 +113,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     // DEBUGGING OPTIONS FOLLOW
 
     @Hidden
-    @Argument(fullName="indelsFileForDebugging", shortName="indels", required=false, doc="Output file (text) for the indels found; FOR DEBUGGING PURPOSES ONLY")
+    @Output(fullName="indelsFileForDebugging", shortName="indels", required=false, doc="Output file (text) for the indels found; FOR DEBUGGING PURPOSES ONLY")
     protected String OUT_INDELS = null;
 
     @Hidden
-    @Argument(fullName="statisticsFileForDebugging", shortName="stats", doc="print out statistics (what does or doesn't get cleaned); FOR DEBUGGING PURPOSES ONLY", required=false)
+    @Output(fullName="statisticsFileForDebugging", shortName="stats", doc="print out statistics (what does or doesn't get cleaned); FOR DEBUGGING PURPOSES ONLY", required=false)
     protected String OUT_STATS = null;
 
     @Hidden
-    @Argument(fullName="SNPsFileForDebugging", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out; FOR DEBUGGING PURPOSES ONLY", required=false)
+    @Output(fullName="SNPsFileForDebugging", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out; FOR DEBUGGING PURPOSES ONLY", required=false)
     protected String OUT_SNPS = null;
 
     // the intervals input by the user

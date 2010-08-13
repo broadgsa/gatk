@@ -12,8 +12,8 @@
     <property name="queue.source.dir" value="scala/src" />
     <property name="queue.classes" value="${build.dir}/scala/classes" />
 
-    <property name="queue-gatk-extensions.source.dir" value="${build.dir}/queue-gatk-extensions/src" />
-    <property name="queue-gatk-extensions.classes" value="${build.dir}/queue-gatk-extensions/classes" />
+    <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
+    <property name="queue-extensions.classes" value="${build.dir}/queue-extensions/classes" />
     
     <!-- where to find the tribble distro -->
     <property name="tribble.dir" value="tribble" />
@@ -66,8 +66,8 @@
         <pathelement location="${java.classes}" />
     </path>
 
-    <!-- Path to queue-gatk-extendsions dependencies. -->
-    <path id="queue-gatk-extensions.dependencies">
+    <!-- Path to queue-extendsions dependencies. -->
+    <path id="queue-extensions.dependencies">
         <path refid="runtime.dependencies" />
         <pathelement location="${java.classes}" />
         <pathelement location="${queue.classes}" />
@@ -113,7 +113,7 @@
     </target>
 
     <target name="init.buildall">
-        <!-- Set the properties needed to build Queue and the Queue GATK Extensions -->
+        <!-- Set the properties needed to build Queue -->
         <property name="gatk.target" value="oneoffs"/>
         <property name="queue.target" value="core"/>
     </target>
@@ -143,7 +143,7 @@
             <equals arg1="${env.QUEUE_BUILD_TYPE}" arg2="$${env.QUEUE_BUILD_TYPE}" />
         </condition>
 
-        <!-- If the queue target is set, or if the queue-gatk-extensions needs to be built, then include all queue tasks. -->
+        <!-- If the queue target is set, or if the queue-extensions needs to be built, then include all queue tasks. -->
         <condition property="queue.include">
             <or>
                 <not><equals arg1="${queue.target}" arg2="none" /></not>
@@ -211,21 +211,21 @@
     </target>
 
     <!-- NOTE: Extracting help first to avoid "Unable to load help text.  Help output will be sparse." warning message. -->
-    <target name="queue-gatk-extensions.generate" depends="gatk.compile, queue.compile, extracthelp" if="queue.include" description="generate GATK modules for Queue">
-        <mkdir dir="${queue-gatk-extensions.source.dir}"/>
+    <target name="queue-extensions.generate" depends="gatk.compile, queue.compile, extracthelp" if="queue.include" description="generate GATK modules for Queue">
+        <mkdir dir="${queue-extensions.source.dir}"/>
         <echo>Generating Queue GATK extensions...</echo>
-        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="queue-gatk-extensions.dependencies">
+        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="queue-extensions.dependencies">
             <arg value="-outDir" />
-            <arg path="${queue-gatk-extensions.source.dir}" />
+            <arg path="${queue-extensions.source.dir}" />
             <arg value="-l" />
             <arg value="WARN" />
         </java>
     </target>
 
-    <target name="queue-gatk-extensions.compile" depends="queue-gatk-extensions.generate" if="queue.include" description="compile GATK modules for Queue">
-        <mkdir dir="${queue-gatk-extensions.classes}"/>
+    <target name="queue-extensions.compile" depends="queue-extensions.generate" if="queue.include" description="compile extensions for Queue">
+        <mkdir dir="${queue-extensions.classes}"/>
         <echo>Building Queue GATK extensions...</echo>
-        <scalac srcdir="${queue-gatk-extensions.source.dir}" destdir="${queue-gatk-extensions.classes}" classpathref="queue-gatk-extensions.dependencies" deprecation="yes" unchecked="yes">
+        <scalac srcdir="${queue-extensions.source.dir}" destdir="${queue-extensions.classes}" classpathref="queue-extensions.dependencies" deprecation="yes" unchecked="yes">
             <include name="**/*.scala"/>
         </scalac>
     </target>
@@ -245,7 +245,7 @@
       </javadoc>
     </target>
 
-    <target name="sting.compile" depends="gatk.compile, queue.compile, queue-gatk-extensions.compile" />
+    <target name="sting.compile" depends="gatk.compile, queue.compile, queue-extensions.compile" />
 
     <target name="init.jar" depends="sting.compile,extracthelp">
         <mkdir dir="${dist.dir}"/>
@@ -295,20 +295,20 @@
 
     </target>
 
-    <target name="queue.jar" depends="queue.compile, queue-gatk-extensions.compile, init.jar" if="queue.include">
+    <target name="queue.jar" depends="queue.compile, queue-extensions.compile, init.jar" if="queue.include">
         <jar jarfile="${dist.dir}/Queue.jar">
             <fileset dir="${queue.classes}">
                 <include name="org/broadinstitute/sting/queue/**/*.class"/>
             </fileset>
+            <fileset dir="${java.classes}">
+              <include name="org/broadinstitute/sting/queue/**/*.class" />
+            </fileset>
+            <fileset dir="${queue-extensions.classes}">
+              <include name="**/*.class" />
+            </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.queue.QCommandLine" />
             </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/QueueGATKExtensions.jar">
-          <fileset dir="${queue-gatk-extensions.classes}">
-            <include name="**/*.class" />
-          </fileset>
         </jar>
     </target>
 
@@ -348,12 +348,6 @@
 
     <target name="queue.manifests" depends="queue.jar, init.manifests" if="queue.include">
         <jar jarfile="${dist.dir}/Queue.jar" update="true" >
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/QueueGATKExtensions.jar" update="true" >
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
@@ -556,7 +550,7 @@
         <delete dir="javadoc"/>
     </target>
 
-    <target name="javadoc" depends="init.buildall,resolve,queue-gatk-extensions.generate" description="generates javadoc">
+    <target name="javadoc" depends="init.buildall,resolve,queue-extensions.generate" description="generates javadoc">
       <mkdir dir="javadoc"/>
       <javadoc destdir="javadoc"
                classpathref="runtime.dependencies">
@@ -564,13 +558,10 @@
       </javadoc>
 
         <mkdir dir="javadoc/queue"/>
-        <scaladoc srcdir="${queue.source.dir}" destdir="javadoc/queue" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
+        <scaladoc srcdir="" destdir="javadoc/queue" classpathref="queue-extensions.dependencies" deprecation="yes" unchecked="yes">
+            <src path="${queue.source.dir}"/>
+            <src path="${queue-extensions.source.dir}"/>
             <include name="org/broadinstitute/sting/queue/**/*.scala"/>
-        </scaladoc>
-
-        <mkdir dir="javadoc/queue-gatk-extensions"/>
-        <scaladoc srcdir="${queue-gatk-extensions.source.dir}" destdir="javadoc/queue-gatk-extensions" classpathref="queue-gatk-extensions.dependencies" deprecation="yes" unchecked="yes">
-            <include name="org/broadinstitute/sting/queue/extensions/**/*.scala"/>
         </scaladoc>
     </target>
 

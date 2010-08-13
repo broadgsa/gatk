@@ -171,7 +171,7 @@ public class GATKArgumentCollection {
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
     @ElementList(required = false)
-    @Argument(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
+    @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
 
     /**

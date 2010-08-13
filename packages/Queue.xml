@@ -11,8 +11,8 @@
             <package name="org.broadinstitute.sting.queue.function.*" />
             <package name="org.broadinstitute.sting.queue.util" />
 
-            <!-- Queue GATK Extensions -->
-            <package name="org.broadinstitute.sting.queue.extensions.gatk" />
+            <!-- Queue Extensions -->
+            <package name="org.broadinstitute.sting.queue.extensions.*" />
         </dependencies>
     </executable>
 </package>
