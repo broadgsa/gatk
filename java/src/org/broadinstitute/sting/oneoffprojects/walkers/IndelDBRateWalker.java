@@ -17,6 +17,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -46,7 +47,7 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
         }
 
         if ( outVCF != null ) {
-            vcfWriter = new VCFWriter(outVCF);
+            vcfWriter = new VCFWriterImpl(outVCF);
             Set<VCFHeaderLine> header = new HashSet<VCFHeaderLine>();
             header.addAll(VCFUtils.getHeaderFields(getToolkit()));
             VCFHeader vcfHeader = new VCFHeader(header, SampleUtils.getUniqueSamplesFromRods(getToolkit()));

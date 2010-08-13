@@ -29,10 +29,11 @@ import java.io.File;
 import java.io.PrintStream;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFHeader;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.io.storage.VCFWriterStorage;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import net.sf.samtools.SAMFileHeader;
 
 /**
@@ -41,7 +42,7 @@ import net.sf.samtools.SAMFileHeader;
  * @author ebanks
  * @version 0.1
  */
-public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements Stub<T>, GenotypeWriter {
+public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
 
     /**
      * Engine to use for collecting attributes for the output SAM file.
@@ -71,7 +72,7 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
      * @param engine        GATK engine.
      * @param genotypeFile  file to (ultimately) create.
      */
-    public GenotypeWriterStub(GenomeAnalysisEngine engine,File genotypeFile) {
+    public VCFWriterStub(GenomeAnalysisEngine engine,File genotypeFile) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
@@ -82,7 +83,7 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
      * @param engine        GATK engine.
      * @param genotypeStream  stream to (ultimately) write.
      */
-    public GenotypeWriterStub(GenomeAnalysisEngine engine,PrintStream genotypeStream) {
+    public VCFWriterStub(GenomeAnalysisEngine engine,PrintStream genotypeStream) {
         this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = genotypeStream;
@@ -113,17 +114,15 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
     }
 
     /**
-     * Retrieves the format to use when creating the new file.
-     * @return format to use when creating the new file.
-     */
-    public abstract GenotypeWriterFactory.GENOTYPE_FORMAT getFormat();
-
-    /**
      * Registers the given streamConnector with this stub.
      * @param outputTracker The connector used to provide an appropriate stream.
      */
     public void register( OutputTracker outputTracker ) {
         this.outputTracker = outputTracker;
+    }
+
+    public void writeHeader(VCFHeader header) {
+        outputTracker.getStorage(this).writeHeader(header);
     }
 
     /**
@@ -139,5 +138,4 @@ public abstract class GenotypeWriterStub<T extends GenotypeWriter> implements St
     public void close() {
         outputTracker.getStorage(this).close();
     }
-
 }

@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 
 import java.util.*;
 
@@ -118,7 +119,7 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
         if ( sampleNames == null )
             sampleNames = new TreeSet<String>();
 
-        VCFWriter vcfWriter = new VCFWriter(out);
+        VCFWriter vcfWriter = new VCFWriterImpl(out);
 
         // set up the info and filter headers
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();

@@ -26,8 +26,7 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
@@ -41,7 +40,7 @@ import java.util.Arrays;
  * @author mhanna
  * @version 0.1
  */
-public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     /**
      * The engine into which output stubs should be fed.
      */
@@ -51,7 +50,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      * Create a new GenotypeWriter argument, notifying the given engine when that argument has been created.
      * @param engine the engine to be notified.
      */
-    public GenotypeWriterArgumentTypeDescriptor(GenomeAnalysisEngine engine) {
+    public VCFWriterArgumentTypeDescriptor(GenomeAnalysisEngine engine) {
         this.engine = engine;
     }
 
@@ -62,7 +61,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      */
     @Override
     public boolean supports( Class type ) {
-        return GenotypeWriter.class.equals(type);
+        return VCFWriter.class.equals(type);
     }
 
     /**
@@ -73,8 +72,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      */
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList( createGenotypeFileArgumentDefinition(source),
-                              createGenotypeFormatArgumentDefinition(source) );
+        return Arrays.asList( createGenotypeFileArgumentDefinition(source) );
     }
 
     /**
@@ -92,7 +90,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
      */
     @Override
     public Object getDefault() {
-        GenotypeWriterStub defaultGenotypeWriter = new VCFGenotypeWriterStub(engine,System.out);
+        VCFWriterStub defaultGenotypeWriter = new VCFWriterStub(engine,System.out);
         engine.addOutput(defaultGenotypeWriter);
         return defaultGenotypeWriter;       
     }
@@ -111,7 +109,7 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
         File writerFile = writerFileName != null ? new File(writerFileName) : null;
 
         // Create a stub for the given object.
-        GenotypeWriterStub stub = (writerFile != null) ? new VCFGenotypeWriterStub(engine, writerFile) : new VCFGenotypeWriterStub(engine,System.out);
+        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile) : new VCFWriterStub(engine,System.out);
 
         engine.addOutput(stub);
 
@@ -136,27 +134,4 @@ public class GenotypeWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor
                                        source.isHidden(),
                                        null );
     }
-
-    /**
-     * Creates the optional compression level argument for the BAM file.
-     * @param source Argument source for the BAM file.  Must not be null.
-     * @return Argument definition for the BAM file itself.  Will not be null.
-     */
-    private ArgumentDefinition createGenotypeFormatArgumentDefinition(ArgumentSource source) {
-        Annotation annotation = this.getArgumentAnnotation(source);
-        return new ArgumentDefinition( ArgumentIOType.getIOType(annotation),
-                                       GenotypeWriterFactory.GENOTYPE_FORMAT.class,
-                                       "variant_output_format",
-                                       "vf",
-                                       "Format to be used to represent variants; default is VCF",
-                                       false,
-                                       false,
-                                       false,
-                                       null,
-                                       source.isHidden(),
-                                       null,
-                                       null,
-                                       null );
-    }
-
 }

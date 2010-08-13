@@ -29,7 +29,7 @@ import net.sf.samtools.SAMFileWriter;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
 import java.io.File;
 import java.io.InputStream;
@@ -212,7 +212,7 @@ public abstract class ArgumentField {
         if (InputStream.class.isAssignableFrom(clazz)) return File.class;
         if (SAMFileReader.class.isAssignableFrom(clazz)) return File.class;
         if (OutputStream.class.isAssignableFrom(clazz)) return File.class;
-        if (GenotypeWriter.class.isAssignableFrom(clazz)) return File.class;
+        if (VCFWriter.class.isAssignableFrom(clazz)) return File.class;
         if (SAMFileWriter.class.isAssignableFrom(clazz)) return File.class;
         if (PlatformUnitFilterHelper.class.isAssignableFrom(clazz)) return String.class;
         return clazz;

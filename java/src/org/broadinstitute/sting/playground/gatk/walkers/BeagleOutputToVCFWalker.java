@@ -44,6 +44,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 import org.broad.tribble.vcf.*;
 
 import java.io.*;
@@ -92,7 +93,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
 
         // Open output file specified by output VCF ROD
-        vcfWriter = new VCFWriter(new File(OUTPUT_FILE));
+        vcfWriter = new VCFWriterImpl(new File(OUTPUT_FILE));
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
         for( final ReferenceOrderedDataSource source : dataSources ) {

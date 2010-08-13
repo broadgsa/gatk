@@ -94,7 +94,7 @@ public class VariantSelect extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFFilterHeaderLine(exp.name, exp.expStr));
         }
 
-        writer = new VCFWriter(out);
+        writer = new VCFWriterImpl(out);
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);

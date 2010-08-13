@@ -40,6 +40,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 
 import java.util.*;
 
@@ -118,7 +119,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
-        writer = new VCFWriter(out);
+        writer = new VCFWriterImpl(out);
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 

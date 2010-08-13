@@ -37,6 +37,7 @@ import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
@@ -148,7 +149,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
-        vcfWriter = new VCFWriter( new File(OUTPUT_FILENAME) );
+        vcfWriter = new VCFWriterImpl( new File(OUTPUT_FILENAME) );
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getSampleListWithVCFHeader(getToolkit(), null));
         

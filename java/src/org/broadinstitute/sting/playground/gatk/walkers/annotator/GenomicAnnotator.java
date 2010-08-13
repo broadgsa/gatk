@@ -63,6 +63,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 
 /**
  * Annotates variant calls with information from user-specified tabular files.
@@ -240,7 +241,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new VCFWriter(VCF_OUT);
+        vcfWriter = new VCFWriterImpl(VCF_OUT);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }

@@ -33,7 +33,7 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
-import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
@@ -83,7 +83,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     @Override
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
         List<ArgumentTypeDescriptor> typeDescriptors = new ArrayList<ArgumentTypeDescriptor>();
-        typeDescriptors.add(new GenotypeWriterArgumentTypeDescriptor(GATKEngine));
+        typeDescriptors.add(new VCFWriterArgumentTypeDescriptor(GATKEngine));
         typeDescriptors.add(new SAMFileReaderArgumentTypeDescriptor(GATKEngine));
         typeDescriptors.add(new SAMFileWriterArgumentTypeDescriptor(GATKEngine));
         typeDescriptors.add(new OutputStreamArgumentTypeDescriptor(GATKEngine));

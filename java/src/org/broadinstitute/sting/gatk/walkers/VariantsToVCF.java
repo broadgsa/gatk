@@ -126,7 +126,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
             }
 
-            vcfwriter = new VCFWriter(out);
+            vcfwriter = new VCFWriterImpl(out);
             vcfwriter.writeHeader(new VCFHeader(hInfo, samples));
         }
 

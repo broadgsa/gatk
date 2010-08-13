@@ -14,6 +14,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -79,7 +80,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
 
 
-        vcfWriter = new VCFWriter(new File(OUTPUT_FILE));
+        vcfWriter = new VCFWriterImpl(new File(OUTPUT_FILE));
         VCFHeader header = null;
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();

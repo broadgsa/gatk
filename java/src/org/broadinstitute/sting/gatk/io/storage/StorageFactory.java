@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.io.storage;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
-import org.broadinstitute.sting.gatk.io.stubs.GenotypeWriterStub;
+import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -62,7 +62,7 @@ public class StorageFactory {
      * @param <T> Type of the stream to create.
      * @return Storage object with a facade of type T.
      */
-    public static <T> Storage<T> createStorage( Stub<T> stub, File file ) {
+        public static <T> Storage<T> createStorage( Stub<T> stub, File file ) {
         Storage storage;
 
         if(stub instanceof OutputStreamStub) {
@@ -77,12 +77,12 @@ public class StorageFactory {
             else
                 storage = new SAMFileWriterStorage((SAMFileWriterStub)stub);
         }
-        else if(stub instanceof GenotypeWriterStub) {
-            GenotypeWriterStub genotypeWriterStub = (GenotypeWriterStub)stub;
+        else if(stub instanceof VCFWriterStub) {
+            VCFWriterStub vcfWriterStub = (VCFWriterStub)stub;
             if( file != null )
-                storage = new VCFGenotypeWriterStorage(genotypeWriterStub,file);
+                storage = new VCFWriterStorage(vcfWriterStub,file);
             else
-                storage = new VCFGenotypeWriterStorage(genotypeWriterStub);
+                storage = new VCFWriterStorage(vcfWriterStub);
         }
         else
             throw new StingException("Unsupported stub type: " + stub.getClass().getName());

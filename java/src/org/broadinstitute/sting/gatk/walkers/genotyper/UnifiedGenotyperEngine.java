@@ -39,7 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broad.tribble.vcf.VCFConstants;
 
@@ -65,7 +65,7 @@ public class UnifiedGenotyperEngine {
 
     // the various loggers and writers
     protected Logger logger = null;
-    protected GenotypeWriter genotypeWriter = null;
+    protected VCFWriter vcfWriter = null;
     protected PrintStream verboseWriter = null;
 
     // samples in input
@@ -76,15 +76,15 @@ public class UnifiedGenotyperEngine {
         initialize(toolkit, UAC, null, null, null, null);
     }
 
-    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, VariantAnnotatorEngine engine) {
+    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, VCFWriter genotypeWriter, PrintStream verboseWriter, VariantAnnotatorEngine engine) {
         initialize(toolkit, UAC, logger, genotypeWriter, verboseWriter, engine);
 
     }
 
-    private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, GenotypeWriter genotypeWriter, PrintStream verboseWriter, VariantAnnotatorEngine engine) {
+    private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, VCFWriter genotypeWriter, PrintStream verboseWriter, VariantAnnotatorEngine engine) {
         this.UAC = UAC;
         this.logger = logger;
-        this.genotypeWriter = genotypeWriter;
+        this.vcfWriter = genotypeWriter;
         this.verboseWriter = verboseWriter;
         this.annotationEngine = engine;
 

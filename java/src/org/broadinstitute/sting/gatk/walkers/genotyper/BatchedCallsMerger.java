@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -56,7 +56,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     @Argument(doc = "VCF file to which variants should be written", required = false)
-    public GenotypeWriter writer = null;
+    public VCFWriter writer = null;
 
     @Argument(fullName="rod_list", shortName="rods", doc="A comma-separated string describing the rod names representing individual call batches", required=true)
     protected String ROD_STRING = null;
@@ -91,7 +91,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         UG_engine.samples = samples;        
 
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, new VCFHeader(headerLines, samples));
+        writer.writeHeader(new VCFHeader(headerLines, samples));
     }
 
     public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

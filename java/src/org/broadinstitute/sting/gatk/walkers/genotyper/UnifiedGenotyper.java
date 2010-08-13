@@ -52,7 +52,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
     // control the output
     @Argument(doc = "File to which variants should be written", required = false)
-    public GenotypeWriter writer = null;
+    public VCFWriter writer = null;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected PrintStream verboseWriter = null;
@@ -126,15 +126,11 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
 
         // initialize the header
-        GenotypeWriterFactory.writeHeader(writer, new VCFHeader(getHeaderInfo(), UG_engine.samples)) ;
+        writer.writeHeader(new VCFHeader(getHeaderInfo(), UG_engine.samples)) ;
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
-
-        // this is only applicable to VCF
-        if ( !(writer instanceof VCFGenotypeWriter) )
-            return headerInfo;
 
         // all annotation fields from VariantAnnotatorEngine
         headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());

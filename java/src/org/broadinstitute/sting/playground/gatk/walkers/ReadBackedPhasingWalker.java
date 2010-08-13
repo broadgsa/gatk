@@ -41,6 +41,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -72,7 +73,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<Pair<VariantContextStat
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
-        writer = new VCFWriter(new File(phasedVCFFile));
+        writer = new VCFWriterImpl(new File(phasedVCFFile));
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 

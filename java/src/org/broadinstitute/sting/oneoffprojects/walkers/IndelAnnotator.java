@@ -85,7 +85,7 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
         anno.add(new VCFInfoHeaderLine("type",1, VCFHeaderLineType.String,"Genomic interpretation (according to RefSeq)"));
         hInfo.addAll(anno);
 
-        vcfWriter = new VCFWriter(out);
+        vcfWriter = new VCFWriterImpl(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit()));
         vcfWriter.writeHeader(vcfHeader);
     }

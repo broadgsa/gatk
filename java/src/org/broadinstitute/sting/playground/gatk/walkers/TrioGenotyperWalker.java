@@ -44,6 +44,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 
 import java.util.*;
@@ -86,7 +87,7 @@ public class TrioGenotyperWalker extends RefWalker<VariantContext, Integer>{
         FAMILY_MEMBERS = Arrays.asList(mom, dad, kid);
 
         // initialize the writer
-        writer = new VCFWriter(new File(vcfOutputFile));
+        writer = new VCFWriterImpl(new File(vcfOutputFile));
     }
 
     public VariantContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

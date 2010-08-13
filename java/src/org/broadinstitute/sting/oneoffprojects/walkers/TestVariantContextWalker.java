@@ -60,7 +60,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
         if ( outputVCF != null )
-            writer = new VCFWriter(new File(outputVCF));
+            writer = new VCFWriterImpl(new File(outputVCF));
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

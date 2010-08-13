@@ -23,6 +23,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.io.PrintStream;
@@ -372,7 +373,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
      *********** REDUCE INIT
      */
     public VCFWriter reduceInit() {
-        VCFWriter writer = new VCFWriter(out);
+        VCFWriter writer = new VCFWriterImpl(out);
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("source", "MendelianViolationClassifier"));

@@ -46,6 +46,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 
 import java.util.*;
 
@@ -153,7 +154,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFHeaderLine("VariantAnnotator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
-        vcfWriter = new VCFWriter(out);
+        vcfWriter = new VCFWriterImpl(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 

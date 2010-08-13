@@ -81,7 +81,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     private VariantAnnotatorEngine engine;
 
     public void initialize() {
-        vcfWriter = new VCFWriter(out);
+        vcfWriter = new VCFWriterImpl(out);
         validateAnnotateUnionArguments();
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
