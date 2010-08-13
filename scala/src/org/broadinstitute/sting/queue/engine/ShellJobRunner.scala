@@ -24,6 +24,13 @@ class ShellJobRunner extends JobRunner with Logging {
     } else {
       logger.info(function.commandLine)
     }
+    logger.info("Output written to " + function.jobOutputFile)
+    if (function.jobErrorFile != null) {
+      logger.info("Errors written to " + function.jobErrorFile)
+    } else {
+      if (logger.isDebugEnabled)
+        logger.info("Errors also written to " + function.jobOutputFile)
+    }
 
     if (!qGraph.dryRun)
       job.run
