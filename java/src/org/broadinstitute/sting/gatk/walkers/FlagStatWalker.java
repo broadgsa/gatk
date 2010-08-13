@@ -43,18 +43,18 @@ import java.text.NumberFormat;
 public class FlagStatWalker extends ReadWalker<Integer, Integer> {
     // what comes out of the flagstat
     static class FlagStat {
-        int readCount = 0;
-        int QC_failure = 0;
-        int duplicates = 0;
-        int mapped = 0;
-        int paired_in_sequencing = 0;
-        int read1 = 0;
-        int read2 = 0;
-        int properly_paired = 0;
-        int with_itself_and_mate_mapped = 0;
-        int singletons = 0;
-        int with_mate_mapped_to_a_different_chr = 0;
-        int with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5 = 0;
+        long readCount = 0L;
+        long QC_failure = 0L;
+        long duplicates = 0L;
+        long mapped = 0L;
+        long paired_in_sequencing = 0L;
+        long read1 = 0L;
+        long read2 = 0L;
+        long properly_paired = 0L;
+        long with_itself_and_mate_mapped = 0L;
+        long singletons = 0L;
+        long with_mate_mapped_to_a_different_chr = 0L;
+        long with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5 = 0L;
 
         public String toString() {
             String ret = "";
@@ -155,21 +155,15 @@ public class FlagStatWalker extends ReadWalker<Integer, Integer> {
 
     }
 
-    public Integer reduceInit
-            () {
+    public Integer reduceInit() {
         return 0;
     }
 
-    public Integer reduce
-            ( Integer
-                    value, Integer
-                    sum ) {
+    public Integer reduce(Integer value, Integer sum) {
         return value + sum;
     }
 
-    public void onTraversalDone
-            ( Integer
-                    result ) {
+    public void onTraversalDone(Integer result) {
         //out.println("[REDUCE RESULT] Traversal result is: " + result);
         out.println(myStat.toString());
     }
