@@ -375,7 +375,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, SAMUtils.phredToFastq(originalQuals));
         }
 
-        if (read.getAttribute(SAMTag.UQ.name()) != null) {
+        if (read.getAttribute(SAMTag.UQ.name()) != null && refBases != null) {
             read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, refBases.getBases(), read.getAlignmentStart() - 1, false));
         }
 
