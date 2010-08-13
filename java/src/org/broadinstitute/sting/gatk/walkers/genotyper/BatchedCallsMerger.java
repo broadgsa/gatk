@@ -83,8 +83,12 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         // get all of the sample names and meta data
         Map<String, VCFHeader> headers = VCFUtils.getVCFHeadersFromRods(getToolkit(), targetRods);
         Set<String> samples = SampleUtils.getSampleList(headers);
-        for ( VCFHeader header : headers.values() )
+        for ( String rodName : headers.keySet() ) {
+            VCFHeader header = headers.get(rodName);
             headerLines.addAll(header.getMetaData());
+            HashSet<String> mySamples = new HashSet<String>(header.getGenotypeSamples());
+            rodsToSamples.put(rodName, mySamples);
+        }
 
         // update the engine
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, null, null);
