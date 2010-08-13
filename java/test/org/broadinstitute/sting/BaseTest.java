@@ -44,7 +44,7 @@ public abstract class BaseTest {
 
     protected static String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
     protected static String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.fasta";
-    protected static String b36KGReference = "/broad/1KG/reference/human_b36_both.fasta";
+    protected static String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
     protected static String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
     protected static String validationDataLocation = GATKDataLocation + "Validation_Data/";
     protected static String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";
