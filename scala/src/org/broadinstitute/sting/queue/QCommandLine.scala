@@ -51,6 +51,7 @@ class QCommandLine extends CommandLineProgram with Logging {
     qGraph.dotFile = dotFile
     qGraph.expandedDotFile = expandedDotFile
     qGraph.qSettings = qSettings
+    qGraph.debugMode = debugMode == true
 
     val scripts = qScriptManager.createScripts()
     for (script <- scripts) {

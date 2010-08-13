@@ -25,6 +25,7 @@ class QGraph extends Logging {
   var dotFile: File = _
   var expandedDotFile: File = _
   var qSettings: QSettings = _
+  var debugMode = false
   private val jobGraph = newGraph
 
   /**
@@ -55,8 +56,8 @@ class QGraph extends Logging {
       var addedFunctions = List.empty[CommandLineFunction]
       for (scatterGather <- scatterGathers) {
         val functions = scatterGather.generateFunctions()
-        if (logger.isTraceEnabled)
-          logger.trace("Scattered into %d parts: %n%s".format(functions.size, functions.mkString("%n".format())))
+        if (this.debugMode)
+          logger.debug("Scattered into %d parts: %n%s".format(functions.size, functions.mkString("%n".format())))
         addedFunctions ++= functions
       }
 
@@ -157,7 +158,7 @@ class QGraph extends Logging {
   }
 
   /**
-   *  Removes mapping edges that aren't being used, and nodes that don't belong to anything. 
+   *  Removes mapping edges that aren't being used, and nodes that don't belong to anything.
    */
   private def prune = {
     var pruning = true
@@ -211,9 +212,9 @@ class QGraph extends Logging {
     val numJobs = JavaConversions.asSet(jobGraph.edgeSet).filter(_.isInstanceOf[CommandLineFunction]).size
 
     logger.info("Number of jobs: %s".format(numJobs))
-    if (logger.isTraceEnabled) {
+    if (this.debugMode) {
       val numNodes = jobGraph.vertexSet.size
-      logger.trace("Number of nodes: %s".format(numNodes))
+      logger.debug("Number of nodes: %s".format(numNodes))
     }
     var numNodes = 0
 
@@ -221,14 +222,14 @@ class QGraph extends Logging {
       edgeFunction = { case f => runner.run(f, this) },
       nodeFunction = {
         case node => {
-          if (logger.isTraceEnabled)
-            logger.trace("Visiting: " + node)
+          if (this.debugMode)
+            logger.debug("Visiting: " + node)
           numNodes += 1
         }
       })
 
-    if (logger.isTraceEnabled)
-      logger.trace("Done walking %s nodes.".format(numNodes))
+    if (this.debugMode)
+      logger.debug("Done walking %s nodes.".format(numNodes))
 
     if (bsubAllJobs && bsubWaitJobs) {
       logger.info("Waiting for jobs to complete.")
@@ -263,14 +264,14 @@ class QGraph extends Logging {
       val newTarget = jobGraph.addVertex(outputs)
       val removedEdges = jobGraph.removeAllEdges(inputs, outputs)
       val added = jobGraph.addEdge(inputs, outputs, f)
-      if (logger.isTraceEnabled) {
-        logger.trace("Mapped from:   " + inputs)
-        logger.trace("Mapped to:     " + outputs)
-        logger.trace("Mapped via:    " + f)
-        logger.trace("Removed edges: " + removedEdges)
-        logger.trace("New source?:   " + newSource)
-        logger.trace("New target?:   " + newTarget)
-        logger.trace("")
+      if (this.debugMode) {
+        logger.debug("Mapped from:   " + inputs)
+        logger.debug("Mapped to:     " + outputs)
+        logger.debug("Mapped via:    " + f)
+        logger.debug("Removed edges: " + removedEdges)
+        logger.debug("New source?:   " + newSource)
+        logger.debug("New target?:   " + newTarget)
+        logger.debug("")
       }
     } catch {
       case e: Exception =>

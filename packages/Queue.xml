@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="Queue">
+    <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
     <executable name="Queue">
         <main-class name="org.broadinstitute.sting.queue.QCommandLine" />
         <resource-bundle file="StingText.properties" />
@@ -9,6 +10,9 @@
             <package name="org.broadinstitute.sting.queue.function" />
             <package name="org.broadinstitute.sting.queue.function.*" />
             <package name="org.broadinstitute.sting.queue.util" />
+
+            <!-- Queue GATK Extensions -->
+            <package name="org.broadinstitute.sting.queue.extensions.gatk" />
         </dependencies>
     </executable>
 </package>

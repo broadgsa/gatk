@@ -2,6 +2,7 @@ package org.broadinstitute.sting.queue.util
 
 import java.io._
 import scala.collection.mutable.{HashSet, ListMap}
+import scala.collection.JavaConversions
 
 /**
  * Facade to Runtime.exec() and java.lang.Process.  Handles
@@ -32,7 +33,7 @@ class ProcessController extends Logging {
   stderrCapture.start()
 
   /**
-   * Executes                                                                                                                           a command line program with the settings and waits for it to return, processing the output on a background thread.
+   * Executes a command line program with the settings and waits for it to return, processing the output on a background thread.
    * @param settings Settings to be run.
    * @return The output of the command.
    */
@@ -58,8 +59,8 @@ class ProcessController extends Logging {
       val stderrSettings = if (settings.stderrSettings == null) ProcessController.EmptyStreamSettings else settings.stderrSettings
 
       toCapture.synchronized {
-        toCapture.put(ProcessController.STDOUT_KEY, new ProcessController.CapturedStreamOutput(process.getInputStream, stdoutSettings))
-        toCapture.put(ProcessController.STDERR_KEY, new ProcessController.CapturedStreamOutput(process.getErrorStream, stderrSettings))
+        toCapture.put(ProcessController.STDOUT_KEY, new ProcessController.CapturedStreamOutput(process.getInputStream, stdoutSettings, scala.Console.out))
+        toCapture.put(ProcessController.STDERR_KEY, new ProcessController.CapturedStreamOutput(process.getErrorStream, stderrSettings, scala.Console.err))
         toCapture.notifyAll()
       }
 
@@ -275,7 +276,7 @@ object ProcessController extends Logging {
    * @param stream Stream to capture output.
    * @param settings Settings that define what to capture.
    */
-  private class CapturedStreamOutput(val stream: InputStream, val settings: OutputStreamSettings) extends StreamOutput {
+  private class CapturedStreamOutput(val stream: InputStream, val settings: OutputStreamSettings, val debugStream: PrintStream) extends StreamOutput {
     /**
      * Returns the captured content as a string.
      * @return The captured content as a string.
@@ -318,6 +319,9 @@ object ProcessController extends Logging {
      * @param len Number of characters in the buffer.
      */
     private def writeString(chars: Array[Char], len: Int) = {
+      // If debug is enabled bypass the logger and dump directly to the screen
+      if (logger.isDebugEnabled)
+        debugStream.print(new String(chars, 0, len))
       if (settings.stringSize < 0) {
         stringWriter.write(chars, 0, len)
       } else {

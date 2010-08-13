@@ -21,9 +21,9 @@ class QScriptManager extends PluginManager[QScript](classOf[QScript], "QScript",
    * @return QScripts classes found in the classpath.
    */
   def getValues = {
-    if (logger.isTraceEnabled) {
-      logger.trace(JavaConversions.asMap(this.pluginsByName)
-              .foreach{case (name, clazz) => "Found QScript %s: %s".format(name, clazz)})
+    if (logger.isDebugEnabled) {
+      JavaConversions.asMap(this.pluginsByName)
+              .foreach{case (name, clazz) => logger.debug("Found QScript %s: %s".format(name, clazz))}
     }
     JavaConversions.asIterable(this.pluginsByName.values).toArray
   }
@@ -59,8 +59,8 @@ object QScriptManager extends Logging {
       val compiler = new Global(settings, reporter)
       val run = new compiler.Run
 
-      logger.debug("Compiling %s QScript%s".format(scripts.size, plural(scripts.size)))
-      logger.trace("Compilation directory: " + settings.outdir.value)
+      logger.info("Compiling %s QScript%s".format(scripts.size, plural(scripts.size)))
+      logger.debug("Compilation directory: " + settings.outdir.value)
       run.compileFiles(scripts.map(new PlainFile(_)))
 
       reporter.printSummary()
@@ -73,7 +73,7 @@ object QScriptManager extends Logging {
         logger.warn("Compile succeeded with %d warning%s".format(
           reporter.WARNING.count, plural(reporter.WARNING.count)))
       else
-        logger.debug("Compilation complete")
+        logger.info("Compilation complete")
 
       // Add the new compilation output directory to the classpath.
       ClasspathUtils.addClasspath(outdir)

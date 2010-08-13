@@ -116,7 +116,6 @@
         <!-- Set the properties needed to build Queue and the Queue GATK Extensions -->
         <property name="gatk.target" value="oneoffs"/>
         <property name="queue.target" value="core"/>
-        <property name="queue-gatk-extensions.target" value="core"/>
     </target>
 
     <!-- define some key locations that might change based on how the build is run -->
@@ -144,35 +143,22 @@
             <equals arg1="${env.QUEUE_BUILD_TYPE}" arg2="$${env.QUEUE_BUILD_TYPE}" />
         </condition>
 
-        <!-- Get the queue-gatk-extensions build target.  Default to the queue target. -->
-        <condition property="queue-gatk-extensions.target" value="${queue.target}" else="${env.QUEUE_GATK_EXTENSIONS_BUILD_TYPE}">
-            <equals arg1="${env.QUEUE_GATK_EXTENSIONS_BUILD_TYPE}" arg2="$${env.QUEUE_GATK_EXTENSIONS_BUILD_TYPE}" />
-        </condition>
-
-        <!-- If the queue-gatk-extensions target is set, include all queue-gatk-extensions tasks. -->
-        <condition property="queue-gatk-extensions.include">
-            <not><equals arg1="${queue-gatk-extensions.target}" arg2="none" /></not>
-        </condition>
-
         <!-- If the queue target is set, or if the queue-gatk-extensions needs to be built, then include all queue tasks. -->
         <condition property="queue.include">
             <or>
                 <not><equals arg1="${queue.target}" arg2="none" /></not>
-                <isset property="queue-gatk-extensions.include" />
             </or>
         </condition>
 
-        <!-- If queue or queue-gatk-extensions are build built, then include scala tasks (init.scalatasks) -->
+        <!-- If queue is being built, then include scala tasks (init.scalatasks) -->
         <condition property="scala.include">
             <or>
                 <isset property="queue.include" />
-                <isset property="queue-gatk-extensions.include" />
             </or>
         </condition>
         
         <echo message="GATK build      : ${gatk.target}"/>
         <echo message="Queue build     : ${queue.target}"/>
-        <echo message="Queue GATK ext. : ${queue-gatk-extensions.target}"/>
       <echo message="source revision : ${build.version}"/>
       <echo message="build time      : ${build.timestamp}" />
       
@@ -225,7 +211,7 @@
     </target>
 
     <!-- NOTE: Extracting help first to avoid "Unable to load help text.  Help output will be sparse." warning message. -->
-    <target name="queue-gatk-extensions.generate" depends="gatk.compile, queue.compile, extracthelp" if="queue-gatk-extensions.include" description="generate GATK modules for Queue">
+    <target name="queue-gatk-extensions.generate" depends="gatk.compile, queue.compile, extracthelp" if="queue.include" description="generate GATK modules for Queue">
         <mkdir dir="${queue-gatk-extensions.source.dir}"/>
         <echo>Generating Queue GATK extensions...</echo>
         <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="queue-gatk-extensions.dependencies">
@@ -236,7 +222,7 @@
         </java>
     </target>
 
-    <target name="queue-gatk-extensions.compile" depends="queue-gatk-extensions.generate" if="queue-gatk-extensions.include" description="compile GATK modules for Queue">
+    <target name="queue-gatk-extensions.compile" depends="queue-gatk-extensions.generate" if="queue.include" description="compile GATK modules for Queue">
         <mkdir dir="${queue-gatk-extensions.classes}"/>
         <echo>Building Queue GATK extensions...</echo>
         <scalac srcdir="${queue-gatk-extensions.source.dir}" destdir="${queue-gatk-extensions.classes}" classpathref="queue-gatk-extensions.dependencies" deprecation="yes" unchecked="yes">
@@ -326,7 +312,7 @@
         </jar>
     </target>
 
-    <target name="queue.jar" depends="queue.compile, init.jar" if="queue.include">
+    <target name="queue.jar" depends="queue.compile, queue-gatk-extensions.compile, init.jar" if="queue.include">
         <jar jarfile="${dist.dir}/Queue.jar">
             <fileset dir="${queue.classes}">
                 <include name="org/broadinstitute/sting/queue/**/*.class"/>
@@ -335,9 +321,7 @@
                 <attribute name="Main-Class" value="org.broadinstitute.sting.queue.QCommandLine" />
             </manifest>
         </jar>
-    </target>
 
-    <target name="queue-gatk-extensions.jar" depends="queue-gatk-extensions.compile, init.jar" if="queue-gatk-extensions.include">
         <jar jarfile="${dist.dir}/QueueGATKExtensions.jar">
           <fileset dir="${queue-gatk-extensions.classes}">
             <include name="**/*.class" />
@@ -345,7 +329,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, queue.jar, queue-gatk-extensions.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
@@ -397,9 +381,7 @@
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
         </jar>
-    </target>
 
-    <target name="queue-gatk-extensions.manifests" depends="queue-gatk-extensions.jar, init.manifests" if="queue-gatk-extensions.include">
         <jar jarfile="${dist.dir}/QueueGATKExtensions.jar" update="true" >
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
@@ -407,7 +389,7 @@
         </jar>
     </target>
 
-    <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, queue.manifests, queue-gatk-extensions.manifests" />
+    <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, queue.manifests" />
 
     <target name="dist" depends="sting.manifests" />
 

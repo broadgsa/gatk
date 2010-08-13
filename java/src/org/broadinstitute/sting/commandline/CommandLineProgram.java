@@ -153,6 +153,16 @@ public abstract class CommandLineProgram {
             // setup our log layout
             PatternLayout layout = new PatternLayout();
 
+            // now set the layout of all the loggers to our layout
+            Enumeration<Appender> en = logger.getAllAppenders();
+            for (; en.hasMoreElements();) {
+                Appender app = en.nextElement();
+                app.setLayout(layout);
+            }
+
+            // Initialize the logger using the defaults.
+            clp.setupLoggerLevel(layout);
+
             // setup the parser
             ParsingEngine parser = clp.parser = new ParsingEngine(clp);
             parser.addArgumentSource(clp.getClass());
@@ -169,6 +179,9 @@ public abstract class CommandLineProgram {
                 parser.validate(EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument,
                                            ParsingEngine.ValidationType.InvalidArgument));
                 parser.loadArgumentsIntoObject(clp);
+
+                // Initialize the logger using the loaded command line.
+                clp.setupLoggerLevel(layout);
 
                 Class[] argumentSources = clp.getArgumentSources();
                 for (Class argumentSource : argumentSources)
@@ -187,21 +200,9 @@ public abstract class CommandLineProgram {
 
                 parser.validate();
                 parser.loadArgumentsIntoObject(clp);
-            }
 
-            // if we're in debug mode, set the mode up
-            if (clp.debugMode) {
-                //logger.info("Setting debug");
-                layout.setConversionPattern(debugPatternString);
-            } else {
-                //logger.info("not Setting debug");
-                layout.setConversionPattern(patternString);
-            }
-            // now set the layout of all the loggers to our layout
-            Enumeration<Appender> en = logger.getAllAppenders();
-            for (; en.hasMoreElements();) {
-                Appender app = en.nextElement();
-                app.setLayout(layout);
+                // Initialize the logger using the loaded command line.
+                clp.setupLoggerLevel(layout);
             }
 
             // if they set the mode to quiet
@@ -225,9 +226,6 @@ public abstract class CommandLineProgram {
                     throw new RuntimeException("Unable to re-route log output to " + clp.toFile + " make sure the destination exists");
                 }
             }
-
-            // set the default logger level
-            clp.setupLoggerLevel();
 
             // regardless of what happens next, generate the header information
             HelpFormatter.generateHeaderInformation(clp.getApplicationDetails(), args);
@@ -283,8 +281,20 @@ public abstract class CommandLineProgram {
     /**
      * this function checks the logger level passed in on the command line, taking the lowest
      * level that was provided.
+     * @param layout Pattern layout to format based on the logger level.
      */
-    private void setupLoggerLevel() {
+    @SuppressWarnings("unchecked")
+    private void setupLoggerLevel(PatternLayout layout) {
+        // if we're in debug mode, set the mode up
+        if (debugMode) {
+            //logger.info("Setting debug");
+            layout.setConversionPattern(debugPatternString);
+        } else {
+            //logger.info("not Setting debug");
+            layout.setConversionPattern(patternString);
+        }
+
+        // set the default logger level
         Level par;
         if (logging_level.toUpperCase().equals("DEBUG")) {
             par = Level.DEBUG;
@@ -385,7 +395,7 @@ public abstract class CommandLineProgram {
      * @param e      the exception
      */
     public void generateErrorLog(PrintStream stream, Exception e) {
-        stream.println(e.getStackTrace().toString());
+        e.printStackTrace(stream);
     }
 
     /**
