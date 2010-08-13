@@ -293,23 +293,6 @@
           </manifest>
         </jar>
 
-        <jar jarfile="${dist.dir}/CGUtilities.jar" whenmanifestonly="skip">
-          <fileset dir="${java.classes}">
-            <include name="**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.CGUtilities" />
-          </manifest>
-        </jar>
-
-	   <jar jarfile="${dist.dir}/VCFTool.jar" whenmanifestonly="skip">
-          <fileset dir="${java.classes}">
-            <include name="**/*.class"/>
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.vcf.VCFTool" />
-          </manifest>
-        </jar>
     </target>
 
     <target name="queue.jar" depends="queue.compile, queue-gatk-extensions.compile, init.jar" if="queue.include">
@@ -349,12 +332,6 @@
 
     <target name="gatk.manifests" depends="gatk.jar, init.manifests">
 
-        <jar jarfile="${dist.dir}/VCFTool.jar" update="true" >
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
@@ -362,12 +339,6 @@
         </jar>
 
         <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/CGUtilities.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
