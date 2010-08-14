@@ -314,9 +314,15 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             for (final String sample : validation.getSampleNames()) {
                 final Genotype.Type truth = validation.getGenotype(sample).getType();
                 sampleStats.incrValue(sample, truth, called);
-                if ( (truth == Genotype.Type.HOM_VAR || truth == Genotype.Type.HET) && called == Genotype.Type.NO_CALL ) {
-                    if ( PRINT_INTERESTING_SITES && super.getVEWalker().printInterestingSites() )
-                        ;//System.out.printf("%s: HM3 FN => %s%n", group, validation);
+
+                // print out interesting sites
+                if ( PRINT_INTERESTING_SITES && super.getVEWalker().gcLog != null ) {
+                    if ( (truth == Genotype.Type.HOM_VAR || truth == Genotype.Type.HET) && called == Genotype.Type.NO_CALL ) {
+                        super.getVEWalker().gcLog.printf("%s FN %s%n", group, validation);
+                    }
+                    if ( (called == Genotype.Type.HOM_VAR || called == Genotype.Type.HET) && truth == Genotype.Type.HOM_REF ) {
+                        super.getVEWalker().gcLog.printf("%s FP %s%n", group, validation);
+                    }
                 }
             }
         }

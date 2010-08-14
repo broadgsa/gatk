@@ -54,6 +54,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -157,6 +158,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     @Argument(shortName="outputVCF", fullName="InterestingSitesVCF", doc="If provided, interesting sites emitted to this vcf and the INFO field annotated as to why they are interesting", required=false)
     protected String outputVCF = null;
+
+    @Argument(shortName="gcLog", fullName="GenotypeCocordanceLog", doc="If provided, sites with genotype concordance problems (e.g., FP and FNs) will be emitted ot this file", required=false)
+    protected PrintStream gcLog = null;
 
     private static double NO_MIN_QUAL_SCORE = -1.0;
     @Argument(shortName = "Q", fullName="minPhredConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
