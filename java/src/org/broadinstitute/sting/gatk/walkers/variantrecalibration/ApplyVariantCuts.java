@@ -126,17 +126,25 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
 
     public void initialize() {
 
-        // todo -- ryan, it's always best to use a read data structure, I need to read these in.
+        // todo -- ryan, it's always best to use a data structure, I need to read these in too.
         // todo -- I would have updated your code but there's no integration test to protect me from unexpected effects
         boolean firstLine = true;
         try {
             for( final String line : new XReadLines(new File( TRANCHE_FILENAME )) ) {
                 if( !firstLine ) {
                     final String[] vals = line.split(",");
-                    if(Double.parseDouble(vals[0]) >= FDR_FILTER_LEVEL) {
-                        qCuts.add(Double.parseDouble(vals[2]));
-                        filterName.add(vals[4]);
+                    double FDR = Double.parseDouble(vals[0]);
+                    double TsTv = Double.parseDouble(vals[1]);
+                    double pCut = Double.parseDouble(vals[2]);
+                    String name = vals[4];
+                    //String statusMsg = "Excluding, below FDR level";
+                    if (FDR >= FDR_FILTER_LEVEL) {
+                        qCuts.add(pCut);
+                        filterName.add(name);
+                        //statusMsg = "Keeping, above FDR threshold";
                     }
+                    logger.info(String.format("Tranche %s with %.2f FDR, TsTv %.2f and pCut %.2f, threshold %.2f",
+                            name, FDR, TsTv, pCut, FDR_FILTER_LEVEL));
                 }
                 firstLine = false;
             }
