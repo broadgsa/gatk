@@ -12,6 +12,14 @@ class recalibrate extends QScript {
   @Argument(doc="gatk jar file")
   var gatkJarFile: File = _
 
+  @Argument(doc="Assume initial count covariates has completed", required=false)
+  var skipInitialCountCovariates: Boolean = false
+
+  @Argument(shortName = "R", doc="ref")
+  var referenceFile: File = _
+
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; reference_sequence = referenceFile;  }
+
 def script = {
     for (bamIn <- bamIns) {
       val root = bamIn.getPath()
@@ -19,11 +27,12 @@ def script = {
       val recalData = new File(bamRoot + ".recal_data.csv")
       val recalBam = new File(bamRoot + ".recal.bam")
       val recalRecalData = new File(bamRoot + ".recal.recal_data.csv")
-      //add(new CountCovariates(bamIn, recalData, "-OQ"))
+      if ( ! skipInitialCountCovariates )
+          add(new CountCovariates(bamIn, recalData) { useOriginalQualities = true } )
       val tableRecal = new TableRecalibrate(bamIn, recalData, recalBam) { useOriginalQualities = true }
       if ( scatter ) {
-            tableRecal.intervals = new File("/humgen/gsa-hpprojects/GATK/data/chromosomes.hg18.interval_list")
-      	    tableRecal.scatterCount = 25
+          tableRecal.intervals = new File("/humgen/gsa-hpprojects/GATK/data/chromosomes.hg18.interval_list")
+      	  tableRecal.scatterCount = 25
       }
       add(tableRecal)
       add(new Index(recalBam))
@@ -39,7 +48,7 @@ class Index(bamIn: File) extends BamIndexFunction {
     bamFile = bamIn
 }
 
-class CountCovariates(bamIn: File, recalDataIn: File) extends org.broadinstitute.sting.queue.extensions.gatk.CountCovariates {
+class CountCovariates(bamIn: File, recalDataIn: File) extends org.broadinstitute.sting.queue.extensions.gatk.CountCovariates with UNIVERSAL_GATK_ARGS {
     this.jarFile = gatkJarFile
     this.input_file :+= bamIn
     this.recal_file = recalDataIn
@@ -47,12 +56,12 @@ class CountCovariates(bamIn: File, recalDataIn: File) extends org.broadinstitute
     this.logging_level = "INFO"
     this.max_reads_at_locus = Some(20000)
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
-    this.memoryLimit = Some(4)
-
+    this.memoryLimit = Some(3)
+    
     override def dotString = "CountCovariates: %s [args %s]".format(bamIn.getName, if (this.num_threads.isDefined) "-nt " + this.num_threads else "")
 }
 
-class TableRecalibrate(bamInArg: File, recalDataIn: File, bamOutArg: File) extends org.broadinstitute.sting.queue.extensions.gatk.TableRecalibration {
+class TableRecalibrate(bamInArg: File, recalDataIn: File, bamOutArg: File) extends org.broadinstitute.sting.queue.extensions.gatk.TableRecalibration with UNIVERSAL_GATK_ARGS {
     this.jarFile = gatkJarFile
     this.input_file :+= bamInArg
     this.recal_file = recalDataIn
@@ -70,7 +79,7 @@ class AnalyzeCovariates(recalDataIn: File, outputDir: File) extends  org.broadin
     this.path_to_resources = "/home/radon01/depristo/dev/GenomeAnalysisTK/trunk/R/"
     this.ignoreQ = Some(5)
     this.path_to_Rscript = "/broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.7.2/bin/Rscript"
-    this.memoryLimit = Some(4)
+    this.memoryLimit = Some(2)
 
     override def dotString = "AnalyzeCovariates: %s".format(recalDataIn.getName)
 }
