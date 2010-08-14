@@ -78,13 +78,13 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     /////////////////////////////
     @ArgumentCollection private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
-    @Argument(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file")
-    public String RECAL_FILE = "output.recal_data.csv";
+    @Input(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file")
+    public File RECAL_FILE = new File("output.recal_data.csv");
 
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="output_bam", shortName="outputBam", doc="The output BAM file", required=true)
+    @Output(fullName="output_bam", shortName="outputBam", doc="The output BAM file", required=true)
     private StingSAMFileWriter OUTPUT_BAM = null;
     @Argument(fullName="preserve_qscores_less_than", shortName="pQ",
         doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
@@ -159,7 +159,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         boolean sawEOF = false;
         try {
-            for ( String line : new XReadLines(new File( RECAL_FILE )) ) {
+            for ( String line : new XReadLines(RECAL_FILE) ) {
                 lineNumber++;
                 if ( EOF_MARKER.equals(line) ) {
                     sawEOF = true;
