@@ -90,7 +90,8 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
         } catch (IOException e) {
             Assert.fail("We weren't expecting an exception -> " + e.getMessage());
         }
-        Assert.assertTrue(ind != null);
+        // make sure we get back a null index; i.e. we can't load the index from disk
+        Assert.assertTrue(ind == null);
     }
 
 
