@@ -526,7 +526,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
            // start cleaning the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                 AlignedRead aRead = altReads.get(indexPair.first);
-                updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, (int)leftmostIndex);
+                if ( !updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, (int)leftmostIndex) )
+                    return;
             }
             if ( !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
                 if ( statsOutput != null ) {
@@ -844,7 +845,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
 
-    private void updateRead(final Cigar altCigar, final int altPosOnRef, final int myPosOnAlt, final AlignedRead aRead, final int leftmostIndex) {
+    private boolean updateRead(final Cigar altCigar, final int altPosOnRef, final int myPosOnAlt, final AlignedRead aRead, final int leftmostIndex) {
         Cigar readCigar = new Cigar();
 
         // special case: there is no indel
@@ -852,7 +853,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             aRead.setAlignmentStart(leftmostIndex + myPosOnAlt);
             readCigar.add(new CigarElement(aRead.getReadLength(), CigarOperator.M));
             aRead.setCigar(readCigar);
-            return;
+            return true;
         }
 
         CigarElement altCE1 = altCigar.getCigarElement(0);
@@ -863,16 +864,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         CigarElement indelCE;
         if ( altCE1.getOperator() == CigarOperator.I  ) {
             indelCE=altCE1;
-            if ( altCE2.getOperator() != CigarOperator.M  )
-                throw new StingException("When first element of the alt consensus is I, the second one must be M. Actual: "+altCigar.toString());
+            if ( altCE2.getOperator() != CigarOperator.M  ) {
+                logger.warn("When the first element of the alt consensus is I, the second one must be M. Actual: " + altCigar.toString() + ".  Skipping this site...");
+                return false;
+            }
         }
         else {
-            if ( altCE1.getOperator() != CigarOperator.M  )
-                throw new StingException("First element of the alt consensus cigar must be M or I. Actual: "+altCigar.toString());
-            if ( altCE2.getOperator() == CigarOperator.I  || altCE2.getOperator() == CigarOperator.D )
+            if ( altCE1.getOperator() != CigarOperator.M  ) {
+                logger.warn("First element of the alt consensus cigar must be M or I. Actual: " + altCigar.toString() + ".  Skipping this site...");
+                return false;
+            }
+            if ( altCE2.getOperator() == CigarOperator.I  || altCE2.getOperator() == CigarOperator.D ) {
                 indelCE=altCE2;
-            else
-                throw new StingException("When first element of the alt consensus is M, the second one must be I or D. Actual: "+altCigar.toString());
+            } else {
+                logger.warn("When first element of the alt consensus is M, the second one must be I or D. Actual: " + altCigar.toString() + ".  Skipping this site...");
+                return false;
+            }
             leadingMatchingBlockLength = altCE1.getLength();
         }
 
@@ -889,7 +896,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( myPosOnAlt + aRead.getReadLength() <= endOfFirstBlock) {
                 readCigar.add(new CigarElement(aRead.getReadLength(), CigarOperator.M));
                 aRead.setCigar(readCigar);
-                return;
+                return true;
             }
             readCigar.add(new CigarElement(endOfFirstBlock - myPosOnAlt, CigarOperator.M));
         }
@@ -901,7 +908,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( myPosOnAlt + aRead.getReadLength() < endOfFirstBlock + indelCE.getLength() ) {
                 readCigar.add(new CigarElement(myPosOnAlt + aRead.getReadLength() - endOfFirstBlock, CigarOperator.I));
                 aRead.setCigar(readCigar);
-                return;
+                return true;
             }
 
             // for reads that start in an insertion
@@ -925,7 +932,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             aRead.setAlignmentStart(leftmostIndex + myPosOnAlt + indelOffsetOnRef - indelOffsetOnRead);
             readCigar.add(new CigarElement(aRead.getReadLength(), CigarOperator.M));
             aRead.setCigar(readCigar);
-            return;
+            return true;
         }
 
         int readRemaining = aRead.getReadBases().length;
@@ -936,6 +943,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( readRemaining > 0 )
             readCigar.add(new CigarElement(readRemaining, CigarOperator.M));
         aRead.setCigar(readCigar);
+
+        return true;
     }
 
     private boolean alternateReducesEntropy(final List<AlignedRead> reads, final byte[] reference, final long leftmostIndex) {
