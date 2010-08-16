@@ -111,8 +111,8 @@ def endToEnd(base: String, bamFiles: List[File]) = {
  snps.rodBind :+= RodBind( "comp1KG_CEU", "VCF", new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/CEU.low_coverage.2010_07.sites.hg18.vcf.gz") )
 
 
- // TODO: what is the 1KG_ALL track?
- //snps.rodBind :+= RodBind( "comp1KG_ALL", "VCF", qscript.trigger )
+ // TODO: what is the 1KG_ALL track? -- same as trigger -- just makes sure the field is propagated :: chartl
+ snps.rodBind :+= RodBind( "comp1KG_ALL", "VCF", qscript.trigger )
 
 
  snps.scatterCount = 100
