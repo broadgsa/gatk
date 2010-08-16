@@ -65,12 +65,6 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      */
     private static Logger logger = Logger.getLogger(TribbleRMDTrackBuilder.class);
 
-    // what index to use
-    static boolean useLinearIndex = true;
-
-    // our bin size
-    static int binSize = 1600;
-
     // the linear index extension
     public static final String indexExtension = ".idx";
 
@@ -197,11 +191,8 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
 
         // create the index file name, locking on the index file name
         File indexFile = null;
-        if (useLinearIndex)
-            indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
-        else
-            indexFile = new File(inputFile.getAbsoluteFile() + ".tdx");
-        
+        indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
+
         FSLockWithShared lock = new FSLockWithShared(indexFile);
 
         // acquire a lock on the file
@@ -317,13 +308,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
         IndexCreator creator;
-        if (useLinearIndex) {
-            creator = new LinearIndexCreator(inputFile,codec,null);
-            ((LinearIndexCreator)creator).setBinWidth(binSize);
-        } else {
-            creator = new IntervalIndexCreator(inputFile, codec, null);
-            ((IntervalIndexCreator)creator).setFeaturesPerInterval(binSize);  
-        }
+        creator = new LinearIndexCreator(inputFile, codec, null);
         return creator.createIndex();
     }
 

@@ -284,7 +284,9 @@ public class WalkerTest extends BaseTest {
         if (CommandLineExecutable.result != 0) {
             throw new RuntimeException("Error running the GATK with arguments: " + args);
         }
-
+        // clean up some memory
+        instance = null;
+        cmd2 = null;
         return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, md5s));
     }
 
