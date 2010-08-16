@@ -2,11 +2,13 @@ package org.broadinstitute.sting.gatk.refdata.features.refseq;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +20,7 @@ public class RefSeqCodec implements FeatureCodec {
     @Override
     public Feature decodeLoc(String line) {
         String fields[] = line.split("\t");
+        if (fields.length < 3) throw new TribbleException("RefSeq (decodeLoc) : Unable to parse line -> " + line + ", we expected at least 3 columns, we saw " + fields.length);
         String contig_name = fields[2];
         return new RefSeqFeature(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5]));
     }
@@ -27,6 +30,8 @@ public class RefSeqCodec implements FeatureCodec {
     public Feature decode(String line) {
         String fields[] = line.split("\t");
 
+        // we reference postion 15 in the split array below, make sure we have at least that many columns
+        if (fields.length < 16) throw new TribbleException("RefSeq (decode) : Unable to parse line -> " + line + ", we expected at least 16 columns, we saw " + fields.length);
         String contig_name = fields[2];
         RefSeqFeature feature = new RefSeqFeature(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5]));
 
