@@ -203,7 +203,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     final double pVar = theModel.evaluateVariant( vc );
 
                     final double lod = (Math.log10(totalPrior) + Math.log10(pVar)) - ((Math.log10(1.0 - totalPrior)) + Math.log10(1.0));
-                    variantDatum.qual = QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod);
+                    variantDatum.qual = Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod) );
 
                     mapList.add( variantDatum );
 
