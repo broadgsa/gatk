@@ -102,6 +102,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(fullName="fail_with_no_eof_marker", shortName="requireEOF", required=false, doc="If no EOF marker is present in the covariates file, exit the program with an exception.")
     private boolean REQUIRE_EOF = false;
 
+    @Hidden
+    @Argument(fullName="skipUQUpdate", shortName="skipUQUpdate", required=false, doc="If true, we will skip the UQ updating step for each read, speeding up the calculations")
+    private boolean skipUQUpdate = false;
+
+
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
@@ -375,7 +380,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, SAMUtils.phredToFastq(originalQuals));
         }
 
-        if (read.getAttribute(SAMTag.UQ.name()) != null && refBases != null) {
+        if (read.getAttribute(SAMTag.UQ.name()) != null && refBases != null && ! skipUQUpdate ) {
             read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, refBases.getBases(), read.getAlignmentStart() - 1, false));
         }
 

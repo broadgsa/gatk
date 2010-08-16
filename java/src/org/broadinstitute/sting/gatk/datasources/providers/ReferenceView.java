@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
@@ -64,14 +65,6 @@ public class ReferenceView implements View {
      * @return A list of the bases starting at the start of the locus (inclusive) and ending
      *         at the end of the locus (inclusive).
      */
-//    protected char[] getReferenceBasesAsChars( GenomeLoc genomeLoc ) {
-////        SAMSequenceRecord sequenceInfo = reference.getSequenceDictionary().getSequence(genomeLoc.getContig());
-////        long stop = Math.min( genomeLoc.getStop(), sequenceInfo.getSequenceLength() );
-////        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),stop);
-////        return (StringUtil.bytesToString(subsequence.getBases()) + Utils.dupString('X', (int)(genomeLoc.getStop() - stop)) ).toCharArray();
-//        return new String(getReferenceBases(genomeLoc)).toCharArray();
-//    }
-
     final static int BUFFER = 10000;
     final static byte[] Xs = new byte[BUFFER];
     static {

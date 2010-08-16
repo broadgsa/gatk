@@ -165,6 +165,22 @@ public class LocusReferenceView extends ReferenceView {
         return l;
     }
 
+    public class Provider implements ReferenceContext.ReferenceContextRefProvider {
+        int refStart, len;
+
+        public Provider( int refStart, int len ) {
+            this.refStart = refStart;
+            this.len = len;
+        }
+
+        public byte[] getBases() {
+            //System.out.printf("Getting bases for location%n");
+            byte[] bases = new byte[len];
+            System.arraycopy(referenceSequence.getBases(), refStart, bases, 0, len);
+            return bases;
+        }
+    }
+
     /**
      * Gets the reference context associated with this particular point or extended interval on the genome.
      * @param genomeLoc Region for which to retrieve the base(s). If region spans beyond contig end or beoynd current bounds, it will be trimmed down.
@@ -186,31 +202,9 @@ public class LocusReferenceView extends ReferenceView {
             refStart = (int)window.getStart()-1;
         }
 
-        // todo -- how often is this copy unnecessary?
         int len = (int)window.size();
-        byte[] bases = new byte[len];
-        System.arraycopy(referenceSequence.getBases(), refStart, bases, 0, len);
-        return new ReferenceContext( genomeLoc, window, bases );
+        return new ReferenceContext( genomeLoc, window, new Provider(refStart, len));
     }
-
-//    public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
-//        //validateLocation( genomeLoc );
-//
-//        GenomeLoc window = GenomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
-//        char[] bases = null;
-//
-//        if(bounds != null) {
-//            window = trimToBounds(window);
-//            bases = StringUtil.bytesToString( referenceSequence.getBases(), (int)(window.getStart() - getWindowStart(bounds)), (int)window.size() ).toCharArray();
-//        }
-//        else {
-//            if(referenceSequence == null || referenceSequence.getContigIndex() != genomeLoc.getContigIndex())
-//                referenceSequence = reference.getSequence(genomeLoc.getContig());
-//            bases = StringUtil.bytesToString( referenceSequence.getBases(), (int)window.getStart()-1, (int)window.size()).toCharArray();
-//        }
-//        return new ReferenceContext( genomeLoc, window, bases );
-//    }
-
 
     /**
      * Allow the user to pull reference info from any arbitrary region of the reference.

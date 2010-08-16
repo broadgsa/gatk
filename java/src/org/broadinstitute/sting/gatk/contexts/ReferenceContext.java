@@ -52,9 +52,14 @@ public class ReferenceContext {
     private GenomeLoc window;
 
     /**
-     * The bases in the window around the current locus.
+     * The bases in the window around the current locus.  If null, then bases haven't been fetched yet
      */
-    private byte[] bases;
+    private byte[] basesCache = null;
+
+    /**
+     * Lazy loader to fetch reference bases
+     */
+    private ReferenceContextRefProvider basesProvider;
 
     /**
      * A cache of the bases converted to characters for walkers not yet using byte[] interface
@@ -62,24 +67,62 @@ public class ReferenceContext {
     private char[] basesAsCharCached = null;
 
     /**
+     * Interface to create byte[] contexts for lazy loading of the reference
+     */
+    public static interface ReferenceContextRefProvider {
+        /**
+         * You must provide a routine that gets the byte[] bases that would have been passed into the
+         * ReferenceContext.  The RC will handling caching.  The value of this interface and routine is
+         * that it is only called when the bytes are actually requested by the walker, not up front.  So
+         * if the walker doesn't need the refBases for whatever reason, there's no overhead to
+         * provide them.
+         *
+         * @return
+         */
+        public byte[] getBases();
+    }
+
+    private static class ForwardingProvider implements ReferenceContextRefProvider {
+        byte[] bases;
+
+        public ForwardingProvider( byte base ) {
+            this(new byte[] { base });
+        }
+
+        public ForwardingProvider( byte[] bases ) {
+            this.bases = bases;
+        }
+
+        public byte[] getBases() { return bases; }
+    }
+
+    /**
      * Contructor for a simple, windowless reference context.
      * @param locus locus of interest.
      * @param base reference base at that locus.
      */
     public ReferenceContext( GenomeLoc locus, byte base ) {
-        this( locus, locus, new byte[] { UPPERCASE_REFERENCE ? StringUtil.toUpperCase(base) : base } );
+        this( locus, locus, new ForwardingProvider(base) );
     }
 
-    // todo -- this really should take the referenceview as an option and only grab the bases if necessary
     public ReferenceContext( GenomeLoc locus, GenomeLoc window, byte[] bases ) {
+        this( locus, window, new ForwardingProvider(bases) );
+    }
+
+    public ReferenceContext( GenomeLoc locus, GenomeLoc window, ReferenceContextRefProvider basesProvider ) {
   //      if( !window.containsP(locus) )
   //          throw new StingException("Invalid locus or window; window does not contain locus");
 
         this.locus = locus;
         this.window = window;
-        this.bases = bases;
+        this.basesProvider = basesProvider;
+    }
 
-        if (UPPERCASE_REFERENCE) StringUtil.toUpperCase(bases);
+    private void fetchBasesFromProvider() {
+        if ( basesCache == null ) {
+            basesCache = basesProvider.getBases();
+            if (UPPERCASE_REFERENCE) StringUtil.toUpperCase(basesCache);
+        }
     }
 
     /**
@@ -99,7 +142,7 @@ public class ReferenceContext {
      * @return The base at the given locus from the reference.
      */
     public byte getBase() {
-        return bases[(int)(locus.getStart() - window.getStart())];
+        return getBases()[(int)(locus.getStart() - window.getStart())];
     }
 
     @Deprecated
@@ -121,13 +164,14 @@ public class ReferenceContext {
      *         contain only the base at the given locus.
      */
     public byte[] getBases() {
-        return bases;
+        fetchBasesFromProvider();
+        return basesCache;
     }
 
     @Deprecated
     public char[] getBasesAsChars() {
         if ( basesAsCharCached == null )
-            basesAsCharCached = new String(bases).toCharArray();
+            basesAsCharCached = new String(getBases()).toCharArray();
         return basesAsCharCached;
     }
 
@@ -140,7 +184,7 @@ public class ReferenceContext {
      * @return
      */
     public byte[] getBasesAtLocus(int n) {
-
+        byte[] bases = getBases();
         int start = (int)(locus.getStart()-window.getStart());
         int stop = ( n==(-1) ? bases.length : start+n );
 
@@ -152,10 +196,5 @@ public class ReferenceContext {
         int i = 0;
         for ( int j = start ;  j < stop ; j++) b[i++]=bases[j];
         return b;
-    }
-
-    @Deprecated
-    public char[] getBasesAtLocusAsChar(int n) {
-        return new String(getBasesAtLocus(n)).toCharArray();
     }
 }

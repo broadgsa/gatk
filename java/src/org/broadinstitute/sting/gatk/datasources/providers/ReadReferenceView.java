@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -52,26 +53,29 @@ public class ReadReferenceView extends ReferenceView {
         super(provider);
     }
 
-    /**
-     * Gets the bases of the reference that are aligned to the given read.
-     *
-     * @param read the read for which to extract reference information.
-     *
-     * @return The bases corresponding to this read, or null if the read is unmapped.
-     *         If the alignment goes off the end of the contig, return just the portion
-     *         mapped to the reference, followed by X's coresponding to the rest of the read.
-     *         This indicates that the rest lies off the end of the contig.
-     */
-//    public char[] getReferenceBases( SAMRecord read ) {
-//        if (read.getReadUnmappedFlag())
-//            return null;
-//        return getReferenceBases( GenomeLocParser.createGenomeLoc(read) );
-//    }
+    protected ReferenceContext.ReferenceContextRefProvider getReferenceBasesProvider( GenomeLoc genomeLoc ) {
+        return new Provider(genomeLoc);
+    }
+
+    public class Provider implements ReferenceContext.ReferenceContextRefProvider {
+        GenomeLoc loc;
+
+        public Provider( GenomeLoc loc ) {
+            this.loc = loc;
+        }
+
+        public byte[] getBases() {
+//            System.out.printf("Getting bases for location %s%n", loc);
+//            throw new StingException("x");
+            return getReferenceBases(loc);
+        }
+    }
 
     public ReferenceContext getReferenceContext( SAMRecord read ) {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
-        byte[] bases = super.getReferenceBases(loc);
-        return new ReferenceContext( loc, loc, bases );
+//        byte[] bases = super.getReferenceBases(loc);
+//        return new ReferenceContext( loc, loc, bases );
+        return new ReferenceContext( loc, loc, getReferenceBasesProvider(loc) );
     }
 
 }
