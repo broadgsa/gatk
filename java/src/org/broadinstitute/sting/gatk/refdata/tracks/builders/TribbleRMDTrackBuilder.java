@@ -196,7 +196,12 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public synchronized static Index loadIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
 
         // create the index file name, locking on the index file name
-        File indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
+        File indexFile = null;
+        if (useLinearIndex)
+            indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
+        else
+            indexFile = new File(inputFile.getAbsoluteFile() + ".tdx");
+        
         FSLockWithShared lock = new FSLockWithShared(indexFile);
 
         // acquire a lock on the file
@@ -251,7 +256,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
         // check if the file is up-to date (filestamp and version check)
-        if (/*index.isCurrentVersion() &&  */ indexFile.lastModified() > inputFile.lastModified())
+        if (index.isCurrentVersion() && indexFile.lastModified() > inputFile.lastModified())
             return index;
         else if (indexFile.lastModified() < inputFile.lastModified())
             logger.warn("Index file " + indexFile + " is out of date (index older than input file), deleting and updating the index file");
