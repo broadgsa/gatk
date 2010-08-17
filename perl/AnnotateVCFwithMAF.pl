@@ -1,11 +1,19 @@
 #!/usr/bin/perl -w
 
 use strict;
-use lib "$ENV{'STING_DIR'}/perl";
-use StingArgs;
-use Data::Dumper;
 
-my %args = &getCommandArguments("VCF_IN" => undef, "MAF_IN" => undef, "VCF_OUT" => "/dev/stdout");
+sub usage {
+    print "Usage: $0 <input.vcf> <input.maf> <output.vcf>\n";
+    print "This program takes an annotated MAF file and propagates the annotations to the VCF file.\n";
+    exit(1);
+}
+
+my %args;
+($args{'VCF_IN'}, $args{'MAF_IN'}, $args{'VCF_OUT'}) = @ARGV;
+
+if (!defined($args{'VCF_IN'}) || !defined($args{'MAF_IN'}) || !defined($args{'VCF_OUT'})) {
+    &usage();
+}
 
 my %ignoreEntries = (
     'normal_barcode' => 1,
@@ -37,13 +45,10 @@ while (my $mafline = <MAF_IN>) {
     my $locus = "$mafentry{'chr'}:$mafentry{'start'}";
     if (exists($mafentry{$locus})) {
         print "Locus $locus already spoken for!\n";
-        print Dumper(\%mafentry);
         exit(1);
     }
 
     $maf{$locus} = \%mafentry;
-
-    #print Dumper(\%mafentry);
 }
 close(MAF_IN);
 
