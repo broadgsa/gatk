@@ -153,7 +153,6 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
         final double annotationValues[] = new double[annotationKeys.size()];
 
-        // todo -- do we really need to support multiple tracks -- logic is cleaner without this case -- what's the use case?
         for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
             if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
@@ -183,8 +182,10 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                         else if( DbSNPHelper.is1000genomes( dbsnp ) ) { variantDatum.weight = WEIGHT_1000GENOMES; }
                         else if( DbSNPHelper.isMQ1( dbsnp ) ) { variantDatum.weight = WEIGHT_MQ1; }
                     }
-                    
-                    mapList.add( variantDatum );
+
+                    if( variantDatum.weight > 0.0 && variantDatum.qual > QUAL_THRESHOLD ) {
+                        mapList.add( variantDatum );
+                    }
                 }
             }
         }

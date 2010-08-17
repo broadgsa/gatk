@@ -188,77 +188,41 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         // Initialize the Allele Count prior
         generateAlleleCountPrior();
 
-        int numValid = 0;
-        int numOutlier = 0;
-        int numBadQual = 0;
-        int numZeroWeight = 0;
+//        int numValid = 0;
+//        int numOutlier = 0;
+//        int numBadQual = 0;
+//        int numZeroWeight = 0;
 
-        // Only cluster with a good set of knowns. Filter based on being too many std's away from the mean annotation value or having low quality score
-        for( final VariantDatum datum : dataManager.data ) {
-            boolean goodVar = true;
-            if(!(datum.weight > 0.0)) {
-                goodVar = false;
-                numZeroWeight++;
-            }
-            if(goodVar) {
-                for( final double val : datum.annotations ) {
-                    if( Math.abs(val) > stdThreshold ) {
-                        goodVar = false;
-                        numOutlier++;
-                        break;
-                    }
+        // Only cluster with a good set of knowns. Filter based on being too many std's away from the mean annotation value
+        // Filtering based on known status and qual threshold happens in GenerateVariantClusters
+        for( int iii = 0; iii < dataManager.data.length; iii++ ) {
+            final VariantDatum datum = dataManager.data[iii];
+            for( final double val : datum.annotations ) {
+                if( Math.abs(val) > stdThreshold ) {
+                    datum.weight = 0.0;
+                    break;
                 }
             }
-            if(goodVar) {
-                if( datum.qual < qualThreshold ) {
-                    goodVar = false;
-                    numBadQual++;
-                }
-            }
-            if(goodVar) { numValid++; }
         }
 
-        final VariantDatum data[] = new VariantDatum[numValid];
-        int iii = 0;
-        for( final VariantDatum datum : dataManager.data ) {
-            boolean goodVar = true;
-            if(!(datum.weight > 0.0)) {
-                goodVar = false;
-            }
-            if(goodVar) {
-                for( final double val : datum.annotations ) {
-                    if( Math.abs(val) > stdThreshold ) {
-                        goodVar = false;
-                        break;
-                    }
-                }
-            }
-            if(goodVar) {
-                if( datum.qual < qualThreshold ) {
-                    goodVar = false;
-                }
-            }
-            if(goodVar) { data[iii++] = datum; }
-        }
+//        logger.info("Clustering with " + data.length + " valid variants.");
+//        logger.info("  " + numZeroWeight + " variants were removed from clustering due to having zero clustering weight.");
+//        logger.info("  " + numOutlier + " variants were removed due to having annotations that were more than " + stdThreshold + " standard deviations away from the mean annotation value.");
+//        logger.info("  " + numBadQual + " variants were removed because raw QUAL value was less than threshold (" + qualThreshold + ").");
 
-        logger.info("Clustering with " + data.length + " valid variants.");
-        logger.info("  " + numZeroWeight + " variants were removed from clustering due to having zero clustering weight.");
-        logger.info("  " + numOutlier + " variants were removed due to having annotations that were more than " + stdThreshold + " standard deviations away from the mean annotation value.");
-        logger.info("  " + numBadQual + " variants were removed because raw QUAL value was less than threshold (" + qualThreshold + ").");
-
-        generateEmpricalStats( data );
+        generateEmpricalStats( dataManager.data );
 
         logger.info("Initializing using k-means...");
-        initializeUsingKMeans( data );
+        initializeUsingKMeans( dataManager.data );
         logger.info("... done!");
-        createClusters( data, 0, maxGaussians, clusterFileName );
+        createClusters( dataManager.data, 0, maxGaussians, clusterFileName );
 
         // Simply cluster with all the variants. The knowns have been given more weight than the novels
         //logger.info("Clustering with " + dataManager.data.length + " variants.");
         //createClusters( dataManager.data, 0, numGaussians, clusterFileName );
     }
 
-    private void generateEmpricalStats( VariantDatum[] data ) {
+    private void generateEmpricalStats( final VariantDatum[] data ) {
         final int numVariants = data.length;
         final int numAnnotations = data[0].annotations.length;
 
@@ -323,7 +287,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    public void setSingletonFPRate(double rate) {
+    public void setSingletonFPRate( final double rate ) {
         this.singletonFPRate = rate;
     }
 
@@ -358,19 +322,21 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         final int[] assignment = new int[numVariants];
         for( int iii = 0; iii < numVariants; iii++ ) {
             final VariantDatum datum = data[iii];
-            double minDistance = Double.MAX_VALUE;
-            int minCluster = -1;
-            for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
-                double dist = 0.0;
-                for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    dist += (datum.annotations[jjj] - mu[kkk][jjj]) * (datum.annotations[jjj] - mu[kkk][jjj]);
+            if(datum.weight > 0.0) {
+                double minDistance = Double.MAX_VALUE;
+                int minCluster = -1;
+                for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
+                    double dist = 0.0;
+                    for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                        dist += (datum.annotations[jjj] - mu[kkk][jjj]) * (datum.annotations[jjj] - mu[kkk][jjj]);
+                    }
+                    if(dist < minDistance) {
+                        minDistance = dist;
+                        minCluster = kkk;
+                    }
                 }
-                if(dist < minDistance) {
-                    minDistance = dist;
-                    minCluster = kkk;
-                }
+                assignment[iii] = minCluster;
             }
-            assignment[iii] = minCluster;
         }
 
         for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
