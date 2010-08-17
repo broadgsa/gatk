@@ -1,4 +1,5 @@
 import org.broadinstitute.sting.queue.extensions.gatk._
+import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
 import org.apache.commons.io.FilenameUtils;
 
@@ -44,7 +45,7 @@ def script = {
 
 def bai(bam: File) = new File(bam + ".bai")
 
-class Index(bamIn: File) extends BamIndexFunction {
+class Index(bamIn: File) extends SamtoolsIndexFunction {
     bamFile = bamIn
 }
 

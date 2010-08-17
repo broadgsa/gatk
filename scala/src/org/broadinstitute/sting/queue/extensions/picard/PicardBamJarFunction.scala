@@ -20,7 +20,7 @@ trait PicardBamJarFunction extends JarCommandLineFunction {
   protected def inputBams: List[File]
   protected def outputBam: File
 
-  override def commandLine = super.commandLine + "%s%s%s".format(
+  override def commandLine = super.commandLine + "%s%s%s%s%s%s%s%s".format(
     optional(" COMPRESSION_LEVEL=", compressionLevel), optional(" VALIDATION_STRINGENCY=", validationStringency),
     optional(" SO=", sortOrder), optional( " MAX_RECORDS_IN_RAM=", maxRecordsInRam), optional(" ASSUME_SORTED=", assumeSorted),
     " OUTPUT=" + outputBam, repeat(" INPUT=", inputBams), " TMP_DIR=" + jobTempDir)

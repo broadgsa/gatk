@@ -1,18 +1,15 @@
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.sting.queue.extensions.samtools
 
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import java.io.File
 import org.broadinstitute.sting.commandline.{Argument, Output, Input}
 
 /**
- * Indexes a BAM file.
- * By default uses samtools index.
- * The syntax of the script must be:
- * <bamIndexScript> <bam_file> <bam_index_file>
+ * Indexes a BAM file using samtools.
  */
-class BamIndexFunction extends CommandLineFunction {
-  @Argument(doc="BAM file script")
-  var bamIndexScript: String = "samtools index"
+class SamtoolsIndexFunction extends CommandLineFunction {
+  @Argument(doc="samtools path")
+  var samtools: String = "samtools"
 
   @Input(doc="BAM file to index")
   var bamFile: File = _
@@ -29,7 +26,7 @@ class BamIndexFunction extends CommandLineFunction {
       bamFileIndex = new File(bamFile.getPath + ".bai")
   }
 
-  def commandLine = "%s %s %s".format(bamIndexScript, bamFile, bamFileIndex)
+  def commandLine = "%s index %s %s".format(samtools, bamFile, bamFileIndex)
 
   override def dotString = "Index: %s".format(bamFile.getName)
 }

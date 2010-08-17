@@ -1,4 +1,6 @@
+import org.broadinstitute.sting.queue.extensions.firehose.ImportSingleValueFunction
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
+import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 
@@ -7,6 +9,9 @@ class CleanBamFile extends QScript {
 
   @Argument(doc="gatk jar", shortName="gatk")
   var gatkJar: File = _
+
+  @Argument(doc="samtools binary", shortName="samtools")
+  var samtoolsBinary: String = _
 
   @Argument(doc="fix mates jar", shortName="fixMates")
   var fixMatesJar: File = _
@@ -29,7 +34,7 @@ class CleanBamFile extends QScript {
   @Argument(doc="read group blacklist", shortName="RGBL", required=false)
   var readGroupBlackList: String = _
 
-  @Argument(doc="intervals", shortName="L", required=false)
+  @Argument(doc="intervals", shortName="L")
   var intervals: File = _
 
   @Argument(doc="Script that can split the interval file by contig, for example Sting/python/splitIntervalsByContig.py.", shortName="RTCSS")
@@ -48,6 +53,33 @@ class CleanBamFile extends QScript {
 
   @Input(doc="dbsnp file", shortName="D")
   var dbsnpFile: File = _
+
+  @Argument(doc="firehose import jar", shortName="importJar")
+  var firehoseImportJar: File = _
+
+  @Argument(doc="short job queue", shortName="shortQueue", required=false)
+  var shortJobQueue: String = _
+
+  @Argument(doc="firehose host", shortName="FHHost")
+  var firehoseHost: String = _
+
+  @Argument(doc="firehose port", shortName="FHPort")
+  var firehosePort: Int = _
+
+  @Argument(doc="firehose domain", shortName="FHDom")
+  var firehoseDomain: String = _
+
+  @Argument(doc="clean bam firehose entity type", shortName="bamFHEType")
+  var bamFirehoseEntityType: String = _
+
+  @Argument(doc="clean bam firehose entity id", shortName="bamFHEID")
+  var bamFirehoseEntityID: String = _
+
+  @Argument(doc="clean bam firehose annotation type name", shortName="bamFHAnn")
+  var bamFirehoseAnnotationTypeName: String = _
+
+  @Argument(doc="clean bam firehose security token", shortName="bamFHToken")
+  var bamFirehoseSecurityToken: String = _
 
   trait GATKCommonArgs extends CommandLineGATK {
     this.jarFile = qscript.gatkJar
@@ -96,7 +128,7 @@ class CleanBamFile extends QScript {
     realigner.DBSNP = dbsnpFile
     realigner.scatterCount = indelRealignerScatterCount
 
-    val bamIndex = new BamIndexFunction
+    var fixedBam: File = null
 
     if (realigner.scatterCount > 1) {
       realigner.output = baseFile(".cleaned.bam")
@@ -105,8 +137,12 @@ class CleanBamFile extends QScript {
         case (scatter: IntervalScatterFunction, _) =>
           scatter.splitIntervalsScript = indelRealignerScatterScript
       }
+      realigner.gatherClass = {
+        case source if (source.field.getName=="output") =>
+          classOf[BamGatherFunction]
+      }
       realigner.setupGatherFunction = {
-        case (gather: PicardBamJarFunction, _) =>
+        case (gather: BamGatherFunction, _) =>
           gather.memoryLimit = Some(4)
           gather.jarFile = fixMatesJar
           // Don't pass this AS=true to fix mates!
@@ -115,7 +151,7 @@ class CleanBamFile extends QScript {
           gather.mergeTextScript = mergeTextScript
       }
 
-      bamIndex.bamFile = realigner.output
+      fixedBam = realigner.output
     } else {
       realigner.output = baseFile(".unfixed.cleaned.bam")
 
@@ -132,12 +168,30 @@ class CleanBamFile extends QScript {
       fixMates.unfixed = realigner.output
       fixMates.fixed = baseFile(".cleaned.bam")
 
-      bamIndex.bamFile = fixMates.fixed
+      fixedBam = fixMates.fixed
 
       // Add the fix mates explicitly
       add(fixMates)
     }
 
-    add(targetCreator, realigner, bamIndex)
+    val bamIndex = new SamtoolsIndexFunction
+    bamIndex.samtools = samtoolsBinary
+    bamIndex.bamFile = fixedBam
+    bamIndex.bamFileIndex = swapExt(fixedBam, "bam", "bam.bai")
+
+    val importer = new ImportSingleValueFunction
+    importer.jobQueue = shortJobQueue
+    importer.jarFile = firehoseImportJar
+    importer.host = firehoseHost
+    importer.port = firehosePort
+    importer.domain = firehoseDomain
+    importer.entityType = bamFirehoseEntityType
+    importer.entityID = bamFirehoseEntityID
+    importer.annotationTypeName = bamFirehoseAnnotationTypeName
+    importer.securityToken = bamFirehoseSecurityToken
+    importer.importValue = fixedBam
+    importer.jobDependencies :+= bamIndex.bamFileIndex
+
+    add(targetCreator, realigner, bamIndex, importer)
   }
 }

@@ -44,6 +44,10 @@ trait CommandLineFunction extends QFunction with Logging {
   /** If true this function will run only if the jobs it is dependent on succeed. */
   var jobRunOnlyIfPreviousSucceed = true
 
+  /** Files that this job should wait on before running. */
+  @Input(doc="Explicit job dependencies", required=false)
+  var jobDependencies: List[File] = Nil
+
   /** File to redirect any output.  Defaults to <jobName>.out */
   @Output(doc="File to redirect any output", required=false)
   @Gather(classOf[SimpleTextGatherFunction])
