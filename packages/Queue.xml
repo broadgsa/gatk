@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="Queue">
-    <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
+    <version file="StingText.properties" property="org.broadinstitute.sting.queue.version" />
     <executable name="Queue">
         <main-class name="org.broadinstitute.sting.queue.QCommandLine" />
         <resource-bundle file="StingText.properties" />
@@ -15,4 +15,8 @@
             <package name="org.broadinstitute.sting.queue.extensions.*" />
         </dependencies>
     </executable>
+    <release>
+        <executable directory="/humgen/gsa-hpprojects/Queue/bin" symlink="current" />
+        <archive directory="/web/ftp/pub/gsa/Queue" symlink="Queue-latest.tar.bz2" />
+    </release>
 </package>
