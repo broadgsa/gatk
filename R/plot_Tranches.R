@@ -5,6 +5,7 @@ verbose = TRUE
 
 input = args[1]
 targetTITV = as.numeric(args[2])
+suppressLegend = ! is.na(args[3])
 
 # -----------------------------------------------------------------------------------------------
 # Useful general routines
@@ -40,7 +41,7 @@ data2 = read.table(paste(input,".tranches",sep=""),sep=",",head=T)
 cols = c("cornflowerblue", "cornflowerblue", "darkorange", "darkorange")
 density=c(20, -1, -1, 20)
 outfile = paste(input, ".FDRtranches.pdf", sep="")
-pdf(outfile, height=7, width=8)
+pdf(outfile, height=5, width=8)
 alpha = 1 - titvFPEstV(targetTITV, data2$novelTITV)
 #print(alpha)
 
@@ -56,12 +57,16 @@ numNewBad = numBad - numPrevBad
 
 d=matrix(c(numPrevGood,numNewGood, numNewBad, numPrevBad),4,byrow=TRUE)
 #print(d)
-barplot(d/1000,horiz=TRUE,col=cols,space=0.2,xlab="Number of Novel Variants (1000s)",ylab="Novel Ti/Tv   -->   FDR (%)", density=density) # , xlim=c(250000,350000))
+barplot(d/1000,horiz=TRUE,col=cols,space=0.2,xlab="Number of Novel Variants (1000s)", density=density, cex.axis=1.25, cex.lab=1.25) # , xlim=c(250000,350000))
 #abline(v= d[2,dim(d)[2]], lty=2)
 #abline(v= d[1,3], lty=2)
-legend(10000/1000, 2.25, c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
-axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche)
-axis(2,line=0.4,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$novelTITV)
+if ( ! suppressLegend ) 
+    legend(5, 2.25, c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
+
+mtext("Ti/Tv",2,line=2.25,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
+mtext("FDR",2,line=0,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
+axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche, las=1, cex.axis=1.25)
+axis(2,line=1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$novelTITV, las=1, cex.axis=1.25)
 dev.off()
 
 
