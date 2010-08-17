@@ -13,6 +13,9 @@
 
             <!-- Queue Extensions -->
             <package name="org.broadinstitute.sting.queue.extensions.*" />
+
+            <!-- Scala -->
+            <package name="scala.**" />
         </dependencies>
     </executable>
     <release>
