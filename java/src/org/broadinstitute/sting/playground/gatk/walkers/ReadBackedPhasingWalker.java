@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import net.sf.samtools.SAMRecord;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -32,13 +31,15 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.PreciseNonNegativeDouble;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
@@ -55,10 +56,19 @@ import java.util.*;
  * Use '-BTI variant' to only stop at positions in the VCF file bound to 'variant'.
  */
 @Requires(value = {}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+
+@ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
+
 public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, PhasingStats> {
 
     @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads; [default:20000]", required = false)
     protected Integer cacheWindow = 20000;
+
+    @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm; [default:20]", required = false)
+    protected Integer maxPhaseSites = 20; // 2^20 == 10^6 biallelic haplotypes
+
+    @Argument(fullName = "phaseScoreThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:0.66]", required = false)
+    protected Double phaseScoreThresh = 0.66;
 
     @Argument(fullName = "phasedVCFFile", shortName = "phasedVCF", doc = "The name of the phased VCF file output", required = true)
     protected String phasedVCFFile = null;
@@ -68,15 +78,16 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     private LinkedList<VariantAndReads> siteQueue = null;
     private VariantAndReads prevVr = null; // the VC emitted after phasing, and the alignment bases at the position emitted
 
-    private static double SMALL_THRESH = 1e-6;
-    private static int MAX_NUM_PHASE_SITES = 20; // 2^20 == 10^6 biallelic haplotypes
+    private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
+
+    private static boolean DEBUG_DETAILED = true;
 
     private void initializeVcfWriter(VariantContext vc) {
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-        hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Float, "Read-backed phasing quality score"));
+        hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Integer, "Read-backed phasing quality"));
 
         writer = new VCFWriterImpl(new File(phasedVCFFile));
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
@@ -113,12 +124,12 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         LinkedList<String> rodNames = new LinkedList<String>();
         rodNames.add("variant");
         boolean requireStartHere = true; // only see each VariantContext once
-        boolean takeFirstOnly = false;
+        boolean takeFirstOnly = false; // take as many entries as the VCF file has
         for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
             boolean processVariant = true;
-            if (!vc.isSNP() || !vc.isBiallelic()) {
+            if (!vc.isSNP() || !vc.isBiallelic() || vc.isFiltered())
                 processVariant = false;
-            }
+
             VariantAndReads vr = new VariantAndReads(vc, context, processVariant);
             siteQueue.add(vr);
 
@@ -169,7 +180,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             return vc; // return vc as is
 
         boolean hasPreviousSite = previousIsRelevantTo(vc);
-
         logger.debug("Will phase vc = " + VariantContextUtils.getLocation(vc));
 
         LinkedList<VariantAndReads> windowVaList = new LinkedList<VariantAndReads>();
@@ -184,14 +194,10 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             }
 
             if (logger.isDebugEnabled()) {
-                ListIterator<VariantAndReads> windowVcIt = windowVaList.listIterator();
-                while (windowVcIt.hasNext()) {
-                    VariantContext phaseInfoVc = windowVcIt.next().variant;
-                    logger.debug("Using phaseInfoVc = " + VariantContextUtils.getLocation(phaseInfoVc));
-                }
+                for (VariantAndReads phaseInfoVr : windowVaList)
+                    logger.debug("Using phaseInfoVc = " + VariantContextUtils.getLocation(phaseInfoVr.variant));
             }
         }
-
         logger.debug("");
 
         Map<String, Genotype> sampGenotypes = vc.getGenotypes();
@@ -202,7 +208,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         TreeMap<String, PhaseCounts> samplePhaseStats = new TreeMap<String, PhaseCounts>();
         for (Map.Entry<String, Genotype> sampGtEntry : sampGenotypes.entrySet()) {
             logger.debug("sample = " + sampGtEntry.getKey());
-
             boolean genotypesArePhased = true; // phase by default
 
             String samp = sampGtEntry.getKey();
@@ -214,7 +219,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 logger.debug("NON-TRIVIALLY CARE about TOP vs. BOTTOM for: ");
                 logger.debug("\n" + biall);
 
-                LinkedList<VariantAndReads> sampleWindowVaList = new LinkedList<VariantAndReads>();
+                List<VariantAndReads> sampleWindowVaList = new LinkedList<VariantAndReads>();
                 for (VariantAndReads phaseInfoVr : windowVaList) {
                     VariantContext phaseInfoVc = phaseInfoVr.variant;
                     Genotype phaseInfoGt = phaseInfoVc.getGenotype(samp);
@@ -223,46 +228,16 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                         logger.debug("STARTING TO PHASE USING POS = " + VariantContextUtils.getLocation(phaseInfoVc));
                     }
                 }
-                if (sampleWindowVaList.size() > MAX_NUM_PHASE_SITES)
-                    logger.warn("Trying to phase within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase -- EXPECT DELAYS!");
-
-                PhasingTable sampleHaps = new PhasingTable();
-
-                // Initialize phasing table with appropriate entries:
-                //
-                // 1. THIS IMPLEMENTATION IS INEFFICIENT SINCE IT DOES NOT PREALLOCATE
-                // THE ArrayList USED, BUT RATHER APPENDS TO IT EACH TIME.
-                //
-                // 2. THIS IMPLEMENTATION WILL FAIL WHEN NOT DEALING WITH SNP Alleles, SINCE THEN THE Allele.getBases()
-                // FUNCTION WILL RETURN VARIABLE-LENGTH Byte ARRAYS.  IN THAT CASE, BaseArray WILL NEED TO BE CONVERTED TO
-                // AN ArrayList OF Allele [OR SIMILAR OBJECT]
-                for (VariantAndReads phaseInfoVr : sampleWindowVaList) {
-                    VariantContext phaseInfoVc = phaseInfoVr.variant;
-                    Genotype phaseInfoGt = phaseInfoVc.getGenotype(samp);
-
-                    if (sampleHaps.isEmpty()) {
-                        for (Allele sampAll : phaseInfoGt.getAlleles()) {
-                            sampleHaps.addEntry(new Haplotype(sampAll.getBases()));
-                        }
-                    }
-                    else {
-                        PhasingTable oldHaps = sampleHaps;
-                        Iterator<PhasingTable.PhasingTableEntry> oldHapIt = oldHaps.iterator();
-                        sampleHaps = new PhasingTable();
-                        while (oldHapIt.hasNext()) {
-                            PhasingTable.PhasingTableEntry pte = oldHapIt.next();
-                            Haplotype oldHap = pte.getHaplotype();
-                            for (Allele sampAll : phaseInfoGt.getAlleles()) {
-                                ArrayList<Byte> bases = oldHap.cloneBaseArrayList();
-                                for (byte b : sampAll.getBases()) { // LENGTH NOT PRE-DEFINED FOR NON-SNPs (MNP or INDELS!!)
-                                    bases.add(b); // INEFFICIENT!
-                                }
-                                Haplotype newHap = new Haplotype(BaseArray.getBasesPrimitiveNoNulls(bases));
-                                sampleHaps.addEntry(newHap);
-                            }
-                        }
-                    }
+                if (sampleWindowVaList.size() > maxPhaseSites) {
+                    logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase -- REDUCING to first " + maxPhaseSites + " sites!");
+                    sampleWindowVaList = sampleWindowVaList.subList(0, maxPhaseSites);
                 }
+
+                /* Will map a phase and its "complement" to a single representative phase,
+                   and marginalizeTable() marginalizes to the first 2 positions [i.e., the previous position and the current position]:
+                 */
+                HaplotypeTableCreator tabCreator = new BiallelicComplementHaplotypeTableCreator(sampleWindowVaList, samp, 2);
+                PhasingTable sampleHaps = tabCreator.getNewTable();
 
                 // Assemble the "sub-reads" from the heterozygous positions for this sample:
                 LinkedList<ReadBasesAtPosition> allPositions = new LinkedList<ReadBasesAtPosition>();
@@ -272,63 +247,48 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 }
                 HashMap<String, Read> allReads = convertReadBasesAtPositionToReads(allPositions);
                 logger.debug("Number of reads at sites: " + allReads.size());
+                int numUsedReads = 0;
 
                 // Update the phasing table based on each of the sub-reads for this sample:
-                int numUsableReads = 0;
                 for (Map.Entry<String, Read> nameToReads : allReads.entrySet()) {
                     Read rd = nameToReads.getValue();
-                    if (rd.numNonNulls() <= 1) {// can't possibly provide any phasing information
+                    if (rd.numNonNulls() <= 1) // can't possibly provide any phasing information, so save time
                         continue;
-                    }
-                    if (false)
-                        logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey());
 
-                    LinkedList<PhasingTable.PhasingTableEntry> compatHaps = new LinkedList<PhasingTable.PhasingTableEntry>();
-                    Iterator<PhasingTable.PhasingTableEntry> hapIt = sampleHaps.iterator();
-                    while (hapIt.hasNext()) {
-                        PhasingTable.PhasingTableEntry pte = hapIt.next();
-                        if (rd.isCompatible(pte.getHaplotype()))
-                            compatHaps.add(pte);
-                    }
+                    numUsedReads++;
+                    if (DEBUG_DETAILED)
+                        logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey() + (rd.isGapped() ? "\tGAPPED" : ""));
 
-                    if (!compatHaps.isEmpty()) { // otherwise, nothing to do
-                        numUsableReads++;
-                        double addVal = rd.matchScore() / compatHaps.size(); // don't overcount, so divide up the score evenly
-                        for (PhasingTable.PhasingTableEntry pte : compatHaps) {
-                            pte.addScore(addVal);
+                    for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
+                        PhasingScore score = rd.matchHaplotypeClassScore(pte.getHaplotypeClass());
+                        pte.getScore().integrateReadScore(score);
 
-                            if (false) {
-                                if (addVal > SMALL_THRESH) {
-                                    logger.debug("score(" + rd + "," + pte.getHaplotype() + ") = " + addVal);
-                                }
-                            }
-                        }
+                        if (DEBUG_DETAILED)
+                            logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
                     }
                 }
                 logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
-                logger.debug("numUsableReads = " + numUsableReads);
+                logger.debug("numUsedReads = " + numUsedReads);
 
-                /* Map a phase and its "complement" to a single representative phase, but marginalized to the first 2 positions
-                  [i.e., the previous position and the current position]:
-                 */
-                ComplementAndMarginalizeHaplotypeMapper cmhm = new ComplementAndMarginalizeHaplotypeMapper(sampleWindowVaList, samp, 2);
-                sampleHaps = sampleHaps.mapHaplotypes(cmhm);
-
+                // Marginalize each haplotype to its first 2 positions:
+                sampleHaps = HaplotypeTableCreator.marginalizeTable(sampleHaps);
                 logger.debug("\nPhasing table [AFTER MAPPING]:\n" + sampleHaps + "\n");
 
                 // Determine the phase at this position:
                 sampleHaps.normalizeScores();
-                PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
-                double score = maxEntry.getScore();
-                genotypesArePhased = (score > SMALL_THRESH);
+                logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + sampleHaps + "\n");
 
+                PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
+                double score = maxEntry.getScore().getValue();
+                logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tscore:\t" + score);
+
+                genotypesArePhased = (score >= phaseScoreThresh);
                 if (genotypesArePhased) {
                     Biallele prevBiall = new Biallele(prevVc.getGenotype(samp));
-                    ensurePhasing(maxEntry.getHaplotype(), biall, prevBiall);
-                    gtAttribs.put("PQ", new Float(score));
+                    ensurePhasing(biall, prevBiall, maxEntry.getHaplotypeClass().getRepresentative());
+                    gtAttribs.put("PQ", new Integer(QualityUtils.probToQual(score)));
 
-                    logger.debug("CHOSE hap:\t" + maxEntry.getHaplotype() + "\tscore:\t" + score);
-                    logger.debug("PHASED:\n" + biall + "\n\n");
+                    logger.debug("CHOSE PHASE:\n" + biall + "\n\n");
                 }
 
                 PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
@@ -358,7 +318,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         Ensure that curBiall is phased relative to prevBiall as specified by hap.
      */
 
-    public static void ensurePhasing(Haplotype hap, Biallele curBiall, Biallele prevBiall) {
+    public static void ensurePhasing(Biallele curBiall, Biallele prevBiall, Haplotype hap) {
         if (hap.size() < 2)
             throw new StingException("LOGICAL ERROR: Only considering haplotypes of length > 2!");
 
@@ -394,7 +354,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         byte refBase;
         if (!vc.isIndel()) {
             Allele varAllele = vc.getReference();
-            refBase = varAllele.getBases()[0];
+            refBase = getSingleBase(varAllele);
         }
         else {
             refBase = vc.getReferenceBaseForIndel();
@@ -405,7 +365,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 
     public PhasingStats reduce(PhasingStatsAndOutput statsAndList, PhasingStats stats) {
         if (statsAndList != null) {
-            writeVarContIter(statsAndList.output.iterator());
+            writeVarContList(statsAndList.output);
             stats.addIn(statsAndList.ps);
         }
         return stats;
@@ -418,7 +378,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
      */
     public void onTraversalDone(PhasingStats result) {
         List<VariantContext> finalList = processQueue(null, result);
-        writeVarContIter(finalList.iterator());
+        writeVarContList(finalList);
         if (writer != null)
             writer.close();
 
@@ -426,7 +386,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         out.println("Number of variant sites observed: " + result.getNumVarSites());
         out.println("Average coverage: " + ((double) result.getNumReads() / result.getNumVarSites()));
 
-        out.println("\n-- Phasing summary --");
+        out.println("\n-- Phasing summary [minimal haplotype probability: " + phaseScoreThresh + "] --");
         for (Map.Entry<String, PhaseCounts> sampPhaseCountEntry : result.getPhaseCounts()) {
             PhaseCounts pc = sampPhaseCountEntry.getValue();
             out.println("Sample: " + sampPhaseCountEntry.getKey() + "\tNumber of tested sites: " + pc.numTestedSites + "\tNumber of phased sites: " + pc.numPhased);
@@ -434,9 +394,8 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         out.println("");
     }
 
-    protected void writeVarContIter(Iterator<VariantContext> varContIter) {
-        while (varContIter.hasNext()) {
-            VariantContext vc = varContIter.next();
+    protected void writeVarContList(List<VariantContext> varContList) {
+        for (VariantContext vc : varContList) {
             writeVCF(vc);
         }
     }
@@ -446,23 +405,27 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 
         int index = 0;
         for (ReadBasesAtPosition rbp : basesAtPositions) {
-            Iterator<ReadBasesAtPosition.ReadBase> readBaseIt = rbp.iterator();
-            while (readBaseIt.hasNext()) {
-                ReadBasesAtPosition.ReadBase rb = readBaseIt.next();
+            for (ReadBase rb : rbp) {
                 String readName = rb.readName;
-                byte base = rb.base;
 
                 Read rd = reads.get(readName);
                 if (rd == null) {
-                    rd = new Read(basesAtPositions.size());
+                    rd = new Read(basesAtPositions.size(), rb.mappingQual);
                     reads.put(readName, rd);
                 }
-                rd.updateBase(index, base);
+                rd.updateBaseAndQuality(index, rb.base, rb.baseQual);
             }
             index++;
         }
-
         return reads;
+    }
+
+    protected static byte getSingleBase(byte[] bases) {
+        return bases[0];
+    }
+
+    protected static byte getSingleBase(Allele all) {
+        return getSingleBase(all.getBases());
     }
 
 
@@ -500,7 +463,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             if (topBases.length != 1)
                 throw new StingException("LOGICAL ERROR: should not process non-SNP sites!");
 
-            return topBases[0];
+            return getSingleBase(topBases);
         }
 
         public byte getBottomBase() {
@@ -508,7 +471,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             if (bottomBases.length != 1)
                 throw new StingException("LOGICAL ERROR: should not process non-SNP sites!");
 
-            return bottomBases[0];
+            return getSingleBase(bottomBases);
         }
 
         public String toString() {
@@ -520,9 +483,9 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 
         public boolean matchesTopBase(byte base) {
             boolean matchesTop;
-            if (base == getTopBase())
+            if (BaseUtils.basesAreEqual(base, getTopBase()))
                 matchesTop = true;
-            else if (base == getBottomBase())
+            else if (BaseUtils.basesAreEqual(base, getBottomBase()))
                 matchesTop = false;
             else
                 throw new StingException("LOGICAL ERROR: base MUST match either TOP or BOTTOM!");
@@ -534,9 +497,9 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             byte topBase = getTopBase();
             byte botBase = getBottomBase();
 
-            if (base == topBase)
+            if (BaseUtils.basesAreEqual(base, topBase))
                 return botBase;
-            else if (base == botBase)
+            else if (BaseUtils.basesAreEqual(base, botBase))
                 return topBase;
             else
                 throw new StingException("LOGICAL ERROR: base MUST match either TOP or BOTTOM!");
@@ -566,8 +529,8 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                         ReadBackedPileup samplePileup = pileup.getPileupForSample(samp);
                         ReadBasesAtPosition readBases = new ReadBasesAtPosition();
                         for (PileupElement p : samplePileup) {
-                            if (!p.isDeletion())
-                                readBases.putReadBase(p.getRead().getReadName(), p.getBase());
+                            if (!p.isDeletion()) // IGNORE deletions for now
+                                readBases.putReadBase(p);
                         }
                         sampleReadBases.put(samp, readBases);
                     }
@@ -576,7 +539,21 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         }
     }
 
-    private static class ReadBasesAtPosition {
+    private static class ReadBase {
+        public String readName;
+        public byte base;
+        public int mappingQual;
+        public byte baseQual;
+
+        public ReadBase(String readName, byte base, int mappingQual, byte baseQual) {
+            this.readName = readName;
+            this.base = base;
+            this.mappingQual = mappingQual;
+            this.baseQual = baseQual;
+        }
+    }
+
+    private static class ReadBasesAtPosition implements Iterable<ReadBase> {
         // list of: <read name, base>
         private LinkedList<ReadBase> bases;
 
@@ -584,84 +561,144 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             this.bases = new LinkedList<ReadBase>();
         }
 
-        public void putReadBase(String readName, byte b) {
-            bases.add(new ReadBase(readName, b));
+        public void putReadBase(PileupElement pue) {
+            ReadBase rb = new ReadBase(pue.getRead().getReadName(), pue.getBase(), pue.getMappingQual(), pue.getQual());
+            bases.add(rb);
         }
 
         public Iterator<ReadBase> iterator() {
             return bases.iterator();
         }
+    }
 
-        private static class ReadBase {
-            public String readName;
-            public byte base;
+//
+// THIS IMPLEMENTATION WILL FAIL WHEN NOT DEALING WITH SNP Alleles (e.g., MNP or INDEL), SINCE THEN THE Allele.getBases()
+// FUNCTION WILL RETURN VARIABLE-LENGTH Byte ARRAYS.  IN THAT CASE, BaseArray/Haplotype/Read WILL NEED TO BE REPLACED WITH
+// AN ArrayList OF Allele [OR SIMILAR OBJECT], and WON'T USE: getSingleBase(alleleI)
+//
+    private static abstract class HaplotypeTableCreator {
+        protected Genotype[] genotypes;
+        protected Biallele[] bialleles;
 
-            public ReadBase(String readName, byte base) {
-                this.readName = readName;
-                this.base = base;
+        public HaplotypeTableCreator(List<VariantAndReads> vaList, String sample) {
+            this.genotypes = new Genotype[vaList.size()];
+            this.bialleles = new Biallele[vaList.size()];
+
+            int index = 0;
+            for (VariantAndReads phaseInfoVr : vaList) {
+                VariantContext phaseInfoVc = phaseInfoVr.variant;
+                Genotype phaseInfoGt = phaseInfoVc.getGenotype(sample);
+                genotypes[index] = phaseInfoGt;
+                bialleles[index] = new Biallele(phaseInfoGt);
+                index++;
             }
+        }
+
+        abstract public PhasingTable getNewTable();
+
+        protected List<Haplotype> getAllHaplotypes() {
+            int numSites = genotypes.length;
+            int[] genotypeCards = new int[numSites];
+            for (int i = 0; i < numSites; i++) {
+                genotypeCards[i] = genotypes[i].getPloidy();
+            }
+
+            LinkedList<Haplotype> allHaps = new LinkedList<Haplotype>();
+            CardinalityCounter alleleCounter = new CardinalityCounter(genotypeCards);
+            for (int[] alleleInds : alleleCounter) {
+                byte[] hapBases = new byte[numSites];
+                for (int i = 0; i < numSites; i++) {
+                    Allele alleleI = genotypes[i].getAllele(alleleInds[i]);
+                    hapBases[i] = getSingleBase(alleleI);
+                }
+                allHaps.add(new Haplotype(hapBases));
+            }
+            return allHaps;
+        }
+
+        public static PhasingTable marginalizeTable(PhasingTable table) {
+            TreeMap<Haplotype, PreciseNonNegativeDouble> hapMap = new TreeMap<Haplotype, PreciseNonNegativeDouble>();
+            for (PhasingTable.PhasingTableEntry pte : table) {
+                Haplotype rep = pte.getHaplotypeClass().getRepresentative();
+                PreciseNonNegativeDouble score = hapMap.get(rep);
+                if (score == null) {
+                    score = new PreciseNonNegativeDouble(0.0);
+                    hapMap.put(rep, score);
+                }
+                score.plusEqual(pte.getScore());
+            }
+
+            PhasingTable margTable = new PhasingTable();
+            for (Map.Entry<Haplotype, PreciseNonNegativeDouble> hapClassAndScore : hapMap.entrySet()) {
+                Haplotype rep = hapClassAndScore.getKey();
+                ArrayList<Haplotype> hapList = new ArrayList<Haplotype>();
+                hapList.add(rep);
+
+                HaplotypeClass hc = new HaplotypeClass(hapList, rep);
+                margTable.addEntry(hc, hapClassAndScore.getValue());
+            }
+            return margTable;
         }
     }
 
-    private static abstract class HaplotypeMapper {
-        abstract Haplotype map(Haplotype hap);
-    }
-
-    private static class ComplementAndMarginalizeHaplotypeMapper extends HaplotypeMapper {
-        private List<VariantAndReads> vaList;
-        private String sample;
+    private static class BiallelicComplementHaplotypeTableCreator extends HaplotypeTableCreator {
         private int marginalizeLength;
 
-        public ComplementAndMarginalizeHaplotypeMapper(List<VariantAndReads> vaList, String sample, int marginalizeLength) {
-            this.vaList = vaList;
-            this.sample = sample;
+        public BiallelicComplementHaplotypeTableCreator(List<VariantAndReads> vaList, String sample, int marginalizeLength) {
+            super(vaList, sample);
             this.marginalizeLength = marginalizeLength;
         }
 
-        public Haplotype map(Haplotype hap) {
-            if (hap.size() != vaList.size())
-                throw new StingException("INTERNAL ERROR: hap.size() != vaList.size()");
+        public PhasingTable getNewTable() {
+            double hapClassPrior = 1.0; // can change later
 
-            Biallele firstPosBiallele = new Biallele(vaList.get(0).variant.getGenotype(sample));
-            if (firstPosBiallele.matchesTopBase(hap.getBase(0))) {
-                /* hap already matches the representative haplotype [arbitrarily defined to be
-                   the one with the top base in the VariantContext at the 1st position]:
-                 */
-                return hap.subHaplotype(0, marginalizeLength); // only want first marginalizeLength positions
+            PhasingTable table = new PhasingTable();
+            for (Haplotype hap : getAllHaplotypes()) {
+                if (bialleles[0].matchesTopBase(hap.getBase(0))) {
+                    /* hap is the "representative" haplotype [arbitrarily defined to be
+                      the one with the top base at the 0th position]
+                    */
+                    ArrayList<Haplotype> hapList = new ArrayList<Haplotype>();
+                    hapList.add(hap);
+                    hapList.add(complement(hap));
+
+                    Haplotype rep = hap.subHaplotype(0, Math.min(marginalizeLength, hap.size())); // only want first marginalizeLength positions
+                    HaplotypeClass hapClass = new HaplotypeClass(hapList, rep);
+                    table.addEntry(hapClass, hapClassPrior);
+                }
             }
+            return table;
+        }
 
-            if (false)
-                logger.debug("hap = " + hap);
+        private Haplotype complement(Haplotype hap) {
+            int numSites = bialleles.length;
+            if (hap.size() != numSites)
+                throw new StingException("INTERNAL ERROR: hap.size() != numSites");
 
             // Take the other base at EACH position of the Haplotype:
-            byte[] complementBases = new byte[Math.min(hap.size(), marginalizeLength)];
-            int index = 0;
-            for (VariantAndReads vr : vaList) {
-                VariantContext vc = vr.variant;
-                Biallele biall = new Biallele(vc.getGenotype(sample));
+            byte[] complementBases = new byte[numSites];
+            for (int i = 0; i < numSites; i++)
+                complementBases[i] = bialleles[i].getOtherBase(hap.getBase(i));
 
-                if (false)
-                    logger.debug("biall =\n" + biall);
-
-                complementBases[index] = biall.getOtherBase(hap.getBase(index));
-                if (++index == marginalizeLength) // only want first marginalizeLength positions
-                    break;
-            }
             return new Haplotype(complementBases);
         }
     }
 
-    private static class PhasingTable {
+    private static class PhasingTable implements Iterable<PhasingTable.PhasingTableEntry> {
         private LinkedList<PhasingTableEntry> table;
 
         public PhasingTable() {
             this.table = new LinkedList<PhasingTableEntry>();
         }
 
-        public PhasingTableEntry addEntry(Haplotype haplotype) {
-            PhasingTableEntry pte = new PhasingTableEntry(haplotype);
+        public PhasingTableEntry addEntry(HaplotypeClass haplotypeClass, PreciseNonNegativeDouble initialScore) {
+            PhasingTableEntry pte = new PhasingTableEntry(haplotypeClass, new PhasingScore(initialScore));
             table.add(pte);
             return pte;
+        }
+
+        public PhasingTableEntry addEntry(HaplotypeClass haplotypeClass, double initialScore) {
+            return addEntry(haplotypeClass, new PreciseNonNegativeDouble(initialScore));
         }
 
         public Iterator<PhasingTableEntry> iterator() {
@@ -678,201 +715,122 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 
             PhasingTableEntry maxPte = null;
             for (PhasingTableEntry pte : table) {
-                if (maxPte == null || pte.getScore() > maxPte.getScore()) {
+                if (maxPte == null || pte.getScore().gt(maxPte.getScore())) {
                     maxPte = pte;
                 }
             }
-            return maxPte.clone();
+            return maxPte;
         }
-
-        // Assumes that scores are NON-NEGATIVE:
 
         public void normalizeScores() {
-            double normalizeBy = 0.0;
-            for (PhasingTableEntry pte : table) {
-                normalizeBy += pte.getScore();
+            PreciseNonNegativeDouble normalizeBy = new PreciseNonNegativeDouble(ZERO);
+            for (PhasingTableEntry pte : table)
+                normalizeBy.plusEqual(pte.getScore());
+
+            if (!normalizeBy.equals(ZERO)) { // prevent precision problems
+                logger.debug("normalizeBy = " + normalizeBy);
+                for (PhasingTableEntry pte : table)
+                    pte.getScore().divEqual(normalizeBy);
             }
-            logger.debug("normalizeBy = " + normalizeBy);
-
-            if (normalizeBy > SMALL_THRESH) { // otherwise, will have precision problems
-                for (PhasingTableEntry pte : table) {
-                    pte.setScore(pte.getScore() / normalizeBy);
-                }
-            }
-        }
-
-        public PhasingTable mapHaplotypes(HaplotypeMapper hm) {
-            class Score {
-                private double d;
-
-                Score(double d) {
-                    this.d = d;
-                }
-
-                Score addValue(double v) {
-                    d += v;
-                    return this;
-                }
-
-                double value() {
-                    return d;
-                }
-            }
-            TreeMap<Haplotype, Score> hapMap = new TreeMap<Haplotype, Score>();
-
-            Iterator<PhasingTableEntry> entryIt = iterator();
-            while (entryIt.hasNext()) {
-                PhasingTableEntry pte = entryIt.next();
-                Haplotype rep = hm.map(pte.getHaplotype());
-                if (false)
-                    logger.debug("MAPPED: " + pte.getHaplotype() + " -> " + rep);
-
-                Score score = hapMap.get(rep);
-                if (score == null) {
-                    score = new Score(0.0);
-                    hapMap.put(rep, score);
-                }
-                score.addValue(pte.getScore());
-            }
-
-            PhasingTable combo = new PhasingTable();
-            for (Map.Entry<Haplotype, Score> hapScore : hapMap.entrySet()) {
-                combo.addEntry(hapScore.getKey()).addScore(hapScore.getValue().value());
-            }
-            return combo;
         }
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("-------------------\n");
-            Iterator<PhasingTable.PhasingTableEntry> hapIt = iterator();
-            while (hapIt.hasNext()) {
-                PhasingTable.PhasingTableEntry pte = hapIt.next();
-                sb.append("Haplotype:\t" + pte.getHaplotype() + "\tScore:\t" + pte.getScore() + "\n");
+            for (PhasingTableEntry pte : this) {
+                sb.append("Haplotypes:\t" + pte.getHaplotypeClass() + "\tScore:\t" + pte.getScore() + "\n");
             }
             sb.append("-------------------\n");
             return sb.toString();
         }
 
-        public static class PhasingTableEntry implements Comparable<PhasingTableEntry>, Cloneable {
-            private Haplotype haplotype;
-            private double score;
+        public static class PhasingTableEntry implements Comparable<PhasingTableEntry> {
+            private HaplotypeClass haplotypeClass;
+            private PhasingScore score;
 
-            public PhasingTableEntry(Haplotype haplotype) {
-                this.haplotype = haplotype;
-                this.score = 0.0;
+            public PhasingTableEntry(HaplotypeClass haplotypeClass, PhasingScore score) {
+                this.haplotypeClass = haplotypeClass;
+                this.score = score;
             }
 
-            public PhasingTableEntry(PhasingTableEntry other) {
-                this.haplotype = other.haplotype.clone();
-                this.score = other.score;
+            public HaplotypeClass getHaplotypeClass() {
+                return haplotypeClass;
             }
 
-            public PhasingTableEntry clone() {
-                try {
-                    super.clone();
-                } catch (CloneNotSupportedException e) {
-                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                }
-                return new PhasingTableEntry(this);
-            }
-
-            public Haplotype getHaplotype() {
-                return haplotype;
-            }
-
-            public double getScore() {
-                return score;
-            }
-
-            public double addScore(double addVal) {
-                score += addVal;
-                return score;
-            }
-
-            private double setScore(double newVal) {
-                score = newVal;
+            public PhasingScore getScore() {
                 return score;
             }
 
             public int compareTo(PhasingTableEntry that) {
-                return new Double(Math.signum(this.score - that.score)).intValue();
+                return this.getScore().compareTo(that.getScore());
             }
         }
     }
 }
 
 
+
+class PhasingScore extends PreciseNonNegativeDouble {
+    public PhasingScore(double score) {
+        super(score);
+    }
+
+    public PhasingScore(PreciseNonNegativeDouble val) {
+        super(val);
+    }
+
+    public PhasingScore integrateReadScore(PhasingScore score) {
+        timesEqual(score);
+        return this;
+    }
+}
+
 abstract class BaseArray implements Comparable<BaseArray> {
-    protected ArrayList<Byte> bases;
+    protected Byte[] bases;
 
     public BaseArray(byte[] bases) {
-        this.bases = new ArrayList<Byte>(bases.length);
-        for (int i = 0; i < bases.length; i++) {
-            this.bases.add(i, bases[i]);
-        }
+        this.bases = new Byte[bases.length];
+        for (int i = 0; i < bases.length; i++)
+            this.bases[i] = bases[i];
     }
 
     public BaseArray(Byte[] bases) {
-        this.bases = new ArrayList<Byte>(bases.length);
-        for (int i = 0; i < bases.length; i++) {
-            this.bases.add(i, bases[i]);
-        }
+        this.bases = Arrays.copyOf(bases, bases.length);
     }
 
     public BaseArray(int length) {
-        this(newNullArray(length));
+        this.bases = new Byte[length];
+        Arrays.fill(this.bases, null);
     }
 
-    static Byte[] newNullArray(int length) {
-        Byte[] bArr = new Byte[length];
-        Arrays.fill(bArr, null);
-        return bArr;
+    public BaseArray(BaseArray other) {
+        this(other.bases);
     }
 
     public void updateBase(int index, Byte base) {
-        bases.set(index, base);
+        bases[index] = base;
     }
 
     public Byte getBase(int index) {
-        return bases.get(index);
+        return bases[index];
     }
 
     public int size() {
-        return bases.size();
-    }
-
-    public static Byte[] getBases(List<Byte> baseList) {
-        return baseList.toArray(new Byte[baseList.size()]);
-    }
-
-    // Will thow NullPointerException if baseList contains Byte == null:
-
-    public static byte[] getBasesPrimitiveNoNulls(List<Byte> baseList) {
-        int sz = baseList.size();
-        byte[] b = new byte[sz];
-        for (int i = 0; i < sz; i++) {
-            b[i] = baseList.get(i);
-        }
-        return b;
-    }
-
-    public ArrayList<Byte> cloneBaseArrayList() {
-        return new ArrayList<Byte>(bases);
+        return bases.length;
     }
 
     public String toString() {
-        StringBuilder sb = new StringBuilder(bases.size());
-        for (Byte b : bases) {
+        StringBuilder sb = new StringBuilder(bases.length);
+        for (Byte b : bases)
             sb.append(b != null ? (char) b.byteValue() : "_");
-        }
+
         return sb.toString();
     }
 
     public int compareTo(BaseArray that) {
-        int sz = this.bases.size();
-        if (sz != that.bases.size())
-            return (sz - that.bases.size());
+        int sz = this.bases.length;
+        if (sz != that.bases.length)
+            return (sz - that.bases.length);
 
         for (int i = 0; i < sz; i++) {
             Byte thisBase = this.getBase(i);
@@ -885,7 +843,7 @@ abstract class BaseArray implements Comparable<BaseArray> {
                     return 1;
                 }
             }
-            else if (!thisBase.equals(thatBase)) {
+            else if (!BaseUtils.basesAreEqual(thisBase, thatBase)) {
                 return thisBase - thatBase;
             }
         }
@@ -902,17 +860,13 @@ class Haplotype extends BaseArray implements Cloneable {
         super(bases);
     }
 
-    private Haplotype(int length) {
-        super(length);
-    }
-
     public Haplotype(Haplotype other) {
-        this(getBases(other.bases));
+        super(other);
     }
 
     public void updateBase(int index, Byte base) {
         if (base == null) {
-            throw new StingException("Internal error: should NOT put null for a missing Haplotype base!");
+            throw new StingException("Internal error: CANNOT have null for a missing Haplotype base!");
         }
         super.updateBase(index, base);
     }
@@ -927,62 +881,130 @@ class Haplotype extends BaseArray implements Cloneable {
     }
 
     // Returns a new Haplotype containing the portion of this Haplotype between the specified fromIndex, inclusive, and toIndex, exclusive.
-
     public Haplotype subHaplotype(int fromIndex, int toIndex) {
-        return new Haplotype(BaseArray.getBasesPrimitiveNoNulls(cloneBaseArrayList().subList(fromIndex, toIndex)));
+        return new Haplotype(Arrays.copyOfRange(bases, fromIndex, toIndex));
+    }
+}
+
+class HaplotypeClass implements Iterable<Haplotype> {
+    private ArrayList<Haplotype> haps;
+    private Haplotype rep;
+
+    public HaplotypeClass(ArrayList<Haplotype> haps, Haplotype rep) {
+        this.haps = haps;
+        this.rep = rep;
+    }
+
+    public Iterator<Haplotype> iterator() {
+        return haps.iterator();
+    }
+
+    public Haplotype getRepresentative() {
+        return rep;
+    }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+        for (Haplotype h : haps) {
+            if (isFirst)
+                isFirst = false;
+            else
+                sb.append("|");
+
+            sb.append(h);
+        }
+        sb.append(" [").append(rep).append("]");
+        return sb.toString();
     }
 }
 
 class Read extends BaseArray {
-    //
-    // ADD IN SOME DATA MEMBERS [OR INPUT TO CONSTRUCTORS] WITH READ QUALITY (MAPPING QUALITY) AND ARRAY OF BASE QUALITIES...
-    // THESE WILL BE USED IN matchScore()
-    //
+    private PreciseNonNegativeDouble mappingProb; // the probability that this read is mapped correctly
+    private PreciseNonNegativeDouble[] baseProbs; // the probabilities that the base identities are CORRECT
+    private PreciseNonNegativeDouble[] baseErrorProbs; // the probabilities that the base identities are INCORRECT
 
-    public Read(byte[] bases) {
-        super(bases);
-    }
-
-    public Read(Byte[] bases) {
-        super(bases);
-    }
-
-    public Read(int length) {
+    public Read(int length, int mappingQual) {
         super(length);
+
+        this.mappingProb = new PreciseNonNegativeDouble(QualityUtils.qualToProb(mappingQual));
+
+        this.baseProbs = new PreciseNonNegativeDouble[length];
+        Arrays.fill(this.baseProbs, null);
+
+        this.baseErrorProbs = new PreciseNonNegativeDouble[length];
+        Arrays.fill(this.baseErrorProbs, null);
+    }
+
+    public void updateBaseAndQuality(int index, Byte base, byte baseQual) {
+        updateBase(index, base);
+
+        double errProb = QualityUtils.qualToErrorProb(baseQual);
+        baseProbs[index] = new PreciseNonNegativeDouble(1.0 - errProb);
+        baseErrorProbs[index] = new PreciseNonNegativeDouble(errProb);
     }
 
     public int numNonNulls() {
         int num = 0;
-        for (int i = 0; i < bases.size(); i++) {
+        for (int i = 0; i < bases.length; i++) {
             if (getBase(i) != null)
                 num++;
         }
         return num;
     }
 
-    //
+    public PhasingScore matchHaplotypeClassScore(HaplotypeClass hapClass) {
+        PreciseNonNegativeDouble value = new PreciseNonNegativeDouble(0.0);
+        for (Haplotype h : hapClass)
+            value.plusEqual(matchHaplotypeScore(h));
 
-    public double matchScore() {
-        return 1.0;
+        return new PhasingScore(value);
     }
-    //
 
-    /* Checks if the two BaseArrays are consistent where bases are not null.
-    */
+    private PreciseNonNegativeDouble matchHaplotypeScore(Haplotype hap) {
+        PreciseNonNegativeDouble score = new PreciseNonNegativeDouble(1.0);
 
-    public boolean isCompatible(Haplotype hap) {
-        int sz = this.bases.size();
-        if (sz != hap.bases.size())
+        int sz = this.bases.length;
+        if (sz != hap.bases.length)
             throw new StingException("Read and Haplotype should have same length to be compared!");
 
         for (int i = 0; i < sz; i++) {
             Byte thisBase = this.getBase(i);
             Byte hapBase = hap.getBase(i);
-            if (thisBase != null && hapBase != null && !thisBase.equals(hapBase)) {
-                return false;
+            if (thisBase != null && hapBase != null) {
+                if (BaseUtils.basesAreEqual(thisBase, hapBase))
+                    score.timesEqual(baseProbs[i]);
+                else
+                    score.timesEqual(baseErrorProbs[i]);
+                score.timesEqual(mappingProb);
             }
         }
-        return true;
+        return score;
+    }
+
+    private enum ReadStage {
+        BEFORE_BASES, BASES_1, NO_BASES, BASES_2
+    }
+
+    public boolean isGapped() {
+        ReadStage s = ReadStage.BEFORE_BASES;
+
+        for (int i = 0; i < bases.length; i++) {
+            if (getBase(i) != null) { // has a base at i
+                if (s == ReadStage.BEFORE_BASES)
+                    s = ReadStage.BASES_1;
+                else if (s == ReadStage.NO_BASES) {
+                    s = ReadStage.BASES_2;
+                    break;
+                }
+            }
+            else { // no base at i
+                if (s == ReadStage.BASES_1)
+                    s = ReadStage.NO_BASES;
+            }
+        }
+
+        return (s == ReadStage.BASES_2);
     }
 }
 
@@ -1061,4 +1083,58 @@ class PhasingStatsAndOutput {
         this.ps = ps;
         this.output = output;
     }
+}
+
+class CardinalityCounter implements Iterator<int[]>, Iterable<int[]> {
+    private int[] cards;
+    private int[] valList;
+    private boolean hasNext;
+
+    public CardinalityCounter(int[] cards) {
+        this.cards = cards;
+        this.valList = new int[cards.length];
+        for (int i = 0; i < cards.length; i++) {
+            if (this.cards[i] <= 0)
+                throw new StingException("CANNOT have zero cardinalities!");
+            this.valList[i] = 0;
+        }
+        this.hasNext = true;
+    }
+
+    public boolean hasNext() {
+        return hasNext;
+    }
+
+    public int[] next() {
+        if (!hasNext())
+            throw new StingException("CANNOT iterate past end!");
+
+        // Copy the assignment to be returned:
+        int[] nextList = new int[valList.length];
+        for (int i = 0; i < valList.length; i++)
+            nextList[i] = valList[i];
+
+        // Find the assignment after this one:
+        hasNext = false;
+        int i = cards.length - 1;
+        for (; i >= 0; i--) {
+            if (valList[i] < (cards[i] - 1)) {
+                valList[i]++;
+                hasNext = true;
+                break;
+            }
+            valList[i] = 0;
+        }
+
+        return nextList;
+    }
+
+    public void remove() {
+        throw new StingException("Cannot remove from CardinalityCounter!");
+    }
+
+    public Iterator<int[]> iterator() {
+        return this;
+    }
+
 }
