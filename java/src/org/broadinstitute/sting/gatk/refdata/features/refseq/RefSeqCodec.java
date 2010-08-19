@@ -19,6 +19,7 @@ public class RefSeqCodec implements FeatureCodec {
 
     @Override
     public Feature decodeLoc(String line) {
+        if (line.startsWith("#")) return null;
         String fields[] = line.split("\t");
         if (fields.length < 3) throw new TribbleException("RefSeq (decodeLoc) : Unable to parse line -> " + line + ", we expected at least 3 columns, we saw " + fields.length);
         String contig_name = fields[2];
@@ -28,6 +29,7 @@ public class RefSeqCodec implements FeatureCodec {
     /** Fills this object from a text line in RefSeq (UCSC) text dump file */
     @Override
     public Feature decode(String line) {
+        if (line.startsWith("#")) return null;
         String fields[] = line.split("\t");
 
         // we reference postion 15 in the split array below, make sure we have at least that many columns
