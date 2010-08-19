@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
@@ -35,8 +36,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
@@ -54,7 +53,7 @@ import java.util.*;
  * Unlike most mappers, this walker uses the full alignment context to determine whether an
  * appropriate alternate reference (i.e. indel) exists and updates SAMRecords accordingly.
  */
-@Reference(window=@Window(start=-1,stop=150))
+//Reference(window=@Window(start=-30,stop=30))
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     public static final String ORIGINAL_CIGAR_TAG = "OC";
@@ -124,6 +123,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Output(fullName="SNPsFileForDebugging", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out; FOR DEBUGGING PURPOSES ONLY", required=false)
     protected String OUT_SNPS = null;
 
+    // fasta reference reader to supplement the edges of the reference sequence
+    private IndexedFastaSequenceFile referenceReader;
+
     // the intervals input by the user
     private Iterator<GenomeLoc> intervals = null;
 
@@ -152,6 +154,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private static final double SW_GAP = -10.0;       //-1.0-1.0/3.0;
     private static final double SW_GAP_EXTEND = -2.0; //-1.0/.0;
 
+    // reference base padding size
+    // TODO -- make this a command-line argument if the need arises
+    private static final int REFERENCE_PADDING = 30;
+
     // other output files
     private FileWriter indelOutput = null;
     private FileWriter statsOutput = null;
@@ -163,6 +169,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             throw new RuntimeException("LOD threshold cannot be a negative number");
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
+
+        referenceReader = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
 
         if ( !TARGET_NOT_SORTED && IntervalUtils.isIntervalFile(intervalsFile)) {
             // prepare to read intervals one-by-one, as needed (assuming they are sorted). 
@@ -282,11 +290,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( doNotTryToClean(read) ) {
                 readsNotToClean.add(read);
             } else {
-                boolean wellCoveredInterval = readsToClean.add(read, ref.getBases());
-                if ( !wellCoveredInterval ) {
-                    logger.info("We are aborting the realignment in interval " + currentInterval + " because it is not fully covered by reads");
-                    abortCleanForCurrentInterval();
-                }
+                readsToClean.add(read);
 
                 // add the rods to the list of known variants
                 populateKnownIndels(metaDataTracker, ref);
@@ -436,7 +440,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( reads.size() == 0 )
             return;
 
-        final byte[] reference = readsToClean.getRereference();
+        final byte[] reference = readsToClean.getReference(referenceReader);
         final long leftmostIndex = readsToClean.getLocation().getStart();
 
         final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                   // reads that perfectly match ref
@@ -532,7 +536,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
                 if ( statsOutput != null ) {
                     try {
-                        statsOutput.write(readsToClean.getLocation().toString());
+                        statsOutput.write(currentInterval.toString());
                         statsOutput.write("\tFAIL (bad indel)\t"); // if improvement > LOD_THRESHOLD *BUT* entropy is not reduced (SNPs still exist)
                         statsOutput.write(Double.toString(improvement));
                         statsOutput.write("\n");
@@ -570,7 +574,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 }
                 if ( statsOutput != null ) {
                     try {
-                        statsOutput.write(readsToClean.getLocation().toString());
+                        statsOutput.write(currentInterval.toString());
                         statsOutput.write("\tCLEAN"); // if improvement > LOD_THRESHOLD *AND* entropy is reduced
                         if ( bestConsensus.cigar.numCigarElements() > 1 )
                             statsOutput.write(" (found indel)");
@@ -602,7 +606,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         } else if ( statsOutput != null ) {
             try {
                 statsOutput.write(String.format("%s\tFAIL\t%.1f%n",
-                        readsToClean.getLocation().toString(), improvement));
+                        currentInterval.toString(), improvement));
                 statsOutput.flush();
             } catch (Exception e) {
                 throw new StingException(e.getMessage());
@@ -902,8 +906,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             readCigar.add(new CigarElement(endOfFirstBlock - myPosOnAlt, CigarOperator.M));
         }
 
-        int indelOffsetOnRef = 0, indelOffsetOnRead = 0;
         // forward along the indel
+        //int indelOffsetOnRef = 0, indelOffsetOnRead = 0;
         if ( indelCE.getOperator() == CigarOperator.I ) {
             // for reads that end in an insertion
             if ( myPosOnAlt + aRead.getReadLength() < endOfFirstBlock + indelCE.getLength() ) {
@@ -916,16 +920,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( !sawAlignmentStart && myPosOnAlt < endOfFirstBlock + indelCE.getLength() ) {
                 aRead.setAlignmentStart(leftmostIndex + endOfFirstBlock);
                 readCigar.add(new CigarElement(indelCE.getLength() - (myPosOnAlt - endOfFirstBlock), CigarOperator.I));
-                indelOffsetOnRead = myPosOnAlt - endOfFirstBlock;
+                //indelOffsetOnRead = myPosOnAlt - endOfFirstBlock;
                 sawAlignmentStart = true;
             } else if ( sawAlignmentStart ) {
                 readCigar.add(indelCE);
-                indelOffsetOnRead = indelCE.getLength();
+                //indelOffsetOnRead = indelCE.getLength();
             }
         } else if ( indelCE.getOperator() == CigarOperator.D ) {
             if ( sawAlignmentStart )
                 readCigar.add(indelCE);
-            indelOffsetOnRef = indelCE.getLength();
+            //indelOffsetOnRef = indelCE.getLength();
         }
 
         // for reads that start after the indel
@@ -1297,33 +1301,27 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // Return false if we can't process this read bin because the reads are not correctly overlapping.
         // This can happen if e.g. there's a large known indel with no overlapping reads.
-        public boolean add(SAMRecord read, byte[] ref) {
+        public void add(SAMRecord read) {
+
+            GenomeLoc locForRead = GenomeLocParser.createGenomeLoc(read);
+            if ( loc == null )
+                loc = locForRead;
+            else if ( locForRead.getStop() > loc.getStop() )
+                loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), locForRead.getStop());
+
             reads.add(read);
-
-            // set up the reference
-            if ( reference == null ) {
-                reference = ref;
-                loc = GenomeLocParser.createGenomeLoc(read);
-            } else {
-                long lastPosWithRefBase = loc.getStart() + reference.length -1;
-                int neededBases = (int)(read.getAlignmentEnd() - lastPosWithRefBase);
-                if ( neededBases > ref.length )
-                    return false;
-                if ( neededBases > 0 ) {
-                    byte[] newReference = new byte[reference.length + neededBases];
-                    System.arraycopy(reference, 0, newReference, 0, reference.length);
-                    System.arraycopy(ref, ref.length-neededBases, newReference, reference.length, neededBases);
-                    reference = newReference;
-                    loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStop()+neededBases);
-                }
-            }
-
-            return true;
         }
 
         public List<SAMRecord> getReads() { return reads; }
 
-        public byte[] getRereference() {
+        public byte[] getReference(IndexedFastaSequenceFile referenceReader) {
+            // set up the reference if we haven't done so yet
+            if ( reference == null ) {
+                // first, pad the reference to handle deletions in narrow windows (e.g. those with only 1 read)
+                loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart()-REFERENCE_PADDING, loc.getStop()+REFERENCE_PADDING);
+                reference = referenceReader.getSubsequenceAt(loc.getContig(), loc.getStart(), loc.getStop()).getBases();
+            }
+
             return reference;
         }
 

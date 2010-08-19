@@ -9,7 +9,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
 
     @Test
     public void testRealignerLod5() {
-        String[] md5s = {"9247b1437ec3b9bc96590524f245220c", "18fca887d1eb7dc300e717ae03b9da62"};
+        String[] md5s = {"9247b1437ec3b9bc96590524f245220c", "c4ef635f2597b12b93a73199f07e509b"};
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T IndelRealigner -noPG -LOD 5 -maxConsensuses 100 -greedy 100 -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10030000 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe",
                  2,
@@ -19,7 +19,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
 
     @Test
     public void testRealignerLod50() {
-        String[] md5s = {"9247b1437ec3b9bc96590524f245220c", "9537e4f195ce5840136f60fb61201369"};
+        String[] md5s = {"9247b1437ec3b9bc96590524f245220c", "3735a510513b6fa4161d92155e026283"};
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T IndelRealigner -noPG -LOD 50 -maxConsensuses 100 -greedy 100 -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10030000 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -O %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe",
                  2,
@@ -29,7 +29,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
 
     @Test
     public void testRealignerKnownsOnly() {
-        String[] md5s = {"7084d4e543bc756730ab306768028530", "1091436c40d5ba557d85662999cc0c1d"};
+        String[] md5s = {"7084d4e543bc756730ab306768028530", "74652bd8240291293ec921f8ecfa1622"};
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T IndelRealigner -noPG -LOD 1.0 -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10076000 -compress 1 -targetIntervals " + validationDataLocation + "NA12878.indels.intervals -B knownIndels,VCF," + validationDataLocation + "NA12878.indels.vcf4 -O %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe -knownsOnly",
                  2,
