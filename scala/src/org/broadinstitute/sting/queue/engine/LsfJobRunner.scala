@@ -67,10 +67,10 @@ class LsfJobRunner extends DispatchJobRunner with Logging {
    * @return The dependency expression for the prior jobs.
    */
   private def dependencyExpression(jobs: Iterable[LsfJob], runOnSuccess: Boolean) = {
-    val jobNames = jobs.toSet[LsfJob].map(_.name)
+    val jobIds = jobs.toSet[LsfJob].map(_.bsubJobId)
     if (runOnSuccess)
-      jobNames.mkString("done(\"", "\") && done(\"", "\")")
+      jobIds.mkString("done(", ") && done(", ")")
     else
-      jobNames.mkString("ended(\"", "\") && ended(\"", "\")")
+      jobIds.mkString("ended(", ") && ended(", ")")
   }
 }
