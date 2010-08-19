@@ -15,13 +15,13 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
     long nTi = 0;
     @DataPoint(name = "tv_count", description = "number of transversion loci")
     long nTv = 0;
-    @DataPoint(name = "ti/tv ratio", description = "the transition to transversion ratio")
+    @DataPoint(name = "ti/tv_ratio", description = "the transition to transversion ratio")
     double tiTvRatio = 0.0;    
     @DataPoint(name = "ti_count_comp", description = "number of comp transition sites")
     long nTiInComp = 0;
     @DataPoint(name = "tv_count_comp", description = "number of comp transversion sites")
     long nTvInComp = 0;
-    @DataPoint(name = "ti/tv ratio standard", description = "the transition to transversion ratio for comp sites")
+    @DataPoint(name = "ti/tv_ratio_standard", description = "the transition to transversion ratio for comp sites")
     double TiTvRatioStandard = 0.0;
 
     public TiTvVariantEvaluator(VariantEvalWalker parent) {
