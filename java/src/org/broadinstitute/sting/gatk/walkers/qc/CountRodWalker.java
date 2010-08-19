@@ -57,11 +57,13 @@ public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<Expandi
         ExpandingArrayList<Long> nt = new ExpandingArrayList<Long>();
         nt.addAll(lhs.first);
         int index = 0;
-        for (Long l : rhs.first)
+        for (Long l : rhs.first) {
             if (nt.get(index) == null)
                 nt.add(l);
             else
                 nt.set(index,nt.get(index) + l);
+            index++;
+        }
         return new Pair<ExpandingArrayList<Long>, Long>(nt, lhs.second + rhs.second);
     }
 
