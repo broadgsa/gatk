@@ -9,43 +9,43 @@ package org.broadinstitute.sting.utils;
  */
 
 /* PreciseNonNegativeDouble permits arithmetic operations on NON-NEGATIVE double values
-   with precision (prevents underflow by representing in log space).
+   with precision (prevents underflow by representing in log10 space).
  */
 public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDouble> {
     private static double EQUALS_THRESH = 1e-6;
     private static double INFINITY = Double.POSITIVE_INFINITY;
 
-    private double logValue;
+    private double log10Value;
 
     public PreciseNonNegativeDouble(double d) {
         this(d, false);
     }
 
-    public PreciseNonNegativeDouble(double d, boolean isLog) {
-        if (isLog) {
-            this.logValue = d;
+    public PreciseNonNegativeDouble(double d, boolean isLog10) {
+        if (isLog10) {
+            this.log10Value = d;
         }
         else {
             if (d < 0)
                 throw new IllegalArgumentException("non-log PreciseNonNegativeDouble argument must be non-negative");
-            this.logValue = Math.log(d);
+            this.log10Value = Math.log10(d);
         }
     }
 
     public PreciseNonNegativeDouble(PreciseNonNegativeDouble pd) {
-        this.logValue = pd.logValue;
+        this.log10Value = pd.log10Value;
     }
 
     public double getValue() {
-        return Math.exp(logValue);
+        return Math.pow(10, log10Value);
     }
 
-    public double getLogValue() {
-        return logValue;
+    public double getLog10Value() {
+        return log10Value;
     }
 
     public PreciseNonNegativeDouble setEqual(PreciseNonNegativeDouble other) {
-        logValue = other.logValue;
+        log10Value = other.log10Value;
         return this;
     }
 
@@ -62,12 +62,12 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
     }
 
     public PreciseNonNegativeDouble absDiff(PreciseNonNegativeDouble other) {
-        return new PreciseNonNegativeDouble(absSubLog(this.logValue, other.logValue), true);
+        return new PreciseNonNegativeDouble(absSubLog(this.log10Value, other.log10Value), true);
     }
 
     public int compareTo(PreciseNonNegativeDouble other) {
         // Since log is monotonic: e^a R e^b <=> a R b, where R is one of: >, <, ==
-        double logValDiff = this.logValue - other.logValue;
+        double logValDiff = this.log10Value - other.log10Value;
         if (Math.abs(logValDiff) <= EQUALS_THRESH)
             return 0; // this.equals(other)
 
@@ -87,23 +87,23 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
     }
 
     public PreciseNonNegativeDouble plusEqual(PreciseNonNegativeDouble other) {
-        logValue = addInLogSpace(logValue, other.logValue);
+        log10Value = addInLogSpace(log10Value, other.log10Value);
         return this;
     }
 
     public PreciseNonNegativeDouble timesEqual(PreciseNonNegativeDouble other) {
-        logValue += other.logValue;
+        log10Value += other.log10Value;
         return this;
     }
 
     public PreciseNonNegativeDouble divEqual(PreciseNonNegativeDouble other) {
-        logValue -= other.logValue;
+        log10Value -= other.log10Value;
         return this;
     }
 
     // If x = log(a), y = log(b), returns log(a+b)
     public static double addInLogSpace(double x, double y) {
-        if (x == INFINITY || y == INFINITY) return INFINITY; //log( e^INFINITY + e^y ) = INFINITY
+        if (x == INFINITY || y == INFINITY) return INFINITY; // log(e^INFINITY + e^y) = INFINITY
 
         if (x == -INFINITY) return y;
         if (y == -INFINITY) return x;
@@ -119,7 +119,7 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
         }
 
         // x + log(1+e^(y-x)) = log(a) + log(1+e^(log(b)-log(a))) = log(a) + log(1+b/a) = log(a+b)
-        return maxVal + Math.log(1.0 + Math.exp(negDiff));
+        return maxVal + Math.log10(1.0 + Math.pow(10, negDiff));
     }
 
     // If x = log(a), y = log(b), returns log |a-b|
@@ -129,9 +129,9 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
         return -INFINITY;
       }
       else if (x >= y) // x + log(1-e^(y-x)) = log(a) + log(1-e^(log(b)-log(a))) = log(a) + log(1-b/a) = a - b = |a-b|, since x >= y
-        return x + Math.log(1 - Math.exp(y-x));
+        return x + Math.log10(1 - Math.pow(10, y-x));
       else
-        return y + Math.log(1 - Math.exp(x-y));
+        return y + Math.log10(1 - Math.pow(10, x-y));
     }    
 
     public String toString() {

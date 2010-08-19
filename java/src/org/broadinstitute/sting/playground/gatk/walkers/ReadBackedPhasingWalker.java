@@ -282,15 +282,16 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + sampleHaps + "\n");
 
                 PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
+                double posteriorProb = maxEntry.getScore().getValue();
+
+                // convert posteriorProb to PHRED scale, but do NOT cap the quality as in QualityUtils.probToQual(posteriorProb):
                 PreciseNonNegativeDouble sumErrorProbs = new PreciseNonNegativeDouble(ZERO);
                 for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
                     if (pte != maxEntry)
                         sumErrorProbs.plusEqual(pte.getScore());
                 }
-                // log10(x) = log(x) / log(10):
-                double phaseQuality = -10.0 * (sumErrorProbs.getLogValue() / Math.log(10.0)); // convert to PHRED scale, do NOT cap the quality as in QualityUtils.probToQual(posteriorProb)
+                double phaseQuality = -10.0 * (sumErrorProbs.getLog10Value());
 
-                double posteriorProb = maxEntry.getScore().getValue();
                 logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + phaseQuality);
 
                 if (statsWriter != null)
