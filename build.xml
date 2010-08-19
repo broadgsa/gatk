@@ -83,11 +83,7 @@
         <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
         <property name="ivy.settings.dir" value="settings"/>
         <property file="${ivy.settings.dir}/ivysettings.properties"/>
-
-        <!-- Remove the reflections cache as the local dependency settings have changed. -->
-        <!-- Ok to remove after reflections goes back to a stable release. -->
-        <delete dir="${ivy.home}/cache/org.reflections/reflections"/>
-
+  
       <mkdir dir="${ivy.jar.dir}"/>
       <!-- Remove old versions of ivy. -->
       <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
@@ -471,7 +467,7 @@
             <echo message="Sting: Running @{testtype} test cases!"/>
             <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
                 <formatter type="brief" usefile="false" />
-                <formatter type="xml"/> 
+                <formatter type="xml"/>
                 <classpath>
                     <path refid="runtime.dependencies"/>
                     <pathelement location="${java.classes}"/>

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.queue.util
 
 import collection.JavaConversions._
-import org.reflections.util.ManifestAwareClasspathHelper
+import org.broadinstitute.sting.utils.classloader.PackageUtils
 import java.io.File
 import javax.print.URIException
 import java.net.{URL, URLClassLoader}
@@ -16,7 +16,7 @@ object ClasspathUtils {
    * @return List[File] that build up the current classpath.
    */
   def manifestAwareClassPath = {
-    var urls = ManifestAwareClasspathHelper.getUrlsForManifestCurrentClasspath
+    var urls = PackageUtils.getClassPathURLs
     urls.map(url => try {new File(url.toURI)} catch {case urie: URIException => new File(url.getPath)})
   }
 
@@ -33,3 +33,4 @@ object ClasspathUtils {
     method.invoke(ClassLoader.getSystemClassLoader(), url);
   }
 }
+

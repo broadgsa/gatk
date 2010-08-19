@@ -25,12 +25,15 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
-import org.reflections.Reflections;
-import org.reflections.scanners.ResourcesScanner;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.ConfigurationBuilder;
-import org.reflections.util.ManifestAwareClasspathHelper;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
 import org.broadinstitute.sting.utils.StingException;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
+import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.util.Set;
@@ -41,18 +44,21 @@ import java.util.List;
  * PackageUtils contains some useful methods for package introspection.
  */
 public class PackageUtils {
-    
+
     /**
      * A reference into our introspection utility.
      */
     private static Reflections reflections = null;
 
     static {
-        List<URL> urls = ManifestAwareClasspathHelper.getUrlsForManifestCurrentClasspath();
+        // turn off logging in the reflections library - they talk too much (to the wrong logger factory as well, logback)
+        Logger logger = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(Reflections.class);
+        logger.setLevel(Level.OFF);
+
         // Initialize general-purpose source tree reflector.
         reflections = new Reflections( new ConfigurationBuilder()
-                .setUrls(urls)
-                .setScanners(new SubTypesScanner(),new ResourcesScanner()));
+            .setUrls(getClassPathURLs())
+            .setScanners(new SubTypesScanner()));
     }
 
     /**
@@ -114,5 +120,9 @@ public class PackageUtils {
         }
 
         return nonConcreteTypes;
+    }
+
+    public static Set<URL> getClassPathURLs() {
+        return ClasspathHelper.getUrlsForCurrentClasspath();
     }
 }

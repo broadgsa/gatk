@@ -19,7 +19,7 @@
     <dependency org="org.apache.bcel" name="bcel" rev="5.2"/>
 
     <!-- Dependencies for reflections mvn repository -->
-    <dependency org="org.reflections" name="reflections" rev="0.9.5-svnversion79M_mod2"/>
+    <dependency org="org.reflections" name="reflections" rev="0.9.5-RC2"/>
 
     <!-- Matrix package from math.nist.gov -->
     <dependency org="gov.nist" name="Jama" rev="1.0.2"/>
