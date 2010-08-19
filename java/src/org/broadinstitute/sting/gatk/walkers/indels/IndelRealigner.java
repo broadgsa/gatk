@@ -1318,7 +1318,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // set up the reference if we haven't done so yet
             if ( reference == null ) {
                 // first, pad the reference to handle deletions in narrow windows (e.g. those with only 1 read)
-                loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart()-REFERENCE_PADDING, loc.getStop()+REFERENCE_PADDING);
+                long padLeft = Math.max(loc.getStart()-REFERENCE_PADDING, 1);
+                long padRight = Math.min(loc.getStop()+REFERENCE_PADDING, referenceReader.getSequenceDictionary().getSequence(loc.getContig()).getSequenceLength());
+                loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), padLeft, padRight);
                 reference = referenceReader.getSubsequenceAt(loc.getContig(), loc.getStart(), loc.getStop()).getBases();
             }
 
