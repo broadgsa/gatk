@@ -894,8 +894,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             // for reads ending before the indel
             if ( myPosOnAlt + aRead.getReadLength() <= endOfFirstBlock) {
-                readCigar.add(new CigarElement(aRead.getReadLength(), CigarOperator.M));
-                aRead.setCigar(readCigar);
+                //readCigar.add(new CigarElement(aRead.getReadLength(), CigarOperator.M));
+                //aRead.setCigar(readCigar);
+                aRead.setCigar(null); // reset to original alignment
                 return true;
             }
             readCigar.add(new CigarElement(endOfFirstBlock - myPosOnAlt, CigarOperator.M));
@@ -929,9 +930,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // for reads that start after the indel
         if ( !sawAlignmentStart ) {
-            aRead.setAlignmentStart(leftmostIndex + myPosOnAlt + indelOffsetOnRef - indelOffsetOnRead);
-            readCigar.add(new CigarElement(aRead.getReadLength(), CigarOperator.M));
-            aRead.setCigar(readCigar);
+            //aRead.setAlignmentStart(leftmostIndex + myPosOnAlt + indelOffsetOnRef - indelOffsetOnRead);
+            //readCigar.add(new CigarElement(aRead.getReadLength(), CigarOperator.M));
+            //aRead.setCigar(readCigar);
+            aRead.setCigar(null); // reset to original alignment
             return true;
         }
 
@@ -1142,6 +1144,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // tentatively sets the new Cigar, but it needs to be confirmed later
         public void setCigar(Cigar cigar, boolean fixClippedCigar) {
+            if ( cigar == null ) {
+                newCigar = null;
+                return;
+            }
+
             if ( fixClippedCigar && getReadBases().length < read.getReadLength() )
                 cigar = reclipCigar(cigar);
 
@@ -1153,8 +1160,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             // no indel?
             String str = cigar.toString();
-            if ( !str.contains("D") && !str.contains("I") )
-                return;
+            if ( !str.contains("D") && !str.contains("I") ) {
+                logger.info("Modifying a read with no associated indel; although this is possible, it is highly unlikely.  Perhaps this region should be double-checked: " + read.getReadName() + " near " + read.getReferenceName() + ":" + read.getAlignmentStart());
+                //    newCigar = null;
+                //    return;
+            }
 
             newCigar = cigar;
         }
