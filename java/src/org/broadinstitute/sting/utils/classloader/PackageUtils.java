@@ -123,6 +123,6 @@ public class PackageUtils {
     }
 
     public static Set<URL> getClassPathURLs() {
-        return ClasspathHelper.getUrlsForCurrentClasspath();
+        return ClasspathHelper.getUrlsForManifestsCurrentClasspath();
     }
 }
