@@ -36,14 +36,10 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.PreciseNonNegativeDouble;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -67,13 +63,17 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm; [default:20]", required = false)
     protected Integer maxPhaseSites = 20; // 2^20 == 10^6 biallelic haplotypes
 
-    @Argument(fullName = "phaseScoreThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:0.66]", required = false)
-    protected Double phaseScoreThresh = 0.66;
+    @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:4.77]", required = false)
+    protected Double phaseQualityThresh = 4.77; // PQ = 4.77 <=> P(error) = 10^(-4.77/10) = 0.33, P(correct) = 0.66, so that we have odds ratio of >= 2
 
     @Argument(fullName = "phasedVCFFile", shortName = "phasedVCF", doc = "The name of the phased VCF file output", required = true)
     protected String phasedVCFFile = null;
 
+    @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files", required = false)
+    protected String variantStatsFilePrefix = null;
+
     private VCFWriter writer = null;
+    private PhasingQualityStatsWriter statsWriter = null;
 
     private LinkedList<VariantAndReads> siteQueue = null;
     private VariantAndReads prevVr = null; // the VC emitted after phasing, and the alignment bases at the position emitted
@@ -96,6 +96,9 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     public void initialize() {
         siteQueue = new LinkedList<VariantAndReads>();
         prevVr = new VariantAndReads(null, null, true);
+
+        if (variantStatsFilePrefix != null)
+            statsWriter = new PhasingQualityStatsWriter(variantStatsFilePrefix);
     }
 
     public boolean generateExtendedEvents() {
@@ -279,14 +282,18 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + sampleHaps + "\n");
 
                 PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
-                double score = maxEntry.getScore().getValue();
-                logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tscore:\t" + score);
+                double posteriorProb = maxEntry.getScore().getValue();
+                int phaseQuality = new Integer(QualityUtils.probToQual(posteriorProb, 0.0)); // 0.0 <=> do NOT cap the quality!
+                logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + phaseQuality);
 
-                genotypesArePhased = (score >= phaseScoreThresh);
+                if (statsWriter != null)
+                    statsWriter.addStat(samp, distance(prevVc, vc), phaseQuality);
+
+                genotypesArePhased = (phaseQuality >= phaseQualityThresh);
                 if (genotypesArePhased) {
                     Biallele prevBiall = new Biallele(prevVc.getGenotype(samp));
                     ensurePhasing(biall, prevBiall, maxEntry.getHaplotypeClass().getRepresentative());
-                    gtAttribs.put("PQ", new Integer(QualityUtils.probToQual(score)));
+                    gtAttribs.put("PQ", phaseQuality);
 
                     logger.debug("CHOSE PHASE:\n" + biall + "\n\n");
                 }
@@ -347,6 +354,15 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         return (loc1.onSameContig(loc2) && loc1.distance(loc2) <= cacheWindow);
     }
 
+    private static int distance(VariantContext vc1, VariantContext vc2) {
+        GenomeLoc loc1 = VariantContextUtils.getLocation(vc1);
+        GenomeLoc loc2 = VariantContextUtils.getLocation(vc2);
+        if (!loc1.onSameContig(loc2))
+            return Integer.MAX_VALUE;
+
+        return loc1.distance(loc2);
+    }
+
     private void writeVCF(VariantContext vc) {
         if (writer == null)
             initializeVcfWriter(vc);
@@ -381,12 +397,14 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         writeVarContList(finalList);
         if (writer != null)
             writer.close();
+        if (statsWriter != null)
+            statsWriter.close();
 
         out.println("Number of reads observed: " + result.getNumReads());
         out.println("Number of variant sites observed: " + result.getNumVarSites());
         out.println("Average coverage: " + ((double) result.getNumReads() / result.getNumVarSites()));
 
-        out.println("\n-- Phasing summary [minimal haplotype probability: " + phaseScoreThresh + "] --");
+        out.println("\n-- Phasing summary [minimal haplotype probability: " + phaseQualityThresh + "] --");
         for (Map.Entry<String, PhaseCounts> sampPhaseCountEntry : result.getPhaseCounts()) {
             PhaseCounts pc = sampPhaseCountEntry.getValue();
             out.println("Sample: " + sampPhaseCountEntry.getKey() + "\tNumber of tested sites: " + pc.numTestedSites + "\tNumber of phased sites: " + pc.numPhased);
@@ -1085,56 +1103,45 @@ class PhasingStatsAndOutput {
     }
 }
 
-class CardinalityCounter implements Iterator<int[]>, Iterable<int[]> {
-    private int[] cards;
-    private int[] valList;
-    private boolean hasNext;
+class PhasingQualityStatsWriter {
+    private String variantStatsFilePrefix;
+    private HashMap<String, BufferedWriter> sampleToStatsWriter = new HashMap<String, BufferedWriter>();
 
-    public CardinalityCounter(int[] cards) {
-        this.cards = cards;
-        this.valList = new int[cards.length];
-        for (int i = 0; i < cards.length; i++) {
-            if (this.cards[i] <= 0)
-                throw new StingException("CANNOT have zero cardinalities!");
-            this.valList[i] = 0;
-        }
-        this.hasNext = true;
+    public PhasingQualityStatsWriter(String variantStatsFilePrefix) {
+        this.variantStatsFilePrefix = variantStatsFilePrefix;
     }
 
-    public boolean hasNext() {
-        return hasNext;
-    }
+    public void addStat(String sample, int distanceFromPrevious, int phasingQuality) {
+        BufferedWriter sampWriter = sampleToStatsWriter.get(sample);
+        if (sampWriter == null) {
+            String fileName = variantStatsFilePrefix + "." + sample + ".distance_PQ.txt";
 
-    public int[] next() {
-        if (!hasNext())
-            throw new StingException("CANNOT iterate past end!");
-
-        // Copy the assignment to be returned:
-        int[] nextList = new int[valList.length];
-        for (int i = 0; i < valList.length; i++)
-            nextList[i] = valList[i];
-
-        // Find the assignment after this one:
-        hasNext = false;
-        int i = cards.length - 1;
-        for (; i >= 0; i--) {
-            if (valList[i] < (cards[i] - 1)) {
-                valList[i]++;
-                hasNext = true;
-                break;
+            FileOutputStream output;
+            try {
+                output = new FileOutputStream(fileName);
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException("Unable to create phasing quality stats file at location: " + fileName);
             }
-            valList[i] = 0;
+            sampWriter = new BufferedWriter(new OutputStreamWriter(output));
+            sampleToStatsWriter.put(sample, sampWriter);
         }
-
-        return nextList;
+        try {
+            sampWriter.write(distanceFromPrevious + "\t" + phasingQuality + "\n");
+            sampWriter.flush();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to write to per-sample phasing quality stats file", e);
+        }
     }
 
-    public void remove() {
-        throw new StingException("Cannot remove from CardinalityCounter!");
+    public void close() {
+        for (Map.Entry<String, BufferedWriter> sampWriterEntry : sampleToStatsWriter.entrySet()) {
+            BufferedWriter sampWriter = sampWriterEntry.getValue();
+            try {
+                sampWriter.flush();
+                sampWriter.close();
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to close per-sample phasing quality stats file");
+            }
+        }
     }
-
-    public Iterator<int[]> iterator() {
-        return this;
-    }
-
 }

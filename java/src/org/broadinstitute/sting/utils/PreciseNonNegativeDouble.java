@@ -32,7 +32,7 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
         }
     }
 
-    public PreciseNonNegativeDouble(org.broadinstitute.sting.utils.PreciseNonNegativeDouble pd) {
+    public PreciseNonNegativeDouble(PreciseNonNegativeDouble pd) {
         this.logValue = pd.logValue;
     }
 
@@ -44,24 +44,28 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
         return logValue;
     }
 
-    public org.broadinstitute.sting.utils.PreciseNonNegativeDouble setEqual(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
+    public PreciseNonNegativeDouble setEqual(PreciseNonNegativeDouble other) {
         logValue = other.logValue;
         return this;
     }
 
-    public org.broadinstitute.sting.utils.PreciseNonNegativeDouble plus(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
-        return new org.broadinstitute.sting.utils.PreciseNonNegativeDouble(this).plusEqual(other);
+    public PreciseNonNegativeDouble plus(PreciseNonNegativeDouble other) {
+        return new PreciseNonNegativeDouble(this).plusEqual(other);
     }
 
-    public org.broadinstitute.sting.utils.PreciseNonNegativeDouble times(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
-        return new org.broadinstitute.sting.utils.PreciseNonNegativeDouble(this).timesEqual(other);
+    public PreciseNonNegativeDouble times(PreciseNonNegativeDouble other) {
+        return new PreciseNonNegativeDouble(this).timesEqual(other);
     }
 
-    public org.broadinstitute.sting.utils.PreciseNonNegativeDouble div(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
-        return new org.broadinstitute.sting.utils.PreciseNonNegativeDouble(this).divEqual(other);
+    public PreciseNonNegativeDouble div(PreciseNonNegativeDouble other) {
+        return new PreciseNonNegativeDouble(this).divEqual(other);
     }
 
-    public int compareTo(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
+    public PreciseNonNegativeDouble absDiff(PreciseNonNegativeDouble other) {
+        return new PreciseNonNegativeDouble(absSubLog(this.logValue, other.logValue), true);
+    }
+
+    public int compareTo(PreciseNonNegativeDouble other) {
         // Since log is monotonic: e^a R e^b <=> a R b, where R is one of: >, <, ==
         double logValDiff = this.logValue - other.logValue;
         if (Math.abs(logValDiff) <= EQUALS_THRESH)
@@ -70,20 +74,30 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
         return new Double(Math.signum(logValDiff)).intValue();
     }
 
-    public boolean equals(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
+    public boolean equals(PreciseNonNegativeDouble other) {
         return (this.compareTo(other) == 0);
     }
 
-    public boolean gt(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
+    public boolean gt(PreciseNonNegativeDouble other) {
         return (this.compareTo(other) > 0);
     }
 
-    public boolean lt(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
+    public boolean lt(PreciseNonNegativeDouble other) {
         return (this.compareTo(other) < 0);
     }
 
-    public org.broadinstitute.sting.utils.PreciseNonNegativeDouble plusEqual(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
+    public PreciseNonNegativeDouble plusEqual(PreciseNonNegativeDouble other) {
         logValue = addInLogSpace(logValue, other.logValue);
+        return this;
+    }
+
+    public PreciseNonNegativeDouble timesEqual(PreciseNonNegativeDouble other) {
+        logValue += other.logValue;
+        return this;
+    }
+
+    public PreciseNonNegativeDouble divEqual(PreciseNonNegativeDouble other) {
+        logValue -= other.logValue;
         return this;
     }
 
@@ -108,15 +122,17 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
         return maxVal + Math.log(1.0 + Math.exp(negDiff));
     }
 
-    public org.broadinstitute.sting.utils.PreciseNonNegativeDouble timesEqual(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
-        logValue += other.logValue;
-        return this;
-    }
-
-    public org.broadinstitute.sting.utils.PreciseNonNegativeDouble divEqual(org.broadinstitute.sting.utils.PreciseNonNegativeDouble other) {
-        logValue -= other.logValue;
-        return this;
-    }
+    // If x = log(a), y = log(b), returns log |a-b|
+    double absSubLog(double x, double y) {
+      if (x == -INFINITY && y == -INFINITY) {
+        // log |e^-INFINITY - e^-INFINITY| = log |0-0| = log(0) = -INFINITY
+        return -INFINITY;
+      }
+      else if (x >= y) // x + log(1-e^(y-x)) = log(a) + log(1-e^(log(b)-log(a))) = log(a) + log(1-b/a) = a - b = |a-b|, since x >= y
+        return x + Math.log(1 - Math.exp(y-x));
+      else
+        return y + Math.log(1 - Math.exp(x-y));
+    }    
 
     public String toString() {
         return new StringBuilder().append(getValue()).toString();
