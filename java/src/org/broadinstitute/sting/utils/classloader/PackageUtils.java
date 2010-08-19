@@ -35,7 +35,9 @@ import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,11 +56,6 @@ public class PackageUtils {
         // turn off logging in the reflections library - they talk too much (to the wrong logger factory as well, logback)
         Logger logger = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(Reflections.class);
         logger.setLevel(Level.OFF);
-
-        // Initialize general-purpose source tree reflector.
-        reflections = new Reflections( new ConfigurationBuilder()
-            .setUrls(getClassPathURLs())
-            .setScanners(new SubTypesScanner()));
     }
 
     /**
@@ -76,6 +73,7 @@ public class PackageUtils {
      */
     public static <T> List<Class<? extends T>> getClassesImplementingInterface(Class<T> iface) {
         // Load all classes implementing the given interface, then filter out any class that isn't concrete.
+        initReflections();
         Set<Class<? extends T>> allTypes = reflections.getSubTypesOf(iface);
         List<Class<? extends T>> concreteTypes = new ArrayList<Class<? extends T>>();
         for( Class<? extends T> type: allTypes ) {
@@ -112,6 +110,7 @@ public class PackageUtils {
      */
     public static <T> List<Class<? extends T>> getInterfacesExtendingInterface(Class<T> iface) {
         // Load all classes extending the given interface, then filter out any class that is concrete.
+        initReflections();
         Set<Class<? extends T>> allTypes = reflections.getSubTypesOf(iface);
         List<Class<? extends T>> nonConcreteTypes = new ArrayList<Class<? extends T>>();
         for( Class<? extends T> type: allTypes ) {
@@ -124,5 +123,41 @@ public class PackageUtils {
 
     public static Set<URL> getClassPathURLs() {
         return ClasspathHelper.getUrlsForManifestsCurrentClasspath();
+    }
+
+    /**
+     * Adds the URL to the system class loader classpath using reflection.
+     * HACK: Uses reflection to modify the class path, and assumes loader is a URLClassLoader.
+     * @param url URL to add to the system class loader classpath.
+     */
+    public static void addClasspath(URL url) {
+      try {
+          Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+          if (!method.isAccessible())
+            method.setAccessible(true);
+          method.invoke(ClassLoader.getSystemClassLoader(), url);
+          resetReflections();
+      } catch (Exception e) {
+          throw new StingException("Error adding url to the current classloader.", e);
+      }
+    }
+
+    /**
+     * Create new reflections object if it does not currently exists.
+     */
+    private static void initReflections() {
+        if (reflections == null) {
+            // Initialize general-purpose source tree reflector.
+            reflections = new Reflections( new ConfigurationBuilder()
+                .setUrls(getClassPathURLs())
+                .setScanners(new SubTypesScanner()));
+        }
+    }
+
+    /**
+     * Resets the reflections object after a class has been dynamically added to the classpath.
+     */
+    private static void resetReflections() {
+        reflections = null;
     }
 }

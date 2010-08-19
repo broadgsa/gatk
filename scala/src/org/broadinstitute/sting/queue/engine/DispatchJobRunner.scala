@@ -64,7 +64,7 @@ trait DispatchJobRunner extends JobRunner {
     for (dir <- function.jobDirectories)
       dirs += IOUtils.dirLevel(dir, 2)
     if (dirs.size > 0)
-      Some("\'" + dirs.mkString("cd ", " && cd ", "") + "\'")
+      Some(dirs.mkString("cd ", " && cd ", ""))
     else
       None
   }

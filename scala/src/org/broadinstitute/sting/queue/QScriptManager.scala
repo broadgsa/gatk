@@ -1,15 +1,15 @@
 package org.broadinstitute.sting.queue
 
-import org.broadinstitute.sting.utils.classloader.PluginManager
 import scala.tools.nsc.{Global, Settings}
 import scala.tools.nsc.io.PlainFile
-import org.broadinstitute.sting.queue.util.{Logging, ClasspathUtils, IOUtils}
+import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
 import collection.JavaConversions
 import java.io.File
 import scala.tools.nsc.reporters.AbstractReporter
 import java.lang.String
 import org.apache.log4j.Level
 import scala.tools.nsc.util.{FakePos, NoPosition, Position}
+import org.broadinstitute.sting.utils.classloader.{PackageUtils, PluginManager}
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.
@@ -52,7 +52,7 @@ object QScriptManager extends Logging {
       settings.outdir.value = outdir.getPath
 
       // Set the classpath to the current class path.
-      ClasspathUtils.manifestAwareClassPath.foreach(path => settings.classpath.append(path.getPath))
+      JavaConversions.asSet(PackageUtils.getClassPathURLs).foreach(url => settings.classpath.append(url.getPath))
 
       val reporter = new Log4JReporter(settings)
 
@@ -76,7 +76,7 @@ object QScriptManager extends Logging {
         logger.info("Compilation complete")
 
       // Add the new compilation output directory to the classpath.
-      ClasspathUtils.addClasspath(outdir)
+      PackageUtils.addClasspath(outdir.toURI.toURL)
     }
   }
 
