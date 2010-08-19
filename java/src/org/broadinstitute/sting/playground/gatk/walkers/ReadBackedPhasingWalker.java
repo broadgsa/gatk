@@ -87,7 +87,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-        hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Integer, "Read-backed phasing quality"));
+        hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Float, "Read-backed phasing quality"));
 
         writer = new VCFWriterImpl(new File(phasedVCFFile));
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
@@ -282,8 +282,15 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + sampleHaps + "\n");
 
                 PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
+                PreciseNonNegativeDouble sumErrorProbs = new PreciseNonNegativeDouble(ZERO);
+                for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
+                    if (pte != maxEntry)
+                        sumErrorProbs.plusEqual(pte.getScore());
+                }
+                // log10(x) = log(x) / log(10):
+                double phaseQuality = -10.0 * (sumErrorProbs.getLogValue() / Math.log(10.0)); // convert to PHRED scale, do NOT cap the quality as in QualityUtils.probToQual(posteriorProb)
+
                 double posteriorProb = maxEntry.getScore().getValue();
-                int phaseQuality = new Integer(QualityUtils.probToQual(posteriorProb, 0.0)); // 0.0 <=> do NOT cap the quality!
                 logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + phaseQuality);
 
                 if (statsWriter != null)
@@ -1111,7 +1118,7 @@ class PhasingQualityStatsWriter {
         this.variantStatsFilePrefix = variantStatsFilePrefix;
     }
 
-    public void addStat(String sample, int distanceFromPrevious, int phasingQuality) {
+    public void addStat(String sample, int distanceFromPrevious, double phasingQuality) {
         BufferedWriter sampWriter = sampleToStatsWriter.get(sample);
         if (sampWriter == null) {
             String fileName = variantStatsFilePrefix + "." + sample + ".distance_PQ.txt";
