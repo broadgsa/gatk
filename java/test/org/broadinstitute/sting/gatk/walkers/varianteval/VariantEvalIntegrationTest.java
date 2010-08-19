@@ -29,7 +29,7 @@ public class
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
-                    1, Arrays.asList("a12bd969ca3bc676752e078d205c730a"));
+                    1, Arrays.asList("482c868400f59e17dbc59d667b4b2eca"));
             executeTest("testSelect1", spec);
         }
     }
@@ -38,7 +38,7 @@ public class
     public void testSelect2() {
         String extraArgs = "-L 1:1-10,000,000";
         WalkerTestSpec spec = new WalkerTestSpec( withSelect(withSelect(root, "DP < 50", "DP50"), "set==\"Intersection\"", "intersection") + " " + extraArgs + " -o %s",
-                1, Arrays.asList("2c1a99b225b55dcf605410ba5e6be789"));
+                1, Arrays.asList("4dfaa72b23ce297a2c29d9f7e9661c37"));
         executeTest("testSelect2", spec);
     }
 
@@ -57,8 +57,8 @@ public class
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "a48e4ca3a019bf46eb3a178a6a80822f");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0 -E MendelianViolationEvaluator", "bc35dfefce72899d4c673bfc37c9a7f3");
+        expectations.put("-L 1:1-10,000,000", "8891969e7522e728b64c112a2b2f9d1e");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0 -E MendelianViolationEvaluator", "ace2f6170e740a9ee6abc25f130c6848");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -80,10 +80,10 @@ public class
                 " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
-        String matchingMD5 = "38c8906cc364d04ba39a437d93d752d3";
+        String matchingMD5 = "dd513bc72860133a58e9ee542782162b";
         expectations.put("", matchingMD5);
         expectations.put(" -known comp_hapmap -known dbsnp", matchingMD5);
-        expectations.put(" -known comp_hapmap", "b839c8e9f26b01281899f86362b5323c");
+        expectations.put(" -known comp_hapmap", "bef6d1e5fa3a79faf745711e0d8fa2dd");
         for (String tests : testsEnumerations) {
             for (Map.Entry<String, String> entry : expectations.entrySet()) {
                 String extraArgs2 = entry.getKey();
@@ -118,7 +118,7 @@ public class
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
                     2,
-                    Arrays.asList("8059c6b53ba15598bf89d65c79742566", "989bc30dea6c8a4cf771cd1b9fdab488"));
+                    Arrays.asList("77abdb58b3166d87daadf397e7fb51c4", "989bc30dea6c8a4cf771cd1b9fdab488"));
             executeTest("testVEWriteVCF", spec);
         }
     }
