@@ -69,7 +69,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
             if ( bestEvent.charAt(0) == '-' ) {
                 alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
                 alleles.add( Allele.create(bestEvent.substring(1), true ));
-                loc = GenomeLocParser.setStop(loc, loc.getStop() + bestEvent.length()-2);
+                loc = GenomeLocParser.setStop(loc, loc.getStop() + bestEvent.length()-1);
             } else
                 throw new StingException("Internal error (probably a bug): event does not conform to expected format: "+ bestEvent);
         }
@@ -78,6 +78,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
                 -1.0 /* log error */, null /* filters */, null /* attributes */);
 
         vcc = new VariantCallContext(vc,true);
+        vcc.setRefBase(ref[0]);
 /*
         if ( totalIndels > 0 ) {
             System.out.println("Calling: "+bestEvent+" ["+bestIndelCount+"/"+totalIndels+"/"+totalCoverage+"] at "+loc);
