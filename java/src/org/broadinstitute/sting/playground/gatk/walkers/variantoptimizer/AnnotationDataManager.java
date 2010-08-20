@@ -61,7 +61,7 @@ public class AnnotationDataManager {
         } // else, process all samples
 
         // Loop over each annotation in the vcf record
-        final Map<String,Object> infoField = vc.getAttributes();
+        final Map<String,Object> infoField = new HashMap<String, Object>(vc.getAttributes());
         infoField.put("QUAL", ((Double)vc.getPhredScaledQual()).toString() ); // add QUAL field to annotations
         for( Map.Entry<String, Object> annotation : infoField.entrySet() ) {
 
