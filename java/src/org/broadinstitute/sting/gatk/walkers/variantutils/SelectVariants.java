@@ -40,6 +40,8 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
@@ -47,6 +49,8 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 /**
  * Takes a VCF file, selects variants based on sample(s) in which it was found and/or on various annotation criteria,
@@ -54,7 +58,7 @@ import java.util.regex.Pattern;
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
 public class SelectVariants extends RodWalker<Integer, Integer> {
-    @Argument(fullName="sample", shortName="sn", doc="Sample(s) to include.  Can be a single sample, specified multiple times for many samples, or a regular expression to select many samples.", required=false)
+    @Argument(fullName="sample", shortName="sn", doc="Sample(s) to include.  Can be a single sample, specified multiple times for many samples, a file containing sample names, a regular expression to select many samples, or any combination thereof.", required=false)
     public Set<String> SAMPLE_EXPRESSIONS;
 
     @Argument(shortName="select", doc="One or more criteria to use when selecting the data.  Evaluated *after* the specified samples are extracted and the INFO-field annotations are updated.", required=false)
@@ -88,14 +92,36 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
         if (SAMPLE_EXPRESSIONS != null) {
-            // Let's first assume that the values in SAMPLE_EXPRESSIONS are literal sample names and not regular
+            // Let's first go through the list and see if we were given any files.  We'll add every entry in the file to our
+            // sample list set, and treat the entries as if they had been specified on the command line.
+            Set<String> samplesFromFiles = new HashSet<String>();
+            for (String SAMPLE_EXPRESSION : SAMPLE_EXPRESSIONS) {
+                File sampleFile = new File(SAMPLE_EXPRESSION);
+
+                try {
+                    XReadLines reader = new XReadLines(sampleFile);
+
+                    List<String> lines = reader.readLines();
+                    for (String line : lines) {
+                        samplesFromFiles.add(line);
+                    }
+                } catch (FileNotFoundException e) {
+                    // ignore exception
+                }
+            }
+
+            SAMPLE_EXPRESSIONS.addAll(samplesFromFiles);
+            
+            // Let's now assume that the values in SAMPLE_EXPRESSIONS are literal sample names and not regular
             // expressions.  Extract those samples specifically so we don't make the mistake of selecting more
             // than what the user really wants.
             for (String SAMPLE_EXPRESSION : SAMPLE_EXPRESSIONS) {
-                if (vcfSamples.contains(SAMPLE_EXPRESSION)) {
-                    samples.add(SAMPLE_EXPRESSION);
-                } else {
-                    possibleSampleRegexs.add(SAMPLE_EXPRESSION);
+                if (!(new File(SAMPLE_EXPRESSION).exists())) {
+                    if (vcfSamples.contains(SAMPLE_EXPRESSION)) {
+                        samples.add(SAMPLE_EXPRESSION);
+                    } else {
+                        possibleSampleRegexs.add(SAMPLE_EXPRESSION);
+                    }
                 }
             }
 
