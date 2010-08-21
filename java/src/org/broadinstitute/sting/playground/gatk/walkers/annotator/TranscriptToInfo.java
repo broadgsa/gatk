@@ -620,10 +620,10 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
                         //check for bad bases
                         if( (utr5NucBuffer_5to3[0] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[0])) ||
-                            (utr5NucBuffer_5to3[1] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[1])) ||
-                            (utr5NucBuffer_5to3[2] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[2])) ||
-                            (utr5NucBuffer_5to3[3] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[3])) ||
-                            (utr5NucBuffer_5to3[4] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[4])))
+                                (utr5NucBuffer_5to3[1] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[1])) ||
+                                (utr5NucBuffer_5to3[2] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[2])) ||
+                                (utr5NucBuffer_5to3[3] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[3])) ||
+                                (utr5NucBuffer_5to3[4] != 0 && !BaseUtils.isRegularBase(utr5NucBuffer_5to3[4])))
                         {
                             logger.debug("Skipping current position [" + parsedTranscriptRod.txChrom + ":" +txCoord_5to3 + "] in transcript " + parsedTranscriptRod.geneNames.toString() +". utr5NucBuffer_5to3 contains irregular base:" + utr5NucBuffer_5to3[0] + utr5NucBuffer_5to3[1] + utr5NucBuffer_5to3[2] + utr5NucBuffer_5to3[3] + utr5NucBuffer_5to3[4]);// +". Transcript is: " + parsedTranscriptRod);
                             ++skippedPositionsCounter;
@@ -735,8 +735,8 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                         //check for +1 (eg. addition of new ATG uORF) and -1 (eg. disruption of existing ATG uORF)
                         String uORFChangeStr = null;
                         if( (refCodon1.equals("ATG") && !varCodon1.equals("ATG")) ||
-                            (refCodon2.equals("ATG") && !varCodon2.equals("ATG")) ||
-                            (refCodon3.equals("ATG") && !varCodon3.equals("ATG")))
+                                (refCodon2.equals("ATG") && !varCodon2.equals("ATG")) ||
+                                (refCodon3.equals("ATG") && !varCodon3.equals("ATG")))
                         {
                             uORFChangeStr = "-1";
                         }
@@ -753,17 +753,22 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
                     else if(positionType == PositionType.CDS)
                     {
                         final String referenceCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
-                        outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame) );
-                        outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5) );
+                        final String variantCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
 
                         final AminoAcid refAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( referenceCodon, codonCount_from5 == 1 ) : AminoAcidTable.getEukaryoticAA( referenceCodon ) ;
+                        final AminoAcid variantAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( variantCodon, codonCount_from5 == 1 ) : AminoAcidTable.getEukaryoticAA( variantCodon ) ;
+
+                        if ( refAA.isUnknown() || variantAA.isUnknown() ) {
+                            logger.warn("Illegal amino acid detected: refCodon=" + referenceCodon + " altCodon=" + variantCodon);
+                        }
+
+                        outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame) );
+                        outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5) );
                         outputLineFields.put(OUTPUT_REFERENCE_CODON, referenceCodon );
                         outputLineFields.put(OUTPUT_REFERENCE_AA, refAA.getCode());
 
                         final char temp = currentCodon_5to3[frame];
                         currentCodon_5to3[frame] = haplotypeAlternate;
-                        final String variantCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
-                        final AminoAcid variantAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( variantCodon, codonCount_from5 == 1 ) : AminoAcidTable.getEukaryoticAA( variantCodon ) ;
                         outputLineFields.put(OUTPUT_VARIANT_CODON, variantCodon );
                         outputLineFields.put(OUTPUT_VARIANT_AA, variantAA.getCode());
 
@@ -915,23 +920,23 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         long key;
         final char lastChromChar = txChrom.charAt(txChrom.length() -1);
         switch( Character.toLowerCase(lastChromChar) ) {
-        case 'm':
-        case 't': // for hg19 or b36
-            key = 0;
-            break;
-        case 'x':
-            key = 23;
-            break;
-        case 'y':
-            key = 24;
-            break;
-        default:
-	    if( txChrom.startsWith("chr") ) {
-		key = Integer.parseInt(txChrom.substring(3));
-	    } else {
-		key = Integer.parseInt(txChrom);
-	    }
-            break;
+            case 'm':
+            case 't': // for hg19 or b36
+                key = 0;
+                break;
+            case 'x':
+                key = 23;
+                break;
+            case 'y':
+                key = 24;
+                break;
+            default:
+                if( txChrom.startsWith("chr") ) {
+                    key = Integer.parseInt(txChrom.substring(3));
+                } else {
+                    key = Integer.parseInt(txChrom);
+                }
+                break;
         }
 
         key++; //shift so there's no zero (otherwise, multiplication is screwed up in the next step)
@@ -1108,8 +1113,8 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             //exonFrames = new int[exonCount];
             for(int i = 0; i < exonCount; i++) {
                 exonStarts[i] = Integer.parseInt(exonStartStrs[i]);
-                  exonEnds[i] = Integer.parseInt(exonEndStrs[i]);
-              //exonFrames[i] = Integer.parseInt(exonFrameStrs[i]);
+                exonEnds[i] = Integer.parseInt(exonEndStrs[i]);
+                //exonFrames[i] = Integer.parseInt(exonFrameStrs[i]);
             }
         }
 

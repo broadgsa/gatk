@@ -34,6 +34,7 @@ import java.util.HashMap;
 public class AminoAcidTable {
 
 
+    protected static final AminoAcid UNKNOWN = new AminoAcid("X" , "Unknown", "Unk");
     protected static final AminoAcid ISOLEUCINE = new AminoAcid("I" , "Isoleucine", "Ile");
     protected static final AminoAcid LEUCINE = new AminoAcid("L" , "Leucine", "Leu");
     protected static final AminoAcid VALINE =    new AminoAcid("V" , "Valine", "Val");
@@ -177,24 +178,17 @@ public class AminoAcidTable {
         mitochondrialAminoAcidTable.put("TGA", TRYPTOPHAN);
     }
 
-
-
-
     /**
      * Returns the amino acid encoded by the given codon in a eukaryotic genome.
      *
      * @param codon The 3-letter mRNA nucleotide codon 5' to 3'. Expects T's instead of U's. Not case sensitive.
      *
-     * @return The amino acid matching the given codon.
+     * @return The amino acid matching the given codon, or the UNKNOWN amino acid if the codon string doesn't match anything
      */
     public static AminoAcid getEukaryoticAA(String codon) {
         codon = codon.toUpperCase();
         final AminoAcid aa = aminoAcidTable.get(codon);
-        if(aa == null) {
-            throw new IllegalArgumentException("Invalid codon: " + codon);
-        } else {
-            return aa;
-        }
+        return aa == null ? UNKNOWN : aa;
     }
 
 
@@ -204,13 +198,13 @@ public class AminoAcidTable {
      * @param codon The 3-letter mRNA nucleotide codon 5' to 3'. Expects T's instead of U's. Not case sensitive.
      * @param isFirstCodon If this is the 1st codon in the gene, then "ATT" encodes Methyonine
      *
-     * @return The amino acid matching the given codon in mitochondrial genes.
+     * @return The amino acid matching the given codon in mitochondrial genes, or the UNKNOWN amino acid if the codon string doesn't match anything
      */
     public static AminoAcid getMitochondrialAA(String codon, boolean isFirstCodon) {
         codon = codon.toUpperCase();
         final AminoAcid aa = mitochondrialAminoAcidTable.get(codon);
         if(aa == null) {
-            throw new IllegalArgumentException("Invalid codon: " + codon);
+            return UNKNOWN;
         } else if(isFirstCodon && codon.equals("ATT")) {
             return METHIONINE; //special case - 'ATT' in the first codon of a mitochondrial gene codes for methionine instead of isoleucine
         } else {

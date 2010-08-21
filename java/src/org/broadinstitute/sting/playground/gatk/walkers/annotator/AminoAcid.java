@@ -82,6 +82,11 @@ public class AminoAcid {
         return "*".equals(getLetter());
     }
 
+    /** Returns true if the amino acid is really just a stop codon. */
+    public boolean isUnknown() {
+        return "X".equals(getLetter());
+    }
+
     public String toString() {
         return name;
     }
