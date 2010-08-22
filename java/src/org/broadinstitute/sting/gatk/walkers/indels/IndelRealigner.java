@@ -533,7 +533,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( !updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, (int)leftmostIndex) )
                     return;
             }
-            if ( !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
+            if ( !USE_KNOWN_INDELS_ONLY && !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
                 if ( statsOutput != null ) {
                     try {
                         statsOutput.write(currentInterval.toString());
