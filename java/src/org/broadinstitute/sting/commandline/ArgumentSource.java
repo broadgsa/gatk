@@ -173,7 +173,7 @@ public class ArgumentSource {
      * @return True if so.  False otherwise.
      */
     public boolean isHidden() {
-        return field.isAnnotationPresent(Hidden.class);
+        return field.isAnnotationPresent(Hidden.class) || field.isAnnotationPresent(Deprecated.class);
     }
 
     /**
@@ -182,6 +182,14 @@ public class ArgumentSource {
      */
     public boolean isDependent() {
         return typeDescriptor instanceof MultiplexArgumentTypeDescriptor;
+    }
+
+    /**
+     * Returns whether the field has been deprecated and should no longer be used.
+     * @return True if field has been deprecated.
+     */
+    public boolean isDeprecated() {
+        return field.isAnnotationPresent(Deprecated.class);
     }
 
     /**

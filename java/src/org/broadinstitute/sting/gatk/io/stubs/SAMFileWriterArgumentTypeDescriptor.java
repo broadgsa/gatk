@@ -121,8 +121,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        DEFAULT_ARGUMENT_SHORTNAME,
                                        false,
                                        source.isMultiValued(),
-                                       getCollectionComponentType(source.field),
                                        source.isHidden(),
+                                       getCollectionComponentType(source.field),
                                        null );
     }
 
@@ -141,8 +141,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        false,
                                        false,
                                        false,
-                                       null,
                                        source.isHidden(),
+                                       null,
                                        null,
                                        null,
                                        null );

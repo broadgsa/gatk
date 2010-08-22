@@ -52,8 +52,12 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     // control the output
-    @Argument(doc = "File to which variants should be written", required = false)
+    @Output(doc="File to which variants should be written",required=false)
     public VCFWriter writer = null;
+
+    @Argument(fullName="variants_out",shortName="varout",doc="Please use --out instead",required=false)
+    @Deprecated
+    public boolean varout;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected File verboseFile = null;

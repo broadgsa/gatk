@@ -74,7 +74,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList( createGenotypeFileArgumentDefinition(source) );
+        return Arrays.asList( createDefaultArgumentDefinition(source) );
     }
 
     /**
@@ -103,7 +103,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )  {
         // Get the filename for the genotype file, if it exists.  If not, we'll need to send output to out.
-        String writerFileName = getArgumentValue(createGenotypeFileArgumentDefinition(source),matches);
+        String writerFileName = getArgumentValue(createDefaultArgumentDefinition(source),matches);
         File writerFile = writerFileName != null ? new File(writerFileName) : null;
 
         // Create a stub for the given object.
@@ -112,24 +112,5 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         engine.addOutput(stub);
 
         return stub;
-    }
-
-    /**
-     * Gets the definition of the argument representing the BAM file itself.
-     * @param source Argument source for the BAM file.  Must not be null.
-     * @return Argument definition for the BAM file itself.  Will not be null.
-     */
-    private ArgumentDefinition createGenotypeFileArgumentDefinition(ArgumentSource source) {
-        Annotation annotation = this.getArgumentAnnotation(source);
-
-        return new ArgumentDefinition( annotation,
-                                       source.field.getType(),
-                                       "variants_out",
-                                       "varout",
-                                       false,
-                                       source.isMultiValued(),
-                                       getCollectionComponentType(source.field),
-                                       source.isHidden(),
-                                       null );
     }
 }

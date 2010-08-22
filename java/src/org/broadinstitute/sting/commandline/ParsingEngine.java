@@ -256,7 +256,11 @@ public class ParsingEngine {
         List<ArgumentSource> argumentSources = extractArgumentSources(object.getClass());
 
         List<ArgumentSource> dependentArguments = new ArrayList<ArgumentSource>();
+
         for( ArgumentSource argumentSource: argumentSources ) {
+            if(argumentSource.isDeprecated() && argumentMatches.findMatches(argumentSource).size() > 0)
+                notifyDeprecatedCommandLineArgument(argumentSource);
+
             // If this argument source depends on other command-line arguments, skip it and make a note to process it later.
             if(argumentSource.isDependent()) {
                 dependentArguments.add(argumentSource);
@@ -270,6 +274,19 @@ public class ParsingEngine {
             ArgumentSource dependentSource = dependentArgument.copyWithCustomTypeDescriptor(dependentDescriptor);
             loadValueIntoObject(dependentSource,object,argumentMatches.findMatches(dependentSource));
         }
+    }
+
+    /**
+     * Notify the user that a deprecated command-line argument has been used.
+     * @param argumentSource Deprecated argument source specified by user.
+     */
+    private void notifyDeprecatedCommandLineArgument(ArgumentSource argumentSource) {
+        // Grab the first argument definition and report that one as the failure.  Theoretically, we should notify of all failures.
+        List<ArgumentDefinition> definitions = argumentSource.createArgumentDefinitions();
+        if(definitions.size() < 1)
+            throw new StingException("Internal error.  Argument source creates no definitions.");
+        ArgumentDefinition definition = definitions.get(0);
+        throw new StingException(String.format("The parameter %s is deprecated.  %s",definition.fullName,definition.doc));
     }
 
     /**

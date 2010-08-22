@@ -147,8 +147,8 @@ public abstract class ArgumentTypeDescriptor {
                                        source.field.getName(),
                                        source.isFlag(),
                                        source.isMultiValued(),
-                                       getCollectionComponentType(source.field),
                                        source.isHidden(),
+                                       getCollectionComponentType(source.field),
                                        getValidOptions(source) );
     }
 

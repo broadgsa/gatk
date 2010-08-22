@@ -25,11 +25,17 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.commandline.Output;
+
+import java.io.PrintStream;
 
 /**
  * An example walker for illustrative purposes.
  */
 public class HelloWalker extends LocusWalker<Integer,Long> {
+    @Output
+    PrintStream out;
+
     /**
      * The map function runs once per single-base locus, and accepts a 'context', a
      * data structure consisting of the reads which overlap the locus, the sites over
