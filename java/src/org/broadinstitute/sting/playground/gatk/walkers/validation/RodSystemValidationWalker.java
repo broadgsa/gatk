@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.validation;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -26,6 +27,9 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
 
     // the divider to use in some of the text output
     private static final String DIVIDER = ",";
+
+    @Output
+    public PrintStream out;
 
     @Argument(fullName="PerLocusEqual",required=false,doc="Should we check that all records at the same site produce equivilent variant contexts")
     public boolean allRecordsVariantContextEquivalent = false;
@@ -109,6 +113,13 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
     public Integer reduce(Integer value, Integer sum) {
         return value + sum;
     }
+
+    @Override
+    public void onTraversalDone(Integer result) {
+        // Double check traversal result to make count is the same.
+        // TODO: Is this check necessary?
+        out.println("[REDUCE RESULT] Traversal result is: " + result);
+    }        
 
     // shamelessly absconded and adapted from http://www.javalobby.org/java/forums/t84420.html
     private String md5sum(File f) {

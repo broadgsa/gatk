@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.*;
 import java.io.*;
@@ -42,6 +43,9 @@ import net.sf.samtools.SAMRecord;
  * reference for each read [Not for public use and will change drastically in the future].
  */
 public class GraphReferenceAssessor extends ReadWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="graphFile", shortName="GF", doc="", required=true)
     String graphFile = null;
     ObjectInputStream graphSerialStream = null;

@@ -41,7 +41,7 @@ import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -138,7 +138,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
 
-        vcfWriter = new VCFWriterImpl( new File(OUTPUT_PREFIX + ".vcf") );
+        vcfWriter = new StandardVCFWriter( new File(OUTPUT_PREFIX + ".vcf") );
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 

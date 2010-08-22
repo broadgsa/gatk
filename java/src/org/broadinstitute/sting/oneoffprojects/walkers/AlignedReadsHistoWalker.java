@@ -5,6 +5,9 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.commandline.Output;
+
+import java.io.PrintStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,6 +18,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
  */
 @WalkerName("Aligned_Reads_Histogram")
 public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
+
     long[] alignCounts = new long[51];
 
     public void initialize() {

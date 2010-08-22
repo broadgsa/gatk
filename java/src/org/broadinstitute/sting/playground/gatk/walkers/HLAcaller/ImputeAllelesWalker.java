@@ -4,11 +4,9 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.commandline.Output;
 
-import java.io.FileInputStream;
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
 /**
@@ -17,6 +15,9 @@ import java.util.Hashtable;
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    PrintStream out;           
+
     String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_DICTIONARY.sam";
 //    String ClosestAllelesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.CLASS1.closest";
     String ClosestAllelesFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.CLASS2.closest";

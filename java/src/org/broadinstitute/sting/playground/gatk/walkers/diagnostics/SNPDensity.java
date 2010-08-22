@@ -34,8 +34,10 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.EnumSet;
+import java.io.PrintStream;
 
 /**
  * Computes the density of SNPs passing and failing filters in intervals on the genome and emits a table for display
@@ -43,6 +45,9 @@ import java.util.EnumSet;
 @By(DataSource.REFERENCE)
 @Requires(value={},referenceMetaData=@RMD(name="eval",type=ReferenceOrderedDatum.class))
 public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDensity.Counter> {
+    @Output
+    private PrintStream out;
+
     @Argument(fullName="granularity", shortName="granularity", doc="", required=false)
     private int granularity = 1000000;
 

@@ -30,10 +30,13 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Enumeration;
+import java.io.PrintStream;
+
 /**
  * Creates a ped file of SNPs and amino acids coded as SNPs given an input ped file with 4-digit HLA alleles. Usage: java -jar GenomeAnalysisTK.jar -T CreatePedFile --allelesFile INPUT.ped -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-sc\
 r1/GSA/sjia/454_HLA/HLA/HLA.combined.4digitUnique.bam > OUTPUT.log
@@ -41,6 +44,9 @@ r1/GSA/sjia/454_HLA/HLA/HLA.combined.4digitUnique.bam > OUTPUT.log
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    public PrintStream out;
+
     @Argument(fullName = "allelesFile", shortName = "allelesFile", doc = "Create ped file for HLA alleles named in this file", required = true)
     public String alleleNamesFile = "";
 

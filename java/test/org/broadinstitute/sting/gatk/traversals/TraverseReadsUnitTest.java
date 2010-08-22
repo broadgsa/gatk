@@ -25,6 +25,7 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 /**
  *
@@ -81,22 +82,9 @@ public class TraverseReadsUnitTest extends BaseTest {
             fail("Couldn't open the output file");
         }
 
-        // Connect print stream to the output stream
-        ps = new PrintStream(out);
         bamList = new ArrayList<File>();
         bamList.add(bam);
         countReadWalker = new CountReadsWalker();
-        try {
-            Field f = Walker.class.getDeclaredField("out");
-            f.setAccessible(true);
-            f.set(countReadWalker, ps);
-
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            fail("Couldn't set the walkers printstream");
-        }
         
         traversalEngine = new TraverseReads();
 

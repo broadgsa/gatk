@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -37,6 +38,7 @@ import net.sf.samtools.SAMRecord;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.io.PrintStream;
 
 /**
  * ReadErrorRateWalker assesses the error rate per read position ('cycle') by comparing the
@@ -48,6 +50,7 @@ import java.util.Random;
  * @author Kiran Garimella
  */
 public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateCollection> implements TreeReducible<ReadErrorRateCollection> {
+    @Output PrintStream out;
     @Argument(fullName="printVisualHits",   shortName="v",  doc="print visual hits",    required=false) public boolean printVisualHits = false;
     @Argument(fullName="useNextBestBase",   shortName="nb", doc="use next best base",   required=false) public boolean useNextBestBase = false;
     @Argument(fullName="useNonNextBestBase",shortName="nnb",doc="use nonnext best base",required=false) public boolean useNonNextBestBase = false;

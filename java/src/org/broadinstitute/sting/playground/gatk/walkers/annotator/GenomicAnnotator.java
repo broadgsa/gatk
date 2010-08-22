@@ -28,6 +28,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,6 +46,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -63,7 +65,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 /**
  * Annotates variant calls with information from user-specified tabular files.
@@ -75,6 +77,9 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
 //@Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, LinkedList<VariantContext>> implements TreeReducible<LinkedList<VariantContext>> {
+    @Output
+    protected PrintStream out;
+
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
     protected File VCF_OUT;
 
@@ -241,7 +246,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new VCFWriterImpl(VCF_OUT);
+        vcfWriter = new StandardVCFWriter(VCF_OUT);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }

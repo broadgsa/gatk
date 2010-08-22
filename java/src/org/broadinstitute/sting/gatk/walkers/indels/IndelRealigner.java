@@ -46,6 +46,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -68,6 +69,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
+
+    @Output
+    protected PrintStream out;
+
+    @Output(fullName = "err", shortName = "e", doc = "An error output file presented to the walker.  Will overwrite contents if file exists.", required = false)
+    protected PrintStream err;
 
     @Output(fullName="output", shortName="O", required=false, doc="Output bam")
     protected String writerFilename = null;

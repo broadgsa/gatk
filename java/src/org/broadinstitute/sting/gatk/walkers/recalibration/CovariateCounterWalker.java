@@ -83,6 +83,9 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
     /////////////////////////////
     @ArgumentCollection private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
+    @Output
+    PrintStream out;
+
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////

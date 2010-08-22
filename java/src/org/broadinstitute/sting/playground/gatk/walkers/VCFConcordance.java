@@ -10,14 +10,18 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.EnumSet;
+import java.io.PrintStream;
 
 /**
  * Calculates concordance between two VCF files; used for testing conversion of HapMap data to VCF
  */
 @Requires(value={DataSource.REFERENCE})
 public class VCFConcordance extends RodWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
 
     int correct = 0;
     int incorrect = 0;

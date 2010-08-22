@@ -31,6 +31,7 @@ import net.sf.samtools.util.CloseableIterator;
 import java.io.*;
 
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Provides temporary storage for SAMFileWriters.
@@ -48,10 +49,17 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
 
     public SAMFileWriterStorage( SAMFileWriterStub stub, File file ) {
         this.file = file;
-        if( stub.getCompressionLevel() != null )
-            this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
+        if(stub.getSAMFile() != null) {
+            if( stub.getCompressionLevel() != null )
+                this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
+            else
+                this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
+        }
+        else if(stub.getSAMOutputStream() != null){
+            this.writer = new SAMFileWriterFactory().makeSAMWriter( stub.getFileHeader(), stub.isPresorted(), stub.getSAMOutputStream());
+        }
         else
-            this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
+            throw new StingException("Unable to write to SAM file; neither a target file nor a stream has been specified");
     }
 
     public SAMFileHeader getFileHeader() {

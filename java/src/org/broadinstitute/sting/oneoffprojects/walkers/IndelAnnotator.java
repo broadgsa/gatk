@@ -4,6 +4,7 @@ import org.broad.tribble.FeatureSource;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -21,6 +22,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -30,6 +32,8 @@ import java.util.*;
  * @Date Apr 21, 2010
  */
 public class IndelAnnotator extends RodWalker<Integer,Long>{
+    @Output
+    PrintStream out;
     @Argument(fullName="refseq", shortName="refseq",
 			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated with GENOMIC/UTR/INTRON/CODING and with the gene name", required=true)
 	String RefseqFileName = null;
@@ -85,7 +89,7 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
         anno.add(new VCFInfoHeaderLine("type",1, VCFHeaderLineType.String,"Genomic interpretation (according to RefSeq)"));
         hInfo.addAll(anno);
 
-        vcfWriter = new VCFWriterImpl(out);
+        vcfWriter = new StandardVCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit()));
         vcfWriter.writeHeader(vcfHeader);
     }

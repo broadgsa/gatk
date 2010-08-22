@@ -30,6 +30,7 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -54,6 +55,9 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
     public static final String INPUT_COMP_ROD_NAME = "comp";
 
     private boolean newLine = true;
+
+    @Output
+    public PrintStream out;
 
     @Argument(fullName = "output_file", shortName = "output", doc = "File to output results", required = true)
     public PrintStream outputWriter = null;

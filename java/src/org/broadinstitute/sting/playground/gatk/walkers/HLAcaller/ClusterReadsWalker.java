@@ -5,15 +5,21 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.io.PrintStream;
+
 /**
  * Compares reads to longest read at each exon. Usage: java -jar GenomeAnalysisTK.jar -T ClusterReads -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta [-filter INPUT.filter] | grep -v INFO | sort -k1 > OUTPUT
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class ClusterReadsWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    public PrintStream out;
+
     @Argument(fullName = "filter", shortName = "filter", doc = "file containing reads to exclude", required = false)
     public String filterFile = "";
 

@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -47,6 +48,9 @@ import java.io.FileNotFoundException;
  */
 @By(DataSource.REFERENCE)
 public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableBaseState, CallableLociWalker.Integrator> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName = "maxLowMAPQ", shortName = "mlmq", doc = "Maximum value for MAPQ to be considered a problematic mapped read.  The gap between this value and mmq are reads that are not sufficiently well mapped for calling but aren't indicative of mapping problems.", required = false)
     byte maxLowMAPQ = 1;
 

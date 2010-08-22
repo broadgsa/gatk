@@ -36,10 +36,11 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -56,6 +57,8 @@ import java.util.*;
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 
 public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, PhasingStats> {
+    @Output
+    protected PrintStream out;
 
     @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads; [default:20000]", required = false)
     protected Integer cacheWindow = 20000;
@@ -89,7 +92,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Float, "Read-backed phasing quality"));
 
-        writer = new VCFWriterImpl(new File(phasedVCFFile));
+        writer = new StandardVCFWriter(new File(phasedVCFFile));
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 

@@ -10,11 +10,13 @@ import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.io.PrintStream;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -23,6 +25,8 @@ import java.util.Set;
  * @Date May 19, 2010
  */
 public class GCCalculatorWalker extends RefWalker<Pair<Set<GenomeLoc>,Boolean>, Map<GenomeLoc,Pair<Long,Long>>> {
+    @Output
+    PrintStream out;
 
     public Map<GenomeLoc,Pair<Long,Long>> reduceInit() {
         return new HashMap<GenomeLoc,Pair<Long,Long>>();

@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.gatk.walkers.Multiplexer;
+
 import java.util.*;
 
 /**
@@ -50,8 +52,17 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * Create a new argument match, defining its properties later.  Used to create invalid arguments.
      */
     public ArgumentMatch() {
-        this.label = null;
-        this.definition = null;
+        this(null,null);
+    }
+
+    /**
+     * Minimal constructor for transform function.
+     * @param label Label of the argument match.  Must not be null.
+     * @param definition The associated definition, if one exists.  May be null.
+     */
+    private ArgumentMatch(String label,ArgumentDefinition definition) {
+        this.label = label;
+        this.definition = definition;
     }
 
     /**
@@ -64,6 +75,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
         this( label, definition, index, null );
     }
 
+
     private ArgumentMatch( String label, ArgumentDefinition definition, int index, String value ) {
         this.label = label;
         this.definition = definition;
@@ -72,6 +84,26 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
         if( value != null )
             values.add(value);
         indices.put(index,values );
+    }
+
+    /**
+     * Reformat the given entries with the given multiplexer and key.
+     * TODO: Generify this.
+     * @param multiplexer Multiplexer that controls the transformation process.
+     * @param key Key which specifies the transform.
+     * @return A variant of this ArgumentMatch with all keys transformed.
+     */
+    ArgumentMatch transform(Multiplexer multiplexer, Object key) {
+        SortedMap<Integer,List<String>> newIndices = new TreeMap<Integer,List<String>>();
+        for(Map.Entry<Integer,List<String>> index: indices.entrySet()) {
+            List<String> newEntries = new ArrayList<String>();
+            for(String entry: index.getValue())
+                newEntries.add(multiplexer.transformArgument(key,entry));
+            newIndices.put(index.getKey(),newEntries);
+        }
+        ArgumentMatch newArgumentMatch = new ArgumentMatch(label,definition);
+        newArgumentMatch.indices.putAll(newIndices);
+        return newArgumentMatch;
     }
 
     /**

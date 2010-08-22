@@ -31,6 +31,9 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
+
+import java.io.PrintStream;
 
 /**
  * Computes the coverage per every <granularity> bases on the reference, or on the subset of the reference
@@ -38,6 +41,8 @@ import org.broadinstitute.sting.commandline.Argument;
  * count anew, even if the count of bases in the last chunk on the previous contig did not reach specified <granularity>.
  */
 public class CoarseCoverageWalker extends ReadWalker<Integer,Integer> {
+    @Output
+    public PrintStream out;
 	
     @Argument(fullName="granularity", shortName="G", doc="Granularity", required=true)
     public Integer N;

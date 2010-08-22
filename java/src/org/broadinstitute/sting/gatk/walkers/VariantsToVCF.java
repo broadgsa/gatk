@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
@@ -42,6 +43,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Converts variants from other file formats to VCF format.
@@ -49,6 +51,8 @@ import java.util.*;
 @Requires(value={},referenceMetaData=@RMD(name=VariantsToVCF.INPUT_ROD_NAME,type= ReferenceOrderedDatum.class))
 @Reference(window=@Window(start=0,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
+    @Output
+    private PrintStream out;
 
     public static final String INPUT_ROD_NAME = "variant";
 
@@ -126,7 +130,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
             }
 
-            vcfwriter = new VCFWriterImpl(out);
+            vcfwriter = new StandardVCFWriter(out);
             vcfwriter.writeHeader(new VCFHeader(hInfo, samples));
         }
 

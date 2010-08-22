@@ -29,11 +29,13 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -43,6 +45,8 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class DSBWalkerV3 extends ReadWalker<Integer,Integer> {
+    @Output
+    PrintStream out;
 
     @Argument(fullName="windowSize",shortName="W",doc="Size of the sliding window",required=true)
     int WINDOW_SIZE = 100;

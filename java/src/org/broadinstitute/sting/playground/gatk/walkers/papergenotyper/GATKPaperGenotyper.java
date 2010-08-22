@@ -33,7 +33,10 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotypePriors;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+
+import java.io.PrintStream;
 
 
 /**
@@ -45,6 +48,9 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements TreeReducible<Long> {
     // the possible diploid genotype strings
     private static enum GENOTYPE { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
+
+    @Output
+    private PrintStream out;
 
     @Argument(fullName = "log_odds_score", shortName = "LOD", doc = "The LOD threshold for us to call confidently a genotype", required = false)
     private double LODScore = 3.0;

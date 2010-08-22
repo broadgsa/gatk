@@ -25,16 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import java.io.PrintStream;
 import java.util.List;
-import java.util.ArrayList;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.apache.log4j.Logger;
-import net.sf.picard.filter.SamRecordFilter;
 
 /**
  * Created by IntelliJ IDEA.
@@ -46,16 +43,6 @@ import net.sf.picard.filter.SamRecordFilter;
 @ReadFilters(MalformedReadFilter.class)
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);
-
-    /**
-     * A stream for writing normal (non-error) output.  System.out by default.
-     */
-    protected PrintStream out = null;
-
-    /**
-     * A stream for writing error output.  System.err by default.
-     */
-    protected PrintStream err = null;
 
     protected Walker() {
     }
@@ -134,7 +121,7 @@ public abstract class Walker<MapType, ReduceType> {
     public abstract ReduceType reduce(MapType value, ReduceType sum);    
 
     public void onTraversalDone(ReduceType result) {
-        out.println("[REDUCE RESULT] Traversal result is: " + result);
+        logger.info("[REDUCE RESULT] Traversal result is: " + result);
     }
 
     /**
@@ -143,7 +130,7 @@ public abstract class Walker<MapType, ReduceType> {
      */
     public void onTraversalDone(List<Pair<GenomeLoc, ReduceType>> results) {
         for ( Pair<GenomeLoc, ReduceType> result : results ) {
-            out.printf("[INTERVAL REDUCE RESULT] at %s ", result.getFirst());
+            logger.info(String.format("[INTERVAL REDUCE RESULT] at %s ", result.getFirst()));
             this.onTraversalDone(result.getSecond());
         }
     }

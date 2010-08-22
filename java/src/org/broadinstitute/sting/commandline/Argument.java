@@ -79,7 +79,7 @@ public @interface Argument {
     /**
      * Should this command-line argument be exclusive of others.  Should be
      * a comma-separated list of names of arguments of which this should be
-     * independent. 
+     * independent.
      * @return A comma-separated string listing other arguments of which this
      *         argument should be independent.
      */

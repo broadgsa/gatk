@@ -47,8 +47,9 @@ import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
@@ -110,6 +111,9 @@ import java.util.*;
  */
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantEvalWalker extends RodWalker<Integer, Integer> {
+    @Output
+    protected PrintStream out;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // walker arguments
@@ -341,7 +345,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         determineContextNamePartSizes();
 
         if ( outputVCF != null )
-            writer = new VCFWriterImpl(new File(outputVCF));
+            writer = new StandardVCFWriter(new File(outputVCF));
 
         if ( rsIDFile != null ) {
             if ( maxRsIDBuild == Integer.MAX_VALUE )

@@ -29,7 +29,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
@@ -50,8 +49,6 @@ public class CountRodByRefWalker extends RefWalker<CountRodWalker.Datum, Pair<Ex
     public void initialize() {
         crw.verbose = verbose;
         crw.showSkipped = showSkipped;
-        JVMUtils.setFieldValue(JVMUtils.findField(CountRodWalker.class,"out"),crw,out);
-        JVMUtils.setFieldValue(JVMUtils.findField(CountRodWalker.class,"err"),crw,err);
     }
 
     public CountRodWalker.Datum map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

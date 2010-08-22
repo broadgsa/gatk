@@ -10,8 +10,10 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Takes an interval list and annotates intervals with genes and exons falling within that interval
@@ -27,6 +29,9 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
     private HashMap<GenomeLoc,IntervalInfoBuilder> intervalBuffer = new HashMap<GenomeLoc,IntervalInfoBuilder>();
     private HashSet<RefSeqFeature> refseqBuffer = new HashSet<RefSeqFeature>();
     private HashMap<String,BEDFeature> currentBedFeatures = new HashMap<String,BEDFeature>();
+
+    @Output
+    PrintStream out;
 
     public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         // three items to look up: interval_list, refseq, gene*

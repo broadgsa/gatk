@@ -3,9 +3,11 @@ package org.broadinstitute.sting.gatk.walkers;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.io.PrintStream;
 
 
 /*
@@ -41,6 +43,9 @@ import java.text.NumberFormat;
  */
 @Requires({DataSource.READS})
 public class FlagStatWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
+
     // what comes out of the flagstat
     static class FlagStat {
         long readCount = 0L;

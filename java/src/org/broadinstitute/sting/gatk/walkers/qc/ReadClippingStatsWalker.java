@@ -32,13 +32,11 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import net.sf.samtools.*;
 
 import java.util.*;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.BufferedWriter;
+import java.io.*;
 
 /**
  * User: depristo
@@ -52,6 +50,9 @@ import java.io.BufferedWriter;
  */
 @Requires({DataSource.READS})
 public class ReadClippingStatsWalker extends ReadWalker<ReadClippingStatsWalker.ReadClippingInfo,Integer> {
+    @Output
+    protected PrintStream out;
+
     @Argument(fullName="mappedOnly", shortName="mo", doc="when this flag is set (default), statistics will be collected "+
                 "on mapped reads only, while unmapped reads will be discarded", required=false)
     protected boolean MAPPED_ONLY = true;

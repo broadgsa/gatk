@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import net.sf.samtools.SAMRecord;
 
 import java.io.*;
@@ -42,6 +43,8 @@ import java.io.*;
  */
 @WalkerName("BamToFastq")
 public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    private PrintStream out;
 
     @Argument(fullName="re_reverse", shortName="reverse", doc="re-reverse bases and quals of reads from the negative strand", required=false)
     private Boolean RE_REVERSE = false;

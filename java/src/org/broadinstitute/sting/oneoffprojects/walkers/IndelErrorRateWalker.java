@@ -38,10 +38,12 @@ import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Iterator;
+import java.io.PrintStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -52,6 +54,8 @@ import java.util.Iterator;
  */
 @Reference(window=@Window(start=-10,stop=10))
 public class IndelErrorRateWalker extends LocusWalker<Integer,Integer> {
+    @Output
+    PrintStream out;
     @Argument(fullName="minCoverage",shortName="minC",doc="Assess only sites with coverage at or above the specified value.",required=true)
     int MIN_COVERAGE = 0;
     @Argument(fullName="maxCoverage",shortName="maxC",doc="Assess only sites with coverage at or below the specified value.",required=false)

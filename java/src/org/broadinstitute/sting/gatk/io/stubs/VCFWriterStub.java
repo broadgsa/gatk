@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.io.OutputStream;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
@@ -83,10 +84,10 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param engine        GATK engine.
      * @param genotypeStream  stream to (ultimately) write.
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine,PrintStream genotypeStream) {
+    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream) {
         this.engine = engine;
         this.genotypeFile = null;
-        this.genotypeStream = genotypeStream;
+        this.genotypeStream = new PrintStream(genotypeStream);
     }
 
     /**

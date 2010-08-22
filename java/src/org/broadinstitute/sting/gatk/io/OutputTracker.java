@@ -68,30 +68,6 @@ public abstract class OutputTracker {
     protected OutputStreamStub errStub = null;
 
     /**
-     * Create an object to manage output given filenames for the output and error files.
-     * If no files are specified, returns null.
-     * @param outFileName Name of the output file.
-     * @param errFileName Name of the error file.
-     */
-    public void initializeCoreIO( String outFileName, String errFileName ) {
-        // If the two output streams match and are non-null, initialize them identically.
-        // Otherwise, initialize them separately.
-        if( outFileName != null && outFileName.equals(errFileName) ) {
-            outStub = errStub = new OutputStreamStub(new File(outFileName));
-            addOutput(outStub,new OutputStreamStorage(outStub));
-        }
-        else {
-            outStub = (outFileName != null) ? new OutputStreamStub(new File(outFileName))
-                                            : new OutputStreamStub(System.out);
-            addOutput(outStub,new OutputStreamStorage(outStub));
-
-            errStub = (errFileName != null) ? new OutputStreamStub(new File(errFileName))
-                                            : new OutputStreamStub(System.err);
-            addOutput(errStub,new OutputStreamStorage(errStub));
-        }
-    }
-
-    /**
      * Gets the output storage associated with a given stub.
      * @param stub The stub for which to find / create the right output stream.
      * @param <T> Type of the stream to create.
@@ -100,9 +76,6 @@ public abstract class OutputTracker {
     public abstract <T> T getStorage( Stub<T> stub );
 
     public void prepareWalker( Walker walker ) {
-        installStub( walker, "out", new PrintStream(outStub) );
-        installStub( walker, "err", new PrintStream(errStub) );
-
         for( Map.Entry<ArgumentSource,Object> io: inputs.entrySet() ) {
             ArgumentSource targetField = io.getKey();
             Object targetValue = io.getValue();

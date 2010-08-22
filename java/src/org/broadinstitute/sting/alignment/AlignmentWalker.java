@@ -27,6 +27,7 @@ package org.broadinstitute.sting.alignment;
 
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -37,6 +38,7 @@ import net.sf.samtools.*;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 
 import java.io.File;
+import java.io.PrintStream;
 
 /**
  * Aligns reads to a given reference using Heng Li's BWA aligner, presenting the resulting alignments in SAM or BAM format.
@@ -52,6 +54,9 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
 
     @Argument(fullName = "outputBam", shortName = "ob", doc = "Write output to this BAM filename instead of STDOUT", required = false)
     private String outputBamFile = null;
+
+    @Output
+    private PrintStream out = null;
 
     @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
     private Integer bamCompression = 5;

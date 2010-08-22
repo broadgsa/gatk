@@ -37,11 +37,9 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -51,6 +49,9 @@ import java.util.List;
  * @author shermanjia
  */
 public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
+    @Output
+    public PrintStream out;
+
     @Argument(fullName="suppressLocusPrinting",doc="Suppress printing",required=false)
     public boolean suppressPrinting = false;
 

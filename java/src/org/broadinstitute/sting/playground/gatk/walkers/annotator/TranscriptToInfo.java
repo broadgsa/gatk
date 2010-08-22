@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,6 +39,7 @@ import java.util.TreeMap;
 import net.sf.picard.util.Interval;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
@@ -84,6 +82,9 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
 
     //@Argument(fullName="pass-through", shortName="t", doc="Optionally specifies which columns from the transcript table should be copied verbatim (aka. passed-through) to the records in the output table. For example, -B transcripts,AnnotatorInputTable,/data/refGene.txt -t id will cause the refGene id column to be copied to the output table.", required=false)
     //protected String[] PASS_THROUGH_COLUMNS = {};
+
+    @Output
+    private PrintWriter out;
 
     @Argument(fullName="unique-gene-name-columns", shortName="n", doc="Specifies which column(s) from the transcript table contains the gene name(s). For example, -B transcripts,AnnotatorInputTable,/data/refGene.txt -n name,name2  specifies that the name and name2 columns are gene names. WARNING: the gene names for each record, when taken together, should provide a unique id for that record relative to all other records in the file. If this is not the case, an error will be thrown. ", required=true)
     private String[] GENE_NAME_COLUMNS = {};
@@ -128,8 +129,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     //Used to verify that the gene name portion of the key computed by computeSortKey is unique across all records.
     //This is to avoid silently loosing data in the TreeMaps.
     private final Map<String, TranscriptTableRecord> keyChecker = new HashMap<String, TranscriptTableRecord>();
-
-    private String outputFilename = null;
 
     private int transcriptsProcessedCounter = 0;
 
@@ -217,17 +216,6 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
         }
 
         OUTPUT_FILE_HEADER_LINE = outputHeaderLine.toString();
-
-
-        //init the output file
-        outputFilename = getToolkit().getArguments().outFileName;
-        if(outputFilename == null) {
-            throw new StingException("Output file not specified. (Used -o command-line-arg)" );
-        }
-
-        if(!new File(outputFilename).canWrite()) {
-            throw new StingException("Unable to write to output file: " + outputFilename );
-        }
 
     }
 
@@ -978,23 +966,10 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
             return;
         }
 
-        logger.info("Writing " + result.size() + " lines to: " + outputFilename + ". Average of " + (totalPositionsCounter == 0 ? 0 : (10*result.size()/totalPositionsCounter)/10.0f) + " lines per genomic position.");
-        BufferedWriter fileWriter  = null;
-        try {
-            fileWriter = new BufferedWriter(new FileWriter(outputFilename));
-            fileWriter.write(OUTPUT_FILE_HEADER_LINE + '\n');
-            for(String value : result.values() ) {
-                fileWriter.write(value + "\n");
-            }
-        } catch(IOException e) {
-            logger.info("Unable to write to file: " + outputFilename);
-        } finally {
-            try {
-                if (fileWriter != null)
-                    fileWriter.close();
-            } catch(IOException e) {
-                logger.info("Unable to write to file: " + outputFilename);
-            }
+        logger.info("Writing " + result.size() + " lines to: " + out + ". Average of " + (totalPositionsCounter == 0 ? 0 : (10*result.size()/totalPositionsCounter)/10.0f) + " lines per genomic position.");
+        out.println(OUTPUT_FILE_HEADER_LINE);
+        for(String value : result.values() ) {
+            out.println(value);
         }
 
         logger.info("Skipped " + skippedPositionsCounter + " in-transcript genomic positions out of "+ totalPositionsCounter + " total (" + ( totalPositionsCounter == 0 ? 0 : (100*skippedPositionsCounter)/totalPositionsCounter) + "%)");

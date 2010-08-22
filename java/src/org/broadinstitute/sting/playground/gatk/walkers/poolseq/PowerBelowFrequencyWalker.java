@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -40,6 +41,7 @@ import org.broadinstitute.sting.playground.utils.PoolUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.io.PrintStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,6 +56,9 @@ import java.util.List;
  */
 @By(DataSource.REFERENCE)
 public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="lodThreshold", shortName="lod", doc="Threshold for log likelihood ratio to be called a SNP. Defaults to 3.0", required = false)
     public double lodThresh = 3.0;
 

@@ -6,10 +6,12 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.io.PrintStream;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -18,6 +20,7 @@ import net.sf.samtools.SAMReadGroupRecord;
  * Computes the read error rate per position in read (in the original 5'->3' orientation that the read had coming off the machine)
  */
 public class ErrorRatePerReadPosition extends LocusWalker<Integer, Integer> {
+    @Output PrintStream out;
     @Argument(fullName="min_base_quality_score", shortName="mbq", doc="Minimum base quality required to consider a base for calling (default: 0)", required=false) public Integer MIN_BASE_QUAL = 0;
     @Argument(fullName="min_mapping_quality_score", shortName="mmq", doc="Minimum read mapping quality required to consider a read for calling (default: 0)", required=false) public Integer MIN_MAPPING_QUAL = 0;
 

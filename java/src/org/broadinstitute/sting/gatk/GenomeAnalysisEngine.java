@@ -44,7 +44,7 @@ import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
+import org.broadinstitute.sting.gatk.io.stubs.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
@@ -52,6 +52,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.ArgumentSource;
+import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 
 import java.io.File;
 import java.util.*;
@@ -161,7 +162,7 @@ public class GenomeAnalysisEngine {
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler(my_walker);
 
-        // create the output streams
+        // create the output streams                     "
         initializeOutputStreams(my_walker, microScheduler.getOutputTracker());
 
         initializeIntervals();
@@ -517,6 +518,19 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Subclasses of CommandLinePrograms can provide their own types of command-line arguments.
+     * @return A collection of type descriptors generating implementation-dependent placeholders.
+     */
+    protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
+        return Arrays.asList( new VCFWriterArgumentTypeDescriptor(this,System.out),
+                              new SAMFileReaderArgumentTypeDescriptor(this),
+                              new SAMFileWriterArgumentTypeDescriptor(this,System.out),
+                              new OutputStreamArgumentTypeDescriptor(this,System.out) );
+    }
+
+
+
+    /**
      * Bundles all the source information about the reads into a unified data structure.
      *
      * @param walker        The walker for which to extract info.
@@ -856,11 +870,6 @@ public class GenomeAnalysisEngine {
      * @param outputTracker the tracker supplying the initialization data.
      */
     private void initializeOutputStreams(Walker walker, OutputTracker outputTracker) {
-        if (argCollection.outErrFileName != null)
-            outputTracker.initializeCoreIO(argCollection.outErrFileName, argCollection.outErrFileName);
-        else
-            outputTracker.initializeCoreIO(argCollection.outFileName, argCollection.errFileName);
-
         for (Map.Entry<ArgumentSource, Object> input : inputs.entrySet())
             outputTracker.addInput(input.getKey(), input.getValue());
         for (Stub<?> stub : outputs)

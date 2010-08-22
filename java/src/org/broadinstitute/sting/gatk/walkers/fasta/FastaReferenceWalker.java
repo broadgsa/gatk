@@ -34,6 +34,9 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
+
+import java.io.PrintStream;
 
 /**
  * Renders a new reference in FASTA format consisting of only those loci provided in the input data set.  Has optional
@@ -41,6 +44,7 @@ import org.broadinstitute.sting.commandline.Argument;
  */
 @WalkerName("FastaReferenceMaker")
 public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
+    @Output PrintStream out;
     @Argument(fullName="lineWidth", shortName="lw", doc="Maximum length of sequence to write per line", required=false) public int fastaLineWidth=60;
     @Argument(fullName="rawOnelineSeq", shortName="raw", doc="Print sequences with no FASTA header lines, one line per interval (i.e. lineWidth = infinity) - CAUTION: adjacent intervals will automatically be merged", required=false) public boolean fastaRawSeqs=false;
 

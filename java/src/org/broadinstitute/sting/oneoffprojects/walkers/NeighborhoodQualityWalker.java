@@ -4,10 +4,12 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.commandline.Output;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Iterator;
+import java.io.PrintStream;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -71,6 +73,8 @@ import java.util.Iterator;
  */
 
 public class NeighborhoodQualityWalker extends LocusWalker<Integer, Long> {
+    @Output
+    PrintStream out;
 
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         float neighborhoodQualityScore = 0.0f;

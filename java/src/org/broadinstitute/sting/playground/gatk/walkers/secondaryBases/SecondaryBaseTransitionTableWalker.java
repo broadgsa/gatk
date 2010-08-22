@@ -12,8 +12,10 @@ import org.broadinstitute.sting.playground.utils.NamedTable;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.HashMap;
+import java.io.PrintStream;
 
 /**
  * Given a secondary base annotated .bam file and a reference, this walker generates a table of secondary base counts
@@ -24,6 +26,8 @@ import java.util.HashMap;
 
 @Reference(window=@Window(start=-1,stop=1))
 public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
 
     HashMap<String,Long> counts = new HashMap<String,Long>();
     private UnifiedGenotyperEngine ug;

@@ -38,11 +38,13 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.util.*;
+import java.io.PrintStream;
 
 
 /**
@@ -51,6 +53,8 @@ import java.util.*;
 @Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
+    @Output
+    protected PrintStream out;
 
     @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
     protected ArrayList<String> FILTER_EXPS = new ArrayList<String>();
@@ -119,7 +123,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
-        writer = new VCFWriterImpl(out);
+        writer = new StandardVCFWriter(out);
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 

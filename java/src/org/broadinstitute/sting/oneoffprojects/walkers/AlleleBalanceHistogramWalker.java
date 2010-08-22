@@ -12,8 +12,10 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -24,7 +26,8 @@ import java.util.*;
  */
 @Requires(value= DataSource.REFERENCE,referenceMetaData = {@RMD(name="variants",type=ReferenceOrderedDatum.class)})
 public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>, Map<String,Set<Double>>> {
-
+    @Output
+    PrintStream out;
 
     public Map<String,Set<Double>> reduceInit() {
         return new HashMap<String,Set<Double>>();

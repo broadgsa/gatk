@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Field;
 
 /**
  * Insert an OutputStreamStub instead of a full-fledged concrete OutputStream implementations.
@@ -41,19 +42,38 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     /**
      * The engine into which output stubs should be fed.
      */
-    private GenomeAnalysisEngine engine;
+    private final GenomeAnalysisEngine engine;
+
+    /**
+     * The default output stream to write to write this info if
+     */
+    private final OutputStream defaultOutputStream;
 
     /**
      * Create a new OutputStream argument, notifying the given engine when that argument has been created.
      * @param engine Engine to add SAMFileWriter output to.
+     * @param defaultOutputStream Default target for output file.
      */
-    public OutputStreamArgumentTypeDescriptor( GenomeAnalysisEngine engine ) {
-        this.engine = engine;    
+    public OutputStreamArgumentTypeDescriptor(GenomeAnalysisEngine engine,OutputStream defaultOutputStream) {
+        this.engine = engine;
+        this.defaultOutputStream = defaultOutputStream;
     }
 
     @Override
     public boolean supports( Class type ) {
         return getConstructorForClass(type) != null;
+    }
+
+    @Override
+    public boolean createsTypeDefault(ArgumentSource source,Class type) {
+        return true;
+    }
+
+    @Override
+    public Object createTypeDefault(ArgumentSource source,Class type) {
+        OutputStreamStub stub = new OutputStreamStub(defaultOutputStream);
+        engine.addOutput(stub);
+        return createInstanceOfClass(type,stub);        
     }
 
     @Override
@@ -65,18 +85,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
         engine.addOutput(stub);
 
-        try {
-            return getConstructorForClass(type).newInstance(stub);
-        }
-        catch( InstantiationException ex ) {
-            throw new StingException("Could not instantiate class with OutputStream constructor: " + type.getName());
-        }
-        catch( IllegalAccessException ex ) {
-            throw new StingException("Could not access class with OutputStream constructor: " + type.getName());                        
-        }
-        catch( InvocationTargetException ex ) {
-            throw new StingException("Could not invoke constructor for class with OutputStream constructor: " + type.getName());                        
-        }
+        return createInstanceOfClass(type,stub);
     }
 
     /**
@@ -90,6 +99,27 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         }
         catch( NoSuchMethodException ex ) {
             return null;
+        }
+    }
+
+    /**
+     * Creat a new instance of the class accepting a single outputstream constructor.
+     * @param type Type of object to create.
+     * @param outputStream resulting output stream.
+     * @return A new instance of the outputstream-derived class.
+     */
+    private Object createInstanceOfClass(Class type,OutputStream outputStream) {
+        try {
+            return getConstructorForClass(type).newInstance(outputStream);
+        }
+        catch( InstantiationException ex ) {
+            throw new StingException("Could not instantiate class with OutputStream constructor: " + type.getName());
+        }
+        catch( IllegalAccessException ex ) {
+            throw new StingException("Could not access class with OutputStream constructor: " + type.getName());
+        }
+        catch( InvocationTargetException ex ) {
+            throw new StingException("Could not invoke constructor for class with OutputStream constructor: " + type.getName());
         }
     }
 }

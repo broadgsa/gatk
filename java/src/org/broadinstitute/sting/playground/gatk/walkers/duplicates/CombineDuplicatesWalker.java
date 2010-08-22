@@ -30,10 +30,12 @@ import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.duplicates.DupUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
+import java.io.PrintStream;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
@@ -43,6 +45,9 @@ import net.sf.samtools.SAMFileWriter;
  * the specified output BAM location.  If no output location is specified, the reads are written to STDOUT. 
  */
 public class CombineDuplicatesWalker extends DuplicateWalker<List<SAMRecord>, SAMFileWriter> {
+    @Output
+    public PrintStream out;
+
     @Argument(fullName="outputBAM", shortName="outputBAM", required=false, doc="BAM File to write combined duplicates to")
     public SAMFileWriter outputBAM = null;
 

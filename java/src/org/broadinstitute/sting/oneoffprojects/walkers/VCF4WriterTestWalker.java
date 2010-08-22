@@ -4,6 +4,7 @@ import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
@@ -14,11 +15,12 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.*;
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -53,6 +55,9 @@ import java.util.*;
 public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
     private VCFWriter vcfWriter;
 
+    @Output
+    private PrintStream out;
+
     @Argument(fullName="output_file", shortName="output", doc="VCF file to which output should be written", required=true)
     private String OUTPUT_FILE = null;
 
@@ -80,7 +85,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
 
 
-        vcfWriter = new VCFWriterImpl(new File(OUTPUT_FILE));
+        vcfWriter = new StandardVCFWriter(new File(OUTPUT_FILE));
         VCFHeader header = null;
         for( final ReferenceOrderedDataSource source : dataSources ) {
             final RMDTrack rod = source.getReferenceOrderedData();

@@ -30,14 +30,19 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broad.tribble.bed.FullBEDFeature;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Test routine for new VariantContext object
  */
 public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker.CallableBaseState>, long[][]> {
+    @Output
+    protected PrintStream out;
+
     @Argument(shortName="comp1", doc="First comparison track name", required=false)
     protected String COMP1 = "comp1";
 

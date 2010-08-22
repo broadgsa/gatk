@@ -40,7 +40,7 @@ public @interface Output {
      * prefixed on the command-line with a double dash (--).
      * @return Selected full name, or "" to use the default.
      */
-    String fullName() default "";
+    String fullName() default "out";
 
     /**
      * Specified short name of the command.  Short names should be prefixed
@@ -48,21 +48,21 @@ public @interface Output {
      * short names or be separated from them by a space.
      * @return Selected short name, or "" for none.
      */
-    String shortName() default "";
+    String shortName() default "o";
 
     /**
      * Documentation for the command-line argument.  Should appear when the
      * --help argument is specified.
      * @return Doc string associated with this command-line argument.
      */
-    String doc();
+    String doc() default "An output file presented to the walker.  Will overwrite contents if file exists.";
 
     /**
      * Is this command-line argument required.  The application should exit
      * printing help if this command-line argument is not specified.
      * @return True if the argument is required.  False otherwise.
      */
-    boolean required() default true;
+    boolean required() default false;
 
     /**
      * Should this command-line argument be exclusive of others.  Should be

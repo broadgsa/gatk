@@ -30,7 +30,6 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.simpleframework.xml.*;
@@ -112,21 +111,6 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Input(fullName = "hapmap_chip", shortName = "hc", doc = "Hapmap chip file", required = false)
     public String HAPMAPChipFile = null;
-
-    /** An output file presented to the walker. */
-    @Element(required = false)
-    @Output(fullName = "out", shortName = "o", doc = "An output file presented to the walker.  Will overwrite contents if file exists.", required = false)
-    public String outFileName = null;
-
-    /** An error output file presented to the walker. */
-    @Element(required = false)
-    @Output(fullName = "err", shortName = "e", doc = "An error output file presented to the walker.  Will overwrite contents if file exists.", required = false)
-    public String errFileName = null;
-
-    /** A joint file for both 'normal' and error output presented to the walker. */
-    @Element(required = false)
-    @Output(fullName = "outerr", shortName = "oe", doc = "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", required = false)
-    public String outErrFileName = null;
 
     @Element(required = false)
     @Argument(fullName = "filterZeroMappingQualityReads", shortName = "fmq0", doc = "If true, mapping quality zero reads will be filtered at the lowest GATK level.  Vastly improves performance at areas with abnormal depth due to mapping Q0 reads", required = false)
@@ -323,15 +307,6 @@ public class GATKArgumentCollection {
         }
         if ((other.downsampleCoverage == null && this.downsampleCoverage != null) ||
                 (other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage))) {
-            return false;
-        }
-        if (!other.outFileName.equals(this.outFileName)) {
-            return false;
-        }
-        if (!other.errFileName.equals(this.errFileName)) {
-            return false;
-        }
-        if (!other.outErrFileName.equals(this.outErrFileName)) {
             return false;
         }
         if (other.numberOfThreads != this.numberOfThreads) {

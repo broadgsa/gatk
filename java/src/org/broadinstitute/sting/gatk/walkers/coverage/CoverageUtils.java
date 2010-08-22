@@ -7,10 +7,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -41,24 +38,24 @@ public class CoverageUtils {
         return counts;
     }
 
-    public static String getTypeID( SAMReadGroupRecord r, CoverageAggregator.AggregationType type ) {
-        if ( type == CoverageAggregator.AggregationType.SAMPLE ) {
+    public static String getTypeID( SAMReadGroupRecord r, DoCOutputType.Partition type ) {
+        if ( type == DoCOutputType.Partition.sample ) {
             return r.getSample();
-        } else if ( type == CoverageAggregator.AggregationType.READGROUP ) {
+        } else if ( type == DoCOutputType.Partition.readgroup ) {
             return String.format("%s_rg_%s",r.getSample(),r.getReadGroupId());
-        } else if ( type == CoverageAggregator.AggregationType.LIBRARY ) {
+        } else if ( type == DoCOutputType.Partition.library ) {
             return r.getLibrary();
         } else {
             throw new StingException("Invalid type ID sent to getTypeID. This is a BUG!");
         }
     }
 
-    public static Map<CoverageAggregator.AggregationType,Map<String,int[]>>
-                    getBaseCountsByPartition(AlignmentContext context, int minMapQ, int maxMapQ, byte minBaseQ, byte maxBaseQ, List<CoverageAggregator.AggregationType> types) {
+    public static Map<DoCOutputType.Partition,Map<String,int[]>>
+                    getBaseCountsByPartition(AlignmentContext context, int minMapQ, int maxMapQ, byte minBaseQ, byte maxBaseQ, Collection<DoCOutputType.Partition> types) {
 
-        Map<CoverageAggregator.AggregationType,Map<String,int[]>> countsByIDByType = new HashMap<CoverageAggregator.AggregationType,Map<String,int[]>>();
+        Map<DoCOutputType.Partition,Map<String,int[]>> countsByIDByType = new HashMap<DoCOutputType.Partition,Map<String,int[]>>();
         Map<SAMReadGroupRecord,int[]> countsByRG = getBaseCountsByReadGroup(context,minMapQ,maxMapQ,minBaseQ,maxBaseQ);
-        for (CoverageAggregator.AggregationType t : types ) {
+        for (DoCOutputType.Partition t : types ) {
             // iterate through the read group counts and build the type associations
             for ( Map.Entry<SAMReadGroupRecord,int[]> readGroupCountEntry : countsByRG.entrySet() ) {
                 String typeID = getTypeID(readGroupCountEntry.getKey(),t);

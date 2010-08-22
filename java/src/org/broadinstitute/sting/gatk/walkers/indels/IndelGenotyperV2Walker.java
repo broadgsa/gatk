@@ -52,6 +52,7 @@ import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.io.File;
 import java.io.IOException;
@@ -70,6 +71,9 @@ import java.util.*;
  */
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, PlatformUnitFilter.class})
 public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="outputFile", shortName="O", doc="output file name (defaults to BED format)", required=true)
     java.io.File bed_file;
 

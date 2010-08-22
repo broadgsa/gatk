@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.Collection;
 import java.io.PrintWriter;
@@ -37,12 +38,8 @@ import java.io.PrintWriter;
  * Creates a bed-format trigger-track for the Unified Genotyper based on input variant files.
  */
 public class CreateTriggerTrack extends RodWalker<Integer, Integer> {
-
+    @Output
     private PrintWriter writer;
-
-    public void initialize() {
-        writer = new PrintWriter(out);
-    }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )

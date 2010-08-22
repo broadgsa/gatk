@@ -31,9 +31,11 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.io.PrintStream;
 
 /**
  * Calculates the likelihood of observing data given phase info from pairs of HLA alleles. Note: Run FindClosestAlleleWalker first! Usage: java -jar $GATK -T HLACaller -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -phaseInterval /humgen/gsa-scr1/GSA/sjia/454_HLA/HAPMAP270/HLA_exons.interval -bl IMPUT.baselikelihoods [-filter $ID.filter -minAllowe\
@@ -42,6 +44,9 @@ dMismatches 7] -ethnicity Caucasian | grep -v "INFO"  | grep -v "DEBUG" | grep -
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class HLACallerWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    private PrintStream out;
+
     @Argument(fullName = "baseLikelihoods", shortName = "bl", doc = "Base likelihoods file", required = true)
     public String baseLikelihoodsFile = "";
 

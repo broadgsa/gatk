@@ -254,8 +254,22 @@ public class ParsingEngine {
      */
     public void loadArgumentsIntoObject( Object object ) {
         List<ArgumentSource> argumentSources = extractArgumentSources(object.getClass());
-        for( ArgumentSource argumentSource: argumentSources )
+
+        List<ArgumentSource> dependentArguments = new ArrayList<ArgumentSource>();
+        for( ArgumentSource argumentSource: argumentSources ) {
+            // If this argument source depends on other command-line arguments, skip it and make a note to process it later.
+            if(argumentSource.isDependent()) {
+                dependentArguments.add(argumentSource);
+                continue;
+            }
             loadValueIntoObject( argumentSource, object, argumentMatches.findMatches(argumentSource) );
+        }
+
+        for(ArgumentSource dependentArgument: dependentArguments) {
+            MultiplexArgumentTypeDescriptor dependentDescriptor = dependentArgument.createDependentTypeDescriptor(object);
+            ArgumentSource dependentSource = dependentArgument.copyWithCustomTypeDescriptor(dependentDescriptor);
+            loadValueIntoObject(dependentSource,object,argumentMatches.findMatches(dependentSource));
+        }
     }
 
     /**
@@ -277,7 +291,7 @@ public class ParsingEngine {
             throw new StingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
-            Object value = (argumentMatches.size() != 0) ? source.parse(argumentMatches) : source.getDefault();
+            Object value = (argumentMatches.size() != 0) ? source.parse(argumentMatches) : source.createDefault();
             JVMUtils.setFieldValue(source.field,target,value);
         }
     }

@@ -4,14 +4,20 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.Hashtable;
+import java.io.PrintStream;
+
 /**
  * Creates a haplotype file given reads (for SNP analysis, imputation, etc)
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CreateHaplotypesWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
+
     CigarParser formatter = new CigarParser();
     char c;
     boolean DEBUG = false;

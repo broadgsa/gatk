@@ -99,12 +99,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return A collection of type descriptors generating implementation-dependent placeholders.
      */
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
-        return Arrays.asList( new VCFWriterArgumentTypeDescriptor(GATKEngine),
-                              new SAMFileReaderArgumentTypeDescriptor(GATKEngine),
-                              new SAMFileWriterArgumentTypeDescriptor(GATKEngine),
-                              new OutputStreamArgumentTypeDescriptor(GATKEngine) );
+        return GATKEngine.getArgumentTypeDescriptors();
     }
-
 
     /**
      * GATK can add arguments dynamically based on analysis type.

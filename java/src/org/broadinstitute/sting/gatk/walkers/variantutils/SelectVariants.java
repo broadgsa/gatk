@@ -28,9 +28,8 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFHeaderLineType;
-import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -40,15 +39,15 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.PrintStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 
@@ -58,6 +57,9 @@ import java.io.FileNotFoundException;
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
 public class SelectVariants extends RodWalker<Integer, Integer> {
+    @Output
+    private PrintStream out;
+
     @Argument(fullName="sample", shortName="sn", doc="Sample(s) to include.  Can be a single sample, specified multiple times for many samples, a file containing sample names, a regular expression to select many samples, or any combination thereof.", required=false)
     public Set<String> SAMPLE_EXPRESSIONS;
 
@@ -83,7 +85,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
      */
     public void initialize() {
-        vcfWriter = new VCFWriterImpl(out);
+        vcfWriter = new StandardVCFWriter(out);
 
         ArrayList<String> rodNames = new ArrayList<String>();
         rodNames.add("variant");

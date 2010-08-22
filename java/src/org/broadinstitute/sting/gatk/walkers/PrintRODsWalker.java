@@ -30,14 +30,18 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.Iterator;
+import java.io.PrintStream;
 
 /**
  * Prints out all of the RODs in the input data set. Data is rendered using the toString() method
  * of the given ROD.
  */
 public class PrintRODsWalker extends RodWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
 
     /**
      * Initialize the number of loci processed to zero.

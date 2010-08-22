@@ -26,9 +26,10 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -40,6 +41,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broad.tribble.vcf.VCFHeader;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 import net.sf.picard.liftover.LiftOver;
@@ -52,6 +54,8 @@ import net.sf.samtools.SAMFileReader;
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
+    @Output
+    protected PrintStream out;
 
     @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)
     protected File CHAIN = null;
@@ -75,7 +79,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
-        writer = new VCFWriterImpl(out);
+        writer = new StandardVCFWriter(out);
         final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
         writer.writeHeader(vcfHeader);
     }

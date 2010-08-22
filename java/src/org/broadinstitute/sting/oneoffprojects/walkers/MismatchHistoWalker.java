@@ -6,12 +6,16 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.List;
 import static java.lang.reflect.Array.*;
+import java.io.PrintStream;
 
 @WalkerName("Mismatch_Histogram")
-public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
+public class MismatchHistoWalker extends ReadWalker<Integer, Integer> { 
+    @Output
+    PrintStream out;
 
     protected long[] mismatchCounts = new long[0];
     protected final int MIN_TARGET_EDIT_DISTANCE = 5;

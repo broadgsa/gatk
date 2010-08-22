@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -80,6 +81,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     @Input(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file")
     public File RECAL_FILE = new File("output.recal_data.csv");
+
+    @Output
+    private PrintStream out;
 
     /////////////////////////////
     // Command Line Arguments

@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -34,15 +34,19 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.commandline.Output;
 import org.broad.tribble.vcf.VCFHeader;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= ReferenceOrderedDatum.class))
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
 
     private VCFWriter writer;
 
@@ -52,7 +56,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
-        writer = new VCFWriterImpl(out);
+        writer = new StandardVCFWriter(out);
         final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
         writer.writeHeader(vcfHeader);
     }

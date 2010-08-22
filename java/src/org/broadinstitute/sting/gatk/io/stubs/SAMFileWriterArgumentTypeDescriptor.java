@@ -35,6 +35,7 @@ import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Arrays;
 import java.io.File;
+import java.io.OutputStream;
 
 /**
  * Insert a SAMFileWriterStub  instead of a full-fledged concrete OutputStream implementations.
@@ -49,16 +50,22 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     /**
      * The engine into which output stubs should be fed.
      */
-    private GenomeAnalysisEngine engine;
+    private final GenomeAnalysisEngine engine;
+
+    /**
+     * The default location to which data should be written if the user specifies no such location.
+     */
+    private final OutputStream defaultOutputStream;
 
     /**
      * Create a new SAMFileWriter argument, notifying the given engine when that argument has been created.
      * @param engine Engine to add SAMFileWriter output to.
+     * @param defaultOutputStream the target for the data
      */
-    public SAMFileWriterArgumentTypeDescriptor( GenomeAnalysisEngine engine ) {
+    public SAMFileWriterArgumentTypeDescriptor( GenomeAnalysisEngine engine, OutputStream defaultOutputStream ) {
         this.engine = engine;
+        this.defaultOutputStream = defaultOutputStream;
     }
-    
 
     @Override
     public boolean supports( Class type ) {
@@ -69,6 +76,18 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
         return Arrays.asList( createBAMArgumentDefinition(source),
                               createBAMCompressionArgumentDefinition(source) );
+    }
+
+    @Override
+    public boolean createsTypeDefault(ArgumentSource source,Class type) {
+        return true;
+    }
+
+    @Override
+    public Object createTypeDefault(ArgumentSource source,Class type) {
+        SAMFileWriterStub stub = new SAMFileWriterStub(engine,defaultOutputStream);
+        engine.addOutput(stub);
+        return stub;
     }
 
     @Override

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -11,6 +12,7 @@ import org.broadinstitute.sting.utils.wiggle.WiggleHeader;
 import org.broadinstitute.sting.utils.wiggle.WiggleWriter;
 
 import java.util.ArrayList;
+import java.io.PrintStream;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -19,6 +21,9 @@ import java.util.ArrayList;
  * @Date Jul 21, 2010
  */
 public class CreateTiTvTrack extends RodWalker<VariantContext,TiTvWindow> {
+    @Output
+    PrintStream out;
+
     @Argument(shortName="size",doc="Size of the window",required = true)
     int size = -1;
 

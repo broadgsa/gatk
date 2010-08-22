@@ -33,7 +33,10 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import net.sf.samtools.SAMRecord;
+
+import java.io.PrintStream;
 
 /**
  * This walker prints out quality score counts for first and second reads of a pair aggregated over all reads
@@ -42,6 +45,9 @@ import net.sf.samtools.SAMRecord;
  * @Author: Chris Hartl
  */
 public class PairedQualityScoreCountsWalker extends ReadWalker<Pair<byte[],Boolean>,Pair<CycleQualCounts,CycleQualCounts>> {
+    @Output
+    public PrintStream out;
+
     @Argument(fullName="readLength", shortName="rl", doc="Length of reads in the bam file", required=true)
     public int readLength = -1;
 

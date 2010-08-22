@@ -41,16 +41,21 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Collection;
+import java.io.PrintStream;
 
 /**
  * Walker to calculate the number of mismatches, their base counts, and their quality sums at confidence ref sites" 
  */
 @By(DataSource.REFERENCE)
 public class LocusMismatchWalker extends LocusWalker<String,Integer> implements TreeReducible<Integer> {
+    @Output
+    PrintStream out;
+
     //@Argument(fullName="confidentRefThreshold",doc="Set the lod score that defines confidence in ref, defaults to 4", required=false)
     //int confidentRefThreshold = 5;
     @Argument(fullName="maxNumMismatches",doc="Set the maximum number of mismatches at a locus before choosing not to use it in calculation. Defaults to 1.", required=false)

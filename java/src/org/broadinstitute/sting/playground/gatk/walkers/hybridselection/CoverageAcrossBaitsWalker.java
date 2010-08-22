@@ -37,10 +37,12 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.io.PrintStream;
 
 /**
  * Accumulates coverage across hybrid selection bait intervals to assess effect of bait adjacency and overlap on coverage
@@ -48,6 +50,9 @@ import java.util.List;
 
 @By(DataSource.REFERENCE)
 public class CoverageAcrossBaitsWalker extends LocusWalker<Pair<Integer, Integer>, CoverageAcrossBaitsWalker.Coverage> {
+    @Output
+    public PrintStream out;
+
     /* Accumulates coverage across hybrid selection bait intervals to assess effect of bait adjacency.
      Requires input bait intervals that have an overhang beyond the actual bait interval to capture coverage data at these points.
      Outputs R parseable file that has all data in lists and then does some basic plotting.

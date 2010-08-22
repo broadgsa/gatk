@@ -7,11 +7,13 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.io.PrintStream;
 
 /**
  * validate the rods for reads
@@ -19,6 +21,9 @@ import java.util.Map;
 public class ValidateRODForReads extends ReadWalker<Integer, Integer> {
     // a mapping of the position to the count of rods
     HashMap<GenomeLoc, Integer> map = new LinkedHashMap<GenomeLoc, Integer>();
+
+    @Output
+    private PrintStream out;
 
     @Override
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {

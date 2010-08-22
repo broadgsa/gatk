@@ -7,6 +7,7 @@ import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.iterators.CloseableTribbleIterator;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -20,6 +21,7 @@ import org.broadinstitute.sting.utils.StingException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 
 /**
  * DbSNPWindowCounter
@@ -36,6 +38,9 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
     // what we read in new tracks with
     private FeatureSource reader;
+    
+    @Output
+    private PrintStream out;
 
     @Argument(fullName = "dbSNPFile", shortName = "db", doc="The dbsnp file to search upstream and downstream for nearby snps", required = true)
     private File myDbSNPFile;

@@ -6,6 +6,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -23,7 +24,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.io.PrintStream;
@@ -39,6 +40,8 @@ import java.util.*;
  * @Date Jun 8, 2010
  */
 public class MendelianViolationClassifier extends LocusWalker<MendelianViolationClassifier.MendelianViolation, VCFWriter> {
+    @Output
+    PrintStream out;
     @Argument(shortName="f",fullName="familyPattern",required=true,doc="Pattern for the family structure (usage: mom+dad=child)")
     String familyStr = null;
     @Argument(shortName="ob",fullName="outputBed",required=true,doc="Output file to write the homozygous region information to")
@@ -373,7 +376,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
      *********** REDUCE INIT
      */
     public VCFWriter reduceInit() {
-        VCFWriter writer = new VCFWriterImpl(out);
+        VCFWriter writer = new StandardVCFWriter(out);
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("source", "MendelianViolationClassifier"));

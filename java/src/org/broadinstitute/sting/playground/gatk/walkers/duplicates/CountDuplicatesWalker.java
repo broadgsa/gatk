@@ -31,10 +31,12 @@ import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
+import java.io.PrintStream;
 
 /**
  * a class to store the traversal information we pass around
@@ -51,6 +53,9 @@ class DuplicateCount  {
  * @author mark DePristo
  */
 public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, DuplicateCount> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="quietLocus", required=false, doc="If true, per locus information isn't printed")
     public boolean quiet = false;
 

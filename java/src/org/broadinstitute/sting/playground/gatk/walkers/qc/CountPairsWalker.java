@@ -27,10 +27,12 @@ package org.broadinstitute.sting.playground.gatk.walkers.qc;
 
 import org.broadinstitute.sting.gatk.walkers.ReadPairWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
+import org.broadinstitute.sting.commandline.Output;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Collection;
 import java.util.List;
+import java.io.PrintStream;
 
 /**
  * Counts the number of read pairs encountered in a file sorted in
@@ -41,6 +43,9 @@ import java.util.List;
  * @version 0.1
  */
 public class CountPairsWalker extends ReadPairWalker<Integer,Long> {
+    @Output
+    private PrintStream out;
+
     /**
      * How many reads are the first in a pair, based on flag 0x0040 from the SAM spec.
      */

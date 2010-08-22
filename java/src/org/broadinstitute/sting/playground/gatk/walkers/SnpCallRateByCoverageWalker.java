@@ -38,10 +38,12 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
+import java.io.PrintStream;
 
 
 /**
@@ -49,6 +51,9 @@ import java.util.Collection;
  * positions to empirically assess the rate at which variants would be confidently and correctly called given different levels of coverage.
  */
 public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, String> {
+    @Output
+    PrintStream out;
+
     // Control what goes into the variants file and what format that file should have
     @Argument(fullName="min_confidence_threshold", shortName="confidence", doc="The phred-scaled confidence threshold by which variants should be filtered", required=false) public int confidence = 50;
     @Argument(fullName="min_coverage", shortName="mincov", doc="Mininum coverage to downsample to", required=false) public int min_coverage=1;

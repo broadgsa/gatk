@@ -5,15 +5,21 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.io.PrintStream;
+
 /**
  * Finds polymorphic sites in the HLA dictionary. Usage: java -jar GenomeAnalysisTK.jar -T FindPolymorphicSites -I HLA_DICTIONARY.bam -R /broad/1KG/reference/human_b36_both.fasta -L INPUT.interval -findFirst | grep -v INFO | sort -k1 > OUTPUT
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class FindPolymorphicSitesWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    public PrintStream out;
+
     @Argument(fullName = "debugRead", shortName = "debugRead", doc = "Print match score for read", required = false)
     public String debugRead = "";
 

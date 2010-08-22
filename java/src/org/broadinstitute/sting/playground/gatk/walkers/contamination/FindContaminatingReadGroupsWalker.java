@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.playground.utils.NamedTable;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -42,6 +43,7 @@ import cern.jet.stat.Probability;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.io.PrintStream;
 
 /**
  * FindContaminatingReadGroupsWalker lists read groups in a single-sample BAM file that appear
@@ -51,6 +53,9 @@ import java.util.List;
  * @author Kiran Garimella
  */
 public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Integer> {
+    @Output
+    private PrintStream out;
+
     @Argument(fullName="balance", shortName="bal", doc="The expected alternate allele balance for homozygous-variant sites", required=false)
     private Double BALANCE = 0.95;
 

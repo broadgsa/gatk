@@ -5,11 +5,16 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.commandline.Output;
+
+import java.io.PrintStream;
 
 /**
  * Create a mask for use with the PickSequenomProbes walker.
  */
 public class CreateSequenomMask extends RodWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
 
     public void initialize() {}
 

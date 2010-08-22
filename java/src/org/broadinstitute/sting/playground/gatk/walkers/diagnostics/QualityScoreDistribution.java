@@ -32,16 +32,21 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Compute quality score distribution
  */
 public class QualityScoreDistribution extends LocusWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
+
     private HashMap<String, long[]> qualDists;
 
     public void initialize() {

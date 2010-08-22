@@ -29,6 +29,7 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
@@ -44,7 +45,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.*;
 
 import java.io.*;
@@ -64,6 +65,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     public static final String R2_ROD_NAME = "beagleR2";
     public static final String PROBS_ROD_NAME = "beagleProbs";
     public static final String PHASED_ROD_NAME = "beaglePhased";
+
+    @Output
+    private PrintStream out;
 
     @Argument(fullName="output_file", shortName="output", doc="VCF file to which output should be written", required=true)
     private String OUTPUT_FILE = null;
@@ -93,7 +97,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
 
         // Open output file specified by output VCF ROD
-        vcfWriter = new VCFWriterImpl(new File(OUTPUT_FILE));
+        vcfWriter = new StandardVCFWriter(new File(OUTPUT_FILE));
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
         for( final ReferenceOrderedDataSource source : dataSources ) {

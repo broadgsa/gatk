@@ -39,10 +39,12 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Combines VCF records from different sources; supports both full merges and set unions.
@@ -53,6 +55,9 @@ import java.util.*;
 @Reference(window=@Window(start=-50,stop=50))
 @Requires(value={})
 public class CombineVariants extends RodWalker<Integer, Integer> {
+    @Output
+    private PrintStream out;
+
     // the types of combinations we currently allow
     @Argument(shortName="genotypeMergeOptions", doc="How should we merge genotype records for samples shared across the ROD files?", required=false)
     public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
@@ -81,7 +86,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     private VariantAnnotatorEngine engine;
 
     public void initialize() {
-        vcfWriter = new VCFWriterImpl(out);
+        vcfWriter = new StandardVCFWriter(out);
         validateAnnotateUnionArguments();
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);

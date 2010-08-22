@@ -38,6 +38,8 @@ import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
 import java.io.PrintStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 
 /**
@@ -54,10 +56,10 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public VCFWriter writer = null;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
-    protected PrintStream verboseWriter = null;
+    protected File verboseFile = null;
 
     @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print any relevant callability metrics output", required = false)
-    protected PrintStream metricsWriter = null;
+    protected File metricsFile = null;
 
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected List<String> annotationsToUse = new ArrayList<String>();
@@ -80,6 +82,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
     // enable extended events for indels
     public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS; }
+
+    private PrintStream verboseWriter;
+    private PrintStream metricsWriter;
 
     /**
      * Inner class for collecting output statistics from the UG
@@ -110,6 +115,18 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      *
      **/
     public void initialize() {
+        try {
+            if(verboseWriter != null) verboseWriter = new PrintStream(verboseFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new StingException("Unable to create verbose writer from provided file "+verboseFile,ex);
+        }
+        try {
+            if(metricsWriter != null) metricsWriter = new PrintStream(metricsFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new StingException("Unable to create metrics writer from provided file "+metricsFile,ex);
+        }
 
         annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, annotationEngine);

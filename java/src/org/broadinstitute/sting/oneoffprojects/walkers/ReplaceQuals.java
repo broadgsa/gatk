@@ -29,11 +29,13 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.collections.Pair;
 import net.sf.samtools.*;
 
 import java.util.HashMap;
 import java.io.File;
+import java.io.PrintStream;
 
 /**
  * ReadErrorRateWalker assesses the error rate per read position ('cycle') by comparing the
@@ -45,6 +47,9 @@ import java.io.File;
  * @author Kiran Garimella
  */
 public class ReplaceQuals extends ReadWalker<SAMRecord, SAMFileWriter> {
+    @Output
+    public PrintStream out;
+
     @Argument(shortName="inputQualsBAM",doc="BAM files containing qualities to be replaced",required=true)
     public String inputQualsBAM;
 

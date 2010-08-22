@@ -44,11 +44,13 @@ import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.util.*;
+import java.io.PrintStream;
 
 
 /**
@@ -59,6 +61,8 @@ import java.util.*;
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
+    @Output
+    protected PrintStream out;
 
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
@@ -154,7 +158,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFHeaderLine("VariantAnnotator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
-        vcfWriter = new VCFWriterImpl(out);
+        vcfWriter = new StandardVCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 

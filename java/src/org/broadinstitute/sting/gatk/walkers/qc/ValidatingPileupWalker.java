@@ -35,9 +35,11 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Arrays;
+import java.io.PrintStream;
 
 /**
  * At every locus in the input set, compares the pileup data (reference base, aligned base from
@@ -46,6 +48,9 @@ import java.util.Arrays;
  */
 @Requires(value={DataSource.READS,DataSource.REFERENCE},referenceMetaData=@RMD(name="pileup",type=SAMPileupFeature.class))
 public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats>  implements TreeReducible<ValidationStats> {
+    @Output
+    private PrintStream out;
+
     @Argument(fullName="continue_after_error",doc="Continue after an error",required=false)
     public boolean CONTINUE_AFTER_AN_ERROR = false;
 

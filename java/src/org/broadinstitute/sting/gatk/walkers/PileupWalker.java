@@ -35,11 +35,13 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.PrintStream;
 
 /**
  * Prints the alignment in the pileup format. In the pileup format, each line represents a genomic position,
@@ -60,6 +62,9 @@ import java.util.List;
  * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>
  */
 public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="alwaysShowSecondBase",doc="If true, prints dummy bases for the second bases in the BAM file where they are missing",required=false)
     public boolean alwaysShowSecondBase = false;
 
@@ -160,4 +165,11 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
         return rodString;
     }
+
+    @Override
+    public void onTraversalDone(Integer result) {
+        // Double check traversal result to make count is the same.
+        // TODO: Is this check necessary?
+        out.println("[REDUCE RESULT] Traversal result is: " + result);
+    }    
 }

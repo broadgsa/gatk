@@ -4,7 +4,7 @@ import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
@@ -32,7 +32,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         if(stub.getFile() != null) {
             this.file = stub.getFile();
             try {
-                this.stream = new PrintStream(stub.getFile());
+                this.stream = new PrintStream(file);
             }
             catch(IOException ex) {
                 throw new StingException("Unable to open target output stream",ex);
@@ -45,7 +45,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         else
             throw new StingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
 
-        writer = new VCFWriterImpl(stream);
+        writer = new StandardVCFWriter(stream);
     }
 
     /**
@@ -61,7 +61,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         catch(IOException ex) {
             throw new StingException("Unable to open target output stream",ex);
         }
-        writer = new VCFWriterImpl(this.stream);
+        writer = new StandardVCFWriter(this.stream);
         Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
         writer.writeHeader(new VCFHeader(null, samples));
     }

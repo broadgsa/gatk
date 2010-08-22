@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Arrays;
@@ -47,11 +48,18 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     private GenomeAnalysisEngine engine;
 
     /**
+      * The default location to which data should be written if the user specifies no such location.
+      */
+    private final OutputStream defaultOutputStream;
+
+    /**
      * Create a new GenotypeWriter argument, notifying the given engine when that argument has been created.
      * @param engine the engine to be notified.
+     * @param defaultOutputStream the default output stream to be written to if nothing else is specified.
      */
-    public VCFWriterArgumentTypeDescriptor(GenomeAnalysisEngine engine) {
+    public VCFWriterArgumentTypeDescriptor(GenomeAnalysisEngine engine, OutputStream defaultOutputStream) {
         this.engine = engine;
+        this.defaultOutputStream = defaultOutputStream;
     }
 
     /**
@@ -64,12 +72,6 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         return VCFWriter.class.equals(type);
     }
 
-    /**
-     * Create the argument definitions associated with this source.
-     * Assumes that this type descriptor is relevant for this source.
-     * @param source Source class and field for the given argument.
-     * @return A list of all associated argument definitions.
-     */
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
         return Arrays.asList( createGenotypeFileArgumentDefinition(source) );
@@ -80,19 +82,15 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * @return true always.
      */
     @Override
-    public boolean overridesDefault() {
+    public boolean createsTypeDefault(ArgumentSource source,Class type) {
         return true;
     }
 
-    /**
-     * Provide the default value for this argument.
-     * @return A VCFGenotypeWriter which writes to the default output stream.
-     */
     @Override
-    public Object getDefault() {
-        VCFWriterStub defaultGenotypeWriter = new VCFWriterStub(engine,System.out);
-        engine.addOutput(defaultGenotypeWriter);
-        return defaultGenotypeWriter;       
+    public Object createTypeDefault(ArgumentSource source,Class type) {
+        VCFWriterStub stub = new VCFWriterStub(engine,defaultOutputStream);
+        engine.addOutput(stub);
+        return stub;
     }
 
     /**

@@ -4,6 +4,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -17,7 +18,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriterImpl;
+import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -30,7 +31,8 @@ import java.util.*;
  */
 @Reference(window=@Window(start=-40,stop=40))
 public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> {
-
+    @Output
+    PrintStream out;
     @Argument(fullName="indelWindow",doc="size of the window in which to look for indels; max 40",required=false)
     int indelWindow = 10;
     @Argument(fullName="writeVCF",doc="Writes \"overlapping\" variants to this vcf",required=false)
@@ -47,7 +49,7 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
         }
 
         if ( outVCF != null ) {
-            vcfWriter = new VCFWriterImpl(outVCF);
+            vcfWriter = new StandardVCFWriter(outVCF);
             Set<VCFHeaderLine> header = new HashSet<VCFHeaderLine>();
             header.addAll(VCFUtils.getHeaderFields(getToolkit()));
             VCFHeader vcfHeader = new VCFHeader(header, SampleUtils.getUniqueSamplesFromRods(getToolkit()));

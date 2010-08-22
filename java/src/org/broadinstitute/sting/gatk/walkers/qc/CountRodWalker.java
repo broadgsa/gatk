@@ -35,17 +35,22 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.io.PrintStream;
 
 /**
  * Prints out counts of the number of reference ordered data objects are
  * each locus for debugging RodWalkers.
  */
 public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>> {
+    @Output
+    public PrintStream out;
+
     @Argument(fullName = "verbose", shortName = "v", doc="If true, Countrod will print out detailed information about the rods it finds and locations", required = false)
     public boolean verbose = false;
 

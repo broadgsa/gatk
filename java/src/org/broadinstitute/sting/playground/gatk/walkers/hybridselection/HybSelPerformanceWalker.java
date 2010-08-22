@@ -50,9 +50,11 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -63,6 +65,9 @@ import java.util.List;
  */
 @By(DataSource.REFERENCE)
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> implements TreeReducible<HybSelPerformanceWalker.TargetInfo> {
+    @Output
+    public PrintStream out;
+
     @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider")
     public Integer MIN_MAPQ = 1;
 

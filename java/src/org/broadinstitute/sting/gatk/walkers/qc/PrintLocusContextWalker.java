@@ -4,9 +4,11 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.List;
 import java.util.Arrays;
+import java.io.PrintStream;
 
 import net.sf.samtools.SAMRecord;
 
@@ -15,6 +17,9 @@ import net.sf.samtools.SAMRecord;
  * all aligning reads in a compact but human-readable form. 
  */
 public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integer> implements TreeReducible<Integer> {
+    @Output
+    private PrintStream out;
+
     public AlignmentContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         out.printf( "In map: ref = %s, loc = %s, reads = %s%n", ref.getBaseAsChar(),
                                                                 context.getLocation(),

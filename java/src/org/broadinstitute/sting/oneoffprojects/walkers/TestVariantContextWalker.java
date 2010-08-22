@@ -32,14 +32,19 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.EnumSet;
 import java.io.File;
+import java.io.PrintStream;
 
 /**
  * Test routine for new VariantContext object
  */
 public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="takeFirstOnly", doc="Only take the first second at a locus, as opposed to all", required=false)
     boolean takeFirstOnly = false;
 
@@ -60,7 +65,7 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
         if ( outputVCF != null )
-            writer = new VCFWriterImpl(new File(outputVCF));
+            writer = new StandardVCFWriter(new File(outputVCF));
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -99,5 +104,12 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
 
     public Integer reduce(Integer point, Integer sum) {
         return point + sum;
+    }
+
+    @Override
+    public void onTraversalDone(Integer result) {
+        // Double check traversal result to make count is the same.
+        // TODO: Is this check necessary?
+        out.println("[REDUCE RESULT] Traversal result is: " + result);
     }
 }

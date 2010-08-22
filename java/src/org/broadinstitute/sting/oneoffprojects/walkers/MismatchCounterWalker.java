@@ -6,11 +6,16 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.List;
+import java.io.PrintStream;
 
 @WalkerName("CountMismatches")
 public class MismatchCounterWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    PrintStream out;
+
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         int nMismatches = 0;
         

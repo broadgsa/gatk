@@ -30,15 +30,21 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.io.PrintStream;
+
 /**
  * Finds the most similar HLA allele for each read (helps detect misalignments). Usage: java -jar GenomeAnalysisTK.jar -T FindClosestHLA -I INPUT.bam -R /broad/1KG/reference/human_b36_both.fasta -L INPUT.interval | grep -v INFO | sort -k1 > OUTPUT
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
+    @Output
+    protected PrintStream out;
+
     @Argument(fullName = "debugRead", shortName = "debugRead", doc = "Print match score for read", required = false)
     public String debugRead = "";
 
@@ -300,5 +306,12 @@ public class FindClosestHLAWalker extends ReadWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) {
         return value + sum;
     }
+
+    @Override
+    public void onTraversalDone(Integer result) {
+        // Double check traversal result to make count is the same.
+        // TODO: Is this check necessary?
+        out.println("[REDUCE RESULT] Traversal result is: " + result);
+    }    
 }
 

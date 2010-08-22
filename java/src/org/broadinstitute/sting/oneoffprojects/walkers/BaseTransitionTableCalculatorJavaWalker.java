@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -50,6 +51,9 @@ import net.sf.samtools.SAMRecord;
 @By(DataSource.REFERENCE)
 @Reference(window=@Window(start=-3,stop=3))
 public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<BaseTransitionTable>,Set<BaseTransitionTable>> implements TreeReducible<Set<BaseTransitionTable>> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="usePreviousBases", doc="Use previous bases of the reference as part of the calculation, uses the specified number, defaults to 0", required=false)
     int nPreviousBases = 0;
     @Argument(fullName="useSecondaryBase",doc="Use the secondary base of a read as part of the calculation", required=false)

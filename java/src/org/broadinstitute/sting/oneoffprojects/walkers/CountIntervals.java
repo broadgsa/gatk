@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -12,6 +13,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.util.List;
+import java.io.PrintStream;
 
 /**
  * Counts the number of contiguous regions the walker traverses over. Slower than it needs to be, but
@@ -19,6 +21,9 @@ import java.util.List;
  * This was its very first use.
  */
 public class CountIntervals extends RefWalker<Long, Long> {
+    @Output
+    PrintStream out;
+
     @Argument(fullName="numOverlaps",shortName="no",doc="Count all occurrences of X or more overlapping intervals; defaults to 2", required=false)
     int numOverlaps = 2;
 

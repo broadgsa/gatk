@@ -43,10 +43,12 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Collection;
+import java.io.PrintStream;
 
 
 /**
@@ -57,6 +59,9 @@ import java.util.Collection;
 @Requires(value={DataSource.REFERENCE})
 @Reference(window=@Window(start=-200,stop=200))
 public class PickSequenomProbes extends RodWalker<String, String> {
+    @Output
+    PrintStream out;
+
     @Argument(required=false, shortName="snp_mask", doc="positions to be masked with N's")
     protected String SNP_MASK = null;
     @Argument(required=false, shortName="project_id",doc="If specified, all probenames will be prepended with 'project_id|'")

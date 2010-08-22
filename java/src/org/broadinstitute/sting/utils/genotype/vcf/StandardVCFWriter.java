@@ -40,7 +40,7 @@ import java.util.*;
 /**
  * this class writes VCF files
  */
-public class VCFWriterImpl implements VCFWriter {
+public class StandardVCFWriter implements VCFWriter {
 
     // the VCF header we're storing
     protected VCFHeader mHeader = null;
@@ -56,7 +56,7 @@ public class VCFWriterImpl implements VCFWriter {
      *
      * @param location the file location to write to
      */
-    public VCFWriterImpl(File location) {
+    public StandardVCFWriter(File location) {
         FileOutputStream output;
         try {
             output = new FileOutputStream(location);
@@ -73,7 +73,7 @@ public class VCFWriterImpl implements VCFWriter {
      *
      * @param output   the file location to write to
      */
-    public VCFWriterImpl(OutputStream output) {
+    public StandardVCFWriter(OutputStream output) {
         mWriter = new BufferedWriter(new OutputStreamWriter(output));
     }
 

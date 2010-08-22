@@ -6,13 +6,17 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.sting.commandline.Output;
 
 import java.util.*;
+import java.io.PrintStream;
 
 /**
  * Computes the coverage per sample.
  */
 public class CoverageBySample extends LocusWalker<Integer, Integer> {
+    @Output
+    protected PrintStream out;    
 
     private HashSet<String> sampleNames = new HashSet<String>();
 

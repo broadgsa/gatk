@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.gatk.walkers.Multiplexer;
+
 import java.util.*;
 /**
  * Represents a list of potential matches between the arguments defined
@@ -158,6 +160,19 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
                 matches.mergeInto( argumentMatch );
         }
         return matches;
+    }
+
+    /**
+     * Reformat the given entries with the given multiplexer and key.
+     * TODO: Generify this.
+     * @param multiplexer Multiplexer that controls the transformation process.
+     * @param key Key which specifies the transform.
+     */
+    ArgumentMatches transform(Multiplexer multiplexer, Object key) {
+        ArgumentMatches newArgumentMatches = new ArgumentMatches();
+        for(ArgumentMatch match: argumentMatches.values())
+            newArgumentMatches.mergeInto(match.transform(multiplexer,key));
+        return newArgumentMatches;
     }
 
     /**

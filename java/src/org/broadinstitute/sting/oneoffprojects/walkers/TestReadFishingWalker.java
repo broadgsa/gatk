@@ -33,6 +33,7 @@ import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -44,6 +45,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.SortedMap;
@@ -59,6 +61,9 @@ public class TestReadFishingWalker extends ReadWalker<Integer,Long> {
      * An aligner for the small custom reference.
      */
     private BWAAligner aligner;
+
+    @Output
+    private PrintStream out;
 
     @Argument(fullName="indel_calls",shortName="ic",doc="Indel calls to use to derive custom references",required=true)
     private File indelCalls;

@@ -30,6 +30,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 
 import java.io.File;
+import java.io.OutputStream;
 
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
@@ -58,6 +59,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * whatever happens to create the StreamConnector.
      */
     private final File samFile;
+
+    /**
+     * The target output stream, to be used in place of the SAM file.
+     */
+    private final OutputStream samOutputStream;
 
     /**
      * The validation stringency to apply when reading this file.
@@ -90,6 +96,18 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
     public SAMFileWriterStub( GenomeAnalysisEngine engine, File samFile ) {
         this.engine = engine;
         this.samFile = samFile;
+        this.samOutputStream = null;
+    }
+
+    /**
+     * Create a new stub given the requested SAM file and compression level.
+     * @param engine source of header data, maybe other data about input files.
+     * @param stream Output stream to which data should be written.
+     */
+    public SAMFileWriterStub( GenomeAnalysisEngine engine, OutputStream stream ) {
+        this.engine = engine;
+        this.samFile = null;
+        this.samOutputStream = stream;
     }
 
     /**
@@ -98,6 +116,10 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public File getSAMFile() {
         return samFile;
+    }
+
+    public OutputStream getSAMOutputStream() {
+        return samOutputStream;
     }
 
     /**

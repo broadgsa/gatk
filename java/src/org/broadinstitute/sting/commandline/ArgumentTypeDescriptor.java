@@ -26,11 +26,15 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.gatk.walkers.Multiplex;
+import org.broadinstitute.sting.gatk.walkers.Multiplexer;
 import org.apache.log4j.Logger;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
+import java.io.OutputStream;
 
 /**
  * An descriptor capable of providing parsers that can parse any type
@@ -52,7 +56,8 @@ public abstract class ArgumentTypeDescriptor {
      * The type of set used must be ordered (but not necessarily sorted).
      */
     private static Set<ArgumentTypeDescriptor> descriptors = new LinkedHashSet<ArgumentTypeDescriptor>( Arrays.asList(new SimpleArgumentTypeDescriptor(),
-                                                                                                                      new CompoundArgumentTypeDescriptor()) );
+                                                                                                                      new CompoundArgumentTypeDescriptor(),
+                                                                                                                      new MultiplexArgumentTypeDescriptor()) );
 
     /**
      * Adds new, user defined descriptors to the head of the descriptor list.
@@ -88,20 +93,18 @@ public abstract class ArgumentTypeDescriptor {
     public abstract boolean supports( Class type );
 
     /**
-     * This argument type descriptor wants to override any default value the user might have specified. 
-     * @return True if this descriptor wants to override any default the user specified.  False otherwise.
+     * Returns false if a type-specific default can be employed.
+     * @param source Source of the command-line argument.
+     * @return True to throw in a type specific default.  False otherwise.
      */
-    public boolean overridesDefault() {
-        return false;
-    }
+    public boolean createsTypeDefault(ArgumentSource source,Class type) { return false; }
 
     /**
-     * Provides the default value for the command-line argument.
-     * @return Default value to load into the object.
+     * Generates a default for the given type.
+     * @param source Source of the command-line argument.
+     * @return A default value for the given type.
      */
-    public Object getDefault() {
-        throw new UnsupportedOperationException(String.format("Type descriptor %s cannot override default value of command-line argument",this.getClass()));   
-    }
+    public Object createTypeDefault(ArgumentSource source,Class type) { throw new UnsupportedOperationException("Unable to create default for type " + getClass()); }
 
     /**
      * Given the given argument source and attributes, synthesize argument definitions for command-line arguments.
@@ -156,15 +159,7 @@ public abstract class ArgumentTypeDescriptor {
      * @throws IllegalArgumentException If more than one parameterized type is found on the field.
      */
     protected Class getCollectionComponentType( Field field ) {
-            // If this is a parameterized collection, find the contained type.  If blow up if more than one type exists.
-            if( field.getGenericType() instanceof ParameterizedType) {
-                ParameterizedType parameterizedType = (ParameterizedType)field.getGenericType();
-                if( parameterizedType.getActualTypeArguments().length > 1 )
-                    throw new IllegalArgumentException("Unable to determine collection type of field: " + field.toString());
-                return (Class)parameterizedType.getActualTypeArguments()[0];
-            }
-            else
-                return String.class;
+        return null;
     }
 
     /**
@@ -322,6 +317,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         }
 
     }
+    
 
     /**
      * A mapping of the primitive types to their associated wrapper classes.  Is there really no way to infer
@@ -338,7 +334,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             put( Float.TYPE, Float.class );
             put( Double.TYPE, Double.class );
         }
-    };    
+    };
 }
 
 /**
@@ -412,5 +408,168 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         }
         else
             throw new StingException("Unsupported compound argument type: " + type);
+    }
+
+    /**
+     * Return the component type of a field, or String.class if the type cannot be found.
+     * @param field The reflected field to inspect.
+     * @return The parameterized component type, or String.class if the parameterized type could not be found.
+     * @throws IllegalArgumentException If more than one parameterized type is found on the field.
+     */
+    @Override
+    protected Class getCollectionComponentType( Field field ) {
+            // If this is a parameterized collection, find the contained type.  If blow up if more than one type exists.
+            if( field.getGenericType() instanceof ParameterizedType) {
+                ParameterizedType parameterizedType = (ParameterizedType)field.getGenericType();
+                if( parameterizedType.getActualTypeArguments().length > 1 )
+                    throw new IllegalArgumentException("Unable to determine collection type of field: " + field.toString());
+                return (Class)parameterizedType.getActualTypeArguments()[0];
+            }
+            else
+                return String.class;
+    }
+}
+
+class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+    /**
+     * The multiplexer controlling how data is split.
+     */
+    private final Multiplexer multiplexer;
+
+    /**
+     * The set of identifiers for the multiplexed entries.
+     */
+    private final Collection<?> multiplexedIds;
+
+    public MultiplexArgumentTypeDescriptor() {
+        this.multiplexer = null;
+        this.multiplexedIds = null;
+    }
+
+    /**
+     * Private constructor to use in creating a closure of the MultiplexArgumentTypeDescriptor specific to the
+     * given set of multiplexed ids.
+     * @param multiplexedIds The collection of multiplexed entries
+     */
+    private MultiplexArgumentTypeDescriptor(final Multiplexer multiplexer, final Collection<?> multiplexedIds) {
+        this.multiplexer = multiplexer;
+        this.multiplexedIds = multiplexedIds;
+    }
+
+    @Override
+    public boolean supports( Class type ) {
+        return ( Map.class.isAssignableFrom(type) );
+    }
+
+    @Override
+    public boolean createsTypeDefault(ArgumentSource source,Class type) {
+        if(multiplexer == null || multiplexedIds == null)
+            throw new StingException("No multiplexed ids available");
+        // Always create a multiplexed mapping.
+        return true;
+    }
+
+    @Override
+    public Object createTypeDefault(ArgumentSource source,Class type) {
+        if(multiplexer == null || multiplexedIds == null)
+            throw new StingException("No multiplexed ids available");
+
+        Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
+        Class componentType = getCollectionComponentType(source.field);
+        ArgumentTypeDescriptor componentTypeDescriptor = ArgumentTypeDescriptor.create(componentType);
+
+        for(Object id: multiplexedIds) {
+            Object value = null;
+            if(componentTypeDescriptor.createsTypeDefault(source,componentType))
+                value = componentTypeDescriptor.createTypeDefault(source,componentType);
+            multiplexedMapping.put(id,value);
+        }
+        return multiplexedMapping;
+    }
+
+
+    @Override
+    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
+        if(multiplexedIds == null)
+            throw new StingException("Cannot directly parse a MultiplexArgumentTypeDescriptor; must create a derivative type descriptor first.");
+
+        Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
+        Class componentType = getCollectionComponentType(source.field);
+
+        for(Object id: multiplexedIds) {
+            Object value = ArgumentTypeDescriptor.create(componentType).parse(source,componentType,matches.transform(multiplexer,id));
+            multiplexedMapping.put(id,value);
+        }
+        return multiplexedMapping;
+    }
+
+    public MultiplexArgumentTypeDescriptor createCustomTypeDescriptor(ArgumentSource dependentArgument,Object containingObject) {
+        String[] sourceFields = dependentArgument.field.getAnnotation(Multiplex.class).arguments();
+
+        List<ArgumentSource> allSources = ParsingEngine.extractArgumentSources(containingObject.getClass());
+        Class[] sourceTypes = new Class[sourceFields.length];
+        Object[] sourceValues = new Object[sourceFields.length];
+        int currentField = 0;
+
+        for(String sourceField: sourceFields) {
+            boolean fieldFound = false;
+            for(ArgumentSource source: allSources) {
+                if(!source.field.getName().equals(sourceField))
+                    continue;
+                if(source.field.isAnnotationPresent(Multiplex.class))
+                    throw new StingException("Command-line arguments can only depend on independent fields");
+                sourceTypes[currentField] = source.field.getType();
+                sourceValues[currentField] = JVMUtils.getFieldValue(source.field,containingObject);
+                currentField++;
+                fieldFound = true;
+            }
+            if(!fieldFound)
+                throw new StingException(String.format("Unable to find source field %s, referred to by dependent field %s",sourceField,dependentArgument.field.getName()));
+        }
+
+        Class<? extends Multiplexer> multiplexerType = dependentArgument.field.getAnnotation(Multiplex.class).value();
+        Constructor<? extends Multiplexer> multiplexerConstructor = null;
+        try {
+            multiplexerConstructor = multiplexerType.getConstructor(sourceTypes);
+            multiplexerConstructor.setAccessible(true);
+        }
+        catch(NoSuchMethodException ex) {
+            throw new StingException(String.format("Unable to find constructor for class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+        }
+
+        Multiplexer multiplexer = null;
+        try {
+            multiplexer = multiplexerConstructor.newInstance(sourceValues);
+        }
+        catch(IllegalAccessException ex) {
+            throw new StingException(String.format("Constructor for class %s with parameters %s is inaccessible",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+        }
+        catch(InstantiationException ex) {
+            throw new StingException(String.format("Can't create class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+        }
+        catch(InvocationTargetException ex) {
+            throw new StingException(String.format("Can't invoke constructor of class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+        }
+
+        return new MultiplexArgumentTypeDescriptor(multiplexer,multiplexer.multiplex());
+    }
+
+    /**
+     * Return the component type of a field, or String.class if the type cannot be found.
+     * @param field The reflected field to inspect.
+     * @return The parameterized component type, or String.class if the parameterized type could not be found.
+     * @throws IllegalArgumentException If more than one parameterized type is found on the field.
+     */
+    @Override
+    protected Class getCollectionComponentType( Field field ) {
+        // Multiplex arguments must resolve to maps from which the clp should extract the second type.
+        if( field.getGenericType() instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType)field.getGenericType();
+            if( parameterizedType.getActualTypeArguments().length != 2 )
+                throw new IllegalArgumentException("Unable to determine collection type of field: " + field.toString());
+            return (Class)parameterizedType.getActualTypeArguments()[1];
+        }
+        else
+            return String.class;
     }
 }

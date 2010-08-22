@@ -13,6 +13,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileWriterFactory;
 
 
 /*
@@ -70,6 +71,8 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     public void testReadCount() {
         PrintReadsWalker walker = new PrintReadsWalker();
         ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
+        walker.out = writer;
+
         trav.traverse(walker, null, writer);
         assertEquals(readTotal, writer.getRecords().size());
     }
@@ -78,6 +81,8 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     @Test
     public void testNullRead() {
         PrintReadsWalker walker = new PrintReadsWalker();
+        ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
+        walker.out = writer;
 
         SAMRecord rec = walker.map(bases, null, null);
         assertTrue(rec == null);
@@ -87,6 +92,9 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     @Test
     public void testReturnRead() {
         PrintReadsWalker walker = new PrintReadsWalker();
+        ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
+        walker.out = writer;
+
         SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
         SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
         SAMRecord ret = walker.map(bases, rec,null);
@@ -98,9 +106,11 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     @Test
     public void testReducingRead() {
         PrintReadsWalker walker = new PrintReadsWalker();
-         SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
-        SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
         ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
+        walker.out = writer;
+
+        SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
+        SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
         SAMRecord ret = walker.map(bases, null,null);
         walker.reduce(ret,writer);
 

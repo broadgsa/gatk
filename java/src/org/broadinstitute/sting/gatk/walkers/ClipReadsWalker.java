@@ -31,6 +31,7 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
@@ -41,6 +42,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.File;
+import java.io.PrintStream;
 
 import net.sf.samtools.util.StringUtil;
 
@@ -50,6 +52,9 @@ import net.sf.samtools.util.StringUtil;
  */
 @Requires({DataSource.READS})
 public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, ClipReadsWalker.ClippingData> {
+    @Output
+    PrintStream out;
+
     /**
      * an optional argument to dump the reads out to a BAM file
      */
