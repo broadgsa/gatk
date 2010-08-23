@@ -62,10 +62,13 @@ object IOUtils {
    * @throws IOException if the directory could not be created.
    */
   def tempDir(prefix: String, suffix: String = "") = {
+    val tempDirParent = new File(System.getProperty("java.io.tmpdir"))
+    if (!tempDirParent.exists && !tempDirParent.mkdirs)
+       throw new IOException("Could not create temp directory: " + tempDirParent)
     val temp = File.createTempFile(prefix + "-", suffix)
-    if(!temp.delete)
+    if (!temp.delete)
       throw new IOException("Could not delete sub file: " + temp.getAbsolutePath())
-    if(!temp.mkdir)
+    if (!temp.mkdir)
       throw new IOException("Could not create sub directory: " + temp.getAbsolutePath())
     absolute(temp)
   }

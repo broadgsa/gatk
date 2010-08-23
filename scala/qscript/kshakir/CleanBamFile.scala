@@ -66,8 +66,11 @@ class CleanBamFile extends QScript {
   @Argument(doc="firehose port", shortName="FHPort")
   var firehosePort: Int = _
 
-  @Argument(doc="firehose domain", shortName="FHDom")
+  @Argument(doc="firehose domain", shortName="FHDomain")
   var firehoseDomain: String = _
+
+  @Argument(doc="clean bam firehose security token", shortName="FHToken")
+  var firehoseSecurityToken: String = _
 
   @Argument(doc="clean bam firehose entity type", shortName="bamFHEType")
   var bamFirehoseEntityType: String = _
@@ -77,9 +80,6 @@ class CleanBamFile extends QScript {
 
   @Argument(doc="clean bam firehose annotation type name", shortName="bamFHAnn")
   var bamFirehoseAnnotationTypeName: String = _
-
-  @Argument(doc="clean bam firehose security token", shortName="bamFHToken")
-  var bamFirehoseSecurityToken: String = _
 
   trait GATKCommonArgs extends CommandLineGATK {
     this.jarFile = qscript.gatkJar
@@ -94,7 +94,7 @@ class CleanBamFile extends QScript {
   def script = {
     val blacklistConverter = new CommandLineFunction {
       @Output(doc="blacklist file") var blacklistFile: File = _
-      def commandLine = readGroupBlackListScript + " " + blacklistFile + " " + readGroupBlackList
+      def commandLine = readGroupBlackListScript + " " + blacklistFile + " \"" + readGroupBlackList + "\""
     }
 
     if (readGroupBlackList != null) {
@@ -185,10 +185,10 @@ class CleanBamFile extends QScript {
     importer.host = firehoseHost
     importer.port = firehosePort
     importer.domain = firehoseDomain
+    importer.securityToken = firehoseSecurityToken
     importer.entityType = bamFirehoseEntityType
     importer.entityID = bamFirehoseEntityID
     importer.annotationTypeName = bamFirehoseAnnotationTypeName
-    importer.securityToken = bamFirehoseSecurityToken
     importer.importValue = fixedBam
     importer.jobDependencies :+= bamIndex.bamFileIndex
 
