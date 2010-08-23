@@ -148,6 +148,26 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                         beagleGenotypesWriter.format("%c %c ", a, b);
                     }
                 }
+                else if (genotype.isCalled() && !genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
+                    // hack to deal with input VCFs with no genotype likelihoods.  Just assume the called genotype
+                    // is confident.  This is useful for Hapmap and 1KG release VCFs.
+                    double AA = 0.02;
+                    double AB = 0.02;
+                    double BB = 0.02;
+
+                    if (genotype.isHomRef()) { AA = 0.96; }
+                    else if (genotype.isHet()) { AB = 0.96; }
+                    else if (genotype.isHomVar()) { BB = 0.96; }
+
+                    beagleWriter.printf("%.2f %.2f %.2f ", AA, AB, BB);
+
+                    if (beagleGenotypesWriter != null) {
+                        char a = genotype.getAllele(0).toString().charAt(0);
+                        char b = genotype.getAllele(0).toString().charAt(0);
+
+                        beagleGenotypesWriter.format("%c %c ", a, b);
+                    }
+                }
                 else  {
                     beagleWriter.print("0.33 0.33 0.33 "); // write 1/3 likelihoods for uncalled genotypes.
                     if (beagleGenotypesWriter != null)

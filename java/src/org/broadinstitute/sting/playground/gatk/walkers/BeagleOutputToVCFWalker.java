@@ -204,7 +204,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             ArrayList<String> beagleGenotypePairs = beaglePhasedFeature.getGenotypes().get(sample);
 
             Allele originalAlleleA = g.getAllele(0);
-            Allele originalAlleleB = g.getAllele(1);
+            Allele originalAlleleB = (g.getAlleles().size() == 2) ? g.getAllele(1) : g.getAllele(0); // hack to deal with no-call genotypes
 
             // We have phased genotype in hp. Need to set the isRef field in the allele.
             List<Allele> alleles = new ArrayList<Allele>();
@@ -213,6 +213,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             String alleleB = beagleGenotypePairs.get(1);
 
             byte[] r = alleleA.getBytes();
+
+            //System.out.println(context.getLocation() + " : " + alleleA + " " + alleleB);
+
             byte rA = r[0];
 
             Boolean isRefA = (refByte  == rA);
