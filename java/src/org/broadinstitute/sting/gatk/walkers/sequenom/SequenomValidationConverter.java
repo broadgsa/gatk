@@ -163,7 +163,6 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
 
         for ( Pair<VariantContext, Byte> record : records )
             vcfwriter.add(record.first, record.second);
-        vcfwriter.close();
     }
 
 

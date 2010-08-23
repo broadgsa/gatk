@@ -65,9 +65,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
-    @Argument(fullName="output_file", shortName="output", doc="Please use --out instead")
+    @Argument(fullName="output_file", shortName="output", doc="Please use --out instead" ,required=false)
     @Deprecated
-    private String oldOutputArg;
+    protected String oldOutputArg;
 
     @Argument(fullName="no" +
             "call_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
