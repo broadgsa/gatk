@@ -32,10 +32,6 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -145,18 +141,18 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @param argCollection Collection of arguments to preprocess.
      */
     private void processArguments( GATKArgumentCollection argCollection ) {
-        argCollection.samFiles = unpackList( argCollection.samFiles );
+        argCollection.samFiles = unpackBAMFileList( argCollection.samFiles );
     }
 
     /**
-     * Unpack the files to be processed, given a list of files.  That list of files can
-     * itself contain lists of other files to be read.
+     * Unpack the bam files to be processed, given a list of files.  That list of files can
+     * itself contain entries which are lists of other files to be read (note: you cannot have lists of lists of lists)
      *
-     * @param inputFiles
+     * @param inputFiles a list of files that represent either bam files themselves, or a file containing a list of bam files to process
      *
-     * @return
+     * @return a flattened list of the bam files provided 
      */
-    private static List<File> unpackList( List<File> inputFiles ) {
+    public static List<File> unpackBAMFileList( List<File> inputFiles ) {
         List<File> unpackedReads = new ArrayList<File>();
         for( File inputFile: inputFiles ) {
             if (inputFile.getName().toLowerCase().endsWith(".list") ) {
