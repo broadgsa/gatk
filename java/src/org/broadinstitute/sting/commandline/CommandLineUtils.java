@@ -26,10 +26,12 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
 import java.util.*;
+import java.lang.annotation.Annotation;
 
 /**
  * Static utility methods for working with command-line arguments.
@@ -86,6 +88,19 @@ public class CommandLineUtils {
         }
 
         return sb.toString();
-    }  
+    }
 
+    /**
+     * A hack to get around the fact that Java doesn't like inheritance in Annotations.
+     * @param annotation to run the method on
+     * @param method the method to invoke
+     * @return the return value of the method
+     */
+    public static Object getValue(Annotation annotation, String method) {
+        try {
+            return annotation.getClass().getMethod(method).invoke(annotation);
+        } catch (Exception e) {
+            throw new StingException("Unable to access method " + method + " on annotation " + annotation.getClass(), e);
+        }
+    }
 }

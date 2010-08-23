@@ -28,6 +28,7 @@ package org.broadinstitute.sting.commandline;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.lang.reflect.Field;
+import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.List;
 
@@ -150,6 +151,14 @@ public class ArgumentSource {
      */
     public Object parse( ArgumentMatches values ) {
         return typeDescriptor.parse( this, values );
+    }
+
+    /**
+     * Returns whether this field is required.  Note that flag fields are always forced to 'not required'.
+     * @return True if the field is mandatory and not a boolean flag.  False otherwise.
+     */
+    public boolean isRequired() {
+        return (Boolean)CommandLineUtils.getValue(ArgumentTypeDescriptor.getArgumentAnnotation(this),"required");
     }
 
     /**

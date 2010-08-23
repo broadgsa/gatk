@@ -33,7 +33,7 @@ import java.lang.annotation.*;
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
+@Target(ElementType.FIELD)
 public @interface Output {
     /**
      * The full name of the command-line argument.  Full names should be
@@ -58,11 +58,12 @@ public @interface Output {
     String doc() default "An output file presented to the walker.  Will overwrite contents if file exists.";
 
     /**
-     * Is this command-line argument required.  The application should exit
-     * printing help if this command-line argument is not specified.
+     * Is this argument required.  If true, the command-line argument system will
+     * make a best guess for populating this argument based on the type, and will
+     * fail if the type can't be populated.
      * @return True if the argument is required.  False otherwise.
      */
-    boolean required() default false;
+    boolean required() default true;
 
     /**
      * Should this command-line argument be exclusive of others.  Should be

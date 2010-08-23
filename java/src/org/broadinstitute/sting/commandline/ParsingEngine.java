@@ -297,7 +297,7 @@ public class ParsingEngine {
      */
     private void loadValueIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches ) {
         // Nothing to load
-        if( argumentMatches.size() == 0 && !source.overridesDefault())
+        if( argumentMatches.size() == 0 && !(source.overridesDefault() && source.isRequired()))
             return;
 
         // Target instance into which to inject the value.

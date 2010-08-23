@@ -116,14 +116,19 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     private ArgumentDefinition createBAMArgumentDefinition(ArgumentSource source) {
         Annotation annotation = this.getArgumentAnnotation(source);
         return new ArgumentDefinition( annotation,
+                                       ArgumentIOType.getIOType(annotation),
                                        source.field.getType(),
                                        DEFAULT_ARGUMENT_FULLNAME,
                                        DEFAULT_ARGUMENT_SHORTNAME,
+                                       ArgumentDefinition.getDoc(annotation),
+                                       true,
                                        false,
                                        source.isMultiValued(),
                                        source.isHidden(),
-                                       getCollectionComponentType(source.field),
-                                       null );
+                                       null,
+                                       null,
+                                       null,
+                                       null);
     }
 
     /**

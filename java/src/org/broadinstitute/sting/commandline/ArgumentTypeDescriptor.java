@@ -43,7 +43,7 @@ import java.io.OutputStream;
  * @author mhanna
  * @version 0.1
  */
-public abstract class ArgumentTypeDescriptor {
+public abstract class   ArgumentTypeDescriptor {
     private static Class[] ARGUMENT_ANNOTATIONS = {Input.class, Output.class, Argument.class};
 
     /**
@@ -142,13 +142,19 @@ public abstract class ArgumentTypeDescriptor {
      * @return The default definition for this argument source.
      */
     protected ArgumentDefinition createDefaultArgumentDefinition( ArgumentSource source ) {
-        return new ArgumentDefinition( getArgumentAnnotation(source),
+        Annotation argumentAnnotation = getArgumentAnnotation(source);
+        return new ArgumentDefinition( ArgumentIOType.getIOType(argumentAnnotation),
                                        source.field.getType(),
-                                       source.field.getName(),
+                                       ArgumentDefinition.getFullName(argumentAnnotation, source.field.getName()),
+                                       ArgumentDefinition.getShortName(argumentAnnotation),
+                                       ArgumentDefinition.getDoc(argumentAnnotation),
+                                       source.isRequired() && !source.overridesDefault() && !source.isFlag(),
                                        source.isFlag(),
                                        source.isMultiValued(),
                                        source.isHidden(),
                                        getCollectionComponentType(source.field),
+                                       ArgumentDefinition.getExclusiveOf(argumentAnnotation),
+                                       ArgumentDefinition.getValidationRegex(argumentAnnotation),
                                        getValidOptions(source) );
     }
 
@@ -222,7 +228,7 @@ public abstract class ArgumentTypeDescriptor {
      * @return Argument description annotation associated with the given field.
      */
     @SuppressWarnings("unchecked")
-    protected Annotation getArgumentAnnotation( ArgumentSource source ) {
+    protected static Annotation getArgumentAnnotation( ArgumentSource source ) {
         for (Class annotation: ARGUMENT_ANNOTATIONS)
             if (source.field.isAnnotationPresent(annotation))
                 return source.field.getAnnotation(annotation);
@@ -463,9 +469,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public boolean createsTypeDefault(ArgumentSource source,Class type) {
-        if(multiplexer == null || multiplexedIds == null)
-            throw new StingException("No multiplexed ids available");
-        // Always create a multiplexed mapping.
+        // Multiplexing always creates a type default.
         return true;
     }
 

@@ -61,7 +61,13 @@ public class ArgumentDefinition {
     public final String doc;
 
     /**
-     * Is this argument required?
+     * Must this argument be specified on the command-line?  Note that there's a
+     * critical difference between the meaning of a required argument from the
+     * perspective of the argument source and the perspective of the argument
+     * definition: the argument source's required field indicates that the field
+     * should somehow be populated by the GATK (and fail if there's an error).
+     * The ArgumentDefinition required element means that the required element
+     * must be specified on the command-line.
      */
     public final boolean required;
 
@@ -137,8 +143,8 @@ public class ArgumentDefinition {
         this.required = required;
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
-        this.componentType = componentType;
         this.isHidden = isHidden;
+        this.componentType = componentType;
         this.exclusiveOf = exclusiveOf;
         this.validation = validation;
         this.validOptions = validOptions;
@@ -157,17 +163,22 @@ public class ArgumentDefinition {
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null.
      */
     public ArgumentDefinition( Annotation annotation,
+                               ArgumentIOType ioType,
                                Class argumentType,
                                String defaultFullName,
                                String defaultShortName,
+                               String doc,
+                               boolean isRequired,
                                boolean isFlag,
                                boolean isMultiValued,
                                boolean isHidden,
                                Class componentType,
+                               String exclusiveOf,
+                               String validation,
                                List<String> validOptions) {
 
-        String fullName = (String)getValue(annotation, "fullName");
-        String shortName = (String)getValue(annotation, "shortName");
+        String fullName = (String)CommandLineUtils.getValue(annotation, "fullName");
+        String shortName = (String)CommandLineUtils.getValue(annotation, "shortName");
         boolean isFullNameProvided = fullName.trim().length() > 0;
         boolean isShortNameProvided = shortName.trim().length() > 0;
 
@@ -182,55 +193,21 @@ public class ArgumentDefinition {
         else
             shortName = null;
 
-        this.ioType = ArgumentIOType.getIOType(annotation);
+        this.ioType = ioType;
         this.argumentType = argumentType;
         this.fullName = fullName;
         this.shortName = shortName;
-        this.doc = getDoc(annotation);
-        this.required = isRequired(annotation, isFlag);
+        this.doc = doc;
+        this.required = isRequired;
         this.isFlag = isFlag;
         this.isMultiValued = isMultiValued;
         this.isHidden = isHidden;
         this.componentType = componentType;
-        this.exclusiveOf = getExclusiveOf(annotation);
-        this.validation = getValidationRegex(annotation);
+        this.exclusiveOf = exclusiveOf;
+        this.validation = validation;
         this.validOptions = validOptions;
     }
     
-    /**
-     * Creates a new argument definition.
-     * @param annotation The annotation on the field.
-     * @param argumentType The class of the field.
-     * @param fieldName Default full name for this argument definition.
-     * @param isFlag Whether or not this argument should be treated as a flag.
-     * @param isMultiValued Whether or not this argument supports multiple values.
-     * @param componentType For multivalued arguments the type of the components.
-     * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
-     * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null.
-     */
-    public ArgumentDefinition( Annotation annotation,
-                               Class argumentType,
-                               String fieldName,
-                               boolean isFlag,
-                               boolean isMultiValued,
-                               boolean isHidden,
-                               Class componentType,
-                               List<String> validOptions) {
-        this.ioType = ArgumentIOType.getIOType(annotation);
-        this.argumentType = argumentType;
-        this.fullName = getFullName(annotation, fieldName);
-        this.shortName = getShortName(annotation);
-        this.doc = getDoc(annotation);
-        this.required = isRequired(annotation, isFlag);
-        this.isFlag = isFlag;
-        this.isMultiValued = isMultiValued;
-        this.isHidden = isHidden;
-        this.componentType = componentType;
-        this.exclusiveOf = getExclusiveOf(annotation);
-        this.validation = getValidationRegex(annotation);
-        this.validOptions = validOptions;
-    }
-
     @Override
     public int hashCode() {
         int hashCode = fullName.hashCode();
@@ -251,28 +228,14 @@ public class ArgumentDefinition {
     }
 
     /**
-     * A hack to get around the fact that Java doesn't like inheritance in Annotations.
-     * @param annotation to run the method on
-     * @param method the method to invoke
-     * @return the return value of the method
-     */
-    private static Object getValue(Annotation annotation, String method) {
-        try {
-            return annotation.getClass().getMethod(method).invoke(annotation);
-        } catch (Exception e) {
-            throw new StingException("Unable to access method " + method + " on annotation " + annotation.getClass(), e);
-        }
-    }
-
-    /**
      * Retrieves the full name of the argument, specifiable with the '--' prefix.  The full name can be
      * either specified explicitly with the fullName annotation parameter or implied by the field name.
      * @param annotation Original field annotation.
      * @param fieldName Original field name.
      * @return full name of the argument.  Never null.
      */
-    private static String getFullName( Annotation annotation, String fieldName ) {
-        String fullName = (String)getValue(annotation, "fullName");
+    public static String getFullName( Annotation annotation, String fieldName ) {
+        String fullName = (String)CommandLineUtils.getValue(annotation, "fullName");
         return fullName.trim().length() > 0 ? fullName.trim() : fieldName.toLowerCase();
     }
 
@@ -282,8 +245,8 @@ public class ArgumentDefinition {
      * @param annotation Original field annotation.
      * @return short name of the argument.  Null if no short name exists.
      */
-    private static String getShortName( Annotation annotation ) {
-        String shortName = (String)getValue(annotation, "shortName");
+    public static String getShortName( Annotation annotation ) {
+        String shortName = (String)CommandLineUtils.getValue(annotation, "shortName");
         return shortName.trim().length() > 0 ? shortName.trim() : null;
     }
 
@@ -292,19 +255,8 @@ public class ArgumentDefinition {
      * @param annotation Original field annotation.
      * @return Documentation for this argument.
      */
-    private static String getDoc( Annotation annotation ) {
-        return (String)getValue(annotation, "doc");
-    }
-
-    /**
-     * Returns whether this field is required.  Note that flag fields are always forced to 'not required'.
-     * @param annotation Original field annotation.
-     * @param isFlag True if the field is a flag.
-     * @return True if the field is mandatory and not a boolean flag.  False otherwise.
-     */
-    private static boolean isRequired( Annotation annotation, boolean isFlag ) {
-        boolean required = (Boolean)getValue(annotation, "required");
-        return required && !isFlag;
+    public static String getDoc( Annotation annotation ) {
+        return (String)CommandLineUtils.getValue(annotation, "doc");
     }
 
     /**
@@ -312,8 +264,8 @@ public class ArgumentDefinition {
      * @param annotation Original field annotation.
      * @return A comma-separated list of exclusive arguments, or null if none are present.
      */
-    private static String getExclusiveOf( Annotation annotation ) {
-        String exclusiveOf = (String)getValue(annotation, "exclusiveOf");
+    public static String getExclusiveOf( Annotation annotation ) {
+        String exclusiveOf = (String)CommandLineUtils.getValue(annotation, "exclusiveOf");
         return exclusiveOf.trim().length() > 0 ? exclusiveOf.trim() : null;
     }
 
@@ -322,8 +274,8 @@ public class ArgumentDefinition {
      * @param annotation Original field annotation.
      * @return a JVM regex-compatible regular expression, or null to permit any possible value.
      */
-    private static String getValidationRegex( Annotation annotation ) {
-        String validation = (String)getValue(annotation, "validation");
+    public static String getValidationRegex( Annotation annotation ) {
+        String validation = (String)CommandLineUtils.getValue(annotation, "validation");
         return validation.trim().length() > 0 ? validation.trim() : null;
     }
 }
