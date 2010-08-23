@@ -44,8 +44,6 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.*;
 
 import java.io.*;

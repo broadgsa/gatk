@@ -25,13 +25,13 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;

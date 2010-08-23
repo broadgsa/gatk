@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
+import org.broad.tribble.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;

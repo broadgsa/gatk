@@ -14,8 +14,6 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.io.File;
 import java.io.FileInputStream;

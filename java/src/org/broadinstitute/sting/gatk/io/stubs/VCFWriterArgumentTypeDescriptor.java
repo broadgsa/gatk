@@ -25,13 +25,12 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
 import java.io.OutputStream;
-import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Arrays;
 

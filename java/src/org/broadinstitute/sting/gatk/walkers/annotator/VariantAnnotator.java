@@ -26,9 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFCompoundHeaderLine;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -46,8 +44,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.util.*;
 import java.io.PrintStream;

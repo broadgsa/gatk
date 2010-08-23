@@ -40,8 +40,6 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.util.*;
 import java.io.PrintStream;

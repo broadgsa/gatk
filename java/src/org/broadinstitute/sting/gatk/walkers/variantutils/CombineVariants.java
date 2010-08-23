@@ -41,7 +41,6 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.util.*;
 import java.io.PrintStream;

@@ -31,10 +31,9 @@ import java.io.OutputStream;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.storage.VCFWriterStorage;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import net.sf.samtools.SAMFileHeader;
 
 /**

@@ -38,7 +38,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 

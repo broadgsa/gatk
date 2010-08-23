@@ -25,8 +25,8 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
+import org.broad.tribble.vcf.StandardVCFWriter;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;

@@ -1,8 +1,10 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -17,8 +19,6 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 
 import java.io.PrintStream;
 import java.util.*;

@@ -29,7 +29,9 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.VCFConstants;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -43,8 +45,6 @@ import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 
 import java.util.*;

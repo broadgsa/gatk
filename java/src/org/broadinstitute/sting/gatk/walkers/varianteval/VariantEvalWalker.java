@@ -28,6 +28,8 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.StandardVCFWriter;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -48,8 +50,6 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;

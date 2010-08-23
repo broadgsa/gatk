@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -39,7 +40,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broad.tribble.vcf.VCFConstants;
 
