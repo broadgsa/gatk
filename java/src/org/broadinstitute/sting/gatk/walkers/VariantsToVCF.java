@@ -42,7 +42,6 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 
 import java.util.*;
-import java.io.PrintStream;
 
 /**
  * Converts variants from other file formats to VCF format.
@@ -50,17 +49,17 @@ import java.io.PrintStream;
 @Requires(value={},referenceMetaData=@RMD(name=VariantsToVCF.INPUT_ROD_NAME, type=VariantContext.class))
 @Reference(window=@Window(start=0,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
-    @Output
-    private PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcfwriter = null;
 
     public static final String INPUT_ROD_NAME = "variant";
 
     @Argument(fullName="sample", shortName="sample", doc="The sample name represented by the variant rod (for data like GELI with genotypes)", required=false)
     protected String sampleName = null;
 
-    private VCFWriter vcfwriter = null;
-
     private Set<String> allowedGenotypeFormatStrings = new HashSet<String>();
+    private boolean wroteHeader = false;
 
     // Don't allow mixed types for now
     private EnumSet<VariantContext.Type> ALLOWED_VARIANT_CONTEXT_TYPES = EnumSet.of(VariantContext.Type.SNP,
@@ -95,7 +94,9 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     }
 
     private void writeRecord(VariantContext vc, RefMetaDataTracker tracker, byte ref) {
-        if ( vcfwriter == null ) {
+        if ( !wroteHeader ) {
+            wroteHeader = true;
+
             // setup the header fields
             Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
             hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
@@ -129,7 +130,6 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
             }
 
-            vcfwriter = new StandardVCFWriter(out);
             vcfwriter.writeHeader(new VCFHeader(hInfo, samples));
         }
 
@@ -145,8 +145,5 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         return value + sum;
     }
 
-    public void onTraversalDone(Integer sum) {
-        if ( vcfwriter != null )
-            vcfwriter.close();
-    }
+    public void onTraversalDone(Integer sum) {}
 }

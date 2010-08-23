@@ -55,8 +55,9 @@ import java.util.*;
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 
 public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, PhasingStats> {
-    @Output
-    protected PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter writer = null;
 
     @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads; [default:20000]", required = false)
     protected Integer cacheWindow = 20000;
@@ -67,13 +68,9 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:4.77]", required = false)
     protected Double phaseQualityThresh = 4.77; // PQ = 4.77 <=> P(error) = 10^(-4.77/10) = 0.33, P(correct) = 0.66, so that we have odds ratio of >= 2
 
-    @Argument(fullName = "phasedVCFFile", shortName = "phasedVCF", doc = "The name of the phased VCF file output", required = true)
-    protected String phasedVCFFile = null;
-
     @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files", required = false)
     protected String variantStatsFilePrefix = null;
 
-    private VCFWriter writer = null;
     private PhasingQualityStatsWriter statsWriter = null;
 
     private LinkedList<VariantAndReads> siteQueue = null;
@@ -90,7 +87,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Float, "Read-backed phasing quality"));
 
-        writer = new StandardVCFWriter(new File(phasedVCFFile));
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 
@@ -404,21 +400,19 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     public void onTraversalDone(PhasingStats result) {
         List<VariantContext> finalList = processQueue(null, result);
         writeVarContList(finalList);
-        if (writer != null)
-            writer.close();
         if (statsWriter != null)
             statsWriter.close();
 
-        out.println("Number of reads observed: " + result.getNumReads());
-        out.println("Number of variant sites observed: " + result.getNumVarSites());
-        out.println("Average coverage: " + ((double) result.getNumReads() / result.getNumVarSites()));
+        System.out.println("Number of reads observed: " + result.getNumReads());
+        System.out.println("Number of variant sites observed: " + result.getNumVarSites());
+        System.out.println("Average coverage: " + ((double) result.getNumReads() / result.getNumVarSites()));
 
-        out.println("\n-- Phasing summary [minimal haplotype probability: " + phaseQualityThresh + "] --");
+        System.out.println("\n-- Phasing summary [minimal haplotype probability: " + phaseQualityThresh + "] --");
         for (Map.Entry<String, PhaseCounts> sampPhaseCountEntry : result.getPhaseCounts()) {
             PhaseCounts pc = sampPhaseCountEntry.getValue();
-            out.println("Sample: " + sampPhaseCountEntry.getKey() + "\tNumber of tested sites: " + pc.numTestedSites + "\tNumber of phased sites: " + pc.numPhased);
+            System.out.println("Sample: " + sampPhaseCountEntry.getKey() + "\tNumber of tested sites: " + pc.numTestedSites + "\tNumber of phased sites: " + pc.numPhased);
         }
-        out.println("");
+        System.out.println("");
     }
 
     protected void writeVarContList(List<VariantContext> varContList) {

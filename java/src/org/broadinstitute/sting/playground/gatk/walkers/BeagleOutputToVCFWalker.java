@@ -45,7 +45,6 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broad.tribble.vcf.*;
 
-import java.io.*;
 import java.util.*;
 import static java.lang.Math.log10;
 
@@ -63,20 +62,18 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     public static final String PROBS_ROD_NAME = "beagleProbs";
     public static final String PHASED_ROD_NAME = "beaglePhased";
 
-    @Output
-    private PrintStream out;
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcfWriter = null;
 
-    @Argument(fullName="output_file", shortName="output", doc="VCF file to which output should be written", required=true)
-    private String OUTPUT_FILE = null;
+    @Argument(fullName="output_file", shortName="output", doc="Please use --out instead")
+    @Deprecated
+    private String oldOutputArg;
 
     @Argument(fullName="no" +
             "call_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
     private double noCallThreshold = 0.0;
 
     protected static String line = null;
-    private VCFWriter vcfWriter;
-
-
 
     private final double MIN_PROB_ERROR = 0.000001;
     private final double MAX_GENOTYPE_QUALITY = 6.0;
@@ -94,7 +91,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
 
         // Open output file specified by output VCF ROD
-        vcfWriter = new StandardVCFWriter(new File(OUTPUT_FILE));
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 
         for( final ReferenceOrderedDataSource source : dataSources ) {
@@ -354,8 +350,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
      * @param result  the number of loci seen.
      */
     public void onTraversalDone(Integer result) {
-        out.printf("Processed %d loci.\n", result);
-
-        vcfWriter.close();
+        System.out.printf("Processed %d loci.\n", result);
     }
 }

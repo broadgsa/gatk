@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -40,7 +39,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broad.tribble.vcf.VCFHeader;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.*;
 
 import net.sf.picard.liftover.LiftOver;
@@ -53,16 +51,15 @@ import net.sf.samtools.SAMFileReader;
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
-    @Output
-    protected PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter writer = null;
 
     @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)
     protected File CHAIN = null;
 
     @Argument(fullName="newSequenceDictionary", shortName="dict", doc="Sequence .dict file for the new build", required=true)
     protected File NEW_SEQ_DICT = null;
-
-    private VCFWriter writer;
 
     private LiftOver liftOver;
 
@@ -78,7 +75,6 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
-        writer = new StandardVCFWriter(out);
         final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
         writer.writeHeader(vcfHeader);
     }
@@ -113,7 +109,6 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) { return 0; }
 
     public void onTraversalDone(Integer result) {
-        writer.close();
         System.out.println("Converted " + successfulIntervals + " records; failed to convert " + failedIntervals + " records.");
     }
 }

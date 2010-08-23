@@ -21,7 +21,6 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -31,8 +30,10 @@ import java.util.*;
  * @Date Apr 21, 2010
  */
 public class IndelAnnotator extends RodWalker<Integer,Long>{
-    @Output
-    PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcfWriter = null;
+
     @Argument(fullName="refseq", shortName="refseq",
 			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated with GENOMIC/UTR/INTRON/CODING and with the gene name", required=true)
 	String RefseqFileName = null;
@@ -44,7 +45,6 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
     private static String annUnknown = "UNKNOWN";
 
     private SeekableRODIterator refseqIterator;
-    private VCFWriter vcfWriter;
 
     private String getAnnotationString(RODRecordList ann) {
         if ( ann == null ) return annGenomic;
@@ -88,7 +88,6 @@ public class IndelAnnotator extends RodWalker<Integer,Long>{
         anno.add(new VCFInfoHeaderLine("type",1, VCFHeaderLineType.String,"Genomic interpretation (according to RefSeq)"));
         hInfo.addAll(anno);
 
-        vcfWriter = new StandardVCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit()));
         vcfWriter.writeHeader(vcfHeader);
     }

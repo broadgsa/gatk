@@ -50,7 +50,7 @@ import java.util.*;
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written",required=false)
     protected VCFWriter writer = null;
 
     @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
@@ -85,7 +85,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     private FiltrationContextWindow variantContextWindow;
     private static final int windowSize = 10;  // 10 variants on either end of the current one
     private ArrayList<FiltrationContext> windowInitializer = new ArrayList<FiltrationContext>();
-
+    private boolean wroteHeader = false;
 
     private void initializeVcfWriter(VariantContext vc) {
         // setup the header fields
@@ -220,8 +220,10 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     }
 
     private void writeVCF(VariantContext vc, byte ref) {
-        if ( writer == null )
+        if ( !wroteHeader ) {
             initializeVcfWriter(vc);
+            wroteHeader = true;
+        }
         writer.add(vc, ref);
     }
 

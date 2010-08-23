@@ -42,7 +42,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
 import java.util.*;
-import java.io.PrintStream;
 
 /**
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
@@ -50,8 +49,9 @@ import java.io.PrintStream;
 @Reference(window=@Window(start=0,stop=40))
 @Requires(value={},referenceMetaData=@RMD(name="sequenom",type= Feature.class))
 public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, Byte>,Integer> {
-    @Output
-    protected PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcfwriter = null;
 
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid [default:20]", required=false)
     protected double maxHardy = 20.0;
@@ -122,8 +122,6 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
         if ( sampleNames == null )
             sampleNames = new TreeSet<String>();
 
-        VCFWriter vcfWriter = new StandardVCFWriter(out);
-
         // set up the info and filter headers
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.add(new VCFHeaderLine("source", "SequenomValidationConverter"));
@@ -161,11 +159,11 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
         }
         
         VCFHeader header = new VCFHeader(hInfo, sampleNames);
-        vcfWriter.writeHeader(header);
+        vcfwriter.writeHeader(header);
 
         for ( Pair<VariantContext, Byte> record : records )
-            vcfWriter.add(record.first, record.second);
-        vcfWriter.close();
+            vcfwriter.add(record.first, record.second);
+        vcfwriter.close();
     }
 
 

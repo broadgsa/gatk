@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -37,17 +36,15 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broad.tribble.vcf.VCFHeader;
 
 import java.util.*;
-import java.io.PrintStream;
 
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= VariantContext.class))
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
-    @Output
-    PrintStream out;
 
-    private VCFWriter writer;
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter writer = null;
 
     private long failedLocs = 0, totalLocs = 0;
 
@@ -55,7 +52,6 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
-        writer = new StandardVCFWriter(out);
         final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
         writer.writeHeader(vcfHeader);
     }
@@ -89,7 +85,6 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) { return 0; }
 
     public void onTraversalDone(Integer result) {
-        writer.close();
         System.out.println("Filtered " + failedLocs + " records out of " + totalLocs + " total records.");
     }
 }

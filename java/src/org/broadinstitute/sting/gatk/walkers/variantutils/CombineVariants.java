@@ -43,7 +43,6 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
-import java.io.PrintStream;
 
 /**
  * Combines VCF records from different sources; supports both full merges and set unions.
@@ -54,8 +53,9 @@ import java.io.PrintStream;
 @Reference(window=@Window(start=-50,stop=50))
 @Requires(value={})
 public class CombineVariants extends RodWalker<Integer, Integer> {
-    @Output
-    private PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcfWriter = null;
 
     // the types of combinations we currently allow
     @Argument(shortName="genotypeMergeOptions", doc="How should we merge genotype records for samples shared across the ROD files?", required=false)
@@ -79,13 +79,11 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
     public String SET_KEY = "set";
 
-    private VCFWriter vcfWriter = null;
     private List<String> priority = null;
 
     private VariantAnnotatorEngine engine;
 
     public void initialize() {
-        vcfWriter = new StandardVCFWriter(out);
         validateAnnotateUnionArguments();
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
@@ -154,8 +152,5 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         return counter + sum;
     }
 
-    public void onTraversalDone(Integer sum) {
-        if ( vcfWriter != null )
-            vcfWriter.close();
-    }
+    public void onTraversalDone(Integer sum) {}
 }
