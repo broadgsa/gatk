@@ -148,7 +148,7 @@ public abstract class   ArgumentTypeDescriptor {
                                        ArgumentDefinition.getFullName(argumentAnnotation, source.field.getName()),
                                        ArgumentDefinition.getShortName(argumentAnnotation),
                                        ArgumentDefinition.getDoc(argumentAnnotation),
-                                       source.isRequired() && !source.overridesDefault() && !source.isFlag(),
+                                       source.isRequired() && !source.overridesDefault() && !source.isFlag() && !source.isDeprecated(),
                                        source.isFlag(),
                                        source.isMultiValued(),
                                        source.isHidden(),

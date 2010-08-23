@@ -72,7 +72,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Output(required=false, doc="Output bam")
     protected String writerFilename = null;
 
-    @Argument(fullName="output",shortName="O",doc="Please use --out instead",required=false)
+    @Argument(fullName="output",shortName="O",doc="Please use --out instead")
     @Deprecated
     protected String oldOArg;
 
