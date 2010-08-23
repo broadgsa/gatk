@@ -33,7 +33,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
@@ -48,7 +47,7 @@ import java.io.PrintStream;
 /**
  * Filters variant calls using a number of user-selectable, parameterizable criteria.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Output

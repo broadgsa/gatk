@@ -36,7 +36,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -55,7 +54,7 @@ import java.io.FileNotFoundException;
  * Takes a VCF file, selects variants based on sample(s) in which it was found and/or on various annotation criteria,
  * recompute the value of certain annotations based on the new sample set, and output a new VCF with the results.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant", type=ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 public class SelectVariants extends RodWalker<Integer, Integer> {
     @Output
     private PrintStream out;

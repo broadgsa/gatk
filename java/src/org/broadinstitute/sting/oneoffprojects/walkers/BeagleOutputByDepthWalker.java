@@ -45,7 +45,6 @@ import java.util.*;
  * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF file
  * @help.summary Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input VCF file
  */
-//@Requires(value={},referenceMetaData=@RMD(name=BeagleOutputByDepthWalker.INPUT_EVAL_ROD_NAME,type= VCFRecord.class))
 public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
 
 
@@ -53,8 +52,6 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
     public static final String PREBEAGLE_EVAL_ROD_NAME = "prebeaglevcf";
     public static final String INPUT_HAPMAP_ROD_NAME = "hapmap";
     public static final String INPUT_COMP_ROD_NAME = "comp";
-
-    private boolean newLine = true;
 
     @Output
     public PrintStream out;
@@ -87,7 +84,7 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
                 return 0;
 
             Map<String, Genotype> compGenotypes = vc_comp.getGenotypes();
-            Integer alleleCountH = 0, chrCountH = 0, alleleCountEmp=0, chrCountEmp=0;
+            Integer alleleCountH = 0, chrCountH = 0, alleleCountEmp=0, chrCountEmp;
 
             // Get Hapmap AC and AF
             if (vc_hapmap != null) {

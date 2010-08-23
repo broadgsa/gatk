@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -48,7 +47,7 @@ import java.util.*;
 /**
  * Produces an input file to Beagle imputation engine, listing genotype likelihoods for each sample in input variant file
  */
-@Requires(value={},referenceMetaData=@RMD(name=ProduceBeagleInputWalker.ROD_NAME, type=ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name=ProduceBeagleInputWalker.ROD_NAME, type=VariantContext.class))
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public static final String ROD_NAME = "variant";

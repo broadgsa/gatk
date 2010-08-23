@@ -32,7 +32,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
@@ -52,7 +51,7 @@ import java.io.PrintStream;
 /**
  * Annotates variant calls with context information.  Users can specify which of the available annotations to use.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type=ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant",type=VariantContext.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)

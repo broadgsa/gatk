@@ -47,7 +47,7 @@ import java.io.PrintStream;
 /**
  * Converts variants from other file formats to VCF format.
  */
-@Requires(value={},referenceMetaData=@RMD(name=VariantsToVCF.INPUT_ROD_NAME,type= ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name=VariantsToVCF.INPUT_ROD_NAME, type=VariantContext.class))
 @Reference(window=@Window(start=0,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
     @Output

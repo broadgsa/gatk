@@ -30,7 +30,6 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -43,7 +42,7 @@ import java.io.PrintStream;
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
-@Requires(value={},referenceMetaData=@RMD(name="variant",type= ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="variant",type= VariantContext.class))
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
     @Output
     PrintStream out;

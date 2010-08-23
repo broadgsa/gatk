@@ -72,7 +72,7 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
  *
  * For details, see:  http://www.broadinstitute.org/gsa/wiki/index.php/GenomicAnnotator
  */
-//@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariationRod.class))
+//@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariantContext.class))
 //@Allows(value={DataSource.READS, DataSource.REFERENCE})
 //@Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)

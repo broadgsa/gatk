@@ -29,7 +29,6 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -51,7 +50,7 @@ import net.sf.samtools.SAMReadGroupRecord;
  */
 @Reference(window=@Window(start=-20,stop=20))
 @By(DataSource.REFERENCE)
-@Requires(value={},referenceMetaData=@RMD(name="trigger", type=ReferenceOrderedData.class))
+@Requires(value={},referenceMetaData=@RMD(name="trigger", type=VariantContext.class))
 public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> implements TreeReducible<Integer> {
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 

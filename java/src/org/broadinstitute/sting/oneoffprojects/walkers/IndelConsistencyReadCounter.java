@@ -36,7 +36,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import java.util.*;
 
 @By(DataSource.READS)
-@Requires(value={},referenceMetaData=@RMD(name="indels", type=ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="indels", type=VariantContext.class))
 // walker to count reads that are and are not consistent with homozygous indels
 public class IndelConsistencyReadCounter extends ReadWalker<Integer, Integer> {
 

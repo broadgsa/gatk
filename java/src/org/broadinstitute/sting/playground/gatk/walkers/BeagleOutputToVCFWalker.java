@@ -36,7 +36,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
@@ -54,7 +53,7 @@ import static java.lang.Math.log10;
 /**
  * Takes files produced by Beagle imputation engine and creates a vcf with modified annotations.
  */
-@Requires(value={},referenceMetaData=@RMD(name=BeagleOutputToVCFWalker.INPUT_ROD_NAME, type=ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name=BeagleOutputToVCFWalker.INPUT_ROD_NAME, type=VariantContext.class))
 
 public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
 

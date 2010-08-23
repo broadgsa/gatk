@@ -29,7 +29,6 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -43,7 +42,7 @@ import java.io.PrintStream;
  * Computes the density of SNPs passing and failing filters in intervals on the genome and emits a table for display
  */
 @By(DataSource.REFERENCE)
-@Requires(value={},referenceMetaData=@RMD(name="eval",type=ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="eval",type=VariantContext.class))
 public class SNPDensity extends RefWalker<Pair<VariantContext, GenomeLoc>, SNPDensity.Counter> {
     @Output
     private PrintStream out;

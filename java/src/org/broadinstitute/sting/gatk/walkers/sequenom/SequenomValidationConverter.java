@@ -28,13 +28,13 @@ package org.broadinstitute.sting.gatk.walkers.sequenom;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.PlinkRod;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -48,7 +48,7 @@ import java.io.PrintStream;
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
 @Reference(window=@Window(start=0,stop=40))
-@Requires(value={},referenceMetaData=@RMD(name="sequenom",type= ReferenceOrderedDatum.class))
+@Requires(value={},referenceMetaData=@RMD(name="sequenom",type= Feature.class))
 public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, Byte>,Integer> {
     @Output
     protected PrintStream out;
