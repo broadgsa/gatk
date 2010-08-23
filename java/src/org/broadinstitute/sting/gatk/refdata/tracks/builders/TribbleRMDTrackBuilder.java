@@ -74,13 +74,11 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     }
 
     /** @return a list of all available track types we currently have access to create */
-    @Override
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
         return new HashMap<String, Class>(this.pluginsByName);
     }
 
     /** @return a list of all available track record types we currently have access to create */
-    @Override
     public Map<String, Class> getAvailableTrackNamesAndRecordTypes() {
         Map<String, Class> classes = new HashMap<String, Class>();
         for (String name: this.pluginsByName.keySet()) {
@@ -101,7 +99,6 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
      * @throws RMDTrackCreationException
      *          if we don't know of the target class or we couldn't create it
      */
-    @Override
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
         // return a feature reader track
         Pair<BasicFeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
@@ -190,9 +187,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public synchronized static Index loadIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
 
         // create the index file name, locking on the index file name
-        File indexFile = null;
-        indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
-
+        File indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
         FSLockWithShared lock = new FSLockWithShared(indexFile);
 
         // acquire a lock on the file
@@ -307,9 +302,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     private static Index createIndexInMemory(File inputFile, FeatureCodec codec) throws IOException {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
-        IndexCreator creator;
-        creator = new LinearIndexCreator(inputFile, codec, null);
-        return creator.createIndex();
+        return IndexFactory.createIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
     }
 
     /**

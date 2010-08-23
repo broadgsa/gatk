@@ -5,7 +5,6 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
-import org.broad.tribble.bed.BEDCodec;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.iterators.CloseableTribbleIterator;
@@ -45,7 +44,7 @@ public class IndexPerformanceTests extends BaseTest {
     String fileLocation = validationDataLocation + "Index_Performance_Data/";
 
     // bin sizes to try
-    int[] binSizes = {100, 1000, 5000, 16000};
+    int[] binSizes = {10, 100, 1000, 5000, 10000, 50000};
 
     PrintWriter writer;
     PrintWriter writer2;
@@ -57,20 +56,19 @@ public class IndexPerformanceTests extends BaseTest {
         IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq);
 
-        int recordCount[] = {10,100,1000,10000,100000,500000,1000000};
-        int longestFeature[] = {1,50,100,1000,100000};
-
-
         // the input files
-        for (int rCount : recordCount){
-            for (int longest : longestFeature) {
-                inputFiles.put("./BED/" + "bed_density_" + rCount + "_fLengthMax_" + longest + ".BED",new File("./BED/" + "bed_density_" + rCount + "_fLengthMax_" + longest + ".BED"));
-            }
-        }
+        /*inputFiles.put("\"10\"",new File(fileLocation + "tip10.vcf"));
+        inputFiles.put("\"100\"",new File(fileLocation + "tip100.vcf"));
+        inputFiles.put("\"1,000\"",new File(fileLocation + "tip1000.vcf"));
+        inputFiles.put("\"10,000\"",new File(fileLocation + "tip10000.vcf"));
+        inputFiles.put("\"100,000\"",new File(fileLocation + "tip100000.vcf"));
+        inputFiles.put("\"1,000,000\"",new File(fileLocation + "tip1000000.vcf"));*/
 
         for (String name : inputFiles.keySet()) {
-            inputTypes.put(name, BEDCodec.class);
+            inputTypes.put(name,VCFCodec.class);
         }
+        inputFiles.put("Big Table",new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/slowAnnotator/big.table.txt"));
+        inputTypes.put("Big Table", AnnotatorInputTableCodec.class);
     }
 
     @Test
@@ -117,10 +115,7 @@ public class IndexPerformanceTests extends BaseTest {
      *          every other 1000 bases of chr1 (of the first 100M), the count of records seen in the last operation, and the index size
      */
     public List<Long> performIndexTest(String name, boolean useLinear, int size) {
-        //TribbleRMDTrackBuilder.useLinearIndex = useLinear;
-        //TribbleRMDTrackBuilder.binSize = size;
-
-        deleteIndex(new File(inputFiles.get(name) + ((useLinear) ? ".idx" : ".tdx")));
+        deleteIndex(inputFiles.get(name));
         // time creating the index
         long createTime = System.currentTimeMillis();
         Pair<BasicFeatureSource, SAMSequenceDictionary> pairing = builder.createFeatureReader(inputTypes.get(name),inputFiles.get(name));
@@ -137,7 +132,7 @@ public class IndexPerformanceTests extends BaseTest {
             for (int x = 1; x < 1000000; x = x + 1000) {
                 //CloseableTribbleIterator<Feature> iter = pairing.first.query("chr1", x+(int)Math.floor(Math.random()*1000), x+1000); // query
                 CloseableTribbleIterator<Feature> iter = pairing.first.query("chr1", x, x+1000); // query
-                while (iter.hasNext() && iter.next().getStart() < x) {
+                for (Feature feat : iter) {
                     count++;
                 }
             }
@@ -185,11 +180,11 @@ public class IndexPerformanceTests extends BaseTest {
 
             }
             else if (features2.get(entry.getKey()) != entry.getValue()) {
-                /*System.err.println("counts are not equal at " +
+                System.err.println("counts are not equal at " +
                         entry.getKey() +
                         " features2.get(entry.getKey()) = " +
                         features2.get(entry.getKey()) +
-                        " feature1 = " + entry.getValue());*/
+                        " feature1 = " + entry.getValue());
             }
             if (features2.containsKey(entry.getKey())) features2.remove(entry.getKey());
         }
@@ -207,17 +202,16 @@ public class IndexPerformanceTests extends BaseTest {
 
     private Map<Integer,Integer> getMapOfFeatures(Map<GenomeLoc, Integer> features, boolean useLinear) {
         File bigTable = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/slowAnnotator/big.table.txt");
-        //TribbleRMDTrackBuilder.useLinearIndex = useLinear;
-        //TribbleRMDTrackBuilder.binSize = 1000;
 
         deleteIndex(inputFiles.get("Big Table"));
         // time creating the index
-        logger.warn("creating index");
+        logger.warn("creating index, linear = " + useLinear);
 
         Map<Integer,Integer> bucketToCount = new TreeMap<Integer,Integer>();
         Pair<BasicFeatureSource, SAMSequenceDictionary> pairing = builder.createFeatureReader(inputTypes.get("Big Table"),inputFiles.get("Big Table"));
+        logger.warn("created index, traversing");
         try {
-            for (int x = 5000; x < 6000; x = x + 1000) {
+            for (Integer x = 5000; x < 6000; x = x + 1000) {
                 int bucketCount = 0;
                 CloseableTribbleIterator<Feature> iter = pairing.first.query("chr1", x, x+1000); // query
                 for (Feature feat : iter) {
@@ -227,10 +221,12 @@ public class IndexPerformanceTests extends BaseTest {
                     if (features.containsKey(loc))
                         count = features.get(loc)+1;
                     features.put(loc,count);
-                    bucketCount++;
+                    if (bucketToCount.containsKey(x)) bucketToCount.put(x,bucketToCount.get(x)+1);
+                    else bucketToCount.put(x,1);
                 }
-                bucketToCount.put(x,bucketCount);
+                //bucketToCount.put(x,bucketCount);
             }
+            logger.warn("Done, returning");
         } catch (IOException e) {
             Assert.fail("Unable to load file for query!!");
         }
@@ -240,8 +236,6 @@ public class IndexPerformanceTests extends BaseTest {
     //@Test
     public void testGetTreeIndexLocation() {
         File bigTable = new File("small.table.txt");
-        //TribbleRMDTrackBuilder.useLinearIndex = false;
-        //TribbleRMDTrackBuilder.binSize = 1000;
 
         deleteIndex(bigTable);
         // time creating the index
@@ -249,6 +243,7 @@ public class IndexPerformanceTests extends BaseTest {
 
         Map<Integer,Integer> bucketToCount = new TreeMap<Integer,Integer>();
         Pair<BasicFeatureSource, SAMSequenceDictionary> pairing = builder.createFeatureReader(inputTypes.get("Big Table"),bigTable);
+        logger.warn("created index, traversing");
         try {
             int count= 0;
             CloseableTribbleIterator<Feature> iter = null;
@@ -258,6 +253,7 @@ public class IndexPerformanceTests extends BaseTest {
                     GenomeLoc loc = GenomeLocParser.createGenomeLoc(feat.getChr(),feat.getStart(),feat.getEnd());
                     if (loc.getStop() < 5000 || loc.getStart() > 6000) continue;
                     count++;
+                    System.err.println(feat.toString());
                 }
         System.err.println(count);
         } catch (IOException e) {
@@ -267,10 +263,10 @@ public class IndexPerformanceTests extends BaseTest {
 
 
     private void deleteIndex(File fl) {
-        System.err.println("Trying to delete index " + fl);
+        File indexFile = new File(fl + TribbleRMDTrackBuilder.indexExtension);
         boolean deleted = true;
-        if (fl.exists())
-            deleted = fl.delete();
+        if (indexFile.exists())
+            deleted = indexFile.delete();
         if (!deleted)
             Assert.fail("Unable to delete index file");
     }
