@@ -45,7 +45,6 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
-import java.io.PrintStream;
 
 
 /**
@@ -56,8 +55,9 @@ import java.io.PrintStream;
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> {
-    @Output
-    protected PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcfWriter = null;
 
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
@@ -83,8 +83,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
     protected Boolean NO_VCF_HEADER_LINE = false;
 
-    private VCFWriter vcfWriter;
-
     private HashMap<String, String> nonVCFsampleName = new HashMap<String, String>();
 
     private VariantAnnotatorEngine engine;
@@ -94,19 +92,19 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
     private void listAnnotationsAndExit() {
         List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class);
-        out.println("\nAvailable annotations for the VCF INFO field:");
+        System.out.println("\nAvailable annotations for the VCF INFO field:");
         for (int i = 0; i < infoAnnotationClasses.size(); i++)
-            out.println("\t" + infoAnnotationClasses.get(i).getSimpleName());
-        out.println();
+            System.out.println("\t" + infoAnnotationClasses.get(i).getSimpleName());
+        System.out.println();
         List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = PackageUtils.getClassesImplementingInterface(GenotypeAnnotation.class);
-        out.println("\nAvailable annotations for the VCF FORMAT field:");
+        System.out.println("\nAvailable annotations for the VCF FORMAT field:");
         for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
-            out.println("\t" + genotypeAnnotationClasses.get(i).getSimpleName());
-        out.println();
-        out.println("\nAvailable classes/groups of annotations:");
+            System.out.println("\t" + genotypeAnnotationClasses.get(i).getSimpleName());
+        System.out.println();
+        System.out.println("\nAvailable classes/groups of annotations:");
         for ( Class c : PackageUtils.getInterfacesExtendingInterface(AnnotationType.class) )
-            out.println("\t" + c.getSimpleName());
-        out.println();
+            System.out.println("\t" + c.getSimpleName());
+        System.out.println();
         System.exit(0);
     }
 
@@ -153,7 +151,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFHeaderLine("VariantAnnotator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
-        vcfWriter = new StandardVCFWriter(out);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 
@@ -261,6 +258,5 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
      */
     public void onTraversalDone(Integer result) {
         logger.info("Processed " + result + " loci.\n");
-        vcfWriter.close();
     }
 }

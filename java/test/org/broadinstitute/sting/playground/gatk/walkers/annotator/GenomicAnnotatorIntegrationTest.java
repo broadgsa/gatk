@@ -18,7 +18,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                 "-B variant,vcf,/humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf " +
                 "-B dbsnp,AnnotatorInputTable,/humgen/gsa-hpprojects/GATK/data/Annotations/dbsnp/b130/snp130-b36-only-the-SNPs.txt " +
                 "-m " + //generate many records from one input record if necessary
-                "-vcf %s " +
+                "-o %s " +
                 "-BTI variant",
                  1,
                  Arrays.asList(md5));
@@ -32,7 +32,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                 " -B variant,vcf,/humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf" +
                 " -B dbsnp,AnnotatorInputTable,/humgen/gsa-hpprojects/GATK/data/Annotations/dbsnp/b130/snp130-b36-only-the-SNPs.txt" +
                 " -m" + //generate many records from one input record if necessary
-                " -vcf %s" +
+                " -o %s" +
                 " -BTI variant" +
                 " -s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet",
                  1,

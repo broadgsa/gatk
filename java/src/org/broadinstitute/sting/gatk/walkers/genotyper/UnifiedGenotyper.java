@@ -48,11 +48,12 @@ import java.io.FileNotFoundException;
 @Reference(window=@Window(start=-20,stop=20))
 @By(DataSource.REFERENCE)
 public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
+
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     // control the output
-    @Output(doc="File to which variants should be written",required=false)
-    public VCFWriter writer = null;
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter writer = null;
 
     @Argument(fullName="variants_out",shortName="varout",doc="Please use --out instead",required=false)
     @Deprecated

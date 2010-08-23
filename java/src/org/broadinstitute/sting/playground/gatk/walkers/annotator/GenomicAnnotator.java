@@ -26,9 +26,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,7 +41,6 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
@@ -77,11 +74,13 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
 //@Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
 public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, LinkedList<VariantContext>> implements TreeReducible<LinkedList<VariantContext>> {
-    @Output
-    protected PrintStream out;
 
-    @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true)
-    protected File VCF_OUT;
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcfWriter = null;
+
+    @Argument(fullName="vcfOutput", shortName="vcf", doc="Please use --out instead", required=false)
+    @Deprecated
+    protected String oldOutArg;
 
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
@@ -94,9 +93,6 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
 
     @Argument(fullName="oneToMany", shortName="m", doc="If more than one record from the same file matches a particular locus (for example, multiple dbSNP records with the same position), create multiple entries in the ouptut VCF file - one for each match. If a particular tabular file has J matches, and another tabular file has K matches for a given locus, then J*K output VCF records will be generated - one for each pair of K, J.   If this flag is not provided, the multiple records are still generated, but they are stored in the INFO field of a single output VCF record, with their annotation keys differentiated by appending '_i' with i varying from 1 to K*J. ", required=false)
     protected Boolean ONE_TO_MANY = false;
-
-
-    private VCFWriter vcfWriter;
 
     private VariantAnnotatorEngine engine;
 
@@ -246,7 +242,6 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
         hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
-        vcfWriter = new StandardVCFWriter(VCF_OUT);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }
@@ -365,11 +360,8 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
             final int counter = e.getValue();
             //final float percent = 100 * counter /(float) totalOutputVCFRecords;
             //out.printf(" %-6.1f%%   (%d) annotated with %s.\n", percent, counter, bindingName );
-            out.printf(" %d annotated with %s.\n", counter, bindingName );
+            System.out.printf(" %d annotated with %s.\n", counter, bindingName );
         }
-
-
-        vcfWriter.close();
     }
 
 

@@ -41,7 +41,6 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
-import java.io.PrintStream;
 
 
 /**
@@ -50,8 +49,9 @@ import java.io.PrintStream;
 @Requires(value={},referenceMetaData=@RMD(name="variant", type=VariantContext.class))
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
-    @Output
-    protected PrintStream out;
+
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter writer = null;
 
     @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
     protected ArrayList<String> FILTER_EXPS = new ArrayList<String>();
@@ -77,9 +77,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     // JEXL expressions for the filters
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
-
-
-    private VCFWriter writer = null;
 
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
     private ClusteredSnps clusteredSNPs = null;
@@ -120,7 +117,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
         }
 
-        writer = new StandardVCFWriter(out);
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
     }
 
@@ -249,8 +245,5 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             variantContextWindow.moveWindow(null);
             filter();
         }
-
-        if ( writer != null )
-            writer.close();
     }
 }
