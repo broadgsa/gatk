@@ -46,7 +46,6 @@ import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -70,14 +69,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
 
-    @Output
-    protected PrintStream out;
-
-    @Output(fullName = "err", shortName = "e", doc = "An error output file presented to the walker.  Will overwrite contents if file exists.", required = false)
-    protected PrintStream err;
-
-    @Output(fullName="output", shortName="O", required=false, doc="Output bam")
+    @Output(required=false, doc="Output bam")
     protected String writerFilename = null;
+
+    @Argument(fullName="output",shortName="O",doc="Please use --out instead",required=false)
+    @Deprecated
+    protected String oldOArg;
 
     @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
     protected Integer compressionLevel = 5;
@@ -203,8 +200,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             try {
                 indelOutput = new FileWriter(new File(OUT_INDELS));
             } catch (Exception e) {
-                logger.warn("Failed to create output file "+ OUT_INDELS+". Indel output will be suppressed");
-                err.println(e.getMessage());
+                logger.error("Failed to create output file "+ OUT_INDELS+". Indel output will be suppressed");
+                logger.error(e.getMessage());
                 indelOutput = null;
             }
         }
@@ -212,8 +209,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             try {
                 statsOutput = new FileWriter(new File(OUT_STATS));
             } catch (Exception e) {
-                logger.warn("Failed to create output file "+ OUT_STATS+". Cleaning stats output will be suppressed");
-                err.println(e.getMessage());
+                logger.error("Failed to create output file "+ OUT_STATS+". Cleaning stats output will be suppressed");
+                logger.error(e.getMessage());
                 statsOutput = null;
             }
         }
@@ -221,8 +218,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             try {
                 snpsOutput = new FileWriter(new File(OUT_SNPS));
             } catch (Exception e) {
-                logger.warn("Failed to create output file "+ OUT_SNPS+". Cleaning snps output will be suppressed");
-                err.println(e.getMessage());
+                logger.error("Failed to create output file "+ OUT_SNPS+". Cleaning snps output will be suppressed");
+                logger.error(e.getMessage());
                 snpsOutput = null;
             }
         }

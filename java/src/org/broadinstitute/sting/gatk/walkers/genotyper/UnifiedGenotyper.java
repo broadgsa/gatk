@@ -56,7 +56,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
     @Argument(fullName="variants_out",shortName="varout",doc="Please use --out instead",required=false)
     @Deprecated
-    public boolean varout;
+    protected String varout;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected File verboseFile = null;
