@@ -41,6 +41,10 @@ import java.util.Arrays;
  * @version 0.1
  */
 public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+
+    private static final String COMPRESSION_FULLNAME = "bzip_compression";
+    private static final String COMPRESSION_SHORTNAME = "bzip";
+
     /**
      * The engine into which output stubs should be fed.
      */
@@ -73,7 +77,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList( createDefaultArgumentDefinition(source) );
+        return Arrays.asList( createDefaultArgumentDefinition(source),
+                              createVCFCompressionArgumentDefinition(source) );
     }
 
     /**
@@ -87,7 +92,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public Object createTypeDefault(ArgumentSource source,Class type) {
-        VCFWriterStub stub = new VCFWriterStub(engine,defaultOutputStream);
+        VCFWriterStub stub = new VCFWriterStub(engine, defaultOutputStream, false);
         engine.addOutput(stub);
         return stub;
     }
@@ -105,11 +110,35 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         String writerFileName = getArgumentValue(createDefaultArgumentDefinition(source),matches);
         File writerFile = writerFileName != null ? new File(writerFileName) : null;
 
+        // Should we compress the output stream?
+        boolean compress = argumentIsPresent(createVCFCompressionArgumentDefinition(source), matches);
+
         // Create a stub for the given object.
-        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile) : new VCFWriterStub(engine,System.out);
+        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress) : new VCFWriterStub(engine, System.out, compress);
 
         engine.addOutput(stub);
 
         return stub;
+    }
+
+    /**
+     * Creates the optional compression argument for the VCF file.
+     * @param source Argument source for the VCF file.  Must not be null.
+     * @return Argument definition for the VCF file itself.  Will not be null.
+     */
+    private ArgumentDefinition createVCFCompressionArgumentDefinition(ArgumentSource source) {
+        return new ArgumentDefinition( ArgumentIOType.getIOType(getArgumentAnnotation(source)),
+                                       boolean.class,
+                                       COMPRESSION_FULLNAME,
+                                       COMPRESSION_SHORTNAME,
+                                       "Should we bzip the output VCF?",
+                                       false,
+                                       true,
+                                       false,
+                                       false,
+                                       null,
+                                       null,
+                                       null,
+                                       null );
     }
 }

@@ -62,6 +62,11 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     private final PrintStream genotypeStream;
 
     /**
+     * Should we emit a compressed output stream?
+     */
+    private final boolean isCompressed;
+
+    /**
      * Connects this stub with an external stream capable of serving the
      * requests of the consumer of this stub.
      */
@@ -71,22 +76,26 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * Create a new stub given the requested file.
      * @param engine        GATK engine.
      * @param genotypeFile  file to (ultimately) create.
+     * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine,File genotypeFile) {
+    public VCFWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
+        this.isCompressed = isCompressed;
     }
 
     /**
      * Create a new stub given the requested file.
      * @param engine        GATK engine.
      * @param genotypeStream  stream to (ultimately) write.
+     * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream) {
+    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed) {
         this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
+        this.isCompressed = isCompressed;
     }
 
     /**
@@ -103,6 +112,14 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      */
     public PrintStream getOutputStream() {
         return genotypeStream;
+    }
+
+    /**
+     * Retrieves the output stearm to which to (ultimately) write.
+     * @return The file.  Can be null if genotypeFile is not.
+     */
+    public boolean isCompressed() {
+        return isCompressed;
     }
 
     /**

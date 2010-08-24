@@ -34,7 +34,6 @@ import org.apache.log4j.Logger;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
-import java.io.OutputStream;
 
 /**
  * An descriptor capable of providing parsers that can parse any type
@@ -190,6 +189,20 @@ public abstract class   ArgumentTypeDescriptor {
         for(Object constant: source.field.getType().getEnumConstants())
             validOptions.add(constant.toString());
         return validOptions;
+    }
+
+    /**
+     * Returns true if the argument with the given full name exists in the collection of ArgumentMatches.
+     * @param definition Definition of the argument for which to find matches.
+     * @param matches The matches for the given argument.
+     * @return true if the argument is present, or false if not present.
+     */
+    protected boolean argumentIsPresent( ArgumentDefinition definition, ArgumentMatches matches ) {
+        for( ArgumentMatch match: matches ) {
+            if( match.definition.equals(definition) )
+                return true;
+        }
+        return false;
     }
 
     /**

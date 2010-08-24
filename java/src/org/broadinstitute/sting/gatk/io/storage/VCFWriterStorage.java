@@ -8,6 +8,7 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
+import org.broadinstitute.sting.gatk.io.CompressedVCFWriter;
 
 import java.io.*;
 import java.util.Set;
@@ -45,7 +46,15 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         else
             throw new StingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
 
-        writer = new StandardVCFWriter(stream);
+        if ( stub.isCompressed() ) {
+            try {
+                writer = new CompressedVCFWriter(stream);
+            } catch (IOException e) {
+                throw new StingException("Unable to create a compressed output stream: " + e.getMessage());
+            }
+        } else {
+            writer = new StandardVCFWriter(stream);
+        }
     }
 
     /**
