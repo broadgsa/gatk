@@ -140,7 +140,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         int indexOfLastDot = fileName.lastIndexOf(".");
         if ( indexOfLastDot == -1 )
             return "";
-        return fileName.substring(indexOfLastDot);
+        return fileName.substring(indexOfLastDot).toLowerCase();
     }
 
     /**
