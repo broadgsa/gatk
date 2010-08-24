@@ -265,7 +265,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
         // for each read group
         for( Object readGroupKey : dataManager.getCollapsedTable(0).data.keySet() ) {
 
-            Process p = null;
+            Process p;
             if(++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS || NUM_READ_GROUPS_TO_PROCESS == -1) {
 
                 String readGroup = readGroupKey.toString();
@@ -280,13 +280,12 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                             p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
                                         IGNORE_QSCORES_LESS_THAN + " " + MAX_QUALITY_SCORE + " " + MAX_HISTOGRAM_VALUE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
-                            if(numReadGroups % 3 == 0) { // Don't want to spawn all the RScript jobs too quickly. So wait for this one to finish
-                                p.waitFor();
-                            }
+                            p.waitFor();
                         } else { // Analyze all other covariates
-                            Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
+                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
                                         cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
+                            p.waitFor();
                         }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
