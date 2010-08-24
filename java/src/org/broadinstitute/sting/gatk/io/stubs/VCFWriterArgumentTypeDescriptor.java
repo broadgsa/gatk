@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Arrays;
+import java.util.HashSet;
 
 /**
  * Injects new command-line arguments into the system providing support for the genotype writer.
@@ -44,6 +45,15 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     private static final String COMPRESSION_FULLNAME = "bzip_compression";
     private static final String COMPRESSION_SHORTNAME = "bzip";
+    private static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES = new HashSet<String>();
+    //
+    // static list of zipped suffixes supported by this system.
+    //
+    static {
+        SUPPORTED_ZIPPED_SUFFIXES.add(".gz");
+        SUPPORTED_ZIPPED_SUFFIXES.add(".bz");
+        SUPPORTED_ZIPPED_SUFFIXES.add(".bz2");
+    }
 
     /**
      * The engine into which output stubs should be fed.
@@ -111,7 +121,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         File writerFile = writerFileName != null ? new File(writerFileName) : null;
 
         // Should we compress the output stream?
-        boolean compress = argumentIsPresent(createVCFCompressionArgumentDefinition(source), matches);
+        boolean compress = argumentIsPresent(createVCFCompressionArgumentDefinition(source), matches) || (writerFileName != null && SUPPORTED_ZIPPED_SUFFIXES.contains(getFileSuffix(writerFileName)));
 
         // Create a stub for the given object.
         VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress) : new VCFWriterStub(engine, System.out, compress);
@@ -119,6 +129,18 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         engine.addOutput(stub);
 
         return stub;
+    }
+
+    /**
+     * Returns a lower-cased version of the suffix of the provided file.
+     * @param fileName the file name.  Must not be null.
+     * @return lower-cased version of the file suffix.  Will not be null.
+     */
+    private String getFileSuffix(String fileName) {
+        int indexOfLastDot = fileName.lastIndexOf(".");
+        if ( indexOfLastDot == -1 )
+            return "";
+        return fileName.substring(indexOfLastDot);
     }
 
     /**
