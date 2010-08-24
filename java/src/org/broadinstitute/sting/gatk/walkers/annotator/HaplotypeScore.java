@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
@@ -154,7 +155,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 
             // Temp hack to match old implementation's scaling, TBD better behavior
 
-            return Arrays.asList(new Haplotype(haplotypeR.bases, 60), new Haplotype(haplotypeA.bases, contextSize));
+            return Arrays.asList(new Haplotype(haplotypeR.getBasesAsBytes(), 60), new Haplotype(haplotypeA.getBasesAsBytes(), contextSize));
         }
         else
             return null;
@@ -218,14 +219,14 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             }
             else if ((chA == wc)) {
                 consensusChars[i] = chB;
-                consensusQuals[i] = haplotypeB.quals[i];
+                consensusQuals[i] = haplotypeB.getQuals()[i];
             }
             else if ((chB == wc)){
                 consensusChars[i] = chA;
-                consensusQuals[i] = haplotypeA.quals[i];
+                consensusQuals[i] = haplotypeA.getQuals()[i];
             } else {
                 consensusChars[i] = chA;
-                consensusQuals[i] = haplotypeA.quals[i]+haplotypeB.quals[i];
+                consensusQuals[i] = haplotypeA.getQuals()[i]+haplotypeB.getQuals()[i];
             }
 
 
@@ -289,7 +290,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             if ( baseOffset >= read.getReadLength() )
                 break;
 
-            byte haplotypeBase = haplotype.bases[i];
+            byte haplotypeBase = haplotype.getBasesAsBytes()[i];
             byte readBase = read.getReadBases()[baseOffset];
 
             boolean matched = BaseUtils.basesAreEqual(readBase, haplotypeBase );
@@ -314,41 +315,6 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             FLAT_BASE_PRIORS[i] = Math.log10(1.0 / BaseUtils.Base.values().length);
     }
 
-    private class Haplotype {
-        byte[] bases = null;
-        double[] quals = null;
-
-        /**
-         * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
-         *
-         * @param bases bases
-         * @param qual  qual
-         */
-        Haplotype(byte[] bases, int qual) {
-            this.bases = bases;
-            quals = new double[bases.length];
-            Arrays.fill(quals, (double)qual);
-        }
-
-        Haplotype(byte[] bases, double[] quals) {
-            this.bases = bases;
-            this.quals = quals;
-        }
-
-        Haplotype(String bases, double[] quals) {
-            this.bases = bases.getBytes();
-            this.quals = quals;
-        }
-        public String toString() { return new String(this.bases); }
-
-        double getQualitySum() {
-            double s = 0;
-            for (int k=0; k < bases.length; k++) {
-                s += quals[k];
-            }
-            return s;
-        }
-    }
 
     public List<String> getKeyNames() { return Arrays.asList("HaplotypeScore"); }
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HaplotypeScore", 1, VCFHeaderLineType.Float, "Consistency of the site with two (and only two) segregating haplotypes")); }
