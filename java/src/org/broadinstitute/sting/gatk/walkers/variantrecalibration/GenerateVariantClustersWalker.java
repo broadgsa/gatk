@@ -78,11 +78,11 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     private int MAX_GAUSSIANS = 4;
     @Argument(fullName="maxIterations", shortName="mI", doc="The maximum number of iterations to be performed when clustering. Clustering will normally end when convergence is detected.", required=false)
     private int MAX_ITERATIONS = 200;
-    @Argument(fullName = "path_to_Rscript", shortName="Rscript", doc="The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
- //   private String PATH_TO_RSCRIPT = "Rscript";
- //   @Argument(fullName = "path_to_resources", shortName = "resources", doc="Path to resources folder holding the Sting R scripts.", required=false)
- //   private String PATH_TO_RESOURCES = "R/";
- //   @Argument(fullName="weightNovels", shortName="weightNovels", doc="The weight for novel variants during clustering", required=false)
+//    @Argument(fullName = "path_to_Rscript", shortName="Rscript", doc="The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+//    private String PATH_TO_RSCRIPT = "Rscript";
+//    @Argument(fullName = "path_to_resources", shortName = "resources", doc="Path to resources folder holding the Sting R scripts.", required=false)
+//    private String PATH_TO_RESOURCES = "R/";
+    @Argument(fullName="weightNovels", shortName="weightNovels", doc="The weight for novel variants during clustering", required=false)
     private double WEIGHT_NOVELS = 0.0;
     @Argument(fullName="weightKnowns", shortName="weightKnowns", doc="The weight for MQ2+ known variants during clustering", required=false)
     private double WEIGHT_KNOWNS = 0.0;
