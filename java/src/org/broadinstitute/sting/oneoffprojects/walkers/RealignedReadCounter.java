@@ -109,7 +109,9 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
 
     private int getIndelSize(SAMRecord read) {
         for ( CigarElement ce : read.getCigar().getCigarElements() ) {
-            if ( ce.getOperator() == CigarOperator.I || ce.getOperator() == CigarOperator.D )
+            if ( ce.getOperator() == CigarOperator.I )
+                return 0;
+            if ( ce.getOperator() == CigarOperator.D )
                 return ce.getLength();
         }
         logger.warn("We didn't see an indel for this read: " + read.getReadName() + " " + read.getAlignmentStart() + " " + read.getCigar());

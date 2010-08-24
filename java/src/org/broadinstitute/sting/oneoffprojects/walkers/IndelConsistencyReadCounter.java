@@ -97,6 +97,10 @@ public class IndelConsistencyReadCounter extends ReadWalker<Integer, Integer> {
     private static boolean containsIndel(final SAMRecord r, final VariantContext vc) {
         int indelStart = vc.getStart() + 1;
         int readPos = r.getAlignmentStart();
+
+        if ( vc.isInsertion() && indelStart == readPos )
+            return true;
+
         final Cigar cigar = r.getCigar();
 
         int idx = 0;
@@ -106,7 +110,6 @@ public class IndelConsistencyReadCounter extends ReadWalker<Integer, Integer> {
             switch ( ce.getOperator() ) {
                 case M:
                 case I:
-                case S:
                     readPos += ce.getLength();
                     break;
                 default:
