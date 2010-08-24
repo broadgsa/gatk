@@ -55,7 +55,7 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
     // the current interval in the list
     private GenomeLoc currentInterval = null;
 
-    private long updatedIntervals = 0, updatedReads = 0;
+    private long updatedIntervals = 0, updatedReads = 0, affectedBases = 0;
     private boolean intervalWasUpdated = false;
 
     public void initialize() {
@@ -92,6 +92,7 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
                 if ( !intervalWasUpdated ) {
                     intervalWasUpdated = true;
                     updatedIntervals++;
+                    affectedBases += 20 + getIndelSize(read);
                 }
                 updatedReads++;
 
@@ -103,6 +104,15 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
             } while ( currentInterval != null && currentInterval.isBefore(readLoc) );
         }
 
+        return 0;
+    }
+
+    private int getIndelSize(SAMRecord read) {
+        for ( CigarElement ce : read.getCigar().getCigarElements() ) {
+            if ( ce.getOperator() == CigarOperator.I || ce.getOperator() == CigarOperator.D )
+                return ce.getLength();
+        }
+        logger.warn("We didn't see an indel for this read: " + read.getReadName() + " " + read.getAlignmentStart() + " " + read.getCigar());
         return 0;
     }
 
@@ -126,5 +136,6 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
     public void onTraversalDone(Integer result) {
         System.out.println(updatedIntervals + " intervals were updated");
         System.out.println(updatedReads + " reads were updated");
+        System.out.println(affectedBases + " bases were affected");
     }
 }
