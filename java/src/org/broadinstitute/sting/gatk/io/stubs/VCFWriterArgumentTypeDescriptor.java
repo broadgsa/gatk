@@ -43,16 +43,13 @@ import java.util.HashSet;
  */
 public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
-    private static final String COMPRESSION_FULLNAME = "bzip_compression";
-    private static final String COMPRESSION_SHORTNAME = "bzip";
     private static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES = new HashSet<String>();
     //
     // static list of zipped suffixes supported by this system.
     //
     static {
         SUPPORTED_ZIPPED_SUFFIXES.add(".gz");
-        SUPPORTED_ZIPPED_SUFFIXES.add(".bz");
-        SUPPORTED_ZIPPED_SUFFIXES.add(".bz2");
+        SUPPORTED_ZIPPED_SUFFIXES.add(".gzip");
     }
 
     /**
@@ -87,8 +84,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList( createDefaultArgumentDefinition(source),
-                              createVCFCompressionArgumentDefinition(source) );
+        return Arrays.asList( createDefaultArgumentDefinition(source) );
     }
 
     /**
@@ -121,7 +117,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         File writerFile = writerFileName != null ? new File(writerFileName) : null;
 
         // Should we compress the output stream?
-        boolean compress = argumentIsPresent(createVCFCompressionArgumentDefinition(source), matches) || (writerFileName != null && SUPPORTED_ZIPPED_SUFFIXES.contains(getFileSuffix(writerFileName)));
+        boolean compress = writerFileName != null && SUPPORTED_ZIPPED_SUFFIXES.contains(getFileSuffix(writerFileName));
 
         // Create a stub for the given object.
         VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress) : new VCFWriterStub(engine, System.out, compress);
@@ -141,26 +137,5 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         if ( indexOfLastDot == -1 )
             return "";
         return fileName.substring(indexOfLastDot).toLowerCase();
-    }
-
-    /**
-     * Creates the optional compression argument for the VCF file.
-     * @param source Argument source for the VCF file.  Must not be null.
-     * @return Argument definition for the VCF file itself.  Will not be null.
-     */
-    private ArgumentDefinition createVCFCompressionArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( ArgumentIOType.getIOType(getArgumentAnnotation(source)),
-                                       boolean.class,
-                                       COMPRESSION_FULLNAME,
-                                       COMPRESSION_SHORTNAME,
-                                       "Should we bzip the output VCF?",
-                                       false,
-                                       true,
-                                       false,
-                                       false,
-                                       null,
-                                       null,
-                                       null,
-                                       null );
     }
 }

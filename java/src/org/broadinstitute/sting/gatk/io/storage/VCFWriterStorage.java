@@ -8,10 +8,11 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
-import org.broadinstitute.sting.gatk.io.CompressedVCFWriter;
 
 import java.io.*;
 import java.util.Set;
+
+import net.sf.samtools.util.BlockCompressedOutputStream;
 
 /**
  * Provides temporary and permanent storage for genotypes in VCF format.
@@ -21,7 +22,7 @@ import java.util.Set;
  */
 public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
     protected final File file;
-    protected final PrintStream stream;
+    protected final OutputStream stream;
     protected final VCFWriter writer;
 
     /**
@@ -30,31 +31,27 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
      * @param stub Stub to use when constructing the output file.
      */
     public VCFWriterStorage( VCFWriterStub stub )  {
-        if(stub.getFile() != null) {
-            this.file = stub.getFile();
+
+        if ( stub.getFile() != null ) {
+            file = stub.getFile();
             try {
-                this.stream = new PrintStream(file);
+                if ( stub.isCompressed() )
+                    stream = new BlockCompressedOutputStream(file);
+                else
+                    stream = new PrintStream(file);
             }
             catch(IOException ex) {
-                throw new StingException("Unable to open target output stream",ex);
+                throw new StingException("Unable to open target output stream", ex);
             }
         }
-        else if(stub.getOutputStream() != null) {
+        else if ( stub.getOutputStream() != null ) {
             this.file = null;
             this.stream = stub.getOutputStream();
         }
         else
             throw new StingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
 
-        if ( stub.isCompressed() ) {
-            try {
-                writer = new CompressedVCFWriter(stream);
-            } catch (IOException e) {
-                throw new StingException("Unable to create a compressed output stream: " + e.getMessage());
-            }
-        } else {
-            writer = new StandardVCFWriter(stream);
-        }
+        writer = new StandardVCFWriter(stream);
     }
 
     /**
