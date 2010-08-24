@@ -45,6 +45,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import java.io.*;
 import java.util.*;
 
+import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
+
 
 /**
  * Walks along all loci, caching a user-defined window of VariantContext sites, and then finishes phasing them when they go out of range (using downstream reads).
@@ -71,31 +73,37 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files", required = false)
     protected String variantStatsFilePrefix = null;
 
-    private PhasingQualityStatsWriter statsWriter = null;
-
-    private LinkedList<VariantAndReads> siteQueue = null;
-    private VariantAndReads prevVr = null; // the VC emitted after phasing, and the alignment bases at the position emitted
+    private LinkedList<VariantAndReads> unphasedSiteQueue = null;
+    private LinkedList<VariantAndReads> phasedSites = null; // the phased VCs to be emitted, and the alignment bases at these positions
 
     private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
-
     private static boolean DEBUG_DETAILED = true;
 
-    private void initializeVcfWriter(VariantContext vc) {
+    private LinkedList<String> rodNames = null;
+    private PhasingQualityStatsWriter statsWriter = null;
+
+    public void initialize() {
+        rodNames = new LinkedList<String>();
+        rodNames.add("variant");
+
+        unphasedSiteQueue = new LinkedList<VariantAndReads>();
+        phasedSites = new LinkedList<VariantAndReads>();
+
+        initializeVcfWriter();
+
+        if (variantStatsFilePrefix != null)
+            statsWriter = new PhasingQualityStatsWriter(variantStatsFilePrefix);
+    }
+
+    private void initializeVcfWriter() {
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Float, "Read-backed phasing quality"));
 
-        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
-    }
-
-    public void initialize() {
-        siteQueue = new LinkedList<VariantAndReads>();
-        prevVr = new VariantAndReads(null, null, true);
-
-        if (variantStatsFilePrefix != null)
-            statsWriter = new PhasingQualityStatsWriter(variantStatsFilePrefix);
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
+        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples())));
     }
 
     public boolean generateExtendedEvents() {
@@ -107,7 +115,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     }
 
     /**
-     * For each site of interest, cache the current site and then use the cache to phase all upstream sites
+     * For each site of interest, cache the current site and then use the cache to phase all sites
      * for which "sufficient" information has already been observed.
      *
      * @param tracker the meta-data tracker
@@ -121,8 +129,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 
         PhasingStats phaseStats = new PhasingStats();
 
-        LinkedList<String> rodNames = new LinkedList<String>();
-        rodNames.add("variant");
         boolean requireStartHere = true; // only see each VariantContext once
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
         for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
@@ -131,7 +137,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 processVariant = false;
 
             VariantAndReads vr = new VariantAndReads(vc, context, processVariant);
-            siteQueue.add(vr);
+            unphasedSiteQueue.add(vr);
 
             int numReads = 0;
             if (context.hasBasePileup()) {
@@ -143,50 +149,101 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             PhasingStats addInPhaseStats = new PhasingStats(numReads, 1);
             phaseStats.addIn(addInPhaseStats);
         }
-        List<VariantContext> phasedList = processQueue(ref.getLocus(), phaseStats);
+        List<VariantContext> phasedList = processQueue(phaseStats, false);
 
         return new PhasingStatsAndOutput(phaseStats, phasedList);
     }
 
-    private List<VariantContext> processQueue(GenomeLoc loc, PhasingStats phaseStats) {
-        List<VariantContext> vcList = new LinkedList<VariantContext>();
+    private List<VariantContext> processQueue(PhasingStats phaseStats, boolean processAll) {
+        GenomeLoc lastLocus = null;
+        if (!processAll && !unphasedSiteQueue.isEmpty())
+            lastLocus = VariantContextUtils.getLocation(unphasedSiteQueue.peekLast().variant);
 
-        while (!siteQueue.isEmpty()) {
-            if (loc != null) {
-                VariantContext vc = siteQueue.peek().variant;
-                if (isInWindowRange(loc, VariantContextUtils.getLocation(vc))) {
-                    // loc is still not far enough ahead of vc (since we ASSUME that the VCF is ordered by <contig,locus>)
+        List<VariantContext> oldPhasedList = new LinkedList<VariantContext>();
+        while (!unphasedSiteQueue.isEmpty()) {
+            if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
+                VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
+                if (isInWindowRange(lastLocus, VariantContextUtils.getLocation(nextToPhaseVc))) {
+                    /* lastLocus is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
+                     (note that we ASSUME that the VCF is ordered by <contig,locus>) */
                     break;
                 }
                 // Already saw all variant positions within cacheWindow distance ahead of vc (on its contig)
             }
-            VariantContext phasedVc = finalizePhasingAndRemove(phaseStats);
-            vcList.add(phasedVc);
+
+            // Update phasedSites before it's used in finalizePhasing:
+            oldPhasedList.addAll(discardIrrelevantPhasedSites());
+
+            VariantAndReads phasedVr = finalizePhasing(unphasedSiteQueue.remove(), phaseStats);
+            phasedSites.add(phasedVr);
         }
+
+        // Update phasedSites after finalizePhasing is done:
+        oldPhasedList.addAll(discardIrrelevantPhasedSites());
+        return oldPhasedList;
+    }
+
+    private List<VariantContext> discardIrrelevantPhasedSites() {
+        List<VariantContext> vcList = new LinkedList<VariantContext>();
+        
+        VariantContext nextToPhaseVc = null;
+        if (!unphasedSiteQueue.isEmpty())
+            nextToPhaseVc = unphasedSiteQueue.peek().variant;
+
+        while (!phasedSites.isEmpty()) {
+            VariantAndReads phasedVr = phasedSites.peek();
+            VariantContext phasedVc = phasedVr.variant;
+            if (nextToPhaseVc != null && phasedVr.processVariant &&
+                (isInWindowRange(phasedVc, nextToPhaseVc) // nextToPhaseVc is still not far enough ahead of phasedVc to exclude phasedVc from calculations
+                // since ALWAYS want the previous site to be included for phasing nextToPhaseVc:
+                || (phasedSites.size() == 1 && VariantContextUtils.getLocation(phasedVc).onSameContig(VariantContextUtils.getLocation(nextToPhaseVc))))) {
+                break;
+            }
+            vcList.add(phasedSites.remove().variant);
+        }
+
         return vcList;
     }
 
-    /* Finalize phasing of vc (head of siteQueue) using all VariantContext objects in the siteQueue that are
-        within cacheWindow distance ahead of vc (on its contig).
-        ASSUMES:
-        1. siteQueue is NOT empty.
-        2. All VariantContexts in siteQueue are in positions downstream of vc (head of queue).
+    /* Finalize phasing of vc (head of unphasedSiteQueue) using all VariantContext objects in
+       phasedSites and all in unphasedSiteQueue that are within cacheWindow distance ahead of vc (on its contig).
+
+       ASSUMES: All VariantContexts in unphasedSiteQueue are in positions downstream of vc (head of queue).
      */
-
-    private VariantContext finalizePhasingAndRemove(PhasingStats phaseStats) {
-        VariantAndReads vr = siteQueue.remove(); // remove vr from head of queue
-        VariantContext vc = vr.variant;
+    private VariantAndReads finalizePhasing(VariantAndReads vr, PhasingStats phaseStats) {
         if (!vr.processVariant)
-            return vc; // return vc as is
+            return vr; // return vr as is
 
-        boolean hasPreviousSite = previousIsRelevantTo(vc);
+        VariantContext vc = vr.variant;
         logger.debug("Will phase vc = " + VariantContextUtils.getLocation(vc));
 
-        LinkedList<VariantAndReads> windowVaList = new LinkedList<VariantAndReads>();
+        // Find the previous VariantContext (that was processed and phased):
+        VariantAndReads prevVr = null;
+        Iterator<VariantAndReads> backwardsIt = phasedSites.descendingIterator();
+        while (backwardsIt.hasNext()) {
+            VariantAndReads backVr = backwardsIt.next();
+            if (backVr.processVariant) {
+                prevVr = backVr;
+                break;
+            }
+        }
+        boolean hasPreviousSite = (prevVr != null);
+
+        LinkedList<VariantAndReads> windowVaList = null;
         if (hasPreviousSite) {
-            windowVaList.add(prevVr); // need to add one position for phasing context
-            windowVaList.add(vr); // add position to be phased
-            for (VariantAndReads nextVr : siteQueue) {
+            windowVaList = new LinkedList<VariantAndReads>();
+
+            // Include previously phased sites in the phasing computation:
+            for (VariantAndReads phasedVr : phasedSites) {
+                if (phasedVr.processVariant)
+                    windowVaList.add(phasedVr);
+            }
+
+            // Add position to be phased:
+            windowVaList.add(vr);
+
+            // Include as of yet unphased sites in the phasing computation:
+            for (VariantAndReads nextVr : unphasedSiteQueue) {
                 if (!isInWindowRange(vc, nextVr.variant)) //nextVr too far ahead of the range used for phasing vc
                     break;
                 if (nextVr.processVariant) // include in the phasing computation
@@ -201,7 +258,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         logger.debug("");
 
         Map<String, Genotype> sampGenotypes = vc.getGenotypes();
-        VariantContext prevVc = prevVr.variant;
         Map<String, Genotype> phasedGtMap = new TreeMap<String, Genotype>();
 
         // Perform per-sample phasing:
@@ -215,115 +271,154 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             Biallele biall = new Biallele(gt);
             HashMap<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
 
-            if (hasPreviousSite && gt.isHet() && prevVc.getGenotype(samp).isHet()) { //otherwise, can trivially phase
-                logger.debug("NON-TRIVIALLY CARE about TOP vs. BOTTOM for: ");
-                logger.debug("\n" + biall);
+            if (hasPreviousSite && gt.isHet()) {
+                VariantContext prevVc = prevVr.variant;
+                Genotype prevGenotype = prevVc.getGenotype(samp);
+                if (prevGenotype.isHet()) { //otherwise, can trivially phase
+                    logger.debug("NON-TRIVIALLY CARE about TOP vs. BOTTOM for: ");
+                    logger.debug("\n" + biall);
 
-                List<VariantAndReads> sampleWindowVaList = new LinkedList<VariantAndReads>();
-                for (VariantAndReads phaseInfoVr : windowVaList) {
-                    VariantContext phaseInfoVc = phaseInfoVr.variant;
-                    Genotype phaseInfoGt = phaseInfoVc.getGenotype(samp);
-                    if (phaseInfoGt.isHet()) { // otherwise, of no value to phasing
-                        sampleWindowVaList.add(phaseInfoVr);
-                        logger.debug("STARTING TO PHASE USING POS = " + VariantContextUtils.getLocation(phaseInfoVc));
+                    List<VariantAndReads> sampleWindowVaList = new LinkedList<VariantAndReads>();
+                    int phasingSiteIndex = -1;
+                    int currentIndex = 0;
+                    for (VariantAndReads phaseInfoVr : windowVaList) {
+                        VariantContext phaseInfoVc = phaseInfoVr.variant;
+                        Genotype phaseInfoGt = phaseInfoVc.getGenotype(samp);
+                        if (phaseInfoGt.isHet()) { // otherwise, of no value to phasing
+                            sampleWindowVaList.add(phaseInfoVr);
+                            if (phasingSiteIndex == -1) {
+                                if (phaseInfoVr == vr)
+                                    phasingSiteIndex = currentIndex;
+                                else
+                                    currentIndex++;
+                            }
+                            logger.debug("STARTING TO PHASE USING POS = " + VariantContextUtils.getLocation(phaseInfoVc));
+                        }
                     }
-                }
-                if (sampleWindowVaList.size() > maxPhaseSites) {
-                    logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase -- REDUCING to first " + maxPhaseSites + " sites!");
-                    sampleWindowVaList = sampleWindowVaList.subList(0, maxPhaseSites);
-                }
+                    if (logger.isDebugEnabled() && (phasingSiteIndex == -1 || phasingSiteIndex == 0))
+                        throw new StingException("Internal error: could NOT find vr and/or prevVr!");
 
-                /* Will map a phase and its "complement" to a single representative phase,
-                   and marginalizeTable() marginalizes to the first 2 positions [i.e., the previous position and the current position]:
-                 */
-                HaplotypeTableCreator tabCreator = new BiallelicComplementHaplotypeTableCreator(sampleWindowVaList, samp, 2);
-                PhasingTable sampleHaps = tabCreator.getNewTable();
+                    if (sampleWindowVaList.size() > maxPhaseSites) {
+                        logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase -- REDUCING to " + maxPhaseSites + " sites:\n" + toString(sampleWindowVaList));
 
-                // Assemble the "sub-reads" from the heterozygous positions for this sample:
-                LinkedList<ReadBasesAtPosition> allPositions = new LinkedList<ReadBasesAtPosition>();
-                for (VariantAndReads phaseInfoVr : sampleWindowVaList) {
-                    ReadBasesAtPosition readBases = phaseInfoVr.sampleReadBases.get(samp);
-                    allPositions.add(readBases);
-                }
-                HashMap<String, Read> allReads = convertReadBasesAtPositionToReads(allPositions);
-                logger.debug("Number of reads at sites: " + allReads.size());
-                int numUsedReads = 0;
+                        int prevSiteIndex = phasingSiteIndex - 1;
+                        int numToUse = maxPhaseSites - 2; // since always keep prevVr and vr
+                        int halfToUse = new Double(Math.floor(numToUse / 2.0)).intValue();
 
-                // Update the phasing table based on each of the sub-reads for this sample:
-                for (Map.Entry<String, Read> nameToReads : allReads.entrySet()) {
-                    Read rd = nameToReads.getValue();
-                    if (rd.numNonNulls() <= 1) // can't possibly provide any phasing information, so save time
-                        continue;
+                        int numOnLeft = prevSiteIndex;
+                        int numOnRight = sampleWindowVaList.size() - (phasingSiteIndex + 1);
 
-                    numUsedReads++;
-                    if (DEBUG_DETAILED)
-                        logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey() + (rd.isGapped() ? "\tGAPPED" : ""));
-
-                    for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
-                        PhasingScore score = rd.matchHaplotypeClassScore(pte.getHaplotypeClass());
-                        pte.getScore().integrateReadScore(score);
-
-                        if (DEBUG_DETAILED)
-                            logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
+                        int useOnLeft, useOnRight;
+                        if (numOnLeft <= numOnRight) {
+                            useOnLeft = Math.min(halfToUse, numOnLeft);
+                            useOnRight = Math.min(numToUse - useOnLeft, numOnRight);
+                        }
+                        else { // numOnRight < numOnLeft
+                            useOnRight = Math.min(halfToUse, numOnRight);
+                            useOnLeft = Math.min(numToUse - useOnRight, numOnLeft);
+                        }
+                        int startIndex = prevSiteIndex - useOnLeft;
+                        int stopIndex = phasingSiteIndex + useOnRight + 1; // put the index 1 past the desired index to keep
+                        phasingSiteIndex -= startIndex;
+                        sampleWindowVaList = sampleWindowVaList.subList(startIndex, stopIndex);
+                        logger.warn("REDUCED to " + sampleWindowVaList.size() + " sites:\n" + toString(sampleWindowVaList));
                     }
+
+                    PhaseResult pr = phaseSample(samp, sampleWindowVaList, phasingSiteIndex);
+                    genotypesArePhased = (pr.phaseQuality >= phaseQualityThresh);
+                    if (genotypesArePhased) {
+                        Biallele prevBiall = new Biallele(prevGenotype);
+
+                        logger.debug("CHOSEN PHASE FOR PREVIOUS:\n" + prevBiall + "\n");
+                        logger.debug("CHOSE PHASE:\n" + biall + "\n\n");
+
+                        ensurePhasing(biall, prevBiall, pr.haplotype);
+                        gtAttribs.put("PQ", pr.phaseQuality);
+                    }
+
+                    if (statsWriter != null)
+                        statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), distance(prevVc, vc), pr.phaseQuality);
+
+                    PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
+                    if (sampPhaseCounts == null) {
+                        sampPhaseCounts = new PhaseCounts();
+                        samplePhaseStats.put(samp, sampPhaseCounts);
+                    }
+                    sampPhaseCounts.numTestedSites++;
+                    if (genotypesArePhased)
+                        sampPhaseCounts.numPhased++;
                 }
-                logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
-                logger.debug("numUsedReads = " + numUsedReads);
-
-                // Marginalize each haplotype to its first 2 positions:
-                sampleHaps = HaplotypeTableCreator.marginalizeTable(sampleHaps);
-                logger.debug("\nPhasing table [AFTER MAPPING]:\n" + sampleHaps + "\n");
-
-                // Determine the phase at this position:
-                sampleHaps.normalizeScores();
-                logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + sampleHaps + "\n");
-
-                PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
-                double posteriorProb = maxEntry.getScore().getValue();
-
-                // convert posteriorProb to PHRED scale, but do NOT cap the quality as in QualityUtils.probToQual(posteriorProb):
-                PreciseNonNegativeDouble sumErrorProbs = new PreciseNonNegativeDouble(ZERO);
-                for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
-                    if (pte != maxEntry)
-                        sumErrorProbs.plusEqual(pte.getScore());
-                }
-                double phaseQuality = -10.0 * (sumErrorProbs.getLog10Value());
-
-                logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + phaseQuality);
-
-                if (statsWriter != null)
-                    statsWriter.addStat(samp, distance(prevVc, vc), phaseQuality);
-
-                genotypesArePhased = (phaseQuality >= phaseQualityThresh);
-                if (genotypesArePhased) {
-                    Biallele prevBiall = new Biallele(prevVc.getGenotype(samp));
-                    ensurePhasing(biall, prevBiall, maxEntry.getHaplotypeClass().getRepresentative());
-                    gtAttribs.put("PQ", phaseQuality);
-
-                    logger.debug("CHOSE PHASE:\n" + biall + "\n\n");
-                }
-
-                PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
-                if (sampPhaseCounts == null) {
-                    sampPhaseCounts = new PhaseCounts();
-                    samplePhaseStats.put(samp, sampPhaseCounts);
-                }
-                sampPhaseCounts.numTestedSites++;
-                sampPhaseCounts.numPhased += (genotypesArePhased ? 1 : 0);
             }
-
             List<Allele> phasedAll = biall.getAllelesAsList();
             Genotype phasedGt = new Genotype(gt.getSampleName(), phasedAll, gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
             phasedGtMap.put(samp, phasedGt);
         }
-
-        VariantContext phasedVc = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), phasedGtMap, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
-        prevVr.variant = phasedVc;
-        prevVr.sampleReadBases = vr.sampleReadBases;
-
         phaseStats.addIn(new PhasingStats(samplePhaseStats));
 
-        return phasedVc;
+        VariantContext phasedVc = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), phasedGtMap, vc.getNegLog10PError(), vc.getFilters(), vc.getAttributes());
+        return new VariantAndReads(phasedVc, vr.sampleReadBases, vr.processVariant);
+    }
+
+    private PhaseResult phaseSample(String sample, List<VariantAndReads> variantList, int phasingSiteIndex) {
+        /* Will map a phase and its "complement" to a single representative phase,
+          and marginalizeTable() marginalizes to 2 positions [starting at the previous position, and then the current position]:
+        */
+        HaplotypeTableCreator tabCreator = new BiallelicComplementHaplotypeTableCreator(variantList, sample, phasingSiteIndex - 1, 2);
+        PhasingTable sampleHaps = tabCreator.getNewTable();
+
+        // Assemble the "sub-reads" from the heterozygous positions for this sample:
+        LinkedList<ReadBasesAtPosition> allPositions = new LinkedList<ReadBasesAtPosition>();
+        for (VariantAndReads phaseInfoVr : variantList) {
+            ReadBasesAtPosition readBases = phaseInfoVr.sampleReadBases.get(sample);
+            allPositions.add(readBases);
+        }
+        HashMap<String, Read> allReads = convertReadBasesAtPositionToReads(allPositions);
+        logger.debug("Number of reads at sites: " + allReads.size());
+        int numUsedReads = 0;
+
+        // Update the phasing table based on each of the sub-reads for this sample:
+        for (Map.Entry<String, Read> nameToReads : allReads.entrySet()) {
+            Read rd = nameToReads.getValue();
+            if (rd.numNonNulls() <= 1) // can't possibly provide any phasing information, so save time
+                continue;
+
+            numUsedReads++;
+            if (DEBUG_DETAILED)
+                logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey() + (rd.isGapped() ? "\tGAPPED" : ""));
+
+            for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
+                PhasingScore score = rd.matchHaplotypeClassScore(pte.getHaplotypeClass());
+                pte.getScore().integrateReadScore(score);
+
+                if (DEBUG_DETAILED)
+                    logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
+            }
+        }
+        logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
+        logger.debug("numUsedReads = " + numUsedReads);
+
+        // Marginalize each haplotype to its first 2 positions:
+        sampleHaps = HaplotypeTableCreator.marginalizeTable(sampleHaps);
+        logger.debug("\nPhasing table [AFTER MAPPING]:\n" + sampleHaps + "\n");
+
+        // Determine the phase at this position:
+        sampleHaps.normalizeScores();
+        logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + sampleHaps + "\n");
+
+        PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
+        double posteriorProb = maxEntry.getScore().getValue();
+
+        // convert posteriorProb to PHRED scale, but do NOT cap the quality as in QualityUtils.probToQual(posteriorProb):
+        PreciseNonNegativeDouble sumErrorProbs = new PreciseNonNegativeDouble(ZERO);
+        for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
+            if (pte != maxEntry)
+                sumErrorProbs.plusEqual(pte.getScore());
+        }
+        double phaseQuality = -10.0 * (sumErrorProbs.getLog10Value());
+
+        logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + phaseQuality);
+
+        return new PhaseResult(maxEntry.getHaplotypeClass().getRepresentative(), phaseQuality);
     }
 
     /*
@@ -341,11 +436,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         boolean choseCurTopChrom = curBiall.matchesTopBase(curBase);
         if (chosePrevTopChrom != choseCurTopChrom)
             curBiall.swapAlleles();
-    }
-
-    private boolean previousIsRelevantTo(VariantContext vc) {
-        VariantContext prevVc = prevVr.variant;
-        return (prevVc != null && VariantContextUtils.getLocation(prevVc).onSameContig(VariantContextUtils.getLocation(vc)));
     }
 
     private boolean isInWindowRange(VariantContext vc1, VariantContext vc2) {
@@ -369,9 +459,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     }
 
     private void writeVCF(VariantContext vc) {
-        if (writer == null)
-            initializeVcfWriter(vc);
-
         byte refBase;
         if (!vc.isIndel()) {
             Allele varAllele = vc.getReference();
@@ -393,12 +480,12 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     }
 
     /**
-     * Phase anything left in the cached siteQueue, and report the number of reads and VariantContexts processed.
+     * Phase anything left in the cached unphasedSiteQueue, and report the number of reads and VariantContexts processed.
      *
      * @param result the number of reads and VariantContexts seen.
      */
     public void onTraversalDone(PhasingStats result) {
-        List<VariantContext> finalList = processQueue(null, result);
+        List<VariantContext> finalList = processQueue(result, true);
         writeVarContList(finalList);
         if (statsWriter != null)
             statsWriter.close();
@@ -532,6 +619,12 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         public HashMap<String, ReadBasesAtPosition> sampleReadBases;
         public boolean processVariant;
 
+        public VariantAndReads(VariantContext variant, HashMap<String, ReadBasesAtPosition> sampleReadBases, boolean processVariant) {
+            this.variant = variant;
+            this.sampleReadBases = sampleReadBases;
+            this.processVariant = processVariant;
+        }
+
         public VariantAndReads(VariantContext variant, AlignmentContext alignment, boolean processVariant) {
             this.variant = variant;
             this.sampleReadBases = new HashMap<String, ReadBasesAtPosition>();
@@ -558,6 +651,20 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 }
             }
         }
+    }
+
+    private static String toString(List<VariantAndReads> vrList) {
+        boolean first = true;
+        StringBuilder sb = new StringBuilder();
+        for (VariantAndReads vr : vrList) {
+            if (first)
+                first = false;
+            else
+                sb.append(" -- ");
+
+            sb.append(VariantContextUtils.getLocation(vr.variant));            
+        }
+        return sb.toString();
     }
 
     private static class ReadBase {
@@ -599,19 +706,14 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 //
     private static abstract class HaplotypeTableCreator {
         protected Genotype[] genotypes;
-        protected Biallele[] bialleles;
 
         public HaplotypeTableCreator(List<VariantAndReads> vaList, String sample) {
             this.genotypes = new Genotype[vaList.size()];
-            this.bialleles = new Biallele[vaList.size()];
-
             int index = 0;
             for (VariantAndReads phaseInfoVr : vaList) {
                 VariantContext phaseInfoVc = phaseInfoVr.variant;
                 Genotype phaseInfoGt = phaseInfoVc.getGenotype(sample);
-                genotypes[index] = phaseInfoGt;
-                bialleles[index] = new Biallele(phaseInfoGt);
-                index++;
+                genotypes[index++] = phaseInfoGt;
             }
         }
 
@@ -643,7 +745,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 Haplotype rep = pte.getHaplotypeClass().getRepresentative();
                 PreciseNonNegativeDouble score = hapMap.get(rep);
                 if (score == null) {
-                    score = new PreciseNonNegativeDouble(0.0);
+                    score = new PreciseNonNegativeDouble(ZERO);
                     hapMap.put(rep, score);
                 }
                 score.plusEqual(pte.getScore());
@@ -663,10 +765,18 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     }
 
     private static class BiallelicComplementHaplotypeTableCreator extends HaplotypeTableCreator {
+        private Biallele[] bialleles;
+        private int startIndex;
         private int marginalizeLength;
 
-        public BiallelicComplementHaplotypeTableCreator(List<VariantAndReads> vaList, String sample, int marginalizeLength) {
+        public BiallelicComplementHaplotypeTableCreator(List<VariantAndReads> vaList, String sample, int startIndex, int marginalizeLength) {
             super(vaList, sample);
+
+            this.bialleles = new Biallele[genotypes.length];
+            for (int i = 0; i < genotypes.length; i++)
+                bialleles[i] = new Biallele(genotypes[i]);
+
+            this.startIndex = startIndex;
             this.marginalizeLength = marginalizeLength;
         }
 
@@ -675,15 +785,18 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 
             PhasingTable table = new PhasingTable();
             for (Haplotype hap : getAllHaplotypes()) {
-                if (bialleles[0].matchesTopBase(hap.getBase(0))) {
-                    /* hap is the "representative" haplotype [arbitrarily defined to be
-                      the one with the top base at the 0th position]
+                if (bialleles[startIndex].matchesTopBase(hap.getBase(startIndex))) {
+                    /* hap is the "representative" haplotype [DEFINED here to be
+                      the one with the top base at the startIndex position.
+                      NOTE that it is CRITICAL that this definition be consistent with the representative sub-haplotypes defined below!]
                     */
                     ArrayList<Haplotype> hapList = new ArrayList<Haplotype>();
                     hapList.add(hap);
                     hapList.add(complement(hap));
 
-                    Haplotype rep = hap.subHaplotype(0, Math.min(marginalizeLength, hap.size())); // only want first marginalizeLength positions
+                    // want marginalizeLength positions starting at startIndex:
+                    Haplotype rep = hap.subHaplotype(startIndex, startIndex + marginalizeLength);
+
                     HaplotypeClass hapClass = new HaplotypeClass(hapList, rep);
                     table.addEntry(hapClass, hapClassPrior);
                 }
@@ -785,6 +898,16 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             public int compareTo(PhasingTableEntry that) {
                 return this.getScore().compareTo(that.getScore());
             }
+        }
+    }
+
+    private static class PhaseResult {
+        public Haplotype haplotype;
+        public double phaseQuality;
+
+        public PhaseResult(Haplotype haplotype, double phaseQuality) {
+            this.haplotype = haplotype;
+            this.phaseQuality = phaseQuality;
         }
     }
 }
@@ -903,7 +1026,7 @@ class Haplotype extends BaseArray implements Cloneable {
 
     // Returns a new Haplotype containing the portion of this Haplotype between the specified fromIndex, inclusive, and toIndex, exclusive.
     public Haplotype subHaplotype(int fromIndex, int toIndex) {
-        return new Haplotype(Arrays.copyOfRange(bases, fromIndex, toIndex));
+        return new Haplotype(Arrays.copyOfRange(bases, fromIndex, Math.min(toIndex, size())));
     }
 }
 
@@ -1114,10 +1237,10 @@ class PhasingQualityStatsWriter {
         this.variantStatsFilePrefix = variantStatsFilePrefix;
     }
 
-    public void addStat(String sample, int distanceFromPrevious, double phasingQuality) {
+    public void addStat(String sample, GenomeLoc locus, int distanceFromPrevious, double phasingQuality) {
         BufferedWriter sampWriter = sampleToStatsWriter.get(sample);
         if (sampWriter == null) {
-            String fileName = variantStatsFilePrefix + "." + sample + ".distance_PQ.txt";
+            String fileName = variantStatsFilePrefix + "." + sample + ".locus_distance_PQ.txt";
 
             FileOutputStream output;
             try {
@@ -1129,7 +1252,7 @@ class PhasingQualityStatsWriter {
             sampleToStatsWriter.put(sample, sampWriter);
         }
         try {
-            sampWriter.write(distanceFromPrevious + "\t" + phasingQuality + "\n");
+            sampWriter.write(locus + "\t" + distanceFromPrevious + "\t" + phasingQuality + "\n");
             sampWriter.flush();
         } catch (IOException e) {
             throw new RuntimeException("Unable to write to per-sample phasing quality stats file", e);
