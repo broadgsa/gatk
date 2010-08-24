@@ -37,7 +37,7 @@ class SampSet(sample_lister.SampleSet):
         ratio=dict(zip(annotations, ('','','','','')))
         bpre=re.compile("all,summary,variant_counts +n bases covered +(\d+)")
         size=repr(bpre.search(evalfile).group(1))
-        bamsearch="find /humgen/gsa-firehose/firehose/firehose_output/trunk/Sample_Set/"+self.sampset+"/* -name \*.bam"
+        bamsearch="find /humgen/gsa-firehose/firehose/firehose_output/trunk/Sample_Set/"+self.sampset+"/* -name \*.bam | grep -v unfixed"
         bams = subprocess.Popen([bamsearch], shell=True, stdout=subprocess.PIPE).communicate()[0]
         sampno=bams.count("bam")
         bedsearch="find /humgen/gsa-firehose/firehose/firehose_output/trunk/Sample_Set/"+self.sampset+"/* -name \*filtered_indels.bed"
@@ -46,7 +46,7 @@ class SampSet(sample_lister.SampleSet):
         for a in annotations:
             anregexv  = re.compile(a + ",summary,variant_counts +variants +(\d+)")
             variant[a] = repr(anregexv.search(evalfile).group(1))
-            anregexr = re.compile(a + ",summary,transitions_transversions +ratio +(\d+.\d+)")
+            anregexr = re.compile(a + ",summary,transitions_transversions +ratio +(\d+.\d+|Infinity)")
             ratio[a] = repr(anregexr.search(evalfile).group(1))
         out1="Samples processed:"+repr(sampno)+"\n\n Target size: \t" +size+"  bp \n\n\t\t\t\t\t Variants \t\t Ti/TV \n (true positives)\t All \t\t " +variant["all"]+ " \t\t " + ratio["all"] +" \n \t\t\t Known \t\t " +variant["known"]+ " \t\t " + ratio['known']+" \n \t\t\t Novel \t\t " +variant["novel"]+" \t\t " + ratio['novel']+  " \n*************************************************************************\n (false  \tSNPS at known indels \t " +variant["snp_at_known_non_snps"]+"\t\t\t " + ratio['snp_at_known_non_snps']+ " \n positives) \t\t filtered \t " +variant["filtered"]+" \t\t " + ratio['filtered']
         out2="\n\n\nSNP calls:"+vcf+"\n\nIndel-realigned Bam files:\n"+bams+"\nIndel calls:\n"+beds
