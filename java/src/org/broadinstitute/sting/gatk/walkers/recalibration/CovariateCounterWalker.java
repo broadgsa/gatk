@@ -104,6 +104,8 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
     /////////////////////////////
     @Argument(fullName="dont_sort_output", shortName="unsorted", required=false, doc="If specified, the output table recalibration csv file will be in an unsorted, arbitrary order to save some run time.")
     private boolean DONT_SORT_OUTPUT = false;
+    @Argument(fullName="run_without_dbsnp_potentially_ruining_quality", shortName="run_without_dbsnp_potentially_ruining_quality", required=false, doc="If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
+    private boolean RUN_WITHOUT_DBSNP = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -183,8 +185,8 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
                 break;
             }
         }
-        if( !foundDBSNP ) {
-            Utils.warnUser("This calculation is critically dependent on being able to skip over known variant sites. Are you sure you want to be running without a dbSNP rod specified?");
+        if( !foundDBSNP && !RUN_WITHOUT_DBSNP ) {
+            throw new StingException("This calculation is critically dependent on being able to skip over known variant sites. Please provide a dbSNP ROD or a VCF file containing known sites of genetic variation.");
         }
 
         // Initialize the requested covariates by parsing the -cov argument
@@ -347,7 +349,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
             updateMismatchCounts(counter, context, ref.getBase()); // For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable
         }
 
-        return counter; // This value isn't actually used anywhere
+        return counter;
     }
 
 
@@ -468,8 +470,6 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
         logger.info( "Writing raw recalibration data..." );
         outputToCSV( sum, RECAL_FILE );
         logger.info( "...done!" );
-
-        RECAL_FILE.close();
     }
 
     /**

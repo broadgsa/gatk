@@ -73,9 +73,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private final Matrix[] sigmaInverse;
     private double[] pClusterLog10;
     private final double[] determinant;
-    private final double[] alleleCountFactorArray;
     private final double stdThreshold;
-    private final double qualThreshold;
 
     private double[] empiricalMu;
     private Matrix empiricalSigma;
@@ -85,12 +83,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private final double[] hyperParameter_lambda;
 
     private static final Pattern ANNOTATION_PATTERN = Pattern.compile("^@!ANNOTATION.*");
-    private static final Pattern ALLELECOUNT_PATTERN = Pattern.compile("^@!ALLELECOUNT.*");
     private static final Pattern CLUSTER_PATTERN = Pattern.compile("^@!CLUSTER.*");
 
     public VariantGaussianMixtureModel( final VariantDataManager _dataManager, final int _maxGaussians, final int _maxIterations,
-                                        final int maxAC, final boolean _forceIndependent, final double _stdThreshold, final double _qualThreshold,
-                                        final double _shrinkage, final double _dirichlet) {
+                                        final boolean _forceIndependent, final double _stdThreshold, final double _shrinkage, final double _dirichlet) {
         dataManager = _dataManager;
         maxGaussians = _maxGaussians;
         maxIterations = _maxIterations;
@@ -99,9 +95,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         sigma = new Matrix[maxGaussians];
         determinant = new double[maxGaussians];
         pClusterLog10 = new double[maxGaussians];
-        alleleCountFactorArray = new double[maxAC + 1];
         stdThreshold = _stdThreshold;
-        qualThreshold = _qualThreshold;
         FORCE_INDEPENDENT_ANNOTATIONS = _forceIndependent;
         hyperParameter_a = new double[maxGaussians];
         hyperParameter_b = new double[maxGaussians];
@@ -112,26 +106,23 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         DIRICHLET_PARAMETER = _dirichlet;
     }
 
-    public VariantGaussianMixtureModel( final double _targetTITV, final String clusterFileName, final double backOffGaussianFactor ) {
+    public VariantGaussianMixtureModel( final double _targetTITV, final File clusterFile, final double backOffGaussianFactor ) {
         super( _targetTITV );
         final ExpandingArrayList<String> annotationLines = new ExpandingArrayList<String>();
-        final ExpandingArrayList<String> alleleCountLines = new ExpandingArrayList<String>();
         final ExpandingArrayList<String> clusterLines = new ExpandingArrayList<String>();
 
         try {
-            for ( final String line : new XReadLines(new File( clusterFileName )) ) {
+            for ( final String line : new XReadLines( clusterFile ) ) {
                 if( ANNOTATION_PATTERN.matcher(line).matches() ) {
                     annotationLines.add(line);
-                } else if( ALLELECOUNT_PATTERN.matcher(line).matches() ) {
-                    alleleCountLines.add(line);
                 } else if( CLUSTER_PATTERN.matcher(line).matches() ) {
                     clusterLines.add(line);
                 } else {
-                    throw new StingException("Malformed input file: " + clusterFileName);
+                    throw new StingException("Malformed input file: " + clusterFile);
                 }
             }
         } catch ( FileNotFoundException e ) {
-            throw new StingException("Can not find input file: " + clusterFileName);
+            throw new StingException("Can not find input file: " + clusterFile);
         }
 
         dataManager = new VariantDataManager( annotationLines );
@@ -140,7 +131,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         DIRICHLET_PARAMETER = 0;
         maxIterations = 0;
         stdThreshold = 0.0;
-        qualThreshold = 0.0;
         FORCE_INDEPENDENT_ANNOTATIONS = false;
         hyperParameter_a = null;
         hyperParameter_b = null;
@@ -154,14 +144,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         sigmaInverse = new Matrix[maxGaussians];
         pClusterLog10 = new double[maxGaussians];
         determinant = new double[maxGaussians];
-
-        alleleCountFactorArray = new double[alleleCountLines.size() + 1];
-        for( final String line : alleleCountLines ) {
-            final String[] vals = line.split(",");
-            int i = Integer.parseInt(vals[1]);
-            alleleCountFactorArray[i] = Double.parseDouble(vals[2]);
-            double oldACPrior = alleleCountFactorArray[i];
-        }
 
         int kkk = 0;
         for( final String line : clusterLines ) {
@@ -183,10 +165,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         logger.info("Found " + maxGaussians + " clusters using " + dataManager.numAnnotations + " annotations: " + dataManager.annotationKeys);
     }
     
-    public final void run( final String clusterFileName ) {
-
-        // Initialize the Allele Count prior
-        generateAlleleCountPrior();
+    public final void run( final PrintStream clusterFile ) {
 
 //        int numValid = 0;
 //        int numOutlier = 0;
@@ -215,7 +194,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         logger.info("Initializing using k-means...");
         initializeUsingKMeans( dataManager.data );
         logger.info("... done!");
-        createClusters( dataManager.data, 0, maxGaussians, clusterFileName );
+        createClusters( dataManager.data, 0, maxGaussians, clusterFile );
 
         // Simply cluster with all the variants. The knowns have been given more weight than the novels
         //logger.info("Clustering with " + dataManager.data.length + " variants.");
@@ -260,43 +239,12 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         //empiricalSigma.timesEquals(1.0 / (Math.pow(maxGaussians, 2.0 / ((double) numAnnotations))));
     }
 
-
-    private void generateAlleleCountPrior() {
-
-        final double[] acExpectation = new double[alleleCountFactorArray.length];
-        final double[] acActual = new double[alleleCountFactorArray.length];
-        final int[] alleleCount = new int[alleleCountFactorArray.length];
-
-        double sumExpectation = 0.0;
-        for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
-            acExpectation[iii] = 1.0 / ((double) iii);
-            sumExpectation += acExpectation[iii];
-        }
-        for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
-            acExpectation[iii] /= sumExpectation; // Turn acExpectation into a probability distribution
-            alleleCount[iii] = 1; // Start off with one count to smooth the estimate
-        }
-        for( final VariantDatum datum : dataManager.data ) {
-            alleleCount[datum.alleleCount]++;
-        }
-        for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
-            acActual[iii] = ((double)alleleCount[iii]) / ((double) (dataManager.data.length+(alleleCountFactorArray.length-1))); // Turn acActual into a probability distribution
-        }
-        for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
-            alleleCountFactorArray[iii] = acExpectation[iii] / acActual[iii]; // Prior is (expected / observed)
-        }
-    }
-
     public void setSingletonFPRate( final double rate ) {
         this.singletonFPRate = rate;
     }
 
     public final double getAlleleCountPrior( final int alleleCount ) {
-        if ( this.singletonFPRate == -1 )
-            return alleleCountFactorArray[alleleCount];
-        else {
-            return Math.min(0.95, 1.0 - Math.pow(singletonFPRate, alleleCount)); //TODO -- define the vals
-        }
+        return Math.min(0.95, 1.0 - Math.pow(singletonFPRate, alleleCount)); //TODO -- define the vals
     }
 
     private void initializeUsingKMeans( final VariantDatum[] data ) {
@@ -365,7 +313,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    public final void createClusters( final VariantDatum[] data, final int startCluster, final int stopCluster, final String clusterFileName ) {
+    public final void createClusters( final VariantDatum[] data, final int startCluster, final int stopCluster, final PrintStream clusterFile ) {
 
         final int numVariants = data.length;
         final int numAnnotations = data[0].annotations.length;
@@ -439,38 +387,28 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Output the final cluster parameters
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        printClusterParameters( clusterFileName );
+        printClusterParameters( clusterFile );
     }
 
-    private void printClusterParameters( final String clusterFileName ) {
-        try {
-            final PrintStream outputFile = new PrintStream( clusterFileName );
-            dataManager.printClusterFileHeader( outputFile );
-            for( int iii = 1; iii < alleleCountFactorArray.length; iii++ ) {
-                outputFile.print("@!ALLELECOUNT,");
-                outputFile.println(iii + "," + alleleCountFactorArray[iii]);
-            }
+    private void printClusterParameters( final PrintStream clusterFile ) {
+        dataManager.printClusterFileHeader( clusterFile );
 
-            final int numAnnotations = mu[0].length;
-            for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
-                if( Math.pow(10.0, pClusterLog10[kkk]) > 1E-4 ) { // BUGBUG: make this a command line argument
-                    final double sigmaVals[][] = sigma[kkk].getArray();
-                    outputFile.print("@!CLUSTER");
-                    outputFile.print("," + Math.pow(10.0, pClusterLog10[kkk]));
-                    for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        outputFile.print("," + mu[kkk][jjj]);
-                    }
-                    for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        for(int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                            outputFile.print("," + (sigmaVals[jjj][ppp] / hyperParameter_a[kkk]) );
-                        }
-                    }
-                    outputFile.println();
+        final int numAnnotations = mu[0].length;
+        for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
+            if( Math.pow(10.0, pClusterLog10[kkk]) > 1E-4 ) { // BUGBUG: make this a command line argument
+                final double sigmaVals[][] = sigma[kkk].getArray();
+                clusterFile.print("@!CLUSTER");
+                clusterFile.print("," + Math.pow(10.0, pClusterLog10[kkk]));
+                for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                    clusterFile.print("," + mu[kkk][jjj]);
                 }
+                for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                    for(int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                        clusterFile.print("," + (sigmaVals[jjj][ppp] / hyperParameter_a[kkk]) );
+                    }
+                }
+                clusterFile.println();
             }
-            outputFile.close();
-        } catch (Exception e) {
-            throw new StingException( "Unable to create output file: " + clusterFileName );
         }
     }
 
@@ -563,13 +501,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
 
             annIndex++;
-            outputFile.close();
         }
-
-       // BUGBUG: next output the actual cluster on top by integrating out every other annotation
     }
 
-    public final void outputOptimizationCurve( final VariantDatum[] data, final String outputPrefix,
+    public final void outputOptimizationCurve( final VariantDatum[] data, final PrintStream outputReportDatFile, final PrintStream outputTranchesFile,
                                                final int desiredNumVariants, final Double[] FDRtranches, final double QUAL_STEP ) {
 
         final int numVariants = data.length;
@@ -595,16 +530,16 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         PrintStream outputFile;
         try {
-            outputFile = new PrintStream( outputPrefix + ".dat" );
+            outputFile = new PrintStream( outputReportDatFile );
         } catch (Exception e) {
-            throw new StingException( "Unable to create output file: " + outputPrefix + ".dat" );
+            throw new StingException( "Unable to create output file: " + outputReportDatFile );
         }
         PrintStream tranchesOutputFile;
         try {
-            tranchesOutputFile = new PrintStream( outputPrefix + ".dat.tranches" );
+            tranchesOutputFile = new PrintStream( outputTranchesFile );
             tranchesOutputFile.println("FDRtranche,novelTITV,pCut,numNovel,filterName");
         } catch (Exception e) {
-            throw new StingException( "Unable to create output file: " + outputPrefix + ".dat.tranches" );
+            throw new StingException( "Unable to create output file: " + outputTranchesFile );
         }
 
         int numKnown = 0;
@@ -706,11 +641,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 logger.info("\t" + String.format("--> with an implied novel FDR of %.2f percent", Math.abs(100.0 * (1.0-((novelTiTvAtCut[jjj] - 0.5) / (targetTITV - 0.5))))));
             }
         }
-
-        outputFile.close();
-        tranchesOutputFile.close();
     }
-
 
     private double evaluateGaussians( final VariantDatum[] data, final double[][] pVarInCluster, final int startCluster, final int stopCluster ) {
 

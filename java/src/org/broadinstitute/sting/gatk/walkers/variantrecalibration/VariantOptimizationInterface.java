@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
+import java.io.PrintStream;
+
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -32,5 +34,5 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
  */
 
 public interface VariantOptimizationInterface {
-    public void run( String outputPrefix );
+    public void run( PrintStream outputPrefix );
 }

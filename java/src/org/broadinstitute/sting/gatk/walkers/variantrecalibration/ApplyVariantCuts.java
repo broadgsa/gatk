@@ -27,6 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -53,21 +55,28 @@ import java.util.*;
 
 public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
 
+
+    /////////////////////////////
+    // Inputs
+    /////////////////////////////
+    @Input(fullName="tranches_file", shortName="tranchesFile", doc="The input tranches file describing where to cut the data", required=true)
+    private File TRANCHES_FILE;
+
+    /////////////////////////////
+    // Outputs
+    /////////////////////////////
+    @Output( doc="The output filtered VCF file", required=true)
+    private VCFWriter vcfWriter = null;
+
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=true)
-    private String TRANCHE_FILENAME = "optimizer.dat.tranches";
-    @Argument(fullName="outputVCFFile", shortName="outputVCF", doc="The output filtered VCF file", required=true)
-    private String OUTPUT_FILENAME = "optimizer.vcf";
     @Argument(fullName="fdr_filter_level", shortName="fdr_filter_level", doc="The FDR level at which to start filtering.", required=false)
     private double FDR_FILTER_LEVEL = 0.0;
-
 
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    private VCFWriter vcfWriter;
     final ExpandingArrayList<Double> qCuts = new ExpandingArrayList<Double>();
     final ExpandingArrayList<String> filterName = new ExpandingArrayList<String>();
 
@@ -128,7 +137,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         // todo -- I would have updated your code but there's no integration test to protect me from unexpected effects
         boolean firstLine = true;
         try {
-            for( final String line : new XReadLines(new File( TRANCHE_FILENAME )) ) {
+            for( final String line : new XReadLines( TRANCHES_FILE ) ) {
                 if( !firstLine ) {
                     final String[] vals = line.split(",");
                     double FDR = Double.parseDouble(vals[0]);
@@ -147,7 +156,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                 firstLine = false;
             }
         } catch( FileNotFoundException e ) {
-            throw new StingException("Can not find input file: " + TRANCHE_FILENAME);
+            throw new StingException("Can not find input file: " + TRANCHES_FILE);
         }
 
         // setup the header fields
@@ -155,7 +164,6 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
-        vcfWriter = new StandardVCFWriter( new File(OUTPUT_FILENAME) );
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getSampleListWithVCFHeader(getToolkit(), null));
         
@@ -195,8 +203,9 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                             break;
                         }
                     }
-                    if( filterString == null )
+                    if( filterString == null ) {
                         filterString = filterName.get(0)+"+";
+                    }
 
                     if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
                         Set<String> filters = new HashSet<String>();
@@ -227,7 +236,6 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     }
 
     public void onTraversalDone( Integer reduceSum ) {
-        vcfWriter.close();
     }
 }
 

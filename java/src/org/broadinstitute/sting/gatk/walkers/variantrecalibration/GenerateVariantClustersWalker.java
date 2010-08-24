@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -41,7 +42,9 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -56,6 +59,13 @@ import java.util.*;
 public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> {
 
     /////////////////////////////
+    // Outputs
+    /////////////////////////////
+
+    @Output(fullName="cluster_file", shortName="clusterFile", doc="The output cluster file", required=true)
+    private PrintStream CLUSTER_FILE;
+
+    /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
     @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
@@ -64,17 +74,15 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     private String[] IGNORE_INPUT_FILTERS = null;
     @Argument(fullName="use_annotation", shortName="an", doc="The names of the annotations which should used for calculations", required=true)
     private String[] USE_ANNOTATIONS = null;
-    @Argument(fullName="clusterFile", shortName="clusterFile", doc="The output cluster file", required=true)
-    private String CLUSTER_FILENAME = "optimizer.cluster";
     @Argument(fullName="maxGaussians", shortName="mG", doc="The maximum number of Gaussians to try during Bayesian clustering", required=false)
     private int MAX_GAUSSIANS = 4;
     @Argument(fullName="maxIterations", shortName="mI", doc="The maximum number of iterations to be performed when clustering. Clustering will normally end when convergence is detected.", required=false)
     private int MAX_ITERATIONS = 200;
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-    private String PATH_TO_RSCRIPT = "Rscript";
-    @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
-    private String PATH_TO_RESOURCES = "R/";
-    @Argument(fullName="weightNovels", shortName="weightNovels", doc="The weight for novel variants during clustering", required=false)
+    @Argument(fullName = "path_to_Rscript", shortName="Rscript", doc="The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+ //   private String PATH_TO_RSCRIPT = "Rscript";
+ //   @Argument(fullName = "path_to_resources", shortName = "resources", doc="Path to resources folder holding the Sting R scripts.", required=false)
+ //   private String PATH_TO_RESOURCES = "R/";
+ //   @Argument(fullName="weightNovels", shortName="weightNovels", doc="The weight for novel variants during clustering", required=false)
     private double WEIGHT_NOVELS = 0.0;
     @Argument(fullName="weightKnowns", shortName="weightKnowns", doc="The weight for MQ2+ known variants during clustering", required=false)
     private double WEIGHT_KNOWNS = 0.0;
@@ -89,12 +97,11 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Argument(fullName="stdThreshold", shortName="std", doc="If a variant has annotations more than -std standard deviations away from mean then don't use it for clustering.", required=false)
     private double STD_THRESHOLD = 4.5;
     @Argument(fullName="qualThreshold", shortName="qual", doc="If a known variant has raw QUAL value less than -qual then don't use it for clustering.", required=false)
-    private double QUAL_THRESHOLD = 1000.0;
+    private double QUAL_THRESHOLD = 800.0;
     @Argument(fullName="shrinkage", shortName="shrinkage", doc="The shrinkage parameter in variational Bayes algorithm.", required=false)
     private double SHRINKAGE = 0.0001;
     @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in variational Bayes algoirthm.", required=false)
     private double DIRICHLET_PARAMETER = 1000.0;
-
 
     //@Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
     //private int NUM_KNN = 2000;
@@ -115,7 +122,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
-        if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
+ //       if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
         
         annotationKeys = new ExpandingArrayList<String>(Arrays.asList(USE_ANNOTATIONS));
 
@@ -222,8 +229,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         VariantGaussianMixtureModel theModel;
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( dataManager, MAX_GAUSSIANS, MAX_ITERATIONS, maxAC, FORCE_INDEPENDENT,
-                                                            STD_THRESHOLD, QUAL_THRESHOLD, SHRINKAGE, DIRICHLET_PARAMETER );
+                theModel = new VariantGaussianMixtureModel( dataManager, MAX_GAUSSIANS, MAX_ITERATIONS, FORCE_INDEPENDENT,
+                                                            STD_THRESHOLD, SHRINKAGE, DIRICHLET_PARAMETER );
                 break;
             //case K_NEAREST_NEIGHBORS:
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
@@ -232,7 +239,9 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                 throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
         
-        theModel.run( CLUSTER_FILENAME );
+        theModel.run( CLUSTER_FILE );
+
+/*
         theModel.outputClusterReports( CLUSTER_FILENAME );
 
         for( final String annotation : annotationKeys ) {
@@ -248,6 +257,6 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                 Utils.warnUser("Unable to execute the RScript command because of [" + e.getMessage() + "].  While not critical to the calculations themselves, the script outputs a report that is extremely useful for confirming that the clustering proceded as expected.  We highly recommend trying to rerun the script manually if possible.");
             }
         }
+*/
     }
-
 }
