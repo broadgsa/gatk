@@ -46,7 +46,8 @@ class LsfJobRunner extends DispatchJobRunner with Logging {
     }
 
     if (previous.size > 0)
-      job.extraBsubArgs ++= List("-w", dependencyExpression(previous, function.jobRunOnlyIfPreviousSucceed))
+      job.extraBsubArgs ++= List("-w", dependencyExpression(previous,
+        function.jobRunOnlyIfPreviousSucceed, qGraph.dryRun))
 
     addJob(function, qGraph, job, previous)
 
@@ -64,10 +65,16 @@ class LsfJobRunner extends DispatchJobRunner with Logging {
    * Returns the dependency expression for the prior jobs.
    * @param jobs Previous jobs this job is dependent on.
    * @param runOnSuccess Run the job only if the previous jobs succeed.
+   * @param dryRun If the current run is a dry run.
    * @return The dependency expression for the prior jobs.
    */
-  private def dependencyExpression(jobs: Iterable[LsfJob], runOnSuccess: Boolean) = {
-    val jobIds = jobs.toSet[LsfJob].map(_.bsubJobId)
+  private def dependencyExpression(jobs: Iterable[LsfJob],
+                                   runOnSuccess: Boolean, dryRun: Boolean) = {
+    val jobIds = if (dryRun)
+      jobs.toSet[LsfJob].map("\"" + _.name + "\"")
+    else
+      jobs.toSet[LsfJob].map(_.bsubJobId)
+
     if (runOnSuccess)
       jobIds.mkString("done(", ") && done(", ")")
     else
