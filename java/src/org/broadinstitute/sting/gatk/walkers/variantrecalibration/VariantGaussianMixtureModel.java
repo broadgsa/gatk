@@ -167,11 +167,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     
     public final void run( final PrintStream clusterFile ) {
 
-//        int numValid = 0;
-//        int numOutlier = 0;
-//        int numBadQual = 0;
-//        int numZeroWeight = 0;
-
         // Only cluster with a good set of knowns. Filter based on being too many std's away from the mean annotation value
         // Filtering based on known status and qual threshold happens in GenerateVariantClusters
         for( int iii = 0; iii < dataManager.data.length; iii++ ) {
@@ -184,21 +179,12 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
         }
 
-//        logger.info("Clustering with " + data.length + " valid variants.");
-//        logger.info("  " + numZeroWeight + " variants were removed from clustering due to having zero clustering weight.");
-//        logger.info("  " + numOutlier + " variants were removed due to having annotations that were more than " + stdThreshold + " standard deviations away from the mean annotation value.");
-//        logger.info("  " + numBadQual + " variants were removed because raw QUAL value was less than threshold (" + qualThreshold + ").");
-
         generateEmpricalStats( dataManager.data );
 
         logger.info("Initializing using k-means...");
         initializeUsingKMeans( dataManager.data );
         logger.info("... done!");
         createClusters( dataManager.data, 0, maxGaussians, clusterFile );
-
-        // Simply cluster with all the variants. The knowns have been given more weight than the novels
-        //logger.info("Clustering with " + dataManager.data.length + " variants.");
-        //createClusters( dataManager.data, 0, numGaussians, clusterFileName );
     }
 
     private void generateEmpricalStats( final VariantDatum[] data ) {

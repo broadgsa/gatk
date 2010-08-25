@@ -90,17 +90,19 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
-    @Argument(fullName="hapmap_prior", shortName="hapmapPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true.", required=false)
-    private double HAPMAP_QUAL_PRIOR = 15.0;
-    @Argument(fullName="known_prior", shortName="knownPrior", doc="A prior on the quality of known variants, a phred scaled probability of being true.", required=false)
-    private double KNOWN_QUAL_PRIOR = 10.0;
-    @Argument(fullName="novel_prior", shortName="novelPrior", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
-    private double NOVEL_QUAL_PRIOR = 2.0;
+    @Argument(fullName="priorNovels", shortName="priorNovels", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
+    private double PRIOR_NOVELS = 2.0;
+    @Argument(fullName="priorDBSNP", shortName="priorDBSNP", doc="A prior on the quality of dbSNP variants, a phred scaled probability of being true.", required=false)
+    private double PRIOR_DBSNP = 10.0;
+    @Argument(fullName="priorHapMap", shortName="priorHapMap", doc="A prior on the quality of HapMap variants, a phred scaled probability of being true.", required=false)
+    private double PRIOR_HAPMAP = 15.0;
+    @Argument(fullName="prior1KG", shortName="prior1KG", doc="A prior on the quality of 1000 Genomes Project variants, a phred scaled probability of being true.", required=false)
+    private double PRIOR_1KG = 12.0;
     @Argument(fullName="FDRtranche", shortName="tranche", doc="The levels of novel false discovery rate (FDR, implied by ti/tv) at which to slice the data. (in percent, that is 1.0 for 1 percent)", required=false)
     private Double[] FDR_TRANCHES = null;
-    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
+    @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required=false)
     private String PATH_TO_RSCRIPT = "Rscript";
-    @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
+    @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required=false)
     private String PATH_TO_RESOURCES = "R/";
     @Argument(fullName="quality_step", shortName="qStep", doc="Resolution in QUAL units for optimization and tranche calculations", required=false)
     private double QUAL_STEP = 0.1;
@@ -115,6 +117,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
     private VariantGaussianMixtureModel theModel = null;
     private Set<String> ignoreInputFilterSet = null;
+    private Set<String> inputNames = new HashSet<String>();
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -146,7 +149,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         final TreeSet<String> samples = new TreeSet<String>();
-        final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
@@ -156,10 +158,21 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         vcfWriter.writeHeader(vcfHeader);
 
         boolean foundDBSNP = false;
-        for( final ReferenceOrderedDataSource source : dataSources ) {
-            final RMDTrack rod = source.getReferenceOrderedData();
-            if( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+        for( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
+            if( d.getName().startsWith("input") ) {
+                inputNames.add(d.getName());
+                logger.info("Found input variant track with name " + d.getName());
+            } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                logger.info("Found dbSNP track with prior probability = Q" + PRIOR_DBSNP);
                 foundDBSNP = true;
+            } else if ( d.getName().equals("hapmap") ) {
+                logger.info("Found HapMap track with prior probability = Q" + PRIOR_HAPMAP);
+                foundDBSNP = true;
+            } else if ( d.getName().equals("1kg") ) {
+                logger.info("Found 1KG track for with prior probability = Q" + PRIOR_1KG);
+                foundDBSNP = true;
+            } else {
+                logger.info("Not evaluating ROD binding " + d.getName());
             }
         }
 
@@ -191,21 +204,33 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             return mapList;
         }
 
-        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-            if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
+        for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
+            if( vc != null && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
 
                     final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-                    variantDatum.isKnown = dbsnp != null;
-                    variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes. Also, what to do about tri-allelic sites?
+                    final VariantContext vcHapMap = tracker.getVariantContext(ref, "hapmap", null, context.getLocation(), false);
+                    final VariantContext vc1KG = tracker.getVariantContext(ref, "1kg", null, context.getLocation(), false);
 
-                    final double acPrior = theModel.getAlleleCountPrior( variantDatum.alleleCount );
-                    double knownPrior = variantDatum.isKnown ? QualityUtils.qualToProb(KNOWN_QUAL_PRIOR) : QualityUtils.qualToProb(NOVEL_QUAL_PRIOR);
-                    if(variantDatum.isKnown && DbSNPHelper.isHapmap( dbsnp ) ) {
-                        knownPrior = QualityUtils.qualToProb(HAPMAP_QUAL_PRIOR);
+                    variantDatum.isKnown = false;
+                    double knownPrior_qScore = PRIOR_NOVELS;
+                    if( vcHapMap != null ) {
+                        variantDatum.isKnown = true;
+                        knownPrior_qScore = PRIOR_HAPMAP;
+                    } else if( vc1KG != null ) {
+                        variantDatum.isKnown = true;
+                        knownPrior_qScore = PRIOR_1KG;
+                    } else if( dbsnp != null ) {
+                        variantDatum.isKnown = true;
+                        knownPrior_qScore = PRIOR_DBSNP;
                     }
+                    final double knownPrior = QualityUtils.qualToProb(knownPrior_qScore);
+
+                    final int alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes. Also, what to do about tri-allelic sites?
+
+                    final double acPrior = theModel.getAlleleCountPrior( alleleCount );
                     final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
 
                     if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {

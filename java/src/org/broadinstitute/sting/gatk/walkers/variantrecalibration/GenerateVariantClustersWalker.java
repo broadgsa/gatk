@@ -84,14 +84,12 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 //    private String PATH_TO_RESOURCES = "R/";
     @Argument(fullName="weightNovels", shortName="weightNovels", doc="The weight for novel variants during clustering", required=false)
     private double WEIGHT_NOVELS = 0.0;
-    @Argument(fullName="weightKnowns", shortName="weightKnowns", doc="The weight for MQ2+ known variants during clustering", required=false)
-    private double WEIGHT_KNOWNS = 0.0;
-    @Argument(fullName="weightHapMap", shortName="weightHapMap", doc="The weight for known HapMap variants during clustering", required=false)
+    @Argument(fullName="weightDBSNP", shortName="weightDBSNP", doc="The weight for dbSNP variants during clustering", required=false)
+    private double WEIGHT_DBSNP = 0.0;
+    @Argument(fullName="weightHapMap", shortName="weightHapMap", doc="The weight for HapMap variants during clustering", required=false)
     private double WEIGHT_HAPMAP = 1.0;
-    @Argument(fullName="weight1000Genomes", shortName="weight1000Genomes", doc="The weight for known 1000 Genomes Project variants during clustering", required=false)
-    private double WEIGHT_1000GENOMES = 1.0;
-    @Argument(fullName="weightMQ1", shortName="weightMQ1", doc="The weight for MQ1 dbSNP variants during clustering", required=false)
-    private double WEIGHT_MQ1 = 0.0;
+    @Argument(fullName="weight1KG", shortName="weight1KG", doc="The weight for 1000 Genomes Project variants during clustering", required=false)
+    private double WEIGHT_1KG = 1.0;
     @Argument(fullName="forceIndependent", shortName="forceIndependent", doc="Force off-diagonal entries in the covariance matrix to be zero.", required=false)
     private boolean FORCE_INDEPENDENT = false;
     @Argument(fullName="stdThreshold", shortName="std", doc="If a variant has annotations more than -std standard deviations away from mean then don't use it for clustering.", required=false)
@@ -113,7 +111,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     /////////////////////////////
     private ExpandingArrayList<String> annotationKeys;
     private Set<String> ignoreInputFilterSet = null;
-    private int maxAC = 0;
+    private Set<String> inputNames = new HashSet<String>();
+
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -131,11 +130,21 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         }
 
         boolean foundDBSNP = false;
-        final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
-        for( final ReferenceOrderedDataSource source : dataSources ) {
-            final RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+        for( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
+            if( d.getName().startsWith("input") ) {
+                inputNames.add(d.getName());
+                logger.info("Found input variant track with name " + d.getName());
+            } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                logger.info("Found dbSNP track for use in training with weight = " + WEIGHT_DBSNP);
                 foundDBSNP = true;
+            } else if ( d.getName().equals("hapmap") ) {
+                logger.info("Found HapMap track for use in training with weight = " + WEIGHT_HAPMAP);
+                foundDBSNP = true;
+            } else if ( d.getName().equals("1kg") ) {
+                logger.info("Found 1KG track for use in training with weight = " + WEIGHT_1KG);
+                foundDBSNP = true;
+            } else {
+                logger.info("Not evaluating ROD binding " + d.getName());
             }
         }
 
@@ -160,8 +169,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
         final double annotationValues[] = new double[annotationKeys.size()];
 
-        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-            if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
+        for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
+            if( vc != null && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     int iii = 0;
                     for( final String key : annotationKeys ) {
@@ -171,23 +180,24 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.annotations = annotationValues;
                     variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
-                    variantDatum.alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes
-                    if( variantDatum.alleleCount > maxAC ) {
-                        maxAC = variantDatum.alleleCount;
-                    }
 
                     variantDatum.isKnown = false;
                     variantDatum.weight = WEIGHT_NOVELS;
                     variantDatum.qual = vc.getPhredScaledQual();
 
                     final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-                    if( dbsnp != null ) {
-                        variantDatum.isKnown = true;
-                        variantDatum.weight = WEIGHT_KNOWNS;
+                    final VariantContext vcHapMap = tracker.getVariantContext(ref, "hapmap", null, context.getLocation(), false);
+                    final VariantContext vc1KG = tracker.getVariantContext(ref, "1kg", null, context.getLocation(), false);
 
-                        if( DbSNPHelper.isHapmap( dbsnp ) ) { variantDatum.weight = WEIGHT_HAPMAP; }
-                        else if( DbSNPHelper.is1000genomes( dbsnp ) ) { variantDatum.weight = WEIGHT_1000GENOMES; }
-                        else if( DbSNPHelper.isMQ1( dbsnp ) ) { variantDatum.weight = WEIGHT_MQ1; }
+                    if( vcHapMap != null ) {
+                        variantDatum.isKnown = true;
+                        variantDatum.weight = WEIGHT_HAPMAP;
+                    } else if( vc1KG != null ) {
+                        variantDatum.isKnown = true;
+                        variantDatum.weight = WEIGHT_1KG;
+                    } else if( dbsnp != null ) {
+                        variantDatum.isKnown = true;
+                        variantDatum.weight = WEIGHT_DBSNP;
                     }
 
                     if( variantDatum.weight > 0.0 && variantDatum.qual > QUAL_THRESHOLD ) {
@@ -220,7 +230,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        logger.info( "There are " + dataManager.numVariants + " variants and " + dataManager.numAnnotations + " annotations." );
+        logger.info( "There are " + dataManager.numVariants + " variants with >0 clustering weight and " + dataManager.numAnnotations + " annotations." );
         logger.info( "The annotations are: " + annotationKeys );
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
