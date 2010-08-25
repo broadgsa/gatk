@@ -230,7 +230,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        logger.info( "There are " + dataManager.numVariants + " variants with >0 clustering weight and " + dataManager.numAnnotations + " annotations." );
+        logger.info( "There are " + dataManager.numVariants + " variants with > 0 clustering weight and " + dataManager.numAnnotations + " annotations." );
         logger.info( "The annotations are: " + annotationKeys );
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]

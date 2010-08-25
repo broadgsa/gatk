@@ -53,7 +53,7 @@ public class VariantDataManager {
         numVariants = dataList.size();
         data = dataList.toArray( new VariantDatum[numVariants] );
         if( numVariants <= 0 ) {
-            throw new StingException( "There are zero variants! (or possibly a problem with integer overflow)" );
+            throw new StingException( "There are zero variants with > 0 clustering weight!" );
         }
         if( _annotationKeys == null ) {
             numAnnotations = 0;
@@ -62,7 +62,7 @@ public class VariantDataManager {
         } else {
             numAnnotations = _annotationKeys.size();
             if( numAnnotations <= 0 ) {
-                throw new StingException( "There are zero annotations! (or possibly a problem with integer overflow)" );
+                throw new StingException( "There are zero annotations!" );
             }
             meanVector = new double[numAnnotations];
             varianceVector = new double[numAnnotations];
