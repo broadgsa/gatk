@@ -49,11 +49,11 @@ import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
 
 
 /**
- * Walks along all loci, caching a user-defined window of VariantContext sites, and then finishes phasing them when they go out of range (using downstream reads).
- * Use '-BTI variant' to only stop at positions in the VCF file bound to 'variant'.
+ * Walks along all variant ROD loci, caching a user-defined window of VariantContext sites, and then finishes phasing them when they go out of range (using upstream and downstream reads).
  */
 @Allows(value = {DataSource.READS, DataSource.REFERENCE})
 @Requires(value = {DataSource.READS, DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+@By(DataSource.READS)
 
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 
@@ -340,7 +340,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     }
 
                     if (statsWriter != null)
-                        statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), distance(prevVc, vc), pr.phaseQuality);
+                        statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), distance(prevVc, vc), pr.phaseQuality, pr.numReads);
 
                     PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
                     if (sampPhaseCounts == null) {
@@ -378,7 +378,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             allPositions.add(readBases);
         }
         HashMap<String, Read> allReads = convertReadBasesAtPositionToReads(allPositions);
-        logger.debug("Number of reads at sites: " + allReads.size());
+        logger.debug("Number of TOTAL reads [including those covering only 1 position] at sites: " + allReads.size());
         int numUsedReads = 0;
 
         // Update the phasing table based on each of the sub-reads for this sample:
@@ -400,7 +400,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
         }
         logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
-        logger.debug("numUsedReads = " + numUsedReads);
+        logger.debug("numUsedReads [covering > 1 position in the haplotype] = " + numUsedReads);
 
         // Marginalize each haplotype to its first 2 positions:
         sampleHaps = HaplotypeTableCreator.marginalizeTable(sampleHaps);
@@ -423,7 +423,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + phaseQuality);
 
-        return new PhaseResult(maxEntry.getHaplotypeClass().getRepresentative(), phaseQuality);
+        return new PhaseResult(maxEntry.getHaplotypeClass().getRepresentative(), phaseQuality, numUsedReads);
     }
 
     /*
@@ -922,10 +922,12 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private static class PhaseResult {
         public Haplotype haplotype;
         public double phaseQuality;
+        public int numReads;
 
-        public PhaseResult(Haplotype haplotype, double phaseQuality) {
+        public PhaseResult(Haplotype haplotype, double phaseQuality, int numReads) {
             this.haplotype = haplotype;
             this.phaseQuality = phaseQuality;
+            this.numReads = numReads;
         }
     }
 }
@@ -1257,10 +1259,10 @@ class PhasingQualityStatsWriter {
         this.variantStatsFilePrefix = variantStatsFilePrefix;
     }
 
-    public void addStat(String sample, GenomeLoc locus, int distanceFromPrevious, double phasingQuality) {
+    public void addStat(String sample, GenomeLoc locus, int distanceFromPrevious, double phasingQuality, int numReads) {
         BufferedWriter sampWriter = sampleToStatsWriter.get(sample);
         if (sampWriter == null) {
-            String fileName = variantStatsFilePrefix + "." + sample + ".locus_distance_PQ.txt";
+            String fileName = variantStatsFilePrefix + "." + sample + ".locus_distance_PQ_numReads.txt";
 
             FileOutputStream output;
             try {
@@ -1272,7 +1274,7 @@ class PhasingQualityStatsWriter {
             sampleToStatsWriter.put(sample, sampWriter);
         }
         try {
-            sampWriter.write(locus + "\t" + distanceFromPrevious + "\t" + phasingQuality + "\n");
+            sampWriter.write(locus + "\t" + distanceFromPrevious + "\t" + phasingQuality + "\t" + numReads + "\n");
             sampWriter.flush();
         } catch (IOException e) {
             throw new RuntimeException("Unable to write to per-sample phasing quality stats file", e);
