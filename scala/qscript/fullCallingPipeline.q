@@ -80,7 +80,7 @@ class fullCallingPipeline extends QScript {
       val realigner = new IndelRealigner with CommandLineGATKArgs
       realigner.input_file = targetCreator.input_file
       realigner.intervals = qscript.contigIntervals
-      realigner.targetIntervals = targetCreator.out.getAbsolutePath
+      realigner.targetIntervals = new java.io.File(targetCreator.out.getAbsolutePath)
       realigner.scatterCount = qscript.numContigs
       realigner.out = cleaned_bam
       realigner.scatterClass = classOf[ContigScatterFunction]
@@ -106,7 +106,7 @@ class fullCallingPipeline extends QScript {
     val snps = new UnifiedGenotyper with CommandLineGATKArgs
     snps.input_file = bamFiles
     snps.group :+= "Standard"
-    snps.variants_out = new File(base+".vcf")
+    snps.variants_out = base+".vcf"
     snps.standard_min_confidence_threshold_for_emitting = Some(10)
     snps.min_mapping_quality_score = Some(20)
     snps.min_base_quality_score = Some(20)
@@ -133,17 +133,17 @@ class fullCallingPipeline extends QScript {
     indels.input_file = bamFiles
     indels.downsampling_type = Some(DownsampleType.EXPERIMENTAL_BY_SAMPLE)
     indels.downsample_to_coverage = Some(200)
-    indels.variants_out = new File(base+".indels.vcf")
+    indels.variants_out = base+".indels.vcf"
     indels.genotype_model = Some(Model.INDELS)
     indels.scatterCount = 50
 
 
     // 1b. genomically annotate SNPs -- slow, but scatter it
     val annotated = new GenomicAnnotator with CommandLineGATKArgs
-    annotated.rodBind :+= RodBind("variant", "VCF", snps.variants_out)
+    annotated.rodBind :+= RodBind("variant", "VCF", new File(snps.variants_out))
     annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.refseqTable)
     annotated.rodBind :+= RodBind("dbsnp", "AnnotatorInputTable", qscript.dbsnpTable)
-    annotated.vcfOutput = swapExt(snps.variants_out,".vcf",".annotated.vcf")
+    annotated.vcfOutput = swapExt(new File(snps.variants_out),".vcf",".annotated.vcf").getAbsolutePath
     annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
     annotated.rodToIntervalTrackName = "variant"
     annotated.scatterCount = 100
@@ -151,21 +151,21 @@ class fullCallingPipeline extends QScript {
 
     // 2.a filter on cluster and near indels
     val masker = new VariantFiltration with CommandLineGATKArgs
-    masker.rodBind :+= RodBind("variant", "VCF", annotated.vcfOutput)
-    masker.rodBind :+= RodBind("mask", "VCF", indels.variants_out)
+    masker.rodBind :+= RodBind("variant", "VCF", new File(annotated.vcfOutput))
+    masker.rodBind :+= RodBind("mask", "VCF", new File(indels.variants_out))
     masker.maskName = "NearIndel"
     masker.clusterWindowSize = Some(qscript.snpClusterWindow)
     masker.clusterSize = Some(qscript.snpsInCluster)
-    masker.out = swapExt(annotated.vcfOutput,".vcf",".indel.masked.vcf")
+    masker.out = swapExt(new File(annotated.vcfOutput),".vcf",".indel.masked.vcf")
 
 
     // 2.b hand filter with standard filter
     val handFilter = new VariantFiltration with CommandLineGATKArgs
-    handFilter.rodBind :+= RodBind("variant", "VCF", annotated.vcfOutput)
-    handFilter.rodBind :+= RodBind("mask", "VCF", indels.variants_out)
+    handFilter.rodBind :+= RodBind("variant", "VCF", new File(annotated.vcfOutput))
+    handFilter.rodBind :+= RodBind("mask", "VCF", new File(indels.variants_out))
     handFilter.filterName ++= List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
     handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","QD<5","\"HRun>=4\"")
-    handFilter.out = swapExt(annotated.vcfOutput,".vcf",".handfiltered.vcf")
+    handFilter.out = swapExt(new File(annotated.vcfOutput),".vcf",".handfiltered.vcf")
 
 
     // 3.i generate gaussian clusters on the masked vcf
@@ -173,13 +173,13 @@ class fullCallingPipeline extends QScript {
     // todo -- args for resources (properties file)
     val clusters = new GenerateVariantClusters with CommandLineGATKArgs
     clusters.rodBind :+= RodBind("input", "VCF", masker.out)
-    val clusters_clusterFile = swapExt(snps.variants_out,".vcf",".cluster")
-    clusters.clusterFile = clusters_clusterFile.getAbsolutePath
+    val clusters_clusterFile = swapExt(new File(snps.variants_out),".vcf",".cluster").getAbsolutePath
     clusters.memoryLimit = Some(8)
     clusters.jobQueue = "hugemem"
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
-    clusters.path_to_resources = "/humgen/gsa-scr1/chartl/sting/R"
+   // clusters.path_to_resources = "/humgen/gsa-scr1/chartl/sting/R"
+   // clusters.path_to_Rscript = "/broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.7.2/bin/Rscript"
 
 
     // 3.ii apply gaussian clusters to the masked vcf
@@ -188,7 +188,7 @@ class fullCallingPipeline extends QScript {
     recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
     recalibrate.out = swapExt(masker.out,".vcf",".optimized.vcf")
     // todo -- inputs for Ti/Tv expectation and other things -- command line
-    recalibrate.target_titv = Some(2.1)
+    recalibrate.target_titv = 2.1
 
 
     // 3.iii apply variant cuts to the clusters
@@ -196,17 +196,15 @@ class fullCallingPipeline extends QScript {
     cut.rodBind :+= RodBind("input", "VCF", recalibrate.out)
     //cut.outputVCFFile = swapExt(recalibrate.out,".vcf",".tranched.vcf")
     //cut.tranchesFile = swapExt(recalibrate.out,".vcf",".tranch")
-    val cut_outputVCFFile = swapExt(recalibrate.out,".vcf",".tranched.vcf")
-    val cut_tranchesFile = swapExt(recalibrate.out,".vcf",".tranch")
-    cut.outputVCFFile = cut_outputVCFFile.getAbsolutePath
-    cut.tranchesFile = cut_tranchesFile.getAbsolutePath
+    val cut_outputVCFFile = swapExt(recalibrate.out,".vcf",".tranched.vcf").getAbsolutePath
+    val cut_tranchesFile = swapExt(recalibrate.out,".vcf",".tranch").getAbsolutePath
     // todo -- fdr inputs, etc
     cut.fdr_filter_level = Some(10)
 
     
     // 4. Variant eval the cut and the hand-filtered vcf files
     val eval = new VariantEval with CommandLineGATKArgs
-    eval.rodBind :+= RodBind("evalOptimized", "VCF", cut_outputVCFFile)
+    eval.rodBind :+= RodBind("evalOptimized", "VCF", new File(cut_outputVCFFile))
     eval.rodBind :+= RodBind("evalHandFiltered", "VCF", handFilter.out)
     eval.evalModule ++= List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
     eval.out = new File(base+".eval")
