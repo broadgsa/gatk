@@ -52,11 +52,12 @@ import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
  * Walks along all loci, caching a user-defined window of VariantContext sites, and then finishes phasing them when they go out of range (using downstream reads).
  * Use '-BTI variant' to only stop at positions in the VCF file bound to 'variant'.
  */
-@Requires(value = {}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+@Allows(value = {DataSource.READS, DataSource.REFERENCE})
+@Requires(value = {DataSource.READS, DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
 
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 
-public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, PhasingStats> {
+public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, PhasingStats> {
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
@@ -124,7 +125,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
      * @return statistics of and list of all phased VariantContexts and their base pileup that have gone out of cacheWindow range.
      */
     public PhasingStatsAndOutput map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (tracker == null)
+        if (tracker == null || ref == null)
             return null;
 
         PhasingStats phaseStats = new PhasingStats();
@@ -138,6 +139,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
 
             VariantAndReads vr = new VariantAndReads(vc, context, processVariant);
             unphasedSiteQueue.add(vr);
+            logger.debug("Added variant to queue = " + VariantContextUtils.getLocation(vr.variant));
 
             int numReads = 0;
             if (context.hasBasePileup()) {
@@ -155,31 +157,36 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     }
 
     private List<VariantContext> processQueue(PhasingStats phaseStats, boolean processAll) {
-        GenomeLoc lastLocus = null;
-        if (!processAll && !unphasedSiteQueue.isEmpty())
-            lastLocus = VariantContextUtils.getLocation(unphasedSiteQueue.peekLast().variant);
-
         List<VariantContext> oldPhasedList = new LinkedList<VariantContext>();
-        while (!unphasedSiteQueue.isEmpty()) {
-            if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
-                VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
-                if (isInWindowRange(lastLocus, VariantContextUtils.getLocation(nextToPhaseVc))) {
-                    /* lastLocus is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
-                     (note that we ASSUME that the VCF is ordered by <contig,locus>) */
-                    break;
+
+        if (!unphasedSiteQueue.isEmpty()) {
+            GenomeLoc lastLocus = null;
+            if (!processAll)
+                lastLocus = VariantContextUtils.getLocation(unphasedSiteQueue.peekLast().variant);
+
+            while (!unphasedSiteQueue.isEmpty()) {
+                if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
+                    VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
+                    if (isInWindowRange(lastLocus, VariantContextUtils.getLocation(nextToPhaseVc))) {
+                        /* lastLocus is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
+                          (note that we ASSUME that the VCF is ordered by <contig,locus>) */
+                        break;
+                    }
+                    // Already saw all variant positions within cacheWindow distance ahead of vc (on its contig)
                 }
-                // Already saw all variant positions within cacheWindow distance ahead of vc (on its contig)
+                // Update phasedSites before it's used in finalizePhasing:
+                oldPhasedList.addAll(discardIrrelevantPhasedSites());
+                logger.debug("oldPhasedList(1) = " + toStringVCL(oldPhasedList));
+
+                VariantAndReads phasedVr = finalizePhasing(unphasedSiteQueue.remove(), phaseStats);
+                logger.debug("Finalized phasing for " + VariantContextUtils.getLocation(phasedVr.variant));
+                phasedSites.add(phasedVr);
             }
-
-            // Update phasedSites before it's used in finalizePhasing:
-            oldPhasedList.addAll(discardIrrelevantPhasedSites());
-
-            VariantAndReads phasedVr = finalizePhasing(unphasedSiteQueue.remove(), phaseStats);
-            phasedSites.add(phasedVr);
         }
 
         // Update phasedSites after finalizePhasing is done:
         oldPhasedList.addAll(discardIrrelevantPhasedSites());
+        logger.debug("oldPhasedList(2) = " + toStringVCL(oldPhasedList));
         return oldPhasedList;
     }
 
@@ -193,10 +200,8 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         while (!phasedSites.isEmpty()) {
             VariantAndReads phasedVr = phasedSites.peek();
             VariantContext phasedVc = phasedVr.variant;
-            if (nextToPhaseVc != null && phasedVr.processVariant &&
-                (isInWindowRange(phasedVc, nextToPhaseVc) // nextToPhaseVc is still not far enough ahead of phasedVc to exclude phasedVc from calculations
-                // since ALWAYS want the previous site to be included for phasing nextToPhaseVc:
-                || (phasedSites.size() == 1 && VariantContextUtils.getLocation(phasedVc).onSameContig(VariantContextUtils.getLocation(nextToPhaseVc))))) {
+            if (nextToPhaseVc != null && phasedVr.processVariant && isInWindowRange(phasedVc, nextToPhaseVc)) {
+                // nextToPhaseVc is still not far enough ahead of phasedVc to exclude phasedVc from calculations
                 break;
             }
             vcList.add(phasedSites.remove().variant);
@@ -205,8 +210,8 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         return vcList;
     }
 
-    /* Finalize phasing of vc (head of unphasedSiteQueue) using all VariantContext objects in
-       phasedSites and all in unphasedSiteQueue that are within cacheWindow distance ahead of vc (on its contig).
+    /* Phase vc (removed head of unphasedSiteQueue) using all VariantContext objects in
+       phasedSites, and all in unphasedSiteQueue that are within cacheWindow distance ahead of vc (on its contig).
 
        ASSUMES: All VariantContexts in unphasedSiteQueue are in positions downstream of vc (head of queue).
      */
@@ -214,12 +219,9 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         if (!vr.processVariant)
             return vr; // return vr as is
 
-        VariantContext vc = vr.variant;
-        logger.debug("Will phase vc = " + VariantContextUtils.getLocation(vc));
-
         // Find the previous VariantContext (that was processed and phased):
         VariantAndReads prevVr = null;
-        Iterator<VariantAndReads> backwardsIt = phasedSites.descendingIterator();
+        Iterator<VariantAndReads> backwardsIt = phasedSites.descendingIterator(); // look at most recently phased sites
         while (backwardsIt.hasNext()) {
             VariantAndReads backVr = backwardsIt.next();
             if (backVr.processVariant) {
@@ -227,33 +229,34 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 break;
             }
         }
-        boolean hasPreviousSite = (prevVr != null);
+        if (prevVr == null)
+            return vr; // return vr as is, since cannot phase against "nothing" (vc is at the beginning of the chromosome, or the previous was so far back it was removed from phasedSites)
 
-        LinkedList<VariantAndReads> windowVaList = null;
-        if (hasPreviousSite) {
-            windowVaList = new LinkedList<VariantAndReads>();
+        VariantContext vc = vr.variant;
+        logger.debug("Will phase vc = " + VariantContextUtils.getLocation(vc));
 
-            // Include previously phased sites in the phasing computation:
-            for (VariantAndReads phasedVr : phasedSites) {
-                if (phasedVr.processVariant)
-                    windowVaList.add(phasedVr);
-            }
+        LinkedList<VariantAndReads> windowVaList = new LinkedList<VariantAndReads>();
 
-            // Add position to be phased:
-            windowVaList.add(vr);
+        // Include previously phased sites in the phasing computation:
+        for (VariantAndReads phasedVr : phasedSites) {
+            if (phasedVr.processVariant)
+                windowVaList.add(phasedVr);
+        }
 
-            // Include as of yet unphased sites in the phasing computation:
-            for (VariantAndReads nextVr : unphasedSiteQueue) {
-                if (!isInWindowRange(vc, nextVr.variant)) //nextVr too far ahead of the range used for phasing vc
-                    break;
-                if (nextVr.processVariant) // include in the phasing computation
-                    windowVaList.add(nextVr);
-            }
+        // Add position to be phased:
+        windowVaList.add(vr);
 
-            if (logger.isDebugEnabled()) {
-                for (VariantAndReads phaseInfoVr : windowVaList)
-                    logger.debug("Using phaseInfoVc = " + VariantContextUtils.getLocation(phaseInfoVr.variant));
-            }
+        // Include as of yet unphased sites in the phasing computation:
+        for (VariantAndReads nextVr : unphasedSiteQueue) {
+            if (!isInWindowRange(vc, nextVr.variant)) //nextVr too far ahead of the range used for phasing vc
+                break;
+            if (nextVr.processVariant) // include in the phasing computation
+                windowVaList.add(nextVr);
+        }
+
+        if (logger.isDebugEnabled()) {
+            for (VariantAndReads phaseInfoVr : windowVaList)
+                logger.debug("Using phaseInfoVc = " + VariantContextUtils.getLocation(phaseInfoVr.variant));
         }
         logger.debug("");
 
@@ -271,12 +274,11 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
             Biallele biall = new Biallele(gt);
             HashMap<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
 
-            if (hasPreviousSite && gt.isHet()) {
+            if (gt.isHet()) {
                 VariantContext prevVc = prevVr.variant;
                 Genotype prevGenotype = prevVc.getGenotype(samp);
                 if (prevGenotype.isHet()) { //otherwise, can trivially phase
-                    logger.debug("NON-TRIVIALLY CARE about TOP vs. BOTTOM for: ");
-                    logger.debug("\n" + biall);
+                    logger.debug("NON-TRIVIALLY CARE about TOP vs. BOTTOM for: " + "\n" + biall);
 
                     List<VariantAndReads> sampleWindowVaList = new LinkedList<VariantAndReads>();
                     int phasingSiteIndex = -1;
@@ -288,7 +290,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                             sampleWindowVaList.add(phaseInfoVr);
                             if (phasingSiteIndex == -1) {
                                 if (phaseInfoVr == vr)
-                                    phasingSiteIndex = currentIndex;
+                                    phasingSiteIndex = currentIndex; // index of vr in sampleWindowVaList
                                 else
                                     currentIndex++;
                             }
@@ -299,21 +301,22 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                         throw new StingException("Internal error: could NOT find vr and/or prevVr!");
 
                     if (sampleWindowVaList.size() > maxPhaseSites) {
-                        logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase -- REDUCING to " + maxPhaseSites + " sites:\n" + toString(sampleWindowVaList));
+                        logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase:\n" + toStringVRL(sampleWindowVaList));
 
-                        int prevSiteIndex = phasingSiteIndex - 1;
+                        int prevSiteIndex = phasingSiteIndex - 1; // index of prevVr in sampleWindowVaList
                         int numToUse = maxPhaseSites - 2; // since always keep prevVr and vr
-                        int halfToUse = new Double(Math.floor(numToUse / 2.0)).intValue();
 
                         int numOnLeft = prevSiteIndex;
                         int numOnRight = sampleWindowVaList.size() - (phasingSiteIndex + 1);
 
                         int useOnLeft, useOnRight;
                         if (numOnLeft <= numOnRight) {
+                            int halfToUse = new Double(Math.floor(numToUse / 2.0)).intValue(); // skimp on the left [floor], and be generous with the right side
                             useOnLeft = Math.min(halfToUse, numOnLeft);
                             useOnRight = Math.min(numToUse - useOnLeft, numOnRight);
                         }
                         else { // numOnRight < numOnLeft
+                            int halfToUse = new Double(Math.ceil(numToUse / 2.0)).intValue(); // be generous with the right side [ceil]
                             useOnRight = Math.min(halfToUse, numOnRight);
                             useOnLeft = Math.min(numToUse - useOnRight, numOnLeft);
                         }
@@ -321,7 +324,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                         int stopIndex = phasingSiteIndex + useOnRight + 1; // put the index 1 past the desired index to keep
                         phasingSiteIndex -= startIndex;
                         sampleWindowVaList = sampleWindowVaList.subList(startIndex, stopIndex);
-                        logger.warn("REDUCED to " + sampleWindowVaList.size() + " sites:\n" + toString(sampleWindowVaList));
+                        logger.warn("REDUCED to " + sampleWindowVaList.size() + " sites:\n" + toStringVRL(sampleWindowVaList));
                     }
 
                     PhaseResult pr = phaseSample(samp, sampleWindowVaList, phasingSiteIndex);
@@ -329,8 +332,8 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                     if (genotypesArePhased) {
                         Biallele prevBiall = new Biallele(prevGenotype);
 
-                        logger.debug("CHOSEN PHASE FOR PREVIOUS:\n" + prevBiall + "\n");
-                        logger.debug("CHOSE PHASE:\n" + biall + "\n\n");
+                        logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevBiall + "\n");
+                        logger.debug("THE PHASE CHOSEN HERE:\n" + biall + "\n\n");
 
                         ensurePhasing(biall, prevBiall, pr.haplotype);
                         gtAttribs.put("PQ", pr.phaseQuality);
@@ -370,6 +373,8 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         LinkedList<ReadBasesAtPosition> allPositions = new LinkedList<ReadBasesAtPosition>();
         for (VariantAndReads phaseInfoVr : variantList) {
             ReadBasesAtPosition readBases = phaseInfoVr.sampleReadBases.get(sample);
+            if (readBases == null)
+                readBases = new ReadBasesAtPosition(); // for transparency, put an empty list of bases at this position for sample
             allPositions.add(readBases);
         }
         HashMap<String, Read> allReads = convertReadBasesAtPositionToReads(allPositions);
@@ -540,7 +545,6 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
     /*
        Inner classes:
      */
-
     private static class Biallele {
         public Allele top;
         public Allele bottom;
@@ -653,7 +657,7 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         }
     }
 
-    private static String toString(List<VariantAndReads> vrList) {
+    private static String toStringVRL(List<VariantAndReads> vrList) {
         boolean first = true;
         StringBuilder sb = new StringBuilder();
         for (VariantAndReads vr : vrList) {
@@ -663,6 +667,20 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
                 sb.append(" -- ");
 
             sb.append(VariantContextUtils.getLocation(vr.variant));            
+        }
+        return sb.toString();
+    }
+
+    private static String toStringVCL(List<VariantContext> vcList) {
+        boolean first = true;
+        StringBuilder sb = new StringBuilder();
+        for (VariantContext vc : vcList) {
+            if (first)
+                first = false;
+            else
+                sb.append(" -- ");
+
+            sb.append(VariantContextUtils.getLocation(vc));
         }
         return sb.toString();
     }
@@ -911,6 +929,8 @@ public class ReadBackedPhasingWalker extends LocusWalker<PhasingStatsAndOutput, 
         }
     }
 }
+
+
 
 
 
