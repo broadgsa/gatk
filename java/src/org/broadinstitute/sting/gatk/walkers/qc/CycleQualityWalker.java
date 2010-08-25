@@ -64,55 +64,33 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
     protected boolean MAPPED_ONLY = true;
     @Argument(fullName="maxReadLength", shortName="rl", doc="maximum read length", required=false)
     protected int MAX_READ_LENGTH = 500;
-    @Argument(fullName="out_prefix",shortName="p",doc="prefix for output stat files",required=true)
+    @Argument(fullName="out_prefix",shortName="p",doc="prefix for output report and statistics files",required=true)
     protected String PREFIX = null;
-    @Argument(fullName="html",shortName="html",doc="produce html-formatted output (starting with h3-level tags) rather than plain text",required=false)
+//    @Argument(fullName="html",shortName="html",doc="produce html-formatted output (starting with h3-level tags) rather than plain text",required=false)
     protected boolean HTML = false;
-    @Argument(fullName="qualThreshold", shortName="Q",doc="flag as problematic all cycles with av. qualities below the threshold",required=false)
+    @Argument(fullName="qualThreshold", shortName="Q",doc="flag as problematic all cycles with av. qualities below the threshold (applies only to the generated report)",required=false)
     protected double QTHRESHOLD = 10.0;
+    @Argument(fullName="useBothQualities",shortName="bothQ",required=false,doc="Generate statistics both for currently set and for "+
+        "original base qualities (OQ tag, must be present in the bam); two separate data files will be generated.")
+    protected boolean ASSESS_BOTH_QUALS = false;
+
     private Map<String,CycleStats[]> cyclesByLaneMap = null;
     private Map<String,CycleStats[]> cyclesByLibraryMap = null;
+    private Map<String,CycleStats[]> cyclesByLaneMapOrig = null;
+    private Map<String,CycleStats[]> cyclesByLibraryMapOrig = null;
 
     public void initialize() {
         if ( PREFIX == null ) throw new StingException("Prefix for output file(s) must be specified");
         cyclesByLaneMap = new HashMap<String,CycleStats[]>();
         cyclesByLibraryMap = new HashMap<String,CycleStats[]>();
+        cyclesByLaneMapOrig = new HashMap<String,CycleStats[]>();
+        cyclesByLibraryMapOrig = new HashMap<String,CycleStats[]>();
     }
 
-    /** A trivial shortcut with the only purpose of avoiding copying the same code over and over again and
-     * cluttering the main method. Takes lane (platform unit) and library strings already extracted from the read,
-     * as well as read's base qualities and adds those qualities to the appropriate records of the specified by lane
-     * and by library maps. The 'end' argument should be 1 or 2 for the first/second read in the pair, respectively.
-     * If the read is unpaired (single end run), 'end' should be set to 0.
-     * Being a shortcut, this method does not perform any checking except for adding a new
-     * record to the respective map if it does not already contain a record for the specified lane or library.
-     *
-     * @param lane
-     * @param library
-     * @param quals
-     */
-    private void recordQuals(String lane, String library, byte [] quals, int end, Map<String,CycleStats[]> laneMap, Map<String,CycleStats[]> libMap) {
-
-        CycleStats[] byLane = laneMap.get(lane);
-        CycleStats[] byLib = libMap.get(library);
-
-        // if end == 0 (single end lane), we allocate array of length 1, otherwise we need two
-        // elements in the array in order to be able to collect statistics for each end in the pair independently
-        if ( byLane == null ) laneMap.put(lane,byLane = new CycleStats[(end==0?1:2)]);
-        if ( byLib == null ) libMap.put(library, byLib =new CycleStats[2]);
-
-        if ( end != 0 ) end--; // we will now use 'end' as index into the array of stats
-
-        if ( byLane[end] == null ) byLane[end] = new CycleStats(MAX_READ_LENGTH);
-        if ( byLib[end] == null ) byLib[end] =new CycleStats(MAX_READ_LENGTH);
-        byLane[end].add(quals);
-        byLib[end].add(quals);
-
-    }
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
 
-        if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY) return 0;
+        if ( AlignmentUtils.isReadUnmapped(read) ) return 0;
 
         SAMReadGroupRecord rg = read.getReadGroup();
 
@@ -137,7 +115,24 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
             }
         }
 
-        recordQuals(lane,library,AlignmentUtils.getQualsInCycleOrder(read),end,cyclesByLaneMap,cyclesByLibraryMap);
+        CycleStats[] byLane = cyclesByLaneMap.get(lane);
+        CycleStats[] byLib = cyclesByLibraryMap.get(library);
+
+        //byte [] quals = USE_ORIGINAL_QUALS ? AlignmentUtils.getOriginalQualsInCycleOrder(read) : AlignmentUtils.getQualsInCycleOrder(read);
+
+        byte [] quals = AlignmentUtils.getQualsInCycleOrder(read);
+
+        // if end == 0 (single end lane), we allocate array of length 1, otherwise we need two
+        // elements in the array in order to be able to collect statistics for each end in the pair independently
+        if ( byLane == null ) cyclesByLaneMap.put(lane,byLane = new CycleStats[(end==0?1:2)]);
+        if ( byLib == null ) cyclesByLibraryMap.put(library, byLib =new CycleStats[2]);
+
+        if ( end != 0 ) end--; // we will now use 'end' as index into the array of stats
+
+        if ( byLane[end] == null ) byLane[end] = new CycleStats(MAX_READ_LENGTH);
+        if ( byLib[end] == null ) byLib[end] =new CycleStats(MAX_READ_LENGTH);
+        byLane[end].add(quals);
+        byLib[end].add(quals);
 
         return 1;  //To change body of implemented methods use File | Settings | File Templates.
     }
@@ -174,19 +169,19 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
         if ( HTML ) out.println("<br><br>");
         out.println("by platform unit:");
         if ( HTML ) out.println("<br>");
-        report2(cyclesByLaneMap, new File(PREFIX+".byLane.txt"));
+        report2(cyclesByLaneMap, new File(PREFIX+".byLane.txt"),true);
         out.println();
         if ( HTML ) out.println("<br><br>");
         out.println("\nby library:");
         if ( HTML ) out.println("<br>");
-        report2(cyclesByLibraryMap, new File(PREFIX+".byLibrary.txt"));
+        report2(cyclesByLibraryMap, new File(PREFIX+".byLibrary.txt"),true);
         out.println();
         if ( HTML ) out.println("<br><br>");
     }
 
  
 
-    private void report2(Map<String,CycleStats[]> m, File f) {
+    private void report2(Map<String,CycleStats[]> m, File f,boolean summaryReport) {
         long totalReads_1 =0;
         long totalReads_2 =0;
         long totalReads_unpaired = 0;
@@ -207,19 +202,23 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
             columns.add(e.getKey());
         }
 
-        if ( totalReads_1 == 0 && totalReads_2 != 0) {
-            out.println("   End 1: No reads");
-            if ( HTML ) out.println("<br>");
+        if ( summaryReport ) {
+            if ( totalReads_1 == 0 && totalReads_2 != 0) {
+                out.println("   End 1: No reads");
+                if ( HTML ) out.println("<br>");
+            }
+            if ( totalReads_2 == 0 && totalReads_1 != 0 ) {
+                out.println("   End 2: No reads");
+                if ( HTML ) out.println("<br>");
+            }
+            if ( totalReads_1 == 0 && totalReads_2 == 0 && totalReads_unpaired == 0 ) {
+                out.println("   No reads found.");
+                if ( HTML ) out.println("<br>");
+            }
         }
-        if ( totalReads_2 == 0 && totalReads_1 != 0 ) {
-            out.println("   End 2: No reads");
-            if ( HTML ) out.println("<br>");
-        }
-        if ( totalReads_1 == 0 && totalReads_2 == 0 && totalReads_unpaired == 0 ) {
-            out.println("   No reads found.");
-            if ( HTML ) out.println("<br>");
-            return;
-        }
+
+        if ( totalReads_1 == 0 && totalReads_2 == 0 && totalReads_unpaired == 0 ) return;
+
         try {
             BufferedWriter w = new BufferedWriter(new FileWriter(f));
 
@@ -227,18 +226,22 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
             for( String col : columns ) {
                 CycleStats[] data = m.get(col);
-                out.print("   ");
-                out.print(col);
+                if ( summaryReport ) {
+                    out.print("   ");
+                    out.print(col);
+                }
 
                 CycleStats end1 = data[0];
                 int minL = ( end1 == null ? 0 : end1.getMinReadLength() );
                 int maxL = ( end1 == null ? 0 : end1.getMaxReadLength() );
 
                 if ( data.length == 2 && data[1] != null ) {
-                    out.println(": paired");
-                    if ( HTML ) out.println("<br>");
-                    out.println("    Reads analyzed:");
-                    if ( HTML ) out.println("<br>");
+                    if ( summaryReport ) {
+                        out.println(": paired");
+                        if ( HTML ) out.println("<br>");
+                        out.println("    Reads analyzed:");
+                        if ( HTML ) out.println("<br>");
+                    }
                     CycleStats end2 = data[1];
 
                     out.print( "      End 1: "+ ( end1 == null ? 0 : end1.getReadCount()) );
@@ -264,13 +267,22 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
                 w.write('\t') ;
                 w.write(col);
-                if ( data.length == 1 ) {
+                if ( data.length == 1 || data.length == 2 && data[1] == null ) {
                     w.write(".unpaired");
+                    w.write('\t');
+                    w.write(col);
+                    w.write(".unpaired.stddev");
                 }  else {
                     w.write(".end1");
+                    w.write('\t');
+                    w.write(col);
+                    w.write(".end1.stddev");
                     w.write('\t') ;
                     w.write(col);
                     w.write(".end2");
+                    w.write('\t');
+                    w.write(col);
+                    w.write(".end2.stddev");
                 }
             }
 
@@ -287,19 +299,19 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
                     CycleStats[] data = m.get(col);
                     CycleStats end1 = data[0];
                     w.write('\t');
-                    if ( end1 == null || cycle >= end1.getMaxReadLength() ) w.write('.');
+                    if ( end1 == null || cycle >= end1.getMaxReadLength() ) w.write(".\t.");
                     else {
-                        double aq = end1.getAverageCycleQual(cycle);
-                        w.write(String.format("%.4f",aq));
+                        double aq = end1.getCycleQualAverage(cycle);
+                        w.write(String.format("%.4f\t%.4f",aq,end1.getCycleQualStdDev(cycle)));
                         recordProblem(aq,cycle, problems,col+".End1");
                     }
                     if ( data.length > 1 && data[1] != null ) {
                         w.write('\t');
                         CycleStats end2 = data[1];
-                        if ( end2 == null || cycle >= end2.getMaxReadLength() ) w.write('.');
+                        if ( end2 == null || cycle >= end2.getMaxReadLength() ) w.write(".\t.");
                         else {
-                            double aq = end2.getAverageCycleQual(cycle);
-                            w.write(String.format("%.4f",aq));
+                            double aq = end2.getCycleQualAverage(cycle);
+                            w.write(String.format("%.4f\t%.4f",aq,end2.getCycleQualStdDev(cycle)));
                             recordProblem(aq,cycle, problems,col+".End2");
                         }
                     }
@@ -379,31 +391,41 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
     static class CycleStats {
         private long readCount = 0;
-        private long[] cycleQuals = null;
+        private double[] cycleQualsAv = null;
+        private double[] cycleQualsSd = null;
         private int minL = 1000000000; // read min. length
         private int maxL = 0; // read max. length
 
         public CycleStats(int N) {
             readCount = 0;
-            cycleQuals = new long[N];
+            cycleQualsAv = new double[N];
+            cycleQualsSd = new double[N];
         }
 
         public void add(byte[] quals) {
-            if ( quals.length > cycleQuals.length ) throw new StingException("A read of length "+quals.length+
+            if ( quals.length > cycleQualsAv.length ) throw new StingException("A read of length "+quals.length+
                     " encountered, which exceeds specified maximum read length");
             if ( quals.length > maxL ) maxL = quals.length;
             if ( quals.length < minL ) minL = quals.length;
-            for ( int i = 0 ; i < quals.length ; i++ ) {
-                cycleQuals[i] += quals[i];
-            }
             readCount++;
+            for ( int i = 0 ; i < quals.length ; i++ ) {
+                // NOTE: in the update equaltions below, there is no need to check if readCount == 1 (i.e.
+                // we are initializing with the very first record) or not. Indeed, the arrays are initialized with
+                // 0; when the very first value arrives, readCount is 1 and cycleQuals[i] gets set to quals[i] (correct!);
+                // this will also make the second term in the update equation for Sd (quals[i]-cycleQualsAv[i]) equal
+                // to 0, so Sd will be initially set to 0.
+                double oldAvg = cycleQualsAv[i]; // save old mean, will need it for calculation of the variance
+                cycleQualsAv[i] += ( quals[i] - cycleQualsAv[i] ) / readCount; // update mean
+                cycleQualsSd[i] += ( quals[i] - oldAvg ) * ( quals[i] - cycleQualsAv[i] );
+            }
         }
 
         public long getReadCount() { return readCount; }
         public int getMaxReadLength() { return maxL; }
         public int getMinReadLength() { return minL; }
-        long [] getCycleQualSums() { return cycleQuals; }
-        long getCycleQualSum(int i) { return cycleQuals[i]; }
-        double getAverageCycleQual(int i) { return ((double)cycleQuals[i])/readCount; }
+//        long [] getCycleQualSums() { return cycleQuals; }
+//        long getCycleQualSum(int i) { return cycleQuals[i]; }
+        double getCycleQualAverage(int i) { return cycleQualsAv[i]; }
+        double getCycleQualStdDev(int i) { return Math.sqrt( cycleQualsSd[i]/(readCount-1) ); }
     }
 }
