@@ -277,6 +277,15 @@ public class ParsingEngine {
     }
 
     /**
+     * Notify the user that tags have been created.
+     * @param key The key created.
+     * @param tags List of tags, or empty list if no tags are present.
+     */
+    public void addTags(Object key, List<String> tags) {
+        if(clp!=null) clp.addTags(key,tags);
+    }
+
+    /**
      * Notify the user that a deprecated command-line argument has been used.
      * @param argumentSource Deprecated argument source specified by user.
      */
@@ -308,7 +317,8 @@ public class ParsingEngine {
             throw new StingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
-            Object value = (argumentMatches.size() != 0) ? source.parse(argumentMatches) : source.createDefault();
+            Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : source.createDefault();
+
             JVMUtils.setFieldValue(source.field,target,value);
         }
     }

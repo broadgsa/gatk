@@ -50,11 +50,13 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 public class GenomeAnalysisEngine {
@@ -95,6 +97,11 @@ public class GenomeAnalysisEngine {
      * Collection of outputs used by the walker.
      */
     private Collection<Stub<?>> outputs = new ArrayList<Stub<?>>();
+
+    /**
+     * List of tags associated with the given instantiation of the command-line argument.
+     */
+    private final Map<Object,List<String>> tags = new IdentityHashMap<Object,List<String>>();
 
     /**
      * Collection of the filters applied to the walker's input data.
@@ -281,6 +288,27 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Adds an association between a object created by the
+     * command-line argument system and a freeform list of tags.
+     * @param key Object created by the command-line argument system.
+     * @param tags List of tags to use when reading arguments.
+     */
+    public void addTags(Object key, List<String> tags) {
+        this.tags.put(key,tags);        
+    }
+
+    /**
+     * Gets the tags associated with a given object.
+     * @param key Key for which to find a tag.
+     * @return List of tags associated with this key.
+     */
+    public List<String> getTags(Object key)  {
+        if(!tags.containsKey(key))
+            return Collections.emptyList();
+        return tags.get(key);
+    }
+
+    /**
      * Retrieves an instance of the walker based on the walker name.
      *
      * @param walkerName Name of the walker.  Must not be null.  If the walker cannot be instantiated, an exception will be thrown.
@@ -348,7 +376,7 @@ public class GenomeAnalysisEngine {
         }
 
         RMDTrackManager manager = new RMDTrackManager();
-        List<RMDTrack> tracks = manager.getReferenceMetaDataSources(argCollection.RODBindings);
+        List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection.RODBindings);
         validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, tracks);
 
         // validate all the sequence dictionaries against the reference
@@ -547,7 +575,7 @@ public class GenomeAnalysisEngine {
         else
             method = new DownsamplingMethod(DownsampleType.NONE,null,null);
 
-        return new ReadProperties(argCollection.samFiles,
+        return new ReadProperties(unpackBAMFileList(argCollection.samFiles),
                 argCollection.strictnessLevel,
                 argCollection.readBufferSize,
                 method,
@@ -947,4 +975,39 @@ public class GenomeAnalysisEngine {
     public ReadMetrics getCumulativeMetrics() {
         return readsDataSource.getCumulativeReadMetrics();
     }
+
+    /**
+     * Unpack the bam files to be processed, given a list of files.  That list of files can
+     * itself contain entries which are lists of other files to be read (note: you cannot have lists of lists of lists)
+     *
+     * @param inputFiles a list of files that represent either bam files themselves, or a file containing a list of bam files to process
+     *
+     * @return a flattened list of the bam files provided
+     */
+    private List<SAMReaderID> unpackBAMFileList( List<File> inputFiles ) {
+        List<SAMReaderID> unpackedReads = new ArrayList<SAMReaderID>();
+        for( File inputFile: inputFiles ) {
+            if (inputFile.getName().toLowerCase().endsWith(".list") ) {
+                try {
+                    for(String fileName : new XReadLines(inputFile))
+                        unpackedReads.add(new SAMReaderID(new File(fileName),getTags(inputFile)));
+                }
+                catch( FileNotFoundException ex ) {
+                    throw new StingException("Unable to find file while unpacking reads", ex);
+                }
+            }
+            else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
+                unpackedReads.add( new SAMReaderID(inputFile,getTags(inputFile)) );
+            }
+            else if(inputFile.getName().equals("-")) {
+                unpackedReads.add(new SAMReaderID(new File("/dev/stdin"),Collections.<String>emptyList()));
+            }
+            else {
+                Utils.scareUser(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
+                                              "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
+                                              "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
+            }
+        }
+        return unpackedReads;
+    }    
 }

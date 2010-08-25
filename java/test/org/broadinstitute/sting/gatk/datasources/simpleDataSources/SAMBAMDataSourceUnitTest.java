@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 /**
  *
@@ -48,7 +49,7 @@ import java.util.List;
  */
 public class SAMBAMDataSourceUnitTest extends BaseTest {
 
-    private List<File> fl;
+    private List<SAMReaderID> readers;
     private IndexedFastaSequenceFile seq;
 
     /**
@@ -58,7 +59,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
      */
     @Before
     public void doForEachTest() throws FileNotFoundException {
-        fl = new ArrayList<File>();
+        readers = new ArrayList<SAMReaderID>();
 
         // sequence
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
@@ -73,7 +74,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
     @After
     public void undoForEachTest() {
         seq = null;
-        fl.clear();
+        readers.clear();
     }
 
 
@@ -83,8 +84,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         logger.warn("Executing testLinearBreakIterateAll");
 
         // setup the data
-        fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
-        ReadProperties reads = new ReadProperties(fl);
+        readers.add(new SAMReaderID(new File(validationDataLocation+"/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
+        ReadProperties reads = new ReadProperties(readers);
 
         // the sharding strat.
         SAMDataSource data = new SAMDataSource(reads);
@@ -128,8 +129,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         logger.warn("Executing testMergingTwoBAMFiles");
 
         // setup the test files
-        fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
-        ReadProperties reads = new ReadProperties(fl);
+        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
+        ReadProperties reads = new ReadProperties(readers);
 
         // the sharding strat.
         SAMDataSource data = new SAMDataSource(reads);
@@ -168,10 +169,10 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
 
         // setup the data and the counter before our second run
-        fl.clear();
-        fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
-        fl.add(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
-        reads = new ReadProperties(fl);
+        readers.clear();
+        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
+        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
+        reads = new ReadProperties(readers);
 
         count = 0;
         // the sharding strat.

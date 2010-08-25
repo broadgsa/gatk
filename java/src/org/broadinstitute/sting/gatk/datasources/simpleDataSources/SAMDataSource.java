@@ -65,7 +65,7 @@ public class SAMDataSource implements SimpleDataSource {
     /**
      * Identifiers for the readers driving this data source.
      */
-    protected final List<SAMReaderID> readerIDs = new ArrayList<SAMReaderID>();
+    protected final List<SAMReaderID> readerIDs;
 
     /**
      * How far along is each reader?
@@ -109,11 +109,10 @@ public class SAMDataSource implements SimpleDataSource {
         this.readProperties = reads;
         this.readMetrics = new ReadMetrics();
 
-        for (File smFile : reads.getReadsFiles()) {
-            if (!smFile.canRead()) {
-                throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + smFile.getName());
-            }
-            readerIDs.add(new SAMReaderID(smFile));
+        readerIDs = reads.getSAMReaderIDs();
+        for (SAMReaderID readerID : reads.getSAMReaderIDs()) {
+            if (!readerID.samFile.canRead())
+                throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + readerID.samFile.getName());
         }
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
@@ -170,7 +169,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @return True if no reads files are supplying data to the traversal; false otherwise.
      */
     public boolean isEmpty() {
-        return readProperties.getReadsFiles().size() == 0;
+        return readProperties.getSAMReaderIDs().size() == 0;
     }
 
     /**
@@ -550,8 +549,8 @@ public class SAMDataSource implements SimpleDataSource {
          * @param sourceInfo Metadata for the reads to load.
          */
         public SAMReaders(ReadProperties sourceInfo) {
-            for(File readsFile: sourceInfo.getReadsFiles()) {
-                SAMFileReader reader = new SAMFileReader(readsFile);
+            for(SAMReaderID readerID: sourceInfo.getSAMReaderIDs()) {
+                SAMFileReader reader = new SAMFileReader(readerID.samFile);
                 reader.enableFileSource(true);
                 reader.enableIndexCaching(true);
                 reader.setValidationStringency(sourceInfo.getValidationStringency());
@@ -562,14 +561,14 @@ public class SAMDataSource implements SimpleDataSource {
                 logger.debug(String.format("Sort order is: " + header.getSortOrder()));
 
                 if (reader.getFileHeader().getReadGroups().size() < 1) {
-                    SAMReadGroupRecord rec = new SAMReadGroupRecord(readsFile.getName());
-                    rec.setLibrary(readsFile.getName());
-                    rec.setSample(readsFile.getName());
+                    SAMReadGroupRecord rec = new SAMReadGroupRecord(readerID.samFile.getName());
+                    rec.setLibrary(readerID.samFile.getName());
+                    rec.setSample(readerID.samFile.getName());
 
                     reader.getFileHeader().addReadGroup(rec);
                 }
 
-                readers.put(new SAMReaderID(readsFile),reader);
+                readers.put(readerID,reader);
             }
         }
 

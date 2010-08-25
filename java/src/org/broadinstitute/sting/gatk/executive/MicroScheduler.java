@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
@@ -147,7 +148,7 @@ public abstract class MicroScheduler {
      * @return an iterator over the reads specified in the shard.
      */
     protected StingSAMIterator getReadIterator(Shard shard) {
-        return (!reads.isEmpty()) ? reads.seek(shard) : new NullSAMIterator(new ReadProperties(new ArrayList<File>()));
+        return (!reads.isEmpty()) ? reads.seek(shard) : new NullSAMIterator(new ReadProperties(Collections.<SAMReaderID>emptyList()));
     }
 
     /**

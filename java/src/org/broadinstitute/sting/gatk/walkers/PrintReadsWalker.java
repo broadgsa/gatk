@@ -44,7 +44,7 @@ import java.io.PrintStream;
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     /** an optional argument to dump the reads out to a BAM file */
-    @Output(doc="Write output to this BAM filename instead of STDOUT",required=false)
+    @Output(doc="Write output to this BAM filename instead of STDOUT")
     SAMFileWriter out;
     @Argument(fullName = "readGroup", shortName = "readGroup", doc="Discard reads not belonging to the specified read group", required = false)
     String readGroup = null;

@@ -82,12 +82,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         for(SamRecordFilter filter: filters)
             loadArgumentsIntoObject(filter);
 
-        // process any arguments that need a second pass
-        GATKArgumentCollection arguments = getArgumentCollection();
-        processArguments(arguments);
-
         // set the analysis name in the argument collection
-        return GATKEngine.execute(arguments, mWalker, filters);
+        return GATKEngine.execute(getArgumentCollection(), mWalker, filters);
     }
 
     /**
@@ -133,50 +129,15 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     @Override
     protected String getArgumentSourceName( Class argumentSource ) {
         return GATKEngine.getWalkerName((Class<Walker>)argumentSource);
-    }    
-
-    /**
-     * Preprocess the arguments before submitting them to the GATK engine.
-     *
-     * @param argCollection Collection of arguments to preprocess.
-     */
-    private void processArguments( GATKArgumentCollection argCollection ) {
-        argCollection.samFiles = unpackBAMFileList( argCollection.samFiles );
     }
 
     /**
-     * Unpack the bam files to be processed, given a list of files.  That list of files can
-     * itself contain entries which are lists of other files to be read (note: you cannot have lists of lists of lists)
-     *
-     * @param inputFiles a list of files that represent either bam files themselves, or a file containing a list of bam files to process
-     *
-     * @return a flattened list of the bam files provided 
+     * Supply command-line argument tags to the GATK engine.
+     * @param key Key to use, created by the command-line argument system.
+     * @param tags List of freeform tags.
      */
-    public static List<File> unpackBAMFileList( List<File> inputFiles ) {
-        List<File> unpackedReads = new ArrayList<File>();
-        for( File inputFile: inputFiles ) {
-            if (inputFile.getName().toLowerCase().endsWith(".list") ) {
-                try {
-                    for(String fileName : new XReadLines(inputFile))
-                        unpackedReads.addAll(Collections.singletonList(new File(fileName)));
-                }
-                catch( FileNotFoundException ex ) {
-                    throw new StingException("Unable to find file while unpacking reads", ex);
-                }
-            }
-            else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
-                unpackedReads.add( inputFile );
-            }
-            else if(inputFile.getName().equals("-")) {
-                unpackedReads.add( new File("/dev/stdin") );
-            }
-            else {
-                Utils.scareUser(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
-                                              "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
-                                              "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
-            }
-        }
-        return unpackedReads;
+    @Override
+    protected void addTags(Object key, List<String> tags) {
+        GATKEngine.addTags(key,tags);
     }
-
 }

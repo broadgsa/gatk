@@ -77,7 +77,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )  {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
         ArgumentDefinition definition = createDefaultArgumentDefinition(source);
         String fileName = getArgumentValue( definition, matches );
 
@@ -85,7 +85,11 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
         engine.addOutput(stub);
 
-        return createInstanceOfClass(type,stub);
+        Object result = createInstanceOfClass(type,stub);
+        // WARNING: Side effects required by engine!
+        parsingEngine.addTags(result,getArgumentTags(matches));
+        
+        return result;
     }
 
     /**

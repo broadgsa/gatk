@@ -42,7 +42,7 @@ import java.util.*;
  * @author mhanna
  * @version 0.1
  */
-public abstract class   ArgumentTypeDescriptor {
+public abstract class ArgumentTypeDescriptor {
     private static Class[] ARGUMENT_ANNOTATIONS = {Input.class, Output.class, Argument.class};
 
     /**
@@ -116,12 +116,16 @@ public abstract class   ArgumentTypeDescriptor {
 
     /**
      * Parses an argument source to an object.
+     * WARNING!  Mandatory side effect of parsing!  Each parse routine should register the tags it finds with the proper CommandLineProgram.
+     * TODO: Fix this, perhaps with an event model indicating that a new argument has been created.
+     *
+     * @param parsingEngine The engine responsible for parsing.
      * @param source The source used to find the matches.
      * @param matches The matches for the source.
      * @return The parsed object.
      */
-    public Object parse( ArgumentSource source, ArgumentMatches matches ) {
-        return parse( source, source.field.getType(), matches );
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, ArgumentMatches matches) {
+        return parse(parsingEngine, source, source.field.getType(), matches);
     }
 
     /**
@@ -174,7 +178,7 @@ public abstract class   ArgumentTypeDescriptor {
      * @param matches The argument matches for the argument source, or the individual argument match for a scalar if this is being called to help parse a collection.
      * @return The individual parsed object matching the argument match with Class type.
      */
-    public abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
+    public abstract Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches );
 
     /**
      * If the argument source only accepts a small set of options, populate the returned list with
@@ -217,6 +221,20 @@ public abstract class   ArgumentTypeDescriptor {
         if( argumentValues.size() > 1 )
             throw new StingException("Multiple values associated with given definition, but this argument expects only one: " + definition.fullName);
         return argumentValues.size() > 0 ? argumentValues.iterator().next() : null;
+    }
+
+    /**
+     * Gets the tags associated with a given command-line argument.
+     * If the argument matches multiple values, an exception will be thrown.
+     * @param matches The matches for the given argument.
+     * @return The value of the argument if available, or null if not present.
+     */
+    protected List<String> getArgumentTags(ArgumentMatches matches) {
+        Set<String> tags = new LinkedHashSet<String>();
+        for( ArgumentMatch match: matches ) {
+                tags.addAll(match.tags);
+        }
+        return new ArrayList<String>(tags);
     }
 
     /**
@@ -294,16 +312,19 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
         if (source.isFlag())
             return true;
-        String value = getArgumentValue( createDefaultArgumentDefinition(source), matches );
+        ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
+        String value = getArgumentValue( defaultDefinition, matches );
+        Object result;
+        List<String> tags = getArgumentTags( matches );
 
         // lets go through the types we support
         try {
             if (type.isPrimitive()) {
                 Method valueOf = primitiveToWrapperMap.get(type).getMethod("valueOf",String.class);
-                return valueOf.invoke(null,value.trim());
+                result = valueOf.invoke(null,value.trim());
             } else if (type.isEnum()) {
                 Object[] vals = type.getEnumConstants();
                 Object defaultEnumeration = null;  // as we look at options, record the default option if it exists
@@ -314,15 +335,16 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 }
                 // if their argument has no value (null), and there's a default, return that default for the enum value
                 if (defaultEnumeration != null && value == null)
-                    return defaultEnumeration;
+                    result = defaultEnumeration;
                 // if their argument has no value and there's no default, throw a missing argument value exception.
                 // TODO: Clean this up so that null values never make it to this point.  To fix this, we'll have to clean up the implementation of -U.
-                if (value == null)
+                else if (value == null)
                     throw new MissingArgumentValueException(Collections.singleton(createDefaultArgumentDefinition(source)));
-                throw new UnknownEnumeratedValueException(createDefaultArgumentDefinition(source),value);
+                else
+                    throw new UnknownEnumeratedValueException(createDefaultArgumentDefinition(source),value);
             } else {
                 Constructor ctor = type.getConstructor(String.class);
-                return ctor.newInstance(value);
+                result = ctor.newInstance(value);
             }
         }
         catch (NoSuchMethodException e) {
@@ -334,7 +356,10 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         } catch (InstantiationException e) {
             throw new StingException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
         }
+        // WARNING: Side effect!
+        parsingEngine.addTags(result,tags);
 
+        return result;
     }
     
 
@@ -367,9 +392,10 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )
-    {
+    public Object parse(ParsingEngine parsingEngine,ArgumentSource source, Class type, ArgumentMatches matches) {
         Class componentType;
+        Object result;
+        Set<String> tags = new LinkedHashSet<String>();
 
         if( Collection.class.isAssignableFrom(type) ) {
 
@@ -399,11 +425,13 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
 
             for( ArgumentMatch match: matches ) {
-                for( ArgumentMatch value: match )
-                    collection.add( componentArgumentParser.parse(source,componentType,new ArgumentMatches(value)) );
+                for( ArgumentMatch value: match ) {
+                    collection.add( componentArgumentParser.parse(parsingEngine,source,componentType,new ArgumentMatches(value)) );
+                    tags.addAll(value.tags);
+                }
             }
 
-            return collection;
+            result = collection;
 
         }
         else if( type.isArray() ) {
@@ -412,21 +440,25 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
             // Assemble a collection of individual values used in this computation.
             Collection<ArgumentMatch> values = new ArrayList<ArgumentMatch>();
-            for( ArgumentMatch match: matches ) {
+            for( ArgumentMatch match: matches )
                 for( ArgumentMatch value: match )
                     values.add(value);
-            }
 
-            Object arr = Array.newInstance(componentType,values.size());
+            result = Array.newInstance(componentType,values.size());
 
             int i = 0;
-            for( ArgumentMatch value: values )
-                Array.set( arr,i++,componentArgumentParser.parse(source,componentType,new ArgumentMatches(value)));
-
-            return arr;
+            for( ArgumentMatch value: values ) {
+                Array.set( result,i++,componentArgumentParser.parse(parsingEngine,source,componentType,new ArgumentMatches(value)));
+                tags.addAll(value.tags);
+            }
         }
         else
             throw new StingException("Unsupported compound argument type: " + type);
+
+        // WARNING: Side effect!
+        parsingEngine.addTags(result,new ArrayList<String>(tags));
+
+        return result;
     }
 
     /**
@@ -506,17 +538,22 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
 
     @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
+    public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
         if(multiplexedIds == null)
             throw new StingException("Cannot directly parse a MultiplexArgumentTypeDescriptor; must create a derivative type descriptor first.");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
+
         Class componentType = getCollectionComponentType(source.field);
 
+
         for(Object id: multiplexedIds) {
-            Object value = ArgumentTypeDescriptor.create(componentType).parse(source,componentType,matches.transform(multiplexer,id));
+            Object value = ArgumentTypeDescriptor.create(componentType).parse(parsingEngine,source,componentType,matches.transform(multiplexer,id));
             multiplexedMapping.put(id,value);
         }
+
+        parsingEngine.addTags(multiplexedMapping,getArgumentTags(matches));
+
         return multiplexedMapping;
     }
 

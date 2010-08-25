@@ -91,7 +91,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     }
 
     @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )  {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
         String writerFileName = getArgumentValue( createBAMArgumentDefinition(source), matches );
         if( writerFileName == null )
             throw new StingException("SAM file compression was supplied, but no associated writer was supplied with it.");
@@ -103,6 +103,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         if( compressionLevel != null )
             stub.setCompressionLevel(compressionLevel);
 
+        // WARNING: Side effects required by engine!
+        parsingEngine.addTags(stub,getArgumentTags(matches));
         engine.addOutput(stub);
 
         return stub;
@@ -121,7 +123,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        DEFAULT_ARGUMENT_FULLNAME,
                                        DEFAULT_ARGUMENT_SHORTNAME,
                                        ArgumentDefinition.getDoc(annotation),
-                                       true,
+                                       false,
                                        false,
                                        source.isMultiValued(),
                                        source.isHidden(),

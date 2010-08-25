@@ -49,6 +49,11 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
     public final SortedMap<Integer,List<String>> indices = new TreeMap<Integer,List<String>>();
 
     /**
+     * An ordered, freeform collection of tags.
+     */
+    public final List<String> tags;
+
+    /**
      * Create a new argument match, defining its properties later.  Used to create invalid arguments.
      */
     public ArgumentMatch() {
@@ -63,6 +68,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
     private ArgumentMatch(String label,ArgumentDefinition definition) {
         this.label = label;
         this.definition = definition;
+        this.tags = Collections.emptyList();
     }
 
     /**
@@ -70,13 +76,21 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @param label Label of the argument match.  Must not be null.
      * @param definition The associated definition, if one exists.  May be null.
      * @param index Position of the argument.  Must not be null.
+     * @param tags ordered freeform text tags associated with this argument.
      */
-    public ArgumentMatch( String label, ArgumentDefinition definition, int index ) {
-        this( label, definition, index, null );
+    public ArgumentMatch( String label, ArgumentDefinition definition, int index, List<String> tags ) {
+        this( label, definition, index, null, tags );
     }
 
-
-    private ArgumentMatch( String label, ArgumentDefinition definition, int index, String value ) {
+    /**
+     * A simple way of indicating that an argument with the given label and definition exists at this index.
+     * @param label Label of the argument match.  Must not be null.
+     * @param definition The associated definition, if one exists.  May be null.
+     * @param index Position of the argument.  Must not be null.
+     * @param value Value for the argument at this position.
+     * @param tags ordered freeform text tags associated with this argument.
+     */
+    private ArgumentMatch( String label, ArgumentDefinition definition, int index, String value, List<String> tags ) {
         this.label = label;
         this.definition = definition;
 
@@ -84,6 +98,8 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
         if( value != null )
             values.add(value);
         indices.put(index,values );
+
+        this.tags = tags;
     }
 
     /**
@@ -161,7 +177,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
                 if( nextIndex == null || nextToken == null )
                     throw new IllegalStateException( "No more ArgumentMatches are available" );
 
-                ArgumentMatch match = new ArgumentMatch( label, definition, nextIndex, nextToken );
+                ArgumentMatch match = new ArgumentMatch( label, definition, nextIndex, nextToken, tags );
                 prepareNext();
                 return match;
             }

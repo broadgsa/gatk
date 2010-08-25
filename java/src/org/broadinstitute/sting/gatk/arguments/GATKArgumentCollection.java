@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;

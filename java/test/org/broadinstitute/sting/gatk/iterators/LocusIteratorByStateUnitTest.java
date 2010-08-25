@@ -6,6 +6,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -40,7 +41,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         final byte[] bases = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
 
         // create a test version of the Reads object
-        ReadProperties readAttributes = new ReadProperties(new ArrayList<File>());
+        ReadProperties readAttributes = new ReadProperties(new ArrayList<SAMReaderID>());
         JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
 
         SAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
@@ -92,7 +93,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         final byte[] quals = new byte[] { 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
 
         // create a test version of the Reads object
-        ReadProperties readAttributes = new ReadProperties(new ArrayList<File>());
+        ReadProperties readAttributes = new ReadProperties(new ArrayList<SAMReaderID>());
         JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
 
         SAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
@@ -140,7 +141,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             records.add(ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, x, 20));
 
         // create a test version of the Reads object
-        ReadProperties reads = new ReadProperties(new ArrayList<File>());
+        ReadProperties reads = new ReadProperties(new ArrayList<SAMReaderID>());
         JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"maximumReadsAtLocus"),reads,MAX_READS);
 
         // create the iterator by state with the fake reads and fake records
@@ -166,7 +167,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             records.add(ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, 100, 20));
 
         // create a test version of the Reads object
-        ReadProperties reads = new ReadProperties(new ArrayList<File>());
+        ReadProperties reads = new ReadProperties(new ArrayList<SAMReaderID>());
         JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"maximumReadsAtLocus"),reads,MAX_READS);
 
         // create the iterator by state with the fake reads and fake records

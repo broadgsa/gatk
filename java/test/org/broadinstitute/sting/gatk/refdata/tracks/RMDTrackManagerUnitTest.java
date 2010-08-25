@@ -108,8 +108,8 @@ public class RMDTrackManagerUnitTest extends BaseTest {
         triplets.add("db");
         triplets.add("DBSNP");
         triplets.add("../../GATK_Data/dbsnp_130_b36.rod");
-        Assert.assertEquals(1, manager.getReferenceMetaDataSources(triplets).size());
-        RMDTrack t = manager.getReferenceMetaDataSources(triplets).get(0);
+        Assert.assertEquals(1, manager.getReferenceMetaDataSources(null,triplets).size());
+        RMDTrack t = manager.getReferenceMetaDataSources(null,triplets).get(0);
         // make sure we have a single track
         // lets test the first and 20th contigs of the human reference
 

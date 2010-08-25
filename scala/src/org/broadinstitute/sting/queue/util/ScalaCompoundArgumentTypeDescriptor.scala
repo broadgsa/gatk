@@ -3,7 +3,7 @@ package org.broadinstitute.sting.queue.util
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.QException
 import java.lang.Class
-import org.broadinstitute.sting.commandline.{ArgumentMatches, ArgumentSource, ArgumentTypeDescriptor}
+import org.broadinstitute.sting.commandline.{ArgumentMatches, ArgumentSource, ArgumentTypeDescriptor, ParsingEngine}
 
 /**
  * An ArgumentTypeDescriptor that can parse the scala collections.
@@ -42,7 +42,7 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
    * @param argumentMatches The argument match strings that were found for this argument source.
    * @return The parsed object.
    */
-  def parse(source: ArgumentSource, classType: Class[_], argumentMatches: ArgumentMatches) = {
+  def parse(parsingEngine: ParsingEngine, source: ArgumentSource, classType: Class[_], argumentMatches: ArgumentMatches) = {
     val componentType = ReflectionUtils.getCollectionType(source.field)
     val componentArgumentParser = ArgumentTypeDescriptor.create(componentType)
 
@@ -50,19 +50,19 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
       var list = List.empty[Any]
       for (argumentMatch <- argumentMatches)
         for (value <- argumentMatch)
-          list :+= componentArgumentParser.parse(source, componentType, new ArgumentMatches(value))
+          list :+= componentArgumentParser.parse(parsingEngine, source, componentType, new ArgumentMatches(value))
       list
     } else if (classOf[Set[_]].isAssignableFrom(classType)) {
       var set = Set.empty[Any]
       for (argumentMatch <- argumentMatches)
         for (value <- argumentMatch)
-            set += componentArgumentParser.parse(source, componentType, new ArgumentMatches(value))
+            set += componentArgumentParser.parse(parsingEngine, source, componentType, new ArgumentMatches(value))
       set
     } else if (classOf[Option[_]].isAssignableFrom(classType)) {
       if (argumentMatches.size > 1)
         throw new QException("Unable to set Option to multiple values: " + argumentMatches.mkString(" "))
       else if (argumentMatches.size == 1)
-        Some(componentArgumentParser.parse(source, componentType, argumentMatches))
+        Some(componentArgumentParser.parse(parsingEngine, source, componentType, argumentMatches))
       else
         None
     } else

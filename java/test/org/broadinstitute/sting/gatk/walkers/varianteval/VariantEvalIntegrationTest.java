@@ -14,13 +14,13 @@ public class
 
     private static String root = cmdRoot +
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
-            " -B eval,VCF," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
-            " -B comp_genotypes,VCF," + validationDataLocation + "yri.trio.gatk.ug.head.vcf -reportType Grep";
+            " -B:eval,VCF " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
+            " -B:comp_genotypes,VCF " + validationDataLocation + "yri.trio.gatk.ug.head.vcf -reportType Grep";
 
     private static String rootGZ = cmdRoot +
                 " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
-                " -B eval,VCF," + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf.gz" +
-                " -B comp_genotypes,VCF," + validationDataLocation + "yri.trio.gatk.ug.head.vcf.gz -reportType Grep";
+                " -B:eval,VCF " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf.gz" +
+                " -B:comp_genotypes,VCF " + validationDataLocation + "yri.trio.gatk.ug.head.vcf.gz -reportType Grep";
 
     private static String[] testsEnumerations = {root, rootGZ};
 
@@ -46,7 +46,7 @@ public class
     public void testVEGenotypeConcordance() {
         String vcfFiles[] = {"GenotypeConcordanceEval.vcf", "GenotypeConcordanceEval.vcf.gz"};
         for (String vcfFile : vcfFiles) {
-            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B eval,VCF," + validationDataLocation + vcfFile + " -B comp,VCF," + validationDataLocation + "GenotypeConcordanceComp.vcf -noStandard -E GenotypeConcordance -reportType CSV -o %s",
+            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noStandard -E GenotypeConcordance -reportType CSV -o %s",
                     1,
                     Arrays.asList("15d1075d384da2bb7445f7493f2b6a07"));
             executeTest("testVEGenotypeConcordance" + vcfFile, spec);
@@ -76,8 +76,8 @@ public class
     public void testVEComplex() {
         HashMap<String, String> expectations = new HashMap<String, String>();
         String extraArgs1 = "-L " + validationDataLocation + "chr1_b36_pilot3.interval_list -family NA19238+NA19239=NA19240 -MVQ 30 -E MendelianViolationEvaluator" +
-                " -B dbsnp_130,dbSNP," + GATKDataLocation + "dbsnp_130_b36.rod" +
-                " -B comp_hapmap,VCF," + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
+                " -B:dbsnp_130,dbSNP " + GATKDataLocation + "dbsnp_130_b36.rod" +
+                " -B:comp_hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
         String matchingMD5 = "dd513bc72860133a58e9ee542782162b";
@@ -104,7 +104,7 @@ public class
                        " -L 21" +
                        " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
                        " -E CountFunctionalClasses -noStandard" +
-                       " -B eval,VCF," + validationDataLocation + "test.filtered.maf_annotated.vcf" +
+                       " -B:eval,VCF " + validationDataLocation + "test.filtered.maf_annotated.vcf" +
                        " -o %s";
         String md5 = "d41d8cd98f00b204e9800998ecf8427e";
 

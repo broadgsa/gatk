@@ -3,8 +3,8 @@ package org.broadinstitute.sting.gatk;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
@@ -26,7 +26,7 @@ import java.util.Collection;
  * information about how they should be downsampled, sorted, and filtered.
  */
 public class ReadProperties {
-    private List<File> readsFiles = null;
+    private List<SAMReaderID> readers = null;
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
     private Integer readBufferSize = null;
     private DownsamplingMethod downsamplingMethod = null;
@@ -63,8 +63,8 @@ public class ReadProperties {
      * Gets a list of the files acting as sources of reads.
      * @return A list of files storing reads data.
      */
-    public List<File> getReadsFiles() {
-        return readsFiles;
+    public List<SAMReaderID> getSAMReaderIDs() {
+        return readers;
     }
 
     /**
@@ -115,8 +115,8 @@ public class ReadProperties {
      * Simple constructor for unit testing.
      * @param readsFiles List of reads files to open.
      */
-    public ReadProperties( List<File> readsFiles ) {
-        this.readsFiles = readsFiles;
+    public ReadProperties( List<SAMReaderID> readsFiles ) {
+        this.readers = readsFiles;
         this.downsamplingMethod = new DownsamplingMethod(DownsampleType.NONE,null,null);
         this.supplementalFilters = new ArrayList<SamRecordFilter>();
         this.exclusionList = new ValidationExclusion();
@@ -138,7 +138,7 @@ public class ReadProperties {
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      */
-    ReadProperties( List<File> samFiles,
+    ReadProperties( List<SAMReaderID> samFiles,
            SAMFileReader.ValidationStringency strictness,
            Integer readBufferSize,
            DownsamplingMethod downsamplingMethod,
@@ -147,7 +147,7 @@ public class ReadProperties {
            int maximumReadsAtLocus,
            boolean includeReadsWithDeletionAtLoci,
            boolean generateExtendedEvents) {
-        this.readsFiles = samFiles;
+        this.readers = samFiles;
         this.readBufferSize = readBufferSize;
         this.validationStringency = strictness;
         this.downsamplingMethod = downsamplingMethod;

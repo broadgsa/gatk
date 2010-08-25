@@ -25,8 +25,12 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.utils.Utils;
+
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Holds a pattern, along with how to get to the argument definitions that could match that pattern.
@@ -76,18 +80,32 @@ public abstract class ParsingMethod {
 
         String argument = matcher.group(1).trim();
 
+        List<String> tags = new ArrayList<String>();
+        if(matcher.group(2) != null)
+            tags.addAll(Utils.split(matcher.group(2),","));
+
         // Find the most appropriate argument definition for the given argument.
         ArgumentDefinition argumentDefinition = definitions.findArgumentDefinition( argument, definitionMatcher );
 
         // Try to find a matching argument.  If found, label that as the match.  If not found, add the argument
         // with a null definition.
-        ArgumentMatch argumentMatch = new ArgumentMatch( argument, argumentDefinition, position );
+        ArgumentMatch argumentMatch = new ArgumentMatch( argument, argumentDefinition, position, tags );
 
         return argumentMatch;
     }
 
-    public static ParsingMethod FullNameParsingMethod = new ParsingMethod(Pattern.compile("\\s*--([A-Za-z_][\\w\\-\\.]*)\\s*"),
+    /**
+     * A command-line argument always starts with an alphabetical character or underscore followed by any word character.
+     */
+    private static final String ARGUMENT_TEXT = "[A-Za-z_][\\w\\-\\.]*";
+
+    /**
+     * Tags, on the other hand, can start with any word character.
+     */
+    private static final String TAG_TEXT = "[\\w\\-\\.]*";
+
+    public static ParsingMethod FullNameParsingMethod = new ParsingMethod(Pattern.compile(String.format("\\s*--(%1$s)(?:\\:(%2$s(?:,%2$s)*))?\\s*",ARGUMENT_TEXT,TAG_TEXT)),
                                                                           ArgumentDefinitions.FullNameDefinitionMatcher) {};
-    public static ParsingMethod ShortNameParsingMethod = new ParsingMethod(Pattern.compile("\\s*-([A-Za-z_][\\w\\-]*)\\s*"),
+    public static ParsingMethod ShortNameParsingMethod = new ParsingMethod(Pattern.compile(String.format("\\s*-(%1$s)(?:\\:(%2$s(?:,%2$s)*))?\\s*",ARGUMENT_TEXT,TAG_TEXT)),
                                                                            ArgumentDefinitions.ShortNameDefinitionMatcher) {};
 }

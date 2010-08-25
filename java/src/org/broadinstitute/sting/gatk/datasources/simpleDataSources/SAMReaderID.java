@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import java.io.File;
+import java.util.List;
+import java.util.Collections;
 
 /**
  * Uniquely identifies a SAM file reader.
@@ -16,11 +18,26 @@ public class SAMReaderID {
     protected final File samFile;
 
     /**
+     * A list of tags associated with this BAM file.
+     */
+    protected final List<String> tags;
+
+    /**
      * Creates an identifier for a SAM file based on read.
      * @param samFile The source file for SAM data.
+     * @param tags tags to use when creating a reader ID.
      */
-    protected SAMReaderID(File samFile) {
+    public SAMReaderID(File samFile, List<String> tags) {
         this.samFile = samFile;
+        this.tags = tags;
+    }
+
+    /**
+     * Gets the tags associated with the given BAM file.
+     * @return A collection of the tags associated with this file.
+     */
+    public List<String> getTags() {
+        return Collections.unmodifiableList(tags);
     }
 
     /**

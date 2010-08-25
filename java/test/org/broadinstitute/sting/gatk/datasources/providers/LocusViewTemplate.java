@@ -19,7 +19,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 /**
@@ -51,7 +50,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator();
 
         GenomeLoc shardBounds = GenomeLocParser.createGenomeLoc("chr1", 1, 5);
-        Shard shard = new LocusShard(new SAMDataSource(new ReadProperties(Collections.<File>emptyList())),Collections.singletonList(shardBounds),Collections.<SAMReaderID,SAMFileSpan>emptyMap());
+        Shard shard = new LocusShard(new SAMDataSource(new ReadProperties(Collections.<SAMReaderID>emptyList())),Collections.singletonList(shardBounds),Collections.<SAMReaderID,SAMFileSpan>emptyMap());
         WindowMaker windowMaker = new WindowMaker(shard,iterator,shard.getGenomeLocs(),LocusIteratorByState.NO_FILTERS);
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, window.getLocus(), window, null, null);

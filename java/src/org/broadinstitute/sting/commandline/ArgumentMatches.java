@@ -185,7 +185,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
 
         // Clone the list of argument matches to avoid ConcurrentModificationExceptions.
         for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
-            if( argumentMatch.definition == match.definition ) {
+            if( argumentMatch.definition == match.definition && argumentMatch.tags.equals(match.tags) ) {
                 argumentMatch.mergeInto( match );
                 for( int index: match.indices.keySet() )
                     argumentMatches.put( index, argumentMatch );

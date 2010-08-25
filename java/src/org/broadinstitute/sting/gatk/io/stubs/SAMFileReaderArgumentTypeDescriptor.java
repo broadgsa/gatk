@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.commandline.ArgumentMatches;
+import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -59,7 +60,7 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     }
 
     @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches ) {
         SAMFileReaderBuilder builder = new SAMFileReaderBuilder();
 
         String readerFileName = getArgumentValue( createDefaultArgumentDefinition(source), matches );
@@ -69,6 +70,7 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
         builder.setSAMFile(new File(readerFileName));
 
+        // WARNING: Skipping required side-effect because stub is impossible to generate.
         engine.addInput(source, builder);
 
         // MASSIVE KLUDGE!  SAMFileReader is tricky to implement and we don't yet have a stub.  Return null, then

@@ -149,8 +149,8 @@ public class ArgumentSource {
      * @param values String representation of all values passed.
      * @return the parsed value of the object.
      */
-    public Object parse( ArgumentMatches values ) {
-        return typeDescriptor.parse( this, values );
+    public Object parse( ParsingEngine parsingEngine, ArgumentMatches values ) {
+        return typeDescriptor.parse( parsingEngine, this, values );
     }
 
     /**

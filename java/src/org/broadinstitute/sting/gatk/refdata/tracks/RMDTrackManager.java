@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -62,13 +63,13 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
     /**
      * find the associated reference meta data
      *
-     * @param triplets the triplets of strings from the -B command line option
+     * @param bindings the bindings of strings from the -B command line option
      *
      * @return a list of RMDTracks, one for each -B option
      */
-    public List<RMDTrack> getReferenceMetaDataSources(List<String> triplets) {
+    public List<RMDTrack> getReferenceMetaDataSources(GenomeAnalysisEngine engine,List<String> bindings) {
         initializeTrackTypes();
-        initializeTriplets(triplets);
+        initializeBindings(engine,bindings);
         // try and make the tracks given their requests
         return createRequestedTrackObjects();
     }
@@ -91,18 +92,30 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
     }
 
     /**
-     * initialize our lists of triplets
-     * @param triplets the input to the GATK, as a list of strings passed in through the -B options
+     * initialize our lists of bindings
+     * @param engine The engine, used to populate tags.
+     * @param bindings the input to the GATK, as a list of strings passed in through the -B options
      */
-    private void initializeTriplets(List<String> triplets) {
+    private void initializeBindings(GenomeAnalysisEngine engine,List<String> bindings) {
         // NOTE: Method acts as a static.  Once the inputs have been passed once they are locked in.
-        if (inputs.size() > 0 || triplets.size() == 0)
+        if (inputs.size() > 0 || bindings.size() == 0)
             return;
 
-        for (String value: triplets) {
-            String[] split = value.split(",");
-            if (split.length != 3) throw new IllegalArgumentException(value + " is not a valid reference metadata track description");
-            inputs.add(new RMDTriplet(split[0], split[1], split[2]));
+        for (String binding: bindings) {
+            if(engine != null && engine.getTags(binding).size() == 2) {
+                // Assume that if tags are present, those tags are name and type.
+                // Name is always first, followed by type.
+                List<String> parameters = engine.getTags(binding);
+                String name = parameters.get(0);
+                String type = parameters.get(1);
+                inputs.add(new RMDTriplet(name,type,binding));
+            }
+            else {
+                // Otherwise, use old-format bindings.
+                String[] split = binding.split(",");
+                if (split.length != 3) throw new IllegalArgumentException(binding + " is not a valid reference metadata track description");
+                inputs.add(new RMDTriplet(split[0], split[1], split[2]));
+            }
         }
     }
 

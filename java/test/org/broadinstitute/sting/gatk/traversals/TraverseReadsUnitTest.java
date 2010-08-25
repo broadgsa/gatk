@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -56,9 +57,9 @@ import java.util.Collections;
 public class TraverseReadsUnitTest extends BaseTest {
 
     private ReferenceSequenceFile seq;
-    private File bam = new File(validationDataLocation + "index_test.bam"); // TCGA-06-0188.aligned.duplicates_marked.bam");
+    private SAMReaderID bam = new SAMReaderID(new File(validationDataLocation + "index_test.bam"),Collections.<String>emptyList()); // TCGA-06-0188.aligned.duplicates_marked.bam");
     private File refFile = new File(validationDataLocation + "Homo_sapiens_assembly17.fasta");
-    private List<File> bamList;
+    private List<SAMReaderID> bamList;
     private Walker countReadWalker;
     private File output;
     private long readSize = 100000;
@@ -82,7 +83,7 @@ public class TraverseReadsUnitTest extends BaseTest {
             fail("Couldn't open the output file");
         }
 
-        bamList = new ArrayList<File>();
+        bamList = new ArrayList<SAMReaderID>();
         bamList.add(bam);
         countReadWalker = new CountReadsWalker();
         

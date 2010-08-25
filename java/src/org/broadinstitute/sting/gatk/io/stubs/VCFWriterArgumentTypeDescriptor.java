@@ -111,7 +111,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * @return Transform from the matches into the associated argument.
      */
     @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )  {
+    public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
         // Get the filename for the genotype file, if it exists.  If not, we'll need to send output to out.
         String writerFileName = getArgumentValue(createDefaultArgumentDefinition(source),matches);
         File writerFile = writerFileName != null ? new File(writerFileName) : null;
@@ -122,6 +122,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         // Create a stub for the given object.
         VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress) : new VCFWriterStub(engine, System.out, compress);
 
+        // WARNING: Side effects required by engine!
+        parsingEngine.addTags(stub,getArgumentTags(matches));
         engine.addOutput(stub);
 
         return stub;
