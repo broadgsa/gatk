@@ -27,17 +27,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.annotator;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -51,14 +41,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTableCodec;
-import org.broadinstitute.sting.gatk.walkers.By;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -69,11 +54,9 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
  *
  * For details, see:  http://www.broadinstitute.org/gsa/wiki/index.php/GenomicAnnotator
  */
-//@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariantContext.class))
-//@Allows(value={DataSource.READS, DataSource.REFERENCE})
-//@Reference(window=@Window(start=-50,stop=50))
+@Requires(value={DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=VariantContext.class))
 @By(DataSource.REFERENCE)
-public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, LinkedList<VariantContext>> implements TreeReducible<LinkedList<VariantContext>> {
+public class GenomicAnnotator extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
@@ -98,14 +81,10 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
 
     private boolean strict = true;
 
-    private boolean multiThreadedMode = false; //whether map will be called by more than one thread.
-
     /**
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
-
-        multiThreadedMode = getToolkit().getArguments().numberOfThreads > 1;
 
         // get the list of all sample names from the various VCF input rods
         TreeSet<String> samples = new TreeSet<String>();
@@ -251,8 +230,7 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
      *
      * @return 0
      */
-    public LinkedList<VariantContext> reduceInit() { return new LinkedList<VariantContext>(); }
-
+    public Integer reduceInit() { return 0; }
 
     /**
      * We want reads that span deletions
@@ -269,93 +247,43 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
      * @param context  the context for the given locus
      * @return 1 if the locus was successfully processed, 0 if otherwise
      */
-    public LinkedList<VariantContext> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        LinkedList<VariantContext> result = new LinkedList<VariantContext>();
-
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
-            return result;
+            return 0;
 
-        List<Object> rods = tracker.getReferenceMetaData("variant");
-        // ignore places where we don't have a variant
-        if ( rods.size() == 0 )
-            return result;
-
-        Object variant = rods.get(0);
-        if( BaseUtils.isNBase(ref.getBase()) ) {
-            return result; //TODO Currently, VariantContextAdaptors.toVCF(annotatedVC, ref.getBase()) fails when base is 'N'. is this right?
-        }
-
-        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", variant, ref);
-        if ( vc == null )
-            return result;
-
-        // if the reference base is not ambiguous, we can annotate
-        Collection<VariantContext> annotatedVCs = Arrays.asList(vc);
-        if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
-            if ( stratifiedContexts != null ) {
-                annotatedVCs = engine.annotateContext(tracker, ref, stratifiedContexts, vc);
+        Set<VariantContext> results = new LinkedHashSet<VariantContext>();
+        for (VariantContext vc : tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false)) {
+            if ( vc.isFiltered() ||
+                    (vc.isVariant() && (!vc.isSNP() || !vc.isBiallelic())) ) {
+                results.add(vc);
+            } else {
+                Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+                if ( stratifiedContexts != null )
+                    results.addAll(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
+                else
+                    results.add(vc);
             }
         }
 
-        if(multiThreadedMode) {
-            //keep results in memory, only writing them in onTraversalDone(..) after they have been merged via treeReduce(..)
-            for(VariantContext annotatedVC : annotatedVCs ) {
-                result.add(annotatedVC);
-            }
-        } else {
-            //write results to disk immediately
-            for(VariantContext annotatedVC : annotatedVCs ) {
-                vcfWriter.add(annotatedVC,ref.getBase());
-            }
-        }
+        for ( VariantContext vc : results )
+            vcfWriter.add(vc ,ref.getBase());
 
-
-        return result;
+        return 1;
     }
 
-
-    /**
-     * Merge lists.
-     *
-     * @param value result of the map.
-     * @param sum   accumulator for the reduce.
-     * @return the new number of loci processed.
-     */
-    public LinkedList<VariantContext> reduce(LinkedList<VariantContext> value, LinkedList<VariantContext> sum) {
-        sum.addAll(value);
-        return sum;
+    public Integer reduce(Integer value, Integer sum) {
+        return sum + value;
     }
 
-
-
-    /**
-     * Merge lists.
-     */
-    public LinkedList<VariantContext> treeReduce(LinkedList<VariantContext> lhs, LinkedList<VariantContext> rhs) {
-        lhs.addAll(rhs);
-        return lhs;
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
     }
 
-
-
-
-    /**
-     * Tell the user the number of loci processed and close out the new variants file.
-     *
-     * @param totalOutputRecords  all VCs seen.
-     */
-    public void onTraversalDone(LinkedList<VariantContext> totalOutputRecords) {
-        if(multiThreadedMode) {
-            //finally write results to disk
-            for(VariantContext vc : totalOutputRecords ) {
-                vcfWriter.add(vc, vc.getReference().getBases()[0]);
-            }
-        }
+    public void onTraversalDone(Integer sum) {
 
         //out.printf("Generated %d annotated VCF records.\n", totalOutputVCFRecords);
         Map<String, Integer> inputTableHitCounter = engine.getInputTableHitCounter();
-        for(Entry<String, Integer> e : inputTableHitCounter.entrySet()) {
+        for ( Entry<String, Integer> e : inputTableHitCounter.entrySet() ) {
             final String bindingName = e.getKey();
             final int counter = e.getValue();
             //final float percent = 100 * counter /(float) totalOutputVCFRecords;
@@ -363,7 +291,5 @@ public class GenomicAnnotator extends RodWalker<LinkedList<VariantContext>, Link
             System.out.printf(" %d annotated with %s.\n", counter, bindingName );
         }
     }
-
-
 }
 
