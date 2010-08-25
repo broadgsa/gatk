@@ -58,13 +58,13 @@ class ExampleUnifiedGenotyper extends QScript {
     // If you are running this on a compute farm, make sure that the Sting/shell
     // folder is in your path to use mergeText.sh and splitIntervals.sh.
     genotyper.scatterCount = 3
-    genotyper.input_file :+= qscript.bamFile
-    genotyper.variants_out = swapExt(qscript.bamFile, "bam", "unfiltered.vcf")
+    genotyper.input_file :+= qscript.bamFile.toNamedFile
+    genotyper.out = swapExt(qscript.bamFile, "bam", "unfiltered.vcf")
 
-    evalUnfiltered.rodBind :+= RodBind("vcf", "VCF", genotyper.variants_out)
-    evalUnfiltered.out = swapExt(genotyper.variants_out, "vcf", "eval")
+    evalUnfiltered.rodBind :+= RodBind("vcf", "VCF", genotyper.out)
+    evalUnfiltered.out = swapExt(genotyper.out, "vcf", "eval")
 
-    variantFilter.rodBind :+= RodBind("vcf", "VCF", genotyper.variants_out)
+    variantFilter.rodBind :+= RodBind("vcf", "VCF", genotyper.out)
     variantFilter.out = swapExt(qscript.bamFile, "bam", "filtered.vcf")
     variantFilter.filterName = filterNames
     variantFilter.filterExpression = filterExpressions

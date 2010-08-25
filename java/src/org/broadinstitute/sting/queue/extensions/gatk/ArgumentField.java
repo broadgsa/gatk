@@ -116,15 +116,23 @@ public abstract class ArgumentField {
     /** @return The scala default value. */
     protected abstract String getDefaultValue();
 
-    /** @return The class of the field, or the component type if the scala field is a collection. */
+    /** @return The class of the field, or the component type if the scala
+     * field is a collection, or null if no type needs to be imported.
+     * NOTE: Used in some cases by getFieldType so the two function should be overriden together.
+     */
     protected abstract Class<?> getInnerType();
 
     /** @return A custom command for overriding freeze. */
     protected String getFreezeFields() { return ""; }
 
-    @SuppressWarnings("unchecked")
+    /** @return Classes that should be imported. */
     protected Collection<Class<?>> getImportClasses() {
-        return Arrays.asList(this.getInnerType(), getAnnotationIOClass());
+        ArrayList<Class<?>> importClasses = new ArrayList<Class<?>>();
+        importClasses.add(this.getAnnotationIOClass());
+        Class<?> innerType = this.getInnerType();
+        if (innerType != null)
+            importClasses.add(innerType);
+        return importClasses;
     }
 
     /** @return True if this field uses @Scatter. */

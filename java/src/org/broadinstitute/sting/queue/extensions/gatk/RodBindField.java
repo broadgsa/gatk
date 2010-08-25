@@ -65,8 +65,8 @@ public class RodBindField extends ArgumentField {
 
     @Override public String getCommandLineAddition() {
         return String.format(this.useOption()
-                ? " + optional(\" -B %s,%s,\", %s)"
-                : " + \" -B %s,%s,\" + %s",
+                ? " + optional(\" -B:%s,%s \", %s)"
+                : " + \" -B:%s,%s \" + %s",
                 this.trackName, this.typeName, getFieldName());
     }
 

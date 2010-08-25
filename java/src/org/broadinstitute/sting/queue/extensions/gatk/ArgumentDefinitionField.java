@@ -46,6 +46,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     @Override protected boolean isRequired() { return argumentDefinition.required; }
     @Override protected String getExclusiveOf() { return escape(argumentDefinition.exclusiveOf); }
     @Override protected String getValidation() { return escape(argumentDefinition.validation); }
+    protected boolean isFlag() { return argumentDefinition.isFlag; }
+    protected boolean isMultiValued() { return argumentDefinition.isMultiValued; }
 
     protected final String getShortFieldGetter() { return getFieldName(getRawShortFieldName()); }
     protected final String getShortFieldSetter() { return getFieldName(getRawShortFieldName() + "_="); }
@@ -75,8 +77,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     protected static final String REQUIRED_TEMPLATE = " + \" %1$s \" + %2$s.format(%3$s)";
-    protected static final String REPEAT_TEMPLATE = " + repeat(\" %1$s \", %3$s, format=%2$s)";
-    protected static final String OPTIONAL_TEMPLATE = " + optional(\" %1$s \", %3$s, format=%2$s)";
+    protected static final String REPEAT_TEMPLATE = " + repeat(\" %1$s \", %3$s, format=formatValue(%2$s))";
+    protected static final String OPTIONAL_TEMPLATE = " + optional(\" %1$s \", %3$s, format=formatValue(%2$s))";
     protected static final String FLAG_TEMPLATE = " + (if (%3$s) \" %1$s\" else \"\")";
 
     public final String getCommandLineAddition() {
@@ -99,7 +101,10 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     protected String getCommandLineTemplate() {
-        return isRequired() ? REQUIRED_TEMPLATE : OPTIONAL_TEMPLATE;
+        if (isFlag()) return FLAG_TEMPLATE;
+        if (isMultiValued()) return REPEAT_TEMPLATE;
+        if (isRequired()) return REQUIRED_TEMPLATE;
+        return OPTIONAL_TEMPLATE;
     }
 
     public static List<? extends ArgumentField> getArgumentFields(Class<?> classType) {
@@ -122,11 +127,11 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         // ROD Bindings are set by the RodBindField
         } else if (RodBindField.ROD_BIND_FIELD.equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             // TODO: Once everyone is using @Allows and @Requires correctly, we can stop blindly allowing Triplets
-            return Collections.singletonList(new RodBindArgumentField(argumentDefinition, argumentDefinition.required));
+            return Collections.singletonList(new RodBindArgumentField(argumentDefinition));
             //return Collections.<ArgumentField>emptyList();
 
         } else if ("input_file".equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
-            return Arrays.asList(new InputArgumentField(argumentDefinition), new IndexFilesField());
+            return Arrays.asList(new InputNamedFileDefinitionField(argumentDefinition), new IndexFilesField());
 
         } else if (argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Collections.singletonList(new InputArgumentField(argumentDefinition));
@@ -219,14 +224,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
 
         @Override protected Class<?> getInnerType() { return File.class; }
-        @Override protected String getFieldType() { return String.format(isMultiValued() ? "List[%s]" : "%s", getRawFieldType()); }
+        @Override protected String getFieldType() { return isMultiValued() ? "List[File]" : "File"; }
         @Override protected String getDefaultValue() { return isMultiValued() ? "Nil" : "_"; }
-        @Override protected String getCommandLineTemplate() {
-            return isMultiValued() ? REPEAT_TEMPLATE : super.getCommandLineTemplate();
-        }
-
-        protected String getRawFieldType() { return "File"; }
-        protected boolean isMultiValued() { return argumentDefinition.isMultiValued; }
     }
 
     // if (argumentDefinition.ioType == ArgumentIOType.OUTPUT)
@@ -313,15 +312,31 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     /**
      * The other extreme of a NamedRodBindingField, allows the user to specify the track name, track type, and the file.
      */
-    public static class RodBindArgumentField extends InputArgumentField {
-        private boolean isRequired;
-        public RodBindArgumentField(ArgumentDefinition argumentDefinition, boolean isRequired) {
+    public static class RodBindArgumentField extends ArgumentDefinitionField {
+        public RodBindArgumentField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition);
-            this.isRequired = isRequired;
         }
+        @Override protected Class<?> getInnerType() { return null; } // RodBind does not need to be imported.
+        @Override protected String getFieldType() { return "List[RodBind]"; }
+        @Override protected String getDefaultValue() { return "Nil"; }
+        @Override protected String getCommandLineTemplate() {
+            return " + repeat(\"\", %3$s, format=RodBind.formatCommandLine(\"%1$s\"))";
+        }
+    }
 
-        @Override protected boolean isRequired() { return this.isRequired; }
-        @Override protected String getRawFieldType() { return "RodBind"; }
+    /**
+     * Named input_files.
+     */
+    public static class InputNamedFileDefinitionField extends ArgumentDefinitionField {
+        public InputNamedFileDefinitionField(ArgumentDefinition argumentDefinition) {
+            super(argumentDefinition);
+        }
+        @Override protected Class<?> getInnerType() { return null; } // NamedFile does not need to be imported.
+        @Override protected String getFieldType() { return "List[NamedFile]"; }
+        @Override protected String getDefaultValue() { return "Nil"; }
+        @Override protected String getCommandLineTemplate() {
+            return " + repeat(\"\", %3$s, format=NamedFile.formatCommandLine(\"%1$s\"))";
+        }
     }
 
     /**
@@ -339,8 +354,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getRawFieldName() { return "index_files"; }
         @Override protected String getFreezeFields() {
             return String.format(
-                    "index_files ++= input_file.filter(bam => bam != null && bam.getName.endsWith(\".bam\")).map(bam => new File(bam.getPath + \".bai\"))%n" +
-                    "index_files ++= input_file.filter(sam => sam != null && sam.getName.endsWith(\".sam\")).map(sam => new File(sam.getPath + \".sai\"))%n");
+                    "index_files ++= input_file.filter(bam => bam != null && bam.file.getName.endsWith(\".bam\")).map(bam => new File(bam.file.getPath + \".bai\"))%n" +
+                    "index_files ++= input_file.filter(sam => sam != null && sam.file.getName.endsWith(\".sam\")).map(sam => new File(sam.file.getPath + \".sai\"))%n");
         }
     }
 
