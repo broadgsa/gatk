@@ -24,7 +24,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " -B variant,GeliText," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
+                        " -B:variant,GeliText " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.variants.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +
@@ -41,7 +41,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " -B variant,GeliText," + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
+                        " -B:variant,GeliText " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.lod5.genotypes.geli.calls" +
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +
@@ -58,7 +58,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " -B variant,HapMap," + validationDataLocation + "rawHapMap.yri.chr1.txt" +
+                        " -B:variant,HapMap " + validationDataLocation + "rawHapMap.yri.chr1.txt" +
                         " -T VariantsToVCF" +
                         " -L 1:1-1,000,000" +
                         " -o %s",
@@ -74,7 +74,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " -B variant,VCF," + validationDataLocation + "complexExample.vcf4" +
+                        " -B:variant,VCF " + validationDataLocation + "complexExample.vcf4" +
                         " -T VariantsToVCF" +
                         " -o %s",
                 1, // just one output file

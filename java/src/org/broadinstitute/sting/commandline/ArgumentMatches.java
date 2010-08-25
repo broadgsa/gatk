@@ -204,6 +204,6 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @return A unique set of matches.
      */
     private Set<ArgumentMatch> getUniqueMatches() {
-        return new HashSet<ArgumentMatch>( argumentMatches.values() );
+        return new LinkedHashSet<ArgumentMatch>( argumentMatches.values() );
     }    
 }

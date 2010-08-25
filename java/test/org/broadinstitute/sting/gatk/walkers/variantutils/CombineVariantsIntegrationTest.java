@@ -45,7 +45,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public void test1InOut(String file, String md5, String args) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1 -B v1,VCF," + validationDataLocation + file + args),
+                 baseTestString(" -priority v1 -B:v1,VCF " + validationDataLocation + file + args),
                  1,
                  Arrays.asList(md5));
          executeTest("testInOut1--" + file, spec);
@@ -53,7 +53,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public void combine2(String file1, String file2, String args, String md5) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 baseTestString(" -priority v1,v2 -B v1,VCF," + validationDataLocation + file1 + " -B v2,VCF," + validationDataLocation + file2 + args),
+                 baseTestString(" -priority v1,v2 -B:v1,VCF " + validationDataLocation + file1 + " -B:v2,VCF " + validationDataLocation + file2 + args),
                  1,
                  Arrays.asList(md5));
          executeTest("combine2 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
@@ -78,10 +78,10 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -B NA19240_BGI,VCF,"+validationDataLocation+"NA19240.BGI.RG.vcf" +
-                        " -B NA19240_ILLUMINA,VCF,"+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
-                        " -B NA19240_WUGSC,VCF,"+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
-                        " -B denovoInfo,VCF,"+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
+                baseTestString(" -B:NA19240_BGI,VCF "+validationDataLocation+"NA19240.BGI.RG.vcf" +
+                        " -B:NA19240_ILLUMINA,VCF "+validationDataLocation+"NA19240.ILLUMINA.RG.vcf" +
+                        " -B:NA19240_WUGSC,VCF "+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
+                        " -B:denovoInfo,VCF "+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
                         " -setKey centerSet" +
                         " -variantMergeOptions UNION" +
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +

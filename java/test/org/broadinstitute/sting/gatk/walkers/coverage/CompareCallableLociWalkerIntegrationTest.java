@@ -30,7 +30,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 public class CompareCallableLociWalkerIntegrationTest extends WalkerTest {
-    final static String commonArgs = "-R " + hg18Reference + " -T CompareCallableLoci -B comp1,Bed," + validationDataLocation + "1kg_slx.chr1_10mb.callable -B comp2,Bed," + validationDataLocation + "ga2_slx.chr1_10mb.callable -o %s";
+    final static String commonArgs = "-R " + hg18Reference + " -T CompareCallableLoci -B:comp1,Bed " + validationDataLocation + "1kg_slx.chr1_10mb.callable -B:comp2,Bed " + validationDataLocation + "ga2_slx.chr1_10mb.callable -o %s";
 
     @Test
     public void testCompareCallableLociWalker1() {

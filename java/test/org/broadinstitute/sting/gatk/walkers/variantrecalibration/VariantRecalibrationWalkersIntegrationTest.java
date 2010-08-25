@@ -24,7 +24,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                     "-R " + b36KGReference +
                             " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                             " -T GenerateVariantClusters" +
-                            " -B input,VCF," + vcf +
+                            " -B:input,VCF " + vcf +
                             " -L 1:1-100,000,000" +
                             " --ignore_filter GATK_STANDARD" +
                             " -an QD -an HRun -an SB" +
@@ -51,7 +51,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         "-R " + b36KGReference +
                                 " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                                 " -T VariantRecalibrator" +
-                                " -B input,VCF," + vcf +
+                                " -B:input,VCF " + vcf +
                                 " -L 1:40,000,000-100,000,000" +
                                 " --ignore_filter GATK_STANDARD" +
                                 " --ignore_filter HARD_TO_VALIDATE" +
@@ -89,7 +89,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                                 " -T ApplyVariantCuts" +
                                 " -L 1:40,000,000-100,000,000" +
-                                " -B input,VCF," + inputVCFFile +
+                                " -B:input,VCF " + inputVCFFile +
                                 " -o %s" +
                                 " -tranchesFile " + tranchesFile,
                         1, // just one output file
