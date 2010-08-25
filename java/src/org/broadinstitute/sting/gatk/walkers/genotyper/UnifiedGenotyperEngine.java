@@ -175,7 +175,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // are there too many deletions in the pileup?
-            if ( UAC.genotypeModel != GenotypeCalculationModel.Model.INDELS &&
+            if ( UAC.genotypeModel != GenotypeCalculationModel.Model.DINDEL &&
                  isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
                  (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
                 return null;

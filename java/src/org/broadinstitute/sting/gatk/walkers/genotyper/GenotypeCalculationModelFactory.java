@@ -55,14 +55,13 @@ public class GenotypeCalculationModelFactory {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
             case JOINT_ESTIMATE:
-            case JOINT_ESTIMATE_EXPT_GL:
-                boolean useExptGenotypeLikelihoods = UAC.genotypeModel == JOINT_ESTIMATE_EXPT_GL;
-                gcm = new DiploidGenotypeCalculationModel(useExptGenotypeLikelihoods);
+                gcm = new DiploidGenotypeCalculationModel();
                 break;
-            case INDELS:
-                gcm = new SimpleIndelCalculationModel();
-                break;
-            default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
+            case DINDEL:
+                throw new UnsupportedOperationException("The Dindel-based genotype likelihoods model is not currently supported");
+                //gcm = new SimpleIndelCalculationModel();
+                //break;
+            default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
 
         gcm.initialize(samples, logger, UAC, verboseWriter);

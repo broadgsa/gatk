@@ -37,14 +37,8 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import java.util.*;
 
 public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalculationModel {
-    /**
-     * Should we enable the experimental genotype likelihood calculations?
-     */
-    protected boolean useExptGenotypeLikelihoods = false;
 
-    protected DiploidGenotypeCalculationModel(boolean useExptGenotypeLikelihoods) {
-        this.useExptGenotypeLikelihoods = useExptGenotypeLikelihoods;
-    }
+    protected DiploidGenotypeCalculationModel() {}
 
     // the GenotypeLikelihoods map
     private HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();

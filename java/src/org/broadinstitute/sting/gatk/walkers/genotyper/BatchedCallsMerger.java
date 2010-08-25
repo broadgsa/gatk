@@ -71,7 +71,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
-    public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS; }
+    public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.DINDEL; }
 
     public void initialize() {
 

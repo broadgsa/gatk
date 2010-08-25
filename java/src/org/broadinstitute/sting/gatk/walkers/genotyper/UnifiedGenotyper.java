@@ -37,8 +37,6 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
 import java.io.PrintStream;
-import java.io.File;
-import java.io.FileNotFoundException;
 
 
 /**
@@ -85,7 +83,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
-    public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.INDELS; }
+    public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.DINDEL; }
 
     /**
      * Inner class for collecting output statistics from the UG
