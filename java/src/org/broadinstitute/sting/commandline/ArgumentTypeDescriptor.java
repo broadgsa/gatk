@@ -230,11 +230,11 @@ public abstract class ArgumentTypeDescriptor {
      * @return The value of the argument if available, or null if not present.
      */
     protected List<String> getArgumentTags(ArgumentMatches matches) {
-        Set<String> tags = new LinkedHashSet<String>();
+        List<String> tags = new ArrayList<String>();
         for( ArgumentMatch match: matches ) {
                 tags.addAll(match.tags);
         }
-        return new ArrayList<String>(tags);
+        return tags;
     }
 
     /**
@@ -395,7 +395,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse(ParsingEngine parsingEngine,ArgumentSource source, Class type, ArgumentMatches matches) {
         Class componentType;
         Object result;
-        Set<String> tags = new LinkedHashSet<String>();
+        List<String> tags = new ArrayList<String>();
 
         if( Collection.class.isAssignableFrom(type) ) {
 
@@ -456,7 +456,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             throw new StingException("Unsupported compound argument type: " + type);
 
         // WARNING: Side effect!
-        parsingEngine.addTags(result,new ArrayList<String>(tags));
+        parsingEngine.addTags(result,tags);
 
         return result;
     }
