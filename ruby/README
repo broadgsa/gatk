@@ -1,0 +1,9 @@
+This file is a roadmap to the contents of the Ruby directory
+
+Contents:
+------------------------------------------------------------------------------------
+restartBamboo.rb 		- a script used to restart Bamboo after system failures
+validateIndex.rb		- a script for working with Tribble indexes, type 'validateIndex.rb' -h for help
+
+utils/					- any basic utility methods
+index/					- the index utility code
