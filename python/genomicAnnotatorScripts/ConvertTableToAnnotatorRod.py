@@ -46,7 +46,6 @@ group.add_option("-v", "--verbose", action="store_true", default=False,         
 group.add_option("-d", "--delimiter",                                                                        help="The delimiter that separates values in a line of INPUT-FILE. Set to 'tab' to make it use tab [Default: spaces].")
 
 
-
 parser.add_option_group(group)
 
 (options, args) = parser.parse_args()
@@ -84,7 +83,7 @@ def line_key(line):
 def chrpos_to_n(lsplit):
     # Get chr, pos from line
 
-    chr_value, start_value = None, None # Init in case of error
+    chr_value, start_value, chr_prefix = None, None, '' # Init in case of error
     try:
         split1 = lsplit[0].split(":") # Get chr:start-stop out of the 1st column.
         chr_value = split1[0].lower().strip()
@@ -95,6 +94,11 @@ def chrpos_to_n(lsplit):
         if len(split2) > 1:
             stop_value = split2[1].lower().strip()
             stop_n = long(stop_value)
+        #Become chr_prefix aware
+        if chr_value.count("chr"):
+            chr_prefix = "chr"
+        else:
+            chr_prefix = ""
     except:
         sys.stderr.write("chrom: %s, start: %s. Couldn't parse line: %s \n" % (chr_value, start_value, line))
         raise
@@ -106,11 +110,11 @@ def chrpos_to_n(lsplit):
         a = 30 # Offset so that "random" chromosomes go last
 
     if sequence_build == "UCSC":
-        chr_value = chr_value.replace("chrm", "chr0")
+        chr_value = chr_value.replace(chr_prefix+"m", chr_prefix+"0")
     else:
-        chr_value = chr_value.replace("chrm", "chr25")
+        chr_value = chr_value.replace(chr_prefix+"m", chr_prefix+"25")
 
-    chr_n = a + int(chr_value.replace("chrx", "chr23").replace("chry", "chr24").replace("chr","")) + 1
+    chr_n = a + int(chr_value.replace(chr_prefix+"x", chr_prefix+"23").replace(chr_prefix+"y", chr_prefix+"24").replace(chr_prefix,"")) + 1
 
     N = (chr_n * 10L**23) + (start_n * 10L**11) + stop_n # Combine chr, start, stop into a single numeric key for sorting
 
@@ -372,7 +376,24 @@ for line in open(input_filename):
                 line_fields[start_column] = str(start_int) # Change the original column in case keep_copy is True
 
             chrpos_value = "%s:%d" % ( line_fields[chr_column], start_int )
-
+            #@JAMES@
+            #print(chrpos_value)
+            #Become chr_prefix aware
+            if chrpos_value.count("chr"):
+                chr_prefix = "chr"
+            else:
+                chr_prefix = ""
+                
+            if sequence_build == "UCSC" and chr_prefix == "chr":
+                chrpos_value = "%s:%d" % ( line_fields[chr_column], start_int )
+            elif sequence_build == "UCSC" and chr_prefix != "chr":
+                chrpos_value = "chr%s:%d" % ( line_fields[chr_column], start_int )
+            elif sequence_build == "NCBI" and chr_prefix == "chr":
+                chrpos_value = "%s:%d".replace("chr","") % ( line_fields[chr_column], start_int )
+            elif sequence_build == "NCBI" and chr_prefix != "chr":
+                chrpos_value = "%s:%d" % ( line_fields[chr_column], start_int )
+            
+            #/JAMES
             if stop_column:
                 try: stop_int = long(line_fields[stop_column])
                 except: error("Line #%d, Column %d: stop coordinate value '%s' is not an integer" % (counter, stop_column, line_fields[stop_column]))
@@ -485,6 +506,9 @@ for line in data_lines:
         else:
             output_file.write(line[3:] + "\n")
     else:
+        #if sequence_build == "UCSC":
+        #    output_file.write("chr" + line + "\n")
+        #else:
         output_file.write(line + "\n")
 
 output_file.close()
